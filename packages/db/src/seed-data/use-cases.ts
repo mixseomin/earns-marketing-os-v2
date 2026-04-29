@@ -415,6 +415,55 @@ export const USE_CASES: UseCaseSpec[] = [
       'Alt variants for over-maxLen cases.',
   },
   {
+    slug: '7.3-project-brand-vars',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Project brand fields → snippet template auto-fill',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: '/p/[id]/settings Brand panel + AccountFormModal templateVars',
+    tags: ['accounts', 'snippets', 'brand', 'project'],
+    sortOrder: 73,
+    steps: [
+      { n: 1, action: 'Mở project Settings', url: '/p/orit/settings' },
+      { n: 2, action: 'Cuộn xuống "Brand · template variables"' },
+      { n: 3, action: 'Verify 5 fields đã prefill cho Orit: website=https://orit.app, oneLiner, bio, persona, hashtags' },
+      { n: 4, action: 'Sửa website thành "https://test.com" → Save' },
+      { n: 5, action: 'Mở /p/orit/resources → Account Product Hunt → edit → snippets section' },
+      { n: 6, action: 'Verify {{website}} render ra "https://test.com" (không còn literal)' },
+      { n: 7, action: 'Verify {{bio}} {{persona}} {{hashtags}} {{one-liner}} render ra value đã set' },
+      { n: 8, action: 'Test cross-project: /p/astrolas/resources → khác account → snippets dùng Astrolas brand, không phải Orit' },
+      { n: 9, action: 'Re-seed (npm run db:seed) → verify brand không bị overwrite (chỉ INSERT-once defaults, UPDATE preserve user edits)' },
+    ],
+    expected:
+      'Brand 1 chỗ → fill mọi snippet trên mọi platform account của project.\n' +
+      'Per-project scope: Orit brand không leak qua Astrolas.\n' +
+      'Re-seed preserve brand edits (spec/state separation pattern).',
+  },
+  {
+    slug: '7.4-blank-state-no-mock-leak',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Blank state consistency — no mock data leak ở Resources/Tribes/Studio',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: 'Resources/Tribes/Studio routes isBlank check',
+    tags: ['ux', 'blank-state', 'consistency'],
+    sortOrder: 74,
+    steps: [
+      { n: 1, action: 'Mở /p/orit/resources → click vault Media (12.8k assets)', url: '/p/orit/resources' },
+      { n: 2, action: 'Verify EmptyState "Media vault — chưa wire DB" thay vì mock 12.8k' },
+      { n: 3, action: 'Click vault Contacts/Infra/Budget/Knowledge → tương tự EmptyState với link /roadmap Phase 8' },
+      { n: 4, action: 'Click vault Accounts → vẫn dùng AccountsVault DB-backed (không EmptyState)' },
+      { n: 5, action: 'Mở /p/orit/tribes → EmptyState "Tribes — chưa wire DB"' },
+      { n: 6, action: 'Mở /p/orit/studio → EmptyState "Content Studio — chưa wire DB"' },
+      { n: 7, action: 'So sánh /p/aff-vn/resources (demo project) → vault Media vẫn mock data đầy đủ (giữ design preview)' },
+      { n: 8, action: '/p/aff-vn/tribes /p/aff-vn/studio → vẫn full mock content' },
+    ],
+    expected:
+      'Blank projects (Orit/Astrolas, ai-blank=true) → EmptyState mọi vault non-Accounts + Tribes + Studio.\n' +
+      'Demo projects giữ mock content cho design preview (đến khi schema DB ship).\n' +
+      'Accounts vault DB-backed → luôn render thật (per-project) không chịu isBlank rule.',
+  },
+  {
     slug: '7.2-checklist-phase-filter-by-status',
     groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
     title: 'Warmup checklist: only show phase matching account status',

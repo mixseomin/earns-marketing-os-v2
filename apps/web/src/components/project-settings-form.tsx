@@ -31,6 +31,11 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
     revenue: project.revenue,
     kpi: project.kpi,
     color: project.color,
+    website: project.website ?? '',
+    oneLiner: project.oneLiner ?? '',
+    bio: project.bio ?? '',
+    persona: project.persona ?? '',
+    hashtags: project.hashtags ?? '',
   });
 
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -39,6 +44,8 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
     agentsCore: project.agents.core, agentsShared: project.agents.shared,
     budget: project.budget, health: project.health, revenue: project.revenue,
     kpi: project.kpi, color: project.color,
+    website: project.website ?? '', oneLiner: project.oneLiner ?? '',
+    bio: project.bio ?? '', persona: project.persona ?? '', hashtags: project.hashtags ?? '',
   });
 
   const handleSave = async () => {
@@ -159,6 +166,42 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
           <div>
             <span style={lbl}>KPI (display)</span>
             <input style={fld} placeholder="e.g. ROAS 2.8x, Churn 3.2%" value={form.kpi} onChange={(e) => setF('kpi', e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: 12 }}>
+        <div className="panel-head">
+          <div className="panel-title"><span className="dot" style={{ background: 'var(--neon-cyan)' }}></span>Brand · template variables</div>
+        </div>
+        <div className="panel-body">
+          <p style={{ margin: '0 0 10px', fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+            Auto-fill cho content snippets ở mọi platform account thuộc project. Edit ở đây 1 lần → mọi <code>{`{{website}}`}</code> <code>{`{{bio}}`}</code> <code>{`{{persona}}`}</code> <code>{`{{one-liner}}`}</code> <code>{`{{hashtags}}`}</code> tự fill khi copy snippet.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <span style={lbl}>Website <code style={{ color: 'var(--fg-4)' }}>{`{{website}}`}</code></span>
+              <input style={fld} placeholder="https://orit.app" value={form.website} onChange={(e) => setF('website', e.target.value)} />
+            </div>
+            <div>
+              <span style={lbl}>One-liner <code style={{ color: 'var(--fg-4)' }}>{`{{one-liner}}`}</code></span>
+              <input style={fld} placeholder="Find anyone's contact in seconds" value={form.oneLiner} onChange={(e) => setF('oneLiner', e.target.value)} />
+            </div>
+            <div>
+              <span style={lbl}>Persona <code style={{ color: 'var(--fg-4)' }}>{`{{persona}}`}</code></span>
+              <input style={fld} placeholder="Solo founder, indie maker..." value={form.persona} onChange={(e) => setF('persona', e.target.value)} />
+            </div>
+            <div>
+              <span style={lbl}>Hashtags <code style={{ color: 'var(--fg-4)' }}>{`{{hashtags}}`}</code></span>
+              <input style={fld} placeholder="#saas #indie #dev" value={form.hashtags} onChange={(e) => setF('hashtags', e.target.value)} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Bio (longer about) <code style={{ color: 'var(--fg-4)' }}>{`{{bio}}`}</code></span>
+              <textarea style={{ ...fld, minHeight: 64, resize: 'vertical' }}
+                        placeholder="Solo founder building Orit — reach intelligence for indie makers and small sales teams."
+                        value={form.bio}
+                        onChange={(e) => setF('bio', e.target.value)} />
+            </div>
           </div>
         </div>
       </div>

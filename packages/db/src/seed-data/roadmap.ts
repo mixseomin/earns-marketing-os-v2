@@ -249,7 +249,101 @@ export const ROADMAP_ITEMS: RoadmapItemSpec[] = [
     sortOrder: 74, initialStatus: 'backlog',
   },
 
-  // ── Phase 8+ — Ideas / future ────────────────────────────────
+  // ── Phase 8 — Resources/Tribes/Studio DB-back ────────────────
+  // Currently these tabs have full mock UI ported from MOS2 design but
+  // no DB schema. Blank projects (Orit/Astrolas) show EmptyState placeholders;
+  // demo projects still render mock for design preservation. Phase 8 wires
+  // each one to real DB tables.
+  {
+    slug: 'phase-8-resources-media',
+    title: 'Resources · Media vault — DB-back',
+    description: 'media_assets table (image/video/audio uploads), per-asset metadata (size, format, uses, revenue), brand kit attached to project.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'L',
+    featureRef: '/p/[id]/resources Media vault',
+    tags: ['resources', 'media', 'phase-8'],
+    sortOrder: 81, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-resources-contacts',
+    title: 'Resources · Contacts vault — DB-back',
+    description: 'contacts table (KOC, partners, brand contacts) per-project. Bridge sync from earns-api orit-contacts collection.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'M',
+    featureRef: '/p/[id]/resources Contacts vault',
+    tags: ['resources', 'contacts', 'phase-8'],
+    sortOrder: 82, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-resources-infra',
+    title: 'Resources · Infra vault — DB-back (proxies, SIM, devices, API keys)',
+    description: 'infra_pools (proxies, SIM, devices), api_keys table with pgcrypto encryption. Live quota fetch from APIs (Claude, OpenAI, Webshare).',
+    category: 'infra', phase: '8', priority: 'medium', effort: 'XL',
+    featureRef: '/p/[id]/resources Infra vault',
+    tags: ['resources', 'infra', 'phase-8', 'security'],
+    sortOrder: 83, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-resources-budget',
+    title: 'Resources · Budget vault — DB-back',
+    description: 'budget_lines per-project per-day (ad spend, infra, content). Burn rate alerts. Link to revenue_events.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'M',
+    featureRef: '/p/[id]/resources Budget vault',
+    tags: ['resources', 'budget', 'phase-8'],
+    sortOrder: 84, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-resources-knowledge',
+    title: 'Resources · Knowledge vault — DB-back (playbooks, prompts, lessons)',
+    description: 'knowledge_items table (SOPs, prompts, templates, AI auto-lessons). Bridge with as.on.tc Directus knowledge collection.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'L',
+    dependsOn: ['phase-4-directus-import'],
+    featureRef: '/p/[id]/resources Knowledge vault',
+    tags: ['resources', 'knowledge', 'phase-8'],
+    sortOrder: 85, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-tribes-db',
+    title: 'Tribes — 2-layer DB schema (Habitats + Tribes)',
+    description: 'habitats table (subreddit, FB group, hashtag) + tribes table (audience identity). Bridge sync from earns-api orit habitats. Cross-tribe overlap matrix.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'XL',
+    featureRef: '/p/[id]/tribes',
+    tags: ['tribes', 'phase-8'],
+    sortOrder: 86, initialStatus: 'backlog',
+  },
+  {
+    slug: 'phase-8-studio-db',
+    title: 'Content Studio — content_pieces DB + multi-channel preview',
+    description: 'content_pieces table per project (FB/email/ad/reel/landing/DM drafts). AI co-pilot via Claude API. Live metrics from connected accounts.',
+    category: 'feature', phase: '8', priority: 'medium', effort: 'XL',
+    dependsOn: ['phase-7-content-snippets'],
+    featureRef: '/p/[id]/studio',
+    tags: ['studio', 'content', 'phase-8'],
+    sortOrder: 87, initialStatus: 'backlog',
+  },
+
+  // ── Backlog ideas / future ───────────────────────────────────
+  {
+    slug: 'phase-7-content-snippets-brand-vars',
+    title: 'Project brand fields → snippet template auto-fill',
+    description: 'Add website/oneLiner/bio/persona/hashtags to projects table. /p/[id]/settings Brand panel. AccountFormModal templateVars pulls from project. Edit once → fills all snippets.',
+    category: 'feature', phase: '7', priority: 'high', effort: 'S',
+    shippedIn: 'WIP',
+    featureRef: 'Settings Brand panel + AccountFormModal templateVars',
+    useCaseSlugs: ['7.3-project-brand-vars'],
+    tags: ['accounts', 'snippets', 'brand'],
+    sortOrder: 75, initialStatus: 'in-progress',
+  },
+  {
+    slug: 'phase-7-blank-state-consistency',
+    title: 'Consistent blank state across all per-project tabs',
+    description: 'Apply isBlank heuristic uniformly to Resources non-Accounts vaults, Tribes, Studio so blank projects (Orit/Astrolas) show EmptyState instead of mock data.',
+    category: 'fix', phase: '7', priority: 'high', effort: 'XS',
+    shippedIn: 'WIP',
+    featureRef: 'Resources/Tribes/Studio routes',
+    useCaseSlugs: ['7.4-blank-state-no-mock-leak'],
+    tags: ['ux', 'blank-state', 'consistency'],
+    sortOrder: 76, initialStatus: 'in-progress',
+  },
+
   {
     slug: 'phase-8-saas-ready-rollout',
     title: 'SaaS-ready rollout (multi-tenant)',

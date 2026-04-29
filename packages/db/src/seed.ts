@@ -217,16 +217,25 @@ for (const p of PROJECTS_SEED) {
     kpi: p.kpi ?? '',
     alerts: p.alerts ?? 0,
     color: p.color ?? '#00e5ff',
+    website: p.website ?? '',
+    oneLiner: p.oneLiner ?? '',
+    bio: p.bio ?? '',
+    persona: p.persona ?? '',
+    hashtags: p.hashtags ?? '',
   };
+  // Brand fields (website/oneLiner/bio/persona/hashtags) are USER-MANAGED via
+  // /p/[id]/settings. Seed inserts defaults on first INSERT only — re-seed
+  // never overwrites them. Spec fields (name/mode/budget/etc.) still upsert.
+  const { website: _w, oneLiner: _o, bio: _b, persona: _p, hashtags: _h, ...specOnly } = row;
   await db
     .insert(projects)
     .values(row)
     .onConflictDoUpdate({
       target: projects.id,
-      set: { ...row, updatedAt: new Date() },
+      set: { ...specOnly, updatedAt: new Date() },
     });
 }
-console.log(`[mos2/db:seed] ✓ Projects upserted`);
+console.log(`[mos2/db:seed] ✓ Projects upserted (brand fields preserved on existing rows)`);
 
 // ── 3. Seed squads / cards / alerts / feed for each project ──
 // Strategy: each project's mode owns the canonical squad/card/alert/feed shape.

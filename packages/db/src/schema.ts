@@ -72,6 +72,15 @@ export const projects = pgTable(
     kpi: text('kpi').notNull().default(''),
     alerts: smallint('alerts').notNull().default(0),       // count badge
     color: text('color').notNull().default('#00e5ff'),
+    // ── Brand fields (used by content snippet templates per-account) ──
+    // These centralize the per-project values that snippet placeholders
+    // {{website}} {{one-liner}} {{bio}} {{persona}} {{hashtags}} pull from.
+    // Edit once in /p/[id]/settings → applies to every account on every platform.
+    website: text('website').notNull().default(''),
+    oneLiner: text('one_liner').notNull().default(''),
+    bio: text('bio').notNull().default(''),
+    persona: text('persona').notNull().default(''),
+    hashtags: text('hashtags').notNull().default(''),       // free-form: '#saas #indie #dev'
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

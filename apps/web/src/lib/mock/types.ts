@@ -117,4 +117,10 @@ export interface Project {
   kpi: string;
   alerts: number;
   color: string;
+  // ── Brand fields (template variables for content snippets) ──
+  website?: string;
+  oneLiner?: string;
+  bio?: string;
+  persona?: string;
+  hashtags?: string;
 }

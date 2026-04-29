@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PlatformRow, AccountRow } from '@/lib/data';
+import type { Project } from '@/lib/mock/types';
 import {
   createAccount, updateAccount, deleteAccount, setAccountStatus, toggleChecklistItem,
   listDirectusAccountsForPlatform, importDirectusAccount,
@@ -152,8 +153,9 @@ function SnippetCard({ snippet, vars }: {
   );
 }
 
-export function AccountsVault({ projectId, platforms, accounts }: {
+export function AccountsVault({ projectId, project, platforms, accounts }: {
   projectId: string;
+  project: Project;
   platforms: PlatformRow[];
   accounts: AccountRow[];
 }) {
@@ -287,6 +289,7 @@ export function AccountsVault({ projectId, platforms, accounts }: {
       {(editing || creating) && (
         <AccountFormModal
           account={editing}
+          project={project}
           projectId={projectId}
           platforms={platforms}
           onClose={() => { setEditing(null); setCreating(false); }}
@@ -300,8 +303,9 @@ export function AccountsVault({ projectId, platforms, accounts }: {
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-function AccountFormModal({ account, projectId, platforms, onClose }: {
+function AccountFormModal({ account, project, projectId, platforms, onClose }: {
   account: AccountRow | null;
+  project: Project;
   projectId: string;
   platforms: PlatformRow[];
   onClose: () => void;
@@ -435,17 +439,20 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
   }, [account?.status]);
 
   // Variable substitution context for snippet templates.
-  // Pulls what we have today (handle, platform). website/bio/persona left
-  // literal so user knows to fill — phase 7.5 will store these per project.
+  // Project-level brand fields (website/bio/persona/hashtags/one-liner) come
+  // from project row; account-level (handle/platform) from form state. Edit
+  // brand once in /p/[id]/settings → applies across all platform accounts.
   const templateVars = useMemo(() => ({
     handle: form.handle || '',
     platform: platform?.label ?? form.platformKey,
-    website: '',
-    bio: '',
-    persona: '',
-    hashtags: '',
-    'one-liner': '',
-  }), [form.handle, form.platformKey, platform?.label]);
+    website: project.website ?? '',
+    bio: project.bio ?? '',
+    persona: project.persona ?? '',
+    hashtags: project.hashtags ?? '',
+    'one-liner': project.oneLiner ?? '',
+    name: project.name,
+    email: form.email || '',
+  }), [form.handle, form.email, form.platformKey, platform?.label, project]);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

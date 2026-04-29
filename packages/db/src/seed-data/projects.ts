@@ -15,6 +15,19 @@ export const PROJECTS_SEED: Project[] = [
   { id: 'trading-a',   name: 'Trading Alpha',    emoji: '📈', mode: 'trading',        agents: { core: 14, shared: 3 }, budget: 0,   health: 86, revenue: '+18.4% MTD',    kpi: 'Sharpe 1.84', alerts: 4, color: '#ffb03c' },
   { id: 'pod-vn',      name: 'POD Store VN',     emoji: '👕', mode: 'dropship',       agents: { core: 20, shared: 5 }, budget: 40,  health: 70, revenue: '42.4tr/d',      kpi: 'ROAS 3.8x',   alerts: 4, color: '#b6ff3c' },
   // ── Real Earns portfolio (blank slate — user fills via UI) ───────
-  { id: 'orit',        name: 'Orit',             emoji: '🔍', mode: 'lead-gen',       agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#00e5ff', blank: true },
-  { id: 'astrolas',    name: 'Astrolas',         emoji: '🔭', mode: 'content-studio', agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#9d6cff', blank: true },
+  // Brand defaults seeded on first INSERT only; re-seed preserves user edits.
+  { id: 'orit',        name: 'Orit',             emoji: '🔍', mode: 'lead-gen',       agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#00e5ff', blank: true,
+    website: 'https://orit.app',
+    oneLiner: 'Find anyone\'s contact in seconds',
+    bio: 'Solo founder building Orit — reach intelligence for indie makers and small sales teams.',
+    persona: 'Solo founder',
+    hashtags: '#saas #indie #sales #leadgen',
+  },
+  { id: 'astrolas',    name: 'Astrolas',         emoji: '🔭', mode: 'content-studio', agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#9d6cff', blank: true,
+    website: 'https://astrolas.com',
+    oneLiner: 'Astrology insights for modern seekers',
+    bio: 'Faceless content brand exploring astrology, ritual, and self-knowledge through short videos and articles.',
+    persona: 'Faceless creator',
+    hashtags: '#astrology #content #faceless',
+  },
 ];

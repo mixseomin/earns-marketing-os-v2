@@ -36,6 +36,13 @@
       "when": 1777486433886,
       "tag": "0004_chief_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777488989735,
+      "tag": "0005_curvy_terrax",
+      "breakpoints": true
     }
   ]
 }

@@ -161,6 +161,11 @@ function rowToProject(r: NonNullable<ProjectRow>): Project {
     kpi: r.kpi,
     alerts: r.alerts,
     color: r.color,
+    website: r.website,
+    oneLiner: r.oneLiner,
+    bio: r.bio,
+    persona: r.persona,
+    hashtags: r.hashtags,
   };
 }
 

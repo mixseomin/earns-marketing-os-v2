@@ -651,7 +651,7 @@ const VAULT_COMPONENTS = {
   infra: VaultInfra, budget: VaultBudget, knowledge: VaultKnowledge,
 };
 
-export function ResourcesPage({ accountsOverride }: { accountsOverride?: React.ReactNode } = {}) {
+export function ResourcesPage({ accountsOverride, isBlank = false }: { accountsOverride?: React.ReactNode; isBlank?: boolean } = {}) {
   const [vault, setVault] = React.useState("accounts");
   const Active = VAULT_COMPONENTS[vault];
   const cur = VAULTS[vault];
@@ -697,7 +697,23 @@ export function ResourcesPage({ accountsOverride }: { accountsOverride?: React.R
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>
       </div>
 
-      {vault === 'accounts' && accountsOverride ? accountsOverride : <Active />}
+      {vault === 'accounts' && accountsOverride
+        ? accountsOverride
+        : isBlank
+          ? (
+            <div className="panel">
+              <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>{cur?.icon}</div>
+                <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 600, color: 'var(--fg-0)' }}>{cur?.title} vault — chưa wire DB</h2>
+                <p style={{ margin: '0 auto 12px', maxWidth: 440, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', lineHeight: 1.5 }}>
+                  Vault này hiện hiển thị mock data minh hoạ. Project blank (Orit/Astrolas) ẩn để không gây nhiễu.
+                  Schema + CRUD sẽ ship ở phase 8 (xem <a href="/roadmap" style={{ color: 'var(--accent)' }}>/roadmap</a> Phase 8).
+                  Hiện tại: dùng <strong>Accounts vault</strong> (đã DB-backed) để quản lý tài khoản platforms.
+                </p>
+              </div>
+            </div>
+          )
+          : <Active />}
     </div>
   );
 }

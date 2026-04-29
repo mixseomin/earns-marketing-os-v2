@@ -119,4 +119,10 @@ export interface Project {
   color: string;
   /** When true, seed inserts the project row but skips squads/cards/alerts/feed (blank slate). */
   blank?: boolean;
+  // ── Brand fields (snippet template variables) ──
+  website?: string;
+  oneLiner?: string;
+  bio?: string;
+  persona?: string;
+  hashtags?: string;
 }

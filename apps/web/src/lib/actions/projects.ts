@@ -27,6 +27,12 @@ export interface ProjectInput {
   revenue: string;
   kpi: string;
   color: string;
+  // Brand fields (snippet template variables)
+  website?: string;
+  oneLiner?: string;
+  bio?: string;
+  persona?: string;
+  hashtags?: string;
 }
 
 function slugify(s: string): string {
@@ -107,6 +113,11 @@ export async function updateProject(id: string, input: Partial<ProjectInput>): P
   if (input.revenue !== undefined) patch.revenue = input.revenue || '—';
   if (input.kpi !== undefined) patch.kpi = input.kpi;
   if (input.color !== undefined) patch.color = input.color;
+  if (input.website !== undefined) patch.website = input.website;
+  if (input.oneLiner !== undefined) patch.oneLiner = input.oneLiner;
+  if (input.bio !== undefined) patch.bio = input.bio;
+  if (input.persona !== undefined) patch.persona = input.persona;
+  if (input.hashtags !== undefined) patch.hashtags = input.hashtags;
 
   await db.update(projects).set(patch).where(eq(projects.id, id));
 

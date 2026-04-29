@@ -17,11 +17,16 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     listAccounts(id),
   ]);
 
+  // Same blank-detection heuristic as Dashboard: project has no squads + no
+  // cards = "blank slate", suppress mock data leaks in non-Accounts vaults.
+  const isBlank = mode.squads.length === 0 && mode.cards.length === 0;
+
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="resources">
       <ResourcesPage
+        isBlank={isBlank}
         accountsOverride={
-          <AccountsVault projectId={id} platforms={platforms} accounts={accounts} />
+          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} />
         }
       />
     </AppShell>

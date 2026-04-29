@@ -29,6 +29,13 @@
       "when": 1777485846005,
       "tag": "0003_oval_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777486433886,
+      "tag": "0004_chief_warbound",
+      "breakpoints": true
     }
   ]
 }

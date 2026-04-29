@@ -54,6 +54,10 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
 
       <div className="side-section">
         <div className="side-title"><span>SYSTEM</span></div>
+        <Link href="/roadmap" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+          <div className="squad-icon" style={{ color: 'var(--neon-cyan)' }}>🗺</div>
+          <div className="squad-name"><b>Roadmap</b><span>plan · phases · dependencies</span></div>
+        </Link>
         <Link href="/tests" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
           <div className="squad-icon" style={{ color: 'var(--neon-lime)' }}>✓</div>
           <div className="squad-name"><b>Tests</b><span>use cases · QA tracker</span></div>

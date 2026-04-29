@@ -385,6 +385,67 @@ export const USE_CASES: UseCaseSpec[] = [
     ],
     expected: 'Status icon update + last_tested_at timestamp set + feedback persist qua F5.',
   },
+  // ────────────────────────────────────────────────────────────────────
+  // Group 6 — Roadmap page
+  // ────────────────────────────────────────────────────────────────────
+  {
+    slug: '6.1-roadmap-page-list',
+    groupKey: '6', groupLabel: 'Group 6 — Roadmap page',
+    title: 'Roadmap page liệt kê items grouped by phase + cross-link tests',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: '/roadmap',
+    tags: ['roadmap', 'meta'],
+    sortOrder: 61,
+    steps: [
+      { n: 1, action: 'Sidebar System → click "🗺 Roadmap"', url: '/roadmap' },
+      { n: 2, action: 'Verify groups by phase (1, 2, 3, 4, 5, 6, 7, backlog)' },
+      { n: 3, action: 'Click 1 item có useCaseSlugs → "🧪 Tests: 3/3" badge clickable → /tests' },
+      { n: 4, action: 'Filter chip "Done" → chỉ hiện items đã ship' },
+      { n: 5, action: 'Search "directus" → highlight items related' },
+      { n: 6, action: 'Toggle phase header chevron ▾/▸' },
+    ],
+    expected:
+      'Mỗi item: status icon, category emoji (✨ feature, 🔧 fix, ♻️ refactor), priority + effort pill, shippedIn commit link.\n' +
+      'Cross-link "🧪 Tests N/M" hiện pass rate từ linked use cases.\n' +
+      'Phase progress bar trên header (% done).\n' +
+      'Phase grouping foldable.',
+  },
+  {
+    slug: '6.2-roadmap-status-update',
+    groupKey: '6', groupLabel: 'Group 6 — Roadmap page',
+    title: 'Update status: Plan / Start / Review / Done / Block / Drop',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: '/roadmap action buttons + roadmap-status CLI',
+    tags: ['roadmap', 'crud'],
+    sortOrder: 62,
+    steps: [
+      { n: 1, action: 'Mở 1 backlog item → click "🟡 Start"' },
+      { n: 2, action: 'Verify startedAt stamp + status = in-progress' },
+      { n: 3, action: 'Click "✅ Done"' },
+      { n: 4, action: 'Verify doneAt stamp' },
+      { n: 5, action: 'F5 → state persist' },
+      { n: 6, action: 'Edge: AI dùng `npm run roadmap-status -- <slug> done <sha>` qua SSH → status + shippedIn cập nhật' },
+    ],
+    expected: 'Status flow: backlog → planned → in-progress → review → done. Auto-stamp startedAt/doneAt. CLI accept SHA cho done status.',
+  },
+  {
+    slug: '6.3-roadmap-tests-cross-link',
+    groupKey: '6', groupLabel: 'Group 6 — Roadmap page',
+    title: 'Done item nhưng tests chưa pass → cảnh báo "⚠ done but N test(s) chưa pass"',
+    priority: 'medium',
+    shippedIn: 'WIP',
+    featureRef: '/roadmap done warning badge',
+    tags: ['roadmap', 'tests', 'cross-link'],
+    sortOrder: 63,
+    steps: [
+      { n: 1, action: 'Mở /roadmap → tìm item status=done có linked use cases', url: '/roadmap' },
+      { n: 2, action: 'Verify nếu tests chưa all-pass → badge cam "⚠ done but N test(s) chưa pass"' },
+      { n: 3, action: 'Mở /tests → mark all linked cases pass → quay lại /roadmap → cảnh báo biến' },
+    ],
+    expected: 'Badge ẩn khi linkedTests.pass === linkedTests.total. Hiện khi done nhưng pass < total — signal "feature ship rồi nhưng QA chưa xong".',
+  },
   {
     slug: '5.4-fix-shipped-retest-signal',
     groupKey: '5', groupLabel: 'Group 5 — Tests page',

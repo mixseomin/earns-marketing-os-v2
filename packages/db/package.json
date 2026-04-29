@@ -14,6 +14,7 @@
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
     "mark-fixed": "tsx src/mark-fixed.ts",
+    "roadmap-status": "tsx src/roadmap-status.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },

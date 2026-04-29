@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -143,6 +143,17 @@ export async function listAllUseCases() {
     .from(useCases)
     .where(and(eq(useCases.tenantId, TENANT), isNull(useCases.archivedAt)))
     .orderBy(asc(useCases.groupKey), asc(useCases.sortOrder), asc(useCases.slug));
+}
+
+// ── Roadmap ─────────────────────────────────────────────────
+export async function listAllRoadmap() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(roadmapItems)
+    .where(and(eq(roadmapItems.tenantId, TENANT), isNull(roadmapItems.archivedAt)))
+    .orderBy(asc(roadmapItems.phase), asc(roadmapItems.sortOrder), asc(roadmapItems.slug));
 }
 
 // Tenant filter is implicit (DEFAULT_TENANT_ID). Allow override for SaaS phase F.

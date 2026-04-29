@@ -327,5 +327,50 @@ export const useCases = pgTable(
   ],
 );
 
+// ── roadmap_items ───────────────────────────────────────────────
+// Roadmap registry. Spec is seed-managed (AI appends new ideas/tasks);
+// state (status, notes, started_at, done_at) is user-managed via /roadmap.
+//
+// Cross-linked to use_cases via use_case_slugs[] — UI computes pass-rate
+// per roadmap item so "done = N/N tests pass" is verifiable.
+export const roadmapItems = pgTable(
+  'roadmap_items',
+  {
+    slug: text('slug').primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+
+    // ── Spec (seed-managed) ──
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    category: text('category').notNull().default('feature'),    // feature | fix | refactor | infra | idea
+    phase: text('phase').notNull().default('backlog'),           // '1' | '2' | ... | 'backlog'
+    priority: text('priority').notNull().default('medium'),     // critical | high | medium | low
+    effort: text('effort').notNull().default('M'),               // XS | S | M | L | XL
+    dependsOn: jsonb('depends_on').notNull().default([]),        // slug[]
+    shippedIn: text('shipped_in'),                                // commit SHA when done
+    featureRef: text('feature_ref'),
+    useCaseSlugs: jsonb('use_case_slugs').notNull().default([]), // slugs in use_cases table
+    tags: jsonb('tags').notNull().default([]),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+
+    // ── State (user-managed) ──
+    status: text('status').notNull().default('backlog'),          // backlog | planned | in-progress | review | done | blocked | dropped
+    statusNote: text('status_note'),
+    blockerRef: text('blocker_ref'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    doneAt: timestamp('done_at', { withTimezone: true }),
+    notes: text('notes'),                                          // markdown user notes
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('roadmap_tenant_idx').on(t.tenantId),
+    index('roadmap_phase_idx').on(t.phase),
+    index('roadmap_status_idx').on(t.status),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems };

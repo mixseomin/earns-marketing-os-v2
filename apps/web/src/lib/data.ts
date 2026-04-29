@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -361,6 +361,81 @@ export async function listUseCases(): Promise<UseCaseRow[]> {
     },
     [],
     'listUseCases',
+  );
+}
+
+// ── Roadmap ─────────────────────────────────────────────────
+export type RoadmapStatus = 'backlog' | 'planned' | 'in-progress' | 'review' | 'done' | 'blocked' | 'dropped';
+
+export interface RoadmapRow {
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  phase: string;
+  priority: string;
+  effort: string;
+  dependsOn: string[];
+  shippedIn: string | null;
+  featureRef: string | null;
+  useCaseSlugs: string[];
+  tags: string[];
+  sortOrder: number;
+  status: RoadmapStatus;
+  statusNote: string | null;
+  blockerRef: string | null;
+  startedAt: Date | null;
+  doneAt: Date | null;
+  notes: string | null;
+  // Cross-link computed: pass rate from linked use cases
+  linkedTests: { total: number; pass: number; needsFix: number; fail: number };
+}
+
+export async function listRoadmap(): Promise<RoadmapRow[]> {
+  return tryDb(
+    async () => {
+      const [rows, ucs] = await Promise.all([listAllRoadmap(), listAllUseCases()]);
+      if (!rows) return [];
+
+      // Build slug → use case status map for cross-link computation.
+      const ucMap = new Map<string, string>();
+      for (const u of ucs ?? []) ucMap.set(u.slug, u.status);
+
+      return rows.map((r) => {
+        const linked = (r.useCaseSlugs as string[]) ?? [];
+        const stats = { total: linked.length, pass: 0, needsFix: 0, fail: 0 };
+        for (const s of linked) {
+          const st = ucMap.get(s);
+          if (st === 'pass') stats.pass += 1;
+          else if (st === 'needs-fix') stats.needsFix += 1;
+          else if (st === 'fail') stats.fail += 1;
+        }
+        return {
+          slug: r.slug,
+          title: r.title,
+          description: r.description,
+          category: r.category,
+          phase: r.phase,
+          priority: r.priority,
+          effort: r.effort,
+          dependsOn: (r.dependsOn as string[]) ?? [],
+          shippedIn: r.shippedIn,
+          featureRef: r.featureRef,
+          useCaseSlugs: linked,
+          tags: (r.tags as string[]) ?? [],
+          sortOrder: r.sortOrder,
+          status: r.status as RoadmapStatus,
+          statusNote: r.statusNote,
+          blockerRef: r.blockerRef,
+          startedAt: r.startedAt,
+          doneAt: r.doneAt,
+          notes: r.notes,
+          linkedTests: stats,
+        };
+      });
+    },
+    [],
+    'listRoadmap',
   );
 }
 

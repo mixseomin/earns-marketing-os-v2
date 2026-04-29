@@ -14,13 +14,14 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { getDb } from './client';
-import { modes, projects, squads, cards, alerts, feedEvents, platforms, useCases } from './schema';
+import { modes, projects, squads, cards, alerts, feedEvents, platforms, useCases, roadmapItems } from './schema';
 
 import { MODES_BASE } from './seed-data/modes-base';
 import { MODES_EXTRA } from './seed-data/modes-extra';
 import { PROJECTS_SEED } from './seed-data/projects';
 import { PLATFORMS } from './seed-data/platforms';
 import { USE_CASES } from './seed-data/use-cases';
+import { ROADMAP_ITEMS } from './seed-data/roadmap';
 
 const db = getDb();
 if (!db) {
@@ -103,6 +104,53 @@ for (const uc of USE_CASES) {
     });
 }
 console.log(`[mos2/db:seed] ✓ Use cases upserted (${USE_CASES.length}, state preserved)`);
+
+// ── 0c. Seed roadmap items (SPEC ONLY) ────────────────────────
+// Same pattern: spec upserted, user state preserved. initialStatus only used
+// on first INSERT (when row doesn't exist yet); existing rows keep their status.
+for (const item of ROADMAP_ITEMS) {
+  const insertRow = {
+    slug: item.slug,
+    tenantId: TENANT,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    phase: item.phase,
+    priority: item.priority,
+    effort: item.effort,
+    dependsOn: item.dependsOn ?? [],
+    shippedIn: item.shippedIn ?? null,
+    featureRef: item.featureRef ?? null,
+    useCaseSlugs: item.useCaseSlugs ?? [],
+    tags: item.tags ?? [],
+    sortOrder: item.sortOrder ?? 0,
+    status: item.initialStatus ?? 'backlog',
+    doneAt: item.initialStatus === 'done' ? new Date() : null,
+  };
+  await db
+    .insert(roadmapItems)
+    .values(insertRow)
+    .onConflictDoUpdate({
+      target: roadmapItems.slug,
+      // Update spec only — preserve user state.
+      set: {
+        title: insertRow.title,
+        description: insertRow.description,
+        category: insertRow.category,
+        phase: insertRow.phase,
+        priority: insertRow.priority,
+        effort: insertRow.effort,
+        dependsOn: insertRow.dependsOn,
+        shippedIn: insertRow.shippedIn,
+        featureRef: insertRow.featureRef,
+        useCaseSlugs: insertRow.useCaseSlugs,
+        tags: insertRow.tags,
+        sortOrder: insertRow.sortOrder,
+        updatedAt: new Date(),
+      },
+    });
+}
+console.log(`[mos2/db:seed] ✓ Roadmap items upserted (${ROADMAP_ITEMS.length}, state preserved)`);
 
 // ── 1. Seed modes ─────────────────────────────────────────────
 for (const [id, m] of Object.entries(ALL_MODES)) {

@@ -54,7 +54,16 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [notesEditing, setNotesEditing] = useState<RoadmapRow | null>(null);
+
+  const toggleItem = (slug: string) => {
+    setExpandedItems((s) => {
+      const n = new Set(s);
+      if (n.has(slug)) n.delete(slug); else n.add(slug);
+      return n;
+    });
+  };
 
   const counts = useMemo(() => {
     const total = items.length;
@@ -194,84 +203,126 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
               </div>
 
               {!isCollapsed && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {list.map((item) => {
                     const meta = STATUS_META[item.status];
-                    const isDoneStatus = item.status === 'done';
+                    const isDone = item.status === 'done';
+                    const isBacklog = item.status === 'backlog' || item.status === 'planned';
+                    const isDropped = item.status === 'dropped';
+                    const hasFailingTests = item.linkedTests.needsFix > 0 || item.linkedTests.fail > 0;
+                    const isAttention = item.status === 'in-progress' || item.status === 'review'
+                      || item.status === 'blocked' || hasFailingTests
+                      || (isDone && item.linkedTests.total > 0 && item.linkedTests.pass < item.linkedTests.total);
+                    const isExpanded = expandedItems.has(item.slug);
+
+                    // Visual hierarchy: spotlight active/attention items, mute everything else.
+                    const rowOpacity = isDropped ? 0.45 : isBacklog ? 0.7 : 1;
+                    const borderColor = isAttention ? meta.color : 'var(--line)';
+                    const titleColor = isAttention ? 'var(--fg-0)' : 'var(--fg-1)';
+
                     return (
-                      <div key={item.slug} className="panel" style={{ borderLeft: `3px solid ${meta.color}` }}>
-                        <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <span style={{ fontSize: 18, flexShrink: 0 }}>{meta.icon}</span>
+                      <div key={item.slug} className="panel"
+                           style={{
+                             borderLeft: `2px solid ${borderColor}`,
+                             opacity: rowOpacity,
+                             cursor: 'pointer',
+                           }}
+                           onClick={(e) => {
+                             // Don't toggle when clicking interactive elements inside.
+                             const tag = (e.target as HTMLElement).tagName;
+                             if (tag === 'A' || tag === 'BUTTON' || (e.target as HTMLElement).closest('button, a')) return;
+                             toggleItem(item.slug);
+                           }}>
+                        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 14, flexShrink: 0, opacity: isAttention ? 1 : 0.55 }}>{meta.icon}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 14 }}>{CATEGORY_ICON[item.category] || '•'}</span>
-                              <span style={{ fontSize: 13.5, color: 'var(--fg-0)', fontWeight: 600 }}>{item.title}</span>
-                              <span style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: PRIORITY_COLOR[item.priority] + '22', color: PRIORITY_COLOR[item.priority], fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
-                                {item.priority}
-                              </span>
-                              <span title={`Effort: ${item.effort}`} style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: EFFORT_COLOR[item.effort] + '22', color: EFFORT_COLOR[item.effort], fontFamily: 'var(--font-mono)' }}>
-                                {item.effort}
-                              </span>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 13, color: titleColor, fontWeight: 600 }}>{item.title}</span>
+                              {/* Pills only for attention rows */}
+                              {isAttention && (
+                                <>
+                                  <span style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: PRIORITY_COLOR[item.priority] + '22', color: PRIORITY_COLOR[item.priority], fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+                                    {item.priority}
+                                  </span>
+                                  <span title={`Effort: ${item.effort}`} style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: EFFORT_COLOR[item.effort] + '22', color: EFFORT_COLOR[item.effort], fontFamily: 'var(--font-mono)' }}>
+                                    {item.effort}
+                                  </span>
+                                </>
+                              )}
                               {item.shippedIn && (
                                 <a href={`https://github.com/${REPO}/commit/${item.shippedIn}`}
                                    target="_blank" rel="noopener noreferrer"
-                                   style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textDecoration: 'none' }}>
+                                   onClick={(e) => e.stopPropagation()}
+                                   style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textDecoration: 'none' }}>
                                   #{item.shippedIn}
                                 </a>
                               )}
-                            </div>
-                            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.4 }}>
-                              {item.description}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-                              <span style={{ color: meta.color, fontWeight: 600 }}>{meta.icon} {meta.label}</span>
-                              {item.startedAt && <span>started {fmtRelative(item.startedAt)}</span>}
-                              {item.doneAt && <span>done {fmtRelative(item.doneAt)}</span>}
-                              {item.featureRef && <span>📦 {item.featureRef}</span>}
-                              {item.dependsOn.length > 0 && (
-                                <span title="Depends on">↳ {item.dependsOn.map((d) => d.replace(/^phase-\d+-/, '')).join(', ')}</span>
+                              {/* Right-aligned trailing meta */}
+                              <span style={{ flex: 1 }} />
+                              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                                {isDone && item.doneAt ? `✓ ${fmtRelative(item.doneAt)}` :
+                                 item.startedAt ? `started ${fmtRelative(item.startedAt)}` :
+                                 meta.label.toLowerCase()}
+                              </span>
+                              {/* Linked tests pill — only show when has linked tests AND there's a signal */}
+                              {item.linkedTests.total > 0 && (hasFailingTests || (isDone && item.linkedTests.pass < item.linkedTests.total)) && (
+                                <Link href="/tests" onClick={(e) => e.stopPropagation()}
+                                      title={`${item.linkedTests.pass}/${item.linkedTests.total} pass · ${item.linkedTests.needsFix} needs-fix · ${item.linkedTests.fail} fail`}
+                                      style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: hasFailingTests ? 'rgba(249,115,22,.12)' : 'rgba(255,176,60,.1)', color: hasFailingTests ? '#f97316' : 'var(--warn)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+                                  🧪 {item.linkedTests.pass}/{item.linkedTests.total}
+                                  {item.linkedTests.needsFix > 0 && ` · 🔧${item.linkedTests.needsFix}`}
+                                </Link>
                               )}
-                              {item.tags.slice(0, 3).map((t) => <span key={t}>#{t}</span>)}
                             </div>
 
-                            {item.linkedTests.total > 0 && (
-                              <div style={{ marginTop: 8 }}>
-                                <Link href={`/tests`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 8px', borderRadius: 4, background: 'var(--bg-2)', border: '1px solid var(--line)', textDecoration: 'none', fontSize: 11 }}>
-                                  <span style={{ color: 'var(--fg-2)' }}>🧪 Tests:</span>
-                                  <span style={{ color: '#10b981', fontWeight: 600 }}>{item.linkedTests.pass}</span>
-                                  <span style={{ color: 'var(--fg-3)' }}>/ {item.linkedTests.total}</span>
-                                  {item.linkedTests.needsFix > 0 && <span style={{ color: '#f97316' }}>· 🔧 {item.linkedTests.needsFix}</span>}
-                                  {item.linkedTests.fail > 0 && <span style={{ color: '#f87171' }}>· 🔴 {item.linkedTests.fail}</span>}
-                                </Link>
-                                {isDoneStatus && item.linkedTests.pass < item.linkedTests.total && (
-                                  <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--warn)' }} title="Done but not all tests pass">
-                                    ⚠ done but {item.linkedTests.total - item.linkedTests.pass} test(s) chưa pass
-                                  </span>
+                            {/* Description shown only for attention rows OR when expanded */}
+                            {(isAttention || isExpanded) && item.description && (
+                              <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.4 }}>
+                                {item.description}
+                              </div>
+                            )}
+
+                            {isExpanded && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                                <span>{CATEGORY_ICON[item.category] || '•'} {item.category}</span>
+                                {item.featureRef && <span>📦 {item.featureRef}</span>}
+                                {item.dependsOn.length > 0 && (
+                                  <span title="Depends on">↳ {item.dependsOn.map((d) => d.replace(/^phase-\d+-/, '')).join(', ')}</span>
+                                )}
+                                {item.tags.slice(0, 4).map((t) => <span key={t}>#{t}</span>)}
+                                {/* Always show full linked tests info when expanded */}
+                                {item.linkedTests.total > 0 && (
+                                  <span>🧪 {item.linkedTests.pass}/{item.linkedTests.total} pass</span>
                                 )}
                               </div>
                             )}
 
-                            {item.notes && (
+                            {item.notes && isExpanded && (
                               <div style={{ marginTop: 8, padding: 8, background: 'var(--bg-2)', borderRadius: 5, fontSize: 11.5, color: 'var(--fg-1)', whiteSpace: 'pre-wrap' }}>
                                 {item.notes}
                               </div>
                             )}
                           </div>
+                          {/* Expand chevron — quiet visual cue */}
+                          <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{isExpanded ? '▾' : '▸'}</span>
                         </div>
 
-                        <div style={{ padding: '6px 14px', borderTop: '1px solid var(--line)', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'planned')} style={{ fontSize: 10, padding: '3px 8px' }}>📋 Plan</button>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'in-progress')} style={{ fontSize: 10, padding: '3px 8px' }}>🟡 Start</button>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'review')} style={{ fontSize: 10, padding: '3px 8px' }}>👁 Review</button>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'done')} style={{ fontSize: 10, padding: '3px 8px', background: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,.4)', color: '#10b981' }}>✅ Done</button>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'blocked')} style={{ fontSize: 10, padding: '3px 8px' }}>🚫 Block</button>
-                          <button className="btn" onClick={() => handleMark(item.slug, 'dropped')} style={{ fontSize: 10, padding: '3px 8px' }}>🗑 Drop</button>
-                          <button className="btn ghost" onClick={() => handleMark(item.slug, 'backlog')} style={{ fontSize: 10, padding: '3px 8px' }}>↺ Backlog</button>
-                          <span style={{ flex: 1 }} />
-                          <button className="btn" onClick={() => setNotesEditing(item)} style={{ fontSize: 10, padding: '3px 8px', ...(item.notes ? { background: 'rgba(56,189,248,.1)', borderColor: 'rgba(56,189,248,.4)' } : {}) }}>
-                            📝 Notes{item.notes ? ' · edit' : ''}
-                          </button>
-                        </div>
+                        {/* Action row — only when expanded */}
+                        {isExpanded && (
+                          <div style={{ padding: '6px 14px', borderTop: '1px solid var(--line)', display: 'flex', gap: 5, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+                            {item.status !== 'planned'    && <button className="btn" onClick={() => handleMark(item.slug, 'planned')} style={{ fontSize: 10, padding: '3px 8px' }}>📋 Plan</button>}
+                            {item.status !== 'in-progress' && <button className="btn" onClick={() => handleMark(item.slug, 'in-progress')} style={{ fontSize: 10, padding: '3px 8px' }}>🟡 Start</button>}
+                            {item.status !== 'review'     && <button className="btn" onClick={() => handleMark(item.slug, 'review')} style={{ fontSize: 10, padding: '3px 8px' }}>👁 Review</button>}
+                            {item.status !== 'done'       && <button className="btn" onClick={() => handleMark(item.slug, 'done')} style={{ fontSize: 10, padding: '3px 8px', background: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,.4)', color: '#10b981' }}>✅ Done</button>}
+                            {item.status !== 'blocked'    && <button className="btn" onClick={() => handleMark(item.slug, 'blocked')} style={{ fontSize: 10, padding: '3px 8px' }}>🚫 Block</button>}
+                            {item.status !== 'dropped'    && <button className="btn" onClick={() => handleMark(item.slug, 'dropped')} style={{ fontSize: 10, padding: '3px 8px' }}>🗑 Drop</button>}
+                            {item.status !== 'backlog'    && <button className="btn ghost" onClick={() => handleMark(item.slug, 'backlog')} style={{ fontSize: 10, padding: '3px 8px' }}>↺ Backlog</button>}
+                            <span style={{ flex: 1 }} />
+                            <button className="btn" onClick={() => setNotesEditing(item)} style={{ fontSize: 10, padding: '3px 8px', ...(item.notes ? { background: 'rgba(56,189,248,.1)', borderColor: 'rgba(56,189,248,.4)' } : {}) }}>
+                              📝 Notes{item.notes ? ' · edit' : ''}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

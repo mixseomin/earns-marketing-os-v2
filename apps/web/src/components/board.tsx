@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useTweaks } from './tweaks';
 import type { Mode, Card } from '@/lib/mock/types';
+import { moveCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
 
 function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
   card: Card; mode: Mode; onOpen: (c: Card) => void;
@@ -121,7 +122,7 @@ function Modal({ card, mode, onClose, onAction }: {
   );
 }
 
-export function CommandBoard({ mode }: { mode: Mode }) {
+export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: string }) {
   const { tweaks } = useTweaks();
   const [cards, setCards] = useState<Card[]>(mode.cards);
   useEffect(() => { setCards(mode.cards); }, [mode]);
@@ -130,14 +131,20 @@ export function CommandBoard({ mode }: { mode: Mode }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | '3' | '4'>('all');
+  const [, startTransition] = useTransition();
 
   const visibleColumns = mode.columns.slice(0, tweaks.columnCount);
 
   const onDrop = (colId: string) => {
     if (!dragId) return;
-    setCards((cs) => cs.map((c) => (c.id === dragId ? { ...c, col: colId } : c)));
+    const cardId = dragId;
+    setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, col: colId } : c)));
     setDragId(null);
     setDragOver(null);
+    startTransition(async () => {
+      const res = await moveCard(projectId, cardId, colId);
+      if (!res.ok) console.warn('moveCard failed:', res.error);
+    });
   };
 
   const filtered = filter === 'all' ? cards : cards.filter((c) => c.level >= parseInt(filter, 10));
@@ -198,10 +205,18 @@ export function CommandBoard({ mode }: { mode: Mode }) {
       <Modal card={openCard} mode={mode} onClose={() => setOpenCard(null)}
         onAction={(a) => {
           if (!openCard) return;
-          if (a === 'approve') setCards((cs) => cs.map((c) => (c.id === openCard.id ? { ...c, col: 'approved' } : c)));
-          if (a === 'reject') setCards((cs) => cs.filter((c) => c.id !== openCard.id));
-          if (a === 'escalate') setCards((cs) => cs.map((c) => (c.id === openCard.id ? { ...c, col: 'escalated', level: 4 as const } : c)));
+          const cardId = openCard.id;
+          // Optimistic local update
+          if (a === 'approve') setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, col: 'approved' } : c)));
+          if (a === 'reject') setCards((cs) => cs.filter((c) => c.id !== cardId));
+          if (a === 'escalate') setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, col: 'escalated', level: 4 as const } : c)));
           setOpenCard(null);
+          // Persist to DB
+          startTransition(async () => {
+            const fn = a === 'approve' ? approveCard : a === 'reject' ? rejectCard : escalateCard;
+            const res = await fn(projectId, cardId);
+            if (!res.ok) console.warn(`${a} failed:`, res.error);
+          });
         }} />
     </div>
   );

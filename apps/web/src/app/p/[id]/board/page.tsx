@@ -11,7 +11,7 @@ export default async function BoardPage({ params }: { params: Promise<{ id: stri
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="board">
-      <CommandBoard mode={mode} />
+      <CommandBoard mode={mode} projectId={id} />
     </AppShell>
   );
 }

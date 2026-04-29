@@ -112,6 +112,11 @@ for (const p of PROJECTS_SEED) {
   await db.delete(alerts).where(eq(alerts.projectId, p.id));
   await db.delete(feedEvents).where(eq(feedEvents.projectId, p.id));
 
+  if (p.blank) {
+    console.log(`[mos2/db:seed] ↺ ${p.id} (blank — skipping squads/cards/alerts/feed)`);
+    continue;
+  }
+
   // Squads
   for (const s of m.squads ?? []) {
     await db.insert(squads).values({

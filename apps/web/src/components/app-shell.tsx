@@ -38,7 +38,7 @@ export function AppShell({
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} />
         {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
-        <RightBar mode={mode} />
+        <RightBar mode={mode} projectId={project?.id} />
         <StatusBar mode={mode} project={project} projectCount={projects.length} />
 
         <TweaksPanel>

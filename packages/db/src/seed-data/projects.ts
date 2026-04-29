@@ -14,7 +14,7 @@ export const PROJECTS_SEED: Project[] = [
   { id: 'techconf',    name: 'TechConf 2026',    emoji: '🎤', mode: 'event',          agents: { core: 20, shared: 4 }, budget: 80,  health: 68, revenue: '840/1500 reg',  kpi: 'D-42',        alerts: 4, color: '#ff3ca8' },
   { id: 'trading-a',   name: 'Trading Alpha',    emoji: '📈', mode: 'trading',        agents: { core: 14, shared: 3 }, budget: 0,   health: 86, revenue: '+18.4% MTD',    kpi: 'Sharpe 1.84', alerts: 4, color: '#ffb03c' },
   { id: 'pod-vn',      name: 'POD Store VN',     emoji: '👕', mode: 'dropship',       agents: { core: 20, shared: 5 }, budget: 40,  health: 70, revenue: '42.4tr/d',      kpi: 'ROAS 3.8x',   alerts: 4, color: '#b6ff3c' },
-  // ── Real Earns portfolio ─────────────────────────────────────────
-  { id: 'orit',        name: 'Orit',             emoji: '🔍', mode: 'lead-gen',       agents: { core: 12, shared: 3 }, budget: 4,   health: 76, revenue: 'PH 2026-04-23', kpi: 'D+6 launch',  alerts: 2, color: '#00e5ff' },
-  { id: 'astrolas',    name: 'Astrolas',         emoji: '🔭', mode: 'content-studio', agents: { core: 8,  shared: 2 }, budget: 3,   health: 81, revenue: '$500-2k/mo',    kpi: 'Faceless solo', alerts: 1, color: '#9d6cff' },
+  // ── Real Earns portfolio (blank slate — user fills via UI) ───────
+  { id: 'orit',        name: 'Orit',             emoji: '🔍', mode: 'lead-gen',       agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#00e5ff', blank: true },
+  { id: 'astrolas',    name: 'Astrolas',         emoji: '🔭', mode: 'content-studio', agents: { core: 0, shared: 0 }, budget: 0, health: 100, revenue: '—', kpi: '—', alerts: 0, color: '#9d6cff', blank: true },
 ];

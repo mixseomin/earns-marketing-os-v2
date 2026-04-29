@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import type { Mode } from '@/lib/mock/types';
+import { dismissAlert } from '@/lib/actions/alerts';
 
-export function RightBar({ mode }: { mode?: Mode }) {
+export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string }) {
   const [tab, setTab] = useState<'alerts' | 'feed'>('alerts');
-  const allAlerts = mode?.alerts ?? [];
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [, startTransition] = useTransition();
+  const allAlerts = (mode?.alerts ?? []).filter((a) => !dismissed.has(a.id));
   const badCount = allAlerts.filter((a) => a.tone === 'bad').length;
+
+  const handleDismiss = (alertId: string) => {
+    if (!projectId) return;
+    setDismissed((s) => new Set([...s, alertId]));
+    startTransition(async () => {
+      const res = await dismissAlert(projectId, alertId);
+      if (!res.ok) {
+        console.warn('dismissAlert failed:', res.error);
+        setDismissed((s) => { const n = new Set(s); n.delete(alertId); return n; });
+      }
+    });
+  };
 
   return (
     <aside className="rightbar">
@@ -33,7 +48,7 @@ export function RightBar({ mode }: { mode?: Mode }) {
                 </div>
                 <div className="alert-actions">
                   <button className="primary">Open</button>
-                  <button>Snooze</button>
+                  <button onClick={() => handleDismiss(a.id)} disabled={!projectId}>Dismiss</button>
                   <button>Assign</button>
                 </div>
               </div>

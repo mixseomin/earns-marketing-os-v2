@@ -117,4 +117,6 @@ export interface Project {
   kpi: string;
   alerts: number;
   color: string;
+  /** When true, seed inserts the project row but skips squads/cards/alerts/feed (blank slate). */
+  blank?: boolean;
 }

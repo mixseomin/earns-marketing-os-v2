@@ -110,15 +110,31 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
         listAlertsByProject(projectId),
         listRecentFeed(projectId, 20),
       ]);
-      // Reader returns null when DB is unavailable; [] when DB available but empty (blank project).
-      // Treat null → mock fallback (degraded service); [] → empty arrays (legitimately no data).
-      return {
-        ...baseMode,
-        squads: squadRows !== null ? squadRows.map(rowToSquad) : baseMode.squads,
-        cards: cardRows !== null ? cardRows.map(rowToCard) : baseMode.cards,
-        alerts: alertRows !== null ? alertRows.map(rowToAlert) : baseMode.alerts,
-        feed: feedRows !== null ? feedRows.map(rowToFeed) : baseMode.feed,
-      };
+
+      // null = DB unavailable (mock fallback). [] = legitimately empty (blank project).
+      const squads = squadRows !== null ? squadRows.map(rowToSquad) : baseMode.squads;
+      const cards = cardRows !== null ? cardRows.map(rowToCard) : baseMode.cards;
+      const alerts = alertRows !== null ? alertRows.map(rowToAlert) : baseMode.alerts;
+      const feed = feedRows !== null ? feedRows.map(rowToFeed) : baseMode.feed;
+
+      // Blank-project heuristic: if DB returned 0 squads AND 0 cards, treat the whole
+      // project as blank — also wipe mode-level mock KPIs / chart / suggestions / topList
+      // so the dashboard reads truly empty (user fills incrementally via UI).
+      const isBlank = squadRows !== null && squadRows.length === 0
+                   && cardRows !== null && cardRows.length === 0;
+
+      if (isBlank) {
+        return {
+          ...baseMode,
+          squads, cards, alerts, feed,
+          kpis: [],
+          revData: [],
+          suggestions: [],
+          topList: [],
+        };
+      }
+
+      return { ...baseMode, squads, cards, alerts, feed };
     },
     baseMode,
     'getProjectMode',

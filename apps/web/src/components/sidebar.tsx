@@ -17,7 +17,7 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
       <div className="side-section" style={{ flex: 1, overflow: 'auto' }}>
         <div className="side-title">
           <span>SQUADS · {mode?.label?.toUpperCase() ?? '—'}</span>
-          <span className="count mono">9 / 108ag</span>
+          <span className="count mono">{mode?.squads?.length ?? 0} / {(mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0)}ag</span>
         </div>
         {mode?.squads?.map((s) => (
           <div
@@ -40,12 +40,12 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
           <>
             <Link href={`/p/${currentProjectId}/tribes`} className="squad" style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>◍</div>
-              <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>5 tribes • 32 habitats</span></div>
+              <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>audience clusters</span></div>
               <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
             </Link>
             <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
-              <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>8/8 • Quản tài nguyên</span></div>
+              <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
               <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
             </Link>
           </>

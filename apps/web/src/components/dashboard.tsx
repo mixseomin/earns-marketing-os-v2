@@ -24,6 +24,7 @@ function KPICell({ k }: { k: Kpi }) {
 export function Dashboard({ mode }: { mode: Mode }) {
   const m = mode;
   const revData = (m.revData ?? []).map((d) => ({ ...d, rev: d.rev * 1_000_000, target: d.target * 1_000_000 }));
+  const isBlank = m.squads.length === 0 && m.cards.length === 0;
 
   return (
     <div className="page">
@@ -33,7 +34,7 @@ export function Dashboard({ mode }: { mode: Mode }) {
             {m.pageTitle}
             <small>// 29 APR 2026 • T2 • 07:42 GMT+7 • {m.label.toUpperCase()}</small>
           </h1>
-          <p className="page-sub">{m.pageSub}</p>
+          <p className="page-sub">{isBlank ? 'Blank slate — bắt đầu thêm squads, cards, alerts qua UI để dashboard có dữ liệu.' : m.pageSub}</p>
         </div>
         <div className="page-actions">
           <button className="btn"><span>⟲</span> Refresh</button>
@@ -42,11 +43,13 @@ export function Dashboard({ mode }: { mode: Mode }) {
         </div>
       </div>
 
-      <div className="kpi-grid">
-        {m.kpis.map((k, i) => <KPICell key={i} k={k} />)}
-      </div>
+      {m.kpis.length > 0 && (
+        <div className="kpi-grid">
+          {m.kpis.map((k, i) => <KPICell key={i} k={k} />)}
+        </div>
+      )}
 
-      <ResourceStrip />
+      {!isBlank && <ResourceStrip />}
 
       {m.revChart && revData.length > 0 && (
         <div className="row r-2">
@@ -109,6 +112,7 @@ export function Dashboard({ mode }: { mode: Mode }) {
         </div>
       )}
 
+      {!isBlank && (
       <div className="row r-23">
         <div className="panel">
           <div className="panel-head">
@@ -160,7 +164,9 @@ export function Dashboard({ mode }: { mode: Mode }) {
           </div>
         )}
       </div>
+      )}
 
+      {!isBlank && (
       <div className="row">
         <div className="panel">
           <div className="panel-head">
@@ -212,6 +218,19 @@ export function Dashboard({ mode }: { mode: Mode }) {
           </div>
         </div>
       </div>
+      )}
+
+      {isBlank && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🌱</div>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: 'var(--fg-0)' }}>Blank slate</h2>
+            <p style={{ margin: '0 0 16px', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+              Project này chưa có dữ liệu. Thêm squads, cards, alerts qua các tab Board/Squads để dashboard có nội dung.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

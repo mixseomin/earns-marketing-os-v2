@@ -21,13 +21,16 @@ export function TopBar({
 }) {
   const t = useT();
 
+  const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
+  const needsCount = mode?.cards?.filter((c) => c.col === 'needs').length ?? 0;
+
   const projectTabs: Array<{ id: Tab; label: string; badge?: string | number }> = [
-    { id: 'dashboard', label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief'), badge: '07:42' },
-    { id: 'board', label: t('nav.board', mode?.boardTitle || 'Command Board'), badge: mode?.cards?.filter((c) => c.col === 'needs').length ?? 0 },
-    { id: 'squads', label: t('nav.squads', 'Squads'), badge: 108 },
-    { id: 'tribes', label: t('nav.tribes', 'Tribes'), badge: 5 },
-    { id: 'studio', label: t('nav.studio', 'Studio'), badge: 'AI' },
-    { id: 'resources', label: t('nav.resources', 'Resources'), badge: 6 },
+    { id: 'dashboard', label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief') },
+    { id: 'board', label: t('nav.board', mode?.boardTitle || 'Command Board'), badge: needsCount > 0 ? needsCount : undefined },
+    { id: 'squads', label: t('nav.squads', 'Squads'), badge: totalAgents > 0 ? totalAgents : undefined },
+    { id: 'tribes', label: t('nav.tribes', 'Tribes') },
+    { id: 'studio', label: t('nav.studio', 'Studio') },
+    { id: 'resources', label: t('nav.resources', 'Resources') },
   ];
 
   return (
@@ -78,7 +81,7 @@ export function TopBar({
       </div>
       <div className="live-pill">
         <span className="dot"></span>
-        {isPortfolio ? `${projectCount} PROJECTS LIVE` : (mode?.livePill || 'LIVE')}
+        {isPortfolio ? `${projectCount} PROJECTS LIVE` : (totalAgents > 0 ? (mode?.livePill || 'LIVE') : 'BLANK SLATE')}
       </div>
     </header>
   );

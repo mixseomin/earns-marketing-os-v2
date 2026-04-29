@@ -5,6 +5,11 @@
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
+import {
+  fetchDirectusAccountsByPlatform, fetchDirectusAccount,
+  normalizeStatus, directusEnabled,
+  type DirectusAccount,
+} from '../bridge/directus';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -123,6 +128,105 @@ export async function deleteAccount(projectId: string, id: number): Promise<{ ok
   await db.delete(platformAccounts).where(eq(platformAccounts.id, acc.id));
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true };
+}
+
+// ── Bridge: Directus as.on.tc (READ-ONLY import) ─────────────
+
+export interface DirectusAccountSummary {
+  directusId: string;
+  platform: string;
+  handle: string | null;
+  email: string | null;
+  status: string;             // normalized to mos2 state machine
+  authMethod: string | null;
+  has2fa: boolean;
+  tags: string[];
+  notes: string | null;
+}
+
+function summarize(d: DirectusAccount): DirectusAccountSummary {
+  return {
+    directusId: d.id,
+    platform: d.platform || '',
+    handle: d.handle,
+    email: d.email,
+    status: normalizeStatus(d.status),
+    authMethod: d.auth_method,
+    has2fa: !!d.has_2fa,
+    tags: Array.isArray(d.tags) ? d.tags : [],
+    notes: d.notes,
+  };
+}
+
+export async function listDirectusAccountsForPlatform(platformKey: string): Promise<{
+  ok: boolean; enabled: boolean; accounts: DirectusAccountSummary[]; error?: string;
+}> {
+  if (!directusEnabled()) return { ok: true, enabled: false, accounts: [] };
+  try {
+    const data = await fetchDirectusAccountsByPlatform(platformKey);
+    return { ok: true, enabled: true, accounts: data.map(summarize) };
+  } catch (e) {
+    return { ok: false, enabled: true, accounts: [], error: (e as Error).message };
+  }
+}
+
+export async function importDirectusAccount(projectId: string, directusId: string): Promise<{ ok: boolean; id?: number; alreadyExists?: boolean; error?: string }> {
+  if (!directusEnabled()) return { ok: false, error: 'Directus bridge disabled' };
+  const db = ensureDb();
+
+  const d = await fetchDirectusAccount(directusId);
+  if (!d) return { ok: false, error: 'Directus account not found' };
+  if (!d.platform) return { ok: false, error: 'Directus account has no platform set' };
+
+  const platformKey = d.platform.toLowerCase();
+  const pf = await db.select({ key: platforms.key }).from(platforms).where(eq(platforms.key, platformKey)).limit(1);
+  if (pf.length === 0) {
+    return { ok: false, error: `Platform "${d.platform}" not in MOS2 catalog. Add to catalog first.` };
+  }
+
+  // Idempotent: check if same (project, platform, handle) already exists.
+  if (d.handle) {
+    const existing = await db
+      .select({ id: platformAccounts.id })
+      .from(platformAccounts)
+      .where(and(
+        eq(platformAccounts.tenantId, TENANT),
+        eq(platformAccounts.projectId, projectId),
+        eq(platformAccounts.platformKey, platformKey),
+        eq(platformAccounts.handle, d.handle),
+      ))
+      .limit(1);
+    if (existing.length > 0) {
+      return { ok: true, id: existing[0]!.id, alreadyExists: true };
+    }
+  }
+
+  const importedTag = `imported:directus:${d.id}`;
+  const tags = Array.isArray(d.tags) ? [...d.tags, importedTag] : [importedTag];
+
+  const [row] = await db
+    .insert(platformAccounts)
+    .values({
+      tenantId: TENANT,
+      projectId,
+      platformKey,
+      handle: d.handle,
+      email: d.email,
+      status: normalizeStatus(d.status),
+      authMethod: d.auth_method,
+      has2fa: !!d.has_2fa,
+      recoveryInfo: d.recovery_info ?? null,
+      monthlyCost: d.monthly_cost ?? 0,
+      collectStats: !!d.collect_stats,
+      blockReason: null,
+      notes: d.notes,
+      tags,
+      warmupChecklist: (d.warmup_checklist as Record<string, unknown>) || {},
+    })
+    .returning({ id: platformAccounts.id });
+
+  revalidatePath(`/p/${projectId}/resources`);
+  return { ok: true, id: row?.id };
 }
 
 export async function toggleChecklistItem(projectId: string, id: number, itemKey: string, done: boolean, value?: number | string | null): Promise<{ ok: boolean; error?: string }> {

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PlatformRow, AccountRow } from '@/lib/data';
 import {
   createAccount, updateAccount, deleteAccount, setAccountStatus, toggleChecklistItem,
-  type AccountStatus, type AuthMethod,
+  listDirectusAccountsForPlatform, importDirectusAccount,
+  type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
@@ -250,6 +251,39 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
 
   const platform = platforms.find((p) => p.key === form.platformKey);
 
+  // ── Directus bridge: load existing accounts for this platform ──
+  const [directusState, setDirectusState] = useState<{
+    loading: boolean; enabled: boolean; accounts: DirectusAccountSummary[]; error?: string;
+  }>({ loading: false, enabled: true, accounts: [] });
+  const [importingId, setImportingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isCreate || !form.platformKey) return;
+    let cancelled = false;
+    setDirectusState((s) => ({ ...s, loading: true, error: undefined }));
+    listDirectusAccountsForPlatform(form.platformKey).then((res) => {
+      if (cancelled) return;
+      setDirectusState({
+        loading: false,
+        enabled: res.enabled,
+        accounts: res.accounts,
+        error: res.error,
+      });
+    });
+    return () => { cancelled = true; };
+  }, [form.platformKey, isCreate]);
+
+  const handleImport = (directusId: string) => {
+    setImportingId(directusId);
+    startTransition(async () => {
+      const res = await importDirectusAccount(projectId, directusId);
+      setImportingId(null);
+      if (!res.ok) { setError(res.error || 'Import failed'); return; }
+      router.refresh();
+      onClose();
+    });
+  };
+
   const handleSave = () => {
     if (!form.platformKey) { setError('Platform required'); return; }
     startTransition(async () => {
@@ -350,6 +384,61 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
                 </div>
               )}
             </div>
+
+            {/* Import from as.on.tc — only when creating + bridge enabled */}
+            {isCreate && form.platformKey && directusState.enabled && (
+              <div style={{ gridColumn: '1 / -1', padding: 10, background: 'var(--bg-2)', border: '1px dashed var(--line-strong)', borderRadius: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={lbl}>📥 Import từ as.on.tc Directus (READ-ONLY)</span>
+                  {directusState.loading && <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>loading…</span>}
+                </div>
+
+                {directusState.error && (
+                  <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 6 }}>⚠ {directusState.error}</div>
+                )}
+
+                {!directusState.loading && !directusState.error && directusState.accounts.length === 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                    Không có account nào trên platform "{platform?.label ?? form.platformKey}" trong as.on.tc Directus. Nhập tay form bên dưới.
+                  </div>
+                )}
+
+                {directusState.accounts.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+                    {directusState.accounts.map((acc) => (
+                      <div key={acc.directusId}
+                           style={{
+                             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
+                             background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5,
+                             fontSize: 12,
+                           }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
+                          @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
+                        </span>
+                        {acc.email && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{acc.email}</span>}
+                        <StatusPill status={acc.status} />
+                        {acc.has2fa && <span title="2FA" style={{ fontSize: 10 }}>🔐</span>}
+                        {acc.tags.length > 0 && (
+                          <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                            {acc.tags.slice(0, 2).map((t) => `#${t}`).join(' ')}
+                          </span>
+                        )}
+                        <span style={{ flex: 1 }}></span>
+                        <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
+                                disabled={importingId === acc.directusId}
+                                onClick={() => handleImport(acc.directusId)}>
+                          {importingId === acc.directusId ? '…' : '↓ Import'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                  Import = copy data sang MOS2 + tag <code>imported:directus:&lt;id&gt;</code>. Idempotent — không tạo trùng nếu handle đã có.
+                </div>
+              </div>
+            )}
             <div>
               <span style={lbl}>Handle / username</span>
               <input style={fld} placeholder="orit, @oritapp..." value={form.handle} onChange={(e) => setF('handle', e.target.value)} />

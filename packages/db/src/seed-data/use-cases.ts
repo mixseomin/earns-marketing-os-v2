@@ -373,7 +373,7 @@ export const USE_CASES: UseCaseSpec[] = [
     groupKey: '5', groupLabel: 'Group 5 — Tests page',
     title: 'Mark pass/fail/blocked + persist',
     priority: 'high',
-    shippedIn: 'WIP',
+    shippedIn: '3047fa7',
     featureRef: '/tests action buttons',
     tags: ['tests', 'crud'],
     sortOrder: 52,
@@ -384,5 +384,30 @@ export const USE_CASES: UseCaseSpec[] = [
       { n: 4, action: 'Add feedback note' },
     ],
     expected: 'Status icon update + last_tested_at timestamp set + feedback persist qua F5.',
+  },
+  {
+    slug: '5.3-needs-fix-feedback-loop',
+    groupKey: '5', groupLabel: 'Group 5 — Tests page',
+    title: 'Feedback → auto-mark needs-fix → AI fix loop',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: '/tests Feedback modal + addFeedback action',
+    tags: ['tests', 'workflow', 'needs-fix'],
+    sortOrder: 53,
+    steps: [
+      { n: 1, action: 'Mở 1 case bất kỳ ở /tests', url: '/tests' },
+      { n: 2, action: 'Click "📝 Feedback"' },
+      { n: 3, action: 'Nhập feedback mô tả vấn đề (vd: "Chưa hiển thị emoji ở Sidebar")' },
+      { n: 4, action: 'Verify checkbox "Mark as needs-fix" tick mặc định + footer hiện "will mark 🔧 needs-fix"' },
+      { n: 5, action: 'Bấm "Save & mark needs-fix"' },
+      { n: 6, action: 'F5 verify status icon = 🔧 + nút "📝 Feedback · edit" highlight cam' },
+      { n: 7, action: 'Filter chip "🔧 Needs fix" → chỉ hiện case này' },
+      { n: 8, action: 'Test untick: edit feedback → untick checkbox → save → status giữ nguyên (không thành needs-fix)' },
+    ],
+    expected:
+      'Khi tick + save: status → needs-fix, lastTestedAt update, feedback persist.\n' +
+      'Khi untick + save: feedback persist nhưng status giữ nguyên.\n' +
+      'Empty feedback: checkbox auto-disabled (không thể auto-mark).\n' +
+      'Workflow: AI scan /tests cases có status=needs-fix → đọc feedback → fix → ship → user re-test → mark pass.',
   },
 ];

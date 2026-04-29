@@ -306,7 +306,7 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
 }
 
 // ── Use cases ──────────────────────────────────────────────────
-export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'blocked' | 'skip';
+export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'needs-fix' | 'blocked' | 'skip';
 
 export interface UseCaseRow {
   slug: string;

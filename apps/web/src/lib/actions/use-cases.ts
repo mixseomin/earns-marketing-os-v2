@@ -15,7 +15,7 @@ function ensureDb() {
   return db;
 }
 
-export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'blocked' | 'skip';
+export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'blocked' | 'skip' | 'needs-fix';
 
 export async function markUseCase(slug: string, status: UseCaseStatus, statusNote?: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
@@ -40,12 +40,27 @@ export async function markUseCase(slug: string, status: UseCaseStatus, statusNot
   return { ok: true };
 }
 
-export async function addFeedback(slug: string, feedback: string): Promise<{ ok: boolean; error?: string }> {
+// addFeedback: write feedback text. By default also marks status='needs-fix'
+// so the case appears in the AI's "fix queue" (feedback-driven re-iteration).
+// Pass markNeedsFix=false to keep current status (e.g. just adding context to a passing case).
+export async function addFeedback(
+  slug: string,
+  feedback: string,
+  markNeedsFix: boolean = true,
+): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
-  await db
-    .update(useCases)
-    .set({ feedback: feedback || null, updatedAt: new Date() })
-    .where(eq(useCases.slug, slug));
+  const trimmed = feedback.trim();
+  const set: Partial<typeof useCases.$inferInsert> = {
+    feedback: trimmed || null,
+    updatedAt: new Date(),
+  };
+  // Only flip to needs-fix when there IS feedback content. Empty feedback
+  // is treated as "clear feedback", don't change status.
+  if (markNeedsFix && trimmed) {
+    set.status = 'needs-fix';
+    set.lastTestedAt = new Date();
+  }
+  await db.update(useCases).set(set).where(eq(useCases.slug, slug));
   revalidatePath('/tests');
   return { ok: true };
 }

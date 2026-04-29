@@ -6,15 +6,18 @@ import type { UseCaseRow, UseCaseStatus } from '@/lib/data';
 import { markUseCase, addFeedback, clearStatus } from '@/lib/actions/use-cases';
 
 const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: string }> = {
-  pending: { label: 'Pending', icon: '⚪', color: 'var(--fg-3)' },
-  wip:     { label: 'WIP',     icon: '🟡', color: '#fbbf24' },
-  pass:    { label: 'Pass',    icon: '🟢', color: '#10b981' },
-  fail:    { label: 'Fail',    icon: '🔴', color: '#f87171' },
-  blocked: { label: 'Blocked', icon: '🚫', color: '#9ca3af' },
-  skip:    { label: 'Skip',    icon: '⏭',  color: '#6b7280' },
+  pending:     { label: 'Pending',   icon: '⚪', color: 'var(--fg-3)' },
+  wip:         { label: 'WIP',       icon: '🟡', color: '#fbbf24' },
+  pass:        { label: 'Pass',      icon: '🟢', color: '#10b981' },
+  fail:        { label: 'Fail',      icon: '🔴', color: '#f87171' },
+  'needs-fix': { label: 'Needs fix', icon: '🔧', color: '#f97316' },
+  blocked:     { label: 'Blocked',   icon: '🚫', color: '#9ca3af' },
+  skip:        { label: 'Skip',      icon: '⏭',  color: '#6b7280' },
 };
 
-const STATUS_ORDER: UseCaseStatus[] = ['pending', 'wip', 'pass', 'fail', 'blocked', 'skip'];
+// Order: untouched first, in-flight middle, terminal last. needs-fix between
+// fail and blocked because it requires AI re-work before re-test.
+const STATUS_ORDER: UseCaseStatus[] = ['pending', 'wip', 'pass', 'fail', 'needs-fix', 'blocked', 'skip'];
 
 const PRIORITY_COLOR: Record<string, string> = {
   critical: '#f87171', high: '#fbbf24', medium: '#a1a1aa', low: '#6b7280',
@@ -46,7 +49,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
   // Counters by status
   const counts = useMemo(() => {
     const total = cases.length;
-    const byStatus: Record<UseCaseStatus, number> = { pending: 0, wip: 0, pass: 0, fail: 0, blocked: 0, skip: 0 };
+    const byStatus: Record<UseCaseStatus, number> = { pending: 0, wip: 0, pass: 0, fail: 0, 'needs-fix': 0, blocked: 0, skip: 0 };
     for (const c of cases) byStatus[c.status] += 1;
     return { total, byStatus };
   }, [cases]);
@@ -125,8 +128,8 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
         </div>
       </div>
 
-      {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+      {/* Stats strip — Total + 7 statuses = 8 cols */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6, marginBottom: 12 }}>
         <div style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
           <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>Total</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-0)' }}>{counts.total}</div>
@@ -272,12 +275,15 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                           <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             <button className="btn" onClick={() => handleMark(c.slug, 'pass')} style={{ background: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,.4)', color: '#10b981' }}>🟢 Pass</button>
                             <button className="btn" onClick={() => handleMark(c.slug, 'fail')} style={{ background: 'rgba(248,113,113,.1)', borderColor: 'rgba(248,113,113,.4)', color: '#f87171' }}>🔴 Fail</button>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'needs-fix')} style={{ background: 'rgba(249,115,22,.1)', borderColor: 'rgba(249,115,22,.4)', color: '#f97316' }}>🔧 Needs fix</button>
                             <button className="btn" onClick={() => handleMark(c.slug, 'wip')}>🟡 WIP</button>
                             <button className="btn" onClick={() => handleMark(c.slug, 'blocked')}>🚫 Blocked</button>
                             <button className="btn" onClick={() => handleMark(c.slug, 'skip')}>⏭ Skip</button>
                             <button className="btn ghost" onClick={() => handleClear(c.slug)}>↺ Reset</button>
                             <span style={{ flex: 1 }} />
-                            <button className="btn" onClick={() => setFeedbackEditing(c)}>📝 Feedback</button>
+                            <button className="btn" onClick={() => setFeedbackEditing(c)} style={c.feedback ? { background: 'rgba(249,115,22,.1)', borderColor: 'rgba(249,115,22,.4)' } : undefined}>
+                              📝 Feedback{c.feedback ? ' · edit' : ''}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -301,12 +307,16 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [text, setText] = useState(useCase.feedback ?? '');
+  const [markFix, setMarkFix] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const trimmed = text.trim();
+  const willMarkFix = markFix && trimmed.length > 0;
 
   const handleSave = () => {
     setSaving(true);
     startTransition(async () => {
-      const res = await addFeedback(useCase.slug, text);
+      const res = await addFeedback(useCase.slug, text, markFix);
       setSaving(false);
       if (!res.ok) { alert(res.error); return; }
       router.refresh();
@@ -329,7 +339,7 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Describe what happened, screenshots URL, browser, edge cases..."
+            placeholder="Mô tả vấn đề chi tiết — screenshot URL, browser, edge case, expected vs actual. AI sẽ dùng đoạn này làm task spec để fix."
             style={{
               width: '100%', minHeight: 200, resize: 'vertical',
               padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -337,12 +347,42 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
               fontFamily: 'var(--font-mono)', lineHeight: 1.5, outline: 'none',
             }}
           />
+
+          <label style={{
+            marginTop: 10, display: 'flex', alignItems: 'flex-start', gap: 8,
+            padding: 10, borderRadius: 6,
+            background: willMarkFix ? 'rgba(249,115,22,.08)' : 'var(--bg-2)',
+            border: `1px solid ${willMarkFix ? 'rgba(249,115,22,.4)' : 'var(--line)'}`,
+            cursor: trimmed.length > 0 ? 'pointer' : 'default',
+            opacity: trimmed.length > 0 ? 1 : 0.5,
+          }}>
+            <input
+              type="checkbox"
+              checked={markFix}
+              disabled={trimmed.length === 0}
+              onChange={(e) => setMarkFix(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
+              <div style={{ fontWeight: 600, color: willMarkFix ? '#f97316' : 'var(--fg-1)' }}>
+                🔧 Mark as "needs-fix"
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>
+                Khi tick: status chuyển sang <code>needs-fix</code>, AI sẽ scan các case này và dùng feedback ở trên làm task spec để fix. Untick nếu chỉ thêm note context (giữ status hiện tại).
+              </div>
+            </div>
+          </label>
         </div>
         <div className="modal-foot">
-          <div className="meta">{text.length} chars</div>
+          <div className="meta">
+            {text.length} chars
+            {willMarkFix && <span style={{ color: '#f97316', marginLeft: 8 }}>· will mark 🔧 needs-fix</span>}
+          </div>
           <div className="modal-foot-actions">
             <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" disabled={saving} onClick={handleSave}>{saving ? 'Saving…' : 'Save feedback'}</button>
+            <button className="btn primary" disabled={saving} onClick={handleSave}>
+              {saving ? 'Saving…' : willMarkFix ? 'Save & mark needs-fix' : 'Save feedback'}
+            </button>
           </div>
         </div>
       </div>

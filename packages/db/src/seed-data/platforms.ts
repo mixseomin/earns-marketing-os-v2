@@ -25,6 +25,14 @@ export interface ChecklistItemDef {
   actionUrl?: string;     // direct deep-link to platform setting page
   tip?: string;           // short helper sentence
   imageRelevant?: boolean; // show download buttons (avatar/banner)
+  snippets?: SnippetDef[]; // ready-to-paste content templates
+}
+
+export interface SnippetDef {
+  label: string;
+  text: string;           // with {{handle}} {{platform}} {{website}} {{persona}} {{bio}} {{hashtags}} placeholders
+  maxLen?: number;        // platform char limit; UI warns when over
+  alt?: string[];         // shorter fallback variants for over-limit cases
 }
 
 export interface PlatformDef {
@@ -45,11 +53,153 @@ const IMAGE_RELEVANT = new Set([
   'page_setup', 'channel_setup', 'publication',
 ]);
 
+// Ported verbatim from earns-dashboard OritChannels.tsx CONTENT_SNIPPETS.
+// Variable placeholders: {{handle}} {{platform}} {{website}} {{persona}}
+// {{bio}} {{hashtags}} {{one-liner}} — UI substitutes from account+project
+// at render time; unknown vars stay literal so user knows to fill.
+const SNIPPETS: Record<string, Record<string, SnippetDef[]>> = {
+  producthunt: {
+    profile_complete: [
+      { label: 'Headline', text: 'Find anyone\'s contact in seconds — solo founder building {{handle}}', maxLen: 60, alt: [
+        'Find any contact in seconds. Solo, building {{handle}}',
+        'Solo founder building {{handle}} — reach intelligence',
+        'Building {{handle}} — find any contact in seconds',
+      ] },
+      { label: 'Bio',     text: '{{bio}}\n\nBuilding @{{handle}} → {{website}}\n\n{{hashtags}}', maxLen: 500 },
+      { label: 'Twitter', text: '@{{handle}}' },
+      { label: 'Website', text: '{{website}}' },
+    ],
+    comments_made: [
+      { label: 'Comment 1 (curious)',  text: 'Cool angle on {{X}} — how do you handle {{edge case}}? Have been wrestling with the same in our flow.' },
+      { label: 'Comment 2 (specific)', text: 'The {{feature}} screenshot is what sold me. Bookmarking to dig in this weekend.' },
+      { label: 'Comment 3 (ask)',     text: 'Genuine question: did you find {{integration}} hard to keep maintained, or is the API stable enough?' },
+    ],
+    maker_badge: [
+      { label: 'Hunter ask DM', text: 'Hi {{hunter}} — I\'m launching {{handle}} ({{website}}) on PH soon. Big fan of your hunts in the {{niche}} space. Would you be open to hunting it? Happy to share an early demo first.' },
+    ],
+  },
+  reddit: {
+    profile_bio: [
+      { label: 'Bio', text: 'Solo dev building tools that scratch my own itch. Currently: {{persona}}. Reach me: {{website}}', maxLen: 200 },
+    ],
+    organic_posts: [
+      { label: 'Post — lessons',   text: 'Title: What I learned shipping {{small thing}} in {{N}} weeks\n\nBody: …(3 concrete lessons, no link)…' },
+      { label: 'Post — question',  text: 'Title: How are you all handling {{problem}} in {{stack}}?\n\nBody: …(genuine question, share what you tried)…' },
+    ],
+    organic_comments: [
+      { label: 'Helpful template', text: 'For {{their problem}}, what worked for me was {{specific tactic}}. Took ~{{time}} to set up but saved {{benefit}}. DM if you want the exact config.' },
+    ],
+  },
+  twitter: {
+    profile_complete: [
+      { label: 'Bio', text: '{{persona}} • building @{{handle}} → {{website}} • {{hashtags}}', maxLen: 160, alt: [
+        'Building @{{handle}} → {{website}}',
+        'Solo founder. Building @{{handle}} — {{one-liner}}. {{website}}',
+      ] },
+      { label: 'Location', text: 'Solo / Remote', maxLen: 30 },
+      { label: 'Website',  text: '{{website}}', maxLen: 100 },
+    ],
+    posts: [
+      { label: 'Tweet — observation', text: 'Realized today: {{insight}}.\n\nProbably obvious to most, but it just clicked for me.', maxLen: 280 },
+      { label: 'Tweet — small win',   text: 'Shipped {{small feature}} this morning. {{N}} lines of code. Took longer to name it than to build it.', maxLen: 280 },
+      { label: 'Tweet — question',    text: 'Genuine question for {{audience}}: when you {{action}}, do you {{X}} or {{Y}}? Trying to figure out the better default.', maxLen: 280 },
+      { label: 'Tweet — link share',  text: 'This thread on {{topic}} is gold → {{url}}\n\nThe part about {{specific point}} alone is worth saving.', maxLen: 280 },
+      { label: 'Tweet — soft promo',  text: 'Working on @{{handle}} — {{one-liner}}. Open to early users if anyone wants to try: {{website}}', maxLen: 280 },
+    ],
+  },
+  hackernews: {
+    about_filled: [
+      { label: 'About', text: '{{persona}}. Building {{handle}} ({{website}}). Email: hello@{{handle}}.app.' },
+    ],
+  },
+  linkedin: {
+    profile_100: [
+      { label: 'Headline', text: 'Solo founder, {{handle}} • {{one-liner}}', maxLen: 220 },
+      { label: 'About',    text: '{{bio}}\n\nMost recent: building {{handle}} → {{website}}\n\n{{hashtags}}', maxLen: 2600 },
+    ],
+    posts: [
+      { label: 'Post — story',     text: '{{insight from a real situation, 3-4 short paragraphs, no hashtag soup}}' },
+      { label: 'Post — milestone', text: 'Small milestone: {{handle}} crossed {{N}} this week. What worked: {{tactic}}. What didn\'t: {{tactic}}.' },
+    ],
+  },
+  indiehackers: {
+    profile: [
+      { label: 'Headline', text: 'Building {{handle}} — {{one-liner}}', maxLen: 80 },
+      { label: 'Bio',      text: '{{bio}}\n\nFollow at {{website}}', maxLen: 500 },
+    ],
+    milestone_post: [
+      { label: 'Just shipped post', text: 'Just shipped: {{feature}}\n\nWhy: {{problem it solves}}\n\nHow it went: {{honest detail}}\n\nNext: {{next step}}' },
+    ],
+  },
+  bluesky: {
+    profile: [
+      { label: 'Bio', text: '{{persona}} • building {{handle}} → {{website}}', maxLen: 256 },
+    ],
+  },
+  threads: {
+    profile: [
+      { label: 'Bio', text: '{{persona}} • {{handle}} • {{website}}', maxLen: 150 },
+    ],
+  },
+  medium: {
+    non_promo_post: [
+      { label: 'Outline', text: '# {{Title — concrete claim}}\n\n## Why it matters\n\n## What I tried\n\n## What worked\n\n## What I\'d do differently\n\n## Take this with you' },
+    ],
+  },
+  devto: {
+    non_promo_post: [
+      { label: 'Outline', text: '# {{Title — howto / TIL}}\n\nTL;DR: {{one line}}\n\n## The problem\n\n## The fix\n\n```{{lang}}\n{{code snippet}}\n```\n\n## Why it works\n\n## Edge cases / gotchas' },
+    ],
+  },
+  hashnode: {
+    non_promo_post: [
+      { label: 'Outline', text: '# {{Title}}\n\n## Context\n\n## Implementation\n\n## Lessons\n\n## Source: {{repo or gist link}}' },
+    ],
+  },
+  beehiiv: {
+    welcome_email: [
+      { label: 'Welcome email', text: 'Subject: You\'re in 👋\n\nHey,\n\nThanks for subscribing to {{handle}}. Here\'s what to expect:\n\n• {{frequency}}\n• {{topics}}\n• Reply anytime — I read every email.\n\n— {{persona}}' },
+    ],
+  },
+  substack: {
+    welcome_post: [
+      { label: 'Start here post', text: '# Start here\n\nIf you\'re new: {{handle}} is about {{topic}}.\n\nThe 3 posts to read first:\n1. {{post}}\n2. {{post}}\n3. {{post}}\n\nReply with what you\'re working on — I read every email.' },
+    ],
+  },
+  youtube: {
+    channel_setup: [
+      { label: 'Description', text: '{{handle}} — {{one-liner}}\n\nNew videos: {{cadence}}\nReach me: {{website}}\n\n{{hashtags}}' },
+    ],
+  },
+  discord: {
+    profile: [
+      { label: 'About me', text: '{{persona}} • building {{handle}} • {{website}}' },
+    ],
+  },
+};
+
 const item = (key: string, phase: Phase, actionUrl?: string, tip?: string): ChecklistItemDef => ({
-  key, phase, actionUrl, tip, imageRelevant: IMAGE_RELEVANT.has(key) || undefined,
+  key, phase, actionUrl, tip,
+  imageRelevant: IMAGE_RELEVANT.has(key) || undefined,
 });
 
-export const PLATFORMS: PlatformDef[] = [
+// Post-process: attach platform-specific SNIPPETS to matching checklist items.
+// Done after PLATFORMS array is built so we don't need to modify ~50 item() calls.
+function attachSnippets(platforms: PlatformDef[]): PlatformDef[] {
+  return platforms.map((p) => {
+    const platformSnippets = SNIPPETS[p.key];
+    if (!platformSnippets) return p;
+    return {
+      ...p,
+      checklist: p.checklist.map((c) => ({
+        ...c,
+        snippets: platformSnippets[c.key] ?? c.snippets,
+      })),
+    };
+  });
+}
+
+const PLATFORMS_RAW: PlatformDef[] = [
   {
     key: 'producthunt', label: 'Product Hunt',
     signupUrl: 'https://www.producthunt.com/signup',
@@ -282,3 +432,5 @@ export const PLATFORMS: PlatformDef[] = [
     ],
   },
 ];
+
+export const PLATFORMS: PlatformDef[] = attachSnippets(PLATFORMS_RAW);

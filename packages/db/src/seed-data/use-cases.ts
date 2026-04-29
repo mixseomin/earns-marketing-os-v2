@@ -386,6 +386,63 @@ export const USE_CASES: UseCaseSpec[] = [
     expected: 'Status icon update + last_tested_at timestamp set + feedback persist qua F5.',
   },
   // ────────────────────────────────────────────────────────────────────
+  // Group 7 — Phase 7 features (real-time + content)
+  // ────────────────────────────────────────────────────────────────────
+  {
+    slug: '7.1-content-snippets-render',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Content snippets per checklist item — copy + variable substitution',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: 'AccountFormModal warmup section + lib/template.ts',
+    tags: ['accounts', 'content-snippets', 'phase-3'],
+    sortOrder: 71,
+    steps: [
+      { n: 1, action: 'Tạo / mở account Product Hunt cho Orit', url: '/p/orit/resources' },
+      { n: 2, action: 'Mở edit modal → cuộn xuống "Warmup checklist · Product Hunt"' },
+      { n: 3, action: 'Item profile_complete → expand → 4 snippets (Headline, Bio, Twitter, Website)' },
+      { n: 4, action: 'Verify {{handle}} substitute với handle account, {{platform}} với "Product Hunt"' },
+      { n: 5, action: 'Verify {{website}} {{bio}} {{persona}} stay literal (chưa có project field)' },
+      { n: 6, action: 'Click "📋 Copy" → "✓ Copied" toast' },
+      { n: 7, action: 'Verify char counter "37/60" → đỏ "65/60 ⚠" khi over' },
+      { n: 8, action: 'Click alt variants 1/2/3/4 → swap text + counter update' },
+      { n: 9, action: 'Test platform khác (Twitter/X) → posts checklist có 5 tweet templates' },
+    ],
+    expected:
+      '16 platforms có snippets (Product Hunt, Reddit, Twitter, HN, LinkedIn, IndieHackers, Bluesky, Threads, Medium, DEV.to, Hashnode, beehiiv, Substack, YouTube, Discord, BuyMeACoffee).\n' +
+      'Variable {{handle}} {{platform}} substitute. Unknown vars stay literal.\n' +
+      'Copy → clipboard, "✓ Copied" feedback 1.5s.\n' +
+      'Alt variants for over-maxLen cases.',
+  },
+  {
+    slug: '7.2-checklist-phase-filter-by-status',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Warmup checklist: only show phase matching account status',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: 'AccountFormModal phasesToShow logic',
+    tags: ['accounts', 'warmup', 'phase-filter'],
+    sortOrder: 72,
+    steps: [
+      { n: 1, action: 'Tạo account Product Hunt status=todo → mở edit' },
+      { n: 2, action: 'Verify show ALL 3 phase (creating, warming, active) — debug mode' },
+      { n: 3, action: 'Đổi status → CREATING → save → reopen' },
+      { n: 4, action: 'Verify chỉ show 🌱 Creating phase (1 item: profile_complete)' },
+      { n: 5, action: 'Section title hiện "showing only "creating" phase (matches account status)"' },
+      { n: 6, action: 'Đổi status → WARMING → reopen → chỉ show 🔥 Warming phase' },
+      { n: 7, action: 'Đổi status → ACTIVE → reopen → chỉ show 🚀 Active (PH thường empty)' },
+      { n: 8, action: 'Đổi status → LIMITED/BLOCKED/BANNED → all phases hiện (debug)' },
+    ],
+    expected:
+      'Pattern khớp earns-dashboard OritChannels:\n' +
+      '- creating → only creating items\n' +
+      '- warming → only warming items\n' +
+      '- active → only active items\n' +
+      '- todo / limited / blocked / banned → show everything (debug)\n' +
+      'UI focus user vào next step duy nhất, không overwhelming.',
+  },
+
+  // ────────────────────────────────────────────────────────────────────
   // Group 6 — Roadmap page
   // ────────────────────────────────────────────────────────────────────
   {

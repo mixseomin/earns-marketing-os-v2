@@ -9,6 +9,7 @@ import {
   type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
 import { Pill, EmptyState } from './ui';
+import { fillTemplate } from '@/lib/template';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -62,6 +63,93 @@ function PlatformIcon({ slug, size = 14 }: { slug: string; size?: number }) {
 function StatusPill({ status }: { status: string }) {
   const s = STATUSES.find((x) => x.key === status) ?? STATUSES[0]!;
   return <Pill color={s.color} icon={s.dot} label={s.label} size="xs" />;
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// SnippetCard — single ready-to-paste content snippet with variable
+// substitution + copy-to-clipboard + length warning + alt fallback chips.
+// ──────────────────────────────────────────────────────────────────────
+function SnippetCard({ snippet, vars }: {
+  snippet: { label: string; text: string; maxLen?: number; alt?: string[] };
+  vars: Record<string, string | undefined | null>;
+}) {
+  const [variant, setVariant] = useState<number>(-1); // -1 = primary text; 0..n-1 = alt[index]
+  const [copied, setCopied] = useState(false);
+
+  const rawText = variant === -1 ? snippet.text : (snippet.alt?.[variant] ?? snippet.text);
+  const text = fillTemplate(rawText, vars);
+  const overLimit = snippet.maxLen != null && text.length > snippet.maxLen;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      alert('Clipboard write failed — copy manually.');
+    }
+  };
+
+  return (
+    <div style={{
+      padding: '6px 8px',
+      background: 'var(--bg-2)',
+      border: `1px solid ${overLimit ? 'rgba(248,113,113,.4)' : 'var(--line)'}`,
+      borderRadius: 5,
+      fontSize: 11.5,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          📄 {snippet.label}
+        </span>
+        {snippet.maxLen != null && (
+          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: overLimit ? 'var(--bad)' : 'var(--fg-3)' }}>
+            {text.length}/{snippet.maxLen}{overLimit ? ' ⚠' : ''}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {snippet.alt && snippet.alt.length > 0 && (
+          <>
+            <button type="button"
+                    onClick={() => setVariant(-1)}
+                    title="Primary"
+                    className="btn ghost"
+                    style={{ fontSize: 9, padding: '1px 5px', background: variant === -1 ? 'var(--accent-soft)' : undefined, color: variant === -1 ? 'var(--accent)' : undefined }}>1</button>
+            {snippet.alt.map((_, i) => (
+              <button key={i} type="button"
+                      onClick={() => setVariant(i)}
+                      title={`Alt ${i + 1} (shorter)`}
+                      className="btn ghost"
+                      style={{ fontSize: 9, padding: '1px 5px', background: variant === i ? 'var(--accent-soft)' : undefined, color: variant === i ? 'var(--accent)' : undefined }}>{i + 2}</button>
+            ))}
+          </>
+        )}
+        <button type="button"
+                onClick={handleCopy}
+                className="btn"
+                style={{
+                  fontSize: 10, padding: '2px 8px',
+                  background: copied ? 'rgba(16,185,129,.1)' : undefined,
+                  borderColor: copied ? 'rgba(16,185,129,.4)' : undefined,
+                  color: copied ? '#10b981' : undefined,
+                }}>
+          {copied ? '✓ Copied' : '📋 Copy'}
+        </button>
+      </div>
+      <pre style={{
+        margin: 0, padding: 6,
+        background: 'var(--bg-1)',
+        border: '1px solid var(--line)',
+        borderRadius: 4,
+        fontFamily: 'var(--font-mono)',
+        fontSize: 11,
+        lineHeight: 1.5,
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        color: 'var(--fg-1)',
+      }}>{text}</pre>
+    </div>
+  );
 }
 
 export function AccountsVault({ projectId, platforms, accounts }: {
@@ -331,6 +419,34 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
     return grouped as Record<'creating' | 'warming' | 'active', typeof platform.checklist>;
   }, [platform]);
 
+  // Phase filter rule (matches dashboard OritChannels):
+  //   creating → only creating items (build identity first)
+  //   warming  → only warming (creating already done at this stage)
+  //   active   → only active items (often empty)
+  //   todo / limited / blocked / banned → show everything (debug / setup mode)
+  const phasesToShow: Array<'creating' | 'warming' | 'active'> = useMemo(() => {
+    if (!account) return ['creating', 'warming', 'active'];
+    switch (account.status) {
+      case 'creating': return ['creating'];
+      case 'warming':  return ['warming'];
+      case 'active':   return ['active'];
+      default:         return ['creating', 'warming', 'active'];
+    }
+  }, [account?.status]);
+
+  // Variable substitution context for snippet templates.
+  // Pulls what we have today (handle, platform). website/bio/persona left
+  // literal so user knows to fill — phase 7.5 will store these per project.
+  const templateVars = useMemo(() => ({
+    handle: form.handle || '',
+    platform: platform?.label ?? form.platformKey,
+    website: '',
+    bio: '',
+    persona: '',
+    hashtags: '',
+    'one-liner': '',
+  }), [form.handle, form.platformKey, platform?.label]);
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
@@ -487,8 +603,15 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
           {/* Warmup checklist + image specs (only when editing existing account) */}
           {!isCreate && platform && platform.checklist.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div className="modal-section-title">Warmup checklist · {platform.label}</div>
-              {(['creating', 'warming', 'active'] as const).map((phase) => (
+              <div className="modal-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Warmup checklist · {platform.label}</span>
+                {phasesToShow.length === 1 && (
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontWeight: 400 }}>
+                    showing only "{phasesToShow[0]}" phase (matches account status)
+                  </span>
+                )}
+              </div>
+              {phasesToShow.map((phase) => (
                 checklistByPhase[phase].length > 0 && (
                   <div key={phase} style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '4px 0' }}>
@@ -496,18 +619,26 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
                     </div>
                     {checklistByPhase[phase].map((item) => {
                       const state = account!.warmupChecklist[item.key] ?? { done: false };
+                      const snippets = item.snippets ?? [];
                       return (
-                        <div key={item.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 0', borderBottom: '1px dashed var(--line)' }}>
-                          <input type="checkbox" checked={state.done} onChange={() => handleToggleChecklist(item.key, state.done)} style={{ marginTop: 2 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, color: state.done ? 'var(--fg-3)' : 'var(--fg-0)', textDecoration: state.done ? 'line-through' : 'none' }}>
-                              {item.key.replace(/_/g, ' ')}
+                        <div key={item.key} style={{ padding: '5px 0', borderBottom: '1px dashed var(--line)' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                            <input type="checkbox" checked={state.done} onChange={() => handleToggleChecklist(item.key, state.done)} style={{ marginTop: 2 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, color: state.done ? 'var(--fg-3)' : 'var(--fg-0)', textDecoration: state.done ? 'line-through' : 'none' }}>
+                                {item.key.replace(/_/g, ' ')}
+                              </div>
+                              {item.tip && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>{item.tip}</div>}
                             </div>
-                            {item.tip && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>{item.tip}</div>}
+                            {item.actionUrl && (
+                              <a href={item.actionUrl} target="_blank" rel="noopener noreferrer"
+                                 className="btn" style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}>↗</a>
+                            )}
                           </div>
-                          {item.actionUrl && (
-                            <a href={item.actionUrl} target="_blank" rel="noopener noreferrer"
-                               className="btn" style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}>↗</a>
+                          {snippets.length > 0 && (
+                            <div style={{ marginLeft: 26, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                              {snippets.map((snip, i) => <SnippetCard key={i} snippet={snip} vars={templateVars} />)}
+                            </div>
                           )}
                         </div>
                       );

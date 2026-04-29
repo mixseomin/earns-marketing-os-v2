@@ -229,7 +229,14 @@ export interface PlatformRow {
   fallbackKeys: string[];
   iconSlug: string;
   imageSpecs: Array<{ kind: string; label: string; w: number; h: number; note?: string }>;
-  checklist: Array<{ key: string; phase: 'creating' | 'warming' | 'active'; actionUrl?: string; tip?: string; imageRelevant?: boolean }>;
+  checklist: Array<{
+    key: string;
+    phase: 'creating' | 'warming' | 'active';
+    actionUrl?: string;
+    tip?: string;
+    imageRelevant?: boolean;
+    snippets?: Array<{ label: string; text: string; maxLen?: number; alt?: string[] }>;
+  }>;
   autoCheck: boolean;
 }
 

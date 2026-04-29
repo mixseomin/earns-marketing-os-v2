@@ -26,12 +26,19 @@ export async function markUseCase(slug: string, status: UseCaseStatus, statusNot
     .limit(1);
   if (rows.length === 0) return { ok: false, error: 'use case not found' };
 
+  // When user marks pass / pending, clear fix-tracking fields (fix has been
+  // verified successful, or the case is being reset). When user marks fail
+  // or needs-fix manually (without going through addFeedback), also clear —
+  // it's a new iteration.
+  const clearFix = ['pass', 'pending', 'fail', 'needs-fix'].includes(status);
+
   await db
     .update(useCases)
     .set({
       status,
       statusNote: statusNote ?? null,
       lastTestedAt: status === 'pending' ? null : new Date(),
+      ...(clearFix ? { fixedIn: null, fixedAt: null, fixNote: null } : {}),
       updatedAt: new Date(),
     })
     .where(eq(useCases.slug, slug));
@@ -59,8 +66,40 @@ export async function addFeedback(
   if (markNeedsFix && trimmed) {
     set.status = 'needs-fix';
     set.lastTestedAt = new Date();
+    // New feedback supersedes any prior fix — clear the re-test signal so
+    // the next markCaseFixed (after AI ships a new fix) is recognized as fresh.
+    set.fixedIn = null;
+    set.fixedAt = null;
+    set.fixNote = null;
   }
   await db.update(useCases).set(set).where(eq(useCases.slug, slug));
+  revalidatePath('/tests');
+  return { ok: true };
+}
+
+// AI calls this after shipping a fix that addresses a case's feedback.
+// Sets fixedIn (commit SHA) + fixedAt + fixNote. Status stays untouched
+// so the case remains in the user's needs-fix queue with a "🔄 re-test" badge.
+// User then re-tests and marks pass — at which point the fields clear (see markUseCase).
+export async function markCaseFixed(slug: string, commitSha: string, fixNote?: string | null): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const rows = await db
+    .select({ slug: useCases.slug, status: useCases.status })
+    .from(useCases)
+    .where(and(eq(useCases.tenantId, TENANT), eq(useCases.slug, slug)))
+    .limit(1);
+  if (rows.length === 0) return { ok: false, error: `use case "${slug}" not found` };
+
+  await db
+    .update(useCases)
+    .set({
+      fixedIn: commitSha,
+      fixedAt: new Date(),
+      fixNote: fixNote ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(useCases.slug, slug));
+
   revalidatePath('/tests');
   return { ok: true };
 }

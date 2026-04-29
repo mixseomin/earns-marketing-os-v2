@@ -386,6 +386,30 @@ export const USE_CASES: UseCaseSpec[] = [
     expected: 'Status icon update + last_tested_at timestamp set + feedback persist qua F5.',
   },
   {
+    slug: '5.4-fix-shipped-retest-signal',
+    groupKey: '5', groupLabel: 'Group 5 — Tests page',
+    title: 'Fix shipped → re-test signal (🔄 cyan badge)',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: '/tests case row + markCaseFixed action + mark-fixed CLI',
+    tags: ['tests', 'workflow', 'needs-fix', 're-test'],
+    sortOrder: 54,
+    steps: [
+      { n: 1, action: 'Tạo 1 needs-fix case (qua feedback) — ví dụ slug 5.1', url: '/tests' },
+      { n: 2, action: 'Đợi AI fix + ship + chạy `npm run mark-fixed -- <slug> <sha> "note"` qua SSH' },
+      { n: 3, action: 'F5 /tests' },
+      { n: 4, action: 'Verify case row hiện badge cyan "🔄 Fix shipped Xm ago in #SHA · please re-test"' },
+      { n: 5, action: 'Click commit hash → mở GitHub commit page' },
+      { n: 6, action: 'User test fix → mark Pass → badge biến (fixedIn cleared)' },
+      { n: 7, action: 'Edge case: nếu user thêm feedback mới (mark needs-fix lại) → fixedIn cũng clear (iteration mới)' },
+    ],
+    expected:
+      'Badge cyan pulse animation trên case row khi fixedIn + fixedAt set + status=needs-fix.\n' +
+      'Hover commit link → URL GitHub.\n' +
+      'Mark pass: fixedIn/fixedAt/fixNote auto-clear.\n' +
+      'New feedback: cũng clear → next markCaseFixed sẽ là fresh signal.',
+  },
+  {
     slug: '5.3-needs-fix-feedback-loop',
     groupKey: '5', groupLabel: 'Group 5 — Tests page',
     title: 'Feedback → auto-mark needs-fix → AI fix loop',

@@ -326,6 +326,9 @@ export interface UseCaseRow {
   lastTestedAt: Date | null;
   lastTestedBy: string | null;
   blockerRef: string | null;
+  fixedIn: string | null;
+  fixedAt: Date | null;
+  fixNote: string | null;
 }
 
 export async function listUseCases(): Promise<UseCaseRow[]> {
@@ -351,6 +354,9 @@ export async function listUseCases(): Promise<UseCaseRow[]> {
         lastTestedAt: r.lastTestedAt,
         lastTestedBy: r.lastTestedBy,
         blockerRef: r.blockerRef,
+        fixedIn: r.fixedIn,
+        fixedAt: r.fixedAt,
+        fixNote: r.fixNote,
       }));
     },
     [],

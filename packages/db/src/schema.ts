@@ -299,12 +299,23 @@ export const useCases = pgTable(
     archivedAt: timestamp('archived_at', { withTimezone: true }),
 
     // ── State (user-managed via UI, seed NEVER overwrites) ──
-    status: text('status').notNull().default('pending'),          // pending | wip | pass | fail | blocked | skip
+    status: text('status').notNull().default('pending'),          // pending | wip | pass | fail | needs-fix | blocked | skip
     statusNote: text('status_note'),
     feedback: text('feedback'),
     lastTestedAt: timestamp('last_tested_at', { withTimezone: true }),
     lastTestedBy: text('last_tested_by'),
     blockerRef: text('blocker_ref'),
+
+    // ── Fix-tracking (AI-managed, signals to user "re-test now") ──
+    // After AI ships a fix that addresses this case's feedback, AI calls
+    // markCaseFixed(slug, commitSha) to set these. UI shows a "🔄 Re-test"
+    // badge so the user knows new code is live.
+    // Cleared automatically when: (a) user marks pass/pending (success — fix
+    // confirmed), (b) user adds new feedback with mark-needs-fix (new
+    // iteration — old fix superseded).
+    fixedIn: text('fixed_in'),
+    fixedAt: timestamp('fixed_at', { withTimezone: true }),
+    fixNote: text('fix_note'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

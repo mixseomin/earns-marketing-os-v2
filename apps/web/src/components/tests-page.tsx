@@ -271,6 +271,27 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                               {c.statusNote && <span style={{ color: meta.color, marginLeft: 6 }}>"{c.statusNote}"</span>}
                             </div>
                           )}
+                          {c.status === 'needs-fix' && c.fixedIn && c.fixedAt && (
+                            <div style={{
+                              marginTop: 4, padding: '3px 8px', borderRadius: 4,
+                              background: 'rgba(56,189,248,.12)',
+                              border: '1px solid rgba(56,189,248,.4)',
+                              color: '#38bdf8',
+                              fontSize: 11, fontFamily: 'var(--font-mono)',
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              animation: 'pulse-cyan 2s ease-in-out infinite',
+                            }}>
+                              <span>🔄 Fix shipped {fmtDate(c.fixedAt)}</span>
+                              <a href={`https://github.com/${REPO}/commit/${c.fixedIn}`}
+                                 target="_blank" rel="noopener noreferrer"
+                                 onClick={(e) => e.stopPropagation()}
+                                 style={{ color: '#38bdf8', textDecoration: 'underline' }}>
+                                #{c.fixedIn}
+                              </a>
+                              <span style={{ color: 'var(--fg-2)' }}>· please re-test</span>
+                              {c.fixNote && <span style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>— {c.fixNote}</span>}
+                            </div>
+                          )}
                         </div>
                         <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{isOpen ? '▾' : '▸'}</span>
                       </div>

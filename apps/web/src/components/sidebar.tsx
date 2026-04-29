@@ -4,15 +4,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
-import type { Mode } from '@/lib/mock/types';
+import type { Mode, Project } from '@/lib/mock/types';
 
-export function Sidebar({ mode, currentProjectId }: { mode?: Mode; currentProjectId?: string }) {
+export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; currentProjectId?: string; projects: Project[] }) {
   const t = useT();
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
 
   return (
     <aside className="sidebar">
-      <ProjectSwitcher currentProjectId={currentProjectId} />
+      <ProjectSwitcher currentProjectId={currentProjectId} projects={projects} />
 
       <div className="side-section" style={{ flex: 1, overflow: 'auto' }}>
         <div className="side-title">

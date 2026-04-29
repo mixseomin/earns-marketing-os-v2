@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function PortfolioPage() {
   const [projects, mode] = await Promise.all([listProjects(), getMode('affiliate')]);
   return (
-    <AppShell mode={mode} isPortfolio>
+    <AppShell mode={mode} projects={projects} isPortfolio>
       <PortfolioView projects={projects} />
     </AppShell>
   );

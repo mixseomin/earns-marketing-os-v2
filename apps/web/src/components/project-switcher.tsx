@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { PROJECTS } from '@/lib/mock/projects';
 import { MODES } from '@/lib/mock/modes';
+import type { Project } from '@/lib/mock/types';
 
-export function ProjectSwitcher({ currentProjectId }: { currentProjectId?: string }) {
+export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { currentProjectId?: string; projects: Project[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const p = PROJECTS.find((x) => x.id === currentProjectId) || PROJECTS[0]!;

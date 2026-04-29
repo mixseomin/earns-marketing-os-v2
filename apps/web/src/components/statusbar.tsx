@@ -1,7 +1,6 @@
-import { PROJECTS } from '@/lib/mock/projects';
 import type { Mode, Project } from '@/lib/mock/types';
 
-export function StatusBar({ mode, project }: { mode?: Mode; project?: Project }) {
+export function StatusBar({ mode, project, projectCount }: { mode?: Mode; project?: Project; projectCount: number }) {
   const badAlerts = mode?.alerts?.filter((a) => a.tone === 'bad').length ?? 0;
   return (
     <footer className="statusbar">
@@ -22,7 +21,7 @@ export function StatusBar({ mode, project }: { mode?: Mode; project?: Project })
       )}
       <div className="seg warn">⚠ {badAlerts} alerts</div>
       <div className="grow"></div>
-      <div className="seg">v2.5.0 • {PROJECTS.length} projects</div>
+      <div className="seg">v2.5.0 • {projectCount} projects</div>
       <div className="seg">GMT+7 · 07:42:33</div>
     </footer>
   );

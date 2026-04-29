@@ -16,12 +16,14 @@ export function AppShell({
   children,
   mode,
   project,
+  projects,
   tab,
   isPortfolio = false,
 }: {
   children: ReactNode;
   mode?: Mode;
   project?: Project;
+  projects: Project[];
   tab?: Tab;
   isPortfolio?: boolean;
 }) {
@@ -33,11 +35,11 @@ export function AppShell({
     <>
       <ThemeApplier modeAccent={mode?.accent} />
       <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}>
-        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} />
-        {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} />}
+        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} />
+        {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
         <RightBar mode={mode} />
-        <StatusBar mode={mode} project={project} />
+        <StatusBar mode={mode} project={project} projectCount={projects.length} />
 
         <TweaksPanel>
           <TweakSection label="Language" />

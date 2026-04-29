@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useT } from '@/lib/lang-context';
-import { PROJECTS } from '@/lib/mock/projects';
 import type { Mode, Project } from '@/lib/mock/types';
 
 type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources';
@@ -12,11 +11,13 @@ export function TopBar({
   mode,
   currentProject,
   isPortfolio,
+  projectCount,
 }: {
   tab?: Tab;
   mode?: Mode;
   currentProject?: Project;
   isPortfolio: boolean;
+  projectCount: number;
 }) {
   const t = useT();
 
@@ -43,7 +44,7 @@ export function TopBar({
         style={{ borderRight: '1px solid var(--line)', paddingRight: 16, marginRight: 4, textDecoration: 'none' }}
       >
         ⊞ {t('nav.portfolio', 'Portfolio')}
-        <span className="badge">{PROJECTS.length}</span>
+        <span className="badge">{projectCount}</span>
       </Link>
 
       {!isPortfolio && currentProject && (
@@ -77,7 +78,7 @@ export function TopBar({
       </div>
       <div className="live-pill">
         <span className="dot"></span>
-        {isPortfolio ? `${PROJECTS.length} PROJECTS LIVE` : (mode?.livePill || 'LIVE')}
+        {isPortfolio ? `${projectCount} PROJECTS LIVE` : (mode?.livePill || 'LIVE')}
       </div>
     </header>
   );

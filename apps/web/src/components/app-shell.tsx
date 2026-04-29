@@ -10,7 +10,7 @@ import { RightBar } from './rightbar';
 import { StatusBar } from './statusbar';
 import type { Mode, Project } from '@/lib/mock/types';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
 
 export function AppShell({
   children,

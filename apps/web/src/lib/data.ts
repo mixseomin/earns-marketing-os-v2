@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -218,3 +218,19 @@ function rowToFeed(r: FeedRow): FeedEvent {
 
 // Convenience for Portfolio: total/avg/etc. (still mock-only constants until DB grows).
 export { MOCK_MODES as MODES };
+
+// Mode list for forms (Settings, New Project). Returns DB rows when available,
+// falls back to mock keys with derived label/accent.
+export async function listModes(): Promise<Array<{ id: string; label: string; sub: string; accent: string }>> {
+  return tryDb(
+    async () => {
+      const rows = await listAllModes();
+      if (rows && rows.length > 0) {
+        return rows.map((r) => ({ id: r.id, label: r.label, sub: r.sub, accent: r.accent }));
+      }
+      return Object.entries(MOCK_MODES).map(([id, m]) => ({ id, label: m.label, sub: m.sub, accent: m.accent ?? 'cyan' }));
+    },
+    Object.entries(MOCK_MODES).map(([id, m]) => ({ id, label: m.label, sub: m.sub, accent: m.accent ?? 'cyan' })),
+    'listModes',
+  );
+}

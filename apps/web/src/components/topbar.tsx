@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
 
 export function TopBar({
   tab,
@@ -31,6 +31,7 @@ export function TopBar({
     { id: 'tribes', label: t('nav.tribes', 'Tribes') },
     { id: 'studio', label: t('nav.studio', 'Studio') },
     { id: 'resources', label: t('nav.resources', 'Resources') },
+    { id: 'settings', label: '⚙' },
   ];
 
   return (

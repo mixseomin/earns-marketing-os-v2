@@ -11,7 +11,7 @@ export default async function SquadsRoute({ params }: { params: Promise<{ id: st
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="squads">
-      <SquadsPage mode={mode} />
+      <SquadsPage mode={mode} projectId={id} />
     </AppShell>
   );
 }

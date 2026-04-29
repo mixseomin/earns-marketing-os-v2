@@ -39,6 +39,16 @@ export async function getModeById(id: string) {
   return rows[0] ?? null;
 }
 
+export async function listAllModes() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select({ id: modes.id, label: modes.label, sub: modes.sub, accent: modes.accent })
+    .from(modes)
+    .where(eq(modes.tenantId, TENANT))
+    .orderBy(asc(modes.label));
+}
+
 export async function listSquadsByProject(projectId: string) {
   const db = getDb();
   if (!db) return null;

@@ -75,3 +75,96 @@ export async function escalateCard(projectId: string, cardRef: string): Promise<
   revalidatePath(`/p/${projectId}`);
   return { ok: true };
 }
+
+// ── Create / Update / Delete ────────────────────────────────────
+
+export interface CardInput {
+  title: string;
+  col: string;
+  squadKey: string;
+  level: 1 | 2 | 3 | 4;
+  money?: string | null;
+  due: string;
+  urgent?: boolean;
+  tags: string[];
+  agentRef?: string | null;
+  body?: string | null;
+}
+
+function genCardRef(prefix: string): string {
+  // OFR-2891 style. Random 4-digit + prefix from squad/col.
+  const n = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix.toUpperCase().slice(0, 3)}-${n}`;
+}
+
+export async function createCard(projectId: string, input: CardInput): Promise<{ ok: boolean; cardRef?: string; error?: string }> {
+  const db = ensureDb();
+  if (!input.title.trim()) return { ok: false, error: 'Title không được rỗng' };
+
+  let ref = genCardRef(input.squadKey || 'CRD');
+  // Ensure unique within project (rare collision retry).
+  for (let i = 0; i < 5; i++) {
+    const ex = await db
+      .select({ id: cards.id })
+      .from(cards)
+      .where(and(eq(cards.projectId, projectId), eq(cards.cardRef, ref)))
+      .limit(1);
+    if (ex.length === 0) break;
+    ref = genCardRef(input.squadKey || 'CRD');
+  }
+
+  await db.insert(cards).values({
+    tenantId: TENANT,
+    projectId,
+    cardRef: ref,
+    col: input.col,
+    title: input.title.trim(),
+    squadKey: input.squadKey,
+    level: input.level,
+    money: input.money ?? null,
+    due: input.due || '—',
+    urgent: !!input.urgent,
+    tags: input.tags ?? [],
+    agentRef: input.agentRef ?? null,
+    body: input.body ?? null,
+  });
+
+  revalidatePath(`/p/${projectId}/board`);
+  revalidatePath(`/p/${projectId}`);
+  return { ok: true, cardRef: ref };
+}
+
+export async function updateCard(projectId: string, cardRef: string, patch: Partial<CardInput>): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const card = await findCard(projectId, cardRef);
+  if (!card) return { ok: false, error: 'card not found' };
+
+  const set: Partial<typeof cards.$inferInsert> = { updatedAt: new Date() };
+  if (patch.title !== undefined) set.title = patch.title.trim();
+  if (patch.col !== undefined) set.col = patch.col;
+  if (patch.squadKey !== undefined) set.squadKey = patch.squadKey;
+  if (patch.level !== undefined) set.level = patch.level;
+  if (patch.money !== undefined) set.money = patch.money;
+  if (patch.due !== undefined) set.due = patch.due || '—';
+  if (patch.urgent !== undefined) set.urgent = !!patch.urgent;
+  if (patch.tags !== undefined) set.tags = patch.tags;
+  if (patch.agentRef !== undefined) set.agentRef = patch.agentRef;
+  if (patch.body !== undefined) set.body = patch.body;
+
+  await db.update(cards).set(set).where(eq(cards.id, card.id));
+
+  revalidatePath(`/p/${projectId}/board`);
+  revalidatePath(`/p/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteCard(projectId: string, cardRef: string): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const card = await findCard(projectId, cardRef);
+  if (!card) return { ok: false, error: 'card not found' };
+
+  await db.delete(cards).where(eq(cards.id, card.id));
+  revalidatePath(`/p/${projectId}/board`);
+  revalidatePath(`/p/${projectId}`);
+  return { ok: true };
+}

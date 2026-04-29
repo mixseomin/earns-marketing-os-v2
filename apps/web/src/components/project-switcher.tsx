@@ -59,7 +59,7 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
             );
           })}
           <div style={{ padding: '8px 10px', borderTop: '1px solid var(--line)', display: 'flex', gap: 6 }}>
-            <button style={{ flex: 1, appearance: 'none', background: 'var(--bg-3)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 5, padding: '5px 8px', fontSize: 11, cursor: 'pointer' }}>+ New Project</button>
+            <button onClick={() => { router.push('/p/new'); setOpen(false); }} style={{ flex: 1, appearance: 'none', background: 'var(--bg-3)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 5, padding: '5px 8px', fontSize: 11, cursor: 'pointer' }}>+ New Project</button>
             <button onClick={() => { router.push('/'); setOpen(false); }} style={{ flex: 1, appearance: 'none', background: 'var(--accent)', color: 'var(--bg-0)', border: 0, borderRadius: 5, padding: '5px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>⊞ Portfolio</button>
           </div>
         </div>

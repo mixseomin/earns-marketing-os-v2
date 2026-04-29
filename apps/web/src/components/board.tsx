@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTweaks } from './tweaks';
 import type { Mode, Card } from '@/lib/mock/types';
-import { moveCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
+import { moveCard } from '@/lib/actions/cards';
+import { CardModal } from './card-modal';
 
 function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
   card: Card; mode: Mode; onOpen: (c: Card) => void;
@@ -48,86 +50,14 @@ function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
   );
 }
 
-function Modal({ card, mode, onClose, onAction }: {
-  card: Card | null; mode: Mode; onClose: () => void; onAction: (a: 'approve' | 'reject' | 'escalate') => void;
-}) {
-  if (!card) return null;
-  const squad = mode.squads.find((s) => s.id === card.squad);
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{card.id} • {squad?.icon} {squad?.name} • Trust Level {card.level}</div>
-            <h2>{card.title}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="modal-body">
-          <div className="modal-grid">
-            <div className="modal-cell">
-              <div className="lbl">Expected impact</div>
-              <div className={`val ${card.money?.startsWith('-') ? 'bad' : 'ok'}`}>{card.money || '—'}</div>
-              <div className="sub">est. 30-day projection</div>
-            </div>
-            <div className="modal-cell">
-              <div className="lbl">Deadline</div>
-              <div className={`val ${card.urgent || card.due === 'NOW' ? 'bad' : 'warn'}`}>{card.due || '—'}</div>
-              <div className="sub">fallback: agent picks default</div>
-            </div>
-            <div className="modal-cell">
-              <div className="lbl">Squad / Agent</div>
-              <div className="val" style={{ fontSize: 16 }}>{squad?.icon} {squad?.name}</div>
-              <div className="sub mono">@{card.agent}</div>
-            </div>
-            <div className="modal-cell">
-              <div className="lbl">Trust Level</div>
-              <div className="val" style={{ color: `var(--l${card.level})` }}>L{card.level}</div>
-              <div className="sub">
-                {card.level === 4 && 'Escalate — dừng mọi việc liên quan'}
-                {card.level === 3 && 'Approve — agent đề xuất, chờ duyệt'}
-                {card.level === 2 && 'Notify — agent tự làm, log lại'}
-                {card.level === 1 && 'Auto — agent tự làm, không báo'}
-              </div>
-            </div>
-          </div>
-          {card.body && (<>
-            <div className="modal-section-title">Agent reasoning</div>
-            <div className="modal-text">{card.body}</div>
-          </>)}
-          <div className="modal-section-title">Tags</div>
-          <div className="kcard-tags">
-            {(card.tags || []).map((t, i) => <span key={i} className="tag">{t}</span>)}
-            <span className="tag accent">Auto-routed</span>
-          </div>
-          <div className="modal-section-title">Quick actions</div>
-          <div className="flex gap-2">
-            <button className="btn">↗ Scale x2</button>
-            <button className="btn">⏸ Pause 24h</button>
-            <button className="btn">↻ Re-route</button>
-            <button className="btn">＋ Add note</button>
-          </div>
-        </div>
-        <div className="modal-foot">
-          <div className="meta">⌘↵ approve • ⌘⌫ reject • esc close</div>
-          <div className="modal-foot-actions">
-            <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn danger" onClick={() => onAction('reject')}>✕ Reject</button>
-            <button className="btn" onClick={() => onAction('escalate')}>↑ Escalate</button>
-            <button className="btn success" onClick={() => onAction('approve')}>✓ Approve</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: string }) {
   const { tweaks } = useTweaks();
+  const router = useRouter();
   const [cards, setCards] = useState<Card[]>(mode.cards);
   useEffect(() => { setCards(mode.cards); }, [mode]);
 
   const [openCard, setOpenCard] = useState<Card | null>(null);
+  const [createInCol, setCreateInCol] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | '3' | '4'>('all');
@@ -148,6 +78,7 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
   };
 
   const filtered = filter === 'all' ? cards : cards.filter((c) => c.level >= parseInt(filter, 10));
+  const isModalOpen = openCard !== null || createInCol !== null;
 
   return (
     <div className="board">
@@ -187,6 +118,18 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
                 onDragLeave={() => setDragOver(null)}
                 onDrop={() => onDrop(col.id)}
               >
+                <button onClick={() => setCreateInCol(col.id)}
+                        disabled={mode.squads.length === 0}
+                        title={mode.squads.length === 0 ? 'Tạo squad trước (Squads tab)' : `+ New card in ${col.title}`}
+                        style={{
+                          width: '100%', padding: '8px', marginBottom: 8,
+                          background: 'var(--bg-2)', border: '1px dashed var(--line-2)',
+                          borderRadius: 6, color: 'var(--fg-2)', cursor: mode.squads.length === 0 ? 'not-allowed' : 'pointer',
+                          fontFamily: 'var(--font-mono)', fontSize: 11,
+                          opacity: mode.squads.length === 0 ? 0.4 : 1,
+                        }}>
+                  + New card
+                </button>
                 {colCards.map((card) => (
                   <KCard key={card.id} card={card} mode={mode}
                     onOpen={setOpenCard}
@@ -195,29 +138,23 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
                     dragging={dragId === card.id} />
                 ))}
                 {colCards.length === 0 && (
-                  <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>— empty —</div>
+                  <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>— empty —</div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-      <Modal card={openCard} mode={mode} onClose={() => setOpenCard(null)}
-        onAction={(a) => {
-          if (!openCard) return;
-          const cardId = openCard.id;
-          // Optimistic local update
-          if (a === 'approve') setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, col: 'approved' } : c)));
-          if (a === 'reject') setCards((cs) => cs.filter((c) => c.id !== cardId));
-          if (a === 'escalate') setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, col: 'escalated', level: 4 as const } : c)));
-          setOpenCard(null);
-          // Persist to DB
-          startTransition(async () => {
-            const fn = a === 'approve' ? approveCard : a === 'reject' ? rejectCard : escalateCard;
-            const res = await fn(projectId, cardId);
-            if (!res.ok) console.warn(`${a} failed:`, res.error);
-          });
-        }} />
+
+      <CardModal
+        open={isModalOpen}
+        mode={mode}
+        card={openCard}
+        projectId={projectId}
+        defaultCol={createInCol ?? undefined}
+        onClose={() => { setOpenCard(null); setCreateInCol(null); }}
+        onSaved={() => router.refresh()}
+      />
     </div>
   );
 }

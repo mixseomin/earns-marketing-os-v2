@@ -24,7 +24,7 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={{ appearance: 'none', background: 'var(--bg-2)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>⟲ Sync all</button>
           <button style={{ appearance: 'none', background: 'var(--bg-2)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>📥 Export report</button>
-          <button style={{ appearance: 'none', background: 'var(--accent)', color: 'var(--bg-0)', border: 0, borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ New Project</button>
+          <Link href="/p/new" style={{ appearance: 'none', background: 'var(--accent)', color: 'var(--bg-0)', border: 0, borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>+ New Project</Link>
         </div>
       </div>
 

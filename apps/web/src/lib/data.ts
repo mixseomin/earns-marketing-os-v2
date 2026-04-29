@@ -110,12 +110,14 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
         listAlertsByProject(projectId),
         listRecentFeed(projectId, 20),
       ]);
+      // Reader returns null when DB is unavailable; [] when DB available but empty (blank project).
+      // Treat null → mock fallback (degraded service); [] → empty arrays (legitimately no data).
       return {
         ...baseMode,
-        squads: squadRows && squadRows.length > 0 ? squadRows.map(rowToSquad) : baseMode.squads,
-        cards: cardRows && cardRows.length > 0 ? cardRows.map(rowToCard) : baseMode.cards,
-        alerts: alertRows && alertRows.length > 0 ? alertRows.map(rowToAlert) : baseMode.alerts,
-        feed: feedRows && feedRows.length > 0 ? feedRows.map(rowToFeed) : baseMode.feed,
+        squads: squadRows !== null ? squadRows.map(rowToSquad) : baseMode.squads,
+        cards: cardRows !== null ? cardRows.map(rowToCard) : baseMode.cards,
+        alerts: alertRows !== null ? alertRows.map(rowToAlert) : baseMode.alerts,
+        feed: feedRows !== null ? feedRows.map(rowToFeed) : baseMode.feed,
       };
     },
     baseMode,

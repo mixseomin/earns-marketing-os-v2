@@ -1,0 +1,17 @@
+[Unit]
+Description=MOS v2 Next.js (port 3821)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/web
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+Environment=NODE_ENV=production
+Environment=PORT=3821
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

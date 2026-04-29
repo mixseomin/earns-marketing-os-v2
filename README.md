@@ -5,7 +5,7 @@ A fresh start. Knowledge + organization will be rebuilt from scratch — not a p
 - Live: https://mos2.on.tc
 - Server: Hetzner 5.78.65.158 (`/opt/earns-marketing-os-v2/`)
 - DB: Postgres `mos2_prod` (separate from v1)
-- Port: 3812 (v1 = 3811)
+- Port: 3821 (v1 occupies 3811 + 3812 for its zero-downtime pair)
 
 ## Status
 

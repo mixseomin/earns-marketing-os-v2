@@ -1,0 +1,47 @@
+name: Deploy MOS v2
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'wiki/**'
+      - 'decisions/**'
+      - '.gitignore'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Typecheck
+        run: npm run typecheck
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.MOS_SERVER_HOST }}
+          username: ${{ secrets.MOS_SERVER_USER }}
+          key: ${{ secrets.MOS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/earns-marketing-os-v2
+            ./deploy.sh

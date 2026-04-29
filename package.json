@@ -1,0 +1,19 @@
+{
+  "name": "earns-marketing-os-v2",
+  "version": "0.0.1",
+  "description": "MOS v2 — fresh start. Knowledge + organization rebuilt from scratch.",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "build:web": "npm run build --workspace=apps/web",
+    "start": "npm run start --workspace=apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  }
+}

@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { UseCaseRow, UseCaseStatus } from '@/lib/data';
 import { markUseCase, addFeedback, clearStatus } from '@/lib/actions/use-cases';
+import { Pill, PriorityPill, StatsStrip, EmptyState, type Priority, type StatCard } from './ui';
 
 const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: string }> = {
   pending:     { label: 'Pending',   icon: '⚪', color: 'var(--fg-3)' },
@@ -18,10 +19,6 @@ const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: s
 // Order: untouched first, in-flight middle, terminal last. needs-fix between
 // fail and blocked because it requires AI re-work before re-test.
 const STATUS_ORDER: UseCaseStatus[] = ['pending', 'wip', 'pass', 'fail', 'needs-fix', 'blocked', 'skip'];
-
-const PRIORITY_COLOR: Record<string, string> = {
-  critical: '#f87171', high: '#fbbf24', medium: '#a1a1aa', low: '#6b7280',
-};
 
 const REPO = 'mixseomin/earns-marketing-os-v2';
 
@@ -144,22 +141,19 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
         </div>
       </div>
 
-      {/* Stats strip — Total + 7 statuses = 8 cols */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6, marginBottom: 12 }}>
-        <div style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>Total</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-0)' }}>{counts.total}</div>
-        </div>
-        {STATUS_ORDER.map((s) => (
-          <div key={s} style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }}
-               onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>
-              {STATUS_META[s].icon} {STATUS_META[s].label}
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: STATUS_META[s].color }}>{counts.byStatus[s]}</div>
-          </div>
-        ))}
-      </div>
+      <StatsStrip
+        cards={[
+          { key: 'total', label: 'Total', value: counts.total, color: 'var(--fg-0)' },
+          ...STATUS_ORDER.map<StatCard>((s) => ({
+            key: s,
+            label: <>{STATUS_META[s].icon} {STATUS_META[s].label}</>,
+            value: counts.byStatus[s],
+            color: STATUS_META[s].color,
+            active: filterStatus === s,
+            onClick: () => setFilterStatus(filterStatus === s ? 'all' : s),
+          })),
+        ]}
+      />
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -189,12 +183,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
 
       {/* Groups */}
       {grouped.length === 0 ? (
-        <div className="panel">
-          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
-            <div style={{ fontSize: 32 }}>🔍</div>
-            <p style={{ fontSize: 13 }}>Không có case nào match filter.</p>
-          </div>
-        </div>
+        <EmptyState icon="🔍" title="Không có case nào match filter" compact />
       ) : (
         grouped.map((g) => {
           const passCount = g.cases.filter((c) => c.status === 'pass').length;
@@ -247,9 +236,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>
                               {c.slug}
                             </span>
-                            <span style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: PRIORITY_COLOR[c.priority] + '22', color: PRIORITY_COLOR[c.priority], fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
-                              {c.priority}
-                            </span>
+                            <PriorityPill priority={c.priority as Priority} />
                             {c.shippedIn && c.shippedIn !== 'WIP' && (
                               <a href={`https://github.com/${REPO}/commit/${c.shippedIn}`}
                                  target="_blank" rel="noopener noreferrer"

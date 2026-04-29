@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { RoadmapRow, RoadmapStatus } from '@/lib/data';
 import { markRoadmapItem, addRoadmapNote } from '@/lib/actions/roadmap';
+import { PriorityPill, EffortPill, StatsStrip, EmptyState, type Priority, type Effort, type StatCard } from './ui';
 
 const STATUS_META: Record<RoadmapStatus, { label: string; icon: string; color: string }> = {
   backlog:       { label: 'Backlog',     icon: '⚪', color: 'var(--fg-3)' },
@@ -17,14 +18,6 @@ const STATUS_META: Record<RoadmapStatus, { label: string; icon: string; color: s
 };
 
 const STATUS_ORDER: RoadmapStatus[] = ['backlog', 'planned', 'in-progress', 'review', 'done', 'blocked', 'dropped'];
-
-const PRIORITY_COLOR: Record<string, string> = {
-  critical: '#f87171', high: '#fbbf24', medium: '#a1a1aa', low: '#6b7280',
-};
-
-const EFFORT_COLOR: Record<string, string> = {
-  XS: '#10b981', S: '#10b981', M: '#fbbf24', L: '#fb923c', XL: '#f87171',
-};
 
 const CATEGORY_ICON: Record<string, string> = {
   feature: '✨', fix: '🔧', refactor: '♻️', infra: '🏗', idea: '💡',
@@ -130,22 +123,19 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
         </div>
       </div>
 
-      {/* Stats: 1 total + 7 statuses = 8 cols */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6, marginBottom: 12 }}>
-        <div style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>Total</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-0)' }}>{counts.total}</div>
-        </div>
-        {STATUS_ORDER.map((s) => (
-          <div key={s} style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }}
-               onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>
-              {STATUS_META[s].icon} {STATUS_META[s].label}
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: STATUS_META[s].color }}>{counts.byStatus[s]}</div>
-          </div>
-        ))}
-      </div>
+      <StatsStrip
+        cards={[
+          { key: 'total', label: 'Total', value: counts.total, color: 'var(--fg-0)' },
+          ...STATUS_ORDER.map<StatCard>((s) => ({
+            key: s,
+            label: <>{STATUS_META[s].icon} {STATUS_META[s].label}</>,
+            value: counts.byStatus[s],
+            color: STATUS_META[s].color,
+            active: filterStatus === s,
+            onClick: () => setFilterStatus(filterStatus === s ? 'all' : s),
+          })),
+        ]}
+      />
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -172,12 +162,7 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
       </div>
 
       {grouped.length === 0 ? (
-        <div className="panel">
-          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
-            <div style={{ fontSize: 32 }}>🔍</div>
-            <p style={{ fontSize: 13 }}>Không có item nào match filter.</p>
-          </div>
-        </div>
+        <EmptyState icon="🔍" title="Không có item nào match filter" compact />
       ) : (
         grouped.map(([phase, list]) => {
           const doneCount = list.filter((r) => r.status === 'done').length;
@@ -241,12 +226,8 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
                               {/* Pills only for attention rows */}
                               {isAttention && (
                                 <>
-                                  <span style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: PRIORITY_COLOR[item.priority] + '22', color: PRIORITY_COLOR[item.priority], fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
-                                    {item.priority}
-                                  </span>
-                                  <span title={`Effort: ${item.effort}`} style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: EFFORT_COLOR[item.effort] + '22', color: EFFORT_COLOR[item.effort], fontFamily: 'var(--font-mono)' }}>
-                                    {item.effort}
-                                  </span>
+                                  <PriorityPill priority={item.priority as Priority} />
+                                  <EffortPill effort={item.effort as Effort} />
                                 </>
                               )}
                               {item.shippedIn && (

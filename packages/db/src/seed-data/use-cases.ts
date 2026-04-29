@@ -431,6 +431,27 @@ export const USE_CASES: UseCaseSpec[] = [
     expected: 'Status flow: backlog → planned → in-progress → review → done. Auto-stamp startedAt/doneAt. CLI accept SHA cho done status.',
   },
   {
+    slug: '6.4-ui-design-system-primitives',
+    groupKey: '6', groupLabel: 'Group 6 — Roadmap page',
+    title: 'Design system primitives consistent across pages',
+    priority: 'medium',
+    shippedIn: 'WIP',
+    featureRef: 'apps/web/src/components/ui/{pill,stats-strip,empty-state}.tsx',
+    tags: ['design-system', 'refactor', 'consistency'],
+    sortOrder: 64,
+    steps: [
+      { n: 1, action: 'Mở 3 trang: /tests, /roadmap, /p/orit/resources (vault Accounts)' },
+      { n: 2, action: 'Verify status pills cùng style (soft tint background, mono uppercase)' },
+      { n: 3, action: 'Verify priority pills (CRITICAL/HIGH/MEDIUM/LOW) cùng size + color' },
+      { n: 4, action: 'Verify effort pills (XS/S/M/L/XL) cùng style — chỉ ở /roadmap' },
+      { n: 5, action: 'Verify stats strip top-of-page giống nhau (8 col grid, click filter)' },
+      { n: 6, action: 'Verify empty states "🔍 Không có case match", "🔐 Chưa có account" cùng layout' },
+    ],
+    expected:
+      '3 page dùng cùng <Pill>, <PriorityPill>, <EffortPill>, <StatsStrip>, <EmptyState>.\n' +
+      'Sửa style 1 chỗ → áp dụng cả 3 page. Pixel-consistent giữa các trang.',
+  },
+  {
     slug: '6.3-roadmap-tests-cross-link',
     groupKey: '6', groupLabel: 'Group 6 — Roadmap page',
     title: 'Done item nhưng tests chưa pass → cảnh báo "⚠ done but N test(s) chưa pass"',

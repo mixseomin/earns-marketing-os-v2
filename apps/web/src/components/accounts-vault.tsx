@@ -8,6 +8,7 @@ import {
   listDirectusAccountsForPlatform, importDirectusAccount,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
+import { Pill, EmptyState } from './ui';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -60,16 +61,7 @@ function PlatformIcon({ slug, size = 14 }: { slug: string; size?: number }) {
 
 function StatusPill({ status }: { status: string }) {
   const s = STATUSES.find((x) => x.key === status) ?? STATUSES[0]!;
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '2px 6px', borderRadius: 4,
-      background: `${s.color}1a`, color: s.color,
-      fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600,
-    }}>
-      <span>{s.dot}</span>{s.label}
-    </span>
-  );
+  return <Pill color={s.color} icon={s.dot} label={s.label} size="xs" />;
 }
 
 export function AccountsVault({ projectId, platforms, accounts }: {
@@ -131,17 +123,13 @@ export function AccountsVault({ projectId, platforms, accounts }: {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="panel">
-          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🔐</div>
-            <p style={{ margin: '0 0 12px', fontSize: 12 }}>
-              {accounts.length === 0
-                ? 'Chưa có account nào. Tạo account đầu tiên để bắt đầu đăng ký các platform.'
-                : `Không có account nào ở status "${filterStatus}".`}
-            </p>
-            {accounts.length === 0 && <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button>}
-          </div>
-        </div>
+        <EmptyState
+          icon="🔐"
+          title={accounts.length === 0 ? 'Chưa có account nào' : `Không có account nào ở status "${filterStatus}"`}
+          description={accounts.length === 0 ? 'Tạo account đầu tiên để bắt đầu đăng ký các platform.' : undefined}
+          action={accounts.length === 0 ? <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button> : undefined}
+          compact
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
           {filtered.map((acc) => {

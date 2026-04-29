@@ -37,7 +37,19 @@ else
   echo "↺ Skip deps (no package changes)"
 fi
 
-# 4. Build only if web src changed
+# 4. Apply pending Drizzle migrations (idempotent — safe to run every deploy)
+if [ -d "packages/db/migrations" ]; then
+  npm run db:migrate
+  echo "✓ DB migrations applied"
+fi
+
+# 4b. Optional one-shot seed: enable by setting MOS2_AUTO_SEED=1 in .env.production
+if [ "${MOS2_AUTO_SEED:-0}" = "1" ]; then
+  npm run db:seed
+  echo "✓ DB seeded (MOS2_AUTO_SEED=1)"
+fi
+
+# 5. Build only if web src changed
 WEB_CHANGED=false
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
   WEB_CHANGED=true
@@ -49,7 +61,7 @@ else
   echo "↺ Skip build (no source changes)"
 fi
 
-# 5. Restart systemd unit
+# 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1
 systemctl is-active mos2-web && echo "✓ mos2-web active" || (echo "✗ mos2-web failed"; systemctl status mos2-web --no-pager | tail -20; exit 1)

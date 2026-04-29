@@ -1,13 +1,14 @@
 import Link from 'next/link';
-import { PROJECTS, SHARED_POOL } from '@/lib/mock/projects';
+import { SHARED_POOL } from '@/lib/data';
 import { MODES } from '@/lib/mock/modes';
+import type { Project } from '@/lib/mock/types';
 
 const healthColor = (h: number) => (h > 80 ? 'var(--ok)' : h > 65 ? 'var(--warn)' : 'var(--bad)');
 
-export function PortfolioView() {
+export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
   const totalAgents = PROJECTS.reduce((s, p) => s + p.agents.core, 0) + SHARED_POOL.total;
   const totalBudget = PROJECTS.reduce((s, p) => s + p.budget, 0);
-  const avgHealth = Math.round(PROJECTS.reduce((s, p) => s + p.health, 0) / PROJECTS.length);
+  const avgHealth = PROJECTS.length > 0 ? Math.round(PROJECTS.reduce((s, p) => s + p.health, 0) / PROJECTS.length) : 0;
   const totalAlerts = PROJECTS.reduce((s, p) => s + p.alerts, 0);
 
   return (

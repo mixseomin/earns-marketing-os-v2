@@ -1,12 +1,12 @@
 import { AppShell } from '@/components/app-shell';
 import { PortfolioView } from '@/components/portfolio-view';
-import { getMode } from '@/lib/mock/modes';
+import { getMode, listProjects } from '@/lib/data';
 
-export default function PortfolioPage() {
-  const mode = getMode('affiliate');
+export default async function PortfolioPage() {
+  const [projects, mode] = await Promise.all([listProjects(), getMode('affiliate')]);
   return (
     <AppShell mode={mode} isPortfolio>
-      <PortfolioView />
+      <PortfolioView projects={projects} />
     </AppShell>
   );
 }

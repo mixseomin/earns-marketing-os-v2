@@ -44,7 +44,16 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
   const [filterGroup, setFilterGroup] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [feedbackEditing, setFeedbackEditing] = useState<UseCaseRow | null>(null);
+
+  const toggleGroup = (groupKey: string) => {
+    setCollapsedGroups((s) => {
+      const n = new Set(s);
+      if (n.has(groupKey)) n.delete(groupKey); else n.add(groupKey);
+      return n;
+    });
+  };
 
   // Counters by status
   const counts = useMemo(() => {
@@ -91,8 +100,15 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
     });
   };
 
-  const expandAll = () => setExpanded(new Set(cases.map((c) => c.slug)));
-  const collapseAll = () => setExpanded(new Set());
+  const expandAll = () => {
+    setExpanded(new Set(cases.map((c) => c.slug)));
+    setCollapsedGroups(new Set()); // open all groups too
+  };
+  const collapseAll = () => {
+    setExpanded(new Set());
+    // collapse all groups too — user expects "collapse all" to fully fold the page
+    setCollapsedGroups(new Set(Array.from(new Set(cases.map((c) => c.groupKey)))));
+  };
 
   const handleMark = (slug: string, status: UseCaseStatus) => {
     startTransition(async () => {
@@ -182,15 +198,39 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
       ) : (
         grouped.map((g) => {
           const passCount = g.cases.filter((c) => c.status === 'pass').length;
+          const needsFixCount = g.cases.filter((c) => c.status === 'needs-fix').length;
+          const failCount = g.cases.filter((c) => c.status === 'fail').length;
+          const isGroupCollapsed = collapsedGroups.has(g.key);
           return (
             <div key={g.key} style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid var(--line)' }}>
+              <div onClick={() => toggleGroup(g.key)}
+                   style={{
+                     display: 'flex', alignItems: 'center', gap: 8,
+                     marginBottom: isGroupCollapsed ? 0 : 8,
+                     paddingBottom: 4, borderBottom: '1px solid var(--line)',
+                     cursor: 'pointer', userSelect: 'none',
+                   }}
+                   title={isGroupCollapsed ? 'Click to expand group' : 'Click to collapse group'}>
+                <span style={{ fontSize: 12, color: 'var(--fg-3)', width: 14, textAlign: 'center' }}>
+                  {isGroupCollapsed ? '▸' : '▾'}
+                </span>
                 <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{g.label}</h2>
                 <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                   {passCount}/{g.cases.length} pass
                 </span>
+                {needsFixCount > 0 && (
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(249,115,22,.15)', color: '#f97316', fontFamily: 'var(--font-mono)' }}>
+                    🔧 {needsFixCount}
+                  </span>
+                )}
+                {failCount > 0 && (
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(248,113,113,.15)', color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+                    🔴 {failCount}
+                  </span>
+                )}
               </div>
 
+              {!isGroupCollapsed && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {g.cases.map((c) => {
                   const isOpen = expanded.has(c.slug);
@@ -291,6 +331,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                   );
                 })}
               </div>
+              )}
             </div>
           );
         })

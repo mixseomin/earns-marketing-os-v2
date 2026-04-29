@@ -651,7 +651,7 @@ const VAULT_COMPONENTS = {
   infra: VaultInfra, budget: VaultBudget, knowledge: VaultKnowledge,
 };
 
-export function ResourcesPage() {
+export function ResourcesPage({ accountsOverride }: { accountsOverride?: React.ReactNode } = {}) {
   const [vault, setVault] = React.useState("accounts");
   const Active = VAULT_COMPONENTS[vault];
   const cur = VAULTS[vault];
@@ -697,7 +697,7 @@ export function ResourcesPage() {
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>
       </div>
 
-      <Active />
+      {vault === 'accounts' && accountsOverride ? accountsOverride : <Active />}
     </div>
   );
 }

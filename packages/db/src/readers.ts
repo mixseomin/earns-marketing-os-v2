@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -103,6 +103,35 @@ export async function listProjectsWithMode() {
     .leftJoin(modes, eq(projects.modeId, modes.id))
     .where(and(eq(projects.tenantId, TENANT), isNull(projects.archivedAt)))
     .orderBy(asc(projects.id));
+}
+
+// ── Platforms catalog ──────────────────────────────────────────
+export async function listAllPlatforms() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(platforms)
+    .where(eq(platforms.tenantId, TENANT))
+    .orderBy(asc(platforms.priority), asc(platforms.label));
+}
+
+export async function getPlatform(key: string) {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.select().from(platforms).where(eq(platforms.key, key)).limit(1);
+  return rows[0] ?? null;
+}
+
+// ── Platform accounts ──────────────────────────────────────────
+export async function listAccountsByProject(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(platformAccounts)
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId)))
+    .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 
 // Tenant filter is implicit (DEFAULT_TENANT_ID). Allow override for SaaS phase F.

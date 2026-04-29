@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -218,6 +218,92 @@ function rowToFeed(r: FeedRow): FeedEvent {
 
 // Convenience for Portfolio: total/avg/etc. (still mock-only constants until DB grows).
 export { MOCK_MODES as MODES };
+
+// ── Platforms catalog ──────────────────────────────────────────
+export interface PlatformRow {
+  key: string;
+  label: string;
+  signupUrl: string;
+  postUrl: string | null;
+  priority: 'critical' | 'high' | 'medium';
+  fallbackKeys: string[];
+  iconSlug: string;
+  imageSpecs: Array<{ kind: string; label: string; w: number; h: number; note?: string }>;
+  checklist: Array<{ key: string; phase: 'creating' | 'warming' | 'active'; actionUrl?: string; tip?: string; imageRelevant?: boolean }>;
+  autoCheck: boolean;
+}
+
+export async function listPlatforms(): Promise<PlatformRow[]> {
+  return tryDb(
+    async () => {
+      const rows = await listAllPlatforms();
+      if (!rows) return [];
+      return rows.map((r) => ({
+        key: r.key,
+        label: r.label,
+        signupUrl: r.signupUrl,
+        postUrl: r.postUrl,
+        priority: r.priority as PlatformRow['priority'],
+        fallbackKeys: (r.fallbackKeys as string[]) ?? [],
+        iconSlug: r.iconSlug,
+        imageSpecs: (r.imageSpecs as PlatformRow['imageSpecs']) ?? [],
+        checklist: (r.checklist as PlatformRow['checklist']) ?? [],
+        autoCheck: r.autoCheck,
+      }));
+    },
+    [],
+    'listPlatforms',
+  );
+}
+
+// ── Accounts (per-project, on platforms) ───────────────────────
+export interface AccountRow {
+  id: number;
+  projectId: string;
+  platformKey: string;
+  handle: string | null;
+  email: string | null;
+  status: string;
+  authMethod: string | null;
+  has2fa: boolean;
+  recoveryInfo: string | null;
+  monthlyCost: number;
+  collectStats: boolean;
+  blockReason: string | null;
+  notes: string | null;
+  tags: string[];
+  warmupChecklist: Record<string, { done: boolean; value?: number | string | null; updatedAt?: string }>;
+  sortOrder: number;
+}
+
+export async function listAccounts(projectId: string): Promise<AccountRow[]> {
+  return tryDb(
+    async () => {
+      const rows = await listAccountsByProject(projectId);
+      if (!rows) return [];
+      return rows.map((r) => ({
+        id: r.id,
+        projectId: r.projectId,
+        platformKey: r.platformKey,
+        handle: r.handle,
+        email: r.email,
+        status: r.status,
+        authMethod: r.authMethod,
+        has2fa: r.has2fa,
+        recoveryInfo: r.recoveryInfo,
+        monthlyCost: r.monthlyCost,
+        collectStats: r.collectStats,
+        blockReason: r.blockReason,
+        notes: r.notes,
+        tags: (r.tags as string[]) ?? [],
+        warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
+        sortOrder: r.sortOrder,
+      }));
+    },
+    [],
+    'listAccounts',
+  );
+}
 
 // Mode list for forms (Settings, New Project). Returns DB rows when available,
 // falls back to mock keys with derived label/accent.

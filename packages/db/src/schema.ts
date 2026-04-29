@@ -204,5 +204,68 @@ export const feedEvents = pgTable(
   ],
 );
 
+// ── platforms ────────────────────────────────────────────────────
+// Catalog of social/community/content platforms. Shared across tenants
+// (tenant_id default 'self'); seed once, edit centrally. Per-tenant
+// override via separate row will work later if needed (key+tenant_id).
+export const platforms = pgTable(
+  'platforms',
+  {
+    key: text('key').primaryKey(),                          // 'producthunt'
+    tenantId: text('tenant_id').notNull().default('self'),
+    label: text('label').notNull(),                         // 'Product Hunt'
+    signupUrl: text('signup_url').notNull(),
+    postUrl: text('post_url'),
+    priority: text('priority').notNull().default('medium'), // 'critical' | 'high' | 'medium'
+    fallbackKeys: jsonb('fallback_keys').notNull().default([]),
+    iconSlug: text('icon_slug').notNull().default(''),
+    imageSpecs: jsonb('image_specs').notNull().default([]),
+    checklist: jsonb('checklist').notNull().default([]),
+    autoCheck: boolean('auto_check').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('platforms_tenant_idx').on(t.tenantId), index('platforms_priority_idx').on(t.priority)],
+);
+
+// ── platform_accounts ────────────────────────────────────────────
+// Per-project accounts on platforms (Product Hunt, HackerNews, Reddit, ...).
+// status state machine: todo → creating → warming → active (linear)
+// side-states: limited / blocked / banned (reachable from any).
+// warmup_checklist mirrors the platforms.checklist shape, with per-item progress.
+export const platformAccounts = pgTable(
+  'platform_accounts',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    platformKey: text('platform_key').notNull().references(() => platforms.key),
+    handle: text('handle'),
+    email: text('email'),
+    status: text('status').notNull().default('todo'),
+    authMethod: text('auth_method'),
+    has2fa: boolean('has_2fa').notNull().default(false),
+    lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    recoveryInfo: text('recovery_info'),
+    apiTokenEnc: text('api_token_enc'),       // encrypted at rest (pgcrypto, phase 3)
+    monthlyCost: integer('monthly_cost').notNull().default(0),
+    collectStats: boolean('collect_stats').notNull().default(false),
+    blockReason: text('block_reason'),
+    notes: text('notes'),
+    tags: jsonb('tags').notNull().default([]),
+    warmupChecklist: jsonb('warmup_checklist').notNull().default({}),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('accounts_tenant_idx').on(t.tenantId),
+    index('accounts_project_idx').on(t.projectId),
+    index('accounts_platform_idx').on(t.platformKey),
+    index('accounts_status_idx').on(t.projectId, t.status),
+    uniqueIndex('accounts_proj_platform_handle_uniq').on(t.projectId, t.platformKey, t.handle),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts };

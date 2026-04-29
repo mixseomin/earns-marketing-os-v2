@@ -6,11 +6,12 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { getDb } from './client';
-import { modes, projects, squads, cards, alerts, feedEvents } from './schema';
+import { modes, projects, squads, cards, alerts, feedEvents, platforms } from './schema';
 
 import { MODES_BASE } from './seed-data/modes-base';
 import { MODES_EXTRA } from './seed-data/modes-extra';
 import { PROJECTS_SEED } from './seed-data/projects';
+import { PLATFORMS } from './seed-data/platforms';
 
 const db = getDb();
 if (!db) {
@@ -23,7 +24,32 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const ALL_MODES = { ...MODES_BASE, ...MODES_EXTRA };
 
 console.log(`[mos2/db:seed] Tenant=${TENANT}`);
-console.log(`[mos2/db:seed] Modes: ${Object.keys(ALL_MODES).length}, Projects: ${PROJECTS_SEED.length}`);
+console.log(`[mos2/db:seed] Modes: ${Object.keys(ALL_MODES).length}, Projects: ${PROJECTS_SEED.length}, Platforms: ${PLATFORMS.length}`);
+
+// ── 0. Seed platforms catalog ──────────────────────────────
+for (const p of PLATFORMS) {
+  const row = {
+    key: p.key,
+    tenantId: TENANT,
+    label: p.label,
+    signupUrl: p.signupUrl,
+    postUrl: p.postUrl ?? null,
+    priority: p.priority,
+    fallbackKeys: p.fallbackKeys,
+    iconSlug: p.iconSlug,
+    imageSpecs: p.imageSpecs,
+    checklist: p.checklist,
+    autoCheck: p.autoCheck,
+  };
+  await db
+    .insert(platforms)
+    .values(row)
+    .onConflictDoUpdate({
+      target: platforms.key,
+      set: { ...row, updatedAt: new Date() },
+    });
+}
+console.log(`[mos2/db:seed] ✓ Platforms catalog upserted (${PLATFORMS.length})`);
 
 // ── 1. Seed modes ─────────────────────────────────────────────
 for (const [id, m] of Object.entries(ALL_MODES)) {

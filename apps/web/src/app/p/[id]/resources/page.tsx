@@ -1,17 +1,29 @@
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { ResourcesPage } from '@/components/resources-page';
-import { getProject, getProjectMode, listProjects } from "@/lib/data";
+import { AccountsVault } from '@/components/accounts-vault';
+import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts } from '@/lib/data';
+
+export const dynamic = 'force-dynamic';
 
 export default async function ResourcesRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await getProject(id);
   if (!project) notFound();
-  const [mode, projects] = await Promise.all([getProjectMode(id, project.mode), listProjects()]);
+  const [mode, projects, platforms, accounts] = await Promise.all([
+    getProjectMode(id, project.mode),
+    listProjects(),
+    listPlatforms(),
+    listAccounts(id),
+  ]);
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="resources">
-      <ResourcesPage />
+      <ResourcesPage
+        accountsOverride={
+          <AccountsVault projectId={id} platforms={platforms} accounts={accounts} />
+        }
+      />
     </AppShell>
   );
 }

@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -132,6 +132,17 @@ export async function listAccountsByProject(projectId: string) {
     .from(platformAccounts)
     .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId)))
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
+}
+
+// ── Use cases ──────────────────────────────────────────────────
+export async function listAllUseCases() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(useCases)
+    .where(and(eq(useCases.tenantId, TENANT), isNull(useCases.archivedAt)))
+    .orderBy(asc(useCases.groupKey), asc(useCases.sortOrder), asc(useCases.slug));
 }
 
 // Tenant filter is implicit (DEFAULT_TENANT_ID). Allow override for SaaS phase F.

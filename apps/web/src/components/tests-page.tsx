@@ -1,0 +1,351 @@
+'use client';
+
+import { useState, useTransition, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import type { UseCaseRow, UseCaseStatus } from '@/lib/data';
+import { markUseCase, addFeedback, clearStatus } from '@/lib/actions/use-cases';
+
+const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: string }> = {
+  pending: { label: 'Pending', icon: '⚪', color: 'var(--fg-3)' },
+  wip:     { label: 'WIP',     icon: '🟡', color: '#fbbf24' },
+  pass:    { label: 'Pass',    icon: '🟢', color: '#10b981' },
+  fail:    { label: 'Fail',    icon: '🔴', color: '#f87171' },
+  blocked: { label: 'Blocked', icon: '🚫', color: '#9ca3af' },
+  skip:    { label: 'Skip',    icon: '⏭',  color: '#6b7280' },
+};
+
+const STATUS_ORDER: UseCaseStatus[] = ['pending', 'wip', 'pass', 'fail', 'blocked', 'skip'];
+
+const PRIORITY_COLOR: Record<string, string> = {
+  critical: '#f87171', high: '#fbbf24', medium: '#a1a1aa', low: '#6b7280',
+};
+
+const REPO = 'mixseomin/earns-marketing-os-v2';
+
+function fmtDate(d: Date | null): string {
+  if (!d) return '—';
+  const now = Date.now();
+  const dt = new Date(d).getTime();
+  const min = Math.floor((now - dt) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(d).toLocaleDateString();
+}
+
+export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [filterStatus, setFilterStatus] = useState<UseCaseStatus | 'all'>('all');
+  const [filterGroup, setFilterGroup] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [feedbackEditing, setFeedbackEditing] = useState<UseCaseRow | null>(null);
+
+  // Counters by status
+  const counts = useMemo(() => {
+    const total = cases.length;
+    const byStatus: Record<UseCaseStatus, number> = { pending: 0, wip: 0, pass: 0, fail: 0, blocked: 0, skip: 0 };
+    for (const c of cases) byStatus[c.status] += 1;
+    return { total, byStatus };
+  }, [cases]);
+
+  // Group cases by groupKey (preserve order via sortOrder)
+  const grouped = useMemo(() => {
+    const groups = new Map<string, { label: string; cases: UseCaseRow[] }>();
+    const filtered = cases.filter((c) => {
+      if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+      if (filterGroup !== 'all' && c.groupKey !== filterGroup) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!c.title.toLowerCase().includes(q) &&
+            !c.slug.toLowerCase().includes(q) &&
+            !c.tags.some((t) => t.toLowerCase().includes(q))) {
+          return false;
+        }
+      }
+      return true;
+    });
+    for (const c of filtered) {
+      if (!groups.has(c.groupKey)) groups.set(c.groupKey, { label: c.groupLabel, cases: [] });
+      groups.get(c.groupKey)!.cases.push(c);
+    }
+    return Array.from(groups.entries()).map(([key, val]) => ({ key, ...val }));
+  }, [cases, filterStatus, filterGroup, search]);
+
+  const allGroups = useMemo(() => {
+    const set = new Map<string, string>();
+    for (const c of cases) set.set(c.groupKey, c.groupLabel);
+    return Array.from(set.entries()).map(([k, v]) => ({ key: k, label: v }));
+  }, [cases]);
+
+  const toggleExpand = (slug: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(slug)) n.delete(slug); else n.add(slug);
+      return n;
+    });
+  };
+
+  const expandAll = () => setExpanded(new Set(cases.map((c) => c.slug)));
+  const collapseAll = () => setExpanded(new Set());
+
+  const handleMark = (slug: string, status: UseCaseStatus) => {
+    startTransition(async () => {
+      const res = await markUseCase(slug, status);
+      if (!res.ok) alert(res.error);
+      router.refresh();
+    });
+  };
+
+  const handleClear = (slug: string) => {
+    startTransition(async () => {
+      await clearStatus(slug);
+      router.refresh();
+    });
+  };
+
+  return (
+    <div className="page" style={{ padding: 16 }}>
+      {/* Header */}
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">
+            ✓ Tests
+            <small>// USE CASE REGISTRY · {counts.total} total</small>
+          </h1>
+          <p className="page-sub">
+            Tự động cập nhật từ seed file <code style={{ background: 'var(--bg-2)', padding: '1px 4px', borderRadius: 3 }}>packages/db/src/seed-data/use-cases.ts</code> — mỗi feature ship sẽ thêm cases vào đây. Test xong, mark status để track progress.
+          </p>
+        </div>
+        <div className="page-actions">
+          <button className="btn" onClick={expandAll}>Expand all</button>
+          <button className="btn" onClick={collapseAll}>Collapse all</button>
+        </div>
+      </div>
+
+      {/* Stats strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+        <div style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>Total</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-0)' }}>{counts.total}</div>
+        </div>
+        {STATUS_ORDER.map((s) => (
+          <div key={s} style={{ padding: '8px 10px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }}
+               onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase' }}>
+              {STATUS_META[s].icon} {STATUS_META[s].label}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: STATUS_META[s].color }}>{counts.byStatus[s]}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span className="chip" data-active={filterStatus === 'all' || undefined} onClick={() => setFilterStatus('all')}>All status</span>
+        {STATUS_ORDER.map((s) => (
+          <span key={s} className="chip" data-active={filterStatus === s || undefined}
+                onClick={() => setFilterStatus(s)}>
+            {STATUS_META[s].icon} {STATUS_META[s].label}
+          </span>
+        ))}
+        <span style={{ width: 1, height: 18, background: 'var(--line)' }} />
+        <span className="chip" data-active={filterGroup === 'all' || undefined} onClick={() => setFilterGroup('all')}>All groups</span>
+        {allGroups.map((g) => (
+          <span key={g.key} className="chip" data-active={filterGroup === g.key || undefined}
+                onClick={() => setFilterGroup(g.key)}>
+            G{g.key}
+          </span>
+        ))}
+        <span style={{ flex: 1 }} />
+        <input
+          placeholder="Search title, slug, tag…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }}
+        />
+      </div>
+
+      {/* Groups */}
+      {grouped.length === 0 ? (
+        <div className="panel">
+          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
+            <div style={{ fontSize: 32 }}>🔍</div>
+            <p style={{ fontSize: 13 }}>Không có case nào match filter.</p>
+          </div>
+        </div>
+      ) : (
+        grouped.map((g) => {
+          const passCount = g.cases.filter((c) => c.status === 'pass').length;
+          return (
+            <div key={g.key} style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid var(--line)' }}>
+                <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{g.label}</h2>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                  {passCount}/{g.cases.length} pass
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {g.cases.map((c) => {
+                  const isOpen = expanded.has(c.slug);
+                  const meta = STATUS_META[c.status];
+                  return (
+                    <div key={c.slug}
+                         className="panel"
+                         style={{ borderLeft: `3px solid ${meta.color}` }}>
+                      <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                           onClick={() => toggleExpand(c.slug)}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{meta.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>
+                              {c.slug}
+                            </span>
+                            <span style={{ fontSize: 9, padding: '0 4px', borderRadius: 3, background: PRIORITY_COLOR[c.priority] + '22', color: PRIORITY_COLOR[c.priority], fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+                              {c.priority}
+                            </span>
+                            {c.shippedIn && c.shippedIn !== 'WIP' && (
+                              <a href={`https://github.com/${REPO}/commit/${c.shippedIn}`}
+                                 target="_blank" rel="noopener noreferrer"
+                                 onClick={(e) => e.stopPropagation()}
+                                 style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textDecoration: 'none' }}>
+                                #{c.shippedIn}
+                              </a>
+                            )}
+                            {c.tags.slice(0, 3).map((t) => (
+                              <span key={t} style={{ fontSize: 9, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>#{t}</span>
+                            ))}
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, marginTop: 2 }}>
+                            {c.title}
+                          </div>
+                          {c.lastTestedAt && (
+                            <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                              {meta.icon} {meta.label} · {fmtDate(c.lastTestedAt)}
+                              {c.statusNote && <span style={{ color: meta.color, marginLeft: 6 }}>"{c.statusNote}"</span>}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{isOpen ? '▾' : '▸'}</span>
+                      </div>
+
+                      {isOpen && (
+                        <div style={{ padding: '0 12px 12px', borderTop: '1px solid var(--line)' }}>
+                          {c.featureRef && (
+                            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-3)' }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Feature:</span> {c.featureRef}
+                            </div>
+                          )}
+
+                          <div style={{ marginTop: 10 }}>
+                            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Steps</div>
+                            <ol style={{ margin: 0, paddingLeft: 22, fontSize: 12, color: 'var(--fg-1)' }}>
+                              {c.steps.map((s) => (
+                                <li key={s.n} style={{ marginBottom: 3 }}>
+                                  {s.action}
+                                  {s.url && (
+                                    <a href={s.url} target="_blank" rel="noopener noreferrer"
+                                       style={{ marginLeft: 6, color: 'var(--accent)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                                      ↗ {s.url}
+                                    </a>
+                                  )}
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+
+                          <div style={{ marginTop: 10 }}>
+                            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Expected</div>
+                            <div style={{ fontSize: 12, color: 'var(--fg-1)', whiteSpace: 'pre-line' }}>{c.expected}</div>
+                          </div>
+
+                          {c.feedback && (
+                            <div style={{ marginTop: 10 }}>
+                              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Feedback</div>
+                              <div style={{ fontSize: 12, color: 'var(--fg-1)', background: 'var(--bg-2)', padding: 8, borderRadius: 5, whiteSpace: 'pre-wrap' }}>{c.feedback}</div>
+                            </div>
+                          )}
+
+                          <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'pass')} style={{ background: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,.4)', color: '#10b981' }}>🟢 Pass</button>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'fail')} style={{ background: 'rgba(248,113,113,.1)', borderColor: 'rgba(248,113,113,.4)', color: '#f87171' }}>🔴 Fail</button>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'wip')}>🟡 WIP</button>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'blocked')}>🚫 Blocked</button>
+                            <button className="btn" onClick={() => handleMark(c.slug, 'skip')}>⏭ Skip</button>
+                            <button className="btn ghost" onClick={() => handleClear(c.slug)}>↺ Reset</button>
+                            <span style={{ flex: 1 }} />
+                            <button className="btn" onClick={() => setFeedbackEditing(c)}>📝 Feedback</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      {feedbackEditing && (
+        <FeedbackModal useCase={feedbackEditing} onClose={() => setFeedbackEditing(null)} />
+      )}
+    </div>
+  );
+}
+
+function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () => void }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [text, setText] = useState(useCase.feedback ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    startTransition(async () => {
+      const res = await addFeedback(useCase.slug, text);
+      setSaving(false);
+      if (!res.ok) { alert(res.error); return; }
+      router.refresh();
+      onClose();
+    });
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="id-line">{useCase.slug}</div>
+            <h2>Feedback · {useCase.title}</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Describe what happened, screenshots URL, browser, edge cases..."
+            style={{
+              width: '100%', minHeight: 200, resize: 'vertical',
+              padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)',
+              borderRadius: 6, color: 'var(--fg-0)', fontSize: 13,
+              fontFamily: 'var(--font-mono)', lineHeight: 1.5, outline: 'none',
+            }}
+          />
+        </div>
+        <div className="modal-foot">
+          <div className="meta">{text.length} chars</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn primary" disabled={saving} onClick={handleSave}>{saving ? 'Saving…' : 'Save feedback'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

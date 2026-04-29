@@ -267,5 +267,54 @@ export const platformAccounts = pgTable(
   ],
 );
 
+// ── use_cases ────────────────────────────────────────────────────
+// Test cases / use cases registry. Spec columns are seed-managed (AI
+// appends when shipping a feature) and idempotent-upserted on every
+// deploy. State columns (status, feedback, last_tested_at) are managed
+// by the user via the /tests UI and NEVER overwritten by re-seed.
+//
+// slug naming convention: '<group>-<seq>-<short-id>'
+//   '1.1-dedupe-makalyn-collapse'
+//   '2.3-import-per-project-scope'
+//
+// shipped_in: short git SHA (or commit message keyword) so the user can
+// trace each case to the commit that introduced it.
+export const useCases = pgTable(
+  'use_cases',
+  {
+    slug: text('slug').primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+
+    // ── Spec (seed-managed, AI authored, NEVER touched by state writes) ──
+    groupKey: text('group_key').notNull().default('misc'),       // '1', '2', 'directus-import', ...
+    groupLabel: text('group_label').notNull().default(''),
+    title: text('title').notNull(),
+    priority: text('priority').notNull().default('medium'),       // critical | high | medium | low
+    steps: jsonb('steps').notNull().default([]),                  // [{ n, action, url? }]
+    expected: text('expected').notNull().default(''),
+    shippedIn: text('shipped_in'),                                // commit SHA (short)
+    featureRef: text('feature_ref'),                              // '/p/[id]/resources accounts vault'
+    tags: jsonb('tags').notNull().default([]),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+
+    // ── State (user-managed via UI, seed NEVER overwrites) ──
+    status: text('status').notNull().default('pending'),          // pending | wip | pass | fail | blocked | skip
+    statusNote: text('status_note'),
+    feedback: text('feedback'),
+    lastTestedAt: timestamp('last_tested_at', { withTimezone: true }),
+    lastTestedBy: text('last_tested_by'),
+    blockerRef: text('blocker_ref'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('use_cases_tenant_idx').on(t.tenantId),
+    index('use_cases_group_idx').on(t.groupKey),
+    index('use_cases_status_idx').on(t.status),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases };

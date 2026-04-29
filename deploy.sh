@@ -43,11 +43,11 @@ if [ -d "packages/db/migrations" ]; then
   echo "✓ DB migrations applied"
 fi
 
-# 4b. Optional one-shot seed: enable by setting MOS2_AUTO_SEED=1 in .env.production
-if [ "${MOS2_AUTO_SEED:-0}" = "1" ]; then
-  npm run db:seed
-  echo "✓ DB seeded (MOS2_AUTO_SEED=1)"
-fi
+# 4b. Always run seed — spec-only by default (idempotent: modes + platforms +
+#     use_cases). User-managed state (use_case status/feedback) preserved.
+#     If MOS2_AUTO_SEED=1, also wipes+reseeds demo projects (destructive).
+npm run db:seed
+echo "✓ DB seed completed (destructive=${MOS2_AUTO_SEED:-0})"
 
 # 5. Build only if web src changed
 WEB_CHANGED=false

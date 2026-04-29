@@ -1,17 +1,26 @@
-// Seed: 14 modes + 10 mock projects + Orit + Astrolas + cards/alerts/feed/squads.
-// Idempotent: uses INSERT ... ON CONFLICT DO UPDATE for slugs.
+// Seed runs in two phases:
 //
-// Run: npm run db:seed
+// 1. SPEC-only (always idempotent, safe every deploy):
+//    modes + platforms + use_cases. Updates spec columns; user-managed
+//    state (use_cases.status/feedback) is NEVER overwritten.
+//
+// 2. DESTRUCTIVE demo content (only when MOS2_AUTO_SEED=1):
+//    projects + per-project squads/cards/alerts/feed. WIPES then RE-INSERTS,
+//    so any user edits on demo projects (drag, approve, edits) get lost.
+//    Set the env flag deliberately for first deploy or full reset.
+//
+// Run: npm run db:seed (spec by default; destructive only with env flag)
 
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { getDb } from './client';
-import { modes, projects, squads, cards, alerts, feedEvents, platforms } from './schema';
+import { modes, projects, squads, cards, alerts, feedEvents, platforms, useCases } from './schema';
 
 import { MODES_BASE } from './seed-data/modes-base';
 import { MODES_EXTRA } from './seed-data/modes-extra';
 import { PROJECTS_SEED } from './seed-data/projects';
 import { PLATFORMS } from './seed-data/platforms';
+import { USE_CASES } from './seed-data/use-cases';
 
 const db = getDb();
 if (!db) {
@@ -20,11 +29,13 @@ if (!db) {
 }
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
+const DESTRUCTIVE = process.env.MOS2_AUTO_SEED === '1';
 
 const ALL_MODES = { ...MODES_BASE, ...MODES_EXTRA };
 
-console.log(`[mos2/db:seed] Tenant=${TENANT}`);
-console.log(`[mos2/db:seed] Modes: ${Object.keys(ALL_MODES).length}, Projects: ${PROJECTS_SEED.length}, Platforms: ${PLATFORMS.length}`);
+console.log(`[mos2/db:seed] Tenant=${TENANT}, destructive=${DESTRUCTIVE}`);
+console.log(`[mos2/db:seed] Modes: ${Object.keys(ALL_MODES).length}, Platforms: ${PLATFORMS.length}, Use cases: ${USE_CASES.length}`);
+if (DESTRUCTIVE) console.log(`[mos2/db:seed] Projects: ${PROJECTS_SEED.length} (will WIPE per-project squads/cards/alerts/feed)`);
 
 // ── 0. Seed platforms catalog ──────────────────────────────
 for (const p of PLATFORMS) {
@@ -50,6 +61,48 @@ for (const p of PLATFORMS) {
     });
 }
 console.log(`[mos2/db:seed] ✓ Platforms catalog upserted (${PLATFORMS.length})`);
+
+// ── 0b. Seed use cases (SPEC ONLY — never touches user-managed state) ──
+// Upsert spec columns; on conflict, set ONLY spec fields and bump updated_at.
+// status / status_note / feedback / last_tested_at / last_tested_by /
+// blocker_ref / archived_at are owned by the user via /tests UI and must
+// never be overwritten here, even if the row already existed.
+for (const uc of USE_CASES) {
+  const specRow = {
+    slug: uc.slug,
+    tenantId: TENANT,
+    groupKey: uc.groupKey,
+    groupLabel: uc.groupLabel,
+    title: uc.title,
+    priority: uc.priority,
+    steps: uc.steps,
+    expected: uc.expected,
+    shippedIn: uc.shippedIn ?? null,
+    featureRef: uc.featureRef ?? null,
+    tags: uc.tags ?? [],
+    sortOrder: uc.sortOrder ?? 0,
+  };
+  await db
+    .insert(useCases)
+    .values(specRow)
+    .onConflictDoUpdate({
+      target: useCases.slug,
+      set: {
+        groupKey: specRow.groupKey,
+        groupLabel: specRow.groupLabel,
+        title: specRow.title,
+        priority: specRow.priority,
+        steps: specRow.steps,
+        expected: specRow.expected,
+        shippedIn: specRow.shippedIn,
+        featureRef: specRow.featureRef,
+        tags: specRow.tags,
+        sortOrder: specRow.sortOrder,
+        updatedAt: new Date(),
+      },
+    });
+}
+console.log(`[mos2/db:seed] ✓ Use cases upserted (${USE_CASES.length}, state preserved)`);
 
 // ── 1. Seed modes ─────────────────────────────────────────────
 for (const [id, m] of Object.entries(ALL_MODES)) {
@@ -94,6 +147,11 @@ for (const [id, m] of Object.entries(ALL_MODES)) {
     });
 }
 console.log(`[mos2/db:seed] ✓ Modes upserted`);
+
+if (!DESTRUCTIVE) {
+  console.log('[mos2/db:seed] ✓ Spec done. Skipping demo content (set MOS2_AUTO_SEED=1 to wipe+reseed projects).');
+  process.exit(0);
+}
 
 // ── 2. Seed projects ──────────────────────────────────────────
 for (const p of PROJECTS_SEED) {

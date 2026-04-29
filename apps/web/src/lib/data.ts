@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -302,6 +302,59 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
     },
     [],
     'listAccounts',
+  );
+}
+
+// ── Use cases ──────────────────────────────────────────────────
+export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'blocked' | 'skip';
+
+export interface UseCaseRow {
+  slug: string;
+  groupKey: string;
+  groupLabel: string;
+  title: string;
+  priority: string;
+  steps: Array<{ n: number; action: string; url?: string }>;
+  expected: string;
+  shippedIn: string | null;
+  featureRef: string | null;
+  tags: string[];
+  sortOrder: number;
+  status: UseCaseStatus;
+  statusNote: string | null;
+  feedback: string | null;
+  lastTestedAt: Date | null;
+  lastTestedBy: string | null;
+  blockerRef: string | null;
+}
+
+export async function listUseCases(): Promise<UseCaseRow[]> {
+  return tryDb(
+    async () => {
+      const rows = await listAllUseCases();
+      if (!rows) return [];
+      return rows.map((r) => ({
+        slug: r.slug,
+        groupKey: r.groupKey,
+        groupLabel: r.groupLabel,
+        title: r.title,
+        priority: r.priority,
+        steps: (r.steps as UseCaseRow['steps']) ?? [],
+        expected: r.expected,
+        shippedIn: r.shippedIn,
+        featureRef: r.featureRef,
+        tags: (r.tags as string[]) ?? [],
+        sortOrder: r.sortOrder,
+        status: r.status as UseCaseStatus,
+        statusNote: r.statusNote,
+        feedback: r.feedback,
+        lastTestedAt: r.lastTestedAt,
+        lastTestedBy: r.lastTestedBy,
+        blockerRef: r.blockerRef,
+      }));
+    },
+    [],
+    'listUseCases',
   );
 }
 

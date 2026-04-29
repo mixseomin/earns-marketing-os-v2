@@ -11,25 +11,47 @@ export const dataMode = (): 'db' | 'mock' => (getDb() ? 'db' : 'mock');
 
 export { SHARED_POOL };
 
+// Wraps any DB call. If the DB throws (table missing, connection refused, etc.)
+// we log + fall back. Keeps the app booting on a half-set-up server.
+async function tryDb<T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> {
+  if (!getDb()) return fallback;
+  try {
+    return await fn();
+  } catch (e) {
+    console.warn(`[mos2/data] DB call '${label}' failed, falling back to mock:`, (e as Error).message);
+    return fallback;
+  }
+}
+
 // ── Projects ────────────────────────────────────────────────────
 export async function listProjects(): Promise<Project[]> {
-  if (dataMode() === 'mock') return MOCK_PROJECTS;
-  const rows = await dbListProjects();
-  if (!rows) return MOCK_PROJECTS;
-  return rows.map(rowToProject);
+  return tryDb(
+    async () => {
+      const rows = await dbListProjects();
+      return rows ? rows.map(rowToProject) : MOCK_PROJECTS;
+    },
+    MOCK_PROJECTS,
+    'listProjects',
+  );
 }
 
 export async function getProject(id: string): Promise<Project | undefined> {
-  if (dataMode() === 'mock') return MOCK_PROJECTS.find((p) => p.id === id);
-  const row = await getProjectById(id);
-  if (!row) return undefined;
-  return rowToProject(row);
+  return tryDb(
+    async () => {
+      const row = await getProjectById(id);
+      return row ? rowToProject(row) : MOCK_PROJECTS.find((p) => p.id === id);
+    },
+    MOCK_PROJECTS.find((p) => p.id === id),
+    'getProject',
+  );
 }
 
 // ── Modes ──────────────────────────────────────────────────────
 export async function getMode(id: string): Promise<Mode> {
-  if (dataMode() === 'mock') return getMockMode(id);
+  return tryDb(async () => fetchMode(id), getMockMode(id), 'getMode');
+}
 
+async function fetchMode(id: string): Promise<Mode> {
   const modeRow = await getModeById(id);
   if (!modeRow) return getMockMode(id);
 
@@ -79,22 +101,26 @@ export async function getMode(id: string): Promise<Mode> {
 // Returns a project's full Mode with project-scoped squads/cards/alerts/feed merged in.
 export async function getProjectMode(projectId: string, modeId: string): Promise<Mode> {
   const baseMode = await getMode(modeId);
-  if (dataMode() === 'mock') return baseMode;
-
-  const [squadRows, cardRows, alertRows, feedRows] = await Promise.all([
-    listSquadsByProject(projectId),
-    listCardsByProject(projectId),
-    listAlertsByProject(projectId),
-    listRecentFeed(projectId, 20),
-  ]);
-
-  return {
-    ...baseMode,
-    squads: squadRows?.map(rowToSquad) ?? baseMode.squads,
-    cards: cardRows?.map(rowToCard) ?? baseMode.cards,
-    alerts: alertRows?.map(rowToAlert) ?? baseMode.alerts,
-    feed: feedRows?.map(rowToFeed) ?? baseMode.feed,
-  };
+  if (!getDb()) return baseMode;
+  return tryDb(
+    async () => {
+      const [squadRows, cardRows, alertRows, feedRows] = await Promise.all([
+        listSquadsByProject(projectId),
+        listCardsByProject(projectId),
+        listAlertsByProject(projectId),
+        listRecentFeed(projectId, 20),
+      ]);
+      return {
+        ...baseMode,
+        squads: squadRows && squadRows.length > 0 ? squadRows.map(rowToSquad) : baseMode.squads,
+        cards: cardRows && cardRows.length > 0 ? cardRows.map(rowToCard) : baseMode.cards,
+        alerts: alertRows && alertRows.length > 0 ? alertRows.map(rowToAlert) : baseMode.alerts,
+        feed: feedRows && feedRows.length > 0 ? feedRows.map(rowToFeed) : baseMode.feed,
+      };
+    },
+    baseMode,
+    'getProjectMode',
+  );
 }
 
 // ── Row → mock-shape mappers ───────────────────────────────────

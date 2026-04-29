@@ -142,6 +142,8 @@ export interface DirectusAccountSummary {
   has2fa: boolean;
   tags: string[];
   notes: string | null;
+  duplicateCount: number;     // 1 if unique; >1 if Directus has dupes (case variants)
+  duplicatePlatformKeys: string[]; // raw platform values found across dupes
 }
 
 function summarize(d: DirectusAccount): DirectusAccountSummary {
@@ -155,6 +157,8 @@ function summarize(d: DirectusAccount): DirectusAccountSummary {
     has2fa: !!d.has_2fa,
     tags: Array.isArray(d.tags) ? d.tags : [],
     notes: d.notes,
+    duplicateCount: 1,
+    duplicatePlatformKeys: [d.platform || ''],
   };
 }
 
@@ -164,7 +168,25 @@ export async function listDirectusAccountsForPlatform(platformKey: string): Prom
   if (!directusEnabled()) return { ok: true, enabled: false, accounts: [] };
   try {
     const data = await fetchDirectusAccountsByPlatform(platformKey);
-    return { ok: true, enabled: true, accounts: data.map(summarize) };
+    // Defensive dedupe: Directus sometimes has same logical account stored
+    // under different platform-key casings (e.g. 'buymeacoffee' + 'BuyMeACoffee').
+    // Collapse to one row per (lowercased platform, handle) — keep the first seen
+    // (sorted by handle from API) but track how many duplicates exist + their
+    // platform-key variants so the UI can flag the data-quality issue.
+    const dedup = new Map<string, DirectusAccountSummary>();
+    for (const a of data) {
+      const key = `${(a.platform || '').toLowerCase()}|${a.handle ?? ''}`;
+      const existing = dedup.get(key);
+      if (existing) {
+        existing.duplicateCount += 1;
+        if (a.platform && !existing.duplicatePlatformKeys.includes(a.platform)) {
+          existing.duplicatePlatformKeys.push(a.platform);
+        }
+        continue;
+      }
+      dedup.set(key, summarize(a));
+    }
+    return { ok: true, enabled: true, accounts: Array.from(dedup.values()) };
   } catch (e) {
     return { ok: false, enabled: true, accounts: [], error: (e as Error).message };
   }

@@ -415,6 +415,12 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
                         <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
                           @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
                         </span>
+                        {acc.duplicateCount > 1 && (
+                          <span title={`Directus has ${acc.duplicateCount} records with this handle (platform key variants: ${acc.duplicatePlatformKeys.join(', ')}). Importing will use the first one — clean dupes in Directus to avoid confusion.`}
+                                style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,176,60,.15)', color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
+                            ⚠ ×{acc.duplicateCount} dupes
+                          </span>
+                        )}
                         {acc.email && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{acc.email}</span>}
                         <StatusPill status={acc.status} />
                         {acc.has2fa && <span title="2FA" style={{ fontSize: 10 }}>🔐</span>}
@@ -423,6 +429,9 @@ function AccountFormModal({ account, projectId, platforms, onClose }: {
                             {acc.tags.slice(0, 2).map((t) => `#${t}`).join(' ')}
                           </span>
                         )}
+                        <span title={acc.directusId} style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+                          {acc.directusId.slice(0, 6)}
+                        </span>
                         <span style={{ flex: 1 }}></span>
                         <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
                                 disabled={importingId === acc.directusId}

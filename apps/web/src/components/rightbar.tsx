@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import type { Mode } from '@/lib/mock/types';
 import { dismissAlert } from '@/lib/actions/alerts';
+import { usePolling } from '@/lib/use-polling';
+import { useTweaks } from './tweaks';
 
 export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string }) {
   const [tab, setTab] = useState<'alerts' | 'feed'>('alerts');
@@ -10,6 +12,18 @@ export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string 
   const [, startTransition] = useTransition();
   const allAlerts = (mode?.alerts ?? []).filter((a) => !dismissed.has(a.id));
   const badCount = allAlerts.filter((a) => a.tone === 'bad').length;
+
+  // Live polling: refresh server data every 30s when tab visible.
+  // Only enabled when user has Live polling tweak ON AND we're on a project page
+  // (no point polling Portfolio / Tests / Roadmap which don't have alerts/feed).
+  const { tweaks } = useTweaks();
+  const polling = usePolling({
+    intervalMs: 30_000,
+    enabled: !!projectId && tweaks.livePolling,
+  });
+
+  const lastSec = polling.lastRefreshAt ? Math.floor((Date.now() - polling.lastRefreshAt) / 1000) : null;
+  const liveActive = !!projectId && tweaks.livePolling && polling.visible;
 
   const handleDismiss = (alertId: string) => {
     if (!projectId) return;
@@ -30,9 +44,42 @@ export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string 
           🚨 Alerts <span className="count-pill" data-tone="bad">{badCount}</span>
         </button>
         <button data-active={tab === 'feed' || undefined} onClick={() => setTab('feed')}>
-          ⌁ Activity <span className="count-pill">live</span>
+          ⌁ Activity <span className="count-pill" data-tone={liveActive ? 'ok' : undefined}>
+            {liveActive ? 'live' : 'paused'}
+          </span>
         </button>
       </div>
+
+      {/* Live polling status strip */}
+      {projectId && (
+        <div style={{
+          padding: '4px 10px',
+          fontSize: 10, fontFamily: 'var(--font-mono)',
+          color: 'var(--fg-3)',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: liveActive ? 'var(--ok)' : 'var(--fg-4)',
+            boxShadow: liveActive ? '0 0 6px var(--ok)' : undefined,
+            animation: liveActive ? 'pulse-dot 2s ease-in-out infinite' : undefined,
+          }}></span>
+          <span>
+            {!tweaks.livePolling ? 'Polling off' :
+             !polling.visible ? 'Tab hidden — paused' :
+             lastSec === null ? 'Polling 30s…' :
+             `Updated ${lastSec}s ago`}
+          </span>
+          <span style={{ flex: 1 }} />
+          <button onClick={() => polling.refreshNow()}
+                  title="Refresh now"
+                  style={{
+                    background: 'transparent', border: 0, color: 'var(--fg-2)',
+                    fontSize: 11, cursor: 'pointer', padding: '0 2px',
+                  }}>↻</button>
+        </div>
+      )}
       <div className="rightbar-body">
         {tab === 'alerts' && (
           <div>

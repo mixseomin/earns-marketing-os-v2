@@ -440,6 +440,53 @@ export const USE_CASES: UseCaseSpec[] = [
       'Re-seed preserve brand edits (spec/state separation pattern).',
   },
   {
+    slug: '7.5-live-polling-alerts-feed',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Live polling alerts + feed (30s) với Page Visibility pause',
+    priority: 'high',
+    shippedIn: 'WIP',
+    featureRef: 'lib/use-polling.ts + RightBar live indicator + Tweaks toggle',
+    tags: ['real-time', 'polling', 'rightbar'],
+    sortOrder: 75,
+    steps: [
+      { n: 1, action: 'Mở project có alerts', url: '/p/aff-vn' },
+      { n: 2, action: 'RightBar top hiện strip "🟢 live · Updated Xs ago"' },
+      { n: 3, action: 'Activity tab badge "live" màu xanh khi polling active' },
+      { n: 4, action: 'Click ↻ refresh now button → counter reset' },
+      { n: 5, action: 'Đợi 30s → tự động refresh, counter reset' },
+      { n: 6, action: 'Switch tab khác → quay lại → strip "Tab hidden — paused" trước, sau đó refresh ngay' },
+      { n: 7, action: 'Mở Tweaks panel (⚙ FAB) → toggle "Live polling" OFF → strip "Polling off", badge → paused gray' },
+      { n: 8, action: 'Toggle ON lại → resume' },
+    ],
+    expected:
+      'Polling 30s qua router.refresh() — re-fetch RSC payload không full reload.\n' +
+      'Page Visibility API pause khi tab hidden, resume + immediate refresh khi visible.\n' +
+      'Tweaks toggle persist localStorage. Default ON.\n' +
+      'Indicator strip + ↻ manual refresh button. Pulse dot khi active.',
+  },
+  {
+    slug: '7.6-account-card-action-by-status',
+    groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
+    title: 'Account card actions filter theo status (no Signup khi active)',
+    priority: 'medium',
+    shippedIn: 'WIP',
+    featureRef: 'AccountsVault card action row',
+    tags: ['accounts', 'ux', 'optimization'],
+    sortOrder: 76,
+    steps: [
+      { n: 1, action: 'Tạo account LinkedIn status=todo → card hiện "↗ Signup" primary + "→" arrow', url: '/p/orit/resources' },
+      { n: 2, action: 'Advance → CREATING → vẫn show ↗ Signup (đang làm) + ← →' },
+      { n: 3, action: 'Advance → WARMING → KHÔNG còn ↗ Signup (account đã exist), chỉ ← →' },
+      { n: 4, action: 'Advance → ACTIVE → KHÔNG có Signup, có "+ Post" + ←' },
+      { n: 5, action: 'Đổi → LIMITED/BLOCKED/BANNED → không Signup, không ←/→' },
+    ],
+    expected:
+      'Signup chỉ show khi status ∈ {todo, creating} (đang onboarding).\n' +
+      'Post chỉ khi status=active (sẵn sàng publish).\n' +
+      '←/→ chỉ trong linear flow (todo→creating→warming→active).\n' +
+      'Side states (limited/blocked/banned) không CTA — status đủ.',
+  },
+  {
     slug: '7.4-blank-state-no-mock-leak',
     groupKey: '7', groupLabel: 'Group 7 — Phase 7 features',
     title: 'Blank state consistency — no mock data leak ở Resources/Tribes/Studio',

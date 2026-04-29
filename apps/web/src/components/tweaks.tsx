@@ -9,6 +9,7 @@ export type Tweaks = {
   animation: boolean;
   accent: 'auto' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
   lang: 'vi' | 'en';
+  livePolling: boolean;
 };
 
 export const TWEAK_DEFAULTS: Tweaks = {
@@ -18,6 +19,7 @@ export const TWEAK_DEFAULTS: Tweaks = {
   animation: true,
   accent: 'auto',
   lang: 'vi',
+  livePolling: true,
 };
 
 type Ctx = {

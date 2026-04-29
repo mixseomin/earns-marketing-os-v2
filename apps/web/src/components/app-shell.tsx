@@ -67,6 +67,7 @@ export function AppShell({
           <TweakSlider label="Kanban columns" value={tweaks.columnCount} min={3} max={5} step={1} onChange={(v) => setTweak('columnCount', v)} />
           <TweakSection label="Motion" />
           <TweakToggle label="Real-time animation" value={tweaks.animation} onChange={(v) => setTweak('animation', v)} />
+          <TweakToggle label="Live polling (alerts/feed 30s)" value={tweaks.livePolling} onChange={(v) => setTweak('livePolling', v)} />
         </TweaksPanel>
       </div>
     </>

@@ -260,12 +260,15 @@ export function AccountsVault({ projectId, project, platforms, accounts }: {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 4, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                    {pf?.signupUrl && (
+                    {/* Signup chỉ show khi đang onboarding (todo / creating). Khi đã warming/
+                       active/limited/blocked/banned thì account đã exist, không cần signup nữa. */}
+                    {pf?.signupUrl && (acc.status === 'todo' || acc.status === 'creating') && (
                       <a href={pf.signupUrl} target="_blank" rel="noopener noreferrer"
-                         className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>
+                         className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}>
                         ↗ Signup
                       </a>
                     )}
+                    {/* Post chỉ khi active — account đã sẵn sàng publish content. */}
                     {pf?.postUrl && acc.status === 'active' && (
                       <a href={pf.postUrl} target="_blank" rel="noopener noreferrer"
                          className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>
@@ -273,10 +276,10 @@ export function AccountsVault({ projectId, project, platforms, accounts }: {
                       </a>
                     )}
                     {LINEAR_FLOW.includes(acc.status as AccountStatus) && acc.status !== 'todo' && (
-                      <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => handleQuickAdvance(acc, -1)}>←</button>
+                      <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }} title="Step back" onClick={() => handleQuickAdvance(acc, -1)}>←</button>
                     )}
                     {LINEAR_FLOW.includes(acc.status as AccountStatus) && acc.status !== 'active' && (
-                      <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => handleQuickAdvance(acc, 1)}>→</button>
+                      <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }} title="Advance status" onClick={() => handleQuickAdvance(acc, 1)}>→</button>
                     )}
                   </div>
                 </div>

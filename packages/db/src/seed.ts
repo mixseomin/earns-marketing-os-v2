@@ -217,6 +217,7 @@ for (const p of PROJECTS_SEED) {
     kpi: p.kpi ?? '',
     alerts: p.alerts ?? 0,
     color: p.color ?? '#00e5ff',
+    isDemo: p.isDemo ?? false,
     website: p.website ?? '',
     oneLiner: p.oneLiner ?? '',
     bio: p.bio ?? '',

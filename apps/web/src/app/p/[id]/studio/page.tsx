@@ -10,26 +10,29 @@ export default async function StudioRoute({ params }: { params: Promise<{ id: st
   if (!project) notFound();
   const [mode, projects] = await Promise.all([getProjectMode(id, project.mode), listProjects()]);
 
-  const isBlank = mode.squads.length === 0 && mode.cards.length === 0;
+  // Demo: render mock ContentStudio cho design preview.
+  // Real: Studio chưa wire DB → EmptyState với link tới Board.
+  const isDemo = project.isDemo === true;
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="studio">
-      {isBlank ? (
+      {isDemo ? (
+        <ContentStudioPage />
+      ) : (
         <div style={{ padding: 16 }}>
           <EmptyState
             icon="🎬"
-            title="Content Studio — chưa wire DB"
+            title="Content Studio — UI chưa wire DB"
             description={
               <>
-                Studio hiện preview với mock content (FB post, email, ad, reel, landing, DM) cho demo projects.
-                Project blank ẩn để không nhiễu. Phase 8 sẽ wire DB cho content_pieces (drafts, AI co-pilot, multi-channel preview).
-                Hiện tại: dùng Command Board để quản lý content tasks.
+                Schema <code>content_pieces</code> sẽ ship phase tới (drafts theo channel, AI co-pilot qua OpenAI gpt-4o-mini,
+                multi-channel preview như FB/email/ad/reel/landing/DM).
+                <br />Hiện tại: dùng <a href={`/p/${id}/board`} style={{ color: 'var(--accent)' }}>Command Board</a> để quản lý content tasks
+                {' '}(đã có {mode.cards.length} card sync từ Directus).
               </>
             }
           />
         </div>
-      ) : (
-        <ContentStudioPage />
       )}
     </AppShell>
   );

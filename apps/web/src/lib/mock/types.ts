@@ -117,6 +117,8 @@ export interface Project {
   kpi: string;
   alerts: number;
   color: string;
+  /** Demo project: render mock content cho design preview. Real project: chỉ render DB data, EmptyState khi rỗng. */
+  isDemo?: boolean;
   // ── Brand fields (template variables for content snippets) ──
   website?: string;
   oneLiner?: string;

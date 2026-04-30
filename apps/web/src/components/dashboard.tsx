@@ -1,6 +1,7 @@
 import type { Mode, Kpi } from '@/lib/mock/types';
 import { Sparkline, RevenueChart, HourBars } from './charts';
 import { ResourceStrip } from './resource-strip';
+import type { Project } from '@/lib/mock/types';
 
 const HOUR_DATA = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')}h`,
@@ -21,10 +22,14 @@ function KPICell({ k }: { k: Kpi }) {
   );
 }
 
-export function Dashboard({ mode }: { mode: Mode }) {
+export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) {
   const m = mode;
   const revData = (m.revData ?? []).map((d) => ({ ...d, rev: d.rev * 1_000_000, target: d.target * 1_000_000 }));
-  const isBlank = m.squads.length === 0 && m.cards.length === 0;
+  // Demo projects (project.isDemo===true): render full mock dashboard cho design preview.
+  // Real projects: render only DB data — mock KPIs/chart/suggestions/topList ẩn,
+  // hiện EmptyState để user không bị mislead.
+  const isDemo = project?.isDemo === true;
+  const isBlank = !isDemo;
 
   return (
     <div className="page">

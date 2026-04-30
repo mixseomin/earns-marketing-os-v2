@@ -11,7 +11,7 @@ export default async function ProjectDashboardPage({ params }: { params: Promise
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="dashboard">
-      <Dashboard mode={mode} />
+      <Dashboard mode={mode} project={project} />
     </AppShell>
   );
 }

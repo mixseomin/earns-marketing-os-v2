@@ -119,6 +119,8 @@ export interface Project {
   color: string;
   /** When true, seed inserts the project row but skips squads/cards/alerts/feed (blank slate). */
   blank?: boolean;
+  /** Demo project = render mock content trong tabs cho design preview. Default false (real project). */
+  isDemo?: boolean;
   // ── Brand fields (snippet template variables) ──
   website?: string;
   oneLiner?: string;

@@ -72,6 +72,11 @@ export const projects = pgTable(
     kpi: text('kpi').notNull().default(''),
     alerts: smallint('alerts').notNull().default(0),       // count badge
     color: text('color').notNull().default('#00e5ff'),
+    // is_demo = true cho 10 demo projects ported từ MOS2 design (aff-vn,
+    // brand-x, ...). Các project thật (Orit, Astrolas, user-created) = false.
+    // Demo: render mock content trong tabs cho design preview.
+    // Real: render only DB data; thiếu data → EmptyState.
+    isDemo: boolean('is_demo').notNull().default(false),
     // ── Brand fields (used by content snippet templates per-account) ──
     // These centralize the per-project values that snippet placeholders
     // {{website}} {{one-liner}} {{bio}} {{persona}} {{hashtags}} pull from.

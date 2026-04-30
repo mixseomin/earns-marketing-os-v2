@@ -50,6 +50,13 @@
       "when": 1777540764266,
       "tag": "0006_tiresome_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777541534834,
+      "tag": "0007_tricky_guardsmen",
+      "breakpoints": true
     }
   ]
 }

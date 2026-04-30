@@ -10,26 +10,29 @@ export default async function TribesRoute({ params }: { params: Promise<{ id: st
   if (!project) notFound();
   const [mode, projects] = await Promise.all([getProjectMode(id, project.mode), listProjects()]);
 
-  const isBlank = mode.squads.length === 0 && mode.cards.length === 0;
+  // Demo projects render mock TribesPage cho design preview.
+  // Real projects (Orit, Astrolas, user-created) chỉ show DB data — phase tới sẽ wire UI đọc tribes/habitats table.
+  const isDemo = project.isDemo === true;
 
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="tribes">
-      {isBlank ? (
+      {isDemo ? (
+        <TribesPage />
+      ) : (
         <div style={{ padding: 16 }}>
           <EmptyState
             icon="◍"
-            title="Tribes — chưa wire DB"
+            title="Tribes — UI chưa wire DB"
             description={
               <>
-                Layer 1 (Habitats: subreddit, FB group, hashtag) + Layer 2 (Tribes: audience identity) chưa có schema thật.
-                Hiện tại hiện mock data cho demo projects, ẩn cho project blank để không nhiễu.
-                Phase 8 sẽ wire DB theo bridge sync từ as.on.tc Directus tribes.
+                Bridge sync từ as.on.tc đã import data vào tables <code>tribes</code> + <code>habitats</code>
+                {' '}(Astrolas có 1 tribe + 26 habitats; Orit chưa có).
+                <br />UI đọc từ DB sẽ ship phase tới — xem <a href="/roadmap" style={{ color: 'var(--accent)' }}>/roadmap</a> Phase 8.
+                <br />Hiện tại tránh leak mock content vào project thật.
               </>
             }
           />
         </div>
-      ) : (
-        <TribesPage />
       )}
     </AppShell>
   );

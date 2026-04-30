@@ -13,6 +13,11 @@ export interface SquadConfig {
   systemPrompt?: string;
   model?: string;
   trustLevel?: 1 | 2 | 3 | 4;
+  // Phase 10: bật/tắt agent reasoning loop (LLM tool-use cycle).
+  // false (default): single-shot LLM call — squad chỉ generate text/suggestion.
+  // true: squad chạy agent runtime với tools (lib/agent-runtime.ts), reason qua
+  //       nhiều turn, gate enforced. Chỉ bật cho squad cần multi-step reasoning.
+  useAgentLoop?: boolean;
 }
 
 export interface Squad {

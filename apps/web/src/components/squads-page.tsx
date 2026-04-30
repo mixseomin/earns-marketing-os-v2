@@ -31,7 +31,7 @@ const emptySquad = (): SquadInput => ({
   squadKey: '', name: '', vi: '', icon: '🤖',
   agents: 1, active: 1, color: '#00e5ff', descText: '',
   health: 'ok',
-  config: { mission: '', skillsMd: '', tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2 },
+  config: { mission: '', skillsMd: '', tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2, useAgentLoop: false },
 });
 
 function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, dbSkills }: {
@@ -63,6 +63,7 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
         systemPrompt: squad.config?.systemPrompt ?? '',
         model: squad.config?.model ?? 'gpt-4o-mini',
         trustLevel: squad.config?.trustLevel ?? 2,
+        useAgentLoop: squad.config?.useAgentLoop ?? false,
       },
     } : emptySquad()
   );
@@ -322,6 +323,23 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
             <textarea style={{ ...fld, minHeight: 70, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11 }}
                       placeholder='vd: "Bạn là Research squad. Mục tiêu: phát hiện trend & cơ hội mới. Trả lời ngắn, action-driven, kèm nguồn."'
                       value={cfg.systemPrompt ?? ''} onChange={(e) => setCfg('systemPrompt', e.target.value)} />
+          </div>
+          <div style={{ gridColumn: '1 / -1', padding: 8, background: 'var(--bg-2)', borderRadius: 5, border: '1px solid var(--line)' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={cfg.useAgentLoop ?? false}
+                onChange={(e) => setCfg('useAgentLoop', e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <div>
+                <div style={{ color: 'var(--fg-0)', fontWeight: 500 }}>🧠 Enable agent reasoning loop</div>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 2 }}>
+                  Default OFF: squad chỉ generate text/suggestion (single-shot LLM). <br />
+                  Bật khi squad cần multi-step reasoning + dùng tools (research / publisher / code refactor). Tốn nhiều token + cost hơn. Squad sẽ qua trust gate + peer review + anti-loop guards.
+                </div>
+              </div>
+            </label>
           </div>
         </div>
 

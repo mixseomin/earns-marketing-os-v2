@@ -19,6 +19,7 @@ export interface SquadConfig {
   systemPrompt?: string;        // For AI runtime (phase 10): squad's persona
   model?: string;               // Phụ thuộc API key đã configure (xem /settings/api)
   trustLevel?: 1 | 2 | 3 | 4;   // L1 AUTO, L2 NOTIFY, L3 APPROVE, L4 ESCALATE
+  useAgentLoop?: boolean;       // Phase 10: bật/tắt LLM tool-use loop. Default false (single-shot).
 }
 
 export interface SquadInput {

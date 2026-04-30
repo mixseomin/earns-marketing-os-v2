@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -548,6 +548,32 @@ export async function listBudget(projectId?: string): Promise<BudgetRow[]> {
       notes: r.notes, tags: (r.tags as string[]) ?? [],
     }));
   }, [], 'listBudget');
+}
+
+// ── Content pieces ──────────────────────────────────────────
+export type ContentPieceRow = {
+  id: number; projectId: string; slug: string; title: string; channel: string;
+  tribeSlug: string | null; persona: string | null; subject: string | null;
+  bodyMd: string; status: string;
+  scheduledAt: Date | null; publishedAt: Date | null; publishUrl: string | null;
+  aiNotes: string[]; tags: string[];
+  metrics: Record<string, string | number>;
+  updatedAt: Date;
+};
+export async function listContentPieces(projectId: string): Promise<ContentPieceRow[]> {
+  return tryDb(async () => {
+    const rows = await listContentPiecesByProject(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, slug: r.slug, title: r.title,
+      channel: r.channel, tribeSlug: r.tribeSlug, persona: r.persona,
+      subject: r.subject, bodyMd: r.bodyMd, status: r.status,
+      scheduledAt: r.scheduledAt, publishedAt: r.publishedAt, publishUrl: r.publishUrl,
+      aiNotes: (r.aiNotes as string[]) ?? [],
+      tags: (r.tags as string[]) ?? [],
+      metrics: (r.metrics as Record<string, string | number>) ?? {},
+      updatedAt: r.updatedAt,
+    }));
+  }, [], 'listContentPieces');
 }
 
 export async function listContacts(projectId?: string): Promise<ContactRow[]> {

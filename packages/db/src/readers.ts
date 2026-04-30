@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -253,6 +253,19 @@ export async function listBudgetEntries(projectId?: string) {
   return db.select().from(budgetEntries)
     .where(and(eq(budgetEntries.tenantId, TENANT), or(eq(budgetEntries.projectId, projectId), isNull(budgetEntries.projectId))))
     .orderBy(desc(budgetEntries.occurredAt));
+}
+
+// ── Content pieces ─────────────────────────────────────────
+export async function listContentPiecesByProject(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db.select().from(contentPieces)
+    .where(and(
+      eq(contentPieces.tenantId, TENANT),
+      eq(contentPieces.projectId, projectId),
+      isNull(contentPieces.archivedAt),
+    ))
+    .orderBy(desc(contentPieces.updatedAt));
 }
 
 // ── Roadmap ─────────────────────────────────────────────────

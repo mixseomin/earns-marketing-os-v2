@@ -611,6 +611,43 @@ export const budgetEntries = pgTable(
   ],
 );
 
+// ── content_pieces (Phase 8 — Content Studio) ───────────────────
+// Pieces per project, grouped by channel (fb-post, email, ad, reel, landing,
+// dm, twitter-thread, blog, youtube-script). bodyMd = source markdown,
+// channel-specific render derived bằng preview component. AI co-pilot có thể
+// fill aiNotes (3-5 bullets validate hook/tone/CTA).
+export const contentPieces = pgTable(
+  'content_pieces',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    channel: text('channel').notNull().default('fb-post'),
+    tribeSlug: text('tribe_slug'),         // optional FK-by-slug to tribes table
+    persona: text('persona'),              // free-text persona/handle
+    subject: text('subject'),              // for email/post hook
+    bodyMd: text('body_md').notNull().default(''),
+    status: text('status').notNull().default('draft'),  // draft|approved|scheduled|published|archived
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    publishUrl: text('publish_url'),
+    aiNotes: jsonb('ai_notes').notNull().default([]),
+    tags: jsonb('tags').notNull().default([]),
+    metrics: jsonb('metrics').notNull().default({}),  // {reach, react, comment, share, ctr}
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('content_pieces_project_slug_uniq').on(t.projectId, t.slug),
+    index('content_pieces_tenant_idx').on(t.tenantId),
+    index('content_pieces_channel_idx').on(t.channel),
+    index('content_pieces_status_idx').on(t.status),
+  ],
+);
+
 // ── library_tools (Phase 8 — shared catalog) ─────────────────────
 // Tools/integrations available to AI agents. Squad.config.tools refs by id.
 // Seed initial từ lib/tools-library.ts; user CRUD qua /library page.
@@ -667,4 +704,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces };

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type AgentKindStats, type RecentAgentRun, type ReasoningSquad, type SystemFlags,
-  resetAgentBreaker, setSoloReasoningSquad,
+  resetAgentBreaker, setSoloReasoningSquad, toggleSquadReasoning,
 } from '@/lib/actions/agents-admin';
 import { Pill, StatsStrip, EmptyState, type StatCard } from './ui';
 
@@ -44,13 +44,14 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
   const totalRuns = kindStats.reduce((s, k) => s + k.totalRuns, 0);
   const totalCost = kindStats.reduce((s, k) => s + k.totalCostCents, 0);
   const totalFailed = kindStats.reduce((s, k) => s + k.failedRuns + k.timedOutRuns, 0);
+  const activeSquads = reasoningSquads.filter((s) => s.useAgentLoop).length;
 
   const stats: StatCard[] = [
     { key: 'runs', label: 'Runs 24h', value: totalRuns, color: 'var(--fg-0)' },
     { key: 'failed', label: 'Failed', value: totalFailed, color: totalFailed > 0 ? 'var(--bad)' : 'var(--fg-3)' },
     { key: 'cost', label: 'Cost 24h', value: fmtCost(totalCost), color: 'var(--neon-amber)' },
     { key: 'kinds', label: 'Active kinds', value: kindStats.length, color: 'var(--neon-violet)' },
-    { key: 'reasoning', label: 'Reasoning squads', value: reasoningSquads.length, color: reasoningSquads.length > 1 ? 'var(--warn)' : 'var(--ok)' },
+    { key: 'reasoning', label: 'Active / Configured', value: `${activeSquads} / ${reasoningSquads.length}`, color: activeSquads > 1 ? 'var(--warn)' : activeSquads === 1 ? 'var(--ok)' : 'var(--fg-3)' },
     { key: 'kill', label: 'Kill switch', value: flags.killSwitchActive ? 'ON' : 'off', color: flags.killSwitchActive ? 'var(--bad)' : 'var(--fg-3)' },
   ];
 
@@ -98,9 +99,9 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
           🛑 <b>KILL SWITCH ACTIVE</b> — mọi agent runtime call DENY. Unset env <code>MOS2_KILL_SWITCH</code> trên server để resume.
         </div>
       )}
-      {reasoningSquads.length > 1 && (
+      {activeSquads > 1 && (
         <div style={{ padding: 12, marginTop: 10, background: 'rgba(255,176,60,.10)', border: '1px solid var(--warn)', borderRadius: 6, color: 'var(--fg-1)' }}>
-          ⚠ <b>Multiple reasoning squads active ({reasoningSquads.length})</b>. Khi đang test/pilot khuyến nghị chỉ giữ 1 squad reasoning ON. Click "Solo activate" cạnh 1 squad bất kỳ để auto-pause hết các squad còn lại.
+          ⚠ <b>{activeSquads} squads đang active</b>. Khi pilot/test khuyến nghị chỉ 1 squad reasoning ON. Click "Solo activate" cạnh 1 squad bất kỳ để auto-pause các squad còn lại.
         </div>
       )}
       {soloMsg && (
@@ -109,32 +110,73 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
 
       {/* Reasoning squads list */}
       <div style={{ marginTop: 14 }}>
-        <div className="modal-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>🧠 Reasoning squads ({reasoningSquads.length})</span>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '6px 0', marginBottom: 8,
+          borderBottom: '1px solid var(--line)',
+        }}>
+          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>
+            🧠 Configured squads
+          </h3>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+            {activeSquads} active · {reasoningSquads.length - activeSquads} paused
+          </span>
           <span style={{ flex: 1 }} />
-          <button className="btn danger" onClick={handlePauseAll} disabled={soloBusy} style={{ fontSize: 10, padding: '3px 8px' }}>
+          <button
+            className="btn danger"
+            onClick={handlePauseAll}
+            disabled={soloBusy || activeSquads === 0}
+            style={{ fontSize: 11, padding: '4px 10px' }}
+          >
             🛑 Pause all
           </button>
         </div>
         {reasoningSquads.length === 0 ? (
-          <EmptyState icon="🧠" title="No reasoning squads active" description="Bật useAgentLoop trên 1 squad qua /p/<id>/squads. Khuyến nghị bắt đầu với 1 squad cho testing." compact />
+          <EmptyState icon="🧠" title="Chưa có squad nào configured" description="Vào /p/<id>/squads → mở 1 squad → set tools/skills + bật '🧠 Enable agent reasoning loop'." compact />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
             {reasoningSquads.map((s) => (
-              <div key={`${s.projectId}-${s.squadKey}`} className="panel" style={{ padding: '8px 10px' }}>
+              <div key={`${s.projectId}-${s.squadKey}`} className="panel" style={{
+                padding: '8px 10px',
+                opacity: s.useAgentLoop ? 1 : 0.6,
+                borderLeft: s.useAgentLoop ? '3px solid var(--neon-violet)' : '3px solid var(--fg-4)',
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{s.squadName}</span>
                   <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>· {s.projectName}</span>
+                  <span style={{ flex: 1 }} />
+                  <Pill
+                    color={s.useAgentLoop ? 'var(--neon-violet)' : 'var(--fg-4)'}
+                    label={s.useAgentLoop ? '● active' : '○ paused'}
+                    size="xs"
+                  />
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 2, display: 'flex', gap: 6 }}>
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <span>{s.model ?? 'no-model'}</span>
                   <span>· L{s.trustLevel ?? '?'}</span>
                   <span>· {s.toolsCount} tools</span>
                 </div>
-                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <a href={`/p/${s.projectId}/squads`} className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }}>Edit ↗</a>
+                  {s.useAgentLoop ? (
+                    <button
+                      className="btn"
+                      style={{ fontSize: 10, padding: '2px 6px' }}
+                      onClick={() => startTransition(async () => { await toggleSquadReasoning(s.projectId, s.squadKey, false); router.refresh(); })}
+                    >
+                      ⏸ Pause
+                    </button>
+                  ) : (
+                    <button
+                      className="btn primary"
+                      style={{ fontSize: 10, padding: '2px 6px' }}
+                      onClick={() => startTransition(async () => { await toggleSquadReasoning(s.projectId, s.squadKey, true); router.refresh(); })}
+                    >
+                      ▶ Activate
+                    </button>
+                  )}
                   <button className="btn" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => handleSoloActivate(s.projectId, s.squadKey, s.squadName)}>
-                    Solo activate
+                    Solo
                   </button>
                 </div>
               </div>

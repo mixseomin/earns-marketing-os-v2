@@ -119,8 +119,12 @@ export interface ReasoningSquad {
   model: string | null;
   trustLevel: number | null;
   toolsCount: number;
+  useAgentLoop: boolean;       // active state
+  hasConfig: boolean;          // any of: tools, skillsMd, systemPrompt, useAgentLoop touched
 }
 
+// List ALL squads có agent runtime config (tools/skills/prompt set HOẶC useAgentLoop=true).
+// Show cả active + paused để admin có overview, không bị mất list khi pause-all.
 export async function listReasoningSquads(): Promise<ReasoningSquad[]> {
   const db = getDb();
   if (!db) return [];
@@ -128,22 +132,47 @@ export async function listReasoningSquads(): Promise<ReasoningSquad[]> {
     SELECT s.project_id, p.name AS project_name, s.squad_key, s.name AS squad_name,
            s.config->>'model' AS model,
            (s.config->>'trustLevel')::int AS trust_level,
-           jsonb_array_length(COALESCE(s.config->'tools', '[]'::jsonb))::int AS tools_count
+           jsonb_array_length(COALESCE(s.config->'tools', '[]'::jsonb))::int AS tools_count,
+           COALESCE(s.config->>'useAgentLoop', 'false')::boolean AS use_agent_loop
     FROM squads s
     LEFT JOIN projects p ON p.id = s.project_id
     WHERE s.tenant_id = ${TENANT}
-      AND COALESCE(s.config->>'useAgentLoop', 'false') = 'true'
-    ORDER BY p.name, s.squad_key
+      AND (
+        COALESCE(s.config->>'useAgentLoop', 'false') = 'true'
+        OR jsonb_array_length(COALESCE(s.config->'tools', '[]'::jsonb)) > 0
+        OR COALESCE(s.config->>'skillsMd', '') != ''
+        OR COALESCE(s.config->>'systemPrompt', '') != ''
+      )
+    ORDER BY (COALESCE(s.config->>'useAgentLoop', 'false') = 'true') DESC,
+             p.name, s.squad_key
   `);
   return (rows as unknown as Array<{
     project_id: string; project_name: string | null;
     squad_key: string; squad_name: string;
     model: string | null; trust_level: number | null; tools_count: number;
+    use_agent_loop: boolean;
   }>).map((r) => ({
     projectId: r.project_id, projectName: r.project_name ?? r.project_id,
     squadKey: r.squad_key, squadName: r.squad_name,
     model: r.model, trustLevel: r.trust_level, toolsCount: r.tools_count,
+    useAgentLoop: r.use_agent_loop,
+    hasConfig: true,
   }));
+}
+
+// Toggle individual squad reasoning ON/OFF without affecting other squads.
+// Khác setSoloReasoningSquad: chỉ đổi 1 squad.
+export async function toggleSquadReasoning(projectId: string, squadKey: string, enable: boolean): Promise<{ ok: boolean }> {
+  const db = getDb();
+  if (!db) return { ok: false };
+  await db.execute(sql`
+    UPDATE squads
+    SET config = jsonb_set(COALESCE(config, '{}'::jsonb), '{useAgentLoop}', ${enable ? 'true' : 'false'}::jsonb, true),
+        updated_at = NOW()
+    WHERE tenant_id = ${TENANT} AND project_id = ${projectId} AND squad_key = ${squadKey}
+  `);
+  revalidatePath('/agents');
+  return { ok: true };
 }
 
 // Reset breaker for an agent_kind (clears in-memory pause).

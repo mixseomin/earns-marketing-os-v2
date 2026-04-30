@@ -651,7 +651,17 @@ const VAULT_COMPONENTS = {
   infra: VaultInfra, budget: VaultBudget, knowledge: VaultKnowledge,
 };
 
-export function ResourcesPage({ accountsOverride, isBlank = false }: { accountsOverride?: React.ReactNode; isBlank?: boolean } = {}) {
+export function ResourcesPage({
+  accountsOverride,
+  knowledgeOverride,
+  contactsOverride,
+  isBlank = false,
+}: {
+  accountsOverride?: React.ReactNode;
+  knowledgeOverride?: React.ReactNode;
+  contactsOverride?: React.ReactNode;
+  isBlank?: boolean;
+} = {}) {
   const [vault, setVault] = React.useState("accounts");
   const Active = VAULT_COMPONENTS[vault];
   const cur = VAULTS[vault];
@@ -699,7 +709,11 @@ export function ResourcesPage({ accountsOverride, isBlank = false }: { accountsO
 
       {vault === 'accounts' && accountsOverride
         ? accountsOverride
-        : isBlank
+        : vault === 'knowledge' && knowledgeOverride
+          ? knowledgeOverride
+          : vault === 'contacts' && contactsOverride
+            ? contactsOverride
+            : isBlank
           ? (
             <div className="panel">
               <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>

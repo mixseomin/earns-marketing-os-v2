@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -450,6 +450,61 @@ export async function listRoadmap(): Promise<RoadmapRow[]> {
     [],
     'listRoadmap',
   );
+}
+
+// ── Phase 8 vaults: Tribes / Habitats / Knowledge / Contacts ──
+export interface TribeRow { id: number; projectId: string; slug: string; name: string; descText: string; signal: string; sentiment: number; lifecycle: string; lexicon: string[]; avoid: string[]; psychographic: string; importedFrom: string | null }
+export interface HabitatRow { id: number; tribeId: number | null; projectId: string; kind: string; name: string; url: string | null; members: number; activity: string; scrapeFrequency: string; lastSyncAt: Date | null; health: string; importedFrom: string | null }
+export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
+export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
+
+export async function listTribes(projectId: string): Promise<TribeRow[]> {
+  return tryDb(async () => {
+    const rows = await listTribesByProject(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, slug: r.slug, name: r.name,
+      descText: r.descText, signal: r.signal, sentiment: r.sentiment,
+      lifecycle: r.lifecycle, lexicon: (r.lexicon as string[]) ?? [],
+      avoid: (r.avoid as string[]) ?? [], psychographic: r.psychographic,
+      importedFrom: r.importedFrom,
+    }));
+  }, [], 'listTribes');
+}
+
+export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
+  return tryDb(async () => {
+    const rows = await listHabitatsByProject(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, tribeId: r.tribeId, projectId: r.projectId, kind: r.kind,
+      name: r.name, url: r.url, members: r.members, activity: r.activity,
+      scrapeFrequency: r.scrapeFrequency, lastSyncAt: r.lastSyncAt,
+      health: r.health, importedFrom: r.importedFrom,
+    }));
+  }, [], 'listHabitats');
+}
+
+export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]> {
+  return tryDb(async () => {
+    const rows = await listAllKnowledge(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, kind: r.kind, title: r.title,
+      content: r.content, tags: (r.tags as string[]) ?? [],
+      importedFrom: r.importedFrom, updatedAt: r.updatedAt,
+    }));
+  }, [], 'listKnowledge');
+}
+
+export async function listContacts(projectId?: string): Promise<ContactRow[]> {
+  return tryDb(async () => {
+    const rows = await listAllContacts(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, name: r.name, email: r.email,
+      role: r.role, company: r.company,
+      socialHandles: (r.socialHandles as Record<string, string>) ?? {},
+      notes: r.notes, tags: (r.tags as string[]) ?? [],
+      lastTouchedAt: r.lastTouchedAt, importedFrom: r.importedFrom,
+    }));
+  }, [], 'listContacts');
 }
 
 // Mode list for forms (Settings, New Project). Returns DB rows when available,

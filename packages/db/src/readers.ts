@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -143,6 +143,80 @@ export async function listAllUseCases() {
     .from(useCases)
     .where(and(eq(useCases.tenantId, TENANT), isNull(useCases.archivedAt)))
     .orderBy(asc(useCases.groupKey), asc(useCases.sortOrder), asc(useCases.slug));
+}
+
+// ── Tribes / Habitats / Knowledge / Contacts (phase 8 vaults) ──
+export async function listTribesByProject(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(tribes)
+    .where(and(eq(tribes.tenantId, TENANT), eq(tribes.projectId, projectId)))
+    .orderBy(asc(tribes.name));
+}
+
+export async function listHabitatsByProject(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(habitats)
+    .where(and(eq(habitats.tenantId, TENANT), eq(habitats.projectId, projectId)))
+    .orderBy(desc(habitats.members));
+}
+
+export async function listKnowledgeByProject(projectId: string | null) {
+  const db = getDb();
+  if (!db) return null;
+  // null projectId = portfolio-wide
+  const cond = projectId === null
+    ? and(eq(knowledgeItems.tenantId, TENANT), isNull(knowledgeItems.projectId))
+    : and(eq(knowledgeItems.tenantId, TENANT), eq(knowledgeItems.projectId, projectId));
+  return db.select().from(knowledgeItems).where(cond).orderBy(desc(knowledgeItems.updatedAt));
+}
+
+export async function listAllKnowledge(projectId?: string) {
+  // Includes both project-specific AND portfolio-wide (project_id IS NULL).
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(knowledgeItems).where(eq(knowledgeItems.tenantId, TENANT)).orderBy(desc(knowledgeItems.updatedAt));
+  }
+  return db
+    .select()
+    .from(knowledgeItems)
+    .where(and(
+      eq(knowledgeItems.tenantId, TENANT),
+      or(eq(knowledgeItems.projectId, projectId), isNull(knowledgeItems.projectId)),
+    ))
+    .orderBy(desc(knowledgeItems.updatedAt));
+}
+
+export async function listContactsByProject(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.tenantId, TENANT), eq(contacts.projectId, projectId)))
+    .orderBy(desc(contacts.lastTouchedAt));
+}
+
+export async function listAllContacts(projectId?: string) {
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(contacts).where(eq(contacts.tenantId, TENANT)).orderBy(desc(contacts.lastTouchedAt));
+  }
+  return db
+    .select()
+    .from(contacts)
+    .where(and(
+      eq(contacts.tenantId, TENANT),
+      or(eq(contacts.projectId, projectId), isNull(contacts.projectId)),
+    ))
+    .orderBy(desc(contacts.lastTouchedAt));
 }
 
 // ── Roadmap ─────────────────────────────────────────────────

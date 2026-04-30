@@ -258,7 +258,14 @@ function ContentFormModal({ piece, projectId, skills, onClose }: {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 1100, height: '88vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        style={{
+          width: '94vw', maxWidth: 1600, height: '92vh',
+          display: 'flex', flexDirection: 'column',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <div><div className="id-line">{piece?.slug ?? 'NEW PIECE'}</div><h2>{isCreate ? '+ New content piece' : `Edit ${piece!.title}`}</h2></div>
           <button className="modal-close" onClick={onClose}>✕</button>

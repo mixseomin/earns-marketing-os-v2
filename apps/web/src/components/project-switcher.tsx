@@ -8,8 +8,12 @@ import type { Project } from '@/lib/mock/types';
 export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { currentProjectId?: string; projects: Project[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const p = PROJECTS.find((x) => x.id === currentProjectId) || PROJECTS[0]!;
-  const mode = MODES[p.mode];
+  // Khi không có currentProjectId (root portfolio /, fresh visit) → render
+  // "All Projects" header thay vì silent fallback to PROJECTS[0] (Aff-VN).
+  // Đây là source bug user thấy: mở /library từ /p/orit thì sidebar nhảy về Aff-VN.
+  const p = currentProjectId ? PROJECTS.find((x) => x.id === currentProjectId) : undefined;
+  const mode = p ? MODES[p.mode] : undefined;
+  const isPortfolioFallback = !p;
 
   return (
     <div style={{ position: 'relative', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
@@ -18,10 +22,14 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
         background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 7,
         padding: '7px 10px', cursor: 'pointer', color: 'inherit',
       }}>
-        <span style={{ fontSize: 18 }}>{p.emoji}</span>
+        <span style={{ fontSize: 18 }}>{isPortfolioFallback ? '⊞' : p!.emoji}</span>
         <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>{mode?.label || p.mode}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {isPortfolioFallback ? 'All Projects' : p!.name}
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>
+            {isPortfolioFallback ? `${PROJECTS.length} projects` : (mode?.label || p!.mode)}
+          </div>
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', flexShrink: 0 }}>▼</span>
       </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSelect, TweakToggle, TweakSlider } from './tweaks';
 import { useLang } from '@/lib/lang-context';
 import { ThemeApplier } from './theme-applier';
@@ -30,6 +30,16 @@ export function AppShell({
   const { tweaks, setTweak } = useTweaks();
   const { setLang } = useLang();
   const screenLabel = isPortfolio ? 'portfolio' : project ? `${project.id}-${tab ?? 'dashboard'}` : 'shell';
+
+  // Persist last-viewed project ID. Portfolio routes (Library, AI Log, Roadmap, Tests,
+  // Settings/API) đọc cookie này để giữ context project đang chọn cho Sidebar /
+  // ProjectSwitcher — tránh fallback về project đầu tiên (Aff-VN) khi user click
+  // "Library" từ /p/orit/.
+  useEffect(() => {
+    if (project?.id && !isPortfolio) {
+      document.cookie = `mos2_last_project_id=${encodeURIComponent(project.id)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+    }
+  }, [project?.id, isPortfolio]);
 
   return (
     <>

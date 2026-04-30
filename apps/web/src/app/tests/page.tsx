@@ -1,20 +1,23 @@
 import { AppShell } from '@/components/app-shell';
 import { TestsPage } from '@/components/tests-page';
-import { listProjects, listUseCases, getMode } from '@/lib/data';
+import { listProjects, listUseCases, getMode, getProjectMode } from '@/lib/data';
+import { getLastProject } from '@/lib/last-project';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TestsRoute() {
-  const [projects, cases, mode] = await Promise.all([
+  const [projects, cases, lastProject, fallbackMode] = await Promise.all([
     listProjects(),
     listUseCases(),
+    getLastProject(),
     getMode('affiliate'),
   ]);
+  const mode = lastProject ? await getProjectMode(lastProject.id, lastProject.mode) : fallbackMode;
 
-  // Tests is global (cross-project). Use isPortfolio so the topbar
-  // doesn't render project-specific tabs and Sidebar's currentProjectId is undefined.
+  // Tests is global (cross-project). isPortfolio=true keeps topbar in portfolio mode.
+  // project={lastProject} preserves Sidebar/ProjectSwitcher visual context.
   return (
-    <AppShell mode={mode} projects={projects} isPortfolio>
+    <AppShell mode={mode} project={lastProject} projects={projects} isPortfolio>
       <TestsPage cases={cases} />
     </AppShell>
   );

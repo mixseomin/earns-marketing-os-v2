@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import type { Mode, Project } from '@/lib/mock/types';
@@ -70,9 +70,21 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
 
 // Compact, grouped SYSTEM nav. Each group collapsible — sidebar dài thì user thu gọn từng group.
 // "soon" items hiện disabled (opacity 0.45) để thấy roadmap nhưng không click được.
+//
+// Height-lock pattern: measure section height ngay sau lần render đầu (all groups expanded),
+// rồi pin `height` tại giá trị đó. Toggle collapse/expand sẽ KHÔNG thay đổi outer height
+// → SQUADS section bên trên không bị reflow / scroll position không jiggle.
 function SystemNav() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const tog = (k: string) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
+  const ref = useRef<HTMLDivElement>(null);
+  const [lockedH, setLockedH] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!ref.current || lockedH !== null) return;
+    // Render đầu tiên state là all expanded → height tự nhiên = max possible.
+    setLockedH(ref.current.offsetHeight);
+  }, [lockedH]);
 
   type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
   const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
@@ -107,7 +119,15 @@ function SystemNav() {
   };
 
   return (
-    <div className="side-section" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div
+      ref={ref}
+      className="side-section"
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 2,
+        // Lock height sau first render → collapse/expand không reflow SQUADS bên trên.
+        ...(lockedH !== null ? { height: lockedH, flex: '0 0 auto' } : {}),
+      }}
+    >
       <div className="side-title"><span>SYSTEM</span></div>
       {groups.map((g) => {
         const isCollapsed = collapsed[g.key] === true;

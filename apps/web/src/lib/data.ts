@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -550,6 +550,118 @@ export async function listBudget(projectId?: string): Promise<BudgetRow[]> {
       notes: r.notes, tags: (r.tags as string[]) ?? [],
     }));
   }, [], 'listBudget');
+}
+
+// ── Phase 9 Foundations: agent runs, human tasks, playbooks, spend caps ──
+
+export interface AgentRunRow {
+  id: number; projectId: string | null; cardId: number | null;
+  agentKind: string; agentRef: string | null;
+  squadId: number | null; playbookSlug: string | null; playbookStepId: string | null;
+  parentRunId: number | null;
+  status: string;
+  startedAt: Date | null; completedAt: Date | null; timeoutAt: Date | null;
+  durationMs: number | null;
+  input: Record<string, unknown>; output: Record<string, unknown>;
+  artifacts: Array<Record<string, unknown>>;
+  toolsUsed: Array<Record<string, unknown>>;
+  tokensIn: number; tokensOut: number; costUsdCents: number;
+  error: string | null;
+  peerReview: Record<string, unknown> | null;
+  idempotencyKey: string | null;
+  attempt: number; confidence: number | null;
+  createdAt: Date;
+}
+export async function listAgentRunsRows(filters?: Parameters<typeof listAgentRuns>[0]): Promise<AgentRunRow[]> {
+  return tryDb(async () => {
+    const rows = await listAgentRuns(filters);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, cardId: r.cardId,
+      agentKind: r.agentKind, agentRef: r.agentRef,
+      squadId: r.squadId, playbookSlug: r.playbookSlug, playbookStepId: r.playbookStepId,
+      parentRunId: r.parentRunId,
+      status: r.status,
+      startedAt: r.startedAt, completedAt: r.completedAt, timeoutAt: r.timeoutAt,
+      durationMs: r.durationMs,
+      input: (r.input as Record<string, unknown>) ?? {},
+      output: (r.output as Record<string, unknown>) ?? {},
+      artifacts: (r.artifacts as Array<Record<string, unknown>>) ?? [],
+      toolsUsed: (r.toolsUsed as Array<Record<string, unknown>>) ?? [],
+      tokensIn: r.tokensIn, tokensOut: r.tokensOut, costUsdCents: r.costUsdCents,
+      error: r.error,
+      peerReview: (r.peerReview as Record<string, unknown>) ?? null,
+      idempotencyKey: r.idempotencyKey,
+      attempt: r.attempt, confidence: r.confidence,
+      createdAt: r.createdAt,
+    }));
+  }, [], 'listAgentRuns');
+}
+
+export interface HumanTaskRow {
+  id: number; projectId: string | null; cardId: number | null; parentRunId: number | null;
+  title: string; instructions: string;
+  prepPayload: Record<string, unknown>;
+  platformKey: string | null; accountId: number | null;
+  slaDueAt: Date | null; status: string;
+  claimedBy: string | null; claimedAt: Date | null; completedAt: Date | null; verifiedAt: Date | null;
+  publishUrl: string | null; screenshotUrl: string | null;
+  verifyResult: Record<string, unknown> | null;
+  escalatedAt: Date | null; escalationCount: number;
+  notes: string | null;
+  createdAt: Date;
+}
+export async function listHumanTasksRows(filters?: Parameters<typeof listHumanTasks>[0]): Promise<HumanTaskRow[]> {
+  return tryDb(async () => {
+    const rows = await listHumanTasks(filters);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, cardId: r.cardId, parentRunId: r.parentRunId,
+      title: r.title, instructions: r.instructions,
+      prepPayload: (r.prepPayload as Record<string, unknown>) ?? {},
+      platformKey: r.platformKey, accountId: r.accountId,
+      slaDueAt: r.slaDueAt, status: r.status,
+      claimedBy: r.claimedBy, claimedAt: r.claimedAt, completedAt: r.completedAt, verifiedAt: r.verifiedAt,
+      publishUrl: r.publishUrl, screenshotUrl: r.screenshotUrl,
+      verifyResult: (r.verifyResult as Record<string, unknown>) ?? null,
+      escalatedAt: r.escalatedAt, escalationCount: r.escalationCount,
+      notes: r.notes,
+      createdAt: r.createdAt,
+    }));
+  }, [], 'listHumanTasks');
+}
+
+export interface PlaybookRow {
+  id: number; projectId: string | null; slug: string; name: string; description: string;
+  triggerKind: string; triggerConfig: Record<string, unknown>;
+  steps: Array<Record<string, unknown>>;
+  status: string; lastRunAt: Date | null;
+}
+export async function listPlaybooksRows(projectId?: string): Promise<PlaybookRow[]> {
+  return tryDb(async () => {
+    const rows = await listPlaybooks(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, slug: r.slug, name: r.name, description: r.description,
+      triggerKind: r.triggerKind,
+      triggerConfig: (r.triggerConfig as Record<string, unknown>) ?? {},
+      steps: (r.steps as Array<Record<string, unknown>>) ?? [],
+      status: r.status, lastRunAt: r.lastRunAt,
+    }));
+  }, [], 'listPlaybooks');
+}
+
+export interface DailySpendCapRow {
+  id: number; projectId: string | null; day: string;
+  capUsdCents: number; spentUsdCents: number;
+  status: string; autoPausedAt: Date | null;
+}
+export async function listDailySpendCapsRows(filters?: Parameters<typeof listDailySpendCaps>[0]): Promise<DailySpendCapRow[]> {
+  return tryDb(async () => {
+    const rows = await listDailySpendCaps(filters);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, day: r.day,
+      capUsdCents: r.capUsdCents, spentUsdCents: r.spentUsdCents,
+      status: r.status, autoPausedAt: r.autoPausedAt,
+    }));
+  }, [], 'listDailySpendCaps');
 }
 
 // ── Content pieces ──────────────────────────────────────────

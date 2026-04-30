@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -266,6 +266,73 @@ export async function listContentPiecesByProject(projectId: string) {
       isNull(contentPieces.archivedAt),
     ))
     .orderBy(desc(contentPieces.updatedAt));
+}
+
+// ── Phase 9 Foundations: agent_runs / human_tasks / playbooks / members / daily_spend_caps ──
+
+export async function listAgentRuns(filters?: {
+  projectId?: string;
+  agentKind?: string;
+  status?: string;
+  limit?: number;
+}) {
+  const db = getDb();
+  if (!db) return null;
+  const conds = [eq(agentRuns.tenantId, TENANT)];
+  if (filters?.projectId) conds.push(eq(agentRuns.projectId, filters.projectId));
+  if (filters?.agentKind) conds.push(eq(agentRuns.agentKind, filters.agentKind));
+  if (filters?.status) conds.push(eq(agentRuns.status, filters.status));
+  return db.select().from(agentRuns)
+    .where(and(...conds))
+    .orderBy(desc(agentRuns.createdAt))
+    .limit(filters?.limit ?? 100);
+}
+
+export async function listHumanTasks(filters?: { projectId?: string; status?: string; limit?: number }) {
+  const db = getDb();
+  if (!db) return null;
+  const conds = [eq(humanTasks.tenantId, TENANT)];
+  if (filters?.projectId) conds.push(eq(humanTasks.projectId, filters.projectId));
+  if (filters?.status) conds.push(eq(humanTasks.status, filters.status));
+  return db.select().from(humanTasks)
+    .where(and(...conds))
+    .orderBy(asc(humanTasks.slaDueAt), desc(humanTasks.createdAt))
+    .limit(filters?.limit ?? 200);
+}
+
+export async function listPlaybooks(projectId?: string) {
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(playbooks)
+      .where(and(eq(playbooks.tenantId, TENANT), isNull(playbooks.archivedAt)))
+      .orderBy(asc(playbooks.slug));
+  }
+  return db.select().from(playbooks)
+    .where(and(
+      eq(playbooks.tenantId, TENANT),
+      isNull(playbooks.archivedAt),
+      or(eq(playbooks.projectId, projectId), isNull(playbooks.projectId)),
+    ))
+    .orderBy(asc(playbooks.slug));
+}
+
+export async function listMembers(filters?: { userId?: number; projectId?: string }) {
+  const db = getDb();
+  if (!db) return null;
+  const conds = [eq(members.tenantId, TENANT)];
+  if (filters?.userId) conds.push(eq(members.userId, filters.userId));
+  if (filters?.projectId) conds.push(eq(members.projectId, filters.projectId));
+  return db.select().from(members).where(and(...conds));
+}
+
+export async function listDailySpendCaps(filters?: { projectId?: string; day?: string }) {
+  const db = getDb();
+  if (!db) return null;
+  const conds = [eq(dailySpendCaps.tenantId, TENANT)];
+  if (filters?.projectId) conds.push(eq(dailySpendCaps.projectId, filters.projectId));
+  if (filters?.day) conds.push(eq(dailySpendCaps.day, filters.day));
+  return db.select().from(dailySpendCaps).where(and(...conds)).orderBy(desc(dailySpendCaps.day));
 }
 
 // ── Roadmap ─────────────────────────────────────────────────

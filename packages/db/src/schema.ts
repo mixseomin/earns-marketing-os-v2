@@ -242,6 +242,10 @@ export const platforms = pgTable(
     imageSpecs: jsonb('image_specs').notNull().default([]),
     checklist: jsonb('checklist').notNull().default([]),
     autoCheck: boolean('auto_check').notNull().default(false),
+    // Phase 9 capability matrix: agent có thể tự đăng được hay phải human.
+    // FB/IG/TikTok DM block bots → autoPostSupported=false → publisher toolkit
+    // auto-fallback queue human_tasks. Default true (most platforms have API).
+    autoPostSupported: boolean('auto_post_supported').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -274,6 +278,11 @@ export const platformAccounts = pgTable(
     notes: text('notes'),
     tags: jsonb('tags').notNull().default([]),
     warmupChecklist: jsonb('warmup_checklist').notNull().default({}),
+    // Phase 9 capability flags per-account:
+    // cookieSessionNeeded: account chỉ login qua browser cookie, không API token (e.g., FB).
+    // lastUsedAt: rotation tracking — agent không reuse account nào vừa dùng < cooldown.
+    cookieSessionNeeded: boolean('cookie_session_needed').notNull().default(false),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -648,6 +657,185 @@ export const contentPieces = pgTable(
   ],
 );
 
+// ── Phase 9 Foundations: orchestrator infrastructure ────────────
+
+// agent_runs — audit log mọi AI/agent execution. Foundation cho:
+// - cost analysis (sum cost_usd_cents per agent_kind / project / day)
+// - debugging (replay input/output)
+// - peer review (link review run to original via parent_run_id)
+// - dependency resolution (playbook step ref output qua run id)
+export const agentRuns = pgTable(
+  'agent_runs',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    cardId: integer('card_id'),                                          // optional link to cards.id
+    agentKind: text('agent_kind').notNull(),                             // gpt-4o-mini | claude-haiku-4-5 | claude-code | human | gpt-4o | gemini-2.5-flash
+    agentRef: text('agent_ref'),                                         // 'RES-04' (specific agent within squad)
+    squadId: integer('squad_id').references(() => squads.id, { onDelete: 'set null' }),
+    playbookSlug: text('playbook_slug'),                                 // if part of playbook execution
+    playbookStepId: text('playbook_step_id'),                            // step within playbook
+    parentRunId: integer('parent_run_id'),                               // chained run (e.g., peer review of another run)
+    status: text('status').notNull().default('pending'),                 // pending | running | completed | failed | timed_out | rejected
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    timeoutAt: timestamp('timeout_at', { withTimezone: true }),          // for timeout enforcement
+    durationMs: integer('duration_ms'),
+    input: jsonb('input').notNull().default({}),                         // task input
+    output: jsonb('output').notNull().default({}),                       // structured output (Zod-validated)
+    artifacts: jsonb('artifacts').notNull().default([]),                 // [{path, type, hash, size}]
+    toolsUsed: jsonb('tools_used').notNull().default([]),                // [{tool_id, input, output, duration_ms}]
+    tokensIn: integer('tokens_in').notNull().default(0),
+    tokensOut: integer('tokens_out').notNull().default(0),
+    costUsdCents: integer('cost_usd_cents').notNull().default(0),        // store as cents avoid float
+    error: text('error'),
+    peerReview: jsonb('peer_review'),                                    // {model, decision, reasoning, cost_cents}
+    idempotencyKey: text('idempotency_key'),                             // prevent dup side-effects
+    attempt: integer('attempt').notNull().default(1),                    // for retry tracking
+    confidence: integer('confidence'),                                   // 0-100 (-1 = unknown)
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('agent_runs_tenant_idx').on(t.tenantId),
+    index('agent_runs_project_idx').on(t.projectId),
+    index('agent_runs_card_idx').on(t.cardId),
+    index('agent_runs_kind_idx').on(t.agentKind),
+    index('agent_runs_status_idx').on(t.status),
+    index('agent_runs_created_idx').on(t.createdAt),
+    index('agent_runs_idempotency_idx').on(t.idempotencyKey),
+  ],
+);
+
+// human_tasks — queue cho bot-blocked platforms (FB/IG/TikTok DM).
+// AI prep payload (caption + image + hashtags + best-time), human nhận task
+// qua /inbox, đăng, upload screenshot, AI verify URL → resume parent flow.
+export const humanTasks = pgTable(
+  'human_tasks',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    cardId: integer('card_id'),                                          // parent card if any
+    parentRunId: integer('parent_run_id'),                               // agent_runs that queued this
+    title: text('title').notNull(),
+    instructions: text('instructions').notNull().default(''),            // 1-3 sentence what user must do
+    prepPayload: jsonb('prep_payload').notNull().default({}),            // {caption, image_urls, hashtags, best_time_at}
+    platformKey: text('platform_key'),                                   // fb | ig | tiktok-dm | etc.
+    accountId: integer('account_id').references(() => platformAccounts.id, { onDelete: 'set null' }),
+    slaDueAt: timestamp('sla_due_at', { withTimezone: true }),
+    status: text('status').notNull().default('pending'),                 // pending | claimed | in_progress | completed | verified | failed | cancelled
+    claimedBy: text('claimed_by'),                                       // user identifier (email or 'self')
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    publishUrl: text('publish_url'),                                     // URL after human posted (for AI verify)
+    screenshotUrl: text('screenshot_url'),                               // evidence upload
+    verifyResult: jsonb('verify_result'),                                // AI verification output
+    escalatedAt: timestamp('escalated_at', { withTimezone: true }),
+    escalationCount: integer('escalation_count').notNull().default(0),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('human_tasks_tenant_idx').on(t.tenantId),
+    index('human_tasks_project_idx').on(t.projectId),
+    index('human_tasks_status_idx').on(t.status),
+    index('human_tasks_sla_idx').on(t.slaDueAt),
+  ],
+);
+
+// playbooks — DAG steps cho multi-step recurring flows (e.g., "launch PH" 14-step).
+// Replace flat cards với typed dependencies + retry policy.
+export const playbooks = pgTable(
+  'playbooks',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),  // null = shared template
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    triggerKind: text('trigger_kind').notNull().default('manual'),       // manual | schedule | event
+    triggerConfig: jsonb('trigger_config').notNull().default({}),        // cron expr or event spec
+    steps: jsonb('steps').notNull().default([]),                         // [{id, action, agent_ref, agent_kind, trust_required, depends_on, input_mapping, retry, timeout_sec}]
+    status: text('status').notNull().default('draft'),                   // draft | active | paused | archived
+    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('playbooks_tenant_slug_uniq').on(t.tenantId, t.slug),
+    index('playbooks_status_idx').on(t.status),
+  ],
+);
+
+// users + members — RBAC sketch. Solo MVP single admin, schema sẵn cho team scale.
+// auth flow phase sau (likely OAuth + session cookies).
+export const users = pgTable(
+  'users',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    email: text('email').notNull(),
+    name: text('name').notNull().default(''),
+    avatarUrl: text('avatar_url'),
+    authKind: text('auth_kind').notNull().default('session'),            // 'session' | 'api_key' | 'oauth'
+    apiKeyHash: text('api_key_hash'),                                    // SHA256 of key (for API auth tier)
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('users_tenant_email_uniq').on(t.tenantId, t.email),
+    index('users_tenant_idx').on(t.tenantId),
+  ],
+);
+
+export const members = pgTable(
+  'members',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    userId: integer('user_id').notNull(),                                // references users.id (no FK to allow tenant isolation)
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),  // null = tenant-wide
+    role: text('role').notNull().default('admin'),                       // admin | operator | viewer
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('members_user_project_uniq').on(t.userId, t.projectId),
+    index('members_tenant_idx').on(t.tenantId),
+  ],
+);
+
+// daily_spend_caps — per project (or global khi project_id NULL) per day.
+// Aggregator job sums agent_runs.cost_usd_cents into spent_usd_cents.
+// Status flips 'exceeded' → worker auto-pauses agents trên project đó.
+export const dailySpendCaps = pgTable(
+  'daily_spend_caps',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    day: text('day').notNull(),                                          // 'YYYY-MM-DD' (date as text for portability)
+    capUsdCents: integer('cap_usd_cents').notNull().default(100),        // $1 default
+    spentUsdCents: integer('spent_usd_cents').notNull().default(0),
+    status: text('status').notNull().default('active'),                  // active | paused | exceeded
+    autoPausedAt: timestamp('auto_paused_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('daily_spend_caps_uniq').on(t.tenantId, t.projectId, t.day),
+    index('daily_spend_caps_day_idx').on(t.day),
+    index('daily_spend_caps_status_idx').on(t.status),
+  ],
+);
+
 // ── library_tools (Phase 8 — shared catalog) ─────────────────────
 // Tools/integrations available to AI agents. Squad.config.tools refs by id.
 // Seed initial từ lib/tools-library.ts; user CRUD qua /library page.
@@ -704,4 +892,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

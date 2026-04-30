@@ -386,6 +386,61 @@ export const USE_CASES: UseCaseSpec[] = [
     expected: 'Status icon update + last_tested_at timestamp set + feedback persist qua F5.',
   },
   // ────────────────────────────────────────────────────────────────────
+  // Group 8 — Phase 8 DB wiring (real projects)
+  // ────────────────────────────────────────────────────────────────────
+  {
+    slug: '8.1-tribes-db-wired',
+    groupKey: '8', groupLabel: 'Group 8 — Phase 8 DB wiring',
+    title: 'Tribes UI đọc DB (real projects), mock chỉ dùng demo',
+    priority: 'high', shippedIn: 'WIP',
+    featureRef: 'TribesRealPage + listTribes/listHabitats',
+    tags: ['tribes', 'phase-8', 'db-wire'],
+    sortOrder: 81,
+    steps: [
+      { n: 1, action: 'Mở Astrolas tribes', url: '/p/astrolas/tribes' },
+      { n: 2, action: 'Verify hiện "1 tribes · 26 habitats" thay vì 5/32 mock' },
+      { n: 3, action: 'Click chip "General audience" → tribe identity panel hiện' },
+      { n: 4, action: 'Habitat grid: 26 cards với kind glyph + member count + health Pill' },
+      { n: 5, action: 'Search "reddit" → filter habitats có kind=subreddit' },
+      { n: 6, action: 'So với /p/aff-vn/tribes (demo) → vẫn full mock 5 tribes' },
+    ],
+    expected: 'Real projects render real DB data. Demo giữ mock cho design preview.',
+  },
+  {
+    slug: '8.2-knowledge-vault-db-wired',
+    groupKey: '8', groupLabel: 'Group 8 — Phase 8 DB wiring',
+    title: 'Knowledge vault DB-backed cho real projects',
+    priority: 'medium', shippedIn: 'WIP',
+    featureRef: 'KnowledgeVault component + listKnowledge',
+    tags: ['knowledge', 'phase-8', 'db-wire'],
+    sortOrder: 82,
+    steps: [
+      { n: 1, action: 'Astrolas → Resources → Knowledge vault', url: '/p/astrolas/resources' },
+      { n: 2, action: 'Verify list ~12 Astrolas-tagged + 176 portfolio-wide items' },
+      { n: 3, action: 'Filter "playbook" / "prompt" / "lesson" / "gotcha" → đếm đổi' },
+      { n: 4, action: 'Filter scope "Project" → chỉ 12 Astrolas; "Portfolio" → 176; "All" → 188' },
+      { n: 5, action: 'Search keyword → filter title/content' },
+      { n: 6, action: 'Click row → modal mở với full content + tags' },
+    ],
+    expected: '188 knowledge items (12 Astrolas + 176 portfolio-wide) renderable + searchable + filterable.',
+  },
+  {
+    slug: '8.3-contacts-vault-db-wired',
+    groupKey: '8', groupLabel: 'Group 8 — Phase 8 DB wiring',
+    title: 'Contacts vault DB-backed cho real projects',
+    priority: 'medium', shippedIn: 'WIP',
+    featureRef: 'ContactsVault component + listContacts',
+    tags: ['contacts', 'phase-8', 'db-wire'],
+    sortOrder: 83,
+    steps: [
+      { n: 1, action: 'Astrolas → Resources → Contacts vault', url: '/p/astrolas/resources' },
+      { n: 2, action: 'Verify 50 contacts (25 Astrolas + 25 portfolio)' },
+      { n: 3, action: 'Click contact → modal hiện email mailto, social handles, notes' },
+      { n: 4, action: 'Filter role/scope hoạt động' },
+    ],
+    expected: '50 contacts renderable, filter + modal work.',
+  },
+  // ────────────────────────────────────────────────────────────────────
   // Group 7 — Phase 7 features (real-time + content)
   // ────────────────────────────────────────────────────────────────────
   {

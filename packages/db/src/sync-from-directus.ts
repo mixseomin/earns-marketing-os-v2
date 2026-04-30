@@ -159,53 +159,46 @@ async function syncCampaigns(): Promise<{ imported: number; skipped: number; upd
 }
 
 // ── communities → tribes + habitats ──────────────────────────
+// Note: as.on.tc Directus communities don't have entity_id. Classification
+// happens via text matching on name/notes/tags. Items that don't match are
+// put under the 'general' tribe of either project tagged in tags, else
+// imported as portfolio-wide scope (skip — communities are project-bound).
 interface DirectusCommunity {
   id: string;
   name: string;
-  slug: string | null;
-  kind: string | null;
+  platform: string | null;
+  community_type: string | null;
   url: string | null;
-  member_count: number | null;
+  audience_size: number | null;
+  status: string | null;
   notes: string | null;
   tags: string[] | null;
-  entity_id: string | null;
 }
 
-const ENTITY_PROJECT_MAP: Record<string, string> = {
-  // Directus entity uuid → MOS2 project slug
-  'bef7d860-dd61-484f-adfc-203f53aef5e5': 'orit',
-  'e8e21f83-f17b-47fd-930a-9108cbfdd94c': 'astrolas',
-};
-
-function classifyByEntity(entityId: string | null, fallbackText?: string): string | null {
-  if (entityId && ENTITY_PROJECT_MAP[entityId]) return ENTITY_PROJECT_MAP[entityId];
-  if (fallbackText) {
-    if (/orit/i.test(fallbackText)) return 'orit';
-    if (/astrolas/i.test(fallbackText)) return 'astrolas';
-  }
+function classifyByText(...texts: (string | null | undefined)[]): string | null {
+  const blob = texts.filter(Boolean).join(' ').toLowerCase();
+  if (/\borit\b/.test(blob)) return 'orit';
+  if (/\bastrolas\b/.test(blob)) return 'astrolas';
   return null;
 }
 
 async function syncCommunities() {
   const list = await fetchDirectus<DirectusCommunity[]>(
-    '/items/communities?fields=id,name,slug,kind,url,member_count,notes,tags,entity_id&limit=200',
+    '/items/communities?fields=id,name,platform,community_type,url,audience_size,status,notes,tags&limit=200',
   );
   console.log(`[sync] Found ${list.length} communities in Directus`);
   let imported = 0, skipped = 0, updated = 0;
 
   for (const c of list) {
-    const projectId = classifyByEntity(c.entity_id, [c.name, c.notes ?? '', (c.tags ?? []).join(' ')].join(' '));
+    const projectId = classifyByText(c.name, c.notes, (c.tags ?? []).join(' '));
     if (!projectId) { skipped += 1; continue; }
 
     const proj = await db!.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
     if (proj.length === 0) { skipped += 1; continue; }
 
-    const slug = c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
     const importedFrom = `directus:${c.id}`;
 
-    // Each Directus community = one habitat under a "default" tribe per project.
-    // Phase 9 will add proper tribe-creation UX; for now group all habitats under
-    // a single 'general' tribe per project.
+    // Group all imported communities under a single 'general' tribe per project.
     let tribe = await db!.select({ id: tribes.id }).from(tribes)
       .where(and(eq(tribes.projectId, projectId), eq(tribes.slug, 'general'))).limit(1);
     if (tribe.length === 0) {
@@ -222,13 +215,13 @@ async function syncCommunities() {
     const habitatRow = {
       tenantId: TENANT, projectId,
       tribeId: tribe[0]!.id,
-      kind: c.kind || 'forum',
+      kind: c.community_type || c.platform || 'forum',
       name: c.name,
       url: c.url,
-      members: c.member_count ?? 0,
+      members: c.audience_size ?? 0,
       activity: '',
       scrapeFrequency: 'manual',
-      health: 'ok',
+      health: c.status === 'active' ? 'ok' : 'warn',
       importedFrom,
     };
 
@@ -248,23 +241,23 @@ async function syncCommunities() {
 interface DirectusKnowledge {
   id: string;
   title: string;
-  content: string | null;
-  kind: string | null;
+  body_md: string | null;
+  type: string | null;
+  status: string | null;
+  source_url: string | null;
   tags: string[] | null;
-  entity_id: string | null;
 }
 
 async function syncKnowledge() {
   const list = await fetchDirectus<DirectusKnowledge[]>(
-    '/items/knowledge?fields=id,title,content,kind,tags,entity_id&limit=500',
+    '/items/knowledge?fields=id,title,body_md,type,status,source_url,tags&limit=500',
   );
   console.log(`[sync] Found ${list.length} knowledge items in Directus`);
   let imported = 0, skipped = 0, updated = 0;
 
   for (const k of list) {
     if (!k.title || !k.title.trim()) { skipped += 1; continue; }
-    // Knowledge can be portfolio-wide (projectId=null) or project-scoped.
-    const projectId = classifyByEntity(k.entity_id, [k.title, (k.tags ?? []).join(' ')].join(' '));
+    const projectId = classifyByText(k.title, (k.tags ?? []).join(' '));
     const importedFrom = `directus:${k.id}`;
 
     const existing = await db!.select({ id: knowledgeItems.id }).from(knowledgeItems)
@@ -273,9 +266,9 @@ async function syncKnowledge() {
     const row = {
       tenantId: TENANT,
       projectId: projectId ?? null,
-      kind: k.kind || 'playbook',
+      kind: k.type || 'playbook',
       title: k.title.slice(0, 500),
-      content: k.content?.slice(0, 10000) ?? '',
+      content: k.body_md?.slice(0, 10000) ?? '',
       tags: Array.isArray(k.tags) ? k.tags : [],
       importedFrom,
     };
@@ -298,22 +291,24 @@ interface DirectusContact {
   name: string | null;
   email: string | null;
   role: string | null;
-  company: string | null;
+  company_id: string | null;
+  social_profiles: string | null;
   notes: string | null;
+  status: string | null;
+  last_touch: string | null;
   tags: string[] | null;
-  entity_id: string | null;
 }
 
 async function syncContacts() {
   const list = await fetchDirectus<DirectusContact[]>(
-    '/items/contacts?fields=id,name,email,role,company,notes,tags,entity_id&limit=500',
+    '/items/contacts?fields=id,name,email,role,company_id,social_profiles,notes,status,last_touch,tags&limit=500',
   );
   console.log(`[sync] Found ${list.length} contacts in Directus`);
   let imported = 0, skipped = 0, updated = 0;
 
   for (const c of list) {
     if (!c.name || !c.name.trim()) { skipped += 1; continue; }
-    const projectId = classifyByEntity(c.entity_id, [c.name, c.notes ?? '', (c.tags ?? []).join(' ')].join(' '));
+    const projectId = classifyByText(c.name, c.notes, c.role, (c.tags ?? []).join(' '));
     const importedFrom = `directus:${c.id}`;
 
     const existing = await db!.select({ id: contacts.id }).from(contacts)
@@ -325,10 +320,11 @@ async function syncContacts() {
       name: c.name.slice(0, 200),
       email: c.email,
       role: c.role || '',
-      company: c.company,
-      socialHandles: {},
+      company: null, // company_id is FK to companies; defer joining for now
+      socialHandles: c.social_profiles ? { raw: c.social_profiles } : {},
       notes: c.notes,
       tags: Array.isArray(c.tags) ? c.tags : [],
+      lastTouchedAt: c.last_touch ? new Date(c.last_touch) : null,
       importedFrom,
     };
 

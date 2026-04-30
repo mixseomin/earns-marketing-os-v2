@@ -53,31 +53,39 @@ export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string 
       {/* Live polling status strip */}
       {projectId && (
         <div style={{
-          padding: '4px 10px',
-          fontSize: 10, fontFamily: 'var(--font-mono)',
-          color: 'var(--fg-3)',
+          padding: '6px 12px',
+          fontSize: 11, fontFamily: 'var(--font-mono)',
+          color: liveActive ? 'var(--ok)' : 'var(--fg-3)',
+          background: liveActive ? 'rgba(182,255,60,.05)' : 'var(--bg-2)',
           borderBottom: '1px solid var(--line)',
-          display: 'flex', alignItems: 'center', gap: 6,
+          display: 'flex', alignItems: 'center', gap: 8,
+          letterSpacing: '0.04em',
         }}>
           <span style={{
-            width: 6, height: 6, borderRadius: '50%',
+            width: 8, height: 8, borderRadius: '50%',
             background: liveActive ? 'var(--ok)' : 'var(--fg-4)',
-            boxShadow: liveActive ? '0 0 6px var(--ok)' : undefined,
-            animation: liveActive ? 'pulse-dot 2s ease-in-out infinite' : undefined,
+            boxShadow: liveActive ? '0 0 8px var(--ok)' : undefined,
+            animation: liveActive ? 'pulse-dot 1.5s ease-in-out infinite' : undefined,
+            flexShrink: 0,
           }}></span>
-          <span>
-            {!tweaks.livePolling ? 'Polling off' :
-             !polling.visible ? 'Tab hidden — paused' :
-             lastSec === null ? 'Polling 30s…' :
-             `Updated ${lastSec}s ago`}
+          <span style={{ fontWeight: 600 }}>
+            {!tweaks.livePolling ? '⏸ POLLING OFF' :
+             !polling.visible ? '⏸ TAB HIDDEN' :
+             '● LIVE'}
+          </span>
+          <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>
+            {tweaks.livePolling && polling.visible
+              ? lastSec === null ? '· init' : `· updated ${lastSec}s ago`
+              : ''}
           </span>
           <span style={{ flex: 1 }} />
           <button onClick={() => polling.refreshNow()}
                   title="Refresh now"
                   style={{
-                    background: 'transparent', border: 0, color: 'var(--fg-2)',
-                    fontSize: 11, cursor: 'pointer', padding: '0 2px',
-                  }}>↻</button>
+                    background: 'transparent', border: '1px solid var(--line-2)',
+                    color: 'var(--fg-1)', fontSize: 11,
+                    cursor: 'pointer', padding: '2px 6px', borderRadius: 3,
+                  }}>↻ refresh</button>
         </div>
       )}
       <div className="rightbar-body">

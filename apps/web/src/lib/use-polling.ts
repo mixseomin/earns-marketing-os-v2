@@ -27,7 +27,11 @@ export interface PollingState {
 
 export function usePolling({ intervalMs, enabled = true }: PollingOptions): PollingState {
   const router = useRouter();
-  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
+  // Initial value = mount time so the indicator shows "Updated 0s ago" immediately
+  // instead of "Polling 30s…" which made users wonder if anything was running.
+  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(() =>
+    typeof window === 'undefined' ? null : Date.now(),
+  );
   const [visible, setVisible] = useState(true);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -63,6 +67,14 @@ export function usePolling({ intervalMs, enabled = true }: PollingOptions): Poll
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, visible, intervalMs]);
+
+  // Tick every second so the "Xs ago" counter advances visibly even when no
+  // refresh happens between intervals. Cheap re-render.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return { lastRefreshAt, visible, refreshNow: doRefresh };
 }

@@ -1,13 +1,29 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   type ToolRow, type SkillRow, type ToolStatus,
   createTool, updateTool, archiveTool,
   createSkill, updateSkill, archiveSkill,
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
+
+// Read+write a single URL search param. Replace navigation (no scroll, no history bloat).
+function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const value = params.get(key) ?? defaultValue;
+  const set = (v: string) => {
+    const next = new URLSearchParams(params.toString());
+    if (!v || v === defaultValue) next.delete(key);
+    else next.set(key, v);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+  return [value, set];
+}
 
 // Status meta — re-used in Library + Squad form preview.
 export const TOOL_STATUS_META: Record<ToolStatus, { label: string; color: string; bg: string; desc: string }> = {
@@ -19,7 +35,9 @@ export const TOOL_STATUS_META: Record<ToolStatus, { label: string; color: string
 type Tab = 'tools' | 'skills';
 
 export function LibraryPage({ tools, skills }: { tools: ToolRow[]; skills: SkillRow[] }) {
-  const [tab, setTab] = useState<Tab>('tools');
+  const [tabRaw, setTabRaw] = useUrlParam('tab', 'tools');
+  const tab: Tab = tabRaw === 'skills' ? 'skills' : 'tools';
+  const setTab = (t: Tab) => setTabRaw(t);
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -257,11 +275,73 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
 function SkillsTab({ skills }: { skills: SkillRow[] }) {
   const [editing, setEditing] = useState<SkillRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [q, setQ] = useUrlParam('q', '');
+  const [cat, setCat] = useUrlParam('cat', 'all');
+
+  // Group by first tag. Keep deterministic ordering (alphabetical by category name).
+  const groups = useMemo(() => {
+    const map = new Map<string, SkillRow[]>();
+    for (const s of skills) {
+      const key = s.tags[0] ?? 'misc';
+      const arr = map.get(key) ?? [];
+      arr.push(s);
+      map.set(key, arr);
+    }
+    return Array.from(map.entries())
+      .map(([key, items]) => ({ key, items }))
+      .sort((a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key));
+  }, [skills]);
+
+  // Filter: search query (title/body/tags) + active category
+  const filtered = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    return skills.filter((s) => {
+      if (cat !== 'all' && (s.tags[0] ?? 'misc') !== cat) return false;
+      if (!ql) return true;
+      return (s.title + ' ' + s.tags.join(' ') + ' ' + s.body).toLowerCase().includes(ql);
+    });
+  }, [skills, q, cat]);
+
+  const filteredByGroup = useMemo(() => {
+    const map = new Map<string, SkillRow[]>();
+    for (const s of filtered) {
+      const key = s.tags[0] ?? 'misc';
+      const arr = map.get(key) ?? [];
+      arr.push(s);
+      map.set(key, arr);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  }, [filtered]);
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          type="search"
+          placeholder="Filter skills (title, tag, body)…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{
+            flex: 1, minWidth: 220, padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)',
+            borderRadius: 5, fontSize: 12, color: 'var(--fg-0)', outline: 'none',
+          }}
+        />
+        <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{filtered.length} / {skills.length}</span>
         <button className="btn primary" onClick={() => setCreating(true)}>+ New skill</button>
+      </div>
+
+      {/* Category chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+        <span className="chip" data-active={cat === 'all' || undefined} onClick={() => setCat('all')}
+              style={{ cursor: 'pointer', fontSize: 10 }}>
+          all <span style={{ opacity: 0.6 }}>{skills.length}</span>
+        </span>
+        {groups.map((g) => (
+          <span key={g.key} className="chip" data-active={cat === g.key || undefined} onClick={() => setCat(g.key)}
+                style={{ cursor: 'pointer', fontSize: 10 }}>
+            {g.key} <span style={{ opacity: 0.6 }}>{g.items.length}</span>
+          </span>
+        ))}
       </div>
 
       {skills.length === 0 ? (
@@ -272,29 +352,50 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
             <button className="btn primary" onClick={() => setCreating(true)}>+ New skill</button>
           </div>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="panel">
+          <div className="panel-body" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>
+            (no match) — clear filter để xem lại tất cả.
+          </div>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
-          {skills.map((s) => (
-            <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(s)}>
-              <div className="panel-head" style={{ padding: '6px 10px' }}>
-                <div className="panel-title" style={{ fontSize: 12 }}>
-                  <span style={{ color: 'var(--neon-violet)' }}>✦</span>
-                  {s.title}
-                </div>
-                <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{s.slug}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {filteredByGroup.map(([groupKey, items]) => (
+            <div key={groupKey}>
+              <div style={{
+                fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--neon-violet)',
+                textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span>✦ {groupKey}</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+                <span style={{ opacity: 0.6 }}>{items.length}</span>
               </div>
-              <div className="panel-body" style={{ padding: '6px 10px' }}>
-                <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', whiteSpace: 'pre-wrap', maxHeight: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {s.body.slice(0, 200) || <span style={{ fontStyle: 'italic', color: 'var(--fg-4)' }}>(empty body)</span>}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6, alignItems: 'center' }}>
-                  {s.tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 9, padding: '1px 6px' }}>{tag}</span>)}
-                  {s.source && (
-                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', marginLeft: 'auto' }}>
-                      📎 {s.source}{s.license ? ` · ${s.license}` : ''}
-                    </span>
-                  )}
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+                {items.map((s) => (
+                  <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(s)}>
+                    <div className="panel-head" style={{ padding: '6px 10px' }}>
+                      <div className="panel-title" style={{ fontSize: 12 }}>
+                        <span style={{ color: 'var(--neon-violet)' }}>✦</span>
+                        {s.title}
+                      </div>
+                      <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{s.slug}</span>
+                    </div>
+                    <div className="panel-body" style={{ padding: '6px 10px' }}>
+                      <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', whiteSpace: 'pre-wrap', maxHeight: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {s.body.slice(0, 200) || <span style={{ fontStyle: 'italic', color: 'var(--fg-4)' }}>(empty body)</span>}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6, alignItems: 'center' }}>
+                        {s.tags.slice(0, 4).map((tag) => <span key={tag} className="chip" style={{ fontSize: 9, padding: '1px 6px' }}>{tag}</span>)}
+                        {s.source && (
+                          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', marginLeft: 'auto' }}>
+                            📎 {s.source}{s.license ? ` · ${s.license}` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

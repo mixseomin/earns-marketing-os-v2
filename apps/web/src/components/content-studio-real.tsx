@@ -29,11 +29,13 @@ const STATUS_COLOR: Record<string, string> = {
   published: 'var(--ok)', archived: 'var(--fg-4)',
 };
 
-export function ContentStudioReal({ items, projectId, projectName, skills }: {
+export function ContentStudioReal({ items, projectId, projectName, skills, tribes, accounts }: {
   items: ContentPieceRow[];
   projectId: string;
   projectName: string;
   skills: SkillRow[];
+  tribes: Array<{ slug: string; name: string }>;
+  accounts: Array<{ handle: string; platformKey: string }>;
 }) {
   const [editing, setEditing] = useState<ContentPieceRow | null>(null);
   const [creating, setCreating] = useState(false);
@@ -176,17 +178,26 @@ export function ContentStudioReal({ items, projectId, projectName, skills }: {
       )}
 
       {(editing || creating) && (
-        <ContentFormModal piece={editing} projectId={projectId} skills={skills} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ContentFormModal
+          piece={editing}
+          projectId={projectId}
+          skills={skills}
+          tribes={tribes}
+          accounts={accounts}
+          onClose={() => { setEditing(null); setCreating(false); }}
+        />
       )}
     </div>
   );
 }
 
 // ── Form modal with multi-channel preview ─────────────────────────
-function ContentFormModal({ piece, projectId, skills, onClose }: {
+function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose }: {
   piece: ContentPieceRow | null;
   projectId: string;
   skills: SkillRow[];
+  tribes: Array<{ slug: string; name: string }>;
+  accounts: Array<{ handle: string; platformKey: string }>;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -316,12 +327,34 @@ function ContentFormModal({ piece, projectId, skills, onClose }: {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div>
-                <span style={lbl}>Tribe slug</span>
-                <input style={fld} placeholder="first-time-moms" value={form.tribeSlug} onChange={(e) => setF('tribeSlug', e.target.value)} />
+                <span style={lbl}>
+                  Tribe <span style={{ color: 'var(--fg-4)' }}>(từ /p/{projectId}/tribes)</span>
+                </span>
+                {tribes.length === 0 ? (
+                  <input style={fld} placeholder="empty — tạo tribe trước trong Tribes page" value={form.tribeSlug} onChange={(e) => setF('tribeSlug', e.target.value)} list="tribes-dl" />
+                ) : (
+                  <select style={fld} value={form.tribeSlug} onChange={(e) => setF('tribeSlug', e.target.value)}>
+                    <option value="">— No tribe —</option>
+                    {tribes.map((t) => <option key={t.slug} value={t.slug}>◍ {t.name} <span>({t.slug})</span></option>)}
+                  </select>
+                )}
               </div>
               <div>
-                <span style={lbl}>Persona / handle</span>
-                <input style={fld} placeholder="@username · 240k followers" value={form.persona} onChange={(e) => setF('persona', e.target.value)} />
+                <span style={lbl}>
+                  Persona <span style={{ color: 'var(--fg-4)' }}>(từ Accounts vault)</span>
+                </span>
+                <input
+                  style={fld}
+                  list="accounts-dl"
+                  placeholder={accounts.length === 0 ? 'free-text — chưa có account' : 'pick account hoặc tự nhập'}
+                  value={form.persona}
+                  onChange={(e) => setF('persona', e.target.value)}
+                />
+                <datalist id="accounts-dl">
+                  {accounts.map((a) => (
+                    <option key={`${a.platformKey}-${a.handle}`} value={`${a.handle} · ${a.platformKey}`} />
+                  ))}
+                </datalist>
               </div>
             </div>
 

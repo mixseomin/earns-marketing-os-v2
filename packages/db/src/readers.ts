@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -217,6 +217,42 @@ export async function listAllContacts(projectId?: string) {
       or(eq(contacts.projectId, projectId), isNull(contacts.projectId)),
     ))
     .orderBy(desc(contacts.lastTouchedAt));
+}
+
+// ── Media / Infra / Budget vaults ──────────────────────────
+// Convention: include rows với project_id IS NULL (shared portfolio assets) khi
+// có projectId — same pattern as contacts/knowledge.
+export async function listMediaAssets(projectId?: string) {
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(mediaAssets).where(eq(mediaAssets.tenantId, TENANT)).orderBy(desc(mediaAssets.createdAt));
+  }
+  return db.select().from(mediaAssets)
+    .where(and(eq(mediaAssets.tenantId, TENANT), or(eq(mediaAssets.projectId, projectId), isNull(mediaAssets.projectId))))
+    .orderBy(desc(mediaAssets.createdAt));
+}
+
+export async function listInfraResources(projectId?: string) {
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(infraResources).where(eq(infraResources.tenantId, TENANT)).orderBy(asc(infraResources.kind), asc(infraResources.label));
+  }
+  return db.select().from(infraResources)
+    .where(and(eq(infraResources.tenantId, TENANT), or(eq(infraResources.projectId, projectId), isNull(infraResources.projectId))))
+    .orderBy(asc(infraResources.kind), asc(infraResources.label));
+}
+
+export async function listBudgetEntries(projectId?: string) {
+  const db = getDb();
+  if (!db) return null;
+  if (!projectId) {
+    return db.select().from(budgetEntries).where(eq(budgetEntries.tenantId, TENANT)).orderBy(desc(budgetEntries.occurredAt));
+  }
+  return db.select().from(budgetEntries)
+    .where(and(eq(budgetEntries.tenantId, TENANT), or(eq(budgetEntries.projectId, projectId), isNull(budgetEntries.projectId))))
+    .orderBy(desc(budgetEntries.occurredAt));
 }
 
 // ── Roadmap ─────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -494,6 +494,60 @@ export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]>
       importedFrom: r.importedFrom, updatedAt: r.updatedAt,
     }));
   }, [], 'listKnowledge');
+}
+
+// ── Media / Infra / Budget vault rows ──────────────────────────
+export type MediaRow = {
+  id: number; projectId: string | null; kind: string; filename: string; url: string;
+  mimeType: string | null; sizeBytes: number; width: number | null; height: number | null;
+  durationSec: number | null; hot: boolean; tags: string[]; notes: string | null; source: string | null;
+  createdAt: Date;
+};
+export async function listMedia(projectId?: string): Promise<MediaRow[]> {
+  return tryDb(async () => {
+    const rows = await listMediaAssets(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, kind: r.kind, filename: r.filename, url: r.url,
+      mimeType: r.mimeType, sizeBytes: r.sizeBytes, width: r.width, height: r.height,
+      durationSec: r.durationSec, hot: r.hot, tags: (r.tags as string[]) ?? [],
+      notes: r.notes, source: r.source, createdAt: r.createdAt,
+    }));
+  }, [], 'listMedia');
+}
+
+export type InfraRow = {
+  id: number; projectId: string | null; kind: string; label: string; provider: string | null;
+  status: string; expiresAt: Date | null; costMonthly: number; currency: string;
+  meta: Record<string, unknown>; notes: string | null; tags: string[];
+};
+export async function listInfra(projectId?: string): Promise<InfraRow[]> {
+  return tryDb(async () => {
+    const rows = await listInfraResources(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, kind: r.kind, label: r.label,
+      provider: r.provider, status: r.status, expiresAt: r.expiresAt,
+      costMonthly: r.costMonthly, currency: r.currency,
+      meta: (r.meta as Record<string, unknown>) ?? {},
+      notes: r.notes, tags: (r.tags as string[]) ?? [],
+    }));
+  }, [], 'listInfra');
+}
+
+export type BudgetRow = {
+  id: number; projectId: string | null; kind: string; category: string; label: string;
+  amountCents: number; currency: string; occurredAt: Date;
+  recurringIntervalDays: number | null; notes: string | null; tags: string[];
+};
+export async function listBudget(projectId?: string): Promise<BudgetRow[]> {
+  return tryDb(async () => {
+    const rows = await listBudgetEntries(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, projectId: r.projectId, kind: r.kind, category: r.category, label: r.label,
+      amountCents: r.amountCents, currency: r.currency, occurredAt: r.occurredAt,
+      recurringIntervalDays: r.recurringIntervalDays,
+      notes: r.notes, tags: (r.tags as string[]) ?? [],
+    }));
+  }, [], 'listBudget');
 }
 
 export async function listContacts(projectId?: string): Promise<ContactRow[]> {

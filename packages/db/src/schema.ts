@@ -520,6 +520,97 @@ export const aiSuggestions = pgTable(
   ],
 );
 
+// ── media_assets (Phase 8 — Media vault) ─────────────────────────
+// Files attached to project: images, videos, audio, docs. URL có thể là
+// internal CDN, S3, hoặc external link. `hot=true` đánh dấu asset hay reuse.
+export const mediaAssets = pgTable(
+  'media_assets',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull().default('image'),  // image|video|audio|doc|other
+    filename: text('filename').notNull(),
+    url: text('url').notNull(),
+    mimeType: text('mime_type'),
+    sizeBytes: integer('size_bytes').notNull().default(0),
+    width: integer('width'),
+    height: integer('height'),
+    durationSec: integer('duration_sec'),
+    hot: boolean('hot').notNull().default(false),
+    tags: jsonb('tags').notNull().default([]),
+    notes: text('notes'),
+    source: text('source'),  // 'upload' | 'gen' | 'external'
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('media_assets_tenant_idx').on(t.tenantId),
+    index('media_assets_project_idx').on(t.projectId),
+    index('media_assets_kind_idx').on(t.kind),
+  ],
+);
+
+// ── infra_resources (Phase 8 — Infra vault) ──────────────────────
+// Proxies, SIM, devices, API keys, domains, servers. SECRET FIELDS không lưu
+// plaintext — chỉ metadata (label, provider, status, costs, notes). Khi cần
+// secret thực, point qua earns-assets/Directus (lưu encrypted bởi pgcrypto).
+export const infraResources = pgTable(
+  'infra_resources',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),  // null = shared infra
+    kind: text('kind').notNull(),  // proxy|sim|device|api_key|domain|server|other
+    label: text('label').notNull(),
+    provider: text('provider'),
+    status: text('status').notNull().default('active'),  // active|expired|paused|broken
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    costMonthly: integer('cost_monthly').notNull().default(0),  // currency-agnostic; convention VND
+    currency: text('currency').notNull().default('VND'),
+    meta: jsonb('meta').notNull().default({}),  // {ip,port,user,...} or {imei,carrier,...}
+    notes: text('notes'),
+    tags: jsonb('tags').notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('infra_resources_tenant_idx').on(t.tenantId),
+    index('infra_resources_project_idx').on(t.projectId),
+    index('infra_resources_kind_idx').on(t.kind),
+    index('infra_resources_status_idx').on(t.status),
+  ],
+);
+
+// ── budget_entries (Phase 8 — Budget vault) ──────────────────────
+// Income/expense events. recurringIntervalDays != null → subscription pattern.
+// Currency = VND default. amountCents convention: store integer (1000 = 1k VND).
+export const budgetEntries = pgTable(
+  'budget_entries',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull().default('expense'),  // income|expense|recurring
+    category: text('category').notNull().default('other'),  // ads|tools|hosting|content|salary|tax|other
+    label: text('label').notNull(),
+    amountCents: integer('amount_cents').notNull().default(0),
+    currency: text('currency').notNull().default('VND'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    recurringIntervalDays: integer('recurring_interval_days'),
+    notes: text('notes'),
+    tags: jsonb('tags').notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('budget_entries_tenant_idx').on(t.tenantId),
+    index('budget_entries_project_idx').on(t.projectId),
+    index('budget_entries_kind_idx').on(t.kind),
+    index('budget_entries_occurred_idx').on(t.occurredAt),
+  ],
+);
+
 // ── library_tools (Phase 8 — shared catalog) ─────────────────────
 // Tools/integrations available to AI agents. Squad.config.tools refs by id.
 // Seed initial từ lib/tools-library.ts; user CRUD qua /library page.
@@ -576,4 +667,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries };

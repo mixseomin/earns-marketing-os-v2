@@ -655,11 +655,17 @@ export function ResourcesPage({
   accountsOverride,
   knowledgeOverride,
   contactsOverride,
+  mediaOverride,
+  infraOverride,
+  budgetOverride,
   isBlank = false,
 }: {
   accountsOverride?: React.ReactNode;
   knowledgeOverride?: React.ReactNode;
   contactsOverride?: React.ReactNode;
+  mediaOverride?: React.ReactNode;
+  infraOverride?: React.ReactNode;
+  budgetOverride?: React.ReactNode;
   isBlank?: boolean;
 } = {}) {
   const [vault, setVault] = React.useState("accounts");
@@ -713,6 +719,12 @@ export function ResourcesPage({
           ? knowledgeOverride
           : vault === 'contacts' && contactsOverride
             ? contactsOverride
+            : vault === 'media' && mediaOverride
+              ? mediaOverride
+              : vault === 'infra' && infraOverride
+                ? infraOverride
+                : vault === 'budget' && budgetOverride
+                  ? budgetOverride
             : isBlank
           ? (
             <div className="panel">

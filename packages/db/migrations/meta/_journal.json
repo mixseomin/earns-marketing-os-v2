@@ -134,6 +134,13 @@
       "when": 1777620000000,
       "tag": "0018_deep_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1777630000000,
+      "tag": "0019_broken_ender_wiggin",
+      "breakpoints": true
     }
   ]
 }

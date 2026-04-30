@@ -167,6 +167,13 @@ export const cards = pgTable(
     urgent: boolean('urgent').notNull().default(false),
     tags: jsonb('tags').notNull().default([]),
     agentRef: text('agent_ref'),
+    // Phase 10 agent_kind dispatch:
+    //   'gpt-4o-mini' / 'claude-haiku-4-5' / 'claude-sonnet-4-6' → API agent (worker daemon picks up).
+    //   'claude-code' → IDE agent via MCP (chờ user start session pull).
+    //   'human' → queue human_tasks (worker skip).
+    //   NULL → not assigned, không exec.
+    agentKind: text('agent_kind'),
+    idempotencyKey: text('idempotency_key'),                // anti double-exec across retries
     body: text('body'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -176,6 +183,7 @@ export const cards = pgTable(
     uniqueIndex('cards_project_ref_uniq').on(t.projectId, t.cardRef),
     index('cards_tenant_idx').on(t.tenantId),
     index('cards_project_col_idx').on(t.projectId, t.col),
+    index('cards_agent_kind_idx').on(t.agentKind),         // worker daemon filter
   ],
 );
 
@@ -855,6 +863,14 @@ export const libraryTools = pgTable(
     //   'integrated' — đã có function/MCP server hoạt động (Squad có thể call)
     status: text('status').notNull().default('mock'),
     sourceUrl: text('source_url'),                         // optional: API docs / repo
+    // Phase 12 tool runtime: when non-null, points to executable module path
+    // (e.g. 'toolkits/research'). Registry maps tool.id → real function.
+    runtimeModule: text('runtime_module'),
+    // Side-effect classification cho gate enforcement:
+    //   'read'    — query/fetch only (web search, DB read).
+    //   'write'   — create/update (post tweet, save knowledge, send DM).
+    //   'destroy' — delete/charge (delete account, charge card).
+    sideEffect: text('side_effect').notNull().default('read'),
     sortOrder: integer('sort_order').notNull().default(0),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

@@ -564,11 +564,27 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
             )}
             <div>
               <span style={lbl}>Handle / username</span>
-              <input style={fld} placeholder="orit, @oritapp..." value={form.handle} onChange={(e) => setF('handle', e.target.value)} />
+              <input
+                style={fld}
+                type="text" name="account-handle-display"
+                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                data-1p-ignore="true" data-lpignore="true" data-form-type="other"
+                placeholder="orit, @oritapp..."
+                value={form.handle}
+                onChange={(e) => setF('handle', e.target.value)}
+              />
             </div>
             <div>
               <span style={lbl}>Email</span>
-              <input style={fld} type="email" placeholder="account@..." value={form.email} onChange={(e) => setF('email', e.target.value)} />
+              <input
+                style={fld}
+                type="text" name="account-email-display"
+                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                data-1p-ignore="true" data-lpignore="true" data-form-type="other"
+                placeholder="account@..."
+                value={form.email}
+                onChange={(e) => setF('email', e.target.value)}
+              />
             </div>
             <div>
               <span style={lbl}>Status</span>

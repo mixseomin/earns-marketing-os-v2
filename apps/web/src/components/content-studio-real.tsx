@@ -346,6 +346,17 @@ function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose 
                 <input
                   style={fld}
                   list="accounts-dl"
+                  // Chặn iCloud/1Password/LastPass autofill: label "Persona/handle" trigger
+                  // password manager. autoComplete + data-* + name không-gợi-credential.
+                  type="text"
+                  name="persona-display"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
                   placeholder={accounts.length === 0 ? 'free-text — chưa có account' : 'pick account hoặc tự nhập'}
                   value={form.persona}
                   onChange={(e) => setF('persona', e.target.value)}

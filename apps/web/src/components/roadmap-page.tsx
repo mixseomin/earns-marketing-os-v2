@@ -86,10 +86,25 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
       if (!groups.has(r.phase)) groups.set(r.phase, []);
       groups.get(r.phase)!.push(r);
     }
-    return Array.from(groups.entries());
+    // Sort phases DESCENDING (newest first) — chưa-làm-trước. Numeric phases
+    // theo số giảm dần (P12 → P11 → ... → P0); non-numeric như 'backlog' xuống
+    // cuối. Issue trước: text sort 'asc' đặt '10' trước '2'.
+    const phaseRank = (k: string): number => {
+      const n = Number(k);
+      return Number.isFinite(n) ? n : -1;  // backlog = -1, đẩy xuống cuối
+    };
+    return Array.from(groups.entries())
+      .sort((a, b) => phaseRank(b[0]) - phaseRank(a[0]));
   }, [items, filterStatus, filterPhase, search]);
 
-  const allPhases = useMemo(() => Array.from(new Set(items.map((r) => r.phase))), [items]);
+  const allPhases = useMemo(() => {
+    const phases = Array.from(new Set(items.map((r) => r.phase)));
+    const phaseRank = (k: string): number => {
+      const n = Number(k);
+      return Number.isFinite(n) ? n : -1;
+    };
+    return phases.sort((a, b) => phaseRank(b) - phaseRank(a));
+  }, [items]);
 
   const togglePhase = (phase: string) => {
     setCollapsedPhases((s) => {

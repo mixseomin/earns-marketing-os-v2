@@ -141,6 +141,13 @@
       "when": 1777630000000,
       "tag": "0019_broken_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1777640000000,
+      "tag": "0020_research_toolkit_wire",
+      "breakpoints": true
     }
   ]
 }

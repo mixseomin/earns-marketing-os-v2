@@ -16,10 +16,11 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { runAgent } from './agent-runtime';
-import { gate } from './trust-gate';
 import { checkBreaker } from './circuit-breaker';
 import { peerReview, pickReviewerKind } from './peer-review';
 import type { ToolContext } from './toolkits/registry';
+// Side-effect import: populates tool runtime registry before invokeTool calls.
+import './toolkits';
 
 interface CardRow {
   id: number;

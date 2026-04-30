@@ -26,6 +26,7 @@ export interface ChecklistItemDef {
   tip?: string;           // short helper sentence
   imageRelevant?: boolean; // show download buttons (avatar/banner)
   snippets?: SnippetDef[]; // ready-to-paste content templates
+  auto?: string;          // runAutoFetch key (set bởi attachAutoFlags); xem lib/warmup-checks
 }
 
 export interface SnippetDef {
@@ -182,6 +183,36 @@ const item = (key: string, phase: Phase, actionUrl?: string, tip?: string): Chec
   key, phase, actionUrl, tip,
   imageRelevant: IMAGE_RELEVANT.has(key) || undefined,
 });
+
+// auto-fetch capability map: platformKey → checklistItemKey → autoKey for runAutoFetch.
+// Phase 7 — auto-check warmup. Mỗi entry phải có handler tương ứng trong
+// lib/warmup-checks.ts:runAutoFetch.
+const AUTO_FETCH: Record<string, Record<string, string>> = {
+  reddit: {
+    karma: 'reddit-karma',
+    account_age_days: 'reddit-age',
+    organic_comments: 'reddit-comments',
+  },
+  hackernews: {
+    karma: 'hn-karma',
+    account_age_days: 'hn-age',
+  },
+  bluesky: {
+    followers: 'bluesky-followers',
+    posts: 'bluesky-posts',
+  },
+};
+
+function attachAutoFlags(platforms: PlatformDef[]): PlatformDef[] {
+  return platforms.map((p) => {
+    const map = AUTO_FETCH[p.key];
+    if (!map) return p;
+    return {
+      ...p,
+      checklist: p.checklist.map((c) => map[c.key] ? { ...c, auto: map[c.key]! } : c),
+    };
+  });
+}
 
 // Post-process: attach platform-specific SNIPPETS to matching checklist items.
 // Done after PLATFORMS array is built so we don't need to modify ~50 item() calls.
@@ -433,4 +464,4 @@ const PLATFORMS_RAW: PlatformDef[] = [
   },
 ];
 
-export const PLATFORMS: PlatformDef[] = attachSnippets(PLATFORMS_RAW);
+export const PLATFORMS: PlatformDef[] = attachAutoFlags(attachSnippets(PLATFORMS_RAW));

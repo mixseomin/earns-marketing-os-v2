@@ -1,11 +1,17 @@
-import { RESOURCE_DATA } from '@/lib/mock/resources';
+import { RESOURCE_DATA, type StripItem } from '@/lib/mock/resources';
+import { getResourceStripData } from '@/lib/resource-strip-data';
 
 const noteColor = (tone: string) =>
   tone === 'warn' ? 'var(--warn)' : tone === 'bad' ? 'var(--bad)' : 'var(--fg-3)';
 const bgColor = (tone: string) =>
   tone === 'warn' ? 'rgba(255,176,60,.05)' : tone === 'bad' ? 'rgba(255,77,94,.07)' : 'transparent';
 
-export function ResourceStrip() {
+export async function ResourceStrip({ projectId, isDemo }: { projectId?: string; isDemo?: boolean } = {}) {
+  // Demos: render mock for design preview. Real projects: query DB for live counts.
+  const strip: StripItem[] = isDemo || !projectId
+    ? RESOURCE_DATA.strip
+    : await getResourceStripData(projectId);
+
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
@@ -15,11 +21,11 @@ export function ResourceStrip() {
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-4)' }}>click vault › drill-down</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
-        {RESOURCE_DATA.strip.map((s, i) => (
+        {strip.map((s, i) => (
           <div key={i} style={{
             flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', minWidth: 0,
             background: bgColor(s.tone),
-            borderRight: i < RESOURCE_DATA.strip.length - 1 ? '1px solid var(--line)' : 'none',
+            borderRight: i < strip.length - 1 ? '1px solid var(--line)' : 'none',
           }}>
             <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{s.icon}</span>
             <div style={{ minWidth: 0 }}>

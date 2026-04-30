@@ -55,7 +55,8 @@ export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) 
         </div>
       )}
 
-      {!isBlank && <ResourceStrip />}
+      {/* ResourceStrip: demos giữ mock, real projects show DB counts (Accounts/Contacts/Knowledge). */}
+      <ResourceStrip projectId={project?.id} isDemo={isDemo} />
 
       {m.revChart && revData.length > 0 && (
         <div className="row r-2">

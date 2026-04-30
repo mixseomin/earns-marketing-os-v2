@@ -10,6 +10,7 @@ import {
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
+import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import { Pill, EmptyState } from './ui';
 import { fillTemplate } from '@/lib/template';
 
@@ -646,6 +647,9 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
                     showing only "{phasesToShow[0]}" phase (matches account status)
                   </span>
                 )}
+                {(platform.checklist as Array<{ auto?: string }>).some((c) => c.auto) && (
+                  <AutoCheckButton projectId={projectId} accountId={account!.id} />
+                )}
               </div>
               {phasesToShow.map((phase) => (
                 checklistByPhase[phase].length > 0 && (
@@ -820,5 +824,43 @@ function ApiTokenSection({ projectId, accountId, hasToken }: {
         </div>
       )}
     </div>
+  );
+}
+
+// ── AutoCheckButton: trigger runAccountAutoCheck + show last report inline ──
+function AutoCheckButton({ projectId, accountId }: { projectId: string; accountId: number }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<AutoCheckReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = () => {
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const res = await runAccountAutoCheck(projectId, accountId);
+      setBusy(false);
+      if (!res.ok) { setError(res.error || 'check failed'); return; }
+      setReport(res.report ?? null);
+      router.refresh();
+    });
+  };
+
+  return (
+    <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <button type="button" onClick={handleClick} disabled={busy} className="btn"
+              title="Auto-fetch metrics từ Reddit/HN/Bluesky API"
+              style={{ fontSize: 10, padding: '2px 8px' }}>
+        {busy ? '⟲ checking…' : '🔄 Auto-check'}
+      </button>
+      {report && (
+        <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+          {report.results.filter((r) => r.ok).length}/{report.results.length} fetched
+        </span>
+      )}
+      {error && (
+        <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--bad)' }} title={error}>⚠ error</span>
+      )}
+    </span>
   );
 }

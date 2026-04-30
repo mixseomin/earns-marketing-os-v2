@@ -120,6 +120,13 @@
       "when": 1777600000000,
       "tag": "0016_pgcrypto",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777610000000,
+      "tag": "0017_warmup_auto_flags",
+      "breakpoints": true
     }
   ]
 }

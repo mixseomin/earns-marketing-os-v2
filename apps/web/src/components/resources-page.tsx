@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from "react";
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useT } from "@/lib/lang-context";
 import { RESOURCE_DATA } from "@/lib/mock/resources";
 
@@ -651,6 +652,22 @@ const VAULT_COMPONENTS = {
   infra: VaultInfra, budget: VaultBudget, knowledge: VaultKnowledge,
 };
 
+// URL state hook (vault tab persists qua F5/share).
+function useUrlVault(defaultValue: string): [string, (v: string) => void] {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const value = params.get('vault') ?? defaultValue;
+  const set = (v: string) => {
+    const next = new URLSearchParams(params.toString());
+    if (!v || v === defaultValue) next.delete('vault');
+    else next.set('vault', v);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+  return [value, set];
+}
+
 export function ResourcesPage({
   accountsOverride,
   knowledgeOverride,
@@ -672,7 +689,7 @@ export function ResourcesPage({
   vaultStats?: Partial<Record<string, string>>;
   isBlank?: boolean;
 } = {}) {
-  const [vault, setVault] = React.useState("accounts");
+  const [vault, setVault] = useUrlVault('accounts');
   const Active = VAULT_COMPONENTS[vault];
   const cur = VAULTS[vault];
 

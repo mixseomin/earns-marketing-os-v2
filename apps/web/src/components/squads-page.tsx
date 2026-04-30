@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import type { Mode, Squad } from '@/lib/mock/types';
 import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
-import { TOOLS_LIBRARY, TOOL_CATEGORIES, getToolById } from '@/lib/tools-library';
+import { TOOL_CATEGORIES } from '@/lib/tools-library';
+import type { ToolRow, SkillRow } from '@/lib/actions/library';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -32,9 +33,11 @@ const emptySquad = (): SquadInput => ({
   config: { mission: '', skillsMd: '', tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2 },
 });
 
-function SquadFormModal({ squad, projectId, onClose, availableModels }: {
+function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, dbSkills }: {
   squad: Squad | null; projectId: string; onClose: () => void;
   availableModels: Array<{ id: string; label: string; provider: string }>;
+  dbTools: ToolRow[];
+  dbSkills: SkillRow[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -192,25 +195,51 @@ function SquadFormModal({ squad, projectId, onClose, availableModels }: {
                    value={cfg.mission ?? ''} onChange={(e) => setCfg('mission', e.target.value)} />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>Skills <span style={{ color: 'var(--fg-4)' }}>(markdown — bullet, persona, expertise)</span></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              <span style={{ ...lbl, marginBottom: 0 }}>Skills <span style={{ color: 'var(--fg-4)' }}>(markdown — bullet, persona, expertise)</span></span>
+              {dbSkills.length > 0 && (
+                <select
+                  style={{ ...fld, fontSize: 10, padding: '2px 6px', width: 'auto', maxWidth: 200, marginLeft: 'auto' }}
+                  value=""
+                  onChange={(e) => {
+                    const picked = dbSkills.find((s) => s.slug === e.target.value);
+                    if (!picked) return;
+                    const merged = (cfg.skillsMd ?? '').trim();
+                    const sep = merged ? '\n\n---\n\n' : '';
+                    setCfg('skillsMd', `${merged}${sep}${picked.body}`);
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">+ Insert from library…</option>
+                  {dbSkills.map((s) => <option key={s.slug} value={s.slug}>{s.title}</option>)}
+                </select>
+              )}
+            </div>
             <textarea
               style={{ ...fld, minHeight: 110, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.6 }}
-              placeholder={`# Persona\nResearch operator chuyên ngách affiliate.\n\n# Expertise\n- SEO keyword discovery\n- Hashtag clustering\n- Niche scoring (search vol × competition)\n\n# Constraints\n- Không suggest niche YMYL\n- Ưu tiên evergreen > trend ngắn`}
+              placeholder={`# Persona\nResearch operator chuyên ngách affiliate.\n\n# Expertise\n- SEO keyword discovery\n- Hashtag clustering\n- Niche scoring (search vol × competition)\n\n# Constraints\n- Không suggest niche YMYL\n- Ưu tiên evergreen > trend ngắn\n\n→ Hoặc pick từ /library snippet ↑`}
               value={cfg.skillsMd ?? ''}
               onChange={(e) => setCfg('skillsMd', e.target.value)}
             />
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>
-              Tools <span style={{ color: 'var(--fg-4)' }}>({tools.length} selected · từ thư viện)</span>
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              <span style={{ ...lbl, marginBottom: 0 }}>
+                Tools <span style={{ color: 'var(--fg-4)' }}>({tools.length} selected · từ <a href="/library" style={{ color: 'var(--accent)' }}>/library</a>)</span>
+              </span>
+            </div>
             <div style={{
               border: '1px solid var(--line)', borderRadius: 5, padding: 8, maxHeight: 220, overflow: 'auto',
               background: 'var(--bg-2)',
             }}>
-              {TOOL_CATEGORIES.map((cat) => {
-                const inCat = TOOLS_LIBRARY.filter((t) => t.category === cat.id);
+              {dbTools.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center', padding: 12 }}>
+                  Library trống. Tạo tool đầu tiên trong <a href="/library" style={{ color: 'var(--accent)' }}>/library</a>.
+                </div>
+              ) : TOOL_CATEGORIES.map((cat) => {
+                const inCat = dbTools.filter((t) => t.category === cat.id);
+                if (inCat.length === 0) return null;
                 return (
                   <div key={cat.id} style={{ marginBottom: 8 }}>
                     <div style={{
@@ -227,7 +256,7 @@ function SquadFormModal({ squad, projectId, onClose, availableModels }: {
                             key={t.id}
                             type="button"
                             onClick={() => toggleTool(t.id)}
-                            title={t.desc + (t.requires ? ` · requires ${t.requires}` : '')}
+                            title={t.description + (t.requiresEnv ? ` · requires ${t.requiresEnv}` : '')}
                             className="chip"
                             data-active={on || undefined}
                             style={{
@@ -293,13 +322,16 @@ function SquadFormModal({ squad, projectId, onClose, availableModels }: {
   );
 }
 
-export function SquadsPage({ mode, projectId, availableModels }: {
+export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills }: {
   mode: Mode;
   projectId: string;
   availableModels: Array<{ id: string; label: string; provider: string }>;
+  dbTools: ToolRow[];
+  dbSkills: SkillRow[];
 }) {
   const [editing, setEditing] = useState<Squad | null>(null);
   const [creating, setCreating] = useState(false);
+  const toolById = new Map(dbTools.map((t) => [t.id, t]));
 
   return (
     <div className="page squads-page">
@@ -381,10 +413,10 @@ export function SquadsPage({ mode, projectId, availableModels }: {
                     {(s.config?.tools?.length ?? 0) > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
                         {s.config!.tools!.slice(0, 6).map((tid) => {
-                          const t = getToolById(tid);
-                          if (!t) return null;
+                          const t = toolById.get(tid);
+                          if (!t) return <span key={tid} title={`Unknown tool: ${tid}`} style={{ fontSize: 11, color: 'var(--fg-4)' }}>?</span>;
                           return (
-                            <span key={tid} title={`${t.name} — ${t.desc}`}
+                            <span key={tid} title={`${t.name} — ${t.description}`}
                                   style={{ fontSize: 13, lineHeight: 1, padding: '1px 3px' }}>
                               {t.icon}
                             </span>
@@ -419,6 +451,8 @@ export function SquadsPage({ mode, projectId, availableModels }: {
           squad={editing}
           projectId={projectId}
           availableModels={availableModels}
+          dbTools={dbTools}
+          dbSkills={dbSkills}
           onClose={() => { setEditing(null); setCreating(false); }}
         />
       )}

@@ -52,37 +52,7 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
         )}
       </div>
 
-      <div className="side-section">
-        <div className="side-title"><span>SYSTEM</span></div>
-        <Link href="/roadmap" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-          <div className="squad-icon" style={{ color: 'var(--neon-cyan)' }}>🗺</div>
-          <div className="squad-name"><b>Roadmap</b><span>plan · phases · dependencies</span></div>
-        </Link>
-        <Link href="/tests" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-          <div className="squad-icon" style={{ color: 'var(--neon-lime)' }}>✓</div>
-          <div className="squad-name"><b>Tests</b><span>use cases · QA tracker</span></div>
-        </Link>
-        <Link href="/ai-log" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-          <div className="squad-icon" style={{ color: 'var(--neon-violet)' }}>🤖</div>
-          <div className="squad-name"><b>AI Activity</b><span>OpenAI calls · cost · oversight</span></div>
-        </Link>
-        <Link href="/settings/api" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-          <div className="squad-icon" style={{ color: 'var(--neon-amber)' }}>🔑</div>
-          <div className="squad-name"><b>API Keys</b><span>LLM providers · status</span></div>
-        </Link>
-        <div className="squad">
-          <div className="squad-icon" style={{ color: 'var(--neon-amber)' }}>⌖</div>
-          <div className="squad-name"><b>Playbooks</b><span>42 active</span></div>
-        </div>
-        <div className="squad">
-          <div className="squad-icon" style={{ color: 'var(--neon-cyan)' }}>⚙</div>
-          <div className="squad-name"><b>Trust thresholds</b><span>L1–L4 config</span></div>
-        </div>
-        <Link href="/" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-          <div className="squad-icon" style={{ color: 'var(--neon-violet)' }}>⊞</div>
-          <div className="squad-name"><b>All Projects</b><span>Portfolio</span></div>
-        </Link>
-      </div>
+      <SystemNav />
 
       <div className="grow"></div>
 
@@ -95,5 +65,94 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
         </div>
       </div>
     </aside>
+  );
+}
+
+// Compact, grouped SYSTEM nav. Each group collapsible — sidebar dài thì user thu gọn từng group.
+// "soon" items hiện disabled (opacity 0.45) để thấy roadmap nhưng không click được.
+function SystemNav() {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const tog = (k: string) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
+
+  type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
+  const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
+    {
+      key: 'monitor', label: 'Monitor',
+      items: [
+        { href: '/ai-log',  icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity', sub: 'OpenAI · cost · oversight' },
+        { href: '/tests',   icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',       sub: 'use cases · QA' },
+        { href: '/roadmap', icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',     sub: 'phases · deps' },
+      ],
+    },
+    {
+      key: 'library', label: 'Library',
+      items: [
+        { href: '/library', icon: '🗂', color: 'var(--neon-cyan)',  label: 'Tools & Skills', sub: 'shared catalog' },
+        {                   icon: '⌖', color: 'var(--neon-amber)', label: 'Playbooks',      sub: 'soon', soon: true },
+      ],
+    },
+    {
+      key: 'setup', label: 'Setup',
+      items: [
+        { href: '/settings/api', icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers' },
+        {                        icon: '⚙',  color: 'var(--neon-cyan)',   label: 'Trust thresholds', sub: 'soon', soon: true },
+        { href: '/',             icon: '⊞',  color: 'var(--neon-violet)', label: 'All Projects',     sub: 'portfolio' },
+      ],
+    },
+  ];
+
+  const itemRowStyle: React.CSSProperties = {
+    cursor: 'pointer', textDecoration: 'none', color: 'inherit',
+    padding: '4px 8px', minHeight: 28, display: 'flex', alignItems: 'center', gap: 8,
+  };
+
+  return (
+    <div className="side-section" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="side-title"><span>SYSTEM</span></div>
+      {groups.map((g) => {
+        const isCollapsed = collapsed[g.key] === true;
+        return (
+          <div key={g.key} style={{ marginTop: 2 }}>
+            <div
+              onClick={() => tog(g.key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '2px 8px', cursor: 'pointer', userSelect: 'none',
+                fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}
+            >
+              <span style={{ fontSize: 8 }}>{isCollapsed ? '▸' : '▾'}</span>
+              <span>{g.label}</span>
+              <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+              <span style={{ fontSize: 8.5, opacity: 0.6 }}>{g.items.length}</span>
+            </div>
+            {!isCollapsed && g.items.map((it) => {
+              const inner = (
+                <>
+                  <div style={{ fontSize: 14, color: it.color, width: 18, textAlign: 'center', lineHeight: 1, flexShrink: 0 }}>{it.icon}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.label}</span>
+                    <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{it.sub}</span>
+                  </div>
+                </>
+              );
+              if (it.soon) {
+                return (
+                  <div key={it.label} style={{ ...itemRowStyle, opacity: 0.45, cursor: 'not-allowed' }} title="Sắp ra">
+                    {inner}
+                  </div>
+                );
+              }
+              return (
+                <Link key={it.label} href={it.href!} style={itemRowStyle}>
+                  {inner}
+                </Link>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
   );
 }

@@ -520,5 +520,51 @@ export const aiSuggestions = pgTable(
   ],
 );
 
+// ── library_tools (Phase 8 — shared catalog) ─────────────────────
+// Tools/integrations available to AI agents. Squad.config.tools refs by id.
+// Seed initial từ lib/tools-library.ts; user CRUD qua /library page.
+export const libraryTools = pgTable(
+  'library_tools',
+  {
+    id: text('id').primaryKey(),                         // 'reddit-script'
+    tenantId: text('tenant_id').notNull().default('self'),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    category: text('category').notNull().default('data'),  // platform|data|ai|storage|comms|analytics
+    icon: text('icon').notNull().default('🔧'),
+    requiresEnv: text('requires_env'),                     // env var dependency, e.g. 'OPENAI_API_KEY'
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('library_tools_tenant_idx').on(t.tenantId),
+    index('library_tools_category_idx').on(t.category),
+  ],
+);
+
+// ── skill_snippets ───────────────────────────────────────────────
+// Reusable markdown skill descriptions. Squad.config.skillsMd có thể reference.
+// Phase 1: standalone library; phase 2: link from squad (FK).
+export const skillSnippets = pgTable(
+  'skill_snippets',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull().default(''),              // markdown
+    tags: jsonb('tags').notNull().default([]),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('skill_snippets_tenant_slug_uniq').on(t.tenantId, t.slug),
+    index('skill_snippets_tenant_idx').on(t.tenantId),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets };

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/lib/mock/types';
 import { updateProject, archiveProject, deleteProjectHard } from '@/lib/actions/projects';
+import { setProjectAIEnabled } from '@/lib/actions/ai-suggestions';
 
 const ACCENTS = ['cyan', 'lime', 'amber', 'violet', 'pink', 'red'] as const;
 const COLORS: Record<string, string> = {
@@ -202,6 +203,49 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
                         value={form.bio}
                         onChange={(e) => setF('bio', e.target.value)} />
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: 12 }}>
+        <div className="panel-head">
+          <div className="panel-title"><span className="dot" style={{ background: 'var(--neon-violet)' }}></span>AI</div>
+        </div>
+        <div className="panel-body">
+          <p style={{ margin: '0 0 10px', fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+            Bật/tắt OpenAI calls cho project. Khi tắt: AI Suggestions panel hiện disabled state, không gọi API.
+            Demo projects (isDemo=true) bỏ qua flag — luôn dùng mock.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={project.aiEnabled !== false}
+              onClick={() => {
+                startTransition(async () => {
+                  await setProjectAIEnabled(project.id, project.aiEnabled === false ? true : false);
+                  router.refresh();
+                });
+              }}
+              style={{
+                position: 'relative', width: 44, height: 24, borderRadius: 999,
+                background: project.aiEnabled === false ? 'var(--bg-3)' : 'var(--neon-violet)',
+                border: 0, cursor: 'pointer', padding: 0, transition: 'background .15s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: project.aiEnabled === false ? 2 : 22,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,.3)', transition: 'left .15s',
+              }} />
+            </button>
+            <div style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500 }}>
+              {project.aiEnabled === false ? '🚫 AI tắt' : '🤖 AI bật'}
+            </div>
+            <span style={{ flex: 1 }} />
+            <a href="/ai-log" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+              ↗ Xem AI Activity
+            </a>
           </div>
         </div>
       </div>

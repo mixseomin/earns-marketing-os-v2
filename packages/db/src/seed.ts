@@ -218,6 +218,7 @@ for (const p of PROJECTS_SEED) {
     alerts: p.alerts ?? 0,
     color: p.color ?? '#00e5ff',
     isDemo: p.isDemo ?? false,
+    aiEnabled: p.aiEnabled ?? true,
     website: p.website ?? '',
     oneLiner: p.oneLiner ?? '',
     bio: p.bio ?? '',
@@ -227,7 +228,10 @@ for (const p of PROJECTS_SEED) {
   // Brand fields (website/oneLiner/bio/persona/hashtags) are USER-MANAGED via
   // /p/[id]/settings. Seed inserts defaults on first INSERT only — re-seed
   // never overwrites them. Spec fields (name/mode/budget/etc.) still upsert.
-  const { website: _w, oneLiner: _o, bio: _b, persona: _p, hashtags: _h, ...specOnly } = row;
+  // User-managed columns excluded từ upsert update — preserve edits qua re-seed.
+  // Brand fields: user nhập trong Settings/Brand panel.
+  // aiEnabled: user toggle trong Settings/AI panel.
+  const { website: _w, oneLiner: _o, bio: _b, persona: _p, hashtags: _h, aiEnabled: _ae, ...specOnly } = row;
   await db
     .insert(projects)
     .values(row)

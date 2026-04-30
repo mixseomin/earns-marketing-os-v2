@@ -119,6 +119,8 @@ export interface Project {
   color: string;
   /** Demo project: render mock content cho design preview. Real project: chỉ render DB data, EmptyState khi rỗng. */
   isDemo?: boolean;
+  /** Bật/tắt OpenAI calls per-project. Default true. False = không generate AI Suggestions. */
+  aiEnabled?: boolean;
   // ── Brand fields (template variables for content snippets) ──
   website?: string;
   oneLiner?: string;

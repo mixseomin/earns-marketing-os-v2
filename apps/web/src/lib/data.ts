@@ -162,6 +162,7 @@ function rowToProject(r: NonNullable<ProjectRow>): Project {
     alerts: r.alerts,
     color: r.color,
     isDemo: r.isDemo,
+    aiEnabled: r.aiEnabled,
     website: r.website,
     oneLiner: r.oneLiner,
     bio: r.bio,

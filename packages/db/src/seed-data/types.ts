@@ -121,6 +121,8 @@ export interface Project {
   blank?: boolean;
   /** Demo project = render mock content trong tabs cho design preview. Default false (real project). */
   isDemo?: boolean;
+  /** Bật/tắt OpenAI calls cho project. Default true. False = không generate suggestions, tiết kiệm token. */
+  aiEnabled?: boolean;
   // ── Brand fields (snippet template variables) ──
   website?: string;
   oneLiner?: string;

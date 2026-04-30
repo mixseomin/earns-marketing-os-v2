@@ -77,6 +77,9 @@ export const projects = pgTable(
     // Demo: render mock content trong tabs cho design preview.
     // Real: render only DB data; thiếu data → EmptyState.
     isDemo: boolean('is_demo').notNull().default(false),
+    // ai_enabled = false để tắt OpenAI calls cho project này (kill switch
+    // per-project). Default true cho real projects; demos không gọi AI dù flag true.
+    aiEnabled: boolean('ai_enabled').notNull().default(true),
     // ── Brand fields (used by content snippet templates per-account) ──
     // These centralize the per-project values that snippet placeholders
     // {{website}} {{one-liner}} {{bio}} {{persona}} {{hashtags}} pull from.

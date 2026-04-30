@@ -324,23 +324,47 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
                       placeholder='vd: "Bạn là Research squad. Mục tiêu: phát hiện trend & cơ hội mới. Trả lời ngắn, action-driven, kèm nguồn."'
                       value={cfg.systemPrompt ?? ''} onChange={(e) => setCfg('systemPrompt', e.target.value)} />
           </div>
-          <div style={{ gridColumn: '1 / -1', padding: 8, background: 'var(--bg-2)', borderRadius: 5, border: '1px solid var(--line)' }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={cfg.useAgentLoop ?? false}
-                onChange={(e) => setCfg('useAgentLoop', e.target.checked)}
-                style={{ marginTop: 2 }}
-              />
-              <div>
-                <div style={{ color: 'var(--fg-0)', fontWeight: 500 }}>🧠 Enable agent reasoning loop</div>
-                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 2 }}>
-                  Default OFF: squad chỉ generate text/suggestion (single-shot LLM). <br />
-                  Bật khi squad cần multi-step reasoning + dùng tools (research / publisher / code refactor). Tốn nhiều token + cost hơn. Squad sẽ qua trust gate + peer review + anti-loop guards.
-                </div>
+          {(() => {
+            const hasTools = (cfg.tools?.length ?? 0) > 0;
+            const loopOn = cfg.useAgentLoop ?? false;
+            const needsActivation = hasTools && !loopOn;
+            return (
+              <div style={{
+                gridColumn: '1 / -1', padding: 10,
+                background: needsActivation ? 'rgba(255,176,60,.10)' : 'var(--bg-2)',
+                borderRadius: 5,
+                border: needsActivation ? '1px solid var(--warn)' : loopOn ? '1px solid rgba(157,108,255,.4)' : '1px solid var(--line)',
+              }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={loopOn}
+                    onChange={(e) => setCfg('useAgentLoop', e.target.checked)}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: loopOn ? 'var(--neon-violet)' : 'var(--fg-0)', fontWeight: 600 }}>
+                      🧠 Enable agent reasoning loop {loopOn && <span style={{ fontSize: 10, marginLeft: 4 }}>● ACTIVE</span>}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 2 }}>
+                      Default OFF: squad chỉ generate text/suggestion (single-shot LLM). <br />
+                      Bật khi squad cần multi-step reasoning + dùng tools. Squad sẽ qua trust gate + peer review + anti-loop guards.
+                    </div>
+                    {needsActivation && (
+                      <div style={{ marginTop: 6, padding: '4px 8px', background: 'rgba(255,176,60,.18)', borderRadius: 4, fontSize: 11, color: 'var(--warn)' }}>
+                        ⚠ Bạn đã chọn {cfg.tools!.length} tools nhưng loop OFF → squad sẽ KHÔNG exec tools. Bật toggle này để cho phép.
+                      </div>
+                    )}
+                    {loopOn && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-violet)' }}>
+                        Squad sẽ xuất hiện trong <a href="/agents" style={{ color: 'var(--accent)' }}>/agents</a> admin page. Worker daemon sẽ pick up cards với agent_kind set.
+                      </div>
+                    )}
+                  </div>
+                </label>
               </div>
-            </label>
-          </div>
+            );
+          })()}
         </div>
 
         <div className="modal-foot">

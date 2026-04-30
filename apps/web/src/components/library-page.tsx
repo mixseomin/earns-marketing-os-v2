@@ -3,11 +3,18 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  type ToolRow, type SkillRow,
+  type ToolRow, type SkillRow, type ToolStatus,
   createTool, updateTool, archiveTool,
   createSkill, updateSkill, archiveSkill,
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
+
+// Status meta — re-used in Library + Squad form preview.
+export const TOOL_STATUS_META: Record<ToolStatus, { label: string; color: string; bg: string; desc: string }> = {
+  mock:       { label: 'mock',       color: 'var(--fg-3)',     bg: 'rgba(127,127,127,.12)',  desc: 'Chỉ là metadata trong catalog. Chưa wire executable code — Squad không thể call thực tế.' },
+  planned:    { label: 'planned',    color: 'var(--neon-amber)', bg: 'rgba(255,176,60,.10)', desc: 'Wire-up đang lên kế hoạch (phase 10 Agent runtime).' },
+  integrated: { label: 'integrated', color: 'var(--ok)',       bg: 'rgba(16,185,129,.12)',   desc: 'Đã có function/MCP server hoạt động. Squad có thể call khi runtime ON.' },
+};
 
 type Tab = 'tools' | 'skills';
 
@@ -62,9 +69,23 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
     cat,
     items: tools.filter((t) => t.category === cat.id),
   }));
+  const counts = {
+    mock: tools.filter((t) => t.status === 'mock').length,
+    planned: tools.filter((t) => t.status === 'planned').length,
+    integrated: tools.filter((t) => t.status === 'integrated').length,
+  };
 
   return (
     <>
+      <div style={{
+        padding: '8px 10px', marginBottom: 10, borderRadius: 5,
+        background: 'rgba(255,176,60,.06)', border: '1px solid rgba(255,176,60,.25)',
+        fontSize: 11, color: 'var(--fg-1)',
+      }}>
+        ⚠ <b>Trạng thái thật:</b> {counts.integrated} integrated · {counts.planned} planned · <b>{counts.mock} mock</b> (chỉ là metadata catalog).
+        Khi gắn vào Squad, mock tool KHÔNG thực sự call được — chỉ cho AI runtime tương lai (phase 10) biết squad có "quyền truy cập" gì.
+        Để biến thành integrated: cần build MCP server hoặc function endpoint tương ứng + đổi status.
+      </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <button className="btn primary" onClick={() => setCreating(true)}>+ New tool</button>
       </div>
@@ -76,21 +97,27 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
               {cat.label} <span style={{ opacity: 0.5 }}>· {items.length}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
-              {items.map((t) => (
-                <div key={t.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => setEditing(t)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                      <div style={{ fontSize: 10, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</div>
+              {items.map((t) => {
+                const sm = TOOL_STATUS_META[t.status];
+                return (
+                  <div key={t.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => setEditing(t)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</div>
+                      </div>
+                      <span title={sm.desc} style={{
+                        fontSize: 9, fontFamily: 'var(--font-mono)', padding: '1px 5px', borderRadius: 3,
+                        color: sm.color, background: sm.bg, border: `1px solid ${sm.color}`, opacity: 0.7,
+                      }}>{sm.label}</span>
                     </div>
-                    <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>✎</span>
+                    {t.requiresEnv && (
+                      <div style={{ marginTop: 4, fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--warn)' }}>requires {t.requiresEnv}</div>
+                    )}
                   </div>
-                  {t.requiresEnv && (
-                    <div style={{ marginTop: 4, fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--warn)' }}>requires {t.requiresEnv}</div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {items.length === 0 && <div style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>(empty)</div>}
             </div>
           </div>
@@ -116,6 +143,8 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
     category: tool?.category ?? 'data',
     icon: tool?.icon ?? '🔧',
     requiresEnv: tool?.requiresEnv ?? '',
+    status: tool?.status ?? ('mock' as ToolStatus),
+    sourceUrl: tool?.sourceUrl ?? '',
     sortOrder: tool?.sortOrder ?? 100,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -131,9 +160,12 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
 
   const handleSave = () => {
     startTransition(async () => {
-      const res = isCreate
-        ? await createTool({ ...form, requiresEnv: form.requiresEnv || null })
-        : await updateTool(tool!.id, { ...form, requiresEnv: form.requiresEnv || null });
+      const payload = {
+        ...form,
+        requiresEnv: form.requiresEnv || null,
+        sourceUrl: form.sourceUrl || null,
+      };
+      const res = isCreate ? await createTool(payload) : await updateTool(tool!.id, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
       router.refresh();
       onClose();
@@ -181,7 +213,18 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
             <input style={fld} placeholder="Một dòng describe chức năng / API base"
                    value={form.description} onChange={(e) => setF('description', e.target.value)} />
           </div>
-          <div style={{ gridColumn: '1 / 3' }}>
+          <div>
+            <span style={lbl}>Status</span>
+            <select style={fld} value={form.status} onChange={(e) => setF('status', e.target.value as ToolStatus)}>
+              <option value="mock">mock — chỉ catalog</option>
+              <option value="planned">planned — đang lên kế hoạch</option>
+              <option value="integrated">integrated — đã wire</option>
+            </select>
+            <div style={{ fontSize: 9.5, color: TOOL_STATUS_META[form.status].color, marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+              {TOOL_STATUS_META[form.status].desc}
+            </div>
+          </div>
+          <div>
             <span style={lbl}>Requires env <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
             <input style={fld} placeholder="OPENAI_API_KEY, REDDIT_CLIENT_ID..."
                    value={form.requiresEnv} onChange={(e) => setF('requiresEnv', e.target.value)} />
@@ -189,6 +232,11 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
           <div>
             <span style={lbl}>Sort order</span>
             <input style={fld} type="number" value={form.sortOrder} onChange={(e) => setF('sortOrder', Number(e.target.value) | 0)} />
+          </div>
+          <div style={{ gridColumn: '1 / 4' }}>
+            <span style={lbl}>Source URL <span style={{ color: 'var(--fg-4)' }}>(API docs / repo, optional)</span></span>
+            <input style={fld} type="url" placeholder="https://..."
+                   value={form.sourceUrl} onChange={(e) => setF('sourceUrl', e.target.value)} />
           </div>
         </div>
 
@@ -239,11 +287,14 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
                 <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', whiteSpace: 'pre-wrap', maxHeight: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {s.body.slice(0, 200) || <span style={{ fontStyle: 'italic', color: 'var(--fg-4)' }}>(empty body)</span>}
                 </div>
-                {s.tags.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
-                    {s.tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 9, padding: '1px 6px' }}>{tag}</span>)}
-                  </div>
-                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6, alignItems: 'center' }}>
+                  {s.tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 9, padding: '1px 6px' }}>{tag}</span>)}
+                  {s.source && (
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', marginLeft: 'auto' }}>
+                      📎 {s.source}{s.license ? ` · ${s.license}` : ''}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -267,6 +318,9 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
     title: skill?.title ?? '',
     body: skill?.body ?? '',
     tagsStr: (skill?.tags ?? []).join(', '),
+    source: skill?.source ?? '',
+    sourceUrl: skill?.sourceUrl ?? '',
+    license: skill?.license ?? 'curated',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -282,10 +336,14 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
   const handleSave = () => {
     if (!form.title.trim()) { setError('Title không được rỗng'); return; }
     const tags = form.tagsStr.split(',').map((s) => s.trim()).filter(Boolean);
+    const payload = {
+      slug: form.slug, title: form.title, body: form.body, tags,
+      source: form.source || null,
+      sourceUrl: form.sourceUrl || null,
+      license: form.license || null,
+    };
     startTransition(async () => {
-      const res = isCreate
-        ? await createSkill({ slug: form.slug, title: form.title, body: form.body, tags })
-        : await updateSkill(skill!.id, { slug: form.slug, title: form.title, body: form.body, tags });
+      const res = isCreate ? await createSkill(payload) : await updateSkill(skill!.id, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
       router.refresh();
       onClose();
@@ -330,6 +388,27 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
           <div>
             <span style={lbl}>Tags <span style={{ color: 'var(--fg-4)' }}>(comma-separated)</span></span>
             <input style={fld} placeholder="research, affiliate, vi" value={form.tagsStr} onChange={(e) => setF('tagsStr', e.target.value)} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div>
+              <span style={lbl}>Source <span style={{ color: 'var(--fg-4)' }}>(repo/site)</span></span>
+              <input style={fld} placeholder="awesome-chatgpt-prompts" value={form.source} onChange={(e) => setF('source', e.target.value)} />
+            </div>
+            <div>
+              <span style={lbl}>Source URL</span>
+              <input style={fld} type="url" placeholder="https://github.com/..." value={form.sourceUrl} onChange={(e) => setF('sourceUrl', e.target.value)} />
+            </div>
+            <div>
+              <span style={lbl}>License</span>
+              <select style={fld} value={form.license} onChange={(e) => setF('license', e.target.value)}>
+                <option value="curated">curated (own)</option>
+                <option value="CC0">CC0</option>
+                <option value="MIT">MIT</option>
+                <option value="public-domain">public-domain</option>
+                <option value="apache-2.0">apache-2.0</option>
+                <option value="other">other</option>
+              </select>
+            </div>
           </div>
         </div>
 

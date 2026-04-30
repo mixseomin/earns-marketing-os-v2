@@ -7,6 +7,7 @@ import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import type { ToolRow, SkillRow } from '@/lib/actions/library';
+import { TOOL_STATUS_META } from './library-page';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -74,6 +75,9 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
     const next = tools.includes(id) ? tools.filter((t) => t !== id) : [...tools, id];
     setCfg('tools', next);
   };
+  const [skillPicker, setSkillPicker] = useState<SkillRow | null>(null);
+  const [skillPickerOpen, setSkillPickerOpen] = useState(false);
+  const [toolInfo, setToolInfo] = useState<ToolRow | null>(null);
 
   const handleSave = () => {
     if (!form.name.trim()) { setError('Tên squad không được rỗng'); return; }
@@ -198,21 +202,14 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
               <span style={{ ...lbl, marginBottom: 0 }}>Skills <span style={{ color: 'var(--fg-4)' }}>(markdown — bullet, persona, expertise)</span></span>
               {dbSkills.length > 0 && (
-                <select
-                  style={{ ...fld, fontSize: 10, padding: '2px 6px', width: 'auto', maxWidth: 200, marginLeft: 'auto' }}
-                  value=""
-                  onChange={(e) => {
-                    const picked = dbSkills.find((s) => s.slug === e.target.value);
-                    if (!picked) return;
-                    const merged = (cfg.skillsMd ?? '').trim();
-                    const sep = merged ? '\n\n---\n\n' : '';
-                    setCfg('skillsMd', `${merged}${sep}${picked.body}`);
-                    e.target.value = '';
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setSkillPickerOpen(true)}
+                  className="btn"
+                  style={{ fontSize: 10, padding: '2px 8px', marginLeft: 'auto' }}
                 >
-                  <option value="">+ Insert from library…</option>
-                  {dbSkills.map((s) => <option key={s.slug} value={s.slug}>{s.title}</option>)}
-                </select>
+                  📚 Pick from library ({dbSkills.length})
+                </button>
               )}
             </div>
             <textarea
@@ -251,24 +248,43 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {inCat.map((t) => {
                         const on = tools.includes(t.id);
+                        const sm = TOOL_STATUS_META[t.status];
                         return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => toggleTool(t.id)}
-                            title={t.description + (t.requiresEnv ? ` · requires ${t.requiresEnv}` : '')}
-                            className="chip"
-                            data-active={on || undefined}
-                            style={{
-                              fontSize: 10, padding: '3px 8px', cursor: 'pointer',
-                              background: on ? cat.color : undefined,
-                              color: on ? '#000' : undefined,
-                              borderColor: on ? cat.color : undefined,
-                              opacity: on ? 1 : 0.85,
-                            }}
-                          >
-                            <span style={{ marginRight: 4 }}>{t.icon}</span>{t.name}
-                          </button>
+                          <div key={t.id} style={{ position: 'relative', display: 'inline-flex' }}>
+                            <button
+                              type="button"
+                              onClick={() => toggleTool(t.id)}
+                              title={`${t.description}${t.requiresEnv ? ` · requires ${t.requiresEnv}` : ''} · ${sm.label}`}
+                              className="chip"
+                              data-active={on || undefined}
+                              style={{
+                                fontSize: 10, padding: '3px 22px 3px 8px', cursor: 'pointer',
+                                background: on ? cat.color : undefined,
+                                color: on ? '#000' : undefined,
+                                borderColor: on ? cat.color : undefined,
+                                opacity: on ? 1 : 0.85,
+                                position: 'relative',
+                              }}
+                            >
+                              <span style={{ marginRight: 4 }}>{t.icon}</span>{t.name}
+                              {/* Status dot */}
+                              <span style={{
+                                position: 'absolute', top: 1, right: 14, width: 5, height: 5, borderRadius: '50%',
+                                background: t.status === 'integrated' ? 'var(--ok)' : t.status === 'planned' ? 'var(--warn)' : 'var(--fg-3)',
+                                opacity: 0.8,
+                              }} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setToolInfo(t); }}
+                              title="Xem chi tiết tool"
+                              style={{
+                                position: 'absolute', top: 0, right: 0, height: '100%',
+                                width: 16, padding: 0, background: 'transparent', border: 'none',
+                                cursor: 'pointer', fontSize: 9, color: 'var(--fg-3)',
+                              }}
+                            >ⓘ</button>
+                          </div>
                         );
                       })}
                     </div>
@@ -315,6 +331,193 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
             {!isCreate && <button className="btn danger" onClick={handleDelete}>🗑 Delete</button>}
             <button className="btn ghost" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create squad' : 'Save'}</button>
+          </div>
+        </div>
+      </div>
+
+      {skillPickerOpen && (
+        <SkillPickerModal
+          skills={dbSkills}
+          onPick={(s, mode) => {
+            const merged = (cfg.skillsMd ?? '').trim();
+            const sep = merged ? '\n\n---\n\n' : '';
+            setCfg('skillsMd', mode === 'replace' ? s.body : `${merged}${sep}${s.body}`);
+            setSkillPickerOpen(false);
+          }}
+          onClose={() => setSkillPickerOpen(false)}
+          previewing={skillPicker}
+          setPreviewing={setSkillPicker}
+        />
+      )}
+
+      {toolInfo && (
+        <ToolInfoModal tool={toolInfo} active={tools.includes(toolInfo.id)} onToggle={() => toggleTool(toolInfo.id)} onClose={() => setToolInfo(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Skill picker (grid + preview pane) ─────────────────────────────
+function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }: {
+  skills: SkillRow[];
+  onPick: (s: SkillRow, mode: 'replace' | 'append') => void;
+  onClose: () => void;
+  previewing: SkillRow | null;
+  setPreviewing: (s: SkillRow | null) => void;
+}) {
+  const [filter, setFilter] = useState('');
+  const filtered = filter
+    ? skills.filter((s) => (s.title + ' ' + s.tags.join(' ') + ' ' + s.body).toLowerCase().includes(filter.toLowerCase()))
+    : skills;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 920, height: '78vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="id-line">SKILL LIBRARY</div>
+            <h2>📚 Pick a skill snippet</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--line)' }}>
+          <input
+            placeholder="Filter by title, tag, body…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            style={{
+              width: '100%', padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)',
+              borderRadius: 5, fontSize: 12, color: 'var(--fg-0)', outline: 'none',
+            }}
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', flex: 1, minHeight: 0 }}>
+          {/* List */}
+          <div style={{ borderRight: '1px solid var(--line)', overflow: 'auto', padding: 6 }}>
+            {filtered.length === 0 && <div style={{ padding: 16, fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}>(no match)</div>}
+            {filtered.map((s) => (
+              <div
+                key={s.id}
+                onClick={() => setPreviewing(s)}
+                style={{
+                  padding: '6px 8px', borderRadius: 4, cursor: 'pointer', marginBottom: 2,
+                  background: previewing?.id === s.id ? 'var(--accent-soft)' : 'transparent',
+                  borderLeft: previewing?.id === s.id ? '2px solid var(--accent)' : '2px solid transparent',
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ✦ {s.title}
+                </div>
+                <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 1 }}>
+                  {s.tags.slice(0, 3).join(' · ')}{s.source ? ` · 📎${s.source}` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Preview */}
+          <div style={{ overflow: 'auto', padding: 14 }}>
+            {!previewing ? (
+              <div style={{ color: 'var(--fg-3)', fontSize: 12, textAlign: 'center', padding: 40 }}>
+                ← Chọn 1 skill để xem preview
+              </div>
+            ) : (
+              <>
+                <h3 style={{ margin: '0 0 6px', fontSize: 16, color: 'var(--fg-0)' }}>{previewing.title}</h3>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginBottom: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <span>{previewing.slug}</span>
+                  {previewing.tags.map((t) => <span key={t} className="chip" style={{ fontSize: 9 }}>{t}</span>)}
+                  {previewing.source && (
+                    <span style={{ marginLeft: 'auto' }}>
+                      📎 {previewing.sourceUrl
+                        ? <a href={previewing.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{previewing.source}</a>
+                        : previewing.source}
+                      {previewing.license ? ` · ${previewing.license}` : ''}
+                    </span>
+                  )}
+                </div>
+                <pre style={{
+                  margin: 0, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)',
+                  borderRadius: 5, fontSize: 11.5, lineHeight: 1.6, fontFamily: 'var(--font-mono)',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--fg-1)',
+                }}>{previewing.body}</pre>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <div className="meta">{previewing ? `Preview: ${previewing.slug}` : `${filtered.length} skills`}</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            {previewing && (
+              <>
+                <button className="btn" onClick={() => onPick(previewing, 'append')}>+ Append</button>
+                <button className="btn primary" onClick={() => onPick(previewing, 'replace')}>↻ Replace</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tool info card ────────────────────────────────────────────────
+function ToolInfoModal({ tool, active, onToggle, onClose }: {
+  tool: ToolRow; active: boolean; onToggle: () => void; onClose: () => void;
+}) {
+  const sm = TOOL_STATUS_META[tool.status];
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="id-line">{tool.id}</div>
+            <h2>{tool.icon} {tool.name}</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</span>
+            <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: 5, background: sm.bg, border: `1px solid ${sm.color}`, color: sm.color, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+              <b>{sm.label}</b> — {sm.desc}
+            </div>
+          </div>
+          <div>
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Description</span>
+            <div style={{ marginTop: 3, fontSize: 13, color: 'var(--fg-1)' }}>{tool.description || <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>(no description)</span>}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Category</span>
+              <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', marginTop: 3, color: 'var(--fg-1)' }}>{tool.category}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Requires env</span>
+              <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', marginTop: 3, color: tool.requiresEnv ? 'var(--warn)' : 'var(--fg-3)' }}>
+                {tool.requiresEnv || '—'}
+              </div>
+            </div>
+          </div>
+          {tool.sourceUrl && (
+            <div>
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source</span>
+              <div style={{ marginTop: 3 }}>
+                <a href={tool.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: 12, wordBreak: 'break-all' }}>
+                  {tool.sourceUrl} ↗
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="modal-foot">
+          <div className="meta">Selected: <b style={{ color: active ? 'var(--ok)' : 'var(--fg-3)' }}>{active ? 'YES' : 'NO'}</b></div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Close</button>
+            <button className={active ? 'btn danger' : 'btn primary'} onClick={() => { onToggle(); onClose(); }}>
+              {active ? 'Remove from squad' : 'Add to squad'}
+            </button>
           </div>
         </div>
       </div>

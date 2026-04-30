@@ -533,6 +533,12 @@ export const libraryTools = pgTable(
     category: text('category').notNull().default('data'),  // platform|data|ai|storage|comms|analytics
     icon: text('icon').notNull().default('🔧'),
     requiresEnv: text('requires_env'),                     // env var dependency, e.g. 'OPENAI_API_KEY'
+    // status:
+    //   'mock'       — chỉ là metadata trong catalog, chưa wire executable code
+    //   'planned'    — wire-up đang lên kế hoạch (phase 10 Agent runtime)
+    //   'integrated' — đã có function/MCP server hoạt động (Squad có thể call)
+    status: text('status').notNull().default('mock'),
+    sourceUrl: text('source_url'),                         // optional: API docs / repo
     sortOrder: integer('sort_order').notNull().default(0),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -556,6 +562,9 @@ export const skillSnippets = pgTable(
     title: text('title').notNull(),
     body: text('body').notNull().default(''),              // markdown
     tags: jsonb('tags').notNull().default([]),
+    source: text('source'),                                // 'awesome-chatgpt-prompts', 'anthropic-cookbook', 'curated'...
+    sourceUrl: text('source_url'),                         // direct link nếu có
+    license: text('license'),                              // 'CC0', 'MIT', 'curated' (own work)...
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

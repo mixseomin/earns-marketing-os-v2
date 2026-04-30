@@ -13,6 +13,8 @@ function ensureDb() {
 }
 
 // ── Tools ─────────────────────────────────────────────────────────
+export type ToolStatus = 'mock' | 'planned' | 'integrated';
+
 export interface ToolRow {
   id: string;
   name: string;
@@ -20,6 +22,8 @@ export interface ToolRow {
   category: string;
   icon: string;
   requiresEnv: string | null;
+  status: ToolStatus;
+  sourceUrl: string | null;
   sortOrder: number;
   archived: boolean;
 }
@@ -32,7 +36,10 @@ export async function listTools(): Promise<ToolRow[]> {
     .orderBy(asc(libraryTools.sortOrder), asc(libraryTools.id));
   return rows.map((r) => ({
     id: r.id, name: r.name, description: r.description, category: r.category, icon: r.icon,
-    requiresEnv: r.requiresEnv, sortOrder: r.sortOrder, archived: false,
+    requiresEnv: r.requiresEnv,
+    status: (r.status as ToolStatus) ?? 'mock',
+    sourceUrl: r.sourceUrl,
+    sortOrder: r.sortOrder, archived: false,
   }));
 }
 
@@ -43,6 +50,8 @@ export interface ToolInput {
   category: string;
   icon: string;
   requiresEnv?: string | null;
+  status?: ToolStatus;
+  sourceUrl?: string | null;
   sortOrder?: number;
 }
 
@@ -54,6 +63,8 @@ export async function createTool(input: ToolInput): Promise<{ ok: boolean; error
     await db.insert(libraryTools).values({
       id: input.id, tenantId: TENANT, name: input.name, description: input.description,
       category: input.category, icon: input.icon, requiresEnv: input.requiresEnv ?? null,
+      status: input.status ?? 'mock',
+      sourceUrl: input.sourceUrl ?? null,
       sortOrder: input.sortOrder ?? 100,
     });
   } catch (e) {
@@ -71,6 +82,8 @@ export async function updateTool(id: string, patch: Partial<ToolInput>): Promise
   if (patch.category !== undefined) set.category = patch.category;
   if (patch.icon !== undefined) set.icon = patch.icon;
   if (patch.requiresEnv !== undefined) set.requiresEnv = patch.requiresEnv;
+  if (patch.status !== undefined) set.status = patch.status;
+  if (patch.sourceUrl !== undefined) set.sourceUrl = patch.sourceUrl;
   if (patch.sortOrder !== undefined) set.sortOrder = patch.sortOrder;
   await db.update(libraryTools).set(set).where(eq(libraryTools.id, id));
   revalidatePath('/library');
@@ -91,6 +104,9 @@ export interface SkillRow {
   title: string;
   body: string;
   tags: string[];
+  source: string | null;
+  sourceUrl: string | null;
+  license: string | null;
   updatedAt: string;
 }
 
@@ -103,6 +119,7 @@ export async function listSkills(): Promise<SkillRow[]> {
   return rows.map((r) => ({
     id: r.id, slug: r.slug, title: r.title, body: r.body,
     tags: (r.tags as string[]) ?? [],
+    source: r.source, sourceUrl: r.sourceUrl, license: r.license,
     updatedAt: r.updatedAt.toISOString(),
   }));
 }
@@ -112,6 +129,9 @@ export interface SkillInput {
   title: string;
   body: string;
   tags?: string[];
+  source?: string | null;
+  sourceUrl?: string | null;
+  license?: string | null;
 }
 
 function slugify(s: string): string {
@@ -131,6 +151,7 @@ export async function createSkill(input: SkillInput): Promise<{ ok: boolean; slu
   }
   await db.insert(skillSnippets).values({
     tenantId: TENANT, slug, title: input.title, body: input.body, tags: input.tags ?? [],
+    source: input.source ?? null, sourceUrl: input.sourceUrl ?? null, license: input.license ?? null,
   });
   revalidatePath('/library');
   return { ok: true, slug };
@@ -143,6 +164,9 @@ export async function updateSkill(id: number, patch: Partial<SkillInput>): Promi
   if (patch.body !== undefined) set.body = patch.body;
   if (patch.tags !== undefined) set.tags = patch.tags;
   if (patch.slug !== undefined) set.slug = patch.slug;
+  if (patch.source !== undefined) set.source = patch.source;
+  if (patch.sourceUrl !== undefined) set.sourceUrl = patch.sourceUrl;
+  if (patch.license !== undefined) set.license = patch.license;
   await db.update(skillSnippets).set(set).where(eq(skillSnippets.id, id));
   revalidatePath('/library');
   return { ok: true };

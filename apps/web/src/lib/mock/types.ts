@@ -4,6 +4,15 @@ export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'up' | 'down' | 'flat' | 'al
 export type Health = 'ok' | 'warn' | 'bad';
 export type AccentKey = 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
 
+export interface SquadConfig {
+  mission?: string;
+  skills?: string[];
+  tools?: string[];
+  systemPrompt?: string;
+  model?: string;
+  trustLevel?: 1 | 2 | 3 | 4;
+}
+
 export interface Squad {
   id: string;
   name: string;
@@ -14,6 +23,7 @@ export interface Squad {
   color: string;
   desc: string;
   health: Health;
+  config?: SquadConfig;
 }
 
 export interface Column {

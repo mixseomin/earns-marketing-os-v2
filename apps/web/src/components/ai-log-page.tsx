@@ -102,6 +102,8 @@ export function AILogPage({ log, dailyUsage }: {
                       <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>· {e.suggestionsCount} sugg</span>
                       <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>· {e.tokens} tok</span>
                       <span style={{ color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}>· ${e.cost.toFixed(5)}</span>
+                      {e.approvedCount > 0 && <span style={{ color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}>· ✓{e.approvedCount}</span>}
+                      {e.rejectedCount > 0 && <span style={{ color: 'var(--bad)', fontFamily: 'var(--font-mono)' }}>· ✕{e.rejectedCount}</span>}
                       {e.promptHash && <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>#{e.promptHash}</span>}
                     </div>
                   </div>
@@ -115,13 +117,22 @@ export function AILogPage({ log, dailyUsage }: {
                       <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>(empty)</div>
                     ) : (
                       <ol style={{ margin: 0, paddingLeft: 22, fontSize: 12, color: 'var(--fg-1)' }}>
-                        {e.suggestions.map((s, i) => (
-                          <li key={i} style={{ marginBottom: 4 }}>
-                            <span style={{ marginRight: 6 }}>{s.icon}</span>
-                            <b>{s.title}</b>
-                            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{s.meta} · agent {s.agent}</div>
-                          </li>
-                        ))}
+                        {e.suggestions.map((s, i) => {
+                          const fb = e.feedback[String(i)];
+                          return (
+                            <li key={i} style={{
+                              marginBottom: 4,
+                              opacity: fb === 'rejected' ? 0.5 : 1,
+                              textDecoration: fb === 'rejected' ? 'line-through' : undefined,
+                            }}>
+                              <span style={{ marginRight: 6 }}>{s.icon}</span>
+                              <b>{s.title}</b>
+                              {fb === 'approved' && <span style={{ marginLeft: 6, color: 'var(--ok)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>✓ approved</span>}
+                              {fb === 'rejected' && <span style={{ marginLeft: 6, color: 'var(--bad)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>✕ rejected</span>}
+                              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{s.meta} · agent {s.agent}</div>
+                            </li>
+                          );
+                        })}
                       </ol>
                     )}
 

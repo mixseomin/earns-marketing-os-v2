@@ -28,7 +28,10 @@ const emptySquad = (): SquadInput => ({
   squadKey: '', name: '', vi: '', icon: '🤖',
   agents: 1, active: 1, color: '#00e5ff', descText: '',
   health: 'ok',
+  config: { mission: '', skills: [], tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2 },
 });
+
+const MODEL_PRESETS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'claude-haiku-4-5', 'claude-sonnet-4-6'];
 
 function SquadFormModal({ squad, projectId, onClose }: {
   squad: Squad | null; projectId: string; onClose: () => void;
@@ -49,9 +52,24 @@ function SquadFormModal({ squad, projectId, onClose }: {
       color: squad.color,
       descText: squad.desc,
       health: squad.health,
+      config: {
+        mission: squad.config?.mission ?? '',
+        skills: squad.config?.skills ?? [],
+        tools: squad.config?.tools ?? [],
+        systemPrompt: squad.config?.systemPrompt ?? '',
+        model: squad.config?.model ?? 'gpt-4o-mini',
+        trustLevel: squad.config?.trustLevel ?? 2,
+      },
     } : emptySquad()
   );
   const setF = <K extends keyof SquadInput>(k: K, v: SquadInput[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const setCfg = <K extends keyof NonNullable<SquadInput['config']>>(k: K, v: NonNullable<SquadInput['config']>[K]) =>
+    setForm((f) => ({ ...f, config: { ...(f.config ?? {}), [k]: v } }));
+  const cfg = form.config ?? {};
+
+  // Skills/tools edited as comma-separated strings then split.
+  const splitTags = (s: string): string[] => s.split(',').map((x) => x.trim()).filter(Boolean);
+  const joinTags = (arr?: string[]): string => (arr ?? []).join(', ');
 
   const handleSave = () => {
     if (!form.name.trim()) { setError('Tên squad không được rỗng'); return; }
@@ -160,6 +178,49 @@ function SquadFormModal({ squad, projectId, onClose }: {
                      style={{ width: 32, height: 32, padding: 0, border: '1px solid var(--line-strong)', borderRadius: 6, background: 'transparent', cursor: 'pointer' }} />
             </div>
           </div>
+
+          {/* ── AI Config ─────────────────────────────────────────── */}
+          <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 4 }}>
+            <div style={{ ...lbl, marginBottom: 8, fontSize: 11, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              🤖 AI Config <span style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'none', letterSpacing: 0 }}>// skill, tool, persona riêng cho squad này</span>
+            </div>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <span style={lbl}>Mission</span>
+            <input style={fld} placeholder='vd: "Khám phá trend & ngách mới mỗi 24h"'
+                   value={cfg.mission ?? ''} onChange={(e) => setCfg('mission', e.target.value)} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <span style={lbl}>Skills <span style={{ color: 'var(--fg-4)' }}>(comma-separated)</span></span>
+            <input style={fld} placeholder='SEO research, Hashtag analysis, Trend spotting'
+                   value={joinTags(cfg.skills)} onChange={(e) => setCfg('skills', splitTags(e.target.value))} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <span style={lbl}>Tools <span style={{ color: 'var(--fg-4)' }}>(API, integration, data sources)</span></span>
+            <input style={fld} placeholder='Ahrefs API, Reddit script, GPT-4o, Postgres'
+                   value={joinTags(cfg.tools)} onChange={(e) => setCfg('tools', splitTags(e.target.value))} />
+          </div>
+          <div>
+            <span style={lbl}>Model</span>
+            <select style={fld} value={cfg.model ?? 'gpt-4o-mini'} onChange={(e) => setCfg('model', e.target.value)}>
+              {MODEL_PRESETS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <span style={lbl}>Trust level</span>
+            <select style={fld} value={cfg.trustLevel ?? 2} onChange={(e) => setCfg('trustLevel', Number(e.target.value) as 1|2|3|4)}>
+              <option value={1}>L1 · AUTO (tự xử)</option>
+              <option value={2}>L2 · NOTIFY (log lại)</option>
+              <option value={3}>L3 · APPROVE (chờ duyệt)</option>
+              <option value={4}>L4 · ESCALATE (alert)</option>
+            </select>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <span style={lbl}>System prompt <span style={{ color: 'var(--fg-4)' }}>(persona cho AI runtime — phase 10)</span></span>
+            <textarea style={{ ...fld, minHeight: 70, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                      placeholder='vd: "Bạn là Research squad. Mục tiêu: phát hiện trend & cơ hội mới. Trả lời ngắn, action-driven, kèm nguồn."'
+                      value={cfg.systemPrompt ?? ''} onChange={(e) => setCfg('systemPrompt', e.target.value)} />
+          </div>
         </div>
 
         <div className="modal-foot">
@@ -242,11 +303,27 @@ export function SquadsPage({ mode, projectId }: { mode: Mode; projectId: string 
                 <div className="panel-body" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <Donut value={s.active} max={s.agents || 1} label="active" color={s.color} />
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {s.config?.mission && (
+                      <div style={{ fontSize: 11, color: 'var(--fg-1)', fontStyle: 'italic' }}>"{s.config.mission}"</div>
+                    )}
                     <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{s.desc}</div>
+                    {(s.config?.skills?.length ?? 0) > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
+                        {s.config!.skills!.slice(0, 4).map((sk) => (
+                          <span key={sk} className="chip" style={{ fontSize: 9.5, padding: '1px 6px' }}>{sk}</span>
+                        ))}
+                        {s.config!.skills!.length > 4 && (
+                          <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>+{s.config!.skills!.length - 4}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="squad-card-stats" style={{ marginTop: 4 }}>
                       <div className="squad-stat"><span>Active</span><b>{s.active}/{s.agents}</b></div>
                       <div className="squad-stat"><span>Tasks/h</span><b>{Math.round(s.active * 4.2)}</b></div>
                       <div className="squad-stat"><span>Util</span><b className={utilization > 90 ? 'warn' : 'ok'}>{utilization}%</b></div>
+                      {s.config?.trustLevel && (
+                        <div className="squad-stat"><span>Trust</span><b style={{ color: s.color }}>L{s.config.trustLevel}</b></div>
+                      )}
                     </div>
                   </div>
                 </div>

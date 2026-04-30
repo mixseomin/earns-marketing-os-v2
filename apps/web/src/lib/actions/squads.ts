@@ -12,6 +12,15 @@ function ensureDb() {
   return db;
 }
 
+export interface SquadConfig {
+  mission?: string;             // 1 dòng goal/raison-d'être
+  skills?: string[];            // ['SEO research', 'Hashtag analysis']
+  tools?: string[];             // ['Ahrefs API', 'Reddit script', 'GPT-4']
+  systemPrompt?: string;        // For AI runtime (phase 10): squad's persona
+  model?: string;               // 'gpt-4o-mini' default; squad có thể override
+  trustLevel?: 1 | 2 | 3 | 4;   // L1 AUTO, L2 NOTIFY, L3 APPROVE, L4 ESCALATE
+}
+
 export interface SquadInput {
   squadKey: string;
   name: string;
@@ -22,6 +31,7 @@ export interface SquadInput {
   color: string;
   descText: string;
   health: 'ok' | 'warn' | 'bad';
+  config?: SquadConfig;
 }
 
 function squadKeyFromName(name: string): string {
@@ -65,6 +75,7 @@ export async function createSquad(projectId: string, input: SquadInput): Promise
     color: input.color || '#00e5ff',
     descText: input.descText || '',
     health: input.health,
+    config: input.config ?? {},
   });
 
   revalidatePath(`/p/${projectId}/squads`);
@@ -87,6 +98,7 @@ export async function updateSquad(projectId: string, squadKey: string, patch: Pa
   if (patch.color !== undefined) set.color = patch.color;
   if (patch.descText !== undefined) set.descText = patch.descText;
   if (patch.health !== undefined) set.health = patch.health;
+  if (patch.config !== undefined) set.config = patch.config;
 
   await db.update(squads).set(set).where(eq(squads.id, sq.id));
 

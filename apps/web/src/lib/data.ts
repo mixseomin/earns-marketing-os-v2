@@ -182,6 +182,7 @@ function rowToSquad(r: SquadRow): Squad {
     color: r.color,
     desc: r.descText,
     health: (r.health as Squad['health']) ?? 'ok',
+    config: (r.config as Squad['config']) ?? {},
   };
 }
 

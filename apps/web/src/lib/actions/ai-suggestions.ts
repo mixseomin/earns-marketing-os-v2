@@ -17,6 +17,8 @@ function estimateCostUsd(tokens: number): number {
   return (tokens / 1000) * COST_PER_1K_TOKENS;
 }
 
+type Decision = 'approved' | 'rejected';
+
 interface SuggestionsResult {
   ok: boolean;
   suggestions: AISuggestion[];
@@ -25,6 +27,10 @@ interface SuggestionsResult {
   fromCache: boolean;
   tokensUsed?: number;
   error?: string;
+  // Latest row id (so client biết update feedback nào). Null nếu chưa generate lần nào.
+  rowId: number | null;
+  // Per-suggestion decisions: { "0": "approved", "1": "rejected" }. Missing = pending.
+  feedback: Record<string, Decision>;
 }
 
 function ensureDb() {
@@ -110,6 +116,9 @@ export interface AILogEntry {
   suggestionsCount: number;
   suggestions: AISuggestion[];
   inputContext: Record<string, unknown>;
+  feedback: Record<string, Decision>;
+  approvedCount: number;
+  rejectedCount: number;
 }
 
 export async function listAILog(limit = 100): Promise<AILogEntry[]> {
@@ -125,6 +134,7 @@ export async function listAILog(limit = 100): Promise<AILogEntry[]> {
       promptHash: aiSuggestions.promptHash,
       suggestions: aiSuggestions.suggestions,
       inputContext: aiSuggestions.inputContext,
+      feedback: aiSuggestions.feedback,
     })
     .from(aiSuggestions)
     .leftJoin(projects, eq(aiSuggestions.projectId, projects.id))
@@ -133,6 +143,12 @@ export async function listAILog(limit = 100): Promise<AILogEntry[]> {
     .limit(limit);
   return rows.map((r) => {
     const suggArr = Array.isArray(r.suggestions) ? (r.suggestions as AISuggestion[]) : [];
+    const fb = (r.feedback as Record<string, Decision>) ?? {};
+    let approvedCount = 0, rejectedCount = 0;
+    for (const v of Object.values(fb)) {
+      if (v === 'approved') approvedCount++;
+      else if (v === 'rejected') rejectedCount++;
+    }
     return {
       id: r.id,
       projectId: r.projectId,
@@ -145,8 +161,28 @@ export async function listAILog(limit = 100): Promise<AILogEntry[]> {
       suggestionsCount: suggArr.length,
       suggestions: suggArr,
       inputContext: (r.inputContext as Record<string, unknown>) ?? {},
+      feedback: fb,
+      approvedCount,
+      rejectedCount,
     };
   });
+}
+
+const EMPTY: Pick<SuggestionsResult, 'suggestions' | 'generatedAt' | 'model' | 'fromCache' | 'rowId' | 'feedback'> = {
+  suggestions: [], generatedAt: null, model: '', fromCache: false, rowId: null, feedback: {},
+};
+
+function rowToCachedResult(row: typeof aiSuggestions.$inferSelect, error?: string): SuggestionsResult {
+  return {
+    ok: true,
+    suggestions: row.suggestions as AISuggestion[],
+    generatedAt: row.generatedAt.toISOString(),
+    model: row.model,
+    fromCache: true,
+    rowId: row.id,
+    feedback: (row.feedback as Record<string, Decision>) ?? {},
+    ...(error ? { error } : {}),
+  };
 }
 
 export async function getOrGenerateSuggestions(
@@ -154,10 +190,7 @@ export async function getOrGenerateSuggestions(
   options?: { force?: boolean },
 ): Promise<SuggestionsResult> {
   if (!aiEnabled()) {
-    return {
-      ok: false, suggestions: [], generatedAt: null, model: '',
-      fromCache: false, error: 'OPENAI_API_KEY not set',
-    };
+    return { ok: false, ...EMPTY, error: 'OPENAI_API_KEY not set' };
   }
   const force = options?.force === true;
   const db = ensureDb();
@@ -165,10 +198,7 @@ export async function getOrGenerateSuggestions(
   // ── Control B: per-project AI toggle ──
   const proj = await db.select({ aiEnabled: projects.aiEnabled }).from(projects).where(eq(projects.id, projectId)).limit(1);
   if (proj.length > 0 && proj[0]!.aiEnabled === false) {
-    return {
-      ok: false, suggestions: [], generatedAt: null, model: '',
-      fromCache: false, error: 'AI tắt cho project này (Settings → AI panel)',
-    };
+    return { ok: false, ...EMPTY, error: 'AI tắt cho project này (Settings → AI panel)' };
   }
 
   // Check cache: latest row for this project < 1h old, same hash
@@ -178,7 +208,7 @@ export async function getOrGenerateSuggestions(
     .limit(1);
 
   const ctx = await buildContext(projectId);
-  if (!ctx) return { ok: false, suggestions: [], generatedAt: null, model: '', fromCache: false, error: 'project not found' };
+  if (!ctx) return { ok: false, ...EMPTY, error: 'project not found' };
 
   const ctxHash = hashContext(ctx);
 
@@ -186,13 +216,7 @@ export async function getOrGenerateSuggestions(
     const row = latest[0]!;
     const ageMs = Date.now() - row.generatedAt.getTime();
     if (ageMs < CACHE_TTL_MS && row.promptHash === ctxHash) {
-      return {
-        ok: true,
-        suggestions: row.suggestions as AISuggestion[],
-        generatedAt: row.generatedAt.toISOString(),
-        model: row.model,
-        fromCache: true,
-      };
+      return rowToCachedResult(row);
     }
   }
 
@@ -200,18 +224,13 @@ export async function getOrGenerateSuggestions(
   const usage = await getDailyTokenUsage();
   if (usage.cost >= DAILY_BUDGET_USD) {
     if (latest.length > 0) {
-      const row = latest[0]!;
-      return {
-        ok: true,
-        suggestions: row.suggestions as AISuggestion[],
-        generatedAt: row.generatedAt.toISOString(),
-        model: row.model,
-        fromCache: true,
-        error: `Daily budget $${DAILY_BUDGET_USD} đã hết ($${usage.cost.toFixed(4)} dùng) — hiện stale cache.`,
-      };
+      return rowToCachedResult(
+        latest[0]!,
+        `Daily budget $${DAILY_BUDGET_USD} đã hết ($${usage.cost.toFixed(4)} dùng) — hiện stale cache.`,
+      );
     }
     return {
-      ok: false, suggestions: [], generatedAt: null, model: '', fromCache: false,
+      ok: false, ...EMPTY,
       error: `Daily budget $${DAILY_BUDGET_USD} đã hết ($${usage.cost.toFixed(4)} dùng). Nâng OPENAI_DAILY_BUDGET_USD env.`,
     };
   }
@@ -220,7 +239,7 @@ export async function getOrGenerateSuggestions(
   try {
     const result = await runOpenAI(ctx);
     if (!result) {
-      return { ok: false, suggestions: [], generatedAt: null, model: '', fromCache: false, error: 'OpenAI client unavailable' };
+      return { ok: false, ...EMPTY, error: 'OpenAI client unavailable' };
     }
 
     const [inserted] = await db.insert(aiSuggestions).values({
@@ -232,7 +251,7 @@ export async function getOrGenerateSuggestions(
       promptHash: ctxHash,
       inputContext: { cardsSummary: ctx.cardsSummary, recent: ctx.recentCardTitles.length },
       tokensUsed: result.tokensUsed,
-    }).returning({ generatedAt: aiSuggestions.generatedAt });
+    }).returning({ id: aiSuggestions.id, generatedAt: aiSuggestions.generatedAt });
 
     revalidatePath(`/p/${projectId}`);
 
@@ -243,21 +262,44 @@ export async function getOrGenerateSuggestions(
       model: result.model,
       fromCache: false,
       tokensUsed: result.tokensUsed,
+      rowId: inserted!.id,
+      feedback: {},
     };
   } catch (e) {
     console.error('[ai-suggestions] OpenAI call failed:', e);
-    // Fallback to last cached if any
     if (latest.length > 0) {
-      const row = latest[0]!;
-      return {
-        ok: true,
-        suggestions: row.suggestions as AISuggestion[],
-        generatedAt: row.generatedAt.toISOString(),
-        model: row.model,
-        fromCache: true,
-        error: `Generation failed, showing stale cache: ${(e as Error).message}`,
-      };
+      return rowToCachedResult(latest[0]!, `Generation failed, showing stale cache: ${(e as Error).message}`);
     }
-    return { ok: false, suggestions: [], generatedAt: null, model: '', fromCache: false, error: (e as Error).message };
+    return { ok: false, ...EMPTY, error: (e as Error).message };
   }
+}
+
+// Set Approve/Reject decision for a single suggestion within a row.
+// `decision = null` → clear (back to pending).
+export async function setSuggestionFeedback(
+  rowId: number,
+  index: number,
+  decision: Decision | null,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!Number.isInteger(rowId) || rowId <= 0) return { ok: false, error: 'invalid rowId' };
+  if (!Number.isInteger(index) || index < 0) return { ok: false, error: 'invalid index' };
+  if (decision !== null && decision !== 'approved' && decision !== 'rejected') {
+    return { ok: false, error: 'invalid decision' };
+  }
+
+  const db = ensureDb();
+  const key = String(index);
+  // Use jsonb_set for set, '-' operator for delete. Drizzle doesn't help here — raw SQL.
+  if (decision === null) {
+    await db.execute(sql`UPDATE ai_suggestions SET feedback = feedback - ${key} WHERE id = ${rowId}`);
+  } else {
+    await db.execute(
+      sql`UPDATE ai_suggestions SET feedback = jsonb_set(feedback, ARRAY[${key}], ${JSON.stringify(decision)}::jsonb, true) WHERE id = ${rowId}`,
+    );
+  }
+  // Revalidate the project page so SSR fetches fresh feedback.
+  const [row] = await db.select({ projectId: aiSuggestions.projectId }).from(aiSuggestions).where(eq(aiSuggestions.id, rowId)).limit(1);
+  if (row) revalidatePath(`/p/${row.projectId}`);
+  revalidatePath('/ai-log');
+  return { ok: true };
 }

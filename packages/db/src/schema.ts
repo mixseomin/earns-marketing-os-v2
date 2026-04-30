@@ -113,6 +113,9 @@ export const squads = pgTable(
     color: text('color').notNull().default('#00e5ff'),
     descText: text('desc_text').notNull().default(''),
     health: text('health').notNull().default('ok'),        // ok | warn | bad
+    // Per-squad AI config: skills, tools, mission, systemPrompt, model, trustLevel.
+    // Empty {} default means squad chưa configure — UI hiện "config now" CTA.
+    config: jsonb('config').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -508,6 +511,9 @@ export const aiSuggestions = pgTable(
     promptHash: text('prompt_hash'),                          // SHA-256 of prompt input — skip regen if unchanged
     inputContext: jsonb('input_context').notNull().default({}), // what we sent to AI (cards count, mode, etc.)
     tokensUsed: integer('tokens_used').notNull().default(0),
+    // User feedback per suggestion: { "0": "approved" | "rejected", "1": "rejected", ... }
+    // Index = position trong suggestions[]. Missing key = pending (chưa quyết định).
+    feedback: jsonb('feedback').notNull().default({}),
   },
   (t) => [
     index('ai_sugg_project_idx').on(t.projectId, t.generatedAt),

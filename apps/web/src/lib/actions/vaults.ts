@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { getDb, mediaAssets, infraResources, budgetEntries } from '@mos2/db';
+import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -61,6 +62,43 @@ export async function updateMediaAsset(id: number, patch: Partial<MediaInput>, p
   await db.update(mediaAssets).set(set).where(eq(mediaAssets.id, id));
   if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
   return { ok: true };
+}
+
+// AI suggest tags + notes from filename + URL + kind.
+// Used by Media form button "🤖 AI suggest" — returns array tags + 1-line notes.
+export async function suggestMediaMeta(input: {
+  filename: string;
+  url: string;
+  kind: string;
+}): Promise<{ ok: boolean; tags?: string[]; notes?: string; error?: string }> {
+  if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  const client = getOpenAI();
+  if (!client) return { ok: false, error: 'OpenAI client unavailable' };
+
+  const prompt = `Bạn là trợ lý phân loại media asset cho marketing portfolio (Earns project — passive income, content marketing, affiliate). Dựa vào metadata sau:
+- Kind: ${input.kind}
+- Filename: ${input.filename}
+- URL: ${input.url}
+
+Trả về JSON object: { "tags": [3-6 short keyword tags], "notes": "1 câu mô tả ngắn (≤80 chars)" }
+Tags phải lowercase, hyphen-separated nếu nhiều từ. Ưu tiên use-case (logo, hero-banner, demo-screenshot, tutorial-thumbnail, ad-creative, etc.) không phải file format.`;
+
+  try {
+    const res = await client.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 200,
+    });
+    const text = res.choices[0]?.message?.content ?? '{}';
+    const parsed = JSON.parse(text) as { tags?: unknown; notes?: unknown };
+    const tags = Array.isArray(parsed.tags) ? parsed.tags.filter((t): t is string => typeof t === 'string') : [];
+    const notes = typeof parsed.notes === 'string' ? parsed.notes : '';
+    return { ok: true, tags, notes };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 export async function deleteMediaAsset(id: number, projectIdScope?: string): Promise<{ ok: boolean; error?: string }> {

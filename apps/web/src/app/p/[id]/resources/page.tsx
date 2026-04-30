@@ -11,6 +11,12 @@ import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, 
 
 export const dynamic = 'force-dynamic';
 
+function fmtSize(b: number): string {
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)}KB`;
+  if (b < 1024 * 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)}MB`;
+  return `${(b / (1024 * 1024 * 1024)).toFixed(2)}GB`;
+}
+
 export default async function ResourcesRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await getProject(id);
@@ -30,10 +36,22 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     isDemo ? Promise.resolve([]) : listBudget(id),
   ]);
 
+  // Real-count subs cho VAULT_NAV — replaces mock "247 nick / 50tr/d cap" etc.
+  // Demo projects giữ mock sub vì không có DB data → undefined skips override.
+  const vaultStats: Record<string, string> | undefined = isDemo ? undefined : {
+    accounts: `${accounts.filter((a) => a.status === 'active').length}/${accounts.length} active`,
+    media: media.length === 0 ? 'empty' : `${media.length} files · ${fmtSize(media.reduce((s, m) => s + m.sizeBytes, 0))}`,
+    contacts: contacts.length === 0 ? 'empty' : `${contacts.length} contacts`,
+    infra: infra.length === 0 ? 'empty' : `${infra.filter((i) => i.status === 'active').length}/${infra.length} active`,
+    budget: budget.length === 0 ? 'empty' : `${budget.length} entries`,
+    knowledge: knowledge.length === 0 ? 'empty' : `${knowledge.length} items`,
+  };
+
   return (
     <AppShell mode={mode} project={project} projects={projects} tab="resources">
       <ResourcesPage
         isBlank={!isDemo}
+        vaultStats={vaultStats}
         accountsOverride={
           <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} />
         }

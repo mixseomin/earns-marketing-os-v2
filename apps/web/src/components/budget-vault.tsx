@@ -21,22 +21,42 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
   const [editing, setEditing] = useState<BudgetRow | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Aggregate per currency to avoid mixing VND + USD vào 1 sum (issue trên image #2).
   const stats: StatCard[] = useMemo(() => {
     const monthAgo = Date.now() - 30 * 24 * 3600 * 1000;
-    const monthRows = items.filter((i) => i.occurredAt.getTime() >= monthAgo);
-    const income = monthRows.filter((i) => i.kind === 'income').reduce((s, i) => s + i.amountCents, 0);
-    const expense = monthRows.filter((i) => i.kind !== 'income').reduce((s, i) => s + i.amountCents, 0);
-    const recurringTotal = items.filter((i) => i.kind === 'recurring').reduce((s, i) => {
-      const days = i.recurringIntervalDays ?? 30;
-      return s + (i.amountCents * 30) / Math.max(1, days);
-    }, 0);
-    return [
+    const byCcy = new Map<string, { income: number; expense: number; recurring: number }>();
+    for (const i of items) {
+      const within30 = i.occurredAt.getTime() >= monthAgo;
+      const bucket = byCcy.get(i.currency) ?? { income: 0, expense: 0, recurring: 0 };
+      if (within30) {
+        if (i.kind === 'income') bucket.income += i.amountCents;
+        else bucket.expense += i.amountCents;
+      }
+      if (i.kind === 'recurring') {
+        const days = i.recurringIntervalDays ?? 30;
+        bucket.recurring += (i.amountCents * 30) / Math.max(1, days);
+      }
+      byCcy.set(i.currency, bucket);
+    }
+    const cards: StatCard[] = [
       { key: 'total', label: 'Entries', value: items.length, color: 'var(--fg-0)' },
-      { key: 'income', label: 'Income 30d', value: fmtAmount(income, 'VND'), color: 'var(--ok)' },
-      { key: 'expense', label: 'Expense 30d', value: fmtAmount(expense, 'VND'), color: 'var(--bad)' },
-      { key: 'net', label: 'Net 30d', value: fmtAmount(income - expense, 'VND'), color: income - expense >= 0 ? 'var(--ok)' : 'var(--bad)' },
-      { key: 'recurring', label: 'Recurring/mo', value: fmtAmount(Math.round(recurringTotal), 'VND'), color: 'var(--neon-amber)' },
     ];
+    // Sort currencies by total volume desc; show net per currency.
+    const ccys = Array.from(byCcy.entries()).sort((a, b) => (b[1].income + b[1].expense) - (a[1].income + a[1].expense));
+    for (const [ccy, b] of ccys) {
+      const net = b.income - b.expense;
+      cards.push({ key: `net-${ccy}`, label: `Net 30d ${ccy}`, value: fmtAmount(net, ccy), color: net >= 0 ? 'var(--ok)' : 'var(--bad)' });
+    }
+    if (ccys.length === 1) {
+      // Only 1 currency → show breakdown income/expense + recurring as well
+      const [ccy, b] = ccys[0]!;
+      cards.push(
+        { key: `inc-${ccy}`, label: `Income 30d ${ccy}`, value: fmtAmount(b.income, ccy), color: 'var(--ok)' },
+        { key: `exp-${ccy}`, label: `Expense 30d ${ccy}`, value: fmtAmount(b.expense, ccy), color: 'var(--bad)' },
+        { key: `rec-${ccy}`, label: `Recurring/mo ${ccy}`, value: fmtAmount(Math.round(b.recurring), ccy), color: 'var(--neon-amber)' },
+      );
+    }
+    return cards;
   }, [items]);
 
   return (

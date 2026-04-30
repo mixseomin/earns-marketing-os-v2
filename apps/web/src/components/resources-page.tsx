@@ -658,6 +658,7 @@ export function ResourcesPage({
   mediaOverride,
   infraOverride,
   budgetOverride,
+  vaultStats,
   isBlank = false,
 }: {
   accountsOverride?: React.ReactNode;
@@ -666,6 +667,9 @@ export function ResourcesPage({
   mediaOverride?: React.ReactNode;
   infraOverride?: React.ReactNode;
   budgetOverride?: React.ReactNode;
+  // Optional real counts used để override mock VAULT_NAV.sub. Nếu không
+  // truyền cho 1 vault, fallback giữ mock sub (cho demos design preview).
+  vaultStats?: Partial<Record<string, string>>;
   isBlank?: boolean;
 } = {}) {
   const [vault, setVault] = React.useState("accounts");
@@ -691,27 +695,41 @@ export function ResourcesPage({
 
       {/* Vault nav */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8, marginBottom: 16 }}>
-        {VAULT_NAV.map(v => (
-          <button key={v.id} onClick={() => setVault(v.id)} style={{
-            display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-            background: vault === v.id ? "var(--accent-soft)" : "var(--bg-1)",
-            border: vault === v.id ? "1px solid var(--accent-line)" : "1px solid var(--line)",
-            borderRadius: 8, cursor: "pointer", textAlign: "left", color: "inherit",
-          }}>
-            <span style={{ fontSize: 20 }}>{v.icon}</span>
-            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-              <b style={{ fontSize: 12.5, color: "var(--fg-0)", whiteSpace: "nowrap" }}>{v.name}</b>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--fg-3)", whiteSpace: "nowrap" }}>{v.sub}</span>
-            </div>
-          </button>
-        ))}
+        {VAULT_NAV.map(v => {
+          const realSub = vaultStats?.[v.id];
+          return (
+            <button key={v.id} onClick={() => setVault(v.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+              background: vault === v.id ? "var(--accent-soft)" : "var(--bg-1)",
+              border: vault === v.id ? "1px solid var(--accent-line)" : "1px solid var(--line)",
+              borderRadius: 8, cursor: "pointer", textAlign: "left", color: "inherit",
+            }}>
+              <span style={{ fontSize: 20 }}>{v.icon}</span>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <b style={{ fontSize: 12.5, color: "var(--fg-0)", whiteSpace: "nowrap" }}>{v.name}</b>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--fg-3)", whiteSpace: "nowrap" }}>{realSub ?? v.sub}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Vault header */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: "1px dashed var(--line-2)" }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg-0)" }}>{cur.icon} {cur.title}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>
-      </div>
+      {/* Vault header — hide mock sub khi có override (sub mock không khớp DB thực tế) */}
+      {(() => {
+        const hasOverride =
+          (vault === 'accounts' && accountsOverride) ||
+          (vault === 'knowledge' && knowledgeOverride) ||
+          (vault === 'contacts' && contactsOverride) ||
+          (vault === 'media' && mediaOverride) ||
+          (vault === 'infra' && infraOverride) ||
+          (vault === 'budget' && budgetOverride);
+        return (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: "1px dashed var(--line-2)" }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg-0)" }}>{cur.icon} {cur.title}</div>
+            {!hasOverride && <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>}
+          </div>
+        );
+      })()}
 
       {vault === 'accounts' && accountsOverride
         ? accountsOverride

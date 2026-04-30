@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
-import { createMediaAsset, updateMediaAsset, deleteMediaAsset, type MediaInput } from '@/lib/actions/vaults';
+import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, type MediaInput } from '@/lib/actions/vaults';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
 
 const KIND_ICON: Record<string, string> = { image: '🖼', video: '🎬', audio: '🎵', doc: '📄', other: '🗂' };
@@ -76,6 +76,8 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [probing, setProbing] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const isCreate = !asset;
   const [form, setForm] = useState({
     kind: (asset?.kind ?? 'image') as MediaInput['kind'],
@@ -91,6 +93,80 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
     notes: asset?.notes ?? '',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Auto-detect: when URL changes (debounced), probe metadata.
+  // - For images: <img onload> gives natural width/height.
+  // - For all kinds: HEAD fetch returns Content-Type + Content-Length (CORS dependent).
+  // - Filename: derive from URL path basename if filename empty.
+  useEffect(() => {
+    const url = form.url.trim();
+    if (!url || !/^https?:\/\//.test(url)) return;
+    const t = setTimeout(async () => {
+      setProbing(true);
+      try {
+        // Filename auto-fill if empty
+        if (!form.filename) {
+          const m = url.match(/\/([^/?#]+?)(?:\?.*)?(?:#.*)?$/);
+          if (m) setForm((f) => f.filename ? f : { ...f, filename: m[1]! });
+        }
+        // HEAD fetch for MIME + size (CORS may block; ignore failures silently)
+        try {
+          const head = await fetch(url, { method: 'HEAD', mode: 'cors' });
+          const ct = head.headers.get('content-type');
+          const cl = head.headers.get('content-length');
+          if (ct) setForm((f) => f.mimeType ? f : { ...f, mimeType: ct.split(';')[0]!.trim() });
+          if (cl) setForm((f) => f.sizeBytes ? f : { ...f, sizeBytes: Number(cl) });
+        } catch { /* CORS or offline */ }
+        // Image dimensions via <img>
+        if (form.kind === 'image') {
+          const img = new window.Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            setForm((f) => ({
+              ...f,
+              width: f.width === '' || f.width === 0 ? img.naturalWidth : f.width,
+              height: f.height === '' || f.height === 0 ? img.naturalHeight : f.height,
+            }));
+          };
+          img.src = url;
+        }
+        // Video duration + dimensions via <video>
+        if (form.kind === 'video') {
+          const vid = document.createElement('video');
+          vid.preload = 'metadata';
+          vid.onloadedmetadata = () => {
+            setForm((f) => ({
+              ...f,
+              width: f.width === '' || f.width === 0 ? vid.videoWidth : f.width,
+              height: f.height === '' || f.height === 0 ? vid.videoHeight : f.height,
+              durationSec: f.durationSec === '' || f.durationSec === 0 ? Math.round(vid.duration) : f.durationSec,
+            }));
+          };
+          vid.src = url;
+        }
+      } finally {
+        setProbing(false);
+      }
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.url, form.kind]);
+
+  const handleAiSuggest = () => {
+    if (!form.filename && !form.url) { setError('Cần filename hoặc URL trước khi AI suggest'); return; }
+    setAiBusy(true);
+    setError(null);
+    suggestMediaMeta({ filename: form.filename, url: form.url, kind: form.kind })
+      .then((res) => {
+        if (!res.ok) { setError(res.error || 'AI suggest failed'); return; }
+        setForm((f) => ({
+          ...f,
+          tagsStr: res.tags?.length ? res.tags.join(', ') : f.tagsStr,
+          notes: res.notes || f.notes,
+        }));
+      })
+      .finally(() => setAiBusy(false));
+  };
 
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -140,8 +216,14 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
             <input style={fld} value={form.filename} onChange={(e) => setF('filename', e.target.value)} />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>URL *</span>
+            <span style={lbl}>
+              URL *
+              {probing && <span style={{ marginLeft: 8, fontSize: 9, color: 'var(--neon-cyan)', textTransform: 'none', letterSpacing: 0 }}>⟲ probing…</span>}
+            </span>
             <input style={fld} type="url" placeholder="https://... or s3://..." value={form.url} onChange={(e) => setF('url', e.target.value)} />
+            <div style={{ fontSize: 9, color: 'var(--fg-4)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
+              Paste URL → auto-detect MIME/size/width/height (CORS dependent).
+            </div>
           </div>
           <div><span style={lbl}>MIME</span><input style={fld} placeholder="image/png" value={form.mimeType} onChange={(e) => setF('mimeType', e.target.value)} /></div>
           <div><span style={lbl}>Size (bytes)</span><input style={fld} type="number" value={form.sizeBytes} onChange={(e) => setF('sizeBytes', Number(e.target.value) | 0)} /></div>
@@ -155,7 +237,15 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
             </label>
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>Tags (comma-separated)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+              <span style={{ ...lbl, marginBottom: 0 }}>Tags (comma-separated)</span>
+              <button type="button" onClick={handleAiSuggest} disabled={aiBusy}
+                      className="btn"
+                      style={{ marginLeft: 'auto', fontSize: 10, padding: '2px 8px' }}
+                      title="OpenAI gpt-4o-mini suggests tags + notes từ filename/URL">
+                {aiBusy ? '⟲ thinking…' : '🤖 AI suggest'}
+              </button>
+            </div>
             <input style={fld} value={form.tagsStr} onChange={(e) => setF('tagsStr', e.target.value)} />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>

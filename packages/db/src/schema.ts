@@ -276,6 +276,109 @@ export const platformAccounts = pgTable(
   ],
 );
 
+// ── tribes (audience identity, layer 2) ──────────────────────────
+// Per-project audience cluster. Mirrors as.on.tc 'communities' collection.
+export const tribes = pgTable(
+  'tribes',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    descText: text('desc_text').notNull().default(''),
+    signal: text('signal').notNull().default(''),         // why this tribe matters
+    sentiment: smallint('sentiment').notNull().default(0), // -100..+100
+    lifecycle: text('lifecycle').notNull().default('discovery'), // discovery|active|saturated|fading
+    lexicon: jsonb('lexicon').notNull().default([]),       // words used by tribe
+    avoid: jsonb('avoid').notNull().default([]),           // terms to avoid
+    psychographic: text('psychographic').notNull().default(''),
+    importedFrom: text('imported_from'),                   // 'directus:<uuid>' if synced
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('tribes_project_slug_uniq').on(t.projectId, t.slug),
+    index('tribes_tenant_idx').on(t.tenantId),
+  ],
+);
+
+// ── habitats (where tribes hang out, layer 1) ────────────────────
+// subreddit, FB group, hashtag cluster, Discord server etc.
+export const habitats = pgTable(
+  'habitats',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    tribeId: integer('tribe_id').references(() => tribes.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull().default('forum'),         // subreddit|fb-group|discord|forum|hashtag|...
+    name: text('name').notNull(),
+    url: text('url'),
+    members: integer('members').notNull().default(0),
+    activity: text('activity').notNull().default(''),       // free-form: 'high', '120 posts/d'
+    scrapeFrequency: text('scrape_frequency').notNull().default('manual'), // live|manual|weekly|comments
+    lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+    health: text('health').notNull().default('ok'),        // ok|warn|bad
+    importedFrom: text('imported_from'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('habitats_tenant_idx').on(t.tenantId),
+    index('habitats_tribe_idx').on(t.tribeId),
+    index('habitats_project_idx').on(t.projectId),
+  ],
+);
+
+// ── knowledge_items (Resources/Knowledge vault) ──────────────────
+export const knowledgeItems = pgTable(
+  'knowledge_items',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }), // null = portfolio-wide
+    kind: text('kind').notNull().default('playbook'),      // playbook|prompt|template|lesson|gotcha
+    title: text('title').notNull(),
+    content: text('content').notNull().default(''),
+    tags: jsonb('tags').notNull().default([]),
+    importedFrom: text('imported_from'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('knowledge_tenant_idx').on(t.tenantId),
+    index('knowledge_project_idx').on(t.projectId),
+    index('knowledge_kind_idx').on(t.kind),
+  ],
+);
+
+// ── contacts (Resources/Contacts vault) ──────────────────────────
+export const contacts = pgTable(
+  'contacts',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    email: text('email'),
+    role: text('role').notNull().default(''),               // KOC|partner|brand|influencer|press|customer
+    company: text('company'),
+    socialHandles: jsonb('social_handles').notNull().default({}), // { twitter: '@', linkedin: 'url', ... }
+    notes: text('notes'),
+    tags: jsonb('tags').notNull().default([]),
+    importedFrom: text('imported_from'),
+    lastTouchedAt: timestamp('last_touched_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('contacts_tenant_idx').on(t.tenantId),
+    index('contacts_project_idx').on(t.projectId),
+    index('contacts_role_idx').on(t.role),
+  ],
+);
+
 // ── use_cases ────────────────────────────────────────────────────
 // Test cases / use cases registry. Spec columns are seed-managed (AI
 // appends when shipping a feature) and idempotent-upserted on every
@@ -382,4 +485,4 @@ export const roadmapItems = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts };

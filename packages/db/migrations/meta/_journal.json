@@ -43,6 +43,13 @@
       "when": 1777488989735,
       "tag": "0005_curvy_terrax",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777540764266,
+      "tag": "0006_tiresome_dagger",
+      "breakpoints": true
     }
   ]
 }

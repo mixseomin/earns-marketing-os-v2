@@ -3,7 +3,8 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { ContentPieceRow } from '@/lib/data';
-import { CHANNELS, STATUSES, createContentPiece, updateContentPiece, archiveContentPiece, generateContent, type ContentInput, type ContentStatus } from '@/lib/actions/content';
+import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, type ContentInput } from '@/lib/actions/content';
+import { CHANNELS, STATUSES, type ContentStatus } from '@/lib/content-channels';
 import type { SkillRow } from '@/lib/actions/library';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
 

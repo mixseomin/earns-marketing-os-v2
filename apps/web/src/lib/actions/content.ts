@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { getDb, contentPieces } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { CHANNELS, type ContentStatus } from '@/lib/content-channels';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -16,21 +17,6 @@ function ensureDb() {
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'piece';
 }
-
-export const CHANNELS: Array<{ id: string; label: string; icon: string; hint: string }> = [
-  { id: 'fb-post',         label: 'FB post',        icon: '📘', hint: 'Facebook feed post — long-form, story-led' },
-  { id: 'email',           label: 'Email',          icon: '✉️', hint: 'Newsletter / sequence email' },
-  { id: 'ad',              label: 'Ad',             icon: '📊', hint: 'Paid ad copy — short headline + CTA' },
-  { id: 'reel',            label: 'Reel/Short',     icon: '🎬', hint: 'TikTok / IG Reel / YouTube Short' },
-  { id: 'twitter-thread',  label: 'X thread',       icon: '🐦', hint: 'Twitter/X thread — 8-12 tweets' },
-  { id: 'landing',         label: 'Landing',        icon: '🖥', hint: 'Landing page hero + section copy' },
-  { id: 'dm',              label: 'DM',             icon: '💬', hint: 'Direct message / outreach' },
-  { id: 'blog',            label: 'Blog',           icon: '📝', hint: 'Long-form SEO blog post' },
-  { id: 'youtube-script',  label: 'YT script',      icon: '📺', hint: 'YouTube video script — hook → value → CTA' },
-];
-
-export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
-export type ContentStatus = typeof STATUSES[number];
 
 export interface ContentInput {
   slug?: string;

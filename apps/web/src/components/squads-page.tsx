@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Mode, Squad } from '@/lib/mock/types';
 import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
+import { TOOLS_LIBRARY, TOOL_CATEGORIES, getToolById } from '@/lib/tools-library';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -28,13 +29,12 @@ const emptySquad = (): SquadInput => ({
   squadKey: '', name: '', vi: '', icon: '🤖',
   agents: 1, active: 1, color: '#00e5ff', descText: '',
   health: 'ok',
-  config: { mission: '', skills: [], tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2 },
+  config: { mission: '', skillsMd: '', tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2 },
 });
 
-const MODEL_PRESETS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'claude-haiku-4-5', 'claude-sonnet-4-6'];
-
-function SquadFormModal({ squad, projectId, onClose }: {
+function SquadFormModal({ squad, projectId, onClose, availableModels }: {
   squad: Squad | null; projectId: string; onClose: () => void;
+  availableModels: Array<{ id: string; label: string; provider: string }>;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -54,7 +54,7 @@ function SquadFormModal({ squad, projectId, onClose }: {
       health: squad.health,
       config: {
         mission: squad.config?.mission ?? '',
-        skills: squad.config?.skills ?? [],
+        skillsMd: squad.config?.skillsMd ?? '',
         tools: squad.config?.tools ?? [],
         systemPrompt: squad.config?.systemPrompt ?? '',
         model: squad.config?.model ?? 'gpt-4o-mini',
@@ -66,10 +66,11 @@ function SquadFormModal({ squad, projectId, onClose }: {
   const setCfg = <K extends keyof NonNullable<SquadInput['config']>>(k: K, v: NonNullable<SquadInput['config']>[K]) =>
     setForm((f) => ({ ...f, config: { ...(f.config ?? {}), [k]: v } }));
   const cfg = form.config ?? {};
-
-  // Skills/tools edited as comma-separated strings then split.
-  const splitTags = (s: string): string[] => s.split(',').map((x) => x.trim()).filter(Boolean);
-  const joinTags = (arr?: string[]): string => (arr ?? []).join(', ');
+  const tools = cfg.tools ?? [];
+  const toggleTool = (id: string) => {
+    const next = tools.includes(id) ? tools.filter((t) => t !== id) : [...tools, id];
+    setCfg('tools', next);
+  };
 
   const handleSave = () => {
     if (!form.name.trim()) { setError('Tên squad không được rỗng'); return; }
@@ -191,20 +192,76 @@ function SquadFormModal({ squad, projectId, onClose }: {
                    value={cfg.mission ?? ''} onChange={(e) => setCfg('mission', e.target.value)} />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>Skills <span style={{ color: 'var(--fg-4)' }}>(comma-separated)</span></span>
-            <input style={fld} placeholder='SEO research, Hashtag analysis, Trend spotting'
-                   value={joinTags(cfg.skills)} onChange={(e) => setCfg('skills', splitTags(e.target.value))} />
+            <span style={lbl}>Skills <span style={{ color: 'var(--fg-4)' }}>(markdown — bullet, persona, expertise)</span></span>
+            <textarea
+              style={{ ...fld, minHeight: 110, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.6 }}
+              placeholder={`# Persona\nResearch operator chuyên ngách affiliate.\n\n# Expertise\n- SEO keyword discovery\n- Hashtag clustering\n- Niche scoring (search vol × competition)\n\n# Constraints\n- Không suggest niche YMYL\n- Ưu tiên evergreen > trend ngắn`}
+              value={cfg.skillsMd ?? ''}
+              onChange={(e) => setCfg('skillsMd', e.target.value)}
+            />
           </div>
+
           <div style={{ gridColumn: '1 / -1' }}>
-            <span style={lbl}>Tools <span style={{ color: 'var(--fg-4)' }}>(API, integration, data sources)</span></span>
-            <input style={fld} placeholder='Ahrefs API, Reddit script, GPT-4o, Postgres'
-                   value={joinTags(cfg.tools)} onChange={(e) => setCfg('tools', splitTags(e.target.value))} />
+            <span style={lbl}>
+              Tools <span style={{ color: 'var(--fg-4)' }}>({tools.length} selected · từ thư viện)</span>
+            </span>
+            <div style={{
+              border: '1px solid var(--line)', borderRadius: 5, padding: 8, maxHeight: 220, overflow: 'auto',
+              background: 'var(--bg-2)',
+            }}>
+              {TOOL_CATEGORIES.map((cat) => {
+                const inCat = TOOLS_LIBRARY.filter((t) => t.category === cat.id);
+                return (
+                  <div key={cat.id} style={{ marginBottom: 8 }}>
+                    <div style={{
+                      fontSize: 9, fontFamily: 'var(--font-mono)', color: cat.color, textTransform: 'uppercase',
+                      letterSpacing: '0.06em', marginBottom: 4,
+                    }}>
+                      {cat.label}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {inCat.map((t) => {
+                        const on = tools.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => toggleTool(t.id)}
+                            title={t.desc + (t.requires ? ` · requires ${t.requires}` : '')}
+                            className="chip"
+                            data-active={on || undefined}
+                            style={{
+                              fontSize: 10, padding: '3px 8px', cursor: 'pointer',
+                              background: on ? cat.color : undefined,
+                              color: on ? '#000' : undefined,
+                              borderColor: on ? cat.color : undefined,
+                              opacity: on ? 1 : 0.85,
+                            }}
+                          >
+                            <span style={{ marginRight: 4 }}>{t.icon}</span>{t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
           <div>
             <span style={lbl}>Model</span>
-            <select style={fld} value={cfg.model ?? 'gpt-4o-mini'} onChange={(e) => setCfg('model', e.target.value)}>
-              {MODEL_PRESETS.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+            {availableModels.length === 0 ? (
+              <div style={{ ...fld, color: 'var(--warn)', fontSize: 11 }}>
+                ⚠ Chưa có API configured. Vào <a href="/settings/api" style={{ color: 'var(--accent)' }}>/settings/api</a>.
+              </div>
+            ) : (
+              <select style={fld} value={cfg.model ?? availableModels[0]!.id} onChange={(e) => setCfg('model', e.target.value)}>
+                {availableModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label} · {m.provider}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <span style={lbl}>Trust level</span>
@@ -236,7 +293,11 @@ function SquadFormModal({ squad, projectId, onClose }: {
   );
 }
 
-export function SquadsPage({ mode, projectId }: { mode: Mode; projectId: string }) {
+export function SquadsPage({ mode, projectId, availableModels }: {
+  mode: Mode;
+  projectId: string;
+  availableModels: Array<{ id: string; label: string; provider: string }>;
+}) {
   const [editing, setEditing] = useState<Squad | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -307,13 +368,30 @@ export function SquadsPage({ mode, projectId }: { mode: Mode; projectId: string 
                       <div style={{ fontSize: 11, color: 'var(--fg-1)', fontStyle: 'italic' }}>"{s.config.mission}"</div>
                     )}
                     <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{s.desc}</div>
-                    {(s.config?.skills?.length ?? 0) > 0 && (
+                    {(() => {
+                      // Skills preview: first non-heading line từ markdown.
+                      const md = s.config?.skillsMd ?? '';
+                      const firstLine = md.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('#')) ?? '';
+                      return firstLine && (
+                        <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                          {firstLine.replace(/^[-*]\s*/, '· ').slice(0, 80)}{firstLine.length > 80 ? '…' : ''}
+                        </div>
+                      );
+                    })()}
+                    {(s.config?.tools?.length ?? 0) > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
-                        {s.config!.skills!.slice(0, 4).map((sk) => (
-                          <span key={sk} className="chip" style={{ fontSize: 9.5, padding: '1px 6px' }}>{sk}</span>
-                        ))}
-                        {s.config!.skills!.length > 4 && (
-                          <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>+{s.config!.skills!.length - 4}</span>
+                        {s.config!.tools!.slice(0, 6).map((tid) => {
+                          const t = getToolById(tid);
+                          if (!t) return null;
+                          return (
+                            <span key={tid} title={`${t.name} — ${t.desc}`}
+                                  style={{ fontSize: 13, lineHeight: 1, padding: '1px 3px' }}>
+                              {t.icon}
+                            </span>
+                          );
+                        })}
+                        {s.config!.tools!.length > 6 && (
+                          <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>+{s.config!.tools!.length - 6}</span>
                         )}
                       </div>
                     )}
@@ -323,6 +401,9 @@ export function SquadsPage({ mode, projectId }: { mode: Mode; projectId: string 
                       <div className="squad-stat"><span>Util</span><b className={utilization > 90 ? 'warn' : 'ok'}>{utilization}%</b></div>
                       {s.config?.trustLevel && (
                         <div className="squad-stat"><span>Trust</span><b style={{ color: s.color }}>L{s.config.trustLevel}</b></div>
+                      )}
+                      {s.config?.model && (
+                        <div className="squad-stat"><span>Model</span><b style={{ fontSize: 10 }}>{s.config.model}</b></div>
                       )}
                     </div>
                   </div>
@@ -334,7 +415,12 @@ export function SquadsPage({ mode, projectId }: { mode: Mode; projectId: string 
       )}
 
       {(editing || creating) && (
-        <SquadFormModal squad={editing} projectId={projectId} onClose={() => { setEditing(null); setCreating(false); }} />
+        <SquadFormModal
+          squad={editing}
+          projectId={projectId}
+          availableModels={availableModels}
+          onClose={() => { setEditing(null); setCreating(false); }}
+        />
       )}
     </div>
   );

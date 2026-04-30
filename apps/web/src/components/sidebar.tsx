@@ -66,6 +66,10 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
           <div className="squad-icon" style={{ color: 'var(--neon-violet)' }}>🤖</div>
           <div className="squad-name"><b>AI Activity</b><span>OpenAI calls · cost · oversight</span></div>
         </Link>
+        <Link href="/settings/api" className="squad" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+          <div className="squad-icon" style={{ color: 'var(--neon-amber)' }}>🔑</div>
+          <div className="squad-name"><b>API Keys</b><span>LLM providers · status</span></div>
+        </Link>
         <div className="squad">
           <div className="squad-icon" style={{ color: 'var(--neon-amber)' }}>⌖</div>
           <div className="squad-name"><b>Playbooks</b><span>42 active</span></div>

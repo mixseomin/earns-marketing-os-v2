@@ -14,10 +14,10 @@ function ensureDb() {
 
 export interface SquadConfig {
   mission?: string;             // 1 dòng goal/raison-d'être
-  skills?: string[];            // ['SEO research', 'Hashtag analysis']
-  tools?: string[];             // ['Ahrefs API', 'Reddit script', 'GPT-4']
+  skillsMd?: string;            // Markdown description: bullet list, persona traits, expertise
+  tools?: string[];             // IDs từ TOOLS_LIBRARY (lib/tools-library.ts)
   systemPrompt?: string;        // For AI runtime (phase 10): squad's persona
-  model?: string;               // 'gpt-4o-mini' default; squad có thể override
+  model?: string;               // Phụ thuộc API key đã configure (xem /settings/api)
   trustLevel?: 1 | 2 | 3 | 4;   // L1 AUTO, L2 NOTIFY, L3 APPROVE, L4 ESCALATE
 }
 

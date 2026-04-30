@@ -6,7 +6,9 @@ export type AccentKey = 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
 
 export interface SquadConfig {
   mission?: string;
-  skills?: string[];
+  // Skills là markdown (multi-line description). Was string[] — migrated to free-form text.
+  skillsMd?: string;
+  // Tools = string[] of IDs từ TOOLS_LIBRARY (lib/tools-library.ts).
   tools?: string[];
   systemPrompt?: string;
   model?: string;

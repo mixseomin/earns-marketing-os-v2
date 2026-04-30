@@ -196,16 +196,23 @@ export async function getOrGenerateSuggestions(
   const db = ensureDb();
 
   // ── Control B: per-project AI toggle ──
+  // Khi disabled: KHÔNG ẩn suggestions cũ — vẫn show cache + banner báo AI tắt.
+  // Suggestions là information đã sinh, user vẫn cần đọc/decide kể cả khi pause AI.
   const proj = await db.select({ aiEnabled: projects.aiEnabled }).from(projects).where(eq(projects.id, projectId)).limit(1);
-  if (proj.length > 0 && proj[0]!.aiEnabled === false) {
-    return { ok: false, ...EMPTY, error: 'AI tắt cho project này (Settings → AI panel)' };
-  }
+  const projAIDisabled = proj.length > 0 && proj[0]!.aiEnabled === false;
 
   // Check cache: latest row for this project < 1h old, same hash
   const latest = await db.select().from(aiSuggestions)
     .where(and(eq(aiSuggestions.tenantId, TENANT), eq(aiSuggestions.projectId, projectId)))
     .orderBy(desc(aiSuggestions.generatedAt))
     .limit(1);
+
+  if (projAIDisabled) {
+    if (latest.length > 0) {
+      return rowToCachedResult(latest[0]!, 'AI tắt cho project này — đây là kết quả lần trước (Settings → AI panel để bật lại).');
+    }
+    return { ok: false, ...EMPTY, error: 'AI tắt cho project này (Settings → AI panel)' };
+  }
 
   const ctx = await buildContext(projectId);
   if (!ctx) return { ok: false, ...EMPTY, error: 'project not found' };

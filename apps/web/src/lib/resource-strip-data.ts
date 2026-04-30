@@ -9,7 +9,7 @@
 //
 // Pattern khớp `lib/data.ts` tryDb wrapper: log + fallback to mock on DB error.
 
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { getDb, platformAccounts, contacts, knowledgeItems } from '@mos2/db';
 import { RESOURCE_DATA, type StripItem } from './mock/resources';
 
@@ -28,11 +28,19 @@ export async function getResourceStripData(projectId: string): Promise<StripItem
         blocked: sql<number>`COUNT(*) FILTER (WHERE status IN ('blocked','banned'))::int`,
       }).from(platformAccounts).where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId))).then((r) => r[0]!),
 
+      // Match `listAllContacts(projectId)` semantics: include portfolio-wide rows
+      // (project_id IS NULL) so the strip count khớp với /resources tab counts.
       db.select({ count: sql<number>`COUNT(*)::int` })
-        .from(contacts).where(and(eq(contacts.tenantId, TENANT), eq(contacts.projectId, projectId))).then((r) => r[0]!),
+        .from(contacts).where(and(
+          eq(contacts.tenantId, TENANT),
+          or(eq(contacts.projectId, projectId), isNull(contacts.projectId)),
+        )).then((r) => r[0]!),
 
       db.select({ count: sql<number>`COUNT(*)::int` })
-        .from(knowledgeItems).where(and(eq(knowledgeItems.tenantId, TENANT), eq(knowledgeItems.projectId, projectId))).then((r) => r[0]!),
+        .from(knowledgeItems).where(and(
+          eq(knowledgeItems.tenantId, TENANT),
+          or(eq(knowledgeItems.projectId, projectId), isNull(knowledgeItems.projectId)),
+        )).then((r) => r[0]!),
     ]);
 
     // Tone logic: blocked > 0 → bad. warmup > 0 → warn. healthy/empty → ok.

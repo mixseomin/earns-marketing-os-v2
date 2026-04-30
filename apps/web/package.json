@@ -13,6 +13,7 @@
   "dependencies": {
     "@mos2/db": "*",
     "next": "^15.0.3",
+    "openai": "^4.79.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

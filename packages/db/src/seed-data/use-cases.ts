@@ -425,6 +425,30 @@ export const USE_CASES: UseCaseSpec[] = [
     expected: '188 knowledge items (12 Astrolas + 176 portfolio-wide) renderable + searchable + filterable.',
   },
   {
+    slug: '8.4-ai-suggestions-openai',
+    groupKey: '8', groupLabel: 'Group 8 — Phase 8 DB wiring',
+    title: 'AI Suggestions Dashboard chạy OpenAI gpt-4o-mini cho real projects',
+    priority: 'high', shippedIn: 'WIP',
+    featureRef: 'AISuggestionsPanel + lib/ai + ai_suggestions table',
+    tags: ['ai', 'openai', 'phase-10', 'dashboard'],
+    sortOrder: 84,
+    steps: [
+      { n: 1, action: 'Mở Astrolas dashboard', url: '/p/astrolas' },
+      { n: 2, action: 'Verify panel "AI Suggestions" hiện loading "🤖 Generating via gpt-4o-mini..."' },
+      { n: 3, action: 'Đợi 2-5s → 4-5 suggestions hiện với icon ↗/✦/✕/⟲/!, title VN, meta + agent' },
+      { n: 4, action: 'Verify timestamp "Xs ago" + "fresh" badge + token count + cost ước tính' },
+      { n: 5, action: 'Click ↻ Refresh → re-generate (dùng cache nếu < 1h, force ignore cache)' },
+      { n: 6, action: 'F5 dashboard → load lại từ cache, badge "cached"' },
+      { n: 7, action: 'Đổi project KPI/revenue ở Settings → save → reload dashboard → context hash đổi → regenerate' },
+      { n: 8, action: 'Demo project (aff-vn) → vẫn dùng mock suggestions từ mode template, không gọi OpenAI' },
+    ],
+    expected:
+      'OpenAI gpt-4o-mini generate 4-5 suggestions cụ thể cho project context (name, mode, brand, cards, KPI).\n' +
+      'Cache 1h trong ai_suggestions table; context hash check tránh re-call khi data không đổi.\n' +
+      'Cost ~$0.0001-0.001 per generation (gpt-4o-mini ~$0.15/1M input tokens).\n' +
+      'Demo projects giữ mock cho design preview, không tốn API call.',
+  },
+  {
     slug: '8.3-contacts-vault-db-wired',
     groupKey: '8', groupLabel: 'Group 8 — Phase 8 DB wiring',
     title: 'Contacts vault DB-backed cho real projects',

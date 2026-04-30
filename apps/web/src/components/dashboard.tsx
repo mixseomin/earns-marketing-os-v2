@@ -2,6 +2,7 @@ import type { Mode, Kpi } from '@/lib/mock/types';
 import { Sparkline, RevenueChart, HourBars } from './charts';
 import { ResourceStrip } from './resource-strip';
 import type { Project } from '@/lib/mock/types';
+import { AISuggestionsPanel } from './ai-suggestions-panel';
 
 const HOUR_DATA = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')}h`,
@@ -225,14 +226,21 @@ export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) 
       </div>
       )}
 
-      {isBlank && (
-        <div className="panel" style={{ marginTop: 16 }}>
-          <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🌱</div>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: 'var(--fg-0)' }}>Blank slate</h2>
-            <p style={{ margin: '0 0 16px', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
-              Project này chưa có dữ liệu. Thêm squads, cards, alerts qua các tab Board/Squads để dashboard có nội dung.
-            </p>
+      {isBlank && project && (
+        <div className="row r-2" style={{ marginTop: 16 }}>
+          <AISuggestionsPanel projectId={project.id} />
+          <div className="panel">
+            <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🌱</div>
+              <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 600, color: 'var(--fg-0)' }}>Real project · {project.name}</h2>
+              <p style={{ margin: '0 0 8px', fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+                Cards: {m.cards.length} · Squads: {m.squads.length} · Alerts: {m.alerts.length}
+              </p>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-3)' }}>
+                AI Suggestions panel ↗ đang chạy gpt-4o-mini với context từ project.
+                {' '}KPI grid + Revenue chart + Top Winners cần revenue_events table — phase tới.
+              </p>
+            </div>
           </div>
         </div>
       )}

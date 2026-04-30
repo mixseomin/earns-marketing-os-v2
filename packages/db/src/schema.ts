@@ -489,5 +489,27 @@ export const roadmapItems = pgTable(
   ],
 );
 
+// ── ai_suggestions (Phase 10 — AI runtime) ───────────────────────
+// Per-project cache của AI-generated suggestions. Generated via OpenAI
+// (gpt-4o-mini default) khi user mở Dashboard hoặc click "Refresh".
+// TTL ~1h — older cache → regenerate. Manual force regenerate any time.
+export const aiSuggestions = pgTable(
+  'ai_suggestions',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+    model: text('model').notNull().default('gpt-4o-mini'),
+    suggestions: jsonb('suggestions').notNull().default([]), // [{icon, title, meta, agent}]
+    promptHash: text('prompt_hash'),                          // SHA-256 of prompt input — skip regen if unchanged
+    inputContext: jsonb('input_context').notNull().default({}), // what we sent to AI (cards count, mode, etc.)
+    tokensUsed: integer('tokens_used').notNull().default(0),
+  },
+  (t) => [
+    index('ai_sugg_project_idx').on(t.projectId, t.generatedAt),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions };

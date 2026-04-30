@@ -7,6 +7,7 @@ import type { Project } from '@/lib/mock/types';
 import {
   createAccount, updateAccount, deleteAccount, setAccountStatus, toggleChecklistItem,
   listDirectusAccountsForPlatform, importDirectusAccount,
+  setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
 import { Pill, EmptyState } from './ui';
@@ -626,6 +627,15 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
             </div>
           </div>
 
+          {/* API Token (encrypted via pgcrypto) — only edit-mode */}
+          {!isCreate && (
+            <ApiTokenSection
+              projectId={projectId}
+              accountId={account!.id}
+              hasToken={account!.hasApiToken}
+            />
+          )}
+
           {/* Warmup checklist + image specs (only when editing existing account) */}
           {!isCreate && platform && platform.checklist.length > 0 && (
             <div style={{ marginTop: 16 }}>
@@ -700,6 +710,115 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── ApiTokenSection: write-only set + reveal modal + clear ─────────
+function ApiTokenSection({ projectId, accountId, hasToken }: {
+  projectId: string;
+  accountId: number;
+  hasToken: boolean;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [copyOk, setCopyOk] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const fld: React.CSSProperties = {
+    width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
+    borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none', fontFamily: 'var(--font-mono)',
+  };
+
+  const handleSave = () => {
+    if (!tokenInput.trim()) { setError('token rỗng'); return; }
+    startTransition(async () => {
+      const res = await setAccountApiToken(projectId, accountId, tokenInput);
+      if (!res.ok) { setError(res.error || 'save failed'); return; }
+      setTokenInput('');
+      setEditing(false);
+      setError(null);
+      router.refresh();
+    });
+  };
+  const handleReveal = () => {
+    setRevealing(true); setError(null);
+    startTransition(async () => {
+      const res = await revealAccountApiToken(projectId, accountId);
+      setRevealing(false);
+      if (!res.ok) { setError(res.error || 'reveal failed'); return; }
+      setRevealed(res.plaintext ?? '');
+    });
+  };
+  const handleCopy = async () => {
+    if (!revealed) return;
+    try { await navigator.clipboard.writeText(revealed); setCopyOk(true); setTimeout(() => setCopyOk(false), 1500); } catch {}
+  };
+  const handleClear = () => {
+    if (!confirm('Xoá API token? Action này không hoàn tác — token plaintext không khôi phục được.')) return;
+    startTransition(async () => {
+      await clearAccountApiToken(projectId, accountId);
+      setRevealed(null);
+      router.refresh();
+    });
+  };
+
+  return (
+    <div style={{ marginTop: 14, padding: 10, background: 'rgba(157,108,255,.04)', border: '1px solid rgba(157,108,255,.2)', borderRadius: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--neon-violet)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          🔒 API Token
+        </span>
+        <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+          encrypted at-rest (pgcrypto · MOS2_SECRET_KEY)
+        </span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 10, color: hasToken ? 'var(--ok)' : 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+          {hasToken ? '● set' : '○ not set'}
+        </span>
+      </div>
+
+      {error && <div style={{ padding: '4px 8px', background: 'rgba(255,77,94,.08)', color: 'var(--bad)', fontSize: 11, borderRadius: 4, marginBottom: 6 }}>⚠ {error}</div>}
+
+      {editing ? (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input
+            type="password"
+            style={fld}
+            placeholder="paste token (sk-..., ghp_..., etc.)"
+            value={tokenInput}
+            onChange={(e) => setTokenInput(e.target.value)}
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+            data-1p-ignore="true" data-lpignore="true" data-form-type="other"
+          />
+          <button className="btn primary" onClick={handleSave} style={{ fontSize: 11, padding: '4px 10px' }}>Encrypt + save</button>
+          <button className="btn ghost" onClick={() => { setEditing(false); setTokenInput(''); }} style={{ fontSize: 11, padding: '4px 10px' }}>Cancel</button>
+        </div>
+      ) : revealed !== null ? (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input style={fld} value={revealed} readOnly onFocus={(e) => e.target.select()} />
+          <button className="btn" onClick={handleCopy} style={{ fontSize: 11, padding: '4px 10px' }}>{copyOk ? '✓ copied' : '📋 Copy'}</button>
+          <button className="btn ghost" onClick={() => setRevealed(null)} style={{ fontSize: 11, padding: '4px 10px' }}>Hide</button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {hasToken ? (
+            <>
+              <button className="btn" onClick={handleReveal} disabled={revealing} style={{ fontSize: 11, padding: '4px 10px' }}>
+                {revealing ? '⟲ decrypting…' : '🔑 Reveal'}
+              </button>
+              <button className="btn" onClick={() => setEditing(true)} style={{ fontSize: 11, padding: '4px 10px' }}>↻ Replace</button>
+              <button className="btn danger" onClick={handleClear} style={{ fontSize: 11, padding: '4px 10px' }}>🗑 Clear</button>
+            </>
+          ) : (
+            <button className="btn primary" onClick={() => setEditing(true)} style={{ fontSize: 11, padding: '4px 10px' }}>+ Set token</button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

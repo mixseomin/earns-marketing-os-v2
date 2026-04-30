@@ -10,6 +10,7 @@ import {
   normalizeStatus, directusEnabled,
   type DirectusAccount,
 } from '../bridge/directus';
+import { encryptValue, decryptValue, cryptoEnabled } from '../crypto';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -269,6 +270,59 @@ export async function toggleChecklistItem(projectId: string, id: number, itemKey
     .set({ warmupChecklist: checklist, updatedAt: new Date() })
     .where(eq(platformAccounts.id, acc.id));
 
+  revalidatePath(`/p/${projectId}/resources`);
+  return { ok: true };
+}
+
+// ── API token encryption (Phase 8 — pgcrypto) ────────────────────
+// Write-only flow: setAccountApiToken stores encrypted; UI never reads back.
+// Reveal: revealAccountApiToken returns plaintext one-time (server action call).
+// Clear: clearAccountApiToken sets column NULL.
+
+export async function setAccountApiToken(
+  projectId: string, id: number, plaintext: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!cryptoEnabled()) return { ok: false, error: 'MOS2_SECRET_KEY chưa cấu hình trên server' };
+  if (!plaintext.trim()) return { ok: false, error: 'token rỗng' };
+  const db = ensureDb();
+  try {
+    const enc = await encryptValue(plaintext);
+    await db.update(platformAccounts)
+      .set({ apiTokenEnc: enc, updatedAt: new Date() })
+      .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)));
+    revalidatePath(`/p/${projectId}/resources`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+export async function revealAccountApiToken(
+  projectId: string, id: number,
+): Promise<{ ok: boolean; plaintext?: string; error?: string }> {
+  if (!cryptoEnabled()) return { ok: false, error: 'MOS2_SECRET_KEY chưa cấu hình' };
+  const db = ensureDb();
+  const rows = await db.select({ enc: platformAccounts.apiTokenEnc })
+    .from(platformAccounts)
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)))
+    .limit(1);
+  if (rows.length === 0) return { ok: false, error: 'account not found' };
+  if (!rows[0]!.enc) return { ok: true, plaintext: '' };
+  try {
+    const plain = await decryptValue(rows[0]!.enc);
+    return { ok: true, plaintext: plain };
+  } catch (e) {
+    return { ok: false, error: `decrypt failed: ${(e as Error).message}` };
+  }
+}
+
+export async function clearAccountApiToken(
+  projectId: string, id: number,
+): Promise<{ ok: boolean }> {
+  const db = ensureDb();
+  await db.update(platformAccounts)
+    .set({ apiTokenEnc: null, updatedAt: new Date() })
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)));
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true };
 }

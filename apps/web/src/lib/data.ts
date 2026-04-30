@@ -288,6 +288,7 @@ export interface AccountRow {
   notes: string | null;
   tags: string[];
   warmupChecklist: Record<string, { done: boolean; value?: number | string | null; updatedAt?: string }>;
+  hasApiToken: boolean;
   sortOrder: number;
 }
 
@@ -312,6 +313,7 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
         notes: r.notes,
         tags: (r.tags as string[]) ?? [],
         warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
+        hasApiToken: Boolean(r.apiTokenEnc),
         sortOrder: r.sortOrder,
       }));
     },

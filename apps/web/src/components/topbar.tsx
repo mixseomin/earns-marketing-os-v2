@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 
@@ -16,6 +16,20 @@ function DropdownTab({
   subItems?: SubItem[];
 }) {
   const [open, setOpen] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 250);
+  };
+  const openNow = () => { cancelClose(); setOpen(true); };
+
   if (!subItems?.length) {
     return (
       <Link href={href} className="tab" data-active={active || undefined} style={{ textDecoration: 'none' }}>
@@ -26,8 +40,8 @@ function DropdownTab({
   return (
     <div
       style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={openNow}
+      onMouseLeave={scheduleClose}
     >
       <Link href={href} className="tab" data-active={active || undefined}
         style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -35,12 +49,19 @@ function DropdownTab({
         <span style={{ fontSize: 7, opacity: 0.5, marginLeft: 1 }}>▾</span>
       </Link>
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 300,
-          background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
-          borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
-          minWidth: 160, padding: '4px 0', marginTop: 2,
-        }}>
+        <div
+          onMouseEnter={openNow}
+          onMouseLeave={scheduleClose}
+          style={{
+            position: 'absolute', top: '100%', left: 0, zIndex: 300,
+            background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
+            borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
+            minWidth: 160, padding: '4px 0',
+            // Invisible bridge: 8px transparent area on top to absorb mouse traverse
+            paddingTop: 12,
+            marginTop: -4,
+          }}
+        >
           {subItems.map((s) => (
             <Link key={s.href} href={s.href} style={{
               display: 'flex', alignItems: 'center', gap: 8,

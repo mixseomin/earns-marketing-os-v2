@@ -162,6 +162,13 @@
       "when": 1777660000000,
       "tag": "0022_publisher_toolkit_wire",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777670000000,
+      "tag": "0023_creative_analytics_wire",
+      "breakpoints": true
     }
   ]
 }

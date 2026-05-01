@@ -92,6 +92,7 @@ function SystemNav() {
       key: 'monitor', label: 'Monitor',
       items: [
         { href: '/agents',  icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin',sub: 'runs · breakers · solo' },
+        { href: '/inbox',   icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',       sub: 'human tasks queue' },
         { href: '/ai-log',  icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity', sub: 'OpenAI · cost · oversight' },
         { href: '/tests',   icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',       sub: 'use cases · QA' },
         { href: '/roadmap', icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',     sub: 'phases · deps' },

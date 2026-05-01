@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useTransition } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Mode, Squad } from '@/lib/mock/types';
 import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
@@ -34,7 +34,7 @@ const emptySquad = (): SquadInput => ({
   config: { mission: '', skillsMd: '', tools: [], systemPrompt: '', model: 'gpt-4o-mini', trustLevel: 2, useAgentLoop: false },
 });
 
-function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, dbSkills }: {
+export function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, dbSkills }: {
   squad: Squad | null; projectId: string; onClose: () => void;
   availableModels: Array<{ id: string; label: string; provider: string }>;
   dbTools: ToolRow[];
@@ -596,6 +596,18 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
   const [editing, setEditing] = useState<Squad | null>(null);
   const [creating, setCreating] = useState(false);
   const toolById = new Map(dbTools.map((t) => [t.id, t]));
+  const searchParams = useSearchParams();
+
+  // Auto-open edit modal when URL has ?edit=<squadKey> (deep-link from other pages)
+  useEffect(() => {
+    const editKey = searchParams.get('edit');
+    if (editKey && !editing) {
+      const squad = mode.squads.find((s) => s.id === editKey);
+      if (squad) setEditing(squad);
+    }
+    // Only re-run when URL changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className="page squads-page">

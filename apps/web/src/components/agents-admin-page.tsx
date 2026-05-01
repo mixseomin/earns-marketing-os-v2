@@ -249,7 +249,7 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags,
                   <span>· {s.toolsCount} tools</span>
                 </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                  <a href={`/p/${s.projectId}/squads`} className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }}>Edit ↗</a>
+                  <a href={`/p/${s.projectId}/squads?edit=${encodeURIComponent(s.squadKey)}`} className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} title="Open squad edit modal">Edit ↗</a>
                   {s.useAgentLoop ? (
                     <button
                       className="btn"

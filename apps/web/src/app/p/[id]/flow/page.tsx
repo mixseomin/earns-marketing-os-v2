@@ -3,6 +3,8 @@ import { AppShell } from '@/components/app-shell';
 import { FlowDiagram } from '@/components/flow-diagram';
 import { getFlowData } from '@/lib/actions/flow';
 import { getProject, getProjectMode, listProjects } from '@/lib/data';
+import { getAvailableModels } from '@/lib/ai-providers';
+import { listTools, listSkills } from '@/lib/actions/library';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,11 +13,14 @@ export default async function FlowRoute({ params }: { params: Promise<{ id: stri
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [mode, projects, flowData] = await Promise.all([
+  const [mode, projects, flowData, dbTools, dbSkills] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     getFlowData(id),
+    listTools(),
+    listSkills(),
   ]);
+  const availableModels = getAvailableModels();
 
   return (
     <AppShell mode={mode} project={project} projects={projects}>
@@ -27,9 +32,16 @@ export default async function FlowRoute({ params }: { params: Promise<{ id: stri
           </small>
         </h1>
         <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 20, fontFamily: 'var(--font-mono)' }}>
-          Squad architecture · live card counts · workflow connections
+          Hover squad để xem chi tiết · Click để edit · Tự refresh 15s
         </p>
-        <FlowDiagram data={flowData} projectId={id} />
+        <FlowDiagram
+          data={flowData}
+          projectId={id}
+          squadDetails={mode.squads ?? []}
+          availableModels={availableModels}
+          dbTools={dbTools}
+          dbSkills={dbSkills}
+        />
       </div>
     </AppShell>
   );

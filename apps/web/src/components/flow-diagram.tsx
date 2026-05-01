@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { getFlowData } from '@/lib/actions/flow';
 import type { FlowData, FlowSquad } from '@/lib/actions/flow';
+import type { Squad } from '@/lib/mock/types';
+import type { ToolRow, SkillRow } from '@/lib/actions/library';
+import { SquadFormModal } from './squads-page';
 
 // ── Layout constants ─────────────────────────────────────────────
 const DIAGRAM_H = 560;
@@ -409,11 +413,12 @@ function ClaudeIDENode({ pos }: { pos: { x: number; y: number } }) {
   );
 }
 
-function OrchestratorNode({ sq, pos }: { sq: FlowSquad; pos: { x: number; y: number } }) {
+function OrchestratorNode({ sq, pos, onClick }: { sq: FlowSquad; pos: { x: number; y: number }; onClick?: () => void }) {
   const isActive = sq.activeCards > 0;
   return (
     <div
-      title={`Orchestrator — planning & coordination\nModel: ${sq.model}\nTrust: ${TRUST_LABEL[sq.trustLevel] ?? 'L1'}\nActive cards: ${sq.activeCards}`}
+      onClick={onClick}
+      title={`Orchestrator — click để edit\nModel: ${sq.model}\nTrust: ${TRUST_LABEL[sq.trustLevel] ?? 'L1'}\nActive cards: ${sq.activeCards}\nLast: ${relativeTime(sq.lastActiveAt)}`}
       style={{
         position: 'absolute',
         left: pos.x, top: pos.y,
@@ -424,6 +429,7 @@ function OrchestratorNode({ sq, pos }: { sq: FlowSquad; pos: { x: number; y: num
         boxShadow: isActive ? '0 0 16px rgba(157,108,255,0.3)' : '0 0 6px rgba(157,108,255,0.12)',
         padding: '8px 12px',
         display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4,
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -454,13 +460,14 @@ function OrchestratorNode({ sq, pos }: { sq: FlowSquad; pos: { x: number; y: num
   );
 }
 
-function SquadNode({ sq, pos }: { sq: FlowSquad; pos: { x: number; y: number } }) {
+function SquadNode({ sq, pos, onClick }: { sq: FlowSquad; pos: { x: number; y: number }; onClick?: () => void }) {
   const isActive = sq.activeCards > 0;
   const tColor = TRUST_COLOR[sq.trustLevel] ?? 'var(--fg-3)';
   const lastTs = relativeTime(sq.lastActiveAt);
   return (
     <div
-      title={`${sq.name}\nKey: ${sq.squadKey}\nModel: ${sq.model}\nTrust: ${TRUST_LABEL[sq.trustLevel] ?? '?'}\nActive: ${sq.activeCards} cards\nWorkflow: ${sq.totalWorkflowCards} cards\nLast active: ${lastTs}`}
+      onClick={onClick}
+      title={`${sq.name} — click để edit\nKey: ${sq.squadKey}\nModel: ${sq.model}\nTrust: ${TRUST_LABEL[sq.trustLevel] ?? '?'}\nActive: ${sq.activeCards} cards\nWorkflow: ${sq.totalWorkflowCards} cards\nLast active: ${lastTs}`}
       style={{
         position: 'absolute',
         left: pos.x, top: pos.y,
@@ -473,8 +480,11 @@ function SquadNode({ sq, pos }: { sq: FlowSquad; pos: { x: number; y: number } }
         boxShadow: isActive ? `0 0 10px rgba(${hexToRgbFallback(tColor)}, 0.2)` : 'none',
         padding: '8px 10px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        transition: 'border-color 0.3s, box-shadow 0.3s',
+        transition: 'border-color 0.3s, box-shadow 0.3s, transform 0.15s',
+        cursor: onClick ? 'pointer' : 'default',
       }}
+      onMouseEnter={(e) => { if (onClick) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -656,10 +666,32 @@ function Legend() {
 
 
 // ── Main component ───────────────────────────────────────────────
-export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; projectId: string }) {
+export function FlowDiagram({
+  data: initialData,
+  projectId,
+  squadDetails = [],
+  availableModels = [],
+  dbTools = [],
+  dbSkills = [],
+}: {
+  data: FlowData;
+  projectId: string;
+  squadDetails?: Squad[];
+  availableModels?: Array<{ id: string; label: string; provider: string }>;
+  dbTools?: ToolRow[];
+  dbSkills?: SkillRow[];
+}) {
   const [data, setData] = useState<FlowData>(initialData);
+  const [editingSquad, setEditingSquad] = useState<Squad | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const [W, setW] = useState(DIAGRAM_W);
+
+  // Click handler: find Squad by key, open SquadFormModal in-place.
+  const openSquadEdit = (squadKey: string) => {
+    const detail = squadDetails.find((s) => s.id === squadKey);
+    if (detail) setEditingSquad(detail);
+  };
 
   // Measure container width for responsive layout
   useEffect(() => {
@@ -732,13 +764,13 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
         <ClaudeIDENode pos={claudePos} />
 
         {/* Orchestrator node */}
-        {orchSquad && <OrchestratorNode sq={orchSquad} pos={orchPos} />}
+        {orchSquad && <OrchestratorNode sq={orchSquad} pos={orchPos} onClick={() => openSquadEdit(orchSquad.squadKey)} />}
 
         {/* Squad nodes (non-orchestrator) */}
         {nonOrchSquads.map((sq, i) => {
           const sp = squadPos[i];
           if (!sp) return null;
-          return <SquadNode key={sq.squadKey} sq={sq} pos={sp} />;
+          return <SquadNode key={sq.squadKey} sq={sq} pos={sp} onClick={() => openSquadEdit(sq.squadKey)} />;
         })}
 
         {/* Empty hint when no squads — sits in the squads layer */}
@@ -793,6 +825,23 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
       </div>
 
       <Legend />
+
+      {/* In-place squad edit modal — opens from click on flow node */}
+      {editingSquad && (
+        <SquadFormModal
+          squad={editingSquad}
+          projectId={projectId}
+          availableModels={availableModels}
+          dbTools={dbTools}
+          dbSkills={dbSkills}
+          onClose={() => {
+            setEditingSquad(null);
+            // Refresh flow data — squad config may have changed
+            refresh();
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

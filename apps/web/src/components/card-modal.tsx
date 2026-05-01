@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
 import { listCardAgentRuns, type CardRunDetail } from '@/lib/actions/agents-admin';
+import ReactMarkdown from 'react-markdown';
 
 type Level = 1 | 2 | 3 | 4;
 type Mode_ = 'view' | 'edit' | 'create';
@@ -441,18 +442,36 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
                 </span>
               )}
             </div>
-            {r.toolsUsed.length > 0 && (
-              <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
-                Tools: {r.toolsUsed.map((t, i) => <span key={i} style={{ marginRight: 6, color: t.ok ? 'var(--ok)' : 'var(--bad)' }}>{t.ok ? '✓' : '✕'} {t.toolId}</span>)}
+            {r.toolsUsed.length > 0 && (() => {
+              // Aggregate: { web-search: { ok: 1, total: 4 }, ... }
+              const agg = new Map<string, { ok: number; total: number }>();
+              for (const t of r.toolsUsed) {
+                const k = t.toolId ?? '?';
+                const cur = agg.get(k) ?? { ok: 0, total: 0 };
+                cur.total += 1;
+                if (t.ok) cur.ok += 1;
+                agg.set(k, cur);
+              }
+              return (
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Array.from(agg.entries()).map(([tool, c]) => (
+                    <span key={tool} style={{ color: c.ok === c.total ? 'var(--ok)' : c.ok === 0 ? 'var(--bad)' : 'var(--warn)' }}>
+                      {tool} {c.ok}/{c.total}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
+            {/* Skip output text khi nó chỉ là confirm message của save-knowledge
+                (đã có expandable card bên dưới hiển thị content thật). */}
+            {r.outputText && !(r.knowledgeEntries.length > 0 && r.outputText.trim().length < 80) && (
+              <div className="md-content" style={{
+                fontSize: 12, color: 'var(--fg-1)',
+                maxHeight: 240, overflow: 'auto', padding: '6px 8px',
+                background: 'var(--bg-1)', borderRadius: 4, lineHeight: 1.55,
+              }}>
+                <ReactMarkdown>{r.outputText}</ReactMarkdown>
               </div>
-            )}
-            {r.outputText && (
-              <div style={{
-                fontSize: 11, color: 'var(--fg-1)', whiteSpace: 'pre-wrap',
-                maxHeight: 200, overflow: 'auto', padding: 6,
-                background: 'var(--bg-1)', borderRadius: 4, fontFamily: 'var(--font-mono)',
-                lineHeight: 1.5,
-              }}>{r.outputText}</div>
             )}
             {r.error && (
               <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>⚠ {r.error}</div>
@@ -476,13 +495,14 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
                          onClick={(e) => e.stopPropagation()}
                          style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none' }}>open ↗</a>
                     </summary>
-                    <pre style={{
-                      margin: '8px 0 0', padding: 8,
+                    <div className="md-content" style={{
+                      margin: '8px 0 0', padding: '8px 10px',
                       background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4,
-                      fontSize: 11, lineHeight: 1.55, fontFamily: 'var(--font-mono)',
-                      whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--fg-1)',
-                      maxHeight: 320, overflow: 'auto',
-                    }}>{k.content}</pre>
+                      fontSize: 12, lineHeight: 1.6, color: 'var(--fg-1)',
+                      maxHeight: 360, overflow: 'auto',
+                    }}>
+                      <ReactMarkdown>{k.content}</ReactMarkdown>
+                    </div>
                   </details>
                 ))}
               </div>

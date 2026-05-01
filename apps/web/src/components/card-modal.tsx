@@ -18,6 +18,7 @@ interface FormState {
   urgent: boolean;
   tagsInput: string;
   agentRef: string;
+  agentKind: string;          // '' = not assigned
 }
 
 const emptyForm = (col: string, squadKey: string): FormState => ({
@@ -31,7 +32,18 @@ const emptyForm = (col: string, squadKey: string): FormState => ({
   urgent: false,
   tagsInput: '',
   agentRef: '',
+  agentKind: '',
 });
+
+const AGENT_KINDS: Array<{ value: string; label: string; hint: string }> = [
+  { value: '',                    label: '— No agent (manual) —',     hint: 'Card không auto-execute. User làm thủ công.' },
+  { value: 'gpt-4o-mini',         label: 'GPT-4o mini (cheap, API)',   hint: 'Worker daemon pick up khi col=approved + squad reasoning ON.' },
+  { value: 'gpt-4o',              label: 'GPT-4o (smart, API)',        hint: 'Đắt hơn 16x mini.' },
+  { value: 'claude-haiku-4-5',    label: 'Claude Haiku 4.5 (cheap+capable)', hint: 'Tốt cho reasoning + tool-use.' },
+  { value: 'claude-sonnet-4-6',   label: 'Claude Sonnet 4.6 (smart)',  hint: 'Đắt nhưng reasoning chất.' },
+  { value: 'claude-code',         label: 'Claude Code (IDE, qua MCP)', hint: 'Worker SKIP, chờ user pull qua Claude Code MCP.' },
+  { value: 'human',               label: 'Human (queue inbox)',         hint: 'Tạo human_task khi card approved.' },
+];
 
 export function CardModal({
   open, viewMode, card, projectId, mode, defaultCol, onClose, onSaved,
@@ -63,6 +75,7 @@ export function CardModal({
         urgent: !!card.urgent,
         tagsInput: (card.tags ?? []).join(', '),
         agentRef: card.agent ?? '',
+        agentKind: card.agentKind ?? '',
       };
     }
     return emptyForm(defaultCol ?? mode.columns[0]?.id ?? 'needs', initialSquad);
@@ -83,6 +96,7 @@ export function CardModal({
         urgent: !!card.urgent,
         tagsInput: (card.tags ?? []).join(', '),
         agentRef: card.agent ?? '',
+        agentKind: card.agentKind ?? '',
       });
       setEditing('view');
     } else {
@@ -117,6 +131,7 @@ export function CardModal({
       urgent: form.urgent,
       tags: parseTags(form.tagsInput),
       agentRef: form.agentRef || null,
+      agentKind: form.agentKind || null,
     };
     startTransition(async () => {
       const res = isCreate
@@ -258,6 +273,20 @@ export function CardModal({
               <div>
                 <span style={lbl}>Agent ref</span>
                 <input style={fld} placeholder="e.g. RES-04, you" value={form.agentRef} onChange={(e) => setF('agentRef', e.target.value)} />
+              </div>
+              <div style={{ gridColumn: '1 / -1', padding: 8, background: 'rgba(157,108,255,.06)', border: '1px solid rgba(157,108,255,.25)', borderRadius: 5 }}>
+                <span style={lbl}>🤖 Agent kind <span style={{ color: 'var(--fg-4)' }}>(Phase 10 dispatch — worker daemon)</span></span>
+                <select style={fld} value={form.agentKind} onChange={(e) => setF('agentKind', e.target.value)}>
+                  {AGENT_KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+                </select>
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                  {AGENT_KINDS.find((k) => k.value === form.agentKind)?.hint ?? ''}
+                  {form.agentKind && form.col !== 'approved' && (
+                    <div style={{ marginTop: 4, color: 'var(--warn)' }}>
+                      ⚠ Card đang ở col <b>{form.col}</b>. Worker chỉ pick card ở col <b>approved</b>. Move card sang approved (qua /board hoặc set col field bên trên) để dispatch.
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <span style={lbl}>Tags (comma-separated)</span>

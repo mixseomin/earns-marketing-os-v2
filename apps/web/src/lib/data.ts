@@ -198,6 +198,8 @@ function rowToCard(r: CardRow): Card {
     urgent: r.urgent,
     tags: (r.tags as string[]) ?? [],
     agent: r.agentRef ?? undefined,
+    agentKind: r.agentKind ?? null,
+    idempotencyKey: r.idempotencyKey ?? null,
     body: r.body ?? undefined,
   };
 }

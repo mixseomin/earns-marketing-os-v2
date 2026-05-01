@@ -65,6 +65,8 @@ export interface Card {
   urgent?: boolean;
   tags?: string[];
   agent?: string;
+  agentKind?: string | null;       // Phase 10 dispatch
+  idempotencyKey?: string | null;
   body?: string;
 }
 

@@ -32,6 +32,134 @@ export interface WorkflowDef {
 }
 
 export const WORKFLOWS: Record<string, WorkflowDef> = {
+  'medium-publish': {
+    key: 'medium-publish',
+    name: 'Medium Long-form Publish',
+    description: 'Plan → write (long-form 1500-2500 words) → design hero → human handoff to publish on Medium.',
+    steps: [
+      {
+        stepKey: 'plan',
+        label: '🧭 Plan',
+        squadKey: 'wf-planner',
+        agentKind: 'gpt-4o-mini',
+        trustLevel: 1,
+        bodyTemplate: `Bạn là Planner cho Medium long-form article. Lên outline dựa trên brief:
+
+{{brief}}
+
+Output structure (markdown):
+## Mục tiêu article
+1-2 câu — mục đích article phục vụ ai và để làm gì.
+
+## Target reader
+Persona cụ thể (vd: "Indie devs, privacy-conscious users đang tìm app alternatives, 25-40 tuổi").
+
+## Angle / hook
+Góc nhìn độc đáo + hook line cho intro.
+
+## Outline 6-9 sections
+Liệt kê heading H2 + 1 dòng tóm tắt mỗi section. Đảm bảo flow:
+- Intro hook
+- Problem framing
+- Body sections (deep value, examples, data nếu có)
+- Counter-argument hoặc nuance
+- Practical takeaway / CTA cuối
+
+## Tags Medium (5-8)
+Tags phù hợp Medium algorithm (mix broad + niche).
+
+## Hero image concept
+1-2 câu mô tả ảnh đại diện (Designer step dùng).
+
+BẮT BUỘC: gọi tool save-knowledge với title='Plan: Medium article' + content=full outline markdown để Writer step đọc.`,
+      },
+      {
+        stepKey: 'write',
+        label: '✍️ Write',
+        squadKey: 'wf-writer',
+        agentKind: 'gpt-4o-mini',
+        trustLevel: 2,
+        bodyTemplate: `Bạn là Writer Medium long-form. Viết bài hoàn chỉnh dựa trên plan:
+
+## Plan từ Planner
+{{plan}}
+
+## Yêu cầu output
+- Title hấp dẫn ≤ 80 chars (Medium SEO-friendly).
+- Subtitle 1 dòng (deck) — tóm tắt value của article.
+- Body markdown 1500-2500 từ. Mỗi section H2 có ≥ 2 đoạn văn.
+- Có ít nhất 1 list (bulleted hoặc numbered).
+- Có ít nhất 1 pull quote (blockquote) làm điểm nhấn.
+- Code blocks nếu là technical content.
+- Tone: nửa formal nửa câu chuyện (Medium voice). KHÔNG hard-sell.
+- Kết: 1-2 câu CTA mềm + 1 câu hỏi cho reader engage comments.
+
+Format final output:
+## Title
+<title>
+
+## Subtitle
+<subtitle>
+
+## Body
+<full markdown body với H2 sections>
+
+## Tags
+<5-8 tags, comma-separated>
+
+BẮT BUỘC: gọi save-knowledge với title='Medium article draft' + content=full title+subtitle+body+tags để Designer + Publisher step đọc.`,
+      },
+      {
+        stepKey: 'design',
+        label: '🎨 Design',
+        squadKey: 'wf-designer',
+        agentKind: 'gpt-4o-mini',
+        trustLevel: 2,
+        bodyTemplate: `Bạn là Designer Medium hero image.
+
+## Article content
+{{post}}
+
+## Image concept gợi ý từ Planner
+{{imageConcept}}
+
+## Yêu cầu hero image
+- 1600x900 (Medium recommended ratio 16:9).
+- Style editorial — clean, không bịa data/text.
+- Avoid: stock photo cliché, generic abstract gradients.
+- Prefer: meaningful visual metaphor, illustrative, one focal subject.
+
+BẮT BUỘC: gọi image-gen với detailed prompt + ratio 16:9. Sau khi có ảnh, gọi save-knowledge với title='Hero image for Medium article' + content=mô tả ảnh + URL.`,
+      },
+      {
+        stepKey: 'publish',
+        label: '🚀 Publish',
+        squadKey: 'wf-publisher',
+        agentKind: 'gpt-4o-mini',
+        trustLevel: 3,
+        isFinal: true,
+        bodyTemplate: `Bạn là Publisher Medium. Workflow đã có article + hero image. Tạo human task để user đăng thủ công.
+
+## Article
+{{post}}
+
+## Hero image
+{{imageUrl}} (media asset id: {{imageAssetId}})
+
+## Plan (target reader + tags)
+{{plan}}
+
+BẮT BUỘC: gọi tool human-handoff với:
+- platform = 'medium'
+- title = title của article
+- instructions = 1. Mở https://medium.com/new-story. 2. Upload hero image (16:9). 3. Paste title + subtitle + body markdown. 4. Add tags (5-8). 5. Set canonical URL nếu cross-post từ orit.app blog. 6. Publish hoặc Save as draft. 7. Copy story URL.
+- prepPayload = { caption: <full body markdown>, imageUrls: [<URL>], hashtags: [<tags array>] }
+- slaMinutes = 480 (8h)
+
+Sau khi gọi xong, output 1 dòng confirm 'Đã queue human task Medium'.`,
+      },
+    ],
+  },
   'reddit-launch': {
     key: 'reddit-launch',
     name: 'Reddit Launch Post',

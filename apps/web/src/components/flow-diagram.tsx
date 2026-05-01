@@ -80,29 +80,57 @@ function orchNodePos(W: number) {
   return { x: W / 2 - ORCH_W / 2, y: LAYERS.orchestrator.y };
 }
 
+// Multi-row squad layout. Wraps when squads exceed available width.
+const SQUAD_ROW_H = NODE_H + 18;
+const MIN_GAP = 8;
+const SIDE_PAD = 30;
+
+function computeSquadLayout(n: number, W: number): { perRow: number; rows: number } {
+  if (n === 0) return { perRow: 0, rows: 0 };
+  const available = W - SIDE_PAD * 2;
+  const perRowMax = Math.max(1, Math.floor((available + MIN_GAP) / (NODE_W + MIN_GAP)));
+  const perRow = Math.min(n, perRowMax);
+  const rows = Math.ceil(n / perRow);
+  return { perRow, rows };
+}
+
 function squadNodePositions(squads: FlowSquad[], W: number): Array<{ x: number; y: number }> {
   const n = squads.length;
   if (n === 0) return [];
-  const gap = Math.min(20, (W - 60 - n * NODE_W) / Math.max(1, n - 1));
-  const totalW = n * NODE_W + (n - 1) * gap;
-  const startX = Math.max(30, (W - totalW) / 2);
-  return squads.map((_, i) => ({
-    x: startX + i * (NODE_W + gap),
-    y: LAYERS.squads.y,
-  }));
+  const { perRow, rows } = computeSquadLayout(n, W);
+  const available = W - SIDE_PAD * 2;
+  const positions: Array<{ x: number; y: number }> = [];
+  for (let r = 0; r < rows; r++) {
+    const rowStart = r * perRow;
+    const inRow = Math.min(perRow, n - rowStart);
+    const idealGap = inRow > 1 ? (available - inRow * NODE_W) / (inRow - 1) : 0;
+    const gap = Math.min(20, Math.max(MIN_GAP, idealGap));
+    const totalW = inRow * NODE_W + (inRow - 1) * gap;
+    const startX = Math.max(SIDE_PAD, (W - totalW) / 2);
+    for (let i = 0; i < inRow; i++) {
+      positions.push({ x: startX + i * (NODE_W + gap), y: LAYERS.squads.y + r * SQUAD_ROW_H });
+    }
+  }
+  return positions;
 }
 
-function kbNodePos(W: number) {
-  return { x: W / 2 - 20 - KB_W, y: LAYERS.special.y };
+// Extra height pushed down by additional squad rows (rows beyond the first)
+function extraRowsHeight(squads: FlowSquad[], W: number): number {
+  const { rows } = computeSquadLayout(squads.length, W);
+  return Math.max(0, rows - 1) * SQUAD_ROW_H;
 }
 
-function monNodePos(W: number) {
-  return { x: W / 2 + 20, y: LAYERS.special.y };
+function kbNodePos(W: number, extraH: number) {
+  return { x: W / 2 - 20 - KB_W, y: LAYERS.special.y + extraH };
 }
 
-function inboxNodePos(W: number) {
-  const mon = monNodePos(W);
-  return { x: mon.x + MON_W / 2 - INBOX_W / 2, y: LAYERS.inbox.y };
+function monNodePos(W: number, extraH: number) {
+  return { x: W / 2 + 20, y: LAYERS.special.y + extraH };
+}
+
+function inboxNodePos(W: number, extraH: number) {
+  const mon = monNodePos(W, extraH);
+  return { x: mon.x + MON_W / 2 - INBOX_W / 2, y: LAYERS.inbox.y + extraH };
 }
 
 // Center of a node rect
@@ -185,11 +213,12 @@ function ArrowsLayer({
   const humanPos = humanNodePos(W);
   const claudePos = claudeNodePos(W);
   const orchPos = orchNodePos(W);
-  const squadPos = squadNodePositions(squads.filter((s) => !isOrchestrator(s)), W);
   const nonOrchSquads = squads.filter((s) => !isOrchestrator(s));
-  const kbPos = kbNodePos(W);
-  const monPos = monNodePos(W);
-  const inboxPos = inboxNodePos(W);
+  const squadPos = squadNodePositions(nonOrchSquads, W);
+  const extraH = extraRowsHeight(nonOrchSquads, W);
+  const kbPos = kbNodePos(W, extraH);
+  const monPos = monNodePos(W, extraH);
+  const inboxPos = inboxNodePos(W, extraH);
 
   // Arrow color
   const dimArrow = 'rgba(148,163,184,0.22)';
@@ -682,9 +711,11 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
   const humanPos = humanNodePos(W);
   const claudePos = claudeNodePos(W);
   const orchPos = orchNodePos(W);
-  const kbPos = kbNodePos(W);
-  const monPos = monNodePos(W);
-  const inboxPos = inboxNodePos(W);
+  const extraH = extraRowsHeight(nonOrchSquads, W);
+  const kbPos = kbNodePos(W, extraH);
+  const monPos = monNodePos(W, extraH);
+  const inboxPos = inboxNodePos(W, extraH);
+  const diagramH = DIAGRAM_H + extraH;
 
   return (
     <div>
@@ -693,16 +724,17 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
         style={{
           position: 'relative',
           width: '100%',
-          height: DIAGRAM_H,
+          height: diagramH,
           background: 'var(--bg-1)',
           border: '1px solid var(--line)',
           borderRadius: 10,
           overflow: 'hidden',
+          transition: 'height 0.3s',
         }}
       >
         {/* SVG arrows */}
         <ArrowsLayer
-          W={W} H={DIAGRAM_H}
+          W={W} H={diagramH}
           squads={data.squads}
           orchSquad={orchSquad}
           publisherIdx={publisherIdx}

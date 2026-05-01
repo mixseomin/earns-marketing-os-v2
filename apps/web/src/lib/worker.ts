@@ -336,6 +336,15 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
               ${JSON.stringify([`workflow:${card.workflow_key}`, `step:${next.stepKey}`])}::jsonb
             )
           `);
+          // Self-kick: trigger worker endpoint để pick card vừa spawn ngay,
+          // không chờ cron tick. Fire-and-forget, không block return.
+          const cronSecret = process.env.MOS2_CRON_SECRET || process.env.CRON_SECRET;
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mos2.on.tc';
+          if (cronSecret) {
+            fetch(`${baseUrl}/api/cron/worker?limit=1`, {
+              method: 'POST', headers: { 'x-cron-secret': cronSecret },
+            }).catch(() => {});
+          }
         }
       }
 

@@ -239,9 +239,8 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
     const url = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
     if (cronSecret) {
       fetch(`${url}/api/cron/worker?limit=1`, {
-        method: 'POST',
-        headers: { 'x-cron-secret': cronSecret },
-      }).catch(() => { /* fire-and-forget */ });
+        method: 'POST', headers: { 'x-cron-secret': cronSecret },
+      }).catch(() => {});
     }
   }
 

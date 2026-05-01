@@ -51,7 +51,10 @@ export function TopBar({
         <span className="badge">{projectCount}</span>
       </Link>
 
-      {!isPortfolio && currentProject && (
+      {/* Show project tabs whenever currentProject set — kể cả khi isPortfolio
+          (page Library/Agents/AI Log/etc đọc lastProject từ cookie). Cho user
+          shortcut quay về Board / Tribes / Studio mà không phải qua sidebar. */}
+      {currentProject && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             <span style={{ fontSize: 14 }}>{currentProject.emoji}</span>
@@ -63,7 +66,7 @@ export function TopBar({
                 key={pt.id}
                 href={pt.id === 'dashboard' ? `/p/${currentProject.id}` : `/p/${currentProject.id}/${pt.id}`}
                 className="tab"
-                data-active={tab === pt.id || undefined}
+                data-active={!isPortfolio && tab === pt.id || undefined}
                 style={{ textDecoration: 'none' }}
               >
                 {pt.label}

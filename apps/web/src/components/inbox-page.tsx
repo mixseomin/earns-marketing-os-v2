@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask } from '@/lib/actions/inbox';
+import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, type WorkflowProgress } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -121,6 +121,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
           task={openTask}
           onClose={() => setOpenTask(null)}
           onAction={() => { setOpenTask(null); router.refresh(); }}
+          onSwapTask={(newTask) => { setOpenTask(newTask); router.refresh(); }}
         />
       )}
     </div>
@@ -128,7 +129,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
 }
 
 // ── Task detail modal ────────────────────────────────────────
-function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onClose: () => void; onAction: () => void }) {
+function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanTaskRow; onClose: () => void; onAction: () => void; onSwapTask: (newTask: HumanTaskRow) => void }) {
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const draftKey = `inbox-draft-${task.id}`;
@@ -169,12 +170,32 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
 
   const isDirty = !!(feedbackText.trim() || publishUrl.trim() || screenshotUrl.trim() || notes.trim());
   // Sau complete, modal hiển thị kết quả thay vì đóng ngay → user thấy spawn lineage.
-  const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; spawnedSquad?: string; feedbackType: string } | null>(null);
+  const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; spawnedSquad?: string; feedbackType: string; workflowRunId?: string } | null>(null);
+  const [progress, setProgress] = useState<WorkflowProgress | null>(null);
   const safeClose = () => {
     if (lastResult) { onAction(); return; }
     if (isDirty && !confirm('Có nội dung chưa submit. Đóng bỏ bản nháp?\n(Bản nháp đã auto-save sẵn — bấm OK nếu chỉ muốn ẩn modal.)')) return;
     onClose();
   };
+
+  // Poll workflow progress sau khi spawn revise card. Mỗi 3s check:
+  //  - latest agent_run status của các step trong workflow
+  //  - new human_task pending → swap modal sang task mới
+  useEffect(() => {
+    if (!lastResult?.workflowRunId || !lastResult?.spawnedCardId) return;
+    let cancelled = false;
+    const wfRunId = lastResult.workflowRunId;
+    const afterTaskId = task.id;
+    const tick = async () => {
+      const p = await pollWorkflowProgress(wfRunId, afterTaskId);
+      if (cancelled) return;
+      setProgress(p);
+      if (p.newTask) onSwapTask(p.newTask);
+    };
+    tick();
+    const interval = setInterval(tick, 3000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [lastResult, task.id, onSwapTask]);
 
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -209,7 +230,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
       });
       setBusy(false);
       if (typeof window !== 'undefined') localStorage.removeItem(draftKey);
-      setLastResult({ spawnedCardId: res.spawnedCardId, spawnedSquad: res.spawnedSquad, feedbackType });
+      setLastResult({ spawnedCardId: res.spawnedCardId, spawnedSquad: res.spawnedSquad, feedbackType, workflowRunId: res.workflowRunId });
     });
   };
   const handleCancel = () => {
@@ -307,20 +328,51 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
               </div>
               {lastResult.spawnedCardId ? (
                 <>
-                  <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 6 }}>
                     → Spawned card <b style={{ color: 'var(--neon-cyan)' }}>#{lastResult.spawnedCardId}</b> cho squad <b>{lastResult.spawnedSquad ?? 'wf-writer'}</b>
                   </div>
+                  {/* Step progress bar — live update từ polling */}
+                  {progress && progress.steps.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 4 }}>
+                      {progress.steps.map((s, i) => {
+                        const icon =
+                          s.runStatus === 'completed' ? '✓' :
+                          s.runStatus === 'running' ? '⏳' :
+                          s.runStatus === 'failed' ? '✕' :
+                          s.runStatus === 'queued' ? '◷' : '○';
+                        const color =
+                          s.runStatus === 'completed' ? 'var(--ok)' :
+                          s.runStatus === 'running' ? 'var(--neon-amber)' :
+                          s.runStatus === 'failed' ? 'var(--bad)' :
+                          'var(--fg-3)';
+                        return (
+                          <span key={s.cardId} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            {i > 0 && <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>→</span>}
+                            <span style={{ fontSize: 11, color, fontFamily: 'var(--font-mono)' }}>
+                              {icon} {s.stepKey}
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
-                    Worker đã được auto-kick. AI đang xử lý theo feedback...
+                    {progress?.newTask
+                      ? '✓ Task mới sẵn sàng — đang chuyển sang task...'
+                      : progress && progress.steps.some((s) => s.runStatus === 'running')
+                      ? '⏳ AI đang revise...'
+                      : progress && progress.steps.length > 0
+                      ? '◷ Đang queue, đợi worker tick...'
+                      : 'Worker đã được auto-kick. Đang khởi động...'}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <Link href={`/p/${task.projectId ?? 'orit'}`} className="btn primary" style={{ fontSize: 11, padding: '4px 10px' }}>
+                    <Link href={`/p/${task.projectId ?? 'orit'}`} className="btn ghost" style={{ fontSize: 11, padding: '4px 10px' }}>
                       → Xem board
                     </Link>
-                    <Link href="/agents" className="btn" style={{ fontSize: 11, padding: '4px 10px' }}>
+                    <Link href="/agents" className="btn ghost" style={{ fontSize: 11, padding: '4px 10px' }}>
                       → Agent runs
                     </Link>
-                    <button className="btn ghost" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => onAction()}>Đóng</button>
+                    <button className="btn ghost" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => onAction()}>Đóng (huỷ chờ)</button>
                   </div>
                 </>
               ) : (

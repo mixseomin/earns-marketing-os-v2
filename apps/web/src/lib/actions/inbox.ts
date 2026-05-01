@@ -115,7 +115,7 @@ export async function completeTask(taskId: number, body: {
   // 'image': revise designer only, giữ post cũ
   // 'both': re-run writer → designer → publisher
   reviseTarget?: 'text' | 'image' | 'both';
-}): Promise<{ ok: boolean; spawnedCardId?: number; spawnedSquad?: string }> {
+}): Promise<{ ok: boolean; spawnedCardId?: number; spawnedSquad?: string; workflowRunId?: string }> {
   const db = getDb();
   if (!db) return { ok: false };
   // Auto-claim nếu chưa claim — UX: user mở task pending, fill form, bấm Mark complete trực tiếp.
@@ -139,6 +139,7 @@ export async function completeTask(taskId: number, body: {
   // image revise designer only, both = full chain từ writer.
   let spawnedCardId: number | undefined;
   let spawnedSquad: string | undefined;
+  let workflowRunId: string | undefined;
   if (body.feedbackType === 'revise' || body.feedbackType === 'more-info') {
     // Lookup task để có parent_run + workflow context.
     const taskRows = await db.execute(sql`
@@ -227,6 +228,7 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
       if (r) {
         spawnedCardId = Number(r.id);
         spawnedSquad = targetSquad;
+        workflowRunId = t.workflow_run_id ?? undefined;
       }
     }
   }
@@ -245,7 +247,7 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
   }
 
   revalidatePath('/inbox');
-  return { ok: true, spawnedCardId, spawnedSquad };
+  return { ok: true, spawnedCardId, spawnedSquad, workflowRunId };
 }
 
 export async function cancelTask(taskId: number, reason?: string): Promise<{ ok: boolean }> {
@@ -257,6 +259,94 @@ export async function cancelTask(taskId: number, reason?: string): Promise<{ ok:
   `);
   revalidatePath('/inbox');
   return { ok: true };
+}
+
+// Phase 12.5 — Poll workflow progress sau khi user revise.
+// Trả về: latest step đang chạy/xong + new human_task nếu chain đã đến publish.
+// Frontend modal poll mỗi ~3s để cập nhật UI realtime, swap sang task mới khi sẵn sàng.
+export interface WorkflowProgress {
+  steps: Array<{ stepKey: string; cardId: number; cardRef: string; runStatus: 'queued' | 'running' | 'completed' | 'failed' | 'none'; spawnedAt: string }>;
+  newTask: HumanTaskRow | null;
+  done: boolean;  // true khi có new task pending hoặc tất cả step đã xong
+}
+export async function pollWorkflowProgress(workflowRunId: string, afterHumanTaskId: number): Promise<WorkflowProgress> {
+  const db = getDb();
+  if (!db) return { steps: [], newTask: null, done: false };
+
+  // Cards trong workflow_run, sort theo created_at (gồm cả revise spawn).
+  // Chỉ lấy cards mới hơn afterHumanTaskId's parent (vì revise spawn sau).
+  const stepRows = await db.execute(sql`
+    SELECT c.id, c.card_ref, c.workflow_step, c.dispatch_ready, c.created_at,
+           (SELECT status FROM agent_runs WHERE card_id = c.id ORDER BY id DESC LIMIT 1) AS run_status
+    FROM cards c
+    WHERE c.workflow_run_id = ${workflowRunId}
+      AND c.id > (SELECT COALESCE(MAX(ar.card_id), 0) FROM human_tasks ht JOIN agent_runs ar ON ar.id = ht.parent_run_id WHERE ht.id = ${afterHumanTaskId})
+    ORDER BY c.id ASC
+  `);
+  const steps = (stepRows as unknown as Array<{
+    id: number | string; card_ref: string; workflow_step: string;
+    dispatch_ready: boolean; created_at: unknown; run_status: string | null;
+  }>).map((r) => {
+    let runStatus: 'queued' | 'running' | 'completed' | 'failed' | 'none' = 'none';
+    if (r.run_status === 'running') runStatus = 'running';
+    else if (r.run_status === 'completed') runStatus = 'completed';
+    else if (r.run_status === 'failed') runStatus = 'failed';
+    else if (r.dispatch_ready) runStatus = 'queued';
+    return {
+      stepKey: r.workflow_step, cardId: Number(r.id), cardRef: r.card_ref, runStatus,
+      spawnedAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    };
+  });
+
+  // New human_task pending có id > afterHumanTaskId.
+  const taskRows = await db.execute(sql`
+    SELECT ht.id, ht.project_id, p.name AS project_name, ht.card_id, ht.parent_run_id,
+           ht.title, ht.instructions, ht.prep_payload, ht.platform_key, ht.account_id,
+           ht.sla_due_at, ht.status, ht.claimed_by, ht.claimed_at, ht.completed_at,
+           ht.verified_at, ht.publish_url, ht.screenshot_url, ht.notes,
+           ht.feedback_type, ht.feedback_text, ht.created_at
+    FROM human_tasks ht
+    LEFT JOIN projects p ON p.id = ht.project_id
+    LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+    LEFT JOIN cards c ON c.id = ar.card_id
+    WHERE ht.tenant_id = ${TENANT}
+      AND ht.id > ${afterHumanTaskId}
+      AND c.workflow_run_id = ${workflowRunId}
+    ORDER BY ht.id DESC LIMIT 1
+  `);
+  const toIso = (v: unknown): string | null => {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'string') return new Date(v).toISOString();
+    return null;
+  };
+  const newRow = (taskRows as unknown as Array<{
+    id: number | string; project_id: string | null; project_name: string | null;
+    card_id: number | null; parent_run_id: number | null;
+    title: string; instructions: string; prep_payload: Record<string, unknown>;
+    platform_key: string | null; account_id: number | null;
+    sla_due_at: unknown; status: string; claimed_by: string | null;
+    claimed_at: unknown; completed_at: unknown; verified_at: unknown;
+    publish_url: string | null; screenshot_url: string | null;
+    notes: string | null; feedback_type: string | null; feedback_text: string | null;
+    created_at: unknown;
+  }>)[0];
+  const newTask: HumanTaskRow | null = newRow ? {
+    id: Number(newRow.id),
+    projectId: newRow.project_id, projectName: newRow.project_name,
+    cardId: newRow.card_id, parentRunId: newRow.parent_run_id,
+    title: newRow.title, instructions: newRow.instructions,
+    prepPayload: newRow.prep_payload ?? {},
+    platformKey: newRow.platform_key, accountId: newRow.account_id,
+    slaDueAt: toIso(newRow.sla_due_at), status: newRow.status,
+    claimedBy: newRow.claimed_by, claimedAt: toIso(newRow.claimed_at),
+    completedAt: toIso(newRow.completed_at), verifiedAt: toIso(newRow.verified_at),
+    publishUrl: newRow.publish_url, screenshotUrl: newRow.screenshot_url,
+    notes: newRow.notes, feedbackType: newRow.feedback_type, feedbackText: newRow.feedback_text,
+    createdAt: toIso(newRow.created_at) ?? '',
+  } : null;
+
+  return { steps, newTask, done: !!newTask };
 }
 
 export async function unclaimTask(taskId: number): Promise<{ ok: boolean }> {

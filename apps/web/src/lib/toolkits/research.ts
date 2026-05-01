@@ -163,11 +163,11 @@ register({
     const rows = await db.execute(sql`
       INSERT INTO knowledge_items (tenant_id, project_id, kind, title, content, tags, imported_from)
       VALUES ('self', ${projectId ?? null}, ${input.kind}, ${input.title}, ${input.content},
-              ${JSON.stringify(input.tags)}::jsonb, ${`agent-run-${ctx.agentRunId ?? 'unknown'}`})
+              ${JSON.stringify(input.tags ?? [])}::jsonb, ${`agent-run-${ctx.agentRunId ?? 'unknown'}`})
       RETURNING id
     `);
-    const r = (rows as unknown as Array<{ id: number }>)[0]!;
-    return { id: r.id, saved: true };
+    const r = (rows as unknown as Array<{ id: number | string }>)[0]!;
+    return { id: Number(r.id), saved: true };
   },
 });
 

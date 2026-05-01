@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, type WorkflowProgress } from '@/lib/actions/inbox';
+import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, type WorkflowProgress, type LineageEntry } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -209,6 +209,15 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
   // Sau complete, modal hiển thị kết quả thay vì đóng ngay → user thấy spawn lineage.
   const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; spawnedSquad?: string; feedbackType: string; workflowRunId?: string } | null>(null);
   const [progress, setProgress] = useState<WorkflowProgress | null>(null);
+  const [lineage, setLineage] = useState<LineageEntry[]>([]);
+  const [showLineage, setShowLineage] = useState(false);
+  // Lineage load lazy khi user mở.
+  useEffect(() => {
+    if (!showLineage) return;
+    let cancelled = false;
+    getTaskLineage(task.id).then((entries) => { if (!cancelled) setLineage(entries); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [showLineage, task.id]);
   const safeClose = () => {
     if (lastResult) { onAction(); return; }
     if (isDirty && !confirm('Có nội dung chưa submit. Đóng bỏ bản nháp?\n(Bản nháp đã auto-save sẵn — bấm OK nếu chỉ muốn ẩn modal.)')) return;
@@ -497,6 +506,89 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
               </div>
               {task.completedAt && <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>Completed: {fmtRel(task.completedAt)}</div>}
             </>
+          )}
+
+          {/* Lineage / lịch sử workflow — collapsible */}
+          <div className="modal-section-title" style={{ marginTop: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowLineage(!showLineage)}>
+            <span style={{ fontSize: 10 }}>{showLineage ? '▾' : '▸'}</span>
+            📜 Lineage / lịch sử ({lineage.length || '—'})
+            <span style={{ fontSize: 9, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>
+              ai + human chain
+            </span>
+          </div>
+          {showLineage && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, paddingLeft: 8, borderLeft: '1px dashed var(--line-2)' }}>
+              {lineage.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', padding: '8px 0' }}>Loading...</div>
+              ) : lineage.map((e, i) => {
+                const ts = new Date(e.ts).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
+                if (e.kind === 'agent_run') {
+                  const stepEmoji = e.stepKey === 'plan' ? '🧭' : e.stepKey === 'write' ? '✍️' : e.stepKey === 'design' ? '🎨' : e.stepKey === 'publish' ? '🚀' : '🤖';
+                  const statusColor = e.runStatus === 'completed' ? 'var(--ok)' : e.runStatus === 'running' ? 'var(--neon-amber)' : e.runStatus === 'failed' ? 'var(--bad)' : 'var(--fg-3)';
+                  return (
+                    <div key={`r${i}`} style={{ padding: '6px 8px', background: e.isRevise ? 'rgba(157,108,255,0.06)' : 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, fontSize: 11 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)' }}>
+                        <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>{ts}</span>
+                        <span style={{ fontSize: 13 }}>{stepEmoji}</span>
+                        <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{e.stepKey}</span>
+                        <span style={{ color: 'var(--neon-cyan)' }}>· {e.squadKey}</span>
+                        <span style={{ color: statusColor, fontSize: 10 }}>· {e.runStatus}</span>
+                        {e.isRevise && <span style={{ color: 'var(--neon-violet)', fontSize: 10 }}>· revise</span>}
+                        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)' }}>
+                          run #{e.runId} · {e.cardRef}
+                        </span>
+                      </div>
+                      {e.toolsUsed && e.toolsUsed.length > 0 && (
+                        <div style={{ marginTop: 3, display: 'flex', gap: 4, flexWrap: 'wrap', fontSize: 9.5, fontFamily: 'var(--font-mono)' }}>
+                          {e.toolsUsed.map((t, j) => (
+                            <span key={j} style={{ padding: '1px 5px', background: 'var(--bg-3)', borderRadius: 3, color: t.ok ? 'var(--ok)' : 'var(--bad)' }}>
+                              {t.ok ? '✓' : '✕'} {t.toolId}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 3, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 8 }}>
+                        {e.durationMs != null && <span>⏱ {Math.round(e.durationMs / 1000)}s</span>}
+                        {e.tokensIn != null && <span>↓{e.tokensIn}</span>}
+                        {e.tokensOut != null && <span>↑{e.tokensOut}</span>}
+                        {e.costCents != null && <span>${(e.costCents / 100).toFixed(4)}</span>}
+                      </div>
+                      {e.output && (
+                        <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--fg-2)', fontStyle: 'italic', whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>
+                          {e.output}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                // Human task entry
+                const fbColor = e.feedbackType === 'success' ? 'var(--ok)' : e.feedbackType === 'revise' ? 'var(--neon-amber)' : e.feedbackType === 'error' ? 'var(--bad)' : 'var(--neon-violet)';
+                const isThisTask = e.taskId === task.id;
+                return (
+                  <div key={`t${i}`} style={{ padding: '6px 8px', background: 'rgba(0, 229, 255, 0.05)', border: `1px solid ${isThisTask ? 'var(--neon-cyan)' : 'var(--line)'}`, borderRadius: 4, fontSize: 11 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>{ts}</span>
+                      <span style={{ fontSize: 13 }}>👤</span>
+                      <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>human task #{e.taskId}</span>
+                      <span style={{ color: 'var(--neon-cyan)', fontSize: 10 }}>· {e.taskStatus}</span>
+                      {isThisTask && <span style={{ color: 'var(--neon-cyan)', fontSize: 9 }}>· current</span>}
+                    </div>
+                    {e.output && <div style={{ marginTop: 3, fontSize: 11, color: 'var(--fg-1)' }}>{e.output}</div>}
+                    {e.feedbackType && (
+                      <div style={{ marginTop: 4, fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
+                        <span style={{ color: fbColor }}>↳ {e.feedbackType}</span>
+                        {e.feedbackText && <span style={{ color: 'var(--fg-2)' }}>: &quot;{e.feedbackText}&quot;</span>}
+                      </div>
+                    )}
+                    {e.publishUrl && (
+                      <div style={{ marginTop: 3, fontSize: 10 }}>
+                        <a href={e.publishUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{e.publishUrl}</a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 

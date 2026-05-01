@@ -261,6 +261,125 @@ export async function cancelTask(taskId: number, reason?: string): Promise<{ ok:
   return { ok: true };
 }
 
+// Phase 12.5 — Task lineage: liệt kê toàn bộ activity trong workflow_run của task này.
+// Mục đích: xem lại ai đã làm gì (AI agent + human) qua từng bước, có thể revise nhiều lần.
+export interface LineageEntry {
+  kind: 'agent_run' | 'human_task';
+  ts: string;                     // ISO timestamp
+  cardId?: number;
+  cardRef?: string;
+  stepKey?: string;               // workflow_step
+  squadKey?: string;              // wf-planner / wf-writer / wf-designer / wf-publisher
+  runId?: number;
+  runStatus?: string;
+  durationMs?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  costCents?: number;
+  toolsUsed?: Array<{ toolId: string; ok: boolean }>;
+  output?: string;                // run output text hoặc human task title
+  // Human task fields
+  taskId?: number;
+  taskStatus?: string;
+  feedbackType?: string | null;
+  feedbackText?: string | null;
+  publishUrl?: string | null;
+  isRevise?: boolean;             // tag revise → highlight chain mới
+}
+export async function getTaskLineage(taskId: number): Promise<LineageEntry[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  // Find workflow_run_id của task này.
+  const ctxRows = await db.execute(sql`
+    SELECT c.workflow_run_id
+    FROM human_tasks ht
+    LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+    LEFT JOIN cards c ON c.id = ar.card_id
+    WHERE ht.id = ${taskId} LIMIT 1
+  `);
+  const ctxRow = (ctxRows as unknown as Array<{ workflow_run_id: string | null }>)[0];
+  if (!ctxRow?.workflow_run_id) return [];
+  const wfRunId = ctxRow.workflow_run_id;
+
+  // Tất cả agent_runs trong workflow_run.
+  const runRows = await db.execute(sql`
+    SELECT ar.id, ar.card_id, ar.status, ar.started_at, ar.completed_at, ar.duration_ms,
+           ar.tokens_in, ar.tokens_out, ar.cost_usd_cents, ar.tools_used, ar.output,
+           c.card_ref, c.workflow_step, c.squad_key, c.tags
+    FROM agent_runs ar
+    LEFT JOIN cards c ON c.id = ar.card_id
+    WHERE c.workflow_run_id = ${wfRunId}
+    ORDER BY ar.id ASC
+  `);
+  const runs = (runRows as unknown as Array<{
+    id: number | string; card_id: number | string; status: string;
+    started_at: unknown; completed_at: unknown; duration_ms: number | null;
+    tokens_in: number | null; tokens_out: number | null; cost_usd_cents: number | null;
+    tools_used: unknown; output: unknown;
+    card_ref: string | null; workflow_step: string | null; squad_key: string | null;
+    tags: string[] | null;
+  }>);
+
+  // Tất cả human_tasks trong workflow_run.
+  const taskRows = await db.execute(sql`
+    SELECT ht.id, ht.parent_run_id, ht.title, ht.status, ht.feedback_type, ht.feedback_text,
+           ht.publish_url, ht.created_at, ht.completed_at
+    FROM human_tasks ht
+    LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+    LEFT JOIN cards c ON c.id = ar.card_id
+    WHERE c.workflow_run_id = ${wfRunId}
+    ORDER BY ht.id ASC
+  `);
+  const tasks = (taskRows as unknown as Array<{
+    id: number | string; parent_run_id: number | null; title: string; status: string;
+    feedback_type: string | null; feedback_text: string | null;
+    publish_url: string | null; created_at: unknown; completed_at: unknown;
+  }>);
+
+  const toIso = (v: unknown): string => {
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'string') return new Date(v).toISOString();
+    return new Date().toISOString();
+  };
+
+  const entries: LineageEntry[] = [];
+  for (const r of runs) {
+    const out = (typeof r.output === 'object' && r.output) ? (r.output as { text?: string }).text ?? '' : '';
+    const tools = Array.isArray(r.tools_used) ? r.tools_used as Array<{ toolId: string; ok: boolean }> : [];
+    const isRevise = Array.isArray(r.tags) && r.tags.includes('revise');
+    entries.push({
+      kind: 'agent_run',
+      ts: toIso(r.started_at),
+      cardId: Number(r.card_id), cardRef: r.card_ref ?? undefined,
+      stepKey: r.workflow_step ?? undefined,
+      squadKey: r.squad_key ?? undefined,
+      runId: Number(r.id), runStatus: r.status,
+      durationMs: r.duration_ms ?? undefined,
+      tokensIn: r.tokens_in ?? undefined,
+      tokensOut: r.tokens_out ?? undefined,
+      costCents: r.cost_usd_cents ?? undefined,
+      toolsUsed: tools.map((t) => ({ toolId: t.toolId, ok: t.ok })),
+      output: out.slice(0, 280),
+      isRevise,
+    });
+  }
+  for (const t of tasks) {
+    entries.push({
+      kind: 'human_task',
+      ts: toIso(t.created_at),
+      taskId: Number(t.id),
+      taskStatus: t.status,
+      feedbackType: t.feedback_type, feedbackText: t.feedback_text,
+      publishUrl: t.publish_url,
+      output: t.title,
+    });
+  }
+  // Sort by timestamp ASC
+  entries.sort((a, b) => a.ts.localeCompare(b.ts));
+  return entries;
+}
+
 // Phase 12.5 — Poll workflow progress sau khi user revise.
 // Trả về: latest step đang chạy/xong + new human_task nếu chain đã đến publish.
 // Frontend modal poll mỗi ~3s để cập nhật UI realtime, swap sang task mới khi sẵn sàng.

@@ -194,6 +194,33 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         },
       });
 
+      // Post-run fallback: nếu squad có save-knowledge tool nhưng agent KHÔNG gọi
+      // (hoặc gọi fail), worker tự save output làm knowledge entry. Đảm bảo
+      // user luôn có 1 row tracking trong knowledge_items per successful run.
+      const calledSaveOk = result.partial.toolsUsed.some((t) => t.toolId === 'save-knowledge' && t.ok);
+      if (result.ok && !calledSaveOk && (cfg.tools ?? []).includes('save-knowledge') && result.output.trim().length > 100) {
+        try {
+          const fallbackTitle = `${card.title} — auto-saved`;
+          const fallbackTags = ['auto-fallback', card.agent_kind];
+          const insRows = await db.execute(sql`
+            INSERT INTO knowledge_items (tenant_id, project_id, kind, title, content, tags, imported_from)
+            VALUES ('self', ${card.project_id}, 'research', ${fallbackTitle}, ${result.output},
+                    ${JSON.stringify(fallbackTags)}::jsonb, ${`agent-run-${run.id}-fallback`})
+            RETURNING id
+          `);
+          const newId = (insRows as unknown as Array<{ id: number | string }>)[0]?.id;
+          // Append to tools_used để UI link tới knowledge entry.
+          result.partial.toolsUsed.push({
+            toolId: 'save-knowledge',
+            input: { fallback: true, title: fallbackTitle },
+            output: { id: Number(newId), saved: true },
+            durationMs: 0, ok: true,
+          });
+        } catch (e) {
+          console.warn(`[worker] fallback save-knowledge failed: ${(e as Error).message}`);
+        }
+      }
+
       // Optional peer review (only if agent succeeded + write/destroy side effect detected).
       // For simplicity: peer review whenever output non-trivial.
       let reviewJson: Record<string, unknown> | null = null;

@@ -20,8 +20,10 @@ const NODE_W = 160;
 const NODE_H = 100;
 const ORCH_W = 200;
 const ORCH_H = 86;
-const HUMAN_W = 140;
-const HUMAN_H = 36;
+const HUMAN_W = 130;
+const HUMAN_H = 46;
+const CLAUDE_W = 150;
+const CLAUDE_H = 46;
 const KB_W = 150;
 const KB_H = 56;
 const MON_W = 150;
@@ -63,8 +65,15 @@ function relativeTime(iso: string | null): string {
 }
 
 // ── Node position helpers ────────────────────────────────────────
+const PAIR_GAP = 20;
+
 function humanNodePos(W: number) {
-  return { x: W / 2 - HUMAN_W / 2, y: LAYERS.human.y };
+  // Human left of center, Claude right of center
+  return { x: W / 2 - PAIR_GAP / 2 - HUMAN_W, y: LAYERS.human.y };
+}
+
+function claudeNodePos(W: number) {
+  return { x: W / 2 + PAIR_GAP / 2, y: LAYERS.human.y };
 }
 
 function orchNodePos(W: number) {
@@ -174,6 +183,7 @@ function ArrowsLayer({
   publisherIdx: number;
 }) {
   const humanPos = humanNodePos(W);
+  const claudePos = claudeNodePos(W);
   const orchPos = orchNodePos(W);
   const squadPos = squadNodePositions(squads.filter((s) => !isOrchestrator(s)), W);
   const nonOrchSquads = squads.filter((s) => !isOrchestrator(s));
@@ -185,8 +195,23 @@ function ArrowsLayer({
   const dimArrow = 'rgba(148,163,184,0.22)';
   const orchArrow = 'var(--neon-violet)';
   const cyanArrow = 'rgba(0,229,255,0.35)';
+  const amberArrow = 'rgba(255,176,60,0.55)';
 
-  const paths: Array<{ d: string; color: string; animate?: boolean }> = [];
+  const paths: Array<{ d: string; color: string; animate?: boolean; dashed?: boolean }> = [];
+
+  // Human ↔ Claude IDE — horizontal bidirectional (draw as two offset paths)
+  const humanRight = { x: humanPos.x + HUMAN_W, y: humanPos.y + HUMAN_H / 2 };
+  const claudeLeft  = { x: claudePos.x, y: claudePos.y + CLAUDE_H / 2 };
+  const gap = claudeLeft.x - humanRight.x;
+  paths.push({ d: `M ${humanRight.x} ${humanRight.y - 4} L ${humanRight.x + gap} ${humanRight.y - 4}`, color: amberArrow, dashed: true });
+  paths.push({ d: `M ${claudeLeft.x} ${claudeLeft.y + 4} L ${claudeLeft.x - gap} ${claudeLeft.y + 4}`, color: amberArrow, dashed: true });
+
+  // Claude IDE → Orchestrator (spawns cards / architecture)
+  if (orchSquad) {
+    const b = bot(claudePos.x, claudePos.y, CLAUDE_W, CLAUDE_H);
+    const t = top(orchPos.x, orchPos.y, ORCH_W);
+    paths.push({ d: curve(b.x, b.y, t.x, t.y, 0.5), color: amberArrow, dashed: true });
+  }
 
   // Human → Orchestrator (or first squad)
   if (orchSquad) {
@@ -254,6 +279,9 @@ function ArrowsLayer({
         <marker id="arr-cyan" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
           <polygon points="0 0, 7 3.5, 0 7" fill="rgba(0,229,255,0.6)" />
         </marker>
+        <marker id="arr-amber" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <polygon points="0 0, 7 3.5, 0 7" fill="rgba(255,176,60,0.7)" />
+        </marker>
         <style>{`
           @keyframes flowDash {
             to { stroke-dashoffset: -24; }
@@ -266,18 +294,19 @@ function ArrowsLayer({
       {paths.map((p, i) => {
         const isViolet = p.color === 'var(--neon-violet)';
         const isCyan = p.color.includes('0,229,255');
-        const markerId = isViolet ? 'arr-violet' : isCyan ? 'arr-cyan' : 'arr';
+        const isAmber = p.color.includes('255,176,60');
+        const markerId = isViolet ? 'arr-violet' : isCyan ? 'arr-cyan' : isAmber ? 'arr-amber' : 'arr';
         return (
           <path
             key={i}
             d={p.d}
             fill="none"
             stroke={p.color}
-            strokeWidth={isViolet ? 1.5 : 1}
-            strokeDasharray={p.animate ? '8 4' : undefined}
+            strokeWidth={isViolet ? 1.5 : isAmber ? 1.2 : 1}
+            strokeDasharray={p.animate ? '8 4' : p.dashed ? '5 4' : undefined}
             className={p.animate ? 'flow-active' : undefined}
             markerEnd={`url(#${markerId})`}
-            opacity={isViolet ? 0.85 : 0.7}
+            opacity={isViolet ? 0.85 : isAmber ? 0.8 : 0.7}
           />
         );
       })}
@@ -308,15 +337,44 @@ function HumanNode({ pos }: { pos: { x: number; y: number } }) {
         left: pos.x, top: pos.y,
         width: HUMAN_W, height: HUMAN_H,
         border: '1.5px dashed var(--fg-3)',
-        borderRadius: 999,
+        borderRadius: 8,
         background: 'rgba(90,98,115,0.10)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 6,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 3,
       }}
     >
-      <span style={{ fontSize: 14 }}>👤</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', fontFamily: 'var(--font-display)' }}>
+      <span style={{ fontSize: 16 }}>👤</span>
+      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-2)', fontFamily: 'var(--font-display)' }}>
         Human / Goal
+      </span>
+    </div>
+  );
+}
+
+function ClaudeIDENode({ pos }: { pos: { x: number; y: number } }) {
+  return (
+    <div
+      title="Claude IDE — builds features, seeds cards, reviews architecture. Participates when human pulls it in."
+      style={{
+        position: 'absolute',
+        left: pos.x, top: pos.y,
+        width: CLAUDE_W, height: CLAUDE_H,
+        border: '1.5px solid var(--neon-amber)',
+        borderRadius: 8,
+        background: 'rgba(255,176,60,0.07)',
+        boxShadow: '0 0 10px rgba(255,176,60,0.18)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 3,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ fontSize: 14 }}>✨</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--neon-amber)', fontFamily: 'var(--font-display)' }}>
+          Claude IDE
+        </span>
+      </div>
+      <span style={{ fontSize: 8, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+        Architect · Builder
       </span>
     </div>
   );
@@ -622,6 +680,7 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
   const publisherIdx = detectPublisherIdx(nonOrchSquads);
 
   const humanPos = humanNodePos(W);
+  const claudePos = claudeNodePos(W);
   const orchPos = orchNodePos(W);
   const kbPos = kbNodePos(W);
   const monPos = monNodePos(W);
@@ -651,6 +710,9 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
 
         {/* Human node */}
         <HumanNode pos={humanPos} />
+
+        {/* Claude IDE node */}
+        <ClaudeIDENode pos={claudePos} />
 
         {/* Orchestrator node */}
         {orchSquad && <OrchestratorNode sq={orchSquad} pos={orchPos} />}

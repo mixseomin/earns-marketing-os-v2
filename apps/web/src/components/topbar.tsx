@@ -25,7 +25,7 @@ function DropdownTab({
   }
   return (
     <div
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >

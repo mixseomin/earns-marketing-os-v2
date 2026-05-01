@@ -96,16 +96,24 @@ export async function listRecentAgentRuns(limit = 50): Promise<RecentAgentRun[]>
     ORDER BY created_at DESC
     LIMIT ${limit}
   `);
+  // db.execute() raw queries trả timestamps as ISO strings, KHÔNG phải Date.
+  // Fix: convert qua new Date() rồi toISOString để safe (handle both string + Date).
+  const toIso = (v: unknown): string | null => {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'string') return new Date(v).toISOString();
+    return null;
+  };
   return (rows as unknown as Array<{
     id: number; agent_kind: string; agent_ref: string | null;
     project_id: string | null; card_id: number | null; status: string;
-    started_at: Date | null; completed_at: Date | null; duration_ms: number | null;
+    started_at: unknown; completed_at: unknown; duration_ms: number | null;
     cost_usd_cents: number; tokens_in: number; tokens_out: number; error: string | null;
   }>).map((r) => ({
     id: r.id, agentKind: r.agent_kind, agentRef: r.agent_ref,
     projectId: r.project_id, cardId: r.card_id, status: r.status,
-    startedAt: r.started_at?.toISOString() ?? null,
-    completedAt: r.completed_at?.toISOString() ?? null,
+    startedAt: toIso(r.started_at),
+    completedAt: toIso(r.completed_at),
     durationMs: r.duration_ms, costUsdCents: r.cost_usd_cents,
     tokensIn: r.tokens_in, tokensOut: r.tokens_out, error: r.error,
   }));

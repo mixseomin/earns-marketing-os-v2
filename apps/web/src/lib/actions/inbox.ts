@@ -114,9 +114,12 @@ export async function completeTask(taskId: number, body: {
 }): Promise<{ ok: boolean; spawnedCardId?: number }> {
   const db = getDb();
   if (!db) return { ok: false };
+  // Auto-claim nếu chưa claim — UX: user mở task pending, fill form, bấm Mark complete trực tiếp.
   await db.execute(sql`
     UPDATE human_tasks SET
       status = 'completed',
+      claimed_by = COALESCE(claimed_by, 'self'),
+      claimed_at = COALESCE(claimed_at, NOW()),
       publish_url = ${body.publishUrl ?? null},
       screenshot_url = ${body.screenshotUrl ?? null},
       notes = ${body.notes ?? null},

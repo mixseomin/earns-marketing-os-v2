@@ -318,7 +318,10 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
           <div className="modal-foot-actions">
             <button className="btn ghost" onClick={onClose}>Close</button>
             {task.status === 'pending' && (
-              <button className="btn primary" onClick={handleClaim} disabled={busy}>👤 Claim</button>
+              <>
+                <button className="btn" onClick={handleClaim} disabled={busy}>👤 Claim only</button>
+                <button className="btn primary" onClick={handleComplete} disabled={busy}>✓ Submit + complete</button>
+              </>
             )}
             {(task.status === 'claimed' || task.status === 'in_progress') && (
               <>

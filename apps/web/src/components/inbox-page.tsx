@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, type WorkflowProgress, type LineageEntry } from '@/lib/actions/inbox';
+import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, resumeTaskAsRevise, type WorkflowProgress, type LineageEntry } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -57,18 +57,27 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
     return () => { cancelled = true; clearInterval(i); };
   }, []);
 
-  // Virtual state "revising": completed task có feedback revise/more-info, chưa có descendant task →
-  // AI đang xử lý revise dở. Giữ trong 'open' filter để user thấy progress thay vì biến mất.
-  const isRevising = (t: HumanTaskRow): boolean =>
-    t.status === 'completed' &&
-    (t.feedbackType === 'revise' || t.feedbackType === 'more-info') &&
-    t.descendantTaskId === null &&
-    !!t.workflowRunId;
+  // 3 virtual states giúp user theo dõi mọi task chưa kết thúc thành công:
+  //  - revising: AI đang xử lý chain (revise/more-info, chưa có descendant)
+  //  - stuck:    error / no-feedback, workflow dừng → cần user can thiệp Resume
+  //  - chained:  đã có descendant → click sẽ nhảy sang task con
+  const taskState = (t: HumanTaskRow): 'live' | 'revising' | 'stuck' | 'success' | 'chained' | 'idle' => {
+    if (['pending', 'claimed', 'in_progress'].includes(t.status)) return 'live';
+    if (t.status !== 'completed') return 'idle';
+    if (t.descendantTaskId != null) return 'chained';
+    if (t.feedbackType === 'success') return 'success';
+    if (t.feedbackType === 'revise' || t.feedbackType === 'more-info') return 'revising';
+    if (t.feedbackType === 'error' || !t.feedbackType) return 'stuck';
+    return 'idle';
+  };
   const filtered = useMemo(() => {
     if (filterStatus === 'all') return tasks;
-    if (filterStatus === 'open') return tasks.filter((t) =>
-      ['pending', 'claimed', 'in_progress'].includes(t.status) || isRevising(t)
-    );
+    // 'open' = mọi task chưa bị thay thế bởi task con — gồm cả success để user
+    // có thể quay lại xem URL đã đăng / kết quả cuối cùng. Chỉ ẩn 'chained' vì user đã đi tiếp.
+    if (filterStatus === 'open') return tasks.filter((t) => {
+      const s = taskState(t);
+      return s === 'live' || s === 'revising' || s === 'stuck' || s === 'success';
+    });
     return tasks.filter((t) => t.status === filterStatus);
   }, [tasks, filterStatus]);
   // Recent done — show 3 latest completed dưới khi user ở filter 'open' và pending=0,
@@ -137,33 +146,33 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map((t) => {
             const sla = fmtSlaCountdown(t.slaDueAt);
-            const revising = isRevising(t);
-            const hasDescendant = t.descendantTaskId != null;
+            const state = taskState(t);
+            const hasDescendant = state === 'chained';
             const onClick = () => {
               if (hasDescendant) {
-                // Mở task con luôn cho user theo chain.
                 const child = tasks.find((x) => x.id === t.descendantTaskId);
                 setOpenTask(child ?? t);
               } else {
                 setOpenTask(t);
               }
             };
-            const borderColor = revising
-              ? '4px solid var(--neon-violet)'
-              : sla.tone === 'bad' ? '4px solid var(--bad)'
-              : sla.tone === 'warn' ? '4px solid var(--warn)'
-              : '4px solid var(--line)';
+            const stateConfig: Record<typeof state, { label: string; color: string; border: string }> = {
+              live:     { label: t.status,            color: STATUS_COLOR[t.status] ?? 'var(--fg-3)', border: 'var(--line)' },
+              revising: { label: '⏳ AI đang revise', color: 'var(--neon-violet)',                   border: 'var(--neon-violet)' },
+              stuck:    { label: '❌ Stuck — cần Resume', color: 'var(--bad)',                        border: 'var(--bad)' },
+              success:  { label: '✓ Success',         color: 'var(--ok)',                            border: 'var(--ok)' },
+              chained:  { label: '↳ chained',         color: 'var(--neon-cyan)',                     border: 'var(--neon-cyan)' },
+              idle:     { label: t.status,            color: 'var(--fg-3)',                          border: 'var(--line)' },
+            };
+            const cfg = stateConfig[state];
+            const borderColor = sla.tone === 'bad' ? 'var(--bad)' : sla.tone === 'warn' ? 'var(--warn)' : cfg.border;
             return (
-              <div key={t.id} className="panel" style={{ cursor: 'pointer', borderLeft: borderColor }} onClick={onClick}>
+              <div key={t.id} className="panel" style={{ cursor: 'pointer', borderLeft: `4px solid ${borderColor}` }} onClick={onClick}>
                 <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
                     <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {revising ? (
-                        <Pill color="var(--neon-violet)" label="⏳ AI đang revise" size="xs" />
-                      ) : (
-                        <Pill color={STATUS_COLOR[t.status] ?? 'var(--fg-3)'} label={t.status} size="xs" />
-                      )}
+                      <Pill color={cfg.color} label={cfg.label} size="xs" />
                       {t.platformKey && <span>· {t.platformKey}</span>}
                       <span>· {t.projectName ?? t.projectId}</span>
                       <span>· {fmtRel(t.createdAt)}</span>
@@ -177,7 +186,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
                         ⏱ {sla.text}
                       </span>
                     </div>
-                    {revising && t.feedbackText && (
+                    {(state === 'revising' || state === 'stuck') && t.feedbackText && (
                       <div style={{ fontSize: 10.5, color: 'var(--fg-2)', fontStyle: 'italic', marginTop: 4 }}>
                         ↳ &quot;{t.feedbackText}&quot;
                       </div>
@@ -326,6 +335,21 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
     setBusy(true);
     startTransition(async () => { await unclaimTask(task.id); setBusy(false); onAction(); });
   };
+  // Resume task đã completed mà workflow dừng (error / no-feedback / lỡ submit không spawn).
+  const handleResume = () => {
+    const fb = prompt('Feedback / yêu cầu để Writer revise (Resume workflow):', task.feedbackText ?? '');
+    if (!fb) return;
+    setBusy(true);
+    startTransition(async () => {
+      const res = await resumeTaskAsRevise(task.id, { feedbackText: fb, reviseTarget: 'text' });
+      setBusy(false);
+      if (res.ok) {
+        setLastResult({ spawnedCardId: res.spawnedCardId, spawnedSquad: res.spawnedSquad, feedbackType: 'resume', workflowRunId: res.workflowRunId });
+      }
+    });
+  };
+  // Detect stuck state cho UI (task completed nhưng không có descendant + không phải success).
+  const isStuck = task.status === 'completed' && !task.descendantTaskId && task.feedbackType !== 'success' && !!task.workflowRunId;
 
   const payload = task.prepPayload as Record<string, unknown>;
   const caption = typeof payload.caption === 'string' ? payload.caption : '';
@@ -352,6 +376,22 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
         </div>
 
         <div className="modal-body">
+          {isStuck && !lastResult && (
+            <div style={{
+              padding: 10, marginBottom: 10, background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid var(--bad)', borderRadius: 6,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad)', marginBottom: 4 }}>
+                ❌ Workflow dừng — không có task con
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 6 }}>
+                Feedback type: <b>{task.feedbackType ?? '(none)'}</b>{task.feedbackText ? ` — "${task.feedbackText}"` : ''}
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                Bấm <b>Resume / Re-revise</b> ở footer để spawn lại writer card với feedback (sửa thêm nếu muốn).
+              </div>
+            </div>
+          )}
           <div className="modal-section-title">Instructions</div>
           <div className="modal-text" style={{ whiteSpace: 'pre-wrap' }}>{task.instructions}</div>
 
@@ -649,6 +689,9 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
             )}
             {!lastResult && (task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
               <button className="btn danger" onClick={handleCancel} disabled={busy}>✕ Cancel</button>
+            )}
+            {!lastResult && isStuck && (
+              <button className="btn primary" onClick={handleResume} disabled={busy} title="Workflow dừng — spawn writer card mới với feedback để tiếp tục">↻ Resume / Re-revise</button>
             )}
           </div>
         </div>

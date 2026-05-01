@@ -484,6 +484,80 @@ export async function pollWorkflowProgress(workflowRunId: string, afterHumanTask
   return { steps, newTask, done: !!newTask };
 }
 
+// Resume từ task đã completed nhưng không spawn (vd error type, hoặc workflow chain bị dừng).
+// Cho user re-revise với feedback text mới (hoặc giữ lại từ trước) — không bao giờ stuck.
+export async function resumeTaskAsRevise(taskId: number, body: {
+  feedbackText: string;
+  reviseTarget?: 'text' | 'image' | 'both';
+}): Promise<{ ok: boolean; spawnedCardId?: number; spawnedSquad?: string; workflowRunId?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false };
+
+  // Re-use lookup logic.
+  const taskRows = await db.execute(sql`
+    SELECT ht.parent_run_id, ar.card_id, c.workflow_run_id, c.workflow_key, c.workflow_context, c.project_id, c.col, c.title
+    FROM human_tasks ht
+    LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+    LEFT JOIN cards c ON c.id = ar.card_id
+    WHERE ht.id = ${taskId} LIMIT 1
+  `);
+  const t = (taskRows as unknown as Array<{
+    parent_run_id: number | null; card_id: number | null;
+    workflow_run_id: string | null; workflow_key: string | null;
+    workflow_context: Record<string, unknown> | null;
+    project_id: string | null; col: string | null; title: string | null;
+  }>)[0];
+  if (!t?.workflow_run_id || t?.workflow_key !== 'reddit-launch') return { ok: false };
+
+  const reviseTarget = body.reviseTarget ?? 'text';
+  const baseCtx = (t.workflow_context ?? {}) as Record<string, unknown>;
+  const ctx: Record<string, unknown> = {
+    ...baseCtx,
+    feedback: body.feedbackText,
+    revise_skip_design: reviseTarget === 'text',
+  };
+  const reviseBody = `## Feedback từ human (resume revise)
+${body.feedbackText}
+
+## Plan gốc
+${(ctx.plan as string) ?? '(empty)'}
+
+## Yêu cầu
+Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BUỘC gọi save-knowledge với title='Reddit post resumed' + content=full title+body.`;
+
+  const newRef = `RS-${Math.floor(1000 + Math.random() * 9000)}`;
+  const insRows = await db.execute(sql`
+    INSERT INTO cards (
+      tenant_id, project_id, card_ref, col, title, body,
+      squad_key, level, due, agent_kind, dispatch_ready, idempotency_key,
+      workflow_run_id, workflow_key, workflow_step, workflow_context, tags
+    ) VALUES (
+      'self', ${t.project_id ?? 'orit'}, ${newRef}, ${t.col ?? 'prospecting'},
+      ${`✍️ Resume — ${t.title ?? 'Reddit post'}`}, ${reviseBody},
+      'wf-writer', 2, 'NOW',
+      'gpt-4o-mini', true,
+      ${`${t.workflow_run_id}-resume-${Date.now()}`},
+      ${t.workflow_run_id}, 'reddit-launch', 'write',
+      ${JSON.stringify(ctx)}::jsonb,
+      ${JSON.stringify(['workflow:reddit-launch', 'step:write', 'resume', `target:${reviseTarget}`])}::jsonb
+    ) RETURNING id
+  `);
+  const r = (insRows as unknown as Array<{ id: number | string }>)[0];
+  const spawnedCardId = r ? Number(r.id) : undefined;
+
+  // Auto-kick worker.
+  if (spawnedCardId) {
+    const cronSecret = process.env.MOS2_CRON_SECRET || process.env.CRON_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mos2.on.tc';
+    if (cronSecret) {
+      fetch(`${baseUrl}/api/cron/worker?limit=1`, { method: 'POST', headers: { 'x-cron-secret': cronSecret } }).catch(() => {});
+    }
+  }
+
+  revalidatePath('/inbox');
+  return { ok: true, spawnedCardId, spawnedSquad: 'wf-writer', workflowRunId: t.workflow_run_id ?? undefined };
+}
+
 export async function unclaimTask(taskId: number): Promise<{ ok: boolean }> {
   const db = getDb();
   if (!db) return { ok: false };

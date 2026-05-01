@@ -330,6 +330,29 @@ export async function setSoloReasoningSquad(projectId: string, squadKey: string)
   return { ok: true, activated, paused };
 }
 
+// Delete 1 agent_run, optional cascade vào knowledge_items.
+// alsoDeleteKnowledge=true → DELETE knowledge_items WHERE imported_from
+// match 'agent-run-{id}' OR 'agent-run-{id}-fallback'.
+export async function deleteAgentRun(
+  runId: number, alsoDeleteKnowledge: boolean,
+): Promise<{ ok: boolean; deletedKnowledge: number }> {
+  const db = getDb();
+  if (!db) return { ok: false, deletedKnowledge: 0 };
+  let deletedKnowledge = 0;
+  if (alsoDeleteKnowledge) {
+    const kRows = await db.execute(sql`
+      DELETE FROM knowledge_items
+      WHERE tenant_id = ${TENANT}
+        AND (imported_from = ${`agent-run-${runId}`} OR imported_from = ${`agent-run-${runId}-fallback`})
+      RETURNING id
+    `);
+    deletedKnowledge = (kRows as unknown as Array<{ id: number | string }>).length;
+  }
+  await db.execute(sql`DELETE FROM agent_runs WHERE id = ${runId} AND tenant_id = ${TENANT}`);
+  revalidatePath('/agents');
+  return { ok: true, deletedKnowledge };
+}
+
 // Trigger 1 worker cycle on-demand (UI button thay vì curl).
 // Wraps runWorkerCycle với revalidation.
 export async function triggerWorkerNow(maxCards: number = 5): Promise<{

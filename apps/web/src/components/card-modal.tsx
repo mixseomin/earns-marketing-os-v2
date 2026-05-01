@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
-import { listCardAgentRuns, type CardRunDetail } from '@/lib/actions/agents-admin';
+import { listCardAgentRuns, deleteAgentRun, type CardRunDetail } from '@/lib/actions/agents-admin';
 import ReactMarkdown from 'react-markdown';
 
 type Level = 1 | 2 | 3 | 4;
@@ -368,15 +368,31 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
   const [runs, setRuns] = useState<CardRunDetail[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [, startTransition] = useTransition();
+  const [busyId, setBusyId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const reload = () => {
     setLoading(true);
     startTransition(async () => {
       const data = await listCardAgentRuns(projectId, cardRef);
       setRuns(data);
       setLoading(false);
     });
-  }, [projectId, cardRef]);
+  };
+
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [projectId, cardRef]);
+
+  const handleDelete = (runId: number, alsoKnowledge: boolean, knowledgeCount: number) => {
+    const msg = alsoKnowledge
+      ? `Xoá run #${runId} + ${knowledgeCount} knowledge entry liên quan? Không hoàn tác.`
+      : `Xoá run #${runId}? (giữ nguyên knowledge entries)`;
+    if (!confirm(msg)) return;
+    setBusyId(runId);
+    startTransition(async () => {
+      await deleteAgentRun(runId, alsoKnowledge);
+      setBusyId(null);
+      reload();
+    });
+  };
 
   if (loading) {
     return (
@@ -440,6 +456,29 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
                 <span style={{ fontSize: 10, color: r.peerReviewDecision === 'allow' ? 'var(--ok)' : 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
                   · review: {r.peerReviewDecision}
                 </span>
+              )}
+              <span style={{ flex: 1 }} />
+              {r.knowledgeEntries.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busyId === r.id}
+                  onClick={() => handleDelete(r.id, true, r.knowledgeEntries.length)}
+                  title={`Xoá run + ${r.knowledgeEntries.length} knowledge linked`}
+                  style={{ fontSize: 9, padding: '1px 6px', color: 'var(--bad)', borderColor: 'rgba(248,113,113,.4)' }}
+                >
+                  {busyId === r.id ? '⟲' : `🗑 +knowledge`}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busyId === r.id}
+                  onClick={() => handleDelete(r.id, false, 0)}
+                  style={{ fontSize: 9, padding: '1px 6px', color: 'var(--bad)' }}
+                >
+                  {busyId === r.id ? '⟲' : '🗑'}
+                </button>
               )}
             </div>
             {r.toolsUsed.length > 0 && (() => {

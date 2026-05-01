@@ -248,6 +248,51 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
     }
   }
 
+  // Success + publishUrl → auto-spawn Engage human task với 2h golden-window SLA.
+  // Reuse same parent_run_id → CTE trong listInbox tự inherit workflow_run_id,
+  // descendant_task_id cho success task sẽ tự trỏ sang engage task → state='chained'.
+  if (body.feedbackType === 'success' && body.publishUrl && !spawnedCardId) {
+    const srcRows = await db.execute(sql`
+      SELECT ht.parent_run_id, c.project_id, c.workflow_run_id, c.title
+      FROM human_tasks ht
+      LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+      LEFT JOIN cards c ON c.id = ar.card_id
+      WHERE ht.id = ${taskId} LIMIT 1
+    `);
+    const src = (srcRows as unknown as Array<{
+      parent_run_id: number | null; project_id: string | null;
+      workflow_run_id: string | null; title: string | null;
+    }>)[0];
+    if (src?.parent_run_id && src?.project_id) {
+      const rootTitle = (src.title ?? 'Reddit post').split(' — ').pop() ?? 'Reddit post';
+      const engageInstructions = `Post đã publish: ${body.publishUrl}
+
+**Engage trong 2h (golden window Reddit):**
+- Reply mọi comment, cảm ơn upvotes
+- Nếu có câu hỏi về tool → paste link orit.app + elevator pitch ngắn
+- Nếu post đạt >10 upvotes → mark success để amplify Twitter/LinkedIn
+- Track upvotes + comments mỗi 30 phút
+
+**Mục tiêu:** giữ post sống trên top + convert traffic thành signups.`;
+      await db.execute(sql`
+        INSERT INTO human_tasks (
+          tenant_id, project_id, parent_run_id,
+          title, instructions, prep_payload,
+          platform_key, sla_due_at, status
+        ) VALUES (
+          'self', ${src.project_id}, ${src.parent_run_id},
+          ${`📊 Engage — ${rootTitle}`},
+          ${engageInstructions},
+          ${JSON.stringify({ postUrl: body.publishUrl, type: 'engage', workflowRunId: src.workflow_run_id })}::jsonb,
+          'reddit',
+          NOW() + INTERVAL '2 hours',
+          'pending'
+        )
+      `);
+      workflowRunId = src.workflow_run_id ?? undefined;
+    }
+  }
+
   // Auto-kick worker nếu vừa spawn — đỡ user phải bấm Run worker tay.
   // Fire-and-forget: response không chờ worker complete (có thể >10s).
   if (spawnedCardId) {

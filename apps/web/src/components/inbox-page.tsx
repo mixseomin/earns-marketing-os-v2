@@ -70,8 +70,12 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
     if (t.feedbackType === 'error' || !t.feedbackType) return 'stuck';
     return 'idle';
   };
+  const isEngageTask = (t: HumanTaskRow) =>
+    (t.prepPayload as Record<string, unknown>)?.type === 'engage' || t.title.startsWith('📊 Engage');
+
   const filtered = useMemo(() => {
     if (filterStatus === 'all') return tasks;
+    if (filterStatus === 'engage') return tasks.filter((t) => isEngageTask(t) && ['pending', 'claimed', 'in_progress'].includes(t.status));
     // 'open' = mọi task chưa bị thay thế bởi task con — gồm cả success để user
     // có thể quay lại xem URL đã đăng / kết quả cuối cùng. Chỉ ẩn 'chained' vì user đã đi tiếp.
     if (filterStatus === 'open') return tasks.filter((t) => {
@@ -112,6 +116,16 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0' }}>
         <span className="chip" data-active={filterStatus === 'open' || undefined} onClick={() => setFilterStatus('open')} style={{ cursor: 'pointer', fontSize: 11 }}>open</span>
         <span className="chip" data-active={filterStatus === 'all' || undefined} onClick={() => setFilterStatus('all')} style={{ cursor: 'pointer', fontSize: 11 }}>all</span>
+        {(() => {
+          const engageCount = tasks.filter((t) => isEngageTask(t) && ['pending','claimed','in_progress'].includes(t.status)).length;
+          return (
+            <span className="chip" data-active={filterStatus === 'engage' || undefined} onClick={() => setFilterStatus('engage')}
+                  title="Engage tasks — reply comments trong 2h golden window"
+                  style={{ cursor: 'pointer', fontSize: 11, color: engageCount > 0 ? 'var(--neon-amber)' : 'var(--fg-3)', fontWeight: engageCount > 0 ? 700 : undefined }}>
+              ⚡ engage{engageCount > 0 ? ` (${engageCount})` : ''}
+            </span>
+          );
+        })()}
         {['pending', 'claimed', 'completed', 'verified', 'cancelled'].map((s) => (
           <span key={s} className="chip" data-active={filterStatus === s || undefined} onClick={() => setFilterStatus(s)}
                 style={{ cursor: 'pointer', fontSize: 11, color: STATUS_COLOR[s] }}>
@@ -148,6 +162,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
             const sla = fmtSlaCountdown(t.slaDueAt);
             const state = taskState(t);
             const hasDescendant = state === 'chained';
+            const isEngage = isEngageTask(t);
             const onClick = () => {
               if (hasDescendant) {
                 const child = tasks.find((x) => x.id === t.descendantTaskId);
@@ -157,7 +172,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
               }
             };
             const stateConfig: Record<typeof state, { label: string; color: string; border: string }> = {
-              live:     { label: t.status,            color: STATUS_COLOR[t.status] ?? 'var(--fg-3)', border: 'var(--line)' },
+              live:     { label: isEngage ? '⚡ engage' : t.status, color: isEngage ? 'var(--neon-amber)' : (STATUS_COLOR[t.status] ?? 'var(--fg-3)'), border: isEngage ? 'var(--neon-amber)' : 'var(--line)' },
               revising: { label: '⏳ AI đang revise', color: 'var(--neon-violet)',                   border: 'var(--neon-violet)' },
               stuck:    { label: '❌ Stuck — cần Resume', color: 'var(--bad)',                        border: 'var(--bad)' },
               success:  { label: '✓ Success',         color: 'var(--ok)',                            border: 'var(--ok)' },
@@ -165,12 +180,17 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
               idle:     { label: t.status,            color: 'var(--fg-3)',                          border: 'var(--line)' },
             };
             const cfg = stateConfig[state];
+            // Engage task: SLA urgency overrides border; nếu <30min → red glow
             const borderColor = sla.tone === 'bad' ? 'var(--bad)' : sla.tone === 'warn' ? 'var(--warn)' : cfg.border;
+            const engageGlow = isEngage && sla.tone === 'bad'
+              ? { boxShadow: '0 0 0 1px var(--bad), 0 0 12px rgba(255,80,80,0.2)' }
+              : isEngage ? { boxShadow: '0 0 0 1px var(--neon-amber), 0 0 8px rgba(255,176,60,0.15)' }
+              : undefined;
             return (
-              <div key={t.id} className="panel" style={{ cursor: 'pointer', borderLeft: `4px solid ${borderColor}` }} onClick={onClick}>
+              <div key={t.id} className="panel" style={{ cursor: 'pointer', borderLeft: `4px solid ${borderColor}`, ...engageGlow }} onClick={onClick}>
                 <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isEngage ? 'var(--neon-amber)' : 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
                     <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       <Pill color={cfg.color} label={cfg.label} size="xs" />
                       {t.platformKey && <span>· {t.platformKey}</span>}

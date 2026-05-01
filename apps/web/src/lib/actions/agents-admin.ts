@@ -101,6 +101,8 @@ export interface CardRunDetail {
   knowledgeIdsSaved: number[];     // IDs from save-knowledge tool calls
   // Inline knowledge content cho UI hiển thị mà không cần mở /resources.
   knowledgeEntries: Array<{ id: number; title: string; kind: string; content: string }>;
+  // Media generated bởi image-gen tool (DALL-E etc).
+  mediaEntries: Array<{ id: number; filename: string; url: string; width: number | null; height: number | null }>;
 }
 
 export async function listCardAgentRuns(projectId: string, cardRef: string): Promise<CardRunDetail[]> {
@@ -128,7 +130,7 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
     started_at: unknown; completed_at: unknown; duration_ms: number | null;
     cost_usd_cents: number; tokens_in: number; tokens_out: number;
     output: { text?: string; reason?: string } | null;
-    tools_used: Array<{ toolId?: string; output?: { id?: number }; ok?: boolean }> | null;
+    tools_used: Array<{ toolId?: string; output?: { id?: number; mediaAssetId?: number }; ok?: boolean }> | null;
     peer_review: { decision?: string } | null;
     error: string | null;
   }>).map((r) => {
@@ -136,6 +138,9 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
     const knowledgeIds = tools
       .filter((t) => t.toolId === 'save-knowledge' && t.output && typeof t.output === 'object' && typeof t.output.id === 'number')
       .map((t) => t.output!.id!);
+    const mediaIds = tools
+      .filter((t) => (t.toolId === 'image-gen' || t.toolId === 'image-gen-dalle') && t.output && typeof t.output === 'object' && typeof t.output.mediaAssetId === 'number')
+      .map((t) => t.output!.mediaAssetId!);
     return {
       id: r.id,
       agentKind: r.agent_kind,
@@ -152,15 +157,17 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
       error: r.error,
       knowledgeIdsSaved: knowledgeIds,
       knowledgeEntries: [] as Array<{ id: number; title: string; kind: string; content: string }>,
+      mediaIdsSaved: mediaIds,
+      mediaEntries: [] as Array<{ id: number; filename: string; url: string; width: number | null; height: number | null }>,
     };
   });
 
   // Fetch knowledge content cho mọi knowledge IDs đã save trong các runs.
-  const allIds = baseRows.flatMap((r) => r.knowledgeIdsSaved);
-  if (allIds.length > 0) {
+  const allKIds = baseRows.flatMap((r) => r.knowledgeIdsSaved);
+  if (allKIds.length > 0) {
     const kRows = await db.execute(sql`
       SELECT id, title, kind, content FROM knowledge_items
-      WHERE id IN (${sql.raw(allIds.map((i) => Number(i)).join(','))})
+      WHERE id IN (${sql.raw(allKIds.map((i) => Number(i)).join(','))})
     `);
     const kMap = new Map<number, { id: number; title: string; kind: string; content: string }>();
     for (const k of (kRows as unknown as Array<{ id: number | string; title: string; kind: string; content: string }>)) {
@@ -173,7 +180,26 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
     }
   }
 
-  return baseRows;
+  // Fetch media assets generated bởi image-gen tool.
+  const allMIds = baseRows.flatMap((r) => r.mediaIdsSaved);
+  if (allMIds.length > 0) {
+    const mRows = await db.execute(sql`
+      SELECT id, filename, url, width, height FROM media_assets
+      WHERE id IN (${sql.raw(allMIds.map((i) => Number(i)).join(','))})
+    `);
+    const mMap = new Map<number, { id: number; filename: string; url: string; width: number | null; height: number | null }>();
+    for (const m of (mRows as unknown as Array<{ id: number | string; filename: string; url: string; width: number | null; height: number | null }>)) {
+      mMap.set(Number(m.id), { id: Number(m.id), filename: m.filename, url: m.url, width: m.width, height: m.height });
+    }
+    for (const run of baseRows) {
+      run.mediaEntries = run.mediaIdsSaved
+        .map((id) => mMap.get(Number(id)))
+        .filter((x): x is NonNullable<typeof x> => Boolean(x));
+    }
+  }
+
+  // Strip mediaIdsSaved from final return (internal only).
+  return baseRows.map(({ mediaIdsSaved: _, ...rest }) => rest as CardRunDetail);
 }
 
 export async function listRecentAgentRuns(limit = 50): Promise<RecentAgentRun[]> {
@@ -351,6 +377,52 @@ export async function deleteAgentRun(
   await db.execute(sql`DELETE FROM agent_runs WHERE id = ${runId} AND tenant_id = ${TENANT}`);
   revalidatePath('/agents');
   return { ok: true, deletedKnowledge };
+}
+
+// Preview cards mà worker NEXT cycle SẼ pick up — show user trước khi click Run.
+// Filter logic giống worker.ts: dispatch_ready=true + agent_kind set + squad
+// useAgentLoop=true + chưa có running/completed run với same idempotency_key.
+export interface EligibleCard {
+  cardId: number;
+  cardRef: string;
+  title: string;
+  agentKind: string;
+  squadKey: string;
+  projectId: string;
+  reasoningEnabled: boolean;     // squad.useAgentLoop
+}
+
+export async function listEligibleCards(): Promise<EligibleCard[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT c.id, c.card_ref, c.title, c.agent_kind, c.squad_key, c.project_id,
+           COALESCE((s.config->>'useAgentLoop')::boolean, false) AS reasoning_enabled
+    FROM cards c
+    LEFT JOIN squads s ON s.project_id = c.project_id AND s.squad_key = c.squad_key
+    WHERE c.tenant_id = ${TENANT}
+      AND c.archived_at IS NULL
+      AND c.dispatch_ready = true
+      AND c.agent_kind IS NOT NULL
+      AND c.agent_kind NOT IN ('claude-code', 'human')
+      AND NOT EXISTS (
+        SELECT 1 FROM agent_runs ar
+        WHERE ar.card_id = c.id AND ar.status IN ('running', 'completed')
+          AND (c.idempotency_key IS NULL OR ar.idempotency_key = c.idempotency_key)
+      )
+    ORDER BY c.created_at ASC
+    LIMIT 20
+  `);
+  return (rows as unknown as Array<{
+    id: number | string; card_ref: string; title: string;
+    agent_kind: string; squad_key: string; project_id: string;
+    reasoning_enabled: boolean;
+  }>).map((r) => ({
+    cardId: Number(r.id),
+    cardRef: r.card_ref, title: r.title, agentKind: r.agent_kind,
+    squadKey: r.squad_key, projectId: r.project_id,
+    reasoningEnabled: r.reasoning_enabled,
+  }));
 }
 
 // Trigger 1 worker cycle on-demand (UI button thay vì curl).

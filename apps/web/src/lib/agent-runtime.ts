@@ -123,8 +123,9 @@ function zodToJsonSchema(schema: unknown): Record<string, unknown> {
   return { type: 'object' };
 }
 
-const REPETITIVE_THRESHOLD = 3;  // same (tool, input) > N times → break
-const STUCK_WINDOW = 3;          // no new tool call in 3 iter → break
+// Bumped 3 → 5 sau user feedback: cheap models hay retry same query 3-4 times
+// trước khi pivot — threshold quá thấp gây fail oan.
+const REPETITIVE_THRESHOLD = 5;
 function isRepetitive(history: Array<{ tool: string; input: string }>, current: { tool: string; input: string }): boolean {
   const matches = history.filter((h) => h.tool === current.tool && h.input === current.input);
   return matches.length >= REPETITIVE_THRESHOLD;
@@ -225,7 +226,7 @@ async function runClaudeLoop(p: LoopParams): Promise<AgentRunResult> {
       const toolId = tu.name.replace(/_/g, '-');
       const inputStr = JSON.stringify(tu.input);
       if (isRepetitive(p.callHistory, { tool: toolId, input: inputStr })) {
-        return { ok: false, output: `repetitive call to ${toolId}`, partial: p.partial, reason: 'repetitive' };
+        return { ok: false, output: `repetitive: ${toolId} called ${REPETITIVE_THRESHOLD}+ times — model stuck, prompt cần diversify`, partial: p.partial, reason: 'repetitive' };
       }
       p.callHistory.push({ tool: toolId, input: inputStr });
 
@@ -306,7 +307,7 @@ async function runOpenAILoop(p: LoopParams): Promise<AgentRunResult> {
       const input = JSON.parse(tc.function.arguments || '{}');
       const inputStr = JSON.stringify(input);
       if (isRepetitive(p.callHistory, { tool: toolId, input: inputStr })) {
-        return { ok: false, output: `repetitive call to ${toolId}`, partial: p.partial, reason: 'repetitive' };
+        return { ok: false, output: `repetitive: ${toolId} called ${REPETITIVE_THRESHOLD}+ times — model stuck, prompt cần diversify`, partial: p.partial, reason: 'repetitive' };
       }
       p.callHistory.push({ tool: toolId, input: inputStr });
 

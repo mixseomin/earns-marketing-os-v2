@@ -79,6 +79,8 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
   const [skillPicker, setSkillPicker] = useState<SkillRow | null>(null);
   const [skillPickerOpen, setSkillPickerOpen] = useState(false);
   const [toolInfo, setToolInfo] = useState<ToolRow | null>(null);
+  const [toolFilter, setToolFilter] = useState('');
+  const [showOnlyIntegrated, setShowOnlyIntegrated] = useState(true);
 
   const handleSave = () => {
     if (!form.name.trim()) { setError('Tên squad không được rỗng'); return; }
@@ -222,13 +224,25 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ ...lbl, marginBottom: 0 }}>
-                Tools <span style={{ color: 'var(--fg-4)' }}>({tools.length} selected · từ <a href="/library" style={{ color: 'var(--accent)' }}>/library</a>)</span>
+                Tools <span style={{ color: 'var(--fg-4)' }}>({tools.length} selected)</span>
               </span>
+              <input
+                type="search"
+                placeholder="Filter tool name…"
+                value={toolFilter}
+                onChange={(e) => setToolFilter(e.target.value)}
+                style={{ flex: 1, minWidth: 140, padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, fontSize: 11, color: 'var(--fg-0)', outline: 'none' }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--fg-3)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={showOnlyIntegrated} onChange={(e) => setShowOnlyIntegrated(e.target.checked)} />
+                Only integrated
+              </label>
+              <a href="/library" style={{ fontSize: 10, color: 'var(--accent)' }}>library ↗</a>
             </div>
             <div style={{
-              border: '1px solid var(--line)', borderRadius: 5, padding: 8, maxHeight: 220, overflow: 'auto',
+              border: '1px solid var(--line)', borderRadius: 5, padding: 8, maxHeight: 240, overflow: 'auto',
               background: 'var(--bg-2)',
             }}>
               {dbTools.length === 0 ? (
@@ -236,7 +250,12 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
                   Library trống. Tạo tool đầu tiên trong <a href="/library" style={{ color: 'var(--accent)' }}>/library</a>.
                 </div>
               ) : TOOL_CATEGORIES.map((cat) => {
-                const inCat = dbTools.filter((t) => t.category === cat.id);
+                const inCat = dbTools.filter((t) => {
+                  if (t.category !== cat.id) return false;
+                  if (showOnlyIntegrated && t.status !== 'integrated') return false;
+                  if (toolFilter && !(`${t.name} ${t.id} ${t.description}`).toLowerCase().includes(toolFilter.toLowerCase())) return false;
+                  return true;
+                });
                 if (inCat.length === 0) return null;
                 return (
                   <div key={cat.id} style={{ marginBottom: 8 }}>

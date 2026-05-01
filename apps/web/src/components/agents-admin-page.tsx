@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type AgentKindStats, type RecentAgentRun, type ReasoningSquad, type SystemFlags,
+  type EligibleCard,
   resetAgentBreaker, setSoloReasoningSquad, toggleSquadReasoning, triggerWorkerNow,
 } from '@/lib/actions/agents-admin';
 import { Pill, StatsStrip, EmptyState, type StatCard } from './ui';
@@ -30,11 +31,12 @@ function fmtRel(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
-export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags }: {
+export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags, eligibleCards }: {
   kindStats: AgentKindStats[];
   recentRuns: RecentAgentRun[];
   reasoningSquads: ReasoningSquad[];
   flags: SystemFlags;
+  eligibleCards: EligibleCard[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -105,17 +107,47 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
           <button
             className="btn primary"
             onClick={handleRunWorker}
-            disabled={workerBusy || flags.killSwitchActive || activeSquads === 0}
+            disabled={workerBusy || flags.killSwitchActive || eligibleCards.length === 0}
             title={
               flags.killSwitchActive ? 'Kill switch ON — disable env trước' :
-              activeSquads === 0 ? 'Cần ít nhất 1 squad active để run worker' :
-              'Trigger 1 worker cycle ngay (max 5 cards)'
+              eligibleCards.length === 0 ? 'Không có card nào eligible (cần dispatch_ready=true + agent_kind set + squad reasoning ON)' :
+              `Run ${eligibleCards.length} eligible card${eligibleCards.length > 1 ? 's' : ''}`
             }
           >
-            {workerBusy ? '⟲ running…' : '▶ Run worker now'}
+            {workerBusy
+              ? `⟲ running… (${eligibleCards.length} eligible)`
+              : `▶ Run worker (${eligibleCards.length})`}
           </button>
         </div>
       </div>
+
+      {/* Eligible cards preview — show user trước khi click Run worker */}
+      {eligibleCards.length > 0 && (
+        <div style={{
+          padding: '8px 12px', marginTop: 10, borderRadius: 6,
+          background: 'rgba(157,108,255,.06)', border: '1px solid rgba(157,108,255,.25)',
+          fontSize: 11.5,
+        }}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--neon-violet)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            ▸ Will be processed next cycle ({eligibleCards.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {eligibleCards.map((c) => (
+              <div key={c.cardId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', minWidth: 70 }}>{c.cardRef}</span>
+                <a href={`/p/${c.projectId}/board`} style={{ flex: 1, color: 'var(--fg-1)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {c.title}
+                </a>
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{c.agentKind}</span>
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>· {c.squadKey}</span>
+                {!c.reasoningEnabled && (
+                  <span style={{ fontSize: 10, color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>⚠ squad off</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {workerReport && (
         <div style={{

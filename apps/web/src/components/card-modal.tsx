@@ -515,6 +515,27 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
             {r.error && (
               <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>⚠ {r.error}</div>
             )}
+            {r.mediaEntries.length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--neon-amber)', marginBottom: 4 }}>
+                  🎨 Generated {r.mediaEntries.length} image:
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                  {r.mediaEntries.map((m) => (
+                    <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer"
+                       title={`#${m.id} ${m.filename}`}
+                       style={{ display: 'inline-block' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.url} alt={m.filename}
+                           style={{
+                             maxWidth: 200, maxHeight: 200, objectFit: 'cover',
+                             border: '1px solid var(--neon-amber)', borderRadius: 4,
+                           }} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             {r.knowledgeEntries.length > 0 && (
               <div style={{ marginTop: 6 }}>
                 <div style={{ fontSize: 10.5, color: 'var(--neon-cyan)', marginBottom: 4 }}>

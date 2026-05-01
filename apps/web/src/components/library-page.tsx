@@ -231,18 +231,20 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
             <input style={fld} placeholder="Một dòng describe chức năng / API base"
                    value={form.description} onChange={(e) => setF('description', e.target.value)} />
           </div>
-          <div>
+          <div style={{ gridColumn: '1 / 4' }}>
             <span style={lbl}>Status</span>
-            <select style={fld} value={form.status} onChange={(e) => setF('status', e.target.value as ToolStatus)}>
-              <option value="mock">mock — chỉ catalog</option>
-              <option value="planned">planned — đang lên kế hoạch</option>
-              <option value="integrated">integrated — đã wire</option>
-            </select>
-            <div style={{ fontSize: 9.5, color: TOOL_STATUS_META[form.status].color, marginTop: 3, fontFamily: 'var(--font-mono)' }}>
-              {TOOL_STATUS_META[form.status].desc}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <select style={{ ...fld, width: 'auto', minWidth: 180 }} value={form.status} onChange={(e) => setF('status', e.target.value as ToolStatus)}>
+                <option value="mock">mock — chỉ catalog</option>
+                <option value="planned">planned — đang lên kế hoạch</option>
+                <option value="integrated">integrated — đã wire</option>
+              </select>
+              <div style={{ fontSize: 10, color: TOOL_STATUS_META[form.status].color, fontFamily: 'var(--font-mono)', lineHeight: 1.4, paddingTop: 6 }}>
+                {TOOL_STATUS_META[form.status].desc}
+              </div>
             </div>
           </div>
-          <div>
+          <div style={{ gridColumn: '1 / 3' }}>
             <span style={lbl}>Requires env <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
             <input style={fld} placeholder="OPENAI_API_KEY, REDDIT_CLIENT_ID..."
                    value={form.requiresEnv} onChange={(e) => setF('requiresEnv', e.target.value)} />

@@ -192,6 +192,7 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
       // để worker không pick lại. User decide column transition theo project flow.
       const finalStatus = result.ok ? (reviewJson?.decision === 'reject' ? 'rejected' : 'completed') : 'failed';
 
+      const peerReviewSqlValue = reviewJson ? JSON.stringify(reviewJson) : null;
       await db.execute(sql`
         UPDATE agent_runs SET
           status = ${finalStatus},
@@ -202,7 +203,7 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
           tokens_in = ${result.partial.tokensIn},
           tokens_out = ${result.partial.tokensOut},
           cost_usd_cents = ${result.partial.costUsdCents},
-          peer_review = ${reviewJson ? `${JSON.stringify(reviewJson)}::jsonb` : sql`NULL`},
+          peer_review = ${peerReviewSqlValue}::jsonb,
           error = ${result.ok ? null : result.output},
           updated_at = NOW()
         WHERE id = ${run.id}

@@ -35,7 +35,7 @@ export interface HumanTaskRow {
   descendantTaskId: number | null;    // task mới hơn trong cùng workflow → null = đang revise dở
 }
 
-export async function listInbox(filterStatus: string = 'all'): Promise<HumanTaskRow[]> {
+export async function listInbox(filterStatus: string = 'all', projectId?: string): Promise<HumanTaskRow[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
@@ -57,6 +57,7 @@ export async function listInbox(filterStatus: string = 'all'): Promise<HumanTask
     LEFT JOIN projects p ON p.id = ht.project_id
     WHERE 1=1
       ${filterStatus !== 'all' ? sql`AND ht.status = ${filterStatus}` : sql``}
+      ${projectId ? sql`AND ht.project_id = ${projectId}` : sql``}
     ORDER BY
       CASE ht.status
         WHEN 'pending' THEN 1

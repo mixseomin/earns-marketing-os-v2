@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
 import {
   listCronJobs as _listCronJobs,
   listCronRuns as _listCronRuns,
@@ -9,6 +11,42 @@ import {
   type CronJob,
   type CronRun,
 } from '@/lib/scheduler';
+
+export interface WorkerNode {
+  id: string;
+  label: string | null;
+  squadsFilter: string[];
+  status: string;
+  currentCardIds: number[];
+  lastHeartbeat: string | null;
+  lastCycleAt: string | null;
+  lastCycleReport: Record<string, unknown>;
+  startedAt: string | null;
+}
+
+export async function listWorkerNodes(): Promise<WorkerNode[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const rows = await db.execute(sql`
+      SELECT id, label, squads_filter, status, current_card_ids,
+             last_heartbeat, last_cycle_at, last_cycle_report, started_at
+      FROM worker_nodes ORDER BY last_heartbeat DESC NULLS LAST
+    `);
+    const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
+    return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r.id),
+      label: r.label as string | null,
+      squadsFilter: Array.isArray(r.squads_filter) ? r.squads_filter as string[] : [],
+      status: String(r.status ?? 'unknown'),
+      currentCardIds: Array.isArray(r.current_card_ids) ? r.current_card_ids as number[] : [],
+      lastHeartbeat: toIso(r.last_heartbeat),
+      lastCycleAt: toIso(r.last_cycle_at),
+      lastCycleReport: (r.last_cycle_report as Record<string, unknown>) ?? {},
+      startedAt: toIso(r.started_at),
+    }));
+  } catch { return []; }
+}
 
 export type { CronJob, CronRun };
 

@@ -74,27 +74,42 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
   const db = getDb();
   if (!db) return { processed: 0, skipped: 0, failed: 0, details: [] };
 
-  // Pick dispatch_ready cards với agent_kind dispatchable.
-  // Mode-agnostic: KHÔNG dùng col vì mỗi mode (affiliate/sales/...) có column ID khác nhau.
-  // Card form có toggle "Ready to dispatch" → set dispatch_ready=true.
+  // Worker node registration: upsert heartbeat để Scheduler biết node này alive.
+  const nodeId = process.env.WORKER_NODE_ID || require('os').hostname();
+  const nodeLabel = process.env.WORKER_NODE_LABEL || nodeId;
+  await db.execute(sql`
+    INSERT INTO worker_nodes (id, label, status, last_heartbeat, updated_at)
+    VALUES (${nodeId}, ${nodeLabel}, 'running', NOW(), NOW())
+    ON CONFLICT (id) DO UPDATE SET
+      status = 'running', last_heartbeat = NOW(), updated_at = NOW()
+  `).catch(() => {}); // ignore nếu table chưa tồn tại (fresh deploy)
+
+  // Atomic claim: UPDATE...RETURNING với FOR UPDATE SKIP LOCKED.
+  // Pattern chuẩn Postgres job queue — chỉ 1 worker claim được 1 card tại 1 thời điểm.
+  // processing_since: stuck detection — card bị claim >15 phút → worker crash → re-claimable.
   const cardRows = await db.execute(sql`
-    SELECT c.id, c.project_id, c.card_ref, c.title, c.body, c.squad_key,
-           c.agent_kind, c.agent_ref, c.level, c.idempotency_key, c.col, c.dispatch_ready,
-           c.workflow_run_id, c.workflow_key, c.workflow_step, c.workflow_context
-    FROM cards c
-    WHERE c.tenant_id = 'self'
-      AND c.archived_at IS NULL
-      AND c.dispatch_ready = true
-      AND c.agent_kind IS NOT NULL
-      AND c.agent_kind NOT IN ('claude-code', 'human')
-      AND NOT EXISTS (
-        SELECT 1 FROM agent_runs ar
-        WHERE ar.card_id = c.id
-          AND ar.status IN ('running', 'completed')
-          AND (c.idempotency_key IS NULL OR ar.idempotency_key = c.idempotency_key)
-      )
-    ORDER BY c.created_at ASC
-    LIMIT ${maxCards}
+    UPDATE cards SET processing_since = NOW(), updated_at = NOW()
+    WHERE id IN (
+      SELECT id FROM cards
+      WHERE tenant_id = 'self'
+        AND archived_at IS NULL
+        AND dispatch_ready = true
+        AND agent_kind IS NOT NULL
+        AND agent_kind NOT IN ('claude-code', 'human')
+        AND (processing_since IS NULL OR processing_since < NOW() - INTERVAL '15 minutes')
+        AND NOT EXISTS (
+          SELECT 1 FROM agent_runs ar
+          WHERE ar.card_id = cards.id
+            AND ar.status IN ('running', 'completed')
+            AND (cards.idempotency_key IS NULL OR ar.idempotency_key = cards.idempotency_key)
+        )
+      ORDER BY created_at ASC
+      LIMIT ${maxCards}
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING id, project_id, card_ref, title, body, squad_key,
+              agent_kind, agent_ref, level, idempotency_key, col, dispatch_ready,
+              workflow_run_id, workflow_key, workflow_step, workflow_context
   `);
   const cards = (cardRows as unknown as CardRow[]);
   const report: WorkerCycleReport = { processed: 0, skipped: 0, failed: 0, details: [] };
@@ -262,8 +277,8 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         WHERE id = ${run.id}
       `);
 
-      // Clear dispatch flag — worker không re-pick. User toggle lại nếu cần re-run.
-      await db.execute(sql`UPDATE cards SET dispatch_ready = false, updated_at = NOW() WHERE id = ${card.id}`);
+      // Clear dispatch flag + processing lock — worker không re-pick.
+      await db.execute(sql`UPDATE cards SET dispatch_ready = false, processing_since = NULL, updated_at = NOW() WHERE id = ${card.id}`);
 
       // Workflow chain — nếu card thuộc workflow + có next step → spawn next card.
       if (result.ok && card.workflow_key && card.workflow_step && card.workflow_run_id) {
@@ -358,8 +373,21 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
     } catch (e) {
       report.failed++;
       report.details.push({ cardId: card.id, cardRef: card.card_ref, status: 'failed', reason: (e as Error).message });
+      // Release lock ngay cả khi crash — tránh card bị stuck 15 phút.
+      await db.execute(sql`UPDATE cards SET processing_since = NULL, updated_at = NOW() WHERE id = ${card.id}`).catch(() => {});
     }
   }
+
+  // Worker heartbeat: update status → idle sau khi xong cycle.
+  await db.execute(sql`
+    UPDATE worker_nodes SET
+      status = 'idle',
+      last_cycle_at = NOW(),
+      last_cycle_report = ${JSON.stringify(report)}::jsonb,
+      current_card_ids = '[]'::jsonb,
+      updated_at = NOW()
+    WHERE id = ${nodeId}
+  `).catch(() => {});
 
   return report;
 }

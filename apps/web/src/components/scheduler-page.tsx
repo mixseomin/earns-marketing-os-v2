@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { CronJob, CronRun } from '@/lib/actions/scheduler';
+import type { CronJob, CronRun, WorkerNode } from '@/lib/actions/scheduler';
 import {
   listCronJobsAction,
   listCronRunsAction,
   updateCronJobAction,
   triggerJobNowAction,
+  listWorkerNodes,
 } from '@/lib/actions/scheduler';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -377,12 +378,78 @@ function StatStrip({ jobs }: { jobs: CronJob[] }) {
   );
 }
 
+// ── Worker Nodes section ──────────────────────────────────────────────────────
+function WorkerNodesPanel({ nodes }: { nodes: WorkerNode[] }) {
+  const nodeStatusColor = (s: string, heartbeat: string | null) => {
+    if (!heartbeat) return 'var(--fg-4)';
+    const age = Date.now() - new Date(heartbeat).getTime();
+    if (age > 10 * 60_000) return 'var(--fg-4)'; // offline: no heartbeat >10min
+    if (s === 'running') return 'var(--neon-amber)';
+    if (s === 'error') return 'var(--neon-red,#ff4757)';
+    return 'var(--neon-lime)';
+  };
+  const isOnline = (n: WorkerNode) => !!n.lastHeartbeat && Date.now() - new Date(n.lastHeartbeat).getTime() < 10 * 60_000;
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+        ⚙ Worker Nodes
+        <span style={{ marginLeft: 8, color: 'var(--fg-4)', fontWeight: 400, textTransform: 'none' }}>
+          — mỗi node tự đăng ký khi chạy; offline = heartbeat &gt;10min
+        </span>
+      </div>
+      {nodes.length === 0 ? (
+        <div style={{ padding: '16px', border: '1px dashed var(--line)', borderRadius: 6, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+          Chưa có worker node nào register. Worker sẽ tự đăng ký khi chạy lần đầu.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {nodes.map((n) => {
+            const color = nodeStatusColor(n.status, n.lastHeartbeat);
+            const online = isOnline(n);
+            const report = n.lastCycleReport as { processed?: number; skipped?: number; failed?: number };
+            return (
+              <div key={n.id} style={{
+                background: 'var(--bg-1)', border: `1px solid ${online ? color : 'var(--line)'}`,
+                borderRadius: 8, padding: '12px 16px', minWidth: 220, flex: '1 1 220px',
+                opacity: online ? 1 : 0.55,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)' }}>{n.label ?? n.id}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: 'var(--font-mono)', color: online ? color : 'var(--fg-4)' }}>
+                    {online ? n.status : 'offline'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span>heartbeat: {n.lastHeartbeat ? relativeTime(n.lastHeartbeat) : '—'}</span>
+                  <span>last cycle: {n.lastCycleAt ? relativeTime(n.lastCycleAt) : '—'}</span>
+                  {(report.processed != null || report.failed != null) && (
+                    <span style={{ color: report.failed ? 'var(--neon-amber)' : 'var(--fg-3)' }}>
+                      ✓ {report.processed ?? 0} · ✗ {report.failed ?? 0} · skip {report.skipped ?? 0}
+                    </span>
+                  )}
+                  {n.squadsFilter.length > 0 && (
+                    <span>squads: {n.squadsFilter.join(', ')}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
-export function SchedulerPage({ jobs: initialJobs }: { jobs: CronJob[] }) {
+export function SchedulerPage({ jobs: initialJobs, nodes: initialNodes }: { jobs: CronJob[]; nodes: WorkerNode[] }) {
   const [jobs, setJobs] = useState<CronJob[]>(initialJobs);
+  const [nodes, setNodes] = useState<WorkerNode[]>(initialNodes);
 
   const refresh = useCallback(() => {
     listCronJobsAction().then((j) => setJobs(j)).catch(() => {});
+    listWorkerNodes().then((n) => setNodes(n)).catch(() => {});
   }, []);
 
   // Auto-refresh every 10s
@@ -505,6 +572,9 @@ export function SchedulerPage({ jobs: initialJobs }: { jobs: CronJob[] }) {
           </table>
         </div>
       )}
+
+      {/* worker nodes */}
+      <WorkerNodesPanel nodes={nodes} />
 
       {/* footer note */}
       <div style={{ marginTop: 16, fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>

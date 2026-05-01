@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
@@ -130,11 +130,43 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
 function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onClose: () => void; onAction: () => void }) {
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
-  const [publishUrl, setPublishUrl] = useState(task.publishUrl ?? '');
-  const [screenshotUrl, setScreenshotUrl] = useState(task.screenshotUrl ?? '');
-  const [notes, setNotes] = useState(task.notes ?? '');
-  const [feedbackType, setFeedbackType] = useState<'success' | 'revise' | 'error' | 'more-info'>('success');
-  const [feedbackText, setFeedbackText] = useState('');
+  const draftKey = `inbox-draft-${task.id}`;
+  // Lazy init từ localStorage để giữ nội dung đang gõ qua F5 / accidental close.
+  const [publishUrl, setPublishUrl] = useState(() => {
+    if (typeof window === 'undefined') return task.publishUrl ?? '';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.publishUrl ?? task.publishUrl ?? ''; } catch { return task.publishUrl ?? ''; }
+  });
+  const [screenshotUrl, setScreenshotUrl] = useState(() => {
+    if (typeof window === 'undefined') return task.screenshotUrl ?? '';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.screenshotUrl ?? task.screenshotUrl ?? ''; } catch { return task.screenshotUrl ?? ''; }
+  });
+  const [notes, setNotes] = useState(() => {
+    if (typeof window === 'undefined') return task.notes ?? '';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.notes ?? task.notes ?? ''; } catch { return task.notes ?? ''; }
+  });
+  const [feedbackType, setFeedbackType] = useState<'success' | 'revise' | 'error' | 'more-info'>(() => {
+    if (typeof window === 'undefined') return 'success';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.feedbackType ?? 'success'; } catch { return 'success'; }
+  });
+  const [feedbackText, setFeedbackText] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.feedbackText ?? ''; } catch { return ''; }
+  });
+
+  // Auto-persist draft mỗi khi user gõ.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const draft = { publishUrl, screenshotUrl, notes, feedbackType, feedbackText };
+    const isDirty = publishUrl || screenshotUrl || notes || feedbackText;
+    if (isDirty) localStorage.setItem(draftKey, JSON.stringify(draft));
+    else localStorage.removeItem(draftKey);
+  }, [publishUrl, screenshotUrl, notes, feedbackType, feedbackText, draftKey]);
+
+  const isDirty = !!(feedbackText.trim() || publishUrl.trim() || screenshotUrl.trim() || notes.trim());
+  const safeClose = () => {
+    if (isDirty && !confirm('Có nội dung chưa submit. Đóng bỏ bản nháp?\n(Bản nháp đã auto-save sẵn — bấm OK nếu chỉ muốn ẩn modal.)')) return;
+    onClose();
+  };
 
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -167,6 +199,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
         feedbackType, feedbackText: feedbackText || undefined,
       });
       setBusy(false);
+      if (typeof window !== 'undefined') localStorage.removeItem(draftKey);
       if (res.spawnedCardId) {
         alert(`✓ Done. Spawned downstream card #${res.spawnedCardId} cho writer revise.`);
       }
@@ -195,14 +228,17 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={safeClose}>
       <div className="modal" style={{ maxWidth: 720, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
-            <div className="id-line">#{task.id} · {task.platformKey ?? 'unknown'} · {task.status}</div>
+            <div className="id-line">
+              #{task.id} · {task.platformKey ?? 'unknown'} · {task.status}
+              {isDirty && <span style={{ marginLeft: 8, color: 'var(--neon-amber)', fontSize: 10 }}>● draft saved</span>}
+            </div>
             <h2>{task.title}</h2>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={safeClose}>✕</button>
         </div>
 
         <div className="modal-body">
@@ -316,7 +352,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
             {task.parentRunId && (<span style={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}>Spawned by agent run #{task.parentRunId}</span>)}
           </div>
           <div className="modal-foot-actions">
-            <button className="btn ghost" onClick={onClose}>Close</button>
+            <button className="btn ghost" onClick={safeClose}>Close</button>
             {task.status === 'pending' && (
               <>
                 <button className="btn" onClick={handleClaim} disabled={busy}>👤 Claim only</button>

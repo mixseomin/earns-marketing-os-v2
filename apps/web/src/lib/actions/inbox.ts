@@ -31,20 +31,31 @@ export interface HumanTaskRow {
   feedbackType: string | null;
   feedbackText: string | null;
   createdAt: string;
+  workflowRunId: string | null;       // grouping → workflow chain
+  descendantTaskId: number | null;    // task mới hơn trong cùng workflow → null = đang revise dở
 }
 
 export async function listInbox(filterStatus: string = 'all'): Promise<HumanTaskRow[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
+    WITH ht_with_run AS (
+      SELECT ht.*, c.workflow_run_id
+      FROM human_tasks ht
+      LEFT JOIN agent_runs ar ON ar.id = ht.parent_run_id
+      LEFT JOIN cards c ON c.id = ar.card_id
+      WHERE ht.tenant_id = ${TENANT}
+    )
     SELECT ht.id, ht.project_id, p.name AS project_name, ht.card_id, ht.parent_run_id,
            ht.title, ht.instructions, ht.prep_payload, ht.platform_key, ht.account_id,
            ht.sla_due_at, ht.status, ht.claimed_by, ht.claimed_at, ht.completed_at,
            ht.verified_at, ht.publish_url, ht.screenshot_url, ht.notes,
-           ht.feedback_type, ht.feedback_text, ht.created_at
-    FROM human_tasks ht
+           ht.feedback_type, ht.feedback_text, ht.created_at, ht.workflow_run_id,
+           (SELECT MIN(ht2.id) FROM ht_with_run ht2
+              WHERE ht2.workflow_run_id = ht.workflow_run_id AND ht2.id > ht.id) AS descendant_task_id
+    FROM ht_with_run ht
     LEFT JOIN projects p ON p.id = ht.project_id
-    WHERE ht.tenant_id = ${TENANT}
+    WHERE 1=1
       ${filterStatus !== 'all' ? sql`AND ht.status = ${filterStatus}` : sql``}
     ORDER BY
       CASE ht.status
@@ -75,6 +86,8 @@ export async function listInbox(filterStatus: string = 'all'): Promise<HumanTask
     publish_url: string | null; screenshot_url: string | null;
     notes: string | null; feedback_type: string | null; feedback_text: string | null;
     created_at: unknown;
+    workflow_run_id: string | null;
+    descendant_task_id: number | string | null;
   }>).map((r) => ({
     id: Number(r.id),
     projectId: r.project_id, projectName: r.project_name,
@@ -89,6 +102,8 @@ export async function listInbox(filterStatus: string = 'all'): Promise<HumanTask
     notes: r.notes,
     feedbackType: r.feedback_type, feedbackText: r.feedback_text,
     createdAt: toIso(r.created_at) ?? '',
+    workflowRunId: r.workflow_run_id,
+    descendantTaskId: r.descendant_task_id != null ? Number(r.descendant_task_id) : null,
   }));
 }
 
@@ -463,6 +478,7 @@ export async function pollWorkflowProgress(workflowRunId: string, afterHumanTask
     publishUrl: newRow.publish_url, screenshotUrl: newRow.screenshot_url,
     notes: newRow.notes, feedbackType: newRow.feedback_type, feedbackText: newRow.feedback_text,
     createdAt: toIso(newRow.created_at) ?? '',
+    workflowRunId: workflowRunId, descendantTaskId: null,
   } : null;
 
   return { steps, newTask, done: !!newTask };

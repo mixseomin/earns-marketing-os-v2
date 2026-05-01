@@ -57,9 +57,18 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
     return () => { cancelled = true; clearInterval(i); };
   }, []);
 
+  // Virtual state "revising": completed task có feedback revise/more-info, chưa có descendant task →
+  // AI đang xử lý revise dở. Giữ trong 'open' filter để user thấy progress thay vì biến mất.
+  const isRevising = (t: HumanTaskRow): boolean =>
+    t.status === 'completed' &&
+    (t.feedbackType === 'revise' || t.feedbackType === 'more-info') &&
+    t.descendantTaskId === null &&
+    !!t.workflowRunId;
   const filtered = useMemo(() => {
     if (filterStatus === 'all') return tasks;
-    if (filterStatus === 'open') return tasks.filter((t) => ['pending', 'claimed', 'in_progress'].includes(t.status));
+    if (filterStatus === 'open') return tasks.filter((t) =>
+      ['pending', 'claimed', 'in_progress'].includes(t.status) || isRevising(t)
+    );
     return tasks.filter((t) => t.status === filterStatus);
   }, [tasks, filterStatus]);
   // Recent done — show 3 latest completed dưới khi user ở filter 'open' và pending=0,
@@ -128,23 +137,51 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map((t) => {
             const sla = fmtSlaCountdown(t.slaDueAt);
+            const revising = isRevising(t);
+            const hasDescendant = t.descendantTaskId != null;
+            const onClick = () => {
+              if (hasDescendant) {
+                // Mở task con luôn cho user theo chain.
+                const child = tasks.find((x) => x.id === t.descendantTaskId);
+                setOpenTask(child ?? t);
+              } else {
+                setOpenTask(t);
+              }
+            };
+            const borderColor = revising
+              ? '4px solid var(--neon-violet)'
+              : sla.tone === 'bad' ? '4px solid var(--bad)'
+              : sla.tone === 'warn' ? '4px solid var(--warn)'
+              : '4px solid var(--line)';
             return (
-              <div key={t.id} className="panel" style={{
-                cursor: 'pointer',
-                borderLeft: sla.tone === 'bad' ? '4px solid var(--bad)' : sla.tone === 'warn' ? '4px solid var(--warn)' : '4px solid var(--line)',
-              }} onClick={() => setOpenTask(t)}>
+              <div key={t.id} className="panel" style={{ cursor: 'pointer', borderLeft: borderColor }} onClick={onClick}>
                 <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
                     <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <Pill color={STATUS_COLOR[t.status] ?? 'var(--fg-3)'} label={t.status} size="xs" />
+                      {revising ? (
+                        <Pill color="var(--neon-violet)" label="⏳ AI đang revise" size="xs" />
+                      ) : (
+                        <Pill color={STATUS_COLOR[t.status] ?? 'var(--fg-3)'} label={t.status} size="xs" />
+                      )}
                       {t.platformKey && <span>· {t.platformKey}</span>}
                       <span>· {t.projectName ?? t.projectId}</span>
                       <span>· {fmtRel(t.createdAt)}</span>
+                      {t.feedbackType && t.feedbackType !== 'success' && (
+                        <span style={{ color: 'var(--neon-amber)' }}>· feedback: {t.feedbackType}</span>
+                      )}
+                      {hasDescendant && (
+                        <span style={{ color: 'var(--neon-cyan)' }}>· → #{t.descendantTaskId}</span>
+                      )}
                       <span style={{ color: sla.tone === 'bad' ? 'var(--bad)' : sla.tone === 'warn' ? 'var(--warn)' : 'var(--fg-3)', marginLeft: 'auto' }}>
                         ⏱ {sla.text}
                       </span>
                     </div>
+                    {revising && t.feedbackText && (
+                      <div style={{ fontSize: 10.5, color: 'var(--fg-2)', fontStyle: 'italic', marginTop: 4 }}>
+                        ↳ &quot;{t.feedbackText}&quot;
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

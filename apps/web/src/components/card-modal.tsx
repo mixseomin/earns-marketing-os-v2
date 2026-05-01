@@ -19,6 +19,7 @@ interface FormState {
   tagsInput: string;
   agentRef: string;
   agentKind: string;          // '' = not assigned
+  dispatchReady: boolean;
 }
 
 const emptyForm = (col: string, squadKey: string): FormState => ({
@@ -33,6 +34,7 @@ const emptyForm = (col: string, squadKey: string): FormState => ({
   tagsInput: '',
   agentRef: '',
   agentKind: '',
+  dispatchReady: false,
 });
 
 const AGENT_KINDS: Array<{ value: string; label: string; hint: string }> = [
@@ -76,6 +78,7 @@ export function CardModal({
         tagsInput: (card.tags ?? []).join(', '),
         agentRef: card.agent ?? '',
         agentKind: card.agentKind ?? '',
+        dispatchReady: card.dispatchReady ?? false,
       };
     }
     return emptyForm(defaultCol ?? mode.columns[0]?.id ?? 'needs', initialSquad);
@@ -97,6 +100,7 @@ export function CardModal({
         tagsInput: (card.tags ?? []).join(', '),
         agentRef: card.agent ?? '',
         agentKind: card.agentKind ?? '',
+        dispatchReady: card.dispatchReady ?? false,
       });
       setEditing('view');
     } else {
@@ -132,6 +136,7 @@ export function CardModal({
       tags: parseTags(form.tagsInput),
       agentRef: form.agentRef || null,
       agentKind: form.agentKind || null,
+      dispatchReady: form.dispatchReady,
     };
     startTransition(async () => {
       const res = isCreate
@@ -274,19 +279,41 @@ export function CardModal({
                 <span style={lbl}>Agent ref</span>
                 <input style={fld} placeholder="e.g. RES-04, you" value={form.agentRef} onChange={(e) => setF('agentRef', e.target.value)} />
               </div>
-              <div style={{ gridColumn: '1 / -1', padding: 8, background: 'rgba(157,108,255,.06)', border: '1px solid rgba(157,108,255,.25)', borderRadius: 5 }}>
+              <div style={{ gridColumn: '1 / -1', padding: 10, background: 'rgba(157,108,255,.06)', border: '1px solid rgba(157,108,255,.25)', borderRadius: 5 }}>
                 <span style={lbl}>🤖 Agent kind <span style={{ color: 'var(--fg-4)' }}>(Phase 10 dispatch — worker daemon)</span></span>
                 <select style={fld} value={form.agentKind} onChange={(e) => setF('agentKind', e.target.value)}>
                   {AGENT_KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
                 </select>
                 <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
                   {AGENT_KINDS.find((k) => k.value === form.agentKind)?.hint ?? ''}
-                  {form.agentKind && form.col !== 'approved' && (
-                    <div style={{ marginTop: 4, color: 'var(--warn)' }}>
-                      ⚠ Card đang ở col <b>{form.col}</b>. Worker chỉ pick card ở col <b>approved</b>. Move card sang approved (qua /board hoặc set col field bên trên) để dispatch.
-                    </div>
-                  )}
                 </div>
+
+                {/* Dispatch ready gate — mode-agnostic, KHÔNG phụ thuộc col */}
+                {form.agentKind && form.agentKind !== 'human' && (
+                  <label style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 8,
+                    marginTop: 10, padding: 8, borderRadius: 4,
+                    background: form.dispatchReady ? 'rgba(16,185,129,.10)' : 'rgba(255,176,60,.08)',
+                    border: form.dispatchReady ? '1px solid var(--ok)' : '1px solid var(--warn)',
+                    cursor: 'pointer',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={form.dispatchReady}
+                      onChange={(e) => setF('dispatchReady', e.target.checked)}
+                      style={{ marginTop: 2 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: form.dispatchReady ? 'var(--ok)' : 'var(--warn)' }}>
+                        {form.dispatchReady ? '✓ Ready to dispatch' : '○ Not ready — toggle ON để worker pick up'}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+                        Phase 10 gate (mode-agnostic, không liên quan column). Worker daemon
+                        chỉ exec card có flag này = true. Auto-clear sau khi run xong.
+                      </div>
+                    </div>
+                  </label>
+                )}
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <span style={lbl}>Tags (comma-separated)</span>

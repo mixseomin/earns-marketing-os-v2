@@ -28,16 +28,17 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db not configured' }, { status: 503 });
 
-  // Tasks = cards in 'approved' col + agent_kind matches + no running agent_runs.
+  // Tasks = cards với dispatch_ready=true + agent_kind matches + no running run.
   const rows = await db.execute(sql`
     SELECT c.id, c.project_id, c.card_ref, c.title, c.body, c.squad_key,
            c.agent_kind, c.agent_ref, c.level AS trust_level, c.tags, c.idempotency_key,
+           c.col, c.dispatch_ready,
            p.name AS project_name
     FROM cards c
     LEFT JOIN projects p ON p.id = c.project_id
     WHERE c.tenant_id = 'self'
       AND c.archived_at IS NULL
-      AND c.col = 'approved'
+      AND c.dispatch_ready = true
       AND c.agent_kind = ${agentKind}
       AND NOT EXISTS (
         SELECT 1 FROM agent_runs ar

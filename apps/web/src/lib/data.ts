@@ -200,6 +200,7 @@ function rowToCard(r: CardRow): Card {
     agent: r.agentRef ?? undefined,
     agentKind: r.agentKind ?? null,
     idempotencyKey: r.idempotencyKey ?? null,
+    dispatchReady: r.dispatchReady ?? false,
     body: r.body ?? undefined,
   };
 }

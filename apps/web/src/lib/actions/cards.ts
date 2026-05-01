@@ -90,6 +90,7 @@ export interface CardInput {
   agentRef?: string | null;
   agentKind?: string | null;       // Phase 10: dispatch enum (gpt-4o-mini | claude-haiku-4-5 | claude-code | human | null)
   idempotencyKey?: string | null;  // Phase 10: anti double-exec
+  dispatchReady?: boolean;         // Phase 10: worker pick-up flag (mode-agnostic)
   body?: string | null;
 }
 
@@ -130,6 +131,7 @@ export async function createCard(projectId: string, input: CardInput): Promise<{
     agentRef: input.agentRef ?? null,
     agentKind: input.agentKind ?? null,
     idempotencyKey: input.idempotencyKey ?? null,
+    dispatchReady: input.dispatchReady ?? false,
     body: input.body ?? null,
   });
 
@@ -155,6 +157,7 @@ export async function updateCard(projectId: string, cardRef: string, patch: Part
   if (patch.agentRef !== undefined) set.agentRef = patch.agentRef;
   if (patch.agentKind !== undefined) set.agentKind = patch.agentKind;
   if (patch.idempotencyKey !== undefined) set.idempotencyKey = patch.idempotencyKey;
+  if (patch.dispatchReady !== undefined) set.dispatchReady = patch.dispatchReady;
   if (patch.body !== undefined) set.body = patch.body;
 
   await db.update(cards).set(set).where(eq(cards.id, card.id));

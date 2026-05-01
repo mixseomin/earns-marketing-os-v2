@@ -51,6 +51,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       updated_at = NOW()
     WHERE id = ${body.run_id} AND card_id = ${cardId}
   `);
-  await db.execute(sql`UPDATE cards SET col = ${nextCol}, updated_at = NOW() WHERE id = ${cardId}`);
+  // Clear dispatch_ready (mode-agnostic). Caller có thể optionally pass next_col
+  // nếu muốn move card; default chỉ clear flag.
+  if (body.next_col) {
+    await db.execute(sql`UPDATE cards SET col = ${body.next_col}, dispatch_ready = false, updated_at = NOW() WHERE id = ${cardId}`);
+  } else {
+    await db.execute(sql`UPDATE cards SET dispatch_ready = false, updated_at = NOW() WHERE id = ${cardId}`);
+  }
   return NextResponse.json({ ok: true });
 }

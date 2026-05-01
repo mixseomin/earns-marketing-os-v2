@@ -67,6 +67,7 @@ export interface Card {
   agent?: string;
   agentKind?: string | null;       // Phase 10 dispatch
   idempotencyKey?: string | null;
+  dispatchReady?: boolean;          // Phase 10: true → worker pick up
   body?: string;
 }
 

@@ -174,6 +174,10 @@ export const cards = pgTable(
     //   NULL → not assigned, không exec.
     agentKind: text('agent_kind'),
     idempotencyKey: text('idempotency_key'),                // anti double-exec across retries
+    // Phase 10 dispatch gate (mode-agnostic, KHÔNG phụ thuộc col vì mỗi mode
+    // có column khác nhau). Worker daemon chỉ pick card với dispatch_ready=true
+    // + agent_kind set. User explicit toggle "Ready to dispatch" trong card form.
+    dispatchReady: boolean('dispatch_ready').notNull().default(false),
     body: text('body'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

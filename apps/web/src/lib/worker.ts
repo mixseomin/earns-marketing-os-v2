@@ -33,6 +33,8 @@ interface CardRow {
   agent_ref: string | null;
   level: number;
   idempotency_key: string | null;
+  col: string;
+  dispatch_ready: boolean;
 }
 
 interface SquadConfig {
@@ -67,14 +69,16 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
   const db = getDb();
   if (!db) return { processed: 0, skipped: 0, failed: 0, details: [] };
 
-  // Pick approved cards với agent_kind dispatchable.
+  // Pick dispatch_ready cards với agent_kind dispatchable.
+  // Mode-agnostic: KHÔNG dùng col vì mỗi mode (affiliate/sales/...) có column ID khác nhau.
+  // Card form có toggle "Ready to dispatch" → set dispatch_ready=true.
   const cardRows = await db.execute(sql`
     SELECT c.id, c.project_id, c.card_ref, c.title, c.body, c.squad_key,
-           c.agent_kind, c.agent_ref, c.level, c.idempotency_key
+           c.agent_kind, c.agent_ref, c.level, c.idempotency_key, c.col, c.dispatch_ready
     FROM cards c
     WHERE c.tenant_id = 'self'
       AND c.archived_at IS NULL
-      AND c.col = 'approved'
+      AND c.dispatch_ready = true
       AND c.agent_kind IS NOT NULL
       AND c.agent_kind NOT IN ('claude-code', 'human')
       AND NOT EXISTS (
@@ -184,9 +188,9 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         reviewJson = { ...review };
       }
 
-      // Final update + advance card
+      // Final update. KHÔNG move column (mode-specific) — chỉ clear dispatch_ready
+      // để worker không pick lại. User decide column transition theo project flow.
       const finalStatus = result.ok ? (reviewJson?.decision === 'reject' ? 'rejected' : 'completed') : 'failed';
-      const nextCol = finalStatus === 'completed' ? 'doing' : 'needs';  // doing = success path; back to needs if failed/rejected
 
       await db.execute(sql`
         UPDATE agent_runs SET
@@ -204,7 +208,8 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         WHERE id = ${run.id}
       `);
 
-      await db.execute(sql`UPDATE cards SET col = ${nextCol}, updated_at = NOW() WHERE id = ${card.id}`);
+      // Clear dispatch flag — worker không re-pick. User toggle lại nếu cần re-run.
+      await db.execute(sql`UPDATE cards SET dispatch_ready = false, updated_at = NOW() WHERE id = ${card.id}`);
 
       if (result.ok) {
         report.processed++;

@@ -1,0 +1,1 @@
+ALTER TABLE "cards" ADD COLUMN "dispatch_ready" boolean DEFAULT false NOT NULL;

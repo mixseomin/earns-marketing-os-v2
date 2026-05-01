@@ -1,13 +1,25 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 
+// Known sub-pages under /p/[id]/
+const PROJECT_TABS = new Set([
+  'board', 'inbox', 'squads', 'tribes', 'resources',
+  'publications', 'flow', 'studio', 'settings', 'roadmap',
+]);
+
 export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { currentProjectId?: string; projects: Project[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Detect current tab from /p/[id]/[tab] — keep it when switching project
+  const pathParts = pathname.split('/');
+  const currentTab = pathParts[3] && PROJECT_TABS.has(pathParts[3]) ? pathParts[3] : null;
+  const navigateTo = (projectId: string) => currentTab ? `/p/${projectId}/${currentTab}` : `/p/${projectId}`;
   // Khi không có currentProjectId (root portfolio /, fresh visit) → render
   // "All Projects" header thay vì silent fallback to PROJECTS[0] (Aff-VN).
   // Đây là source bug user thấy: mở /library từ /p/orit thì sidebar nhảy về Aff-VN.
@@ -48,7 +60,7 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
             const m = MODES[proj.mode];
             const isActive = proj.id === currentProjectId;
             return (
-              <div key={proj.id} onClick={() => { router.push(`/p/${proj.id}`); setOpen(false); }} style={{
+              <div key={proj.id} onClick={() => { router.push(navigateTo(proj.id)); setOpen(false); }} style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
                 background: isActive ? 'var(--accent-soft)' : 'transparent',
                 borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',

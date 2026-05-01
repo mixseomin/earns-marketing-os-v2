@@ -200,9 +200,6 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
       });
       setBusy(false);
       if (typeof window !== 'undefined') localStorage.removeItem(draftKey);
-      if (res.spawnedCardId) {
-        alert(`✓ Done. Spawned downstream card #${res.spawnedCardId} cho writer revise.`);
-      }
       onAction();
     });
   };
@@ -224,7 +221,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
   const bestTime = typeof payload.bestTimeIso === 'string' ? payload.bestTimeIso : null;
 
   const copyToClipboard = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); alert('✓ Copied'); } catch {}
+    try { await navigator.clipboard.writeText(text); } catch {}
   };
 
   return (

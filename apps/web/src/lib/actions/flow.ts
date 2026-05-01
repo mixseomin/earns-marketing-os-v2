@@ -85,7 +85,7 @@ export async function getFlowData(projectId: string): Promise<FlowData> {
     await Promise.all([
       // All squads for project
       db.execute(sql`
-        SELECT squad_key, label,
+        SELECT squad_key, name AS label,
           config->>'model' AS model,
           (config->>'trustLevel')::int AS trust_level,
           COALESCE((config->>'useAgentLoop')::boolean, false) AS use_agent_loop

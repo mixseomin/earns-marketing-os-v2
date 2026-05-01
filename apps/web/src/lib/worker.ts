@@ -308,7 +308,8 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
           }
 
           const nextBody = renderBodyTemplate(next.bodyTemplate, nextCtx);
-          const nextRef = `${card.workflow_run_id.slice(-4).toUpperCase()}-${next.stepKey.toUpperCase().slice(0, 3)}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const runShort = card.workflow_run_id.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(-5);
+          const nextRef = `${runShort}-${next.stepKey.toUpperCase().slice(0, 3)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
           await db.execute(sql`
             INSERT INTO cards (

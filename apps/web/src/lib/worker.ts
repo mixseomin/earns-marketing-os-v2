@@ -21,7 +21,7 @@ import { peerReview, pickReviewerKind } from './peer-review';
 import type { ToolContext } from './toolkits/registry';
 // Side-effect import: populates tool runtime registry before invokeTool calls.
 import './toolkits';
-import { getWorkflow, getNextStep, renderBodyTemplate } from './workflows';
+import { getWorkflow, getNextStep, getStep, renderBodyTemplate } from './workflows';
 
 interface CardRow {
   id: number;
@@ -267,9 +267,14 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
 
       // Workflow chain — nếu card thuộc workflow + có next step → spawn next card.
       if (result.ok && card.workflow_key && card.workflow_step && card.workflow_run_id) {
-        const next = getNextStep(card.workflow_key, card.workflow_step);
+        const prevCtx = (card.workflow_context ?? {}) as Record<string, unknown>;
+        // Revise routing: write step + skip_design → jump thẳng tới publish (giữ ảnh cũ).
+        // Tiết kiệm DALL-E credit khi feedback chỉ về text.
+        let next = getNextStep(card.workflow_key, card.workflow_step);
+        if (card.workflow_step === 'write' && prevCtx.revise_skip_design === true) {
+          next = getStep(card.workflow_key, 'publish');
+        }
         if (next) {
-          const prevCtx = card.workflow_context ?? {};
           const stepOutput = result.output;
           // Pluck saved knowledge content + media URL for context.
           const savedKnowledgeContents: string[] = [];
@@ -311,6 +316,10 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
           const runShort = card.workflow_run_id.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(-5);
           const nextRef = `${runShort}-${next.stepKey.toUpperCase().slice(0, 3)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+          // Title gốc: tách phần cuối khỏi prefix step labels của các lần spawn trước.
+          // Vd "🎨 Design — ✍️ Write — 🧭 Plan — Reddit launch Orit" → "Reddit launch Orit"
+          const titleParts = card.title.split(' — ');
+          const rootTitle = titleParts[titleParts.length - 1] ?? card.title;
           await db.execute(sql`
             INSERT INTO cards (
               tenant_id, project_id, card_ref, col, title, body,
@@ -318,7 +327,7 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
               workflow_run_id, workflow_key, workflow_step, workflow_context, tags
             ) VALUES (
               'self', ${card.project_id}, ${nextRef}, ${card.col},
-              ${`${next.label} — ${card.title}`}, ${nextBody},
+              ${`${next.label} — ${rootTitle}`}, ${nextBody},
               ${next.squadKey}, ${next.trustLevel}, 'NOW',
               ${next.agentKind}, true,
               ${`${card.workflow_run_id}-${next.stepKey}`},

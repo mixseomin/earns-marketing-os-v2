@@ -153,11 +153,15 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
     if (typeof window === 'undefined') return '';
     try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.feedbackText ?? ''; } catch { return ''; }
   });
+  const [reviseTarget, setReviseTarget] = useState<'text' | 'image' | 'both'>(() => {
+    if (typeof window === 'undefined') return 'text';
+    try { const d = JSON.parse(localStorage.getItem(draftKey) ?? '{}'); return d.reviseTarget ?? 'text'; } catch { return 'text'; }
+  });
 
   // Auto-persist draft mỗi khi user gõ.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const draft = { publishUrl, screenshotUrl, notes, feedbackType, feedbackText };
+    const draft = { publishUrl, screenshotUrl, notes, feedbackType, feedbackText, reviseTarget };
     const isDirty = publishUrl || screenshotUrl || notes || feedbackText;
     if (isDirty) localStorage.setItem(draftKey, JSON.stringify(draft));
     else localStorage.removeItem(draftKey);
@@ -165,7 +169,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
 
   const isDirty = !!(feedbackText.trim() || publishUrl.trim() || screenshotUrl.trim() || notes.trim());
   // Sau complete, modal hiển thị kết quả thay vì đóng ngay → user thấy spawn lineage.
-  const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; feedbackType: string } | null>(null);
+  const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; spawnedSquad?: string; feedbackType: string } | null>(null);
   const safeClose = () => {
     if (lastResult) { onAction(); return; }
     if (isDirty && !confirm('Có nội dung chưa submit. Đóng bỏ bản nháp?\n(Bản nháp đã auto-save sẵn — bấm OK nếu chỉ muốn ẩn modal.)')) return;
@@ -201,10 +205,11 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
         screenshotUrl: screenshotUrl || undefined,
         notes: notes || undefined,
         feedbackType, feedbackText: feedbackText || undefined,
+        reviseTarget: (feedbackType === 'revise' || feedbackType === 'more-info') ? reviseTarget : undefined,
       });
       setBusy(false);
       if (typeof window !== 'undefined') localStorage.removeItem(draftKey);
-      setLastResult({ spawnedCardId: res.spawnedCardId, feedbackType });
+      setLastResult({ spawnedCardId: res.spawnedCardId, spawnedSquad: res.spawnedSquad, feedbackType });
     });
   };
   const handleCancel = () => {
@@ -303,10 +308,10 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
               {lastResult.spawnedCardId ? (
                 <>
                   <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 4 }}>
-                    → Spawned downstream card <b style={{ color: 'var(--neon-cyan)' }}>#{lastResult.spawnedCardId}</b> cho squad <b>wf-writer</b>
+                    → Spawned card <b style={{ color: 'var(--neon-cyan)' }}>#{lastResult.spawnedCardId}</b> cho squad <b>{lastResult.spawnedSquad ?? 'wf-writer'}</b>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
-                    Worker đã được auto-kick. AI đang revise post theo feedback của bạn...
+                    Worker đã được auto-kick. AI đang xử lý theo feedback...
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <Link href={`/p/${task.projectId ?? 'orit'}`} className="btn primary" style={{ fontSize: 11, padding: '4px 10px' }}>
@@ -359,6 +364,25 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
                     <input style={fld} type="url" placeholder="https://..." value={screenshotUrl} onChange={(e) => setScreenshotUrl(e.target.value)} />
                   </div>
                 </>
+              )}
+              {(feedbackType === 'revise' || feedbackType === 'more-info') && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={lbl}>Sửa cái gì?</span>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {([
+                      { v: 'text', label: '📝 Text only', sub: 'giữ ảnh, viết lại' },
+                      { v: 'image', label: '🎨 Image only', sub: 'giữ post, vẽ lại' },
+                      { v: 'both', label: '↻ Cả hai', sub: 'tốn DALL-E credit' },
+                    ] as const).map((opt) => (
+                      <span key={opt.v} className="chip" data-active={reviseTarget === opt.v || undefined}
+                            onClick={() => setReviseTarget(opt.v)}
+                            style={{ cursor: 'pointer', fontSize: 11 }}
+                            title={opt.sub}>
+                        {opt.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
               {(feedbackType === 'revise' || feedbackType === 'error' || feedbackType === 'more-info') && (
                 <div style={{ marginTop: 8 }}>

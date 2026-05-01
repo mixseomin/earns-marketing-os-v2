@@ -111,7 +111,11 @@ export async function completeTask(taskId: number, body: {
   notes?: string;
   feedbackType?: FeedbackType;
   feedbackText?: string;
-}): Promise<{ ok: boolean; spawnedCardId?: number }> {
+  // 'text': revise writer only, giữ ảnh cũ (default — tiết kiệm DALL-E)
+  // 'image': revise designer only, giữ post cũ
+  // 'both': re-run writer → designer → publisher
+  reviseTarget?: 'text' | 'image' | 'both';
+}): Promise<{ ok: boolean; spawnedCardId?: number; spawnedSquad?: string }> {
   const db = getDb();
   if (!db) return { ok: false };
   // Auto-claim nếu chưa claim — UX: user mở task pending, fill form, bấm Mark complete trực tiếp.
@@ -130,8 +134,11 @@ export async function completeTask(taskId: number, body: {
     WHERE tenant_id = ${TENANT} AND id = ${taskId}
   `);
 
-  // Feedback loop: nếu user yêu cầu revise → spawn writer card mới với feedback.
+  // Feedback loop: nếu user yêu cầu revise → spawn 1 card downstream với feedback.
+  // Routing theo reviseTarget — text (default) revise writer + skip design,
+  // image revise designer only, both = full chain từ writer.
   let spawnedCardId: number | undefined;
+  let spawnedSquad: string | undefined;
   if (body.feedbackType === 'revise' || body.feedbackType === 'more-info') {
     // Lookup task để có parent_run + workflow context.
     const taskRows = await db.execute(sql`
@@ -149,17 +156,57 @@ export async function completeTask(taskId: number, body: {
       squad_key: string | null; title: string | null;
     }>)[0];
     if (t?.workflow_run_id && t?.workflow_key === 'reddit-launch') {
-      // Re-spawn writer step với feedback prepended.
-      const ctx: Record<string, unknown> = { ...(t.workflow_context ?? {}), feedback: body.feedbackText ?? '' };
-      const newRef = `RV-${Math.floor(1000 + Math.random() * 9000)}`;
-      const reviseBody = `## Feedback từ human (revise request)
+      const reviseTarget = body.reviseTarget ?? 'text';
+      const baseCtx = (t.workflow_context ?? {}) as Record<string, unknown>;
+
+      // Pull old image from previous publish ctx (workflow_context của publish step có imageUrl/imageAssetId)
+      // Nếu human_task spawn từ publish step, parent_run_id → card #publish có ctx đầy đủ.
+      const ctx: Record<string, unknown> = {
+        ...baseCtx,
+        feedback: body.feedbackText ?? '',
+        // Khi revise text-only → skip design ở worker chain logic.
+        revise_skip_design: reviseTarget === 'text',
+      };
+
+      let targetSquad: string;
+      let targetStep: 'write' | 'design';
+      let stepLabel: string;
+      let reviseBody: string;
+      if (reviseTarget === 'image') {
+        // Spawn designer trực tiếp, giữ post cũ.
+        targetSquad = 'wf-designer';
+        targetStep = 'design';
+        stepLabel = '🎨 Revise image';
+        reviseBody = `## Feedback từ human (revise image)
+${body.feedbackText ?? '(no detail)'}
+
+## Post hiện tại (giữ nguyên)
+${(ctx.post as string) ?? '(empty)'}
+
+## Image concept gốc
+${(ctx.imageConcept as string) ?? '(empty)'}
+
+## Yêu cầu
+Tạo lại hero image dựa trên feedback. BẮT BUỘC gọi tool image-gen + save-knowledge với title='Image notes revised'.`;
+      } else {
+        // text hoặc both → spawn writer.
+        targetSquad = 'wf-writer';
+        targetStep = 'write';
+        stepLabel = reviseTarget === 'both' ? '✍️ Revise (full)' : '✍️ Revise text';
+        reviseBody = `## Feedback từ human (revise ${reviseTarget})
 ${body.feedbackText ?? '(no detail)'}
 
 ## Plan gốc
 ${(ctx.plan as string) ?? '(empty)'}
 
-## Yêu cầu
-Revise Reddit post dựa trên feedback. Output title + body markdown như step write trước. BẮT BUỘC gọi save-knowledge với title='Reddit post revised' + content=full title+body.`;
+${reviseTarget === 'text' ? `## Image hiện tại (giữ nguyên — không tái tạo)
+${(ctx.imageUrl as string) ?? '(none)'}
+
+` : ''}## Yêu cầu
+Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BUỘC gọi save-knowledge với title='Reddit post revised' + content=full title+body.${reviseTarget === 'text' ? ' Sau bước này hệ thống skip design và đi thẳng publish — giữ ảnh cũ.' : ''}`;
+      }
+
+      const newRef = `RV-${Math.floor(1000 + Math.random() * 9000)}`;
       const insRows = await db.execute(sql`
         INSERT INTO cards (
           tenant_id, project_id, card_ref, col, title, body,
@@ -167,17 +214,20 @@ Revise Reddit post dựa trên feedback. Output title + body markdown như step 
           workflow_run_id, workflow_key, workflow_step, workflow_context, tags
         ) VALUES (
           'self', ${t.project_id ?? 'orit'}, ${newRef}, ${t.col ?? 'prospecting'},
-          ${`✍️ Revise — ${t.title ?? 'Reddit post'}`}, ${reviseBody},
-          'wf-writer', 2, 'NOW',
+          ${`${stepLabel} — ${t.title ?? 'Reddit post'}`}, ${reviseBody},
+          ${targetSquad}, 2, 'NOW',
           'gpt-4o-mini', true,
           ${`${t.workflow_run_id}-revise-${Date.now()}`},
-          ${t.workflow_run_id}, 'reddit-launch', 'write',
+          ${t.workflow_run_id}, 'reddit-launch', ${targetStep},
           ${JSON.stringify(ctx)}::jsonb,
-          ${JSON.stringify(['workflow:reddit-launch', 'step:write', 'revise'])}::jsonb
+          ${JSON.stringify(['workflow:reddit-launch', `step:${targetStep}`, 'revise', `target:${reviseTarget}`])}::jsonb
         ) RETURNING id
       `);
       const r = (insRows as unknown as Array<{ id: number | string }>)[0];
-      if (r) spawnedCardId = Number(r.id);
+      if (r) {
+        spawnedCardId = Number(r.id);
+        spawnedSquad = targetSquad;
+      }
     }
   }
 
@@ -196,7 +246,7 @@ Revise Reddit post dựa trên feedback. Output title + body markdown như step 
   }
 
   revalidatePath('/inbox');
-  return { ok: true, spawnedCardId };
+  return { ok: true, spawnedCardId, spawnedSquad };
 }
 
 export async function cancelTask(taskId: number, reason?: string): Promise<{ ok: boolean }> {

@@ -7,6 +7,14 @@ import type { Mode, Card } from '@/lib/mock/types';
 import { moveCard } from '@/lib/actions/cards';
 import { CardModal } from './card-modal';
 
+// Strip cumulative step-label prefixes from title cho cards nested qua nhiều spawn.
+// Vd "🎨 Design — ✍️ Write — 🧭 Plan — Reddit launch Orit" → keep first label + root.
+function cleanTitle(raw: string): string {
+  const parts = raw.split(' — ');
+  if (parts.length <= 2) return raw;
+  return `${parts[0]} — ${parts[parts.length - 1]}`;
+}
+
 function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
   card: Card; mode: Mode; onOpen: (c: Card) => void;
   onDragStart: (id: string) => void; onDragEnd: () => void; dragging: boolean;
@@ -14,6 +22,7 @@ function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
   const squad = mode.squads.find((s) => s.id === card.squad);
   const due = card.due || '—';
   const isUrgent = card.urgent || due === 'NOW';
+  const isQueued = card.dispatchReady === true;
   return (
     <div
       className="kcard"
@@ -23,12 +32,14 @@ function KCard({ card, mode, onOpen, onDragStart, onDragEnd, dragging }: {
       onDragStart={(e) => { e.dataTransfer.setData('text/plain', card.id); onDragStart(card.id); }}
       onDragEnd={onDragEnd}
       onClick={() => onOpen(card)}
+      style={isQueued ? { borderColor: 'var(--neon-amber)', boxShadow: '0 0 0 1px var(--neon-amber), 0 0 12px rgba(255,176,60,0.25)' } : undefined}
     >
       <div className="kcard-top">
         <span className="kcard-id">{card.id}</span>
-        <span className="tag-l" data-l={card.level}>L{card.level}</span>
+        {isQueued && <span style={{ fontSize: 9, color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>● QUEUED</span>}
+        <span className="tag-l" data-l={card.level} style={{ marginLeft: 'auto' }}>L{card.level}</span>
       </div>
-      <div className="kcard-title">{card.title}</div>
+      <div className="kcard-title">{cleanTitle(card.title)}</div>
       <div className="kcard-meta">
         {squad && <span className="m" style={{ color: squad.color, borderColor: squad.color, background: 'transparent' }}>{squad.icon} {squad.name}</span>}
         {card.agent && <span className="m">@{card.agent}</span>}
@@ -61,6 +72,7 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | '3' | '4'>('all');
+  const [hideProcessed, setHideProcessed] = useState(true);
   const [, startTransition] = useTransition();
 
   const visibleColumns = mode.columns.slice(0, tweaks.columnCount);
@@ -77,7 +89,17 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
     });
   };
 
-  const filtered = filter === 'all' ? cards : cards.filter((c) => c.level >= parseInt(filter, 10));
+  // Card "processed" = đã chạy worker xong + không còn dispatchReady. Trong workflow chain,
+  // mỗi step xong sẽ spawn step kế và clear dispatchReady của step trước → chen chúc cột.
+  // Default ẩn cho gọn; bật toggle để xem full lineage.
+  const isProcessed = (c: Card): boolean => {
+    if (c.dispatchReady) return false;
+    const tags = c.tags ?? [];
+    return tags.some((t) => t.startsWith('workflow:') || t.startsWith('step:'));
+  };
+  const baseFiltered = filter === 'all' ? cards : cards.filter((c) => c.level >= parseInt(filter, 10));
+  const filtered = hideProcessed ? baseFiltered.filter((c) => !isProcessed(c)) : baseFiltered;
+  const processedCount = cards.filter(isProcessed).length;
   const isModalOpen = openCard !== null || createInCol !== null;
 
   return (
@@ -93,6 +115,13 @@ export function CommandBoard({ mode, projectId }: { mode: Mode; projectId: strin
           <span className="chip" data-active={filter === 'all' || undefined} onClick={() => setFilter('all')}>All</span>
           <span className="chip" data-active={filter === '3' || undefined} onClick={() => setFilter('3')}>L3+</span>
           <span className="chip" data-active={filter === '4' || undefined} onClick={() => setFilter('4')}>L4 only</span>
+          <span style={{ width: 12 }}></span>
+          <span className="chip"
+                data-active={hideProcessed || undefined}
+                onClick={() => setHideProcessed(!hideProcessed)}
+                title={hideProcessed ? 'Đang ẩn step đã xong — bấm để hiện full lineage' : 'Đang hiện cả step đã xong — bấm để ẩn'}>
+            {hideProcessed ? `🙈 Hide done (${processedCount})` : `👁 Show all`}
+          </span>
           <span style={{ width: 12 }}></span>
           <span className="chip">Squad: All ▾</span>
           <span className="chip">⚙</span>

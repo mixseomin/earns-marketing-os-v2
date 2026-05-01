@@ -158,6 +158,13 @@ export function getWorkflow(key: string): WorkflowDef | null {
   return WORKFLOWS[key] ?? null;
 }
 
+// Tìm step theo key (dùng khi skip step trong revise loop).
+export function getStep(workflowKey: string, stepKey: string): WorkflowStep | null {
+  const wf = WORKFLOWS[workflowKey];
+  if (!wf) return null;
+  return wf.steps.find((s) => s.stepKey === stepKey) ?? null;
+}
+
 // Render body template với context. {{key}} → context[key] || '(empty)'.
 export function renderBodyTemplate(template: string, context: Record<string, unknown>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {

@@ -154,6 +154,24 @@ register({
     const db = getDb();
     if (!db) throw new Error('DATABASE_URL not configured');
     const slaDue = new Date(Date.now() + (input.slaMinutes ?? 120) * 60_000);
+
+    // Auto-link account: if no accountId passed, look up active/creating
+    // account for this project+platform. Picks most recently used one.
+    let accountId = input.accountId ?? null;
+    if (!accountId) {
+      const lookupRows = await db.execute(sql`
+        SELECT id FROM platform_accounts
+        WHERE tenant_id = 'self'
+          AND project_id = ${ctx.projectId}
+          AND platform_key = ${input.platform}
+          AND status IN ('active', 'creating', 'todo')
+        ORDER BY (status = 'active') DESC, last_used_at DESC NULLS LAST, id ASC
+        LIMIT 1
+      `);
+      const acc = (lookupRows as unknown as Array<{ id: number | string }>)[0];
+      if (acc) accountId = Number(acc.id);
+    }
+
     const insRows = await db.execute(sql`
       INSERT INTO human_tasks (
         tenant_id, project_id, parent_run_id, title, instructions,
@@ -165,7 +183,7 @@ register({
         ${input.instructions},
         ${JSON.stringify(input.prepPayload ?? {})}::jsonb,
         ${input.platform},
-        ${input.accountId ?? null},
+        ${accountId},
         ${slaDue.toISOString()}::timestamptz,
         'pending'
       ) RETURNING id

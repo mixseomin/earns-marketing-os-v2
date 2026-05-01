@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, type WorkflowProgress } from '@/lib/actions/inbox';
+import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, type WorkflowProgress } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -39,15 +39,32 @@ function fmtRel(iso: string | null): string {
 export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [filterStatus, setFilterStatus] = useState<string>('open');  // 'open' = pending+claimed+in_progress
+  const [filterStatus, setFilterStatus] = useState<string>('open');
   const [openTask, setOpenTask] = useState<HumanTaskRow | null>(null);
+  // Live tasks state — reflows initial từ server, sau đó tự refetch mỗi 5s.
+  // Tránh tình trạng list stale khi worker spawn task mới ở background.
+  const [tasks, setTasks] = useState<HumanTaskRow[]>(initial);
+  useEffect(() => { setTasks(initial); }, [initial]);
+  useEffect(() => {
+    let cancelled = false;
+    const refetch = async () => {
+      try {
+        const fresh = await listInbox('all');
+        if (!cancelled) setTasks(fresh);
+      } catch {}
+    };
+    const i = setInterval(refetch, 5000);
+    return () => { cancelled = true; clearInterval(i); };
+  }, []);
 
-  const tasks = initial;
   const filtered = useMemo(() => {
     if (filterStatus === 'all') return tasks;
     if (filterStatus === 'open') return tasks.filter((t) => ['pending', 'claimed', 'in_progress'].includes(t.status));
     return tasks.filter((t) => t.status === filterStatus);
   }, [tasks, filterStatus]);
+  // Recent done — show 3 latest completed dưới khi user ở filter 'open' và pending=0,
+  // để biết workflow vẫn đang chạy + có lineage.
+  const recentDone = useMemo(() => tasks.filter((t) => t.status === 'completed' || t.status === 'verified').slice(0, 3), [tasks]);
 
   const stats: StatCard[] = useMemo(() => {
     const overdue = tasks.filter((t) => t.slaDueAt && new Date(t.slaDueAt).getTime() < Date.now() && ['pending', 'claimed', 'in_progress'].includes(t.status)).length;
@@ -86,7 +103,27 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon="📭" title="No tasks in queue" description="Agent runtime sẽ tạo human_tasks khi platform requires_human=true (FB/IG/TikTok DM)." compact />
+        <>
+          <EmptyState icon="📭" title={filterStatus === 'open' ? 'No active tasks' : 'No tasks in queue'} description={filterStatus === 'open' ? 'Auto-refresh mỗi 5s. Tasks mới spawn từ workflow sẽ hiện ở đây.' : 'Agent runtime sẽ tạo human_tasks khi platform requires_human=true.'} compact />
+          {filterStatus === 'open' && recentDone.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                ↳ Vừa xong gần đây
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {recentDone.map((t) => (
+                  <div key={t.id} className="panel" style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setOpenTask(t)}>
+                    <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Pill color={STATUS_COLOR[t.status] ?? 'var(--fg-3)'} label={t.status} size="xs" />
+                      <span style={{ fontSize: 12, color: 'var(--fg-1)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</span>
+                      <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{fmtRel(t.completedAt ?? t.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map((t) => {

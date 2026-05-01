@@ -153,7 +153,27 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
       };
 
       const systemPrompt = [cfg.systemPrompt, cfg.skillsMd].filter(Boolean).join('\n\n---\n\n');
-      const userPrompt = `Card #${card.card_ref}: ${card.title}\n\n${card.body ?? ''}`;
+
+      // Append hard tool-use instruction dựa trên tools available trong squad config.
+      // Cheap models (gpt-4o-mini) thường skip persistence step nếu không buộc rõ.
+      const toolHints: string[] = [];
+      const tools = cfg.tools ?? [];
+      if (tools.includes('save-knowledge')) {
+        toolHints.push(
+          `BẮT BUỘC: trước khi trả lời cuối cùng, gọi tool 'save-knowledge' với title rõ ràng + content tóm tắt kết quả + tags liên quan. KHÔNG được dừng loop nếu chưa gọi save-knowledge ít nhất 1 lần. Output cuối chỉ là 1 dòng confirm "Đã save knowledge #ID".`,
+        );
+      }
+      if (tools.includes('web-search')) {
+        toolHints.push(`Dùng web-search để tìm nguồn primary, rồi web-scrape (nếu cần) để đọc chi tiết. Đừng search lặp cùng query.`);
+      }
+
+      const userPrompt = [
+        `Card #${card.card_ref}: ${card.title}`,
+        '',
+        card.body ?? '',
+        '',
+        toolHints.length > 0 ? '## Instructions\n' + toolHints.join('\n') : '',
+      ].filter(Boolean).join('\n');
 
       const result = await runAgent({
         agentKind: card.agent_kind,

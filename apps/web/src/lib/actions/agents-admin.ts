@@ -99,6 +99,8 @@ export interface CardRunDetail {
   peerReviewDecision: string | null;
   error: string | null;
   knowledgeIdsSaved: number[];     // IDs from save-knowledge tool calls
+  // Inline knowledge content cho UI hiển thị mà không cần mở /resources.
+  knowledgeEntries: Array<{ id: number; title: string; kind: string; content: string }>;
 }
 
 export async function listCardAgentRuns(projectId: string, cardRef: string): Promise<CardRunDetail[]> {
@@ -121,7 +123,7 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
     return null;
   };
 
-  return (rows as unknown as Array<{
+  const baseRows = (rows as unknown as Array<{
     id: number; agent_kind: string; status: string;
     started_at: unknown; completed_at: unknown; duration_ms: number | null;
     cost_usd_cents: number; tokens_in: number; tokens_out: number;
@@ -149,8 +151,29 @@ export async function listCardAgentRuns(projectId: string, cardRef: string): Pro
       peerReviewDecision: r.peer_review?.decision ?? null,
       error: r.error,
       knowledgeIdsSaved: knowledgeIds,
+      knowledgeEntries: [] as Array<{ id: number; title: string; kind: string; content: string }>,
     };
   });
+
+  // Fetch knowledge content cho mọi knowledge IDs đã save trong các runs.
+  const allIds = baseRows.flatMap((r) => r.knowledgeIdsSaved);
+  if (allIds.length > 0) {
+    const kRows = await db.execute(sql`
+      SELECT id, title, kind, content FROM knowledge_items
+      WHERE id IN (${sql.raw(allIds.map((i) => Number(i)).join(','))})
+    `);
+    const kMap = new Map<number, { id: number; title: string; kind: string; content: string }>();
+    for (const k of (kRows as unknown as Array<{ id: number | string; title: string; kind: string; content: string }>)) {
+      kMap.set(Number(k.id), { id: Number(k.id), title: k.title, kind: k.kind, content: k.content });
+    }
+    for (const run of baseRows) {
+      run.knowledgeEntries = run.knowledgeIdsSaved
+        .map((id) => kMap.get(Number(id)))
+        .filter((x): x is NonNullable<typeof x> => Boolean(x));
+    }
+  }
+
+  return baseRows;
 }
 
 export async function listRecentAgentRuns(limit = 50): Promise<RecentAgentRun[]> {

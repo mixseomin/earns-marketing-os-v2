@@ -457,10 +457,33 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
             {r.error && (
               <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>⚠ {r.error}</div>
             )}
-            {r.knowledgeIdsSaved.length > 0 && (
-              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--neon-cyan)' }}>
-                💾 Saved {r.knowledgeIdsSaved.length} knowledge entry: {r.knowledgeIdsSaved.map((id) => (
-                  <a key={id} href={`/p/${projectId}/resources?vault=knowledge`} style={{ marginRight: 6, color: 'var(--accent)' }}>#{id}</a>
+            {r.knowledgeEntries.length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--neon-cyan)', marginBottom: 4 }}>
+                  💾 Saved {r.knowledgeEntries.length} knowledge entry:
+                </div>
+                {r.knowledgeEntries.map((k) => (
+                  <details key={k.id} style={{
+                    marginTop: 4, padding: 8, borderRadius: 4,
+                    background: 'rgba(0,229,255,.04)',
+                    border: '1px solid rgba(0,229,255,.2)',
+                  }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--neon-cyan)' }}>#{k.id}</span>
+                      <span style={{ flex: 1, fontWeight: 500 }}>{k.title}</span>
+                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{k.kind}</span>
+                      <a href={`/p/${projectId}/resources?vault=knowledge`}
+                         onClick={(e) => e.stopPropagation()}
+                         style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none' }}>open ↗</a>
+                    </summary>
+                    <pre style={{
+                      margin: '8px 0 0', padding: 8,
+                      background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4,
+                      fontSize: 11, lineHeight: 1.55, fontFamily: 'var(--font-mono)',
+                      whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--fg-1)',
+                      maxHeight: 320, overflow: 'auto',
+                    }}>{k.content}</pre>
+                  </details>
                 ))}
               </div>
             )}

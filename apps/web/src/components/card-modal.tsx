@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
+import { listCardAgentRuns, type CardRunDetail } from '@/lib/actions/agents-admin';
 
 type Level = 1 | 2 | 3 | 4;
 type Mode_ = 'view' | 'edit' | 'create';
@@ -238,6 +239,8 @@ export function CardModal({
                   {card.tags!.map((t, i) => <span key={i} className="tag">{t}</span>)}
                 </div>
               </>)}
+
+              <CardAgentRunsSection projectId={projectId} cardRef={card.id} />
             </>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -356,5 +359,114 @@ export function CardModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Agent runs section: list runs của card này + output preview + link knowledge ──
+function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardRef: string }) {
+  const [runs, setRuns] = useState<CardRunDetail[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setLoading(true);
+    startTransition(async () => {
+      const data = await listCardAgentRuns(projectId, cardRef);
+      setRuns(data);
+      setLoading(false);
+    });
+  }, [projectId, cardRef]);
+
+  if (loading) {
+    return (
+      <>
+        <div className="modal-section-title">Agent runs</div>
+        <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>⟲ loading…</div>
+      </>
+    );
+  }
+
+  if (!runs || runs.length === 0) {
+    return (
+      <>
+        <div className="modal-section-title">Agent runs</div>
+        <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          Chưa có run nào. Set agent_kind + bật ✓ Ready to dispatch để worker pick up.
+        </div>
+      </>
+    );
+  }
+
+  const fmtCost = (c: number) => c < 100 ? `${c}¢` : `$${(c / 100).toFixed(2)}`;
+  const fmtDur = (ms: number | null) => !ms ? '—' : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+  const fmtRel = (iso: string | null) => {
+    if (!iso) return '—';
+    const ms = Date.now() - new Date(iso).getTime();
+    if (ms < 60_000) return `${Math.floor(ms / 1000)}s ago`;
+    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+    return `${Math.floor(ms / 86_400_000)}d ago`;
+  };
+  const STATUS_COLOR: Record<string, string> = {
+    completed: 'var(--ok)', failed: 'var(--bad)', running: 'var(--neon-cyan)',
+    timed_out: 'var(--warn)', rejected: 'var(--neon-amber)',
+  };
+
+  return (
+    <>
+      <div className="modal-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>🤖 Agent runs ({runs.length})</span>
+        <a href="/agents" style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', textDecoration: 'none' }}>View all ↗</a>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {runs.map((r) => (
+          <div key={r.id} style={{
+            padding: '8px 10px', borderRadius: 5,
+            background: 'var(--bg-2)', border: `1px solid ${STATUS_COLOR[r.status] ?? 'var(--line)'}33`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: 9.5, fontFamily: 'var(--font-mono)', padding: '1px 6px', borderRadius: 3,
+                color: STATUS_COLOR[r.status] ?? 'var(--fg-3)',
+                border: `1px solid ${STATUS_COLOR[r.status] ?? 'var(--fg-3)'}`,
+              }}>{r.status}</span>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)' }}>{r.agentKind}</span>
+              <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>· {fmtRel(r.startedAt)}</span>
+              <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>· {fmtDur(r.durationMs)}</span>
+              <span style={{ fontSize: 10, color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>· {fmtCost(r.costUsdCents)}</span>
+              <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>· {r.tokensIn}/{r.tokensOut} tok</span>
+              {r.peerReviewDecision && (
+                <span style={{ fontSize: 10, color: r.peerReviewDecision === 'allow' ? 'var(--ok)' : 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
+                  · review: {r.peerReviewDecision}
+                </span>
+              )}
+            </div>
+            {r.toolsUsed.length > 0 && (
+              <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                Tools: {r.toolsUsed.map((t, i) => <span key={i} style={{ marginRight: 6, color: t.ok ? 'var(--ok)' : 'var(--bad)' }}>{t.ok ? '✓' : '✕'} {t.toolId}</span>)}
+              </div>
+            )}
+            {r.outputText && (
+              <div style={{
+                fontSize: 11, color: 'var(--fg-1)', whiteSpace: 'pre-wrap',
+                maxHeight: 200, overflow: 'auto', padding: 6,
+                background: 'var(--bg-1)', borderRadius: 4, fontFamily: 'var(--font-mono)',
+                lineHeight: 1.5,
+              }}>{r.outputText}</div>
+            )}
+            {r.error && (
+              <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>⚠ {r.error}</div>
+            )}
+            {r.knowledgeIdsSaved.length > 0 && (
+              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--neon-cyan)' }}>
+                💾 Saved {r.knowledgeIdsSaved.length} knowledge entry: {r.knowledgeIdsSaved.map((id) => (
+                  <a key={id} href={`/p/${projectId}/resources?vault=knowledge`} style={{ marginRight: 6, color: 'var(--accent)' }}>#{id}</a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

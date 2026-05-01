@@ -84,6 +84,75 @@ export interface RecentAgentRun {
   error: string | null;
 }
 
+export interface CardRunDetail {
+  id: number;
+  agentKind: string;
+  status: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+  costUsdCents: number;
+  tokensIn: number;
+  tokensOut: number;
+  outputText: string;
+  toolsUsed: Array<{ toolId?: string; ok?: boolean }>;
+  peerReviewDecision: string | null;
+  error: string | null;
+  knowledgeIdsSaved: number[];     // IDs from save-knowledge tool calls
+}
+
+export async function listCardAgentRuns(projectId: string, cardRef: string): Promise<CardRunDetail[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT ar.id, ar.agent_kind, ar.status, ar.started_at, ar.completed_at, ar.duration_ms,
+           ar.cost_usd_cents, ar.tokens_in, ar.tokens_out, ar.output, ar.tools_used, ar.peer_review, ar.error
+    FROM agent_runs ar
+    INNER JOIN cards c ON c.id = ar.card_id
+    WHERE ar.tenant_id = ${TENANT} AND ar.project_id = ${projectId} AND c.card_ref = ${cardRef}
+    ORDER BY ar.id DESC
+    LIMIT 10
+  `);
+
+  const toIso = (v: unknown): string | null => {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'string') return new Date(v).toISOString();
+    return null;
+  };
+
+  return (rows as unknown as Array<{
+    id: number; agent_kind: string; status: string;
+    started_at: unknown; completed_at: unknown; duration_ms: number | null;
+    cost_usd_cents: number; tokens_in: number; tokens_out: number;
+    output: { text?: string; reason?: string } | null;
+    tools_used: Array<{ toolId?: string; output?: { id?: number }; ok?: boolean }> | null;
+    peer_review: { decision?: string } | null;
+    error: string | null;
+  }>).map((r) => {
+    const tools = r.tools_used ?? [];
+    const knowledgeIds = tools
+      .filter((t) => t.toolId === 'save-knowledge' && t.output && typeof t.output === 'object' && typeof t.output.id === 'number')
+      .map((t) => t.output!.id!);
+    return {
+      id: r.id,
+      agentKind: r.agent_kind,
+      status: r.status,
+      startedAt: toIso(r.started_at),
+      completedAt: toIso(r.completed_at),
+      durationMs: r.duration_ms,
+      costUsdCents: r.cost_usd_cents,
+      tokensIn: r.tokens_in,
+      tokensOut: r.tokens_out,
+      outputText: r.output?.text ?? '',
+      toolsUsed: tools.map((t) => ({ toolId: t.toolId, ok: t.ok })),
+      peerReviewDecision: r.peer_review?.decision ?? null,
+      error: r.error,
+      knowledgeIdsSaved: knowledgeIds,
+    };
+  });
+}
+
 export async function listRecentAgentRuns(limit = 50): Promise<RecentAgentRun[]> {
   const db = getDb();
   if (!db) return [];

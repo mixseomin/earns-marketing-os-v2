@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type AgentKindStats, type RecentAgentRun, type ReasoningSquad, type SystemFlags,
-  resetAgentBreaker, setSoloReasoningSquad, toggleSquadReasoning,
+  resetAgentBreaker, setSoloReasoningSquad, toggleSquadReasoning, triggerWorkerNow,
 } from '@/lib/actions/agents-admin';
 import { Pill, StatsStrip, EmptyState, type StatCard } from './ui';
 
@@ -40,6 +40,8 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
   const [, startTransition] = useTransition();
   const [soloBusy, setSoloBusy] = useState(false);
   const [soloMsg, setSoloMsg] = useState<string | null>(null);
+  const [workerBusy, setWorkerBusy] = useState(false);
+  const [workerReport, setWorkerReport] = useState<Awaited<ReturnType<typeof triggerWorkerNow>> | null>(null);
 
   const totalRuns = kindStats.reduce((s, k) => s + k.totalRuns, 0);
   const totalCost = kindStats.reduce((s, k) => s + k.totalCostCents, 0);
@@ -66,6 +68,16 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
     });
   };
 
+  const handleRunWorker = () => {
+    setWorkerBusy(true); setWorkerReport(null);
+    startTransition(async () => {
+      const r = await triggerWorkerNow(5);
+      setWorkerBusy(false);
+      setWorkerReport(r);
+      router.refresh();
+    });
+  };
+
   const handleSoloActivate = (projectId: string, squadKey: string, squadName: string) => {
     if (!confirm(`Solo-mode: chỉ "${squadName}" reasoning ON, tất cả squad khác pause. Continue?`)) return;
     setSoloBusy(true);
@@ -83,13 +95,61 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags 
         <div>
           <h1 className="page-title">
             🤖 Agents Admin
-            <small>// {totalRuns} runs · {kindStats.length} kinds · {reasoningSquads.length} reasoning squads</small>
+            <small>// {totalRuns} runs · {kindStats.length} kinds · {activeSquads}/{reasoningSquads.length} active</small>
           </h1>
           <p className="page-sub">
             Live agent execution monitor + control. Pause/reset breaker, solo-mode squad activation, kill switch status.
           </p>
         </div>
+        <div className="page-actions">
+          <button
+            className="btn primary"
+            onClick={handleRunWorker}
+            disabled={workerBusy || flags.killSwitchActive || activeSquads === 0}
+            title={
+              flags.killSwitchActive ? 'Kill switch ON — disable env trước' :
+              activeSquads === 0 ? 'Cần ít nhất 1 squad active để run worker' :
+              'Trigger 1 worker cycle ngay (max 5 cards)'
+            }
+          >
+            {workerBusy ? '⟲ running…' : '▶ Run worker now'}
+          </button>
+        </div>
       </div>
+
+      {workerReport && (
+        <div style={{
+          padding: '8px 12px', marginBottom: 10, borderRadius: 6,
+          background: workerReport.failed > 0 ? 'rgba(255,77,94,.06)' : 'rgba(16,185,129,.06)',
+          border: `1px solid ${workerReport.failed > 0 ? 'var(--bad)' : 'var(--ok)'}`,
+          fontSize: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <b>Last cycle:</b>
+            <span style={{ color: 'var(--ok)' }}>{workerReport.processed} processed</span>
+            <span>·</span>
+            <span style={{ color: 'var(--fg-3)' }}>{workerReport.skipped} skipped</span>
+            <span>·</span>
+            <span style={{ color: workerReport.failed > 0 ? 'var(--bad)' : 'var(--fg-3)' }}>{workerReport.failed} failed</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 10 }}>
+              {workerReport.durationMs}ms · {new Date(workerReport.startedAt).toLocaleTimeString()}
+            </span>
+          </div>
+          {workerReport.details.length === 0 ? (
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+              No cards in 'approved' col với agent_kind set + squad reasoning ON. Tạo card qua /board.
+            </div>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: 20, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+              {workerReport.details.map((d, i) => (
+                <li key={i} style={{ color: d.status === 'ok' ? 'var(--ok)' : d.status === 'failed' ? 'var(--bad)' : 'var(--fg-3)' }}>
+                  [{d.status}] {d.cardRef} {d.reason ? `— ${d.reason}` : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <StatsStrip cards={stats} />
 

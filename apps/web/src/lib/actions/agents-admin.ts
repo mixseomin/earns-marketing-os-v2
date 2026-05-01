@@ -230,6 +230,24 @@ export async function setSoloReasoningSquad(projectId: string, squadKey: string)
   return { ok: true, activated, paused };
 }
 
+// Trigger 1 worker cycle on-demand (UI button thay vì curl).
+// Wraps runWorkerCycle với revalidation.
+export async function triggerWorkerNow(maxCards: number = 5): Promise<{
+  ok: boolean; processed: number; skipped: number; failed: number;
+  details: Array<{ cardId: number; cardRef: string; status: string; runId?: number; reason?: string }>;
+  startedAt: string; durationMs: number;
+}> {
+  const t0 = Date.now();
+  const { runWorkerCycle } = await import('@/lib/worker');
+  const report = await runWorkerCycle(maxCards);
+  revalidatePath('/agents');
+  return {
+    ok: true, ...report,
+    startedAt: new Date(t0).toISOString(),
+    durationMs: Date.now() - t0,
+  };
+}
+
 export async function getSystemFlags(): Promise<SystemFlags> {
   return {
     killSwitchActive: process.env.MOS2_KILL_SWITCH === '1',

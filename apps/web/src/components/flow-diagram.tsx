@@ -654,20 +654,6 @@ function Legend() {
   );
 }
 
-// ── Empty state ──────────────────────────────────────────────────
-function EmptyState() {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      height: 300, gap: 12, color: 'var(--fg-3)',
-    }}>
-      <span style={{ fontSize: 36 }}>🗺</span>
-      <p style={{ fontSize: 13, fontFamily: 'var(--font-mono)', textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
-        No squads configured — add squads in the Squads tab to see the flow diagram.
-      </p>
-    </div>
-  );
-}
 
 // ── Main component ───────────────────────────────────────────────
 export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; projectId: string }) {
@@ -701,8 +687,7 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
     return () => clearInterval(id);
   }, [refresh]);
 
-  if (data.squads.length === 0) return <EmptyState />;
-
+  const isEmpty = data.squads.length === 0;
   const orchSquad = data.squads.find(isOrchestrator) ?? null;
   const nonOrchSquads = data.squads.filter((s) => !isOrchestrator(s));
   const squadPos = squadNodePositions(nonOrchSquads, W);
@@ -755,6 +740,31 @@ export function FlowDiagram({ data: initialData, projectId }: { data: FlowData; 
           if (!sp) return null;
           return <SquadNode key={sq.squadKey} sq={sq} pos={sp} />;
         })}
+
+        {/* Empty hint when no squads — sits in the squads layer */}
+        {isEmpty && (
+          <div style={{
+            position: 'absolute',
+            left: '50%', top: LAYERS.squads.y + NODE_H / 2 - 30,
+            transform: 'translateX(-50%)',
+            padding: '14px 22px',
+            border: '1.5px dashed var(--fg-4)',
+            borderRadius: 8,
+            background: 'rgba(255,255,255,0.02)',
+            color: 'var(--fg-3)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <span style={{ fontSize: 22, opacity: 0.5 }}>🤖</span>
+            <span style={{ fontSize: 11, fontWeight: 600 }}>No squads yet</span>
+            <a href={`/p/${projectId}/squads`} style={{
+              fontSize: 10, color: 'var(--accent)', textDecoration: 'none',
+              border: '1px solid var(--accent)', borderRadius: 4, padding: '3px 8px', marginTop: 2,
+            }}>
+              + Configure squads
+            </a>
+          </div>
+        )}
 
         {/* Knowledge Base */}
         <KnowledgeNode pos={kbPos} count={data.knowledgeCount} />

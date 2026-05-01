@@ -20,7 +20,7 @@ export async function getResourceStripData(projectId: string): Promise<StripItem
   if (!db) return RESOURCE_DATA.strip;
 
   try {
-    const [accountsRow, contactsRow, knowledgeRow, mediaRow, infraRow, budgetRow] = await Promise.all([
+    const [accountsRow, contactsRow, knowledgeRow, mediaRow, infraRow, pubRow, budgetRow] = await Promise.all([
       db.select({
         total: sql<number>`COUNT(*)::int`,
         healthy: sql<number>`COUNT(*) FILTER (WHERE status = 'active')::int`,
@@ -58,6 +58,23 @@ export async function getResourceStripData(projectId: string): Promise<StripItem
         eq(infraResources.tenantId, TENANT),
         or(eq(infraResources.projectId, projectId), isNull(infraResources.projectId)),
       )).then((r) => r[0]!),
+
+      // Publications: active monitors + unanswered activities.
+      db.execute(sql`
+        SELECT
+          COUNT(*)::int                                                                    AS total,
+          COUNT(*) FILTER (WHERE status = 'active')::int                                  AS active,
+          (SELECT COUNT(*)::int FROM publication_activities pa
+             JOIN publications p2 ON p2.id = pa.publication_id
+             WHERE p2.tenant_id = ${TENANT} AND p2.project_id = ${projectId}
+               AND pa.human_task_id IS NULL)                                               AS pending_replies,
+          (SELECT COUNT(*)::int FROM publication_activities pa
+             JOIN publications p2 ON p2.id = pa.publication_id
+             WHERE p2.tenant_id = ${TENANT} AND p2.project_id = ${projectId}
+               AND pa.detected_at > NOW() - INTERVAL '24 hours')                          AS new_today
+        FROM publications
+        WHERE tenant_id = ${TENANT} AND project_id = ${projectId}
+      `).then((r) => (r as unknown as Array<{ total: number; active: number; pending_replies: number; new_today: number }>)[0] ?? { total: 0, active: 0, pending_replies: 0, new_today: 0 }),
 
       // Budget: net 30d (income - expense). amountCents stored as integer.
       db.select({
@@ -124,6 +141,14 @@ export async function getResourceStripData(projectId: string): Promise<StripItem
         icon: '📚', lbl: 'Knowledge',
         val: knowledgeRow.count > 0 ? `${knowledgeRow.count} items` : 'chưa có',
         note: knowledgeRow.count > 0 ? 'playbook/spec/note' : 'thêm trong /resources', tone: 'ok',
+      },
+      {
+        icon: '📡', lbl: 'Publications',
+        val: pubRow.total > 0 ? `${pubRow.active} monitoring` : 'chưa có',
+        note: pubRow.pending_replies > 0
+          ? `${pubRow.pending_replies} chờ reply`
+          : pubRow.new_today > 0 ? `+${pubRow.new_today} mới hôm nay` : (pubRow.total > 0 ? 'ok' : 'add publication'),
+        tone: pubRow.pending_replies > 0 ? 'warn' : 'ok',
       },
     ];
   } catch (e) {

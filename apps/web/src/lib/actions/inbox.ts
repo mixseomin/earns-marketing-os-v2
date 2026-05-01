@@ -155,7 +155,7 @@ export async function completeTask(taskId: number, body: {
   let spawnedCardId: number | undefined;
   let spawnedSquad: string | undefined;
   let workflowRunId: string | undefined;
-  if (body.feedbackType === 'revise' || body.feedbackType === 'more-info') {
+  if (body.feedbackType === 'revise' || body.feedbackType === 'more-info' || body.feedbackType === 'error') {
     // Lookup task để có parent_run + workflow context.
     const taskRows = await db.execute(sql`
       SELECT ht.parent_run_id, ar.card_id, c.workflow_run_id, c.workflow_key, c.workflow_context, c.project_id, c.col, c.squad_key, c.title
@@ -205,10 +205,11 @@ ${(ctx.imageConcept as string) ?? '(empty)'}
 ## Yêu cầu
 Tạo lại hero image dựa trên feedback. BẮT BUỘC gọi tool image-gen + save-knowledge với title='Image notes revised'.`;
       } else {
-        // text hoặc both → spawn writer.
+        // text / both / error → spawn writer. Error = fix lỗi, revise_skip_design để nhanh.
         targetSquad = 'wf-writer';
         targetStep = 'write';
-        stepLabel = reviseTarget === 'both' ? '✍️ Revise (full)' : '✍️ Revise text';
+        stepLabel = body.feedbackType === 'error' ? '🔧 Fix error' : reviseTarget === 'both' ? '✍️ Revise (full)' : '✍️ Revise text';
+        if (body.feedbackType === 'error') ctx.revise_skip_design = true; // error fix → skip design, re-publish nhanh
         reviseBody = `## Feedback từ human (revise ${reviseTarget})
 ${body.feedbackText ?? '(no detail)'}
 

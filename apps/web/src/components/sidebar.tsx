@@ -48,6 +48,11 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
               <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
               <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
             </Link>
+            <Link href={`/p/${currentProjectId}/publications`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>📡</div>
+              <div className="squad-name"><b>Publications</b><span>monitor · engage</span></div>
+              <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+            </Link>
           </>
         )}
       </div>

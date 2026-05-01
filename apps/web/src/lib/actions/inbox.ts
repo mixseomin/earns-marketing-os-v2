@@ -181,6 +181,20 @@ Revise Reddit post dựa trên feedback. Output title + body markdown như step 
     }
   }
 
+  // Auto-kick worker nếu vừa spawn — đỡ user phải bấm Run worker tay.
+  // Fire-and-forget: response không chờ worker complete (có thể >10s).
+  if (spawnedCardId) {
+    const cronSecret = process.env.MOS2_CRON_SECRET || process.env.CRON_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://mos2.on.tc';
+    const url = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+    if (cronSecret) {
+      fetch(`${url}/api/cron/worker?limit=1`, {
+        method: 'POST',
+        headers: { 'x-cron-secret': cronSecret },
+      }).catch(() => { /* fire-and-forget */ });
+    }
+  }
+
   revalidatePath('/inbox');
   return { ok: true, spawnedCardId };
 }

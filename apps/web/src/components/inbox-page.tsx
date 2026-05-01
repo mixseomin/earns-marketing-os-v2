@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask } from '@/lib/actions/inbox';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
@@ -163,7 +164,10 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
   }, [publishUrl, screenshotUrl, notes, feedbackType, feedbackText, draftKey]);
 
   const isDirty = !!(feedbackText.trim() || publishUrl.trim() || screenshotUrl.trim() || notes.trim());
+  // Sau complete, modal hiển thị kết quả thay vì đóng ngay → user thấy spawn lineage.
+  const [lastResult, setLastResult] = useState<{ spawnedCardId?: number; feedbackType: string } | null>(null);
   const safeClose = () => {
+    if (lastResult) { onAction(); return; }
     if (isDirty && !confirm('Có nội dung chưa submit. Đóng bỏ bản nháp?\n(Bản nháp đã auto-save sẵn — bấm OK nếu chỉ muốn ẩn modal.)')) return;
     onClose();
   };
@@ -200,7 +204,7 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
       });
       setBusy(false);
       if (typeof window !== 'undefined') localStorage.removeItem(draftKey);
-      onAction();
+      setLastResult({ spawnedCardId: res.spawnedCardId, feedbackType });
     });
   };
   const handleCancel = () => {
@@ -286,8 +290,47 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
             </>
           )}
 
-          {/* Result form (chỉ show khi task đang active) */}
-          {(task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
+          {/* Vừa submit xong → show kết quả + spawn lineage thay vì đóng modal */}
+          {lastResult && (
+            <div style={{
+              marginTop: 12, padding: 12,
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid var(--ok)', borderRadius: 6,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ok)', marginBottom: 8 }}>
+                ✓ Task completed (outcome: {lastResult.feedbackType})
+              </div>
+              {lastResult.spawnedCardId ? (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 4 }}>
+                    → Spawned downstream card <b style={{ color: 'var(--neon-cyan)' }}>#{lastResult.spawnedCardId}</b> cho squad <b>wf-writer</b>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
+                    Worker đã được auto-kick. AI đang revise post theo feedback của bạn...
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <Link href={`/p/${task.projectId ?? 'orit'}`} className="btn primary" style={{ fontSize: 11, padding: '4px 10px' }}>
+                      → Xem board
+                    </Link>
+                    <Link href="/agents" className="btn" style={{ fontSize: 11, padding: '4px 10px' }}>
+                      → Agent runs
+                    </Link>
+                    <button className="btn ghost" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => onAction()}>Đóng</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
+                    Workflow đã kết thúc (không spawn thêm).
+                  </div>
+                  <button className="btn primary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => onAction()}>Đóng</button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Result form (chỉ show khi task đang active VÀ chưa có lastResult) */}
+          {!lastResult && (task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
             <>
               <div className="modal-section-title">📤 Result + feedback</div>
               <div>
@@ -350,19 +393,19 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
           </div>
           <div className="modal-foot-actions">
             <button className="btn ghost" onClick={safeClose}>Close</button>
-            {task.status === 'pending' && (
+            {!lastResult && task.status === 'pending' && (
               <>
                 <button className="btn" onClick={handleClaim} disabled={busy}>👤 Claim only</button>
                 <button className="btn primary" onClick={handleComplete} disabled={busy}>✓ Submit + complete</button>
               </>
             )}
-            {(task.status === 'claimed' || task.status === 'in_progress') && (
+            {!lastResult && (task.status === 'claimed' || task.status === 'in_progress') && (
               <>
                 <button className="btn" onClick={handleUnclaim} disabled={busy}>↻ Unclaim</button>
                 <button className="btn primary" onClick={handleComplete} disabled={busy}>✓ Mark complete</button>
               </>
             )}
-            {(task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
+            {!lastResult && (task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
               <button className="btn danger" onClick={handleCancel} disabled={busy}>✕ Cancel</button>
             )}
           </div>

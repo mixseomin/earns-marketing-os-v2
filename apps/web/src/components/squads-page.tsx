@@ -116,7 +116,7 @@ function SquadFormModal({ squad, projectId, onClose, availableModels, dbTools, d
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ width: '94vw', maxWidth: 1200, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
             <div className="id-line">{squad?.id ?? 'NEW SQUAD'}</div>

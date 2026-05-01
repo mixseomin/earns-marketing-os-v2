@@ -21,6 +21,7 @@ import { peerReview, pickReviewerKind } from './peer-review';
 import type { ToolContext } from './toolkits/registry';
 // Side-effect import: populates tool runtime registry before invokeTool calls.
 import './toolkits';
+import { getWorkflow, getNextStep, renderBodyTemplate } from './workflows';
 
 interface CardRow {
   id: number;
@@ -35,6 +36,10 @@ interface CardRow {
   idempotency_key: string | null;
   col: string;
   dispatch_ready: boolean;
+  workflow_run_id: string | null;
+  workflow_key: string | null;
+  workflow_step: string | null;
+  workflow_context: Record<string, unknown> | null;
 }
 
 interface SquadConfig {
@@ -74,7 +79,8 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
   // Card form có toggle "Ready to dispatch" → set dispatch_ready=true.
   const cardRows = await db.execute(sql`
     SELECT c.id, c.project_id, c.card_ref, c.title, c.body, c.squad_key,
-           c.agent_kind, c.agent_ref, c.level, c.idempotency_key, c.col, c.dispatch_ready
+           c.agent_kind, c.agent_ref, c.level, c.idempotency_key, c.col, c.dispatch_ready,
+           c.workflow_run_id, c.workflow_key, c.workflow_step, c.workflow_context
     FROM cards c
     WHERE c.tenant_id = 'self'
       AND c.archived_at IS NULL
@@ -258,6 +264,70 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
 
       // Clear dispatch flag — worker không re-pick. User toggle lại nếu cần re-run.
       await db.execute(sql`UPDATE cards SET dispatch_ready = false, updated_at = NOW() WHERE id = ${card.id}`);
+
+      // Workflow chain — nếu card thuộc workflow + có next step → spawn next card.
+      if (result.ok && card.workflow_key && card.workflow_step && card.workflow_run_id) {
+        const next = getNextStep(card.workflow_key, card.workflow_step);
+        if (next) {
+          const prevCtx = card.workflow_context ?? {};
+          const stepOutput = result.output;
+          // Pluck saved knowledge content + media URL for context.
+          const savedKnowledgeContents: string[] = [];
+          let savedImageUrl: string | null = null;
+          let savedImageAssetId: number | null = null;
+          for (const t of result.partial.toolsUsed) {
+            if (t.toolId === 'save-knowledge' && t.ok && t.output && typeof t.output === 'object') {
+              const id = (t.output as { id?: number }).id;
+              if (id) {
+                const krows = await db.execute(sql`SELECT content FROM knowledge_items WHERE id = ${id} LIMIT 1`);
+                const k = (krows as unknown as Array<{ content: string }>)[0];
+                if (k) savedKnowledgeContents.push(k.content);
+              }
+            }
+            if ((t.toolId === 'image-gen') && t.ok && t.output && typeof t.output === 'object') {
+              const out = t.output as { url?: string; mediaAssetId?: number };
+              if (out.url) savedImageUrl = out.url;
+              if (out.mediaAssetId) savedImageAssetId = out.mediaAssetId;
+            }
+          }
+
+          const nextCtx: Record<string, unknown> = { ...prevCtx };
+          // Map step outputs theo step name.
+          if (card.workflow_step === 'plan') {
+            nextCtx.plan = savedKnowledgeContents.join('\n\n---\n\n') || stepOutput;
+            // Try parse imageConcept block
+            const concept = (savedKnowledgeContents[0] ?? stepOutput).match(/##\s*Image concept[\s\S]*?\n([\s\S]*?)(?=\n##|\n\n|$)/);
+            nextCtx.imageConcept = concept?.[1]?.trim() ?? '';
+          }
+          if (card.workflow_step === 'write') {
+            nextCtx.post = savedKnowledgeContents.join('\n\n---\n\n') || stepOutput;
+          }
+          if (card.workflow_step === 'design') {
+            if (savedImageUrl) nextCtx.imageUrl = savedImageUrl;
+            if (savedImageAssetId) nextCtx.imageAssetId = savedImageAssetId;
+          }
+
+          const nextBody = renderBodyTemplate(next.bodyTemplate, nextCtx);
+          const nextRef = `${card.workflow_run_id.slice(-4).toUpperCase()}-${next.stepKey.toUpperCase().slice(0, 3)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+          await db.execute(sql`
+            INSERT INTO cards (
+              tenant_id, project_id, card_ref, col, title, body,
+              squad_key, level, due, agent_kind, dispatch_ready, idempotency_key,
+              workflow_run_id, workflow_key, workflow_step, workflow_context, tags
+            ) VALUES (
+              'self', ${card.project_id}, ${nextRef}, ${card.col},
+              ${`${next.label} — ${card.title}`}, ${nextBody},
+              ${next.squadKey}, ${next.trustLevel}, 'NOW',
+              ${next.agentKind}, true,
+              ${`${card.workflow_run_id}-${next.stepKey}`},
+              ${card.workflow_run_id}, ${card.workflow_key}, ${next.stepKey},
+              ${JSON.stringify(nextCtx)}::jsonb,
+              ${JSON.stringify([`workflow:${card.workflow_key}`, `step:${next.stepKey}`])}::jsonb
+            )
+          `);
+        }
+      }
 
       if (result.ok) {
         report.processed++;

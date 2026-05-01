@@ -133,6 +133,8 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
   const [publishUrl, setPublishUrl] = useState(task.publishUrl ?? '');
   const [screenshotUrl, setScreenshotUrl] = useState(task.screenshotUrl ?? '');
   const [notes, setNotes] = useState(task.notes ?? '');
+  const [feedbackType, setFeedbackType] = useState<'success' | 'revise' | 'error' | 'more-info'>('success');
+  const [feedbackText, setFeedbackText] = useState('');
 
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -148,11 +150,27 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
     startTransition(async () => { await claimTask(task.id); setBusy(false); onAction(); });
   };
   const handleComplete = () => {
-    if (!publishUrl.trim()) { alert('Cần publishUrl (URL post sau khi đăng)'); return; }
+    if (feedbackType === 'success' && !publishUrl.trim()) {
+      alert('Success → cần publishUrl (URL post)');
+      return;
+    }
+    if ((feedbackType === 'revise' || feedbackType === 'error' || feedbackType === 'more-info') && !feedbackText.trim()) {
+      alert('Cần nhập feedback text khi không phải success');
+      return;
+    }
     setBusy(true);
     startTransition(async () => {
-      await completeTask(task.id, { publishUrl, screenshotUrl: screenshotUrl || undefined, notes: notes || undefined });
-      setBusy(false); onAction();
+      const res = await completeTask(task.id, {
+        publishUrl: publishUrl || undefined,
+        screenshotUrl: screenshotUrl || undefined,
+        notes: notes || undefined,
+        feedbackType, feedbackText: feedbackText || undefined,
+      });
+      setBusy(false);
+      if (res.spawnedCardId) {
+        alert(`✓ Done. Spawned downstream card #${res.spawnedCardId} cho writer revise.`);
+      }
+      onAction();
     });
   };
   const handleCancel = () => {
@@ -238,18 +256,45 @@ function TaskDetailModal({ task, onClose, onAction }: { task: HumanTaskRow; onCl
           {/* Result form (chỉ show khi task đang active) */}
           {(task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
             <>
-              <div className="modal-section-title">📤 After posting</div>
+              <div className="modal-section-title">📤 Result + feedback</div>
               <div>
-                <span style={lbl}>Publish URL *</span>
-                <input style={fld} type="url" placeholder="https://..." value={publishUrl} onChange={(e) => setPublishUrl(e.target.value)} />
+                <span style={lbl}>Outcome</span>
+                <select style={fld} value={feedbackType} onChange={(e) => setFeedbackType(e.target.value as typeof feedbackType)}>
+                  <option value="success">✓ Success — đã đăng OK</option>
+                  <option value="revise">↻ Revise — yêu cầu writer viết lại theo feedback</option>
+                  <option value="error">✕ Error — fail hoàn toàn, cần escalate</option>
+                  <option value="more-info">? More info — cần thêm thông tin</option>
+                </select>
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+                  {feedbackType === 'success' && 'Mark task done với publish URL.'}
+                  {feedbackType === 'revise' && '→ System spawn writer card mới với feedback. Writer sẽ revise post.'}
+                  {feedbackType === 'error' && 'Mark fail. Workflow dừng.'}
+                  {feedbackType === 'more-info' && '→ Spawn writer card request additional context.'}
+                </div>
               </div>
+              {feedbackType === 'success' && (
+                <>
+                  <div style={{ marginTop: 8 }}>
+                    <span style={lbl}>Publish URL *</span>
+                    <input style={fld} type="url" placeholder="https://reddit.com/r/.../comments/..." value={publishUrl} onChange={(e) => setPublishUrl(e.target.value)} />
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <span style={lbl}>Screenshot URL <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
+                    <input style={fld} type="url" placeholder="https://..." value={screenshotUrl} onChange={(e) => setScreenshotUrl(e.target.value)} />
+                  </div>
+                </>
+              )}
+              {(feedbackType === 'revise' || feedbackType === 'error' || feedbackType === 'more-info') && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={lbl}>Feedback / lý do *</span>
+                  <textarea style={{ ...fld, minHeight: 80 }}
+                            placeholder="vd: 'Title chưa hấp dẫn, đổi sang dạng câu hỏi. Body quá dài, rút xuống 200 từ.'"
+                            value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+                </div>
+              )}
               <div style={{ marginTop: 8 }}>
-                <span style={lbl}>Screenshot URL <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
-                <input style={fld} type="url" placeholder="https://..." value={screenshotUrl} onChange={(e) => setScreenshotUrl(e.target.value)} />
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <span style={lbl}>Notes</span>
-                <textarea style={{ ...fld, minHeight: 50 }} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <span style={lbl}>Notes (internal)</span>
+                <textarea style={{ ...fld, minHeight: 40 }} value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
             </>
           )}

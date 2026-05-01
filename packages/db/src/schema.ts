@@ -178,6 +178,11 @@ export const cards = pgTable(
     // có column khác nhau). Worker daemon chỉ pick card với dispatch_ready=true
     // + agent_kind set. User explicit toggle "Ready to dispatch" trong card form.
     dispatchReady: boolean('dispatch_ready').notNull().default(false),
+    // Workflow chain (Phase 12+): khi card thuộc multi-step flow.
+    workflowRunId: text('workflow_run_id'),                 // unique ID groups all steps của 1 chain instance
+    workflowKey: text('workflow_key'),                      // e.g. 'reddit-launch' — workflow definition slug
+    workflowStep: text('workflow_step'),                    // e.g. 'plan' / 'write' / 'design' / 'publish'
+    workflowContext: jsonb('workflow_context').notNull().default({}),  // outputs từ prev steps cho input mapping
     body: text('body'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -744,6 +749,8 @@ export const humanTasks = pgTable(
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     publishUrl: text('publish_url'),                                     // URL after human posted (for AI verify)
     screenshotUrl: text('screenshot_url'),                               // evidence upload
+    feedbackType: text('feedback_type'),                                 // 'success' | 'revise' | 'error' | 'more-info' — drives downstream actions
+    feedbackText: text('feedback_text'),                                 // free-form feedback từ human
     verifyResult: jsonb('verify_result'),                                // AI verification output
     escalatedAt: timestamp('escalated_at', { withTimezone: true }),
     escalationCount: integer('escalation_count').notNull().default(0),

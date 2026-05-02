@@ -75,6 +75,38 @@ export async function updatePlatform(key: string, patch: Partial<PlatformInput>)
   return { ok: true };
 }
 
+export interface PlatformWithUsage {
+  key: string;
+  label: string;
+  signupUrl: string;
+  postUrl: string | null;
+  priority: PlatformPriority;
+  iconSlug: string;
+  fallbackKeys: string[];
+  accountsCount: number;
+}
+
+export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT p.key, p.label, p.signup_url, p.post_url, p.priority, p.icon_slug, p.fallback_keys,
+           (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
+    FROM platforms p
+    ORDER BY p.label
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    key: String(r.key),
+    label: String(r.label),
+    signupUrl: String(r.signup_url),
+    postUrl: (r.post_url as string | null) ?? null,
+    priority: String(r.priority) as PlatformPriority,
+    iconSlug: String(r.icon_slug),
+    fallbackKeys: Array.isArray(r.fallback_keys) ? (r.fallback_keys as string[]) : [],
+    accountsCount: Number(r.accounts_count) || 0,
+  }));
+}
+
 export async function deletePlatform(key: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   // Block delete if referenced

@@ -107,6 +107,7 @@ function SystemNav() {
       key: 'setup', label: 'Setup',
       items: [
         { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers' },
+        { href: '/platforms',     icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',        sub: 'catalog · 59 entries' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles' },
         {                         icon: '⚙',  color: 'var(--neon-cyan)',   label: 'Trust thresholds', sub: 'soon', soon: true },
         { href: '/',              icon: '⊞',  color: 'var(--neon-violet)', label: 'All Projects',     sub: 'portfolio' },

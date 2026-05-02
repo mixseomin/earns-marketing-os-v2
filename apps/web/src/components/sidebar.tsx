@@ -153,7 +153,14 @@ function SystemGroupRow({ group }: { group: { key: string; label: string; items:
     cancelClose();
     if (rowRef.current) {
       const r = rowRef.current.getBoundingClientRect();
-      setPos({ top: r.top, left: r.right });
+      // Estimate popout height: 28px header + 36px per item + 8px padding
+      const estH = 28 + group.items.length * 36 + 8;
+      const vh = window.innerHeight;
+      // If would overflow bottom, anchor to row bottom (popout grows upward)
+      const top = r.top + estH > vh - 8
+        ? Math.max(8, r.bottom - estH)
+        : r.top;
+      setPos({ top, left: r.right });
     }
     setOpen(true);
   };

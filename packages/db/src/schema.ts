@@ -823,6 +823,8 @@ export const humanTasks = pgTable(
     escalatedAt: timestamp('escalated_at', { withTimezone: true }),
     escalationCount: integer('escalation_count').notNull().default(0),
     notes: text('notes'),
+    // Phase 14 (migration 0032): assignment to specific team user
+    assignedUserId: bigint('assigned_user_id', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -831,6 +833,7 @@ export const humanTasks = pgTable(
     index('human_tasks_project_idx').on(t.projectId),
     index('human_tasks_status_idx').on(t.status),
     index('human_tasks_sla_idx').on(t.slaDueAt),
+    index('human_tasks_assigned_idx').on(t.assignedUserId, t.status),
   ],
 );
 
@@ -890,6 +893,11 @@ export const members = pgTable(
     userId: integer('user_id').notNull(),                                // references users.id (no FK to allow tenant isolation)
     projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),  // null = tenant-wide
     role: text('role').notNull().default('admin'),                       // admin | operator | viewer
+    // Phase 14 (migration 0032): team management
+    displayName: text('display_name'),                                   // public-facing name in the team
+    specialty: text('specialty'),                                        // writer | community | designer | video | outreach | analytics | ops | founder
+    bio: text('bio'),                                                    // short bio for AI persona/voice
+    active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

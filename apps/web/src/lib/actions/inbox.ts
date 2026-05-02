@@ -33,11 +33,27 @@ export interface HumanTaskRow {
   createdAt: string;
   workflowRunId: string | null;       // grouping → workflow chain
   descendantTaskId: number | null;    // task mới hơn trong cùng workflow → null = đang revise dở
+  assignedUserId: number | null;
+  assignedUserName: string | null;    // display_name preferred, fallback to users.name
 }
 
-export async function listInbox(filterStatus: string = 'all', projectId?: string): Promise<HumanTaskRow[]> {
+export interface InboxFilter {
+  status?: string;             // 'all' | 'pending' | ...
+  projectId?: string;
+  // assignment: 'all' | 'mine' | 'unassigned' | <userId number>
+  assignment?: 'all' | 'mine' | 'unassigned' | number;
+  currentUserId?: number;
+}
+
+export async function listInbox(
+  filterStatus: string = 'all',
+  projectId?: string,
+  opts?: { assignment?: 'all' | 'mine' | 'unassigned' | number; currentUserId?: number },
+): Promise<HumanTaskRow[]> {
   const db = getDb();
   if (!db) return [];
+  const assignment = opts?.assignment ?? 'all';
+  const currentUid = opts?.currentUserId ?? null;
   const rows = await db.execute(sql`
     WITH ht_with_run AS (
       SELECT ht.*, c.workflow_run_id
@@ -51,13 +67,25 @@ export async function listInbox(filterStatus: string = 'all', projectId?: string
            ht.sla_due_at, ht.status, ht.claimed_by, ht.claimed_at, ht.completed_at,
            ht.verified_at, ht.publish_url, ht.screenshot_url, ht.notes,
            ht.feedback_type, ht.feedback_text, ht.created_at, ht.workflow_run_id,
+           ht.assigned_user_id,
+           u.name AS assigned_user_name,
+           m.display_name AS assigned_display_name,
            (SELECT MIN(ht2.id) FROM ht_with_run ht2
               WHERE ht2.workflow_run_id = ht.workflow_run_id AND ht2.id > ht.id) AS descendant_task_id
     FROM ht_with_run ht
     LEFT JOIN projects p ON p.id = ht.project_id
+    LEFT JOIN users u ON u.id = ht.assigned_user_id
+    LEFT JOIN members m ON m.user_id = ht.assigned_user_id AND m.project_id IS NULL
     WHERE 1=1
       ${filterStatus !== 'all' ? sql`AND ht.status = ${filterStatus}` : sql``}
       ${projectId ? sql`AND ht.project_id = ${projectId}` : sql``}
+      ${assignment === 'mine' && currentUid
+        ? sql`AND ht.assigned_user_id = ${currentUid}`
+        : assignment === 'unassigned'
+          ? sql`AND ht.assigned_user_id IS NULL`
+          : typeof assignment === 'number'
+            ? sql`AND ht.assigned_user_id = ${assignment}`
+            : sql``}
     ORDER BY
       CASE ht.status
         WHEN 'pending' THEN 1
@@ -89,6 +117,9 @@ export async function listInbox(filterStatus: string = 'all', projectId?: string
     created_at: unknown;
     workflow_run_id: string | null;
     descendant_task_id: number | string | null;
+    assigned_user_id: number | null;
+    assigned_user_name: string | null;
+    assigned_display_name: string | null;
   }>).map((r) => ({
     id: Number(r.id),
     projectId: r.project_id, projectName: r.project_name,
@@ -105,6 +136,8 @@ export async function listInbox(filterStatus: string = 'all', projectId?: string
     createdAt: toIso(r.created_at) ?? '',
     workflowRunId: r.workflow_run_id,
     descendantTaskId: r.descendant_task_id != null ? Number(r.descendant_task_id) : null,
+    assignedUserId: r.assigned_user_id != null ? Number(r.assigned_user_id) : null,
+    assignedUserName: r.assigned_display_name ?? r.assigned_user_name ?? null,
   }));
 }
 
@@ -526,6 +559,7 @@ export async function pollWorkflowProgress(workflowRunId: string, afterHumanTask
     notes: newRow.notes, feedbackType: newRow.feedback_type, feedbackText: newRow.feedback_text,
     createdAt: toIso(newRow.created_at) ?? '',
     workflowRunId: workflowRunId, descendantTaskId: null,
+    assignedUserId: null, assignedUserName: null,
   } : null;
 
   return { steps, newTask, done: !!newTask };

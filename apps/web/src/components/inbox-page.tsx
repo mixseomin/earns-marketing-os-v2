@@ -2,8 +2,9 @@
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, resumeTaskAsRevise, type WorkflowProgress, type LineageEntry } from '@/lib/actions/inbox';
+import { assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -36,11 +37,35 @@ function fmtRel(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
-export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
+export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = null }: {
+  tasks: HumanTaskRow[];
+  teamMembers?: TeamMemberRow[];
+  currentUserId?: number | null;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
   const [, startTransition] = useTransition();
   const [filterStatus, setFilterStatus] = useState<string>('open');
   const [openTask, setOpenTask] = useState<HumanTaskRow | null>(null);
+  const assignFilter: 'all' | 'mine' | 'unassigned' | number =
+    sp.get('assign') === 'mine' ? 'mine' :
+    sp.get('assign') === 'unassigned' ? 'unassigned' :
+    sp.get('assign') && !isNaN(Number(sp.get('assign'))) ? Number(sp.get('assign')) :
+    'all';
+  const setAssignFilter = (v: string | null) => {
+    const next = new URLSearchParams(sp.toString());
+    if (!v || v === 'all') next.delete('assign');
+    else next.set('assign', v);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+  const handleAssignChange = (taskId: number, userId: number | null) => {
+    startTransition(async () => {
+      await assignTaskToUser(taskId, userId);
+      router.refresh();
+    });
+  };
   // Live tasks state — reflows initial từ server, sau đó tự refetch mỗi 5s.
   // Tránh tình trạng list stale khi worker spawn task mới ở background.
   const [tasks, setTasks] = useState<HumanTaskRow[]>(initial);
@@ -112,7 +137,33 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
 
       <StatsStrip cards={stats} />
 
-      {/* Filters */}
+      {/* Assignment filter */}
+      {teamMembers.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0', alignItems: 'center' }}>
+          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 4 }}>Assignee:</span>
+          <span className="chip" data-active={assignFilter === 'all' || undefined} onClick={() => setAssignFilter('all')} style={{ cursor: 'pointer', fontSize: 11 }}>all</span>
+          {currentUserId && (
+            <span className="chip" data-active={assignFilter === 'mine' || undefined} onClick={() => setAssignFilter('mine')}
+                  style={{ cursor: 'pointer', fontSize: 11, color: assignFilter === 'mine' ? 'var(--accent)' : undefined, fontWeight: assignFilter === 'mine' ? 700 : undefined }}>
+              👤 mine
+            </span>
+          )}
+          <span className="chip" data-active={assignFilter === 'unassigned' || undefined} onClick={() => setAssignFilter('unassigned')}
+                style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)' }}>
+            ◌ unassigned
+          </span>
+          {teamMembers.filter((m) => m.active && m.userId !== currentUserId).slice(0, 6).map((m) => (
+            <span key={m.userId} className="chip" data-active={assignFilter === m.userId || undefined}
+                  onClick={() => setAssignFilter(String(m.userId))}
+                  title={`${m.displayName} (${m.specialty})`}
+                  style={{ cursor: 'pointer', fontSize: 11 }}>
+              {m.displayName}{m.pendingTasksCount > 0 ? ` (${m.pendingTasksCount})` : ''}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Status filters */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0' }}>
         <span className="chip" data-active={filterStatus === 'open' || undefined} onClick={() => setFilterStatus('open')} style={{ cursor: 'pointer', fontSize: 11 }}>open</span>
         <span className="chip" data-active={filterStatus === 'all' || undefined} onClick={() => setFilterStatus('all')} style={{ cursor: 'pointer', fontSize: 11 }}>all</span>
@@ -191,7 +242,7 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
                 <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: isEngage ? 'var(--neon-amber)' : 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                    <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                       <Pill color={cfg.color} label={cfg.label} size="xs" />
                       {t.platformKey && <span>· {t.platformKey}</span>}
                       <span>· {t.projectName ?? t.projectId}</span>
@@ -202,6 +253,30 @@ export function InboxPage({ tasks: initial }: { tasks: HumanTaskRow[] }) {
                       {hasDescendant && (
                         <span style={{ color: 'var(--neon-cyan)' }}>· → #{t.descendantTaskId}</span>
                       )}
+                      {teamMembers.length > 0 ? (
+                        <select
+                          value={t.assignedUserId ?? ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => handleAssignChange(t.id, e.target.value ? Number(e.target.value) : null)}
+                          title="Assign to team member"
+                          style={{
+                            fontSize: 10, padding: '1px 4px',
+                            background: t.assignedUserId === currentUserId ? 'var(--accent-soft)' : 'var(--bg-2)',
+                            color: t.assignedUserId === currentUserId ? 'var(--accent)' : 'var(--fg-2)',
+                            border: '1px solid var(--line)', borderRadius: 3,
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
+                          <option value="">◌ unassigned</option>
+                          {teamMembers.filter((m) => m.active).map((m) => (
+                            <option key={m.userId} value={m.userId}>
+                              👤 {m.displayName}
+                            </option>
+                          ))}
+                        </select>
+                      ) : t.assignedUserName ? (
+                        <span title="Assigned to">· 👤 {t.assignedUserName}</span>
+                      ) : null}
                       <span style={{ color: sla.tone === 'bad' ? 'var(--bad)' : sla.tone === 'warn' ? 'var(--warn)' : 'var(--fg-3)', marginLeft: 'auto' }}>
                         ⏱ {sla.text}
                       </span>

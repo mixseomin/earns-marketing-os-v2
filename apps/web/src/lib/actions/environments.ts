@@ -200,6 +200,84 @@ export async function archiveBrowserProfile(id: number): Promise<{ ok: boolean }
   return { ok: true };
 }
 
+// ── Test proxy: actually open a connection through it, return IP + latency ──
+export interface ProxyTestResult {
+  ok: boolean;
+  ip?: string;
+  country?: string | null;
+  city?: string | null;
+  asn?: string | null;
+  latencyMs?: number;
+  proxyType?: 'http' | 'https' | 'socks';
+  error?: string;
+}
+
+export async function testProxyEndpoint(endpoint: string): Promise<ProxyTestResult> {
+  if (!endpoint.trim()) return { ok: false, error: 'Endpoint empty' };
+  let proxyUrl = endpoint.trim();
+  // Auto-prepend http:// if no protocol
+  if (!/^[a-z]+:\/\//i.test(proxyUrl)) proxyUrl = `http://${proxyUrl}`;
+
+  let parsed: URL;
+  try { parsed = new URL(proxyUrl); }
+  catch { return { ok: false, error: 'Invalid endpoint URL format' }; }
+
+  if (parsed.protocol === 'socks:' || parsed.protocol === 'socks4:' || parsed.protocol === 'socks5:') {
+    return { ok: false, error: 'SOCKS proxy testing not supported yet. Use HTTP/HTTPS proxy or test manually.' };
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { ok: false, error: `Unsupported protocol: ${parsed.protocol}` };
+  }
+
+  // Dynamic import undici to avoid bundling issues
+  const { ProxyAgent, fetch: undiciFetch } = await import('undici');
+
+  const t0 = Date.now();
+  try {
+    const dispatcher = new ProxyAgent({ uri: proxyUrl });
+    // ipinfo.io returns rich JSON: { ip, city, region, country, org }
+    const res = await undiciFetch('https://ipinfo.io/json', {
+      dispatcher,
+      signal: AbortSignal.timeout(12_000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-ProxyTest/1.0)' },
+    });
+    const latency = Date.now() - t0;
+    if (!res.ok) {
+      return { ok: false, error: `IP-check ${res.status}`, latencyMs: latency };
+    }
+    const data = await res.json() as { ip?: string; country?: string; city?: string; org?: string };
+    return {
+      ok: true,
+      ip: data.ip,
+      country: data.country ?? null,
+      city: data.city ?? null,
+      asn: data.org ?? null,
+      latencyMs: latency,
+      proxyType: parsed.protocol === 'https:' ? 'https' : 'http',
+    };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message, latencyMs: Date.now() - t0 };
+  }
+}
+
+// Test proxy + persist health/last_check_at on success
+export async function testAndSaveProxy(proxyId: number): Promise<ProxyTestResult> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`SELECT endpoint FROM proxies WHERE id = ${proxyId} LIMIT 1`);
+  const r = (rows as unknown as Array<{ endpoint: string }>)[0];
+  if (!r) return { ok: false, error: 'Proxy not found' };
+  const result = await testProxyEndpoint(r.endpoint);
+  await db.execute(sql`
+    UPDATE proxies SET
+      health = ${result.ok ? 'ok' : 'down'},
+      last_check_at = NOW(),
+      updated_at = NOW()
+    WHERE id = ${proxyId}
+  `);
+  revalidatePath('/environments');
+  return result;
+}
+
 // ── Account environment update (link proxy + browser_profile + ad-hoc env JSONB) ──
 export async function updateAccountEnvironment(
   accountId: number,

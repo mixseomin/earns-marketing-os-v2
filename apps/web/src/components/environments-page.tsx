@@ -7,6 +7,7 @@ import {
   type BrowserProfileRow, type ProfileTool,
   createProxy, updateProxy, archiveProxy,
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,
+  testProxyEndpoint, testAndSaveProxy, type ProxyTestResult,
 } from '@/lib/actions/environments';
 import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
 
@@ -162,6 +163,31 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
   };
 
+  const [testResult, setTestResult] = useState<ProxyTestResult | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const runTest = async () => {
+    setError(null);
+    setTestResult(null);
+    if (!form.endpoint.trim()) {
+      setError('Endpoint required to test');
+      return;
+    }
+    setTesting(true);
+    try {
+      const result = proxy
+        ? await testAndSaveProxy(proxy.id)   // saved proxy → also updates health
+        : await testProxyEndpoint(form.endpoint);
+      setTestResult(result);
+      if (result.ok) {
+        // Auto-set health to ok in form
+        setForm((f) => ({ ...f, health: 'ok' as ProxyHealth }));
+      }
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const save = () => {
     startTransition(async () => {
       const payload = { ...form, location: form.location || null, notes: form.notes || null };
@@ -238,8 +264,47 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
           </div>
           <div style={{ gridColumn: '1 / 3' }}>
             <span style={lbl}>Endpoint *</span>
-            <input style={fld} placeholder="user:pass@host:port hoặc socks5://..."
-                   value={form.endpoint} onChange={(e) => setF('endpoint', e.target.value)} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input style={{ ...fld, flex: 1 }} placeholder="user:pass@host:port hoặc socks5://..."
+                     value={form.endpoint} onChange={(e) => setF('endpoint', e.target.value)} />
+              <button
+                type="button"
+                onClick={runTest}
+                disabled={testing || !form.endpoint.trim()}
+                style={{
+                  padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                  background: testing ? 'var(--bg-3)' : 'var(--neon-cyan)',
+                  border: 'none', borderRadius: 5,
+                  color: testing ? 'var(--fg-3)' : 'var(--bg-0)',
+                  cursor: testing ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {testing ? '◌ testing…' : '⚡ Test'}
+              </button>
+            </div>
+            {testResult && (
+              <div style={{
+                marginTop: 6, padding: '6px 8px', borderRadius: 4, fontSize: 10.5,
+                fontFamily: 'var(--font-mono)',
+                background: testResult.ok ? 'rgba(16,185,129,0.08)' : 'rgba(255,77,94,0.08)',
+                border: `1px solid ${testResult.ok ? 'rgba(16,185,129,0.4)' : 'rgba(255,77,94,0.4)'}`,
+                color: testResult.ok ? 'var(--ok)' : 'var(--bad)',
+              }}>
+                {testResult.ok ? (
+                  <>
+                    ✓ <b>{testResult.ip}</b>
+                    {testResult.country && ` · ${testResult.country}`}
+                    {testResult.city && ` ${testResult.city}`}
+                    {testResult.asn && <span style={{ color: 'var(--fg-3)' }}> · {testResult.asn}</span>}
+                    <span style={{ float: 'right', color: 'var(--fg-3)' }}>
+                      {testResult.latencyMs}ms · {testResult.proxyType}
+                    </span>
+                  </>
+                ) : (
+                  <>✗ {testResult.error}{testResult.latencyMs ? ` (${testResult.latencyMs}ms)` : ''}</>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <span style={lbl}>Location</span>

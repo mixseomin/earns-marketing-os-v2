@@ -88,10 +88,41 @@ export function EnvironmentsPage({ proxies, profiles }: { proxies: ProxyRow[]; p
   );
 }
 
+function relativeTime(iso: string | null): string {
+  if (!iso) return 'never';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function isStale(iso: string | null, hours = 6): boolean {
+  if (!iso) return true;
+  return Date.now() - new Date(iso).getTime() > hours * 3600_000;
+}
+
 // ── Proxies tab ───────────────────────────────────────────────────
 function ProxiesTab({ proxies }: { proxies: ProxyRow[] }) {
+  const router = useRouter();
   const [editing, setEditing] = useState<ProxyRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [testingId, setTestingId] = useState<number | null>(null);
+  const [testResults, setTestResults] = useState<Record<number, ProxyTestResult>>({});
+
+  const runQuickTest = async (e: React.MouseEvent, p: ProxyRow) => {
+    e.stopPropagation();
+    setTestingId(p.id);
+    try {
+      const res = await testAndSaveProxy(p.id);
+      setTestResults((m) => ({ ...m, [p.id]: res }));
+      router.refresh();
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   return (
     <>
@@ -110,21 +141,56 @@ function ProxiesTab({ proxies }: { proxies: ProxyRow[] }) {
           {proxies.map((p) => {
             const tm = PROXY_TYPE_META[p.type];
             const hm = HEALTH_META[p.health];
+            const lastChecked = relativeTime(p.lastCheckAt);
+            const stale = isStale(p.lastCheckAt);
+            const recent = testResults[p.id];
+            const isTesting = testingId === p.id;
             return (
               <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => setEditing(p)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.label}</span>
                   <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: tm.color, padding: '1px 5px', border: `1px solid ${tm.color}`, borderRadius: 3 }}>{tm.label}</span>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: hm.color }}>● {hm.label}</span>
+                  <span title={`Health: ${hm.label}${p.lastCheckAt ? ` · checked ${lastChecked}` : ' · never tested'}`} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: hm.color }}>● {hm.label}</span>
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                   {p.endpoint.replace(/[^@]+@/, '***@')}
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', alignItems: 'center' }}>
                   {p.location && <span>📍 {p.location}</span>}
-                  <span>· {p.accountsCount} accounts</span>
+                  <span>· {p.accountsCount} acc</span>
                   {p.costPerGbCents > 0 && <span>· ${(p.costPerGbCents / 100).toFixed(2)}/GB</span>}
+                  <span style={{ flex: 1 }} />
+                  <span style={{ color: stale ? 'var(--warn)' : 'var(--fg-3)' }} title={p.lastCheckAt ?? 'never tested'}>
+                    🕐 {lastChecked}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => runQuickTest(e, p)}
+                    disabled={isTesting}
+                    title="Re-test proxy now"
+                    style={{
+                      padding: '2px 6px', fontSize: 9, fontWeight: 600,
+                      background: isTesting ? 'var(--bg-3)' : 'transparent',
+                      border: `1px solid ${stale ? 'var(--warn)' : 'var(--neon-cyan)'}`,
+                      color: isTesting ? 'var(--fg-3)' : (stale ? 'var(--warn)' : 'var(--neon-cyan)'),
+                      borderRadius: 3, cursor: isTesting ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {isTesting ? '◌' : '⚡'} Test
+                  </button>
                 </div>
+                {recent && (
+                  <div style={{
+                    marginTop: 5, padding: '3px 6px', borderRadius: 3, fontSize: 9.5,
+                    fontFamily: 'var(--font-mono)',
+                    background: recent.ok ? 'rgba(16,185,129,0.08)' : 'rgba(255,77,94,0.08)',
+                    color: recent.ok ? 'var(--ok)' : 'var(--bad)',
+                  }}>
+                    {recent.ok
+                      ? `✓ ${recent.ip}${recent.country ? ` · ${recent.country}` : ''} · ${recent.latencyMs}ms`
+                      : `✗ ${recent.error}`}
+                  </div>
+                )}
               </div>
             );
           })}

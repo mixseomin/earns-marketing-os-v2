@@ -9,6 +9,7 @@ import {
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { ExternalLink } from './external-link';
+import { TagsInput, TagsFilterChips } from './tags-input';
 
 const PRIORITY_ORDER: PlatformPriority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; star: string }> = {
@@ -43,6 +44,18 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   const [priorityFilter, setPriorityFilter] = useUrlParam('p', 'all');
+  const [tagsFilterStr, setTagsFilterStr] = useUrlParam('tags', '');
+  const tagsFilter = useMemo(() => tagsFilterStr.split(',').filter(Boolean), [tagsFilterStr]);
+  const setTagsFilter = (next: string[]) => setTagsFilterStr(next.join(','));
+
+  // Aggregate tag pool + counts from all platforms (for filter chips)
+  const tagPool = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of platforms) {
+      for (const t of p.tags ?? []) counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return { all: Object.keys(counts).sort((a, b) => counts[b]! - counts[a]!), counts };
+  }, [platforms]);
   const [editing, setEditing] = useState<PlatformWithUsage | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -50,12 +63,17 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
     const ql = q.trim().toLowerCase();
     return platforms.filter((p) => {
       if (priorityFilter !== 'all' && p.priority !== priorityFilter) return false;
+      if (tagsFilter.length > 0) {
+        const ptags = p.tags ?? [];
+        if (!tagsFilter.every((t) => ptags.includes(t))) return false;
+      }
       if (!ql) return true;
       return p.key.toLowerCase().includes(ql) ||
              p.label.toLowerCase().includes(ql) ||
-             p.iconSlug.toLowerCase().includes(ql);
+             p.iconSlug.toLowerCase().includes(ql) ||
+             (p.description ?? '').toLowerCase().includes(ql);
     });
-  }, [platforms, q, priorityFilter]);
+  }, [platforms, q, priorityFilter, tagsFilter]);
 
   const grouped = useMemo(() => {
     const map = new Map<PlatformPriority, PlatformWithUsage[]>();
@@ -126,6 +144,13 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
           {filtered.length} match
         </span>
       </div>
+
+      <TagsFilterChips
+        allTags={tagPool.all}
+        counts={tagPool.counts}
+        selected={tagsFilter}
+        onChange={setTagsFilter}
+      />
 
       {grouped.length === 0 ? (
         <div className="panel" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-3)' }}>
@@ -217,6 +242,7 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
     region: platform?.region ?? '',
     category: (platform?.category ?? 'other') as string,
     userCountEstimate: platform?.userCountEstimate ?? '',
+    tags: platform?.tags ?? [],
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -239,6 +265,7 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
         region: form.region || null,
         userCountEstimate: form.userCountEstimate || null,
         category: form.category as import('@/lib/actions/platforms').PlatformCategory,
+        tags: form.tags,
       };
       const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
@@ -284,6 +311,7 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
             { key: 'region', label: 'ISO 2-letter country code or "global"' },
             { key: 'category', label: 'Category', type: 'enum', enumValues: ['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'] },
             { key: 'userCountEstimate', label: 'User count estimate' },
+            { key: 'tagsStr', label: 'Comma-separated tags (e.g. "b2b, viral, vietnam, oss")' },
           ]}
           onApply={(v) => setForm((f) => ({
             ...f,
@@ -298,6 +326,9 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
             region: typeof v.region === 'string' ? v.region : f.region,
             category: typeof v.category === 'string' ? v.category : f.category,
             userCountEstimate: typeof v.userCountEstimate === 'string' ? v.userCountEstimate : f.userCountEstimate,
+            tags: typeof v.tagsStr === 'string'
+              ? Array.from(new Set([...f.tags, ...v.tagsStr.split(/[,\n]/).map((t) => t.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')).filter(Boolean)]))
+              : f.tags,
           }))}
         />
 
@@ -358,6 +389,10 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
             <span style={lbl}>User count estimate</span>
             <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
                          value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
+          </div>
+          <div style={{ gridColumn: '1 / 3' }}>
+            <span style={lbl}>Tags</span>
+            <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
           </div>
         </div>
 

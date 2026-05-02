@@ -249,6 +249,12 @@ export interface PlatformRow {
     snippets?: Array<{ label: string; text: string; maxLen?: number; alt?: string[] }>;
   }>;
   autoCheck: boolean;
+  description?: string;
+  pricing?: string | null;
+  region?: string | null;
+  category?: string;
+  tags?: string[];
+  userCountEstimate?: string | null;
 }
 
 export async function listPlatforms(): Promise<PlatformRow[]> {
@@ -267,6 +273,12 @@ export async function listPlatforms(): Promise<PlatformRow[]> {
         imageSpecs: (r.imageSpecs as PlatformRow['imageSpecs']) ?? [],
         checklist: (r.checklist as PlatformRow['checklist']) ?? [],
         autoCheck: r.autoCheck,
+        description: r.description ?? '',
+        pricing: r.pricing,
+        region: r.region,
+        category: r.category,
+        tags: (r.tags as string[]) ?? [],
+        userCountEstimate: r.userCountEstimate,
       }));
     },
     [],

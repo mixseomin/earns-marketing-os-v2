@@ -264,10 +264,18 @@ export const platforms = pgTable(
     // FB/IG/TikTok DM block bots → autoPostSupported=false → publisher toolkit
     // auto-fallback queue human_tasks. Default true (most platforms have API).
     autoPostSupported: boolean('auto_post_supported').notNull().default(true),
+    // Phase 14 metadata (migration 0029) — richer info card in PlatformPicker
+    description: text('description').notNull().default(''),
+    pricing: text('pricing'),
+    region: text('region'),                              // ISO country code or 'global'
+    category: text('category').notNull().default('other'), // tech / social / video / blog / launch / community / marketplace / messaging / newsletter / design / other
+    tags: jsonb('tags').notNull().default([]),
+    userCountEstimate: text('user_count_estimate'),       // human-readable: "1B+", "10M MAU"
+    notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('platforms_tenant_idx').on(t.tenantId), index('platforms_priority_idx').on(t.priority)],
+  (t) => [index('platforms_tenant_idx').on(t.tenantId), index('platforms_priority_idx').on(t.priority), index('platforms_category_idx').on(t.category)],
 );
 
 // ── platform_accounts ────────────────────────────────────────────

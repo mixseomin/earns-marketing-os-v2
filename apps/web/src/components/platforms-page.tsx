@@ -155,8 +155,16 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
                         <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>unused</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-                      {p.key} · icon: {p.iconSlug}
+                    {p.description && (
+                      <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.4, marginTop: 2, marginBottom: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {p.description}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {p.region && <span title={p.region}>{p.region === 'global' ? '🌍' : p.region}</span>}
+                      {p.category && p.category !== 'other' && <span>· {p.category}</span>}
+                      {p.pricing && <span>· {p.pricing}</span>}
+                      {p.userCountEstimate && <span>· {p.userCountEstimate}</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 10 }}>
                       <ExternalLink href={p.signupUrl} onClick={(e) => e.stopPropagation()}
@@ -196,6 +204,11 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
     postUrl: platform?.postUrl ?? '',
     priority: (platform?.priority ?? 'medium') as PlatformPriority,
     iconSlug: platform?.iconSlug ?? '',
+    description: platform?.description ?? '',
+    pricing: platform?.pricing ?? '',
+    region: platform?.region ?? '',
+    category: (platform?.category ?? 'other') as string,
+    userCountEstimate: platform?.userCountEstimate ?? '',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -211,7 +224,14 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
   const save = () => {
     setError(null);
     startTransition(async () => {
-      const payload = { ...form, postUrl: form.postUrl || null };
+      const payload = {
+        ...form,
+        postUrl: form.postUrl || null,
+        pricing: form.pricing || null,
+        region: form.region || null,
+        userCountEstimate: form.userCountEstimate || null,
+        category: form.category as import('@/lib/actions/platforms').PlatformCategory,
+      };
       const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
       router.refresh();
@@ -242,14 +262,19 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
-          context="Platform catalog entry. Parse from website URL, About page, or paste platform description."
+          context="Platform catalog entry. Parse from website URL, About/Pricing page, or paste platform description."
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News")' },
-            { key: 'key', label: 'Unique slug, lowercase no spaces (e.g. "hackernews")' },
+            { key: 'key', label: 'Unique slug, lowercase no spaces' },
             { key: 'signupUrl', label: 'Signup/register URL' },
-            { key: 'postUrl', label: 'Submit/post URL where users create posts' },
-            { key: 'priority', label: 'Priority for the project', type: 'enum', enumValues: ['critical', 'high', 'medium', 'low'] },
-            { key: 'iconSlug', label: 'Simple Icons slug (lowercase, e.g. "ycombinator", "x")' },
+            { key: 'postUrl', label: 'Submit/post URL' },
+            { key: 'priority', label: 'Priority', type: 'enum', enumValues: ['critical', 'high', 'medium', 'low'] },
+            { key: 'iconSlug', label: 'Simple Icons slug' },
+            { key: 'description', label: 'Short 1-2 sentence description — what it does, audience, USP' },
+            { key: 'pricing', label: 'Pricing summary (e.g. "Free", "Free + Pro $9/mo")' },
+            { key: 'region', label: 'ISO 2-letter country code or "global"' },
+            { key: 'category', label: 'Category', type: 'enum', enumValues: ['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'] },
+            { key: 'userCountEstimate', label: 'User count estimate' },
           ]}
           onApply={(v) => setForm((f) => ({
             ...f,
@@ -259,6 +284,11 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
             postUrl: typeof v.postUrl === 'string' ? v.postUrl : f.postUrl,
             priority: (v.priority as PlatformPriority) || f.priority,
             iconSlug: typeof v.iconSlug === 'string' ? v.iconSlug : f.iconSlug,
+            description: typeof v.description === 'string' ? v.description : f.description,
+            pricing: typeof v.pricing === 'string' ? v.pricing : f.pricing,
+            region: typeof v.region === 'string' ? v.region : f.region,
+            category: typeof v.category === 'string' ? v.category : f.category,
+            userCountEstimate: typeof v.userCountEstimate === 'string' ? v.userCountEstimate : f.userCountEstimate,
           }))}
         />
 
@@ -290,6 +320,35 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
             <span style={lbl}>Icon slug <span style={{ color: 'var(--fg-4)' }}>(simpleicons.org)</span></span>
             <NoFillInput style={fld} placeholder="auto từ key"
                          value={form.iconSlug} onChange={(e) => setF('iconSlug', e.target.value.toLowerCase())} />
+          </div>
+          <div style={{ gridColumn: '1 / 3' }}>
+            <span style={lbl}>Description <span style={{ color: 'var(--fg-4)' }}>(1-2 sentences)</span></span>
+            <textarea style={{ ...fld, minHeight: 50, fontFamily: 'inherit', resize: 'vertical' }}
+                      placeholder="Forum tech VN, ML-driven FYP, B2B-focused..."
+                      value={form.description} onChange={(e) => setF('description', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>Category</span>
+            <select style={fld} value={form.category} onChange={(e) => setF('category', e.target.value)}>
+              {['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <span style={lbl}>Region <span style={{ color: 'var(--fg-4)' }}>(US, VN, global...)</span></span>
+            <NoFillInput style={fld} placeholder="US, VN, global"
+                         value={form.region} onChange={(e) => setF('region', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>Pricing</span>
+            <NoFillInput style={fld} placeholder="Free / $9/mo..."
+                         value={form.pricing} onChange={(e) => setF('pricing', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>User count estimate</span>
+            <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
+                         value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
           </div>
         </div>
 

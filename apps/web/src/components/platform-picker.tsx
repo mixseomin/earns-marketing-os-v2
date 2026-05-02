@@ -9,6 +9,62 @@ import type { PlatformRow } from '@/lib/data';
 import { createPlatform, type PlatformPriority } from '@/lib/actions/platforms';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
+import { ExternalLink } from './external-link';
+
+// ISO country code → flag emoji (regional indicator pairs)
+function flag(code: string | null | undefined): string {
+  if (!code || code.toLowerCase() === 'global') return '🌍';
+  if (code.length !== 2) return '';
+  const cc = code.toUpperCase();
+  return String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65);
+}
+
+const CATEGORY_ICON: Record<string, string> = {
+  community: '🗣', social: '🔗', video: '🎬', blog: '📝', launch: '🚀',
+  marketplace: '🛒', messaging: '💬', newsletter: '📧', design: '🎨',
+  audio: '🎵', other: '🗂',
+};
+
+export function PlatformInfoCard({ p }: { p: { key: string; label: string; description?: string; pricing?: string | null; region?: string | null; category?: string; userCountEstimate?: string | null; signupUrl: string; postUrl?: string | null; tags?: string[] } }) {
+  if (!p.description && !p.pricing && !p.region) return null;
+  return (
+    <div style={{
+      padding: '8px 10px',
+      background: 'var(--bg-2)', border: '1px solid var(--line)',
+      borderRadius: 5, fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.45,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        {p.category && <span style={{ fontSize: 14 }}>{CATEGORY_ICON[p.category] ?? '🗂'}</span>}
+        <span style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{p.label}</span>
+        {p.region && <span style={{ fontSize: 13 }} title={p.region}>{flag(p.region)}</span>}
+        <span style={{ flex: 1 }} />
+        <ExternalLink href={p.signupUrl} onClick={(e) => e.stopPropagation()}
+                      style={{ fontSize: 10, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+          ↗ signup
+        </ExternalLink>
+        {p.postUrl && (
+          <ExternalLink href={p.postUrl} onClick={(e) => e.stopPropagation()}
+                        style={{ fontSize: 10, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+            ↗ post
+          </ExternalLink>
+        )}
+      </div>
+      {p.description && <div style={{ marginBottom: 4 }}>{p.description}</div>}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+        {p.pricing && <span>💰 {p.pricing}</span>}
+        {p.userCountEstimate && <span>👥 {p.userCountEstimate}</span>}
+        {p.category && <span>· {p.category}</span>}
+      </div>
+      {p.tags && p.tags.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+          {p.tags.map((t) => (
+            <span key={t} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-1)', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>#{t}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PRIORITY_ORDER: PlatformPriority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; star: string }> = {
@@ -182,9 +238,17 @@ export function PlatformPicker({ platforms, value, onChange, fld }: Props) {
                         display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
                       }}
                     >
-                      <span style={{ flex: 1, color: 'var(--fg-1)', fontWeight: p.key === value ? 700 : 400 }}>
-                        {p.label}
-                      </span>
+                      <span style={{ fontSize: 14 }}>{p.region ? flag(p.region) : (p.category && CATEGORY_ICON[p.category]) || '🗂'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: 'var(--fg-1)', fontWeight: p.key === value ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {p.label}
+                        </div>
+                        {p.description && (
+                          <div style={{ fontSize: 10, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {p.description}
+                          </div>
+                        )}
+                      </div>
                       <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{p.key}</span>
                     </div>
                   );
@@ -209,6 +273,12 @@ export function PlatformPicker({ platforms, value, onChange, fld }: Props) {
       )}
 
       {adding && <AddPlatformModal initialName={query} onClose={() => setAdding(false)} onCreated={(key) => { onChange(key); setAdding(false); setOpen(false); setQuery(''); }} />}
+
+      {selected && !open && (
+        <div style={{ marginTop: 6 }}>
+          <PlatformInfoCard p={selected} />
+        </div>
+      )}
     </div>
   );
 }
@@ -225,6 +295,11 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
     postUrl: '',
     priority: 'medium' as PlatformPriority,
     iconSlug: '',
+    description: '',
+    pricing: '',
+    region: '',
+    category: 'other',
+    userCountEstimate: '',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -244,6 +319,10 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
         ...form,
         postUrl: form.postUrl || null,
         iconSlug: form.iconSlug || form.key.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        pricing: form.pricing || null,
+        region: form.region || null,
+        category: form.category as import('@/lib/actions/platforms').PlatformCategory,
+        userCountEstimate: form.userCountEstimate || null,
       });
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
       router.refresh();
@@ -264,14 +343,19 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
-          context="New platform catalog entry. Parse from website URL, about page, or paste platform description."
+          context="New platform catalog entry. Parse from website URL, about/pricing page, or paste platform description."
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News", "Indie Hackers")' },
-            { key: 'key', label: 'Unique slug, lowercase no spaces (e.g. "hackernews", "indiehackers")' },
+            { key: 'key', label: 'Unique slug, lowercase no spaces (e.g. "hackernews")' },
             { key: 'signupUrl', label: 'Signup/register URL' },
             { key: 'postUrl', label: 'Submit/post URL (where users create posts)' },
             { key: 'priority', label: 'Priority for the project', type: 'enum', enumValues: ['critical', 'high', 'medium', 'low'] },
-            { key: 'iconSlug', label: 'Simple Icons slug (lowercase, e.g. "ycombinator", "x", "linkedin")' },
+            { key: 'iconSlug', label: 'Simple Icons slug (lowercase, e.g. "ycombinator")' },
+            { key: 'description', label: 'Short 1-2 sentence description of the platform — what it does, audience, USP' },
+            { key: 'pricing', label: 'Pricing summary (e.g. "Free", "Free + Pro $9/mo")' },
+            { key: 'region', label: 'ISO 2-letter country code or "global" (e.g. US, VN, IN, global)' },
+            { key: 'category', label: 'Category', type: 'enum', enumValues: ['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'] },
+            { key: 'userCountEstimate', label: 'User count estimate (e.g. "1B MAU", "5M users")' },
           ]}
           onApply={(v) => setForm((f) => ({
             ...f,
@@ -281,6 +365,11 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
             postUrl: typeof v.postUrl === 'string' ? v.postUrl : f.postUrl,
             priority: (v.priority as PlatformPriority) || f.priority,
             iconSlug: typeof v.iconSlug === 'string' ? v.iconSlug : f.iconSlug,
+            description: typeof v.description === 'string' ? v.description : f.description,
+            pricing: typeof v.pricing === 'string' ? v.pricing : f.pricing,
+            region: typeof v.region === 'string' ? v.region : f.region,
+            category: typeof v.category === 'string' ? v.category : f.category,
+            userCountEstimate: typeof v.userCountEstimate === 'string' ? v.userCountEstimate : f.userCountEstimate,
           }))}
         />
 
@@ -315,6 +404,35 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
             <span style={lbl}>Icon slug <span style={{ color: 'var(--fg-4)' }}>(simpleicons.org)</span></span>
             <NoFillInput style={fld} placeholder="auto từ key nếu rỗng"
                          value={form.iconSlug} onChange={(e) => setF('iconSlug', e.target.value.toLowerCase())} />
+          </div>
+          <div style={{ gridColumn: '1 / 3' }}>
+            <span style={lbl}>Description <span style={{ color: 'var(--fg-4)' }}>(1-2 sentences)</span></span>
+            <textarea style={{ ...fld, minHeight: 50, fontFamily: 'inherit', resize: 'vertical' }}
+                      placeholder="Forum tech VN, ML-driven FYP, B2B-focused..."
+                      value={form.description} onChange={(e) => setF('description', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>Category</span>
+            <select style={fld} value={form.category} onChange={(e) => setF('category', e.target.value)}>
+              {['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'].map((c) => (
+                <option key={c} value={c}>{CATEGORY_ICON[c]} {c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <span style={lbl}>Region <span style={{ color: 'var(--fg-4)' }}>(ISO-2 hoặc "global")</span></span>
+            <NoFillInput style={fld} placeholder="US, VN, global..."
+                         value={form.region} onChange={(e) => setF('region', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>Pricing</span>
+            <NoFillInput style={fld} placeholder="Free / $9/mo..."
+                         value={form.pricing} onChange={(e) => setF('pricing', e.target.value)} />
+          </div>
+          <div>
+            <span style={lbl}>User count <span style={{ color: 'var(--fg-4)' }}>(estimate)</span></span>
+            <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
+                         value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
           </div>
         </div>
 

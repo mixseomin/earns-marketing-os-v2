@@ -8,6 +8,7 @@ import {
   createSkill, updateSkill, archiveSkill,
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
+import { AIFormParser } from './ai-form-parser';
 
 // Read+write a single URL search param. Replace navigation (no scroll, no history bloat).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -206,6 +207,29 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+
+        <AIFormParser
+          context="Tool catalog entry. Parse from API docs URL, README, vendor page, or paste tool description."
+          schema={[
+            { key: 'id', label: 'Slug ID (lowercase + dashes, e.g. "stripe-api")' },
+            { key: 'name', label: 'Display name' },
+            { key: 'description', label: 'One-line description' },
+            { key: 'category', label: 'Category', type: 'enum', enumValues: TOOL_CATEGORIES.map((c) => c.id) },
+            { key: 'icon', label: 'Emoji icon (single character)' },
+            { key: 'requiresEnv', label: 'Required env var name (e.g. STRIPE_API_KEY)' },
+            { key: 'sourceUrl', label: 'API docs / repo URL' },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            id: typeof v.id === 'string' && !tool ? v.id : f.id,    // only set on create
+            name: typeof v.name === 'string' ? v.name : f.name,
+            description: typeof v.description === 'string' ? v.description : f.description,
+            category: typeof v.category === 'string' ? v.category : f.category,
+            icon: typeof v.icon === 'string' ? v.icon : f.icon,
+            requiresEnv: typeof v.requiresEnv === 'string' ? v.requiresEnv : f.requiresEnv,
+            sourceUrl: typeof v.sourceUrl === 'string' ? v.sourceUrl : f.sourceUrl,
+          }))}
+        />
 
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr', gap: 10 }}>
           <div style={{ gridColumn: 1 }}>
@@ -469,6 +493,27 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+
+        <AIFormParser
+          context="Skill snippet — markdown persona/playbook for squads. Parse from URL article, paste markdown, or screenshot of guide."
+          schema={[
+            { key: 'title', label: 'Skill title' },
+            { key: 'body', label: 'Body markdown content (full text)' },
+            { key: 'tagsStr', label: 'Comma-separated tags (e.g. "writing, copywriting, b2b")' },
+            { key: 'source', label: 'Source name (e.g. "Stripe Atlas Guide")' },
+            { key: 'sourceUrl', label: 'Source URL' },
+            { key: 'license', label: 'License', type: 'enum', enumValues: ['curated', 'cc-by', 'cc-by-sa', 'public-domain', 'proprietary', 'mit'] },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            title: typeof v.title === 'string' ? v.title : f.title,
+            body: typeof v.body === 'string' ? v.body : f.body,
+            tagsStr: typeof v.tagsStr === 'string' ? v.tagsStr : f.tagsStr,
+            source: typeof v.source === 'string' ? v.source : f.source,
+            sourceUrl: typeof v.sourceUrl === 'string' ? v.sourceUrl : f.sourceUrl,
+            license: typeof v.license === 'string' ? v.license : f.license,
+          }))}
+        />
 
         <div className="modal-body" style={{ display: 'grid', gap: 10 }}>
           <div>

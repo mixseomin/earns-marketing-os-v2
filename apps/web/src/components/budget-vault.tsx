@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { BudgetRow } from '@/lib/data';
 import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInput } from '@/lib/actions/vaults';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
+import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { income: '⬆', expense: '⬇', recurring: '🔁' };
 const CATEGORY_OPTS = ['ads', 'tools', 'hosting', 'content', 'salary', 'tax', 'commission', 'other'];
@@ -160,6 +161,30 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+        <AIFormParser
+          context="Budget entry form (income/expense/recurring). Parse invoice, payment receipt, statement, screenshot of charge."
+          schema={[
+            { key: 'kind', label: 'Entry kind', type: 'enum', enumValues: ['income', 'expense', 'recurring'] },
+            { key: 'category', label: 'Category', type: 'enum', enumValues: CATEGORY_OPTS },
+            { key: 'label', label: 'Label/description' },
+            { key: 'amountK', label: 'Amount in thousands (number, e.g. 25 = 25k)', type: 'number' },
+            { key: 'currency', label: 'Currency code', type: 'enum', enumValues: ['VND', 'USD', 'EUR'] },
+            { key: 'occurredAt', label: 'Date YYYY-MM-DD' },
+            { key: 'recurringIntervalDays', label: 'Recurring interval days (number, only for recurring)', type: 'number' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            kind: (v.kind as BudgetInput['kind']) || f.kind,
+            category: typeof v.category === 'string' ? v.category : f.category,
+            label: typeof v.label === 'string' ? v.label : f.label,
+            amountK: typeof v.amountK === 'number' ? v.amountK : f.amountK,
+            currency: typeof v.currency === 'string' ? v.currency : f.currency,
+            occurredAt: typeof v.occurredAt === 'string' ? v.occurredAt : f.occurredAt,
+            recurringIntervalDays: typeof v.recurringIntervalDays === 'number' ? v.recurringIntervalDays : f.recurringIntervalDays,
+            notes: typeof v.notes === 'string' ? v.notes : f.notes,
+          }))}
+        />
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           <div>
             <span style={lbl}>Kind</span>

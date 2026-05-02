@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
 import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, type MediaInput } from '@/lib/actions/vaults';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
+import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { image: '🖼', video: '🎬', audio: '🎵', doc: '📄', other: '🗂' };
 
@@ -204,6 +205,32 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+        <AIFormParser
+          context="Media asset form. Parse from URL (image/video link), file metadata paste, screenshot of asset listing."
+          schema={[
+            { key: 'kind', label: 'Asset kind', type: 'enum', enumValues: ['image', 'video', 'audio', 'document', 'other'] },
+            { key: 'filename', label: 'Filename' },
+            { key: 'url', label: 'URL/path to asset' },
+            { key: 'mimeType', label: 'MIME type (image/png, video/mp4, ...)' },
+            { key: 'sizeBytes', label: 'Size in bytes (number)', type: 'number' },
+            { key: 'width', label: 'Width pixels (number)', type: 'number' },
+            { key: 'height', label: 'Height pixels (number)', type: 'number' },
+            { key: 'durationSec', label: 'Duration in seconds (number, video/audio only)', type: 'number' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            kind: (v.kind as MediaInput['kind']) || f.kind,
+            filename: typeof v.filename === 'string' ? v.filename : f.filename,
+            url: typeof v.url === 'string' ? v.url : f.url,
+            mimeType: typeof v.mimeType === 'string' ? v.mimeType : f.mimeType,
+            sizeBytes: typeof v.sizeBytes === 'number' ? v.sizeBytes : f.sizeBytes,
+            width: typeof v.width === 'number' ? v.width : f.width,
+            height: typeof v.height === 'number' ? v.height : f.height,
+            durationSec: typeof v.durationSec === 'number' ? v.durationSec : f.durationSec,
+            notes: typeof v.notes === 'string' ? v.notes : f.notes,
+          }))}
+        />
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <span style={lbl}>Kind</span>

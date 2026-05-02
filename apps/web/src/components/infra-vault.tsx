@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { InfraRow } from '@/lib/data';
 import { createInfraResource, updateInfraResource, deleteInfraResource, type InfraInput } from '@/lib/actions/vaults';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
+import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = {
   proxy: '🌐', sim: '📱', device: '💻', api_key: '🔑', domain: '🔗', server: '🖥', other: '🗂',
@@ -155,6 +156,30 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+        <AIFormParser
+          context="Infrastructure resource form (server/proxy/domain/SaaS subscription/storage). Parse invoice email, dashboard screenshot, or vendor confirmation."
+          schema={[
+            { key: 'kind', label: 'Resource kind', type: 'enum', enumValues: ['proxy', 'domain', 'server', 'saas', 'storage', 'cdn', 'database', 'other'] },
+            { key: 'label', label: 'Short label/name' },
+            { key: 'provider', label: 'Provider/vendor (Hetzner, Cloudflare, ...)' },
+            { key: 'status', label: 'Status', type: 'enum', enumValues: ['active', 'paused', 'expired', 'archived'] },
+            { key: 'expiresAt', label: 'Expiry date YYYY-MM-DD' },
+            { key: 'costMonthly', label: 'Monthly cost (number)', type: 'number' },
+            { key: 'currency', label: 'Currency code (USD/EUR/VND)' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            kind: typeof v.kind === 'string' ? v.kind : f.kind,
+            label: typeof v.label === 'string' ? v.label : f.label,
+            provider: typeof v.provider === 'string' ? v.provider : f.provider,
+            status: typeof v.status === 'string' ? (v.status as typeof f.status) : f.status,
+            expiresAt: typeof v.expiresAt === 'string' ? v.expiresAt : f.expiresAt,
+            costMonthly: typeof v.costMonthly === 'number' ? v.costMonthly : f.costMonthly,
+            currency: typeof v.currency === 'string' ? v.currency : f.currency,
+            notes: typeof v.notes === 'string' ? v.notes : f.notes,
+          }))}
+        />
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <span style={lbl}>Kind</span>

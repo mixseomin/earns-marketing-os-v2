@@ -8,6 +8,7 @@ import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/ac
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import type { ToolRow, SkillRow } from '@/lib/actions/library';
 import { TOOL_STATUS_META } from './library-page';
+import { AIFormParser } from './ai-form-parser';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -128,6 +129,38 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
         )}
+
+        <AIFormParser
+          context="Squad config form. Parse from natural language description ('Writer squad using Claude with web search tool'), or paste squad spec markdown."
+          schema={[
+            { key: 'name', label: 'Display name (e.g. "Writer", "Publisher")' },
+            { key: 'vi', label: 'Vietnamese label' },
+            { key: 'icon', label: 'Single emoji icon' },
+            { key: 'descText', label: 'Short description' },
+            { key: 'mission', label: 'Mission statement (1-2 sentences)' },
+            { key: 'systemPrompt', label: 'System prompt for the LLM (multi-line)' },
+            { key: 'model', label: 'Model name', type: 'enum', enumValues: availableModels.map((m) => m.id) },
+            { key: 'trustLevel', label: 'Trust level 1-4', type: 'number' },
+            { key: 'useAgentLoop', label: 'Enable agent reasoning loop', type: 'boolean' },
+          ]}
+          onApply={(v) => {
+            setForm((f) => ({
+              ...f,
+              name: typeof v.name === 'string' ? v.name : f.name,
+              vi: typeof v.vi === 'string' ? v.vi : f.vi,
+              icon: typeof v.icon === 'string' ? v.icon : f.icon,
+              descText: typeof v.descText === 'string' ? v.descText : f.descText,
+              config: {
+                ...f.config,
+                mission: typeof v.mission === 'string' ? v.mission : f.config?.mission,
+                systemPrompt: typeof v.systemPrompt === 'string' ? v.systemPrompt : f.config?.systemPrompt,
+                model: typeof v.model === 'string' ? v.model : f.config?.model,
+                trustLevel: typeof v.trustLevel === 'number' ? (v.trustLevel as 1 | 2 | 3 | 4) : f.config?.trustLevel,
+                useAgentLoop: typeof v.useAgentLoop === 'boolean' ? v.useAgentLoop : f.config?.useAgentLoop,
+              },
+            }));
+          }}
+        />
 
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '60px 1fr', gap: 10 }}>

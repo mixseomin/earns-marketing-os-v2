@@ -13,6 +13,7 @@ import {
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import { Pill, EmptyState } from './ui';
 import { fillTemplate } from '@/lib/template';
+import { AIFormParser } from './ai-form-parser';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -476,6 +477,31 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
         )}
+
+        <AIFormParser
+          context={`Platform account form for ${platform?.label || form.platformKey}. Parse signup confirmation email, screenshot, account info paste, or platform profile URL.`}
+          schema={[
+            { key: 'handle', label: 'Username/handle (without @)' },
+            { key: 'email', label: 'Email associated with account' },
+            { key: 'status', label: 'Account status', type: 'enum', enumValues: ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'] },
+            { key: 'authMethod', label: 'Auth method', type: 'enum', enumValues: ['password', 'oauth', 'magic_link', 'sso', 'api_key'] },
+            { key: 'has2fa', label: '2FA enabled', type: 'boolean' },
+            { key: 'recoveryInfo', label: 'Recovery codes / backup email' },
+            { key: 'monthlyCost', label: 'Monthly cost in dollars (number)', type: 'number' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => setForm((f) => ({
+            ...f,
+            handle: typeof v.handle === 'string' ? v.handle : f.handle,
+            email: typeof v.email === 'string' ? v.email : f.email,
+            status: (v.status as AccountStatus) || f.status,
+            authMethod: (v.authMethod as AuthMethod) || f.authMethod,
+            has2fa: typeof v.has2fa === 'boolean' ? v.has2fa : f.has2fa,
+            recoveryInfo: typeof v.recoveryInfo === 'string' ? v.recoveryInfo : f.recoveryInfo,
+            monthlyCost: typeof v.monthlyCost === 'number' ? v.monthlyCost : f.monthlyCost,
+            notes: typeof v.notes === 'string' ? v.notes : f.notes,
+          }))}
+        />
 
         <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

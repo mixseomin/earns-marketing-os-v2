@@ -143,7 +143,7 @@ function SystemGroups({ groups }: { groups: Array<{ key: string; label: string; 
   const requestOpen = (key: string) => { cancelClose(); setOpenKey(key); };
   const requestClose = () => {
     cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpenKey(null), 250);
+    closeTimer.current = window.setTimeout(() => setOpenKey(null), 600);
   };
   return (
     <>
@@ -220,9 +220,11 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
             position: 'fixed', top: pos.top, left: pos.left,
             zIndex: 1000,
             background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
-            borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
+            borderRadius: 7, boxShadow: '0 12px 32px rgba(0,0,0,.6)',
             minWidth: 220, padding: '4px 0',
-            marginLeft: 4,
+            // Bridge: overlap + extra left padding để mouse di từ row sang không bị mất hover
+            marginLeft: -6,
+            paddingLeft: 6,
           }}
         >
           <div style={{ padding: '4px 12px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--line)' }}>

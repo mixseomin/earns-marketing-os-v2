@@ -26,7 +26,7 @@ function DropdownTab({
   };
   const scheduleClose = () => {
     cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 250);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 600);
   };
   const openNow = () => { cancelClose(); setOpen(true); };
 
@@ -55,11 +55,11 @@ function DropdownTab({
           style={{
             position: 'absolute', top: '100%', left: 0, zIndex: 300,
             background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
-            borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
-            minWidth: 160, padding: '4px 0',
-            // Invisible bridge: 8px transparent area on top to absorb mouse traverse
-            paddingTop: 12,
-            marginTop: -4,
+            borderRadius: 7, boxShadow: '0 12px 32px rgba(0,0,0,.6)',
+            minWidth: 200, padding: '4px 0',
+            // Strong bridge: 16px transparent overlap để tolerate mouse di chéo, di chậm
+            paddingTop: 18,
+            marginTop: -10,
           }}
         >
           {subItems.map((s) => (
@@ -123,9 +123,14 @@ export function TopBar({
     {
       id: 'resources', label: t('nav.resources', 'Resources'),
       subItems: [
-        { label: 'Resources',    href: `/p/${pid}/resources`,    icon: '🗄' },
-        { label: 'Publications', href: `/p/${pid}/publications`, icon: '📡' },
-        { label: 'Knowledge',    href: `/p/${pid}/resources?vault=knowledge`, icon: '🧠' },
+        { label: 'Overview',     href: `/p/${pid}/resources`,                  icon: '🗄' },
+        { label: 'Accounts',     href: `/p/${pid}/resources?vault=accounts`,   icon: '🔐' },
+        { label: 'Media',        href: `/p/${pid}/resources?vault=media`,      icon: '🎬' },
+        { label: 'Contacts',     href: `/p/${pid}/resources?vault=contacts`,   icon: '📇' },
+        { label: 'Infra',        href: `/p/${pid}/resources?vault=infra`,      icon: '🌐' },
+        { label: 'Budget',       href: `/p/${pid}/resources?vault=budget`,     icon: '💰' },
+        { label: 'Knowledge',    href: `/p/${pid}/resources?vault=knowledge`,  icon: '🧠' },
+        { label: 'Publications', href: `/p/${pid}/publications`,               icon: '📡' },
       ],
     },
     { id: 'settings', label: '⚙' },

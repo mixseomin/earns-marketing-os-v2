@@ -15,6 +15,7 @@ import { Pill, EmptyState } from './ui';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
+import { PlatformPicker } from './platform-picker';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -508,11 +509,12 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <span style={lbl}>Platform *</span>
-              <select style={fld} value={form.platformKey} onChange={(e) => setF('platformKey', e.target.value)}>
-                {platforms.map((p) => (
-                  <option key={p.key} value={p.key}>{p.label} {p.priority === 'critical' ? '★' : ''}</option>
-                ))}
-              </select>
+              <PlatformPicker
+                platforms={platforms}
+                value={form.platformKey}
+                onChange={(k) => setF('platformKey', k)}
+                fld={fld}
+              />
               {platform && (
                 <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
                   <a href={platform.signupUrl} target="_blank" rel="noopener noreferrer"

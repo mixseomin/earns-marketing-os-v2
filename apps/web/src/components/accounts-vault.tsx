@@ -14,6 +14,7 @@ import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup'
 import { Pill, EmptyState } from './ui';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
+import { NoFillInput } from './no-fill-input';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -527,76 +528,19 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
               )}
             </div>
 
-            {/* Import from as.on.tc — only when creating + bridge enabled */}
+            {/* Import from as.on.tc — only when creating + bridge enabled. Collapsed by default. */}
             {isCreate && form.platformKey && directusState.enabled && (
-              <div style={{ gridColumn: '1 / -1', padding: 10, background: 'var(--bg-2)', border: '1px dashed var(--line-strong)', borderRadius: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={lbl}>📥 Import từ as.on.tc Directus (READ-ONLY)</span>
-                  {directusState.loading && <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>loading…</span>}
-                </div>
-
-                {directusState.error && (
-                  <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 6 }}>⚠ {directusState.error}</div>
-                )}
-
-                {!directusState.loading && !directusState.error && directusState.accounts.length === 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                    Không có account nào trên platform "{platform?.label ?? form.platformKey}" trong as.on.tc Directus. Nhập tay form bên dưới.
-                  </div>
-                )}
-
-                {directusState.accounts.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
-                    {directusState.accounts.map((acc) => (
-                      <div key={acc.directusId}
-                           style={{
-                             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-                             background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5,
-                             fontSize: 12,
-                           }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
-                          @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
-                        </span>
-                        {acc.duplicateCount > 1 && (
-                          <span title={`Directus has ${acc.duplicateCount} records with this handle (platform key variants: ${acc.duplicatePlatformKeys.join(', ')}). Importing will use the first one — clean dupes in Directus to avoid confusion.`}
-                                style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,176,60,.15)', color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
-                            ⚠ ×{acc.duplicateCount} dupes
-                          </span>
-                        )}
-                        {acc.email && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{acc.email}</span>}
-                        <StatusPill status={acc.status} />
-                        {acc.has2fa && <span title="2FA" style={{ fontSize: 10 }}>🔐</span>}
-                        {acc.tags.length > 0 && (
-                          <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-                            {acc.tags.slice(0, 2).map((t) => `#${t}`).join(' ')}
-                          </span>
-                        )}
-                        <span title={acc.directusId} style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-                          {acc.directusId.slice(0, 6)}
-                        </span>
-                        <span style={{ flex: 1 }}></span>
-                        <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
-                                disabled={importingId === acc.directusId}
-                                onClick={() => handleImport(acc.directusId)}>
-                          {importingId === acc.directusId ? '…' : '↓ Import'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-                  Import = copy data sang MOS2 + tag <code>imported:directus:&lt;id&gt;</code>. Idempotent — không tạo trùng nếu handle đã có.
-                </div>
-              </div>
+              <DirectusImportSection
+                state={directusState}
+                platformLabel={platform?.label ?? form.platformKey}
+                importingId={importingId}
+                onImport={handleImport}
+              />
             )}
             <div>
               <span style={lbl}>Handle / username</span>
-              <input
+              <NoFillInput
                 style={fld}
-                type="text" name="account-handle-display"
-                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-                data-1p-ignore="true" data-lpignore="true" data-form-type="other"
                 placeholder="orit, @oritapp..."
                 value={form.handle}
                 onChange={(e) => setF('handle', e.target.value)}
@@ -604,11 +548,8 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
             </div>
             <div>
               <span style={lbl}>Email</span>
-              <input
+              <NoFillInput
                 style={fld}
-                type="text" name="account-email-display"
-                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-                data-1p-ignore="true" data-lpignore="true" data-form-type="other"
                 placeholder="account@..."
                 value={form.email}
                 onChange={(e) => setF('email', e.target.value)}
@@ -745,6 +686,96 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
 }
 
 // ── ApiTokenSection: write-only set + reveal modal + clear ─────────
+// Collapsible Directus import — collapsed by default, only expand if user wants to import.
+function DirectusImportSection({
+  state, platformLabel, importingId, onImport,
+}: {
+  state: { loading: boolean; enabled: boolean; accounts: DirectusAccountSummary[]; error?: string };
+  platformLabel: string;
+  importingId: string | null;
+  onImport: (directusId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = state.accounts.length;
+  // Auto-expand if there's an error or zero accounts is uncertain — but default closed.
+  const hasContent = state.loading || state.error || count > 0;
+
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%', padding: '6px 10px',
+          background: 'var(--bg-2)', border: '1px dashed var(--line)',
+          borderRadius: 6, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)',
+        }}
+      >
+        <span style={{ fontSize: 12 }}>📥</span>
+        <span>Import từ as.on.tc Directus</span>
+        {state.loading && <span style={{ color: 'var(--fg-3)' }}>· loading…</span>}
+        {!state.loading && count > 0 && (
+          <span style={{
+            padding: '1px 6px', borderRadius: 3,
+            background: 'var(--neon-lime)', color: 'var(--bg-0)', fontSize: 9, fontWeight: 700,
+          }}>{count} available</span>
+        )}
+        {!state.loading && count === 0 && !state.error && (
+          <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>· no records</span>
+        )}
+        {state.error && <span style={{ color: 'var(--bad)' }}>· error</span>}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 9, opacity: 0.6 }}>{open ? '▾' : '▸'}</span>
+      </button>
+
+      {open && hasContent && (
+        <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+          {state.error && <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 6 }}>⚠ {state.error}</div>}
+          {!state.loading && !state.error && count === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+              Không có account nào trên platform &quot;{platformLabel}&quot; trong as.on.tc Directus.
+            </div>
+          )}
+          {count > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+              {state.accounts.map((acc) => (
+                <div key={acc.directusId}
+                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, fontSize: 12 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
+                    @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
+                  </span>
+                  {acc.duplicateCount > 1 && (
+                    <span title={`Directus has ${acc.duplicateCount} records (variants: ${acc.duplicatePlatformKeys.join(', ')})`}
+                          style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,176,60,.15)', color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
+                      ⚠ ×{acc.duplicateCount}
+                    </span>
+                  )}
+                  {acc.email && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{acc.email}</span>}
+                  <StatusPill status={acc.status} />
+                  {acc.has2fa && <span title="2FA" style={{ fontSize: 10 }}>🔐</span>}
+                  <span style={{ flex: 1 }} />
+                  <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
+                          disabled={importingId === acc.directusId}
+                          onClick={() => onImport(acc.directusId)}>
+                    {importingId === acc.directusId ? '…' : '↓ Import'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {count > 0 && (
+            <div style={{ fontSize: 9.5, color: 'var(--fg-4)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              Import = copy + tag <code>imported:directus:&lt;id&gt;</code>. Idempotent.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ApiTokenSection({ projectId, accountId, hasToken }: {
   projectId: string;
   accountId: number;

@@ -35,15 +35,72 @@ const HEALTH_META: Record<ProxyHealth, { label: string; color: string }> = {
   unknown:   { label: 'unknown',   color: 'var(--fg-3)' },
 };
 
-const TOOL_META: Record<ProfileTool, { label: string; icon: string }> = {
-  genlogin:    { label: 'GenLogin',    icon: '🧬' },
-  multilogin:  { label: 'Multilogin',  icon: '🌀' },
-  adspower:    { label: 'AdsPower',    icon: '⚡' },
-  kameleo:     { label: 'Kameleo',     icon: '🦎' },
-  chrome:      { label: 'Chrome',      icon: '🌐' },
-  firefox:     { label: 'Firefox',     icon: '🦊' },
-  other:       { label: 'Other',       icon: '🔧' },
+interface ToolMeta {
+  label: string;
+  icon: string;
+  url?: string;
+  desc?: string;
+  pricing?: string;
+  free?: boolean;
+  os?: string;
+  origin?: string;
+}
+
+const TOOL_META: Record<ProfileTool, ToolMeta> = {
+  genlogin:    {
+    label: 'GenLogin', icon: '🧬',
+    url: 'https://genlogin.com',
+    desc: 'Vietnamese-built anti-detect browser, popular ở SEA. Native Vietnamese support, hỗ trợ Telegram CSKH.',
+    pricing: 'Free 2 profiles · Paid từ ~$5/mo',
+    os: 'Windows · macOS', origin: '🇻🇳',
+  },
+  multilogin:  {
+    label: 'Multilogin', icon: '🌀',
+    url: 'https://multilogin.com',
+    desc: 'Veteran enterprise-grade anti-detect, mature fingerprint engine (Stealthfox/Mimic).',
+    pricing: 'Từ $99/mo (Solo) · $199/mo (Team)',
+    os: 'Windows · macOS · Linux', origin: '🇪🇪',
+  },
+  adspower:    {
+    label: 'AdsPower', icon: '⚡',
+    url: 'https://www.adspower.com',
+    desc: 'Free tier hào phóng (5 profiles), API mạnh, Local API cho automation.',
+    pricing: 'Free 5 profiles · Pro từ $9/mo', free: true,
+    os: 'Windows · macOS · Linux', origin: '🇨🇳',
+  },
+  kameleo:     {
+    label: 'Kameleo', icon: '🦎',
+    url: 'https://kameleo.io',
+    desc: 'Mobile profile spoofing tốt, mobile fingerprint chính xác hơn Multilogin.',
+    pricing: 'Từ $59/mo · Yearly discount',
+    os: 'Windows · macOS · iOS', origin: '🇭🇺',
+  },
+  chrome:      {
+    label: 'Chrome (native)', icon: '🌐',
+    url: 'https://www.google.com/chrome/',
+    desc: 'Chrome user profiles built-in (--profile-directory). Không có anti-detect, dùng cho non-sensitive accounts.',
+    pricing: 'Free', free: true,
+    os: 'All',
+  },
+  firefox:     {
+    label: 'Firefox (native)', icon: '🦊',
+    url: 'https://www.mozilla.org/firefox/',
+    desc: 'Firefox profiles riêng (about:profiles). Multi-account containers extension hỗ trợ thêm.',
+    pricing: 'Free', free: true,
+    os: 'All',
+  },
+  other:       { label: 'Other', icon: '🔧', desc: 'Custom / less common tool — điền chi tiết vào notes.' },
 };
+
+// Suggested alternative tools — UI hint user có thể tham khảo (chưa làm enum option, vì cần migration)
+const TOOL_SUGGESTIONS: Array<{ name: string; icon: string; url: string; desc: string; pricing: string; origin: string }> = [
+  { name: 'Dolphin{anty}', icon: '🐬', url: 'https://dolphin-anty.com', desc: 'Affiliate marketing favorite, free 10 profiles, có team plan.', pricing: 'Free 10 · từ $89/mo', origin: '🇪🇸' },
+  { name: 'GoLogin',       icon: '🌍', url: 'https://gologin.com',     desc: 'Cloud profiles, Linken Sphere alternative, mạnh Cookie Robot.', pricing: 'Free 3 · từ $24/mo', origin: '🇺🇸' },
+  { name: 'Octo Browser',  icon: '🐙', url: 'https://octobrowser.net', desc: 'Modern UI, fast, integrate proxy gateway built-in.', pricing: 'Từ $29/mo (10 profiles)', origin: '🇨🇾' },
+  { name: 'Indigo Browser',icon: '🟣', url: 'https://indigobrowser.com', desc: 'Sister product Multilogin Mimic engine, focused on speed.', pricing: 'Từ $99/mo', origin: '🇪🇪' },
+  { name: 'Linken Sphere', icon: '🌐', url: 'https://ls.tenebris.cc', desc: 'OG anti-detect (since 2017), được coi là gold standard cho serious operators.', pricing: 'Từ $100/mo', origin: '🇪🇸' },
+  { name: 'VMLogin',       icon: '🪟', url: 'https://www.vmlogin.us',  desc: 'Cheap entry, basic feature set, được community Trung dùng nhiều.', pricing: 'Từ $39/mo', origin: '🇨🇳' },
+];
 
 const PROXY_TYPE_META: Record<ProxyType, { label: string; color: string }> = {
   mobile:      { label: 'mobile',      color: 'var(--neon-lime)' },
@@ -446,6 +503,75 @@ function ProfilesTab({ profiles, proxies }: { profiles: BrowserProfileRow[]; pro
   );
 }
 
+function ToolInfoCard({ meta }: { meta: ToolMeta }) {
+  if (!meta.desc && !meta.url) return null;
+  return (
+    <div style={{
+      padding: '8px 10px', marginTop: 4,
+      background: 'var(--bg-2)', border: '1px solid var(--line)',
+      borderRadius: 5, fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.45,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+        <span style={{ fontSize: 16 }}>{meta.icon}</span>
+        <span style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{meta.label}</span>
+        {meta.origin && <span style={{ fontSize: 13 }}>{meta.origin}</span>}
+        {meta.url && (
+          <a href={meta.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+             style={{ fontSize: 10, marginLeft: 'auto', color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+            ↗ download
+          </a>
+        )}
+      </div>
+      {meta.desc && <div style={{ marginBottom: 3 }}>{meta.desc}</div>}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+        {meta.pricing && <span>💰 {meta.pricing}</span>}
+        {meta.os && <span>💻 {meta.os}</span>}
+      </div>
+    </div>
+  );
+}
+
+function ToolSuggestions() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ gridColumn: '1 / 3', marginTop: 4 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          background: 'transparent', border: 'none', color: 'var(--fg-3)',
+          fontSize: 10.5, fontFamily: 'var(--font-mono)', cursor: 'pointer',
+          padding: '2px 0', display: 'flex', alignItems: 'center', gap: 4,
+        }}
+      >
+        <span>{open ? '▾' : '▸'}</span>
+        <span>{open ? 'Hide' : 'Browse'} {TOOL_SUGGESTIONS.length} other anti-detect tools</span>
+      </button>
+      {open && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6, marginTop: 4 }}>
+          {TOOL_SUGGESTIONS.map((s) => (
+            <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
+              style={{
+                padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
+                borderRadius: 4, textDecoration: 'none', color: 'inherit',
+              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <span style={{ fontSize: 14 }}>{s.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-0)' }}>{s.name}</span>
+                <span style={{ fontSize: 11 }}>{s.origin}</span>
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 9, color: 'var(--neon-cyan)', fontFamily: 'var(--font-mono)' }}>↗</span>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--fg-2)', lineHeight: 1.4, marginBottom: 2 }}>{s.desc}</div>
+              <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{s.pricing}</div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfileRow | null; proxies: ProxyRow[]; onClose: () => void }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -533,11 +659,15 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
           <div>
             <span style={lbl}>Tool *</span>
             <select style={fld} value={form.tool} onChange={(e) => setF('tool', e.target.value as ProfileTool)}>
-              {(Object.entries(TOOL_META) as Array<[ProfileTool, { label: string }]>).map(([k, m]) => (
-                <option key={k} value={k}>{m.label}</option>
+              {(Object.entries(TOOL_META) as Array<[ProfileTool, ToolMeta]>).map(([k, m]) => (
+                <option key={k} value={k}>{m.icon} {m.label}{m.free ? ' · free tier' : ''}</option>
               ))}
             </select>
           </div>
+          <div style={{ gridColumn: '1 / 3' }}>
+            <ToolInfoCard meta={TOOL_META[form.tool]} />
+          </div>
+          <ToolSuggestions />
           <div>
             <span style={lbl}>External ID</span>
             <input style={fld} placeholder="UUID/ID trong tool"

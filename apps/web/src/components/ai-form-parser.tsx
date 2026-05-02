@@ -223,7 +223,7 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
         <span style={{ flex: 1 }} />
         <button
           onClick={submit}
-          disabled={isPending || (!text.trim() && !image)}
+          disabled={isPending || (!text.trim() && !url.trim() && !image)}
           style={{
             padding: '5px 12px', fontSize: 11, fontWeight: 600,
             background: isPending ? 'var(--bg-3)' : 'var(--neon-violet)',

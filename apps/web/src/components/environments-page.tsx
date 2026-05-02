@@ -11,6 +11,9 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
 
+// Wrap external URLs through href.li to strip referrer (per global rule).
+const hl = (url: string) => `https://href.li/?${url}`;
+
 type Tab = 'proxies' | 'profiles';
 
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -516,7 +519,7 @@ function ToolInfoCard({ meta }: { meta: ToolMeta }) {
         <span style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{meta.label}</span>
         {meta.origin && <span style={{ fontSize: 13 }}>{meta.origin}</span>}
         {meta.url && (
-          <a href={meta.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+          <a href={hl(meta.url)} target="_blank" rel="noopener noreferrer" title={meta.url} onClick={(e) => e.stopPropagation()}
              style={{ fontSize: 10, marginLeft: 'auto', color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
             ↗ download
           </a>
@@ -550,7 +553,7 @@ function ToolSuggestions() {
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6, marginTop: 4 }}>
           {TOOL_SUGGESTIONS.map((s) => (
-            <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
+            <a key={s.name} href={hl(s.url)} target="_blank" rel="noopener noreferrer" title={s.url}
               style={{
                 padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
                 borderRadius: 4, textDecoration: 'none', color: 'inherit',

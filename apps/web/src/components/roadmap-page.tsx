@@ -246,7 +246,7 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
                                 </>
                               )}
                               {item.shippedIn && (
-                                <a href={`https://github.com/${REPO}/commit/${item.shippedIn}`}
+                                <a href={`https://href.li/?https://github.com/${REPO}/commit/${item.shippedIn}`}
                                    target="_blank" rel="noopener noreferrer"
                                    onClick={(e) => e.stopPropagation()}
                                    style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textDecoration: 'none' }}>

@@ -238,7 +238,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                             </span>
                             <PriorityPill priority={c.priority as Priority} />
                             {c.shippedIn && c.shippedIn !== 'WIP' && (
-                              <a href={`https://github.com/${REPO}/commit/${c.shippedIn}`}
+                              <a href={`https://href.li/?https://github.com/${REPO}/commit/${c.shippedIn}`}
                                  target="_blank" rel="noopener noreferrer"
                                  onClick={(e) => e.stopPropagation()}
                                  style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textDecoration: 'none' }}>
@@ -269,7 +269,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                               animation: 'pulse-cyan 2s ease-in-out infinite',
                             }}>
                               <span>🔄 Fix shipped {fmtDate(c.fixedAt)}</span>
-                              <a href={`https://github.com/${REPO}/commit/${c.fixedIn}`}
+                              <a href={`https://href.li/?https://github.com/${REPO}/commit/${c.fixedIn}`}
                                  target="_blank" rel="noopener noreferrer"
                                  onClick={(e) => e.stopPropagation()}
                                  style={{ color: '#38bdf8', textDecoration: 'underline' }}>

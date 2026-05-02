@@ -124,7 +124,7 @@ export function KnowledgeVault({ items, projectName }: { items: KnowledgeRow[]; 
 
 function KnowledgeModal({ item, onClose }: { item: KnowledgeRow; onClose: () => void }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>

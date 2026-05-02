@@ -352,7 +352,7 @@ function NotesModal({ item, onClose }: { item: RoadmapRow; onClose: () => void }
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>

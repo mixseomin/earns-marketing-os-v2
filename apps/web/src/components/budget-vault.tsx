@@ -154,7 +154,7 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div><div className="id-line">{entry ? `#${entry.id}` : 'NEW'}</div><h2>{isCreate ? '+ New budget entry' : `Edit ${entry!.label}`}</h2></div>

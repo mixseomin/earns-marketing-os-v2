@@ -109,7 +109,7 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
 
 function ContactModal({ contact, onClose }: { contact: ContactRow; onClose: () => void }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>

@@ -330,7 +330,7 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
@@ -621,7 +621,7 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>

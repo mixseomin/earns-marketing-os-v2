@@ -116,7 +116,7 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ width: '94vw', maxWidth: 1200, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
@@ -465,7 +465,7 @@ function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }
     : skills;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 920, height: '78vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
@@ -562,7 +562,7 @@ function ToolInfoModal({ tool, active, onToggle, onClose }: {
 }) {
   const sm = TOOL_STATUS_META[tool.status];
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>

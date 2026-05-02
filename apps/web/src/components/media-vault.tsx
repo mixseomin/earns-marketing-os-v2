@@ -198,7 +198,7 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div><div className="id-line">{asset ? `#${asset.id}` : 'NEW MEDIA'}</div><h2>{isCreate ? '+ New media asset' : `Edit ${asset!.filename}`}</h2></div>

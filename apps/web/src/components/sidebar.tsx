@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import type { Mode, Project } from '@/lib/mock/types';
@@ -14,7 +14,7 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
     <aside className="sidebar">
       <ProjectSwitcher currentProjectId={currentProjectId} projects={projects} />
 
-      <div className="side-section" style={{ flex: 1, overflow: 'auto' }}>
+      <div className="side-section" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <div className="side-title">
           <span>SQUADS · {mode?.label?.toUpperCase() ?? '—'}</span>
           <span className="count mono">{mode?.squads?.length ?? 0} / {(mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0)}ag</span>
@@ -64,8 +64,6 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
 
       <SystemNav />
 
-      <div className="grow"></div>
-
       <div className="kill-switch">
         <div className="kill-label">⚠ Emergency control</div>
         <button className="kill-btn">PAUSE ALL AGENTS</button>
@@ -78,23 +76,12 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
   );
 }
 
-// Compact, grouped SYSTEM nav. Each group collapsible — sidebar dài thì user thu gọn từng group.
-// "soon" items hiện disabled (opacity 0.45) để thấy roadmap nhưng không click được.
-//
-// Height-lock pattern: measure section height ngay sau lần render đầu (all groups expanded),
-// rồi pin `height` tại giá trị đó. Toggle collapse/expand sẽ KHÔNG thay đổi outer height
-// → SQUADS section bên trên không bị reflow / scroll position không jiggle.
+// Compact, grouped SYSTEM nav. Default ALL collapsed → sidebar primary focus là project SQUADS.
+// User expand group nào cần dùng. Group expanded có max-height + scroll bên trong, không đẩy SQUADS lên.
 function SystemNav() {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // Default: tất cả collapsed
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ monitor: true, library: true, setup: true });
   const tog = (k: string) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
-  const ref = useRef<HTMLDivElement>(null);
-  const [lockedH, setLockedH] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    if (!ref.current || lockedH !== null) return;
-    // Render đầu tiên state là all expanded → height tự nhiên = max possible.
-    setLockedH(ref.current.offsetHeight);
-  }, [lockedH]);
 
   type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
   const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
@@ -134,15 +121,20 @@ function SystemNav() {
 
   return (
     <div
-      ref={ref}
       className="side-section"
       style={{
         display: 'flex', flexDirection: 'column', gap: 2,
-        // Lock height sau first render → collapse/expand không reflow SQUADS bên trên.
-        ...(lockedH !== null ? { height: lockedH, flex: '0 0 auto' } : {}),
+        flex: '0 0 auto',
+        maxHeight: '40vh',
+        overflowY: 'auto',
+        borderTop: '1px solid var(--line)',
+        paddingTop: 4,
       }}
     >
-      <div className="side-title"><span>SYSTEM</span></div>
+      <div className="side-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>SYSTEM</span>
+        <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· click group để mở</span>
+      </div>
       {groups.map((g) => {
         const isCollapsed = collapsed[g.key] === true;
         return (

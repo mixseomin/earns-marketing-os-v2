@@ -18,22 +18,61 @@ export interface ParseResult {
   notes?: string;             // model có thể thêm note (vd "không thấy field X trong input")
 }
 
-// Strip HTML to readable text. Crude but cheap; LLM tolerates noise.
+function decodeEntities(s: string): string {
+  return s.replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'");
+}
+
 function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+  return decodeEntities(
+    html.replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/<[^>]+>/g, ' ')
+  ).replace(/\s+/g, ' ').trim();
+}
+
+// Extract structured signals from HTML — title, meta description, og:*, h1, and body excerpt.
+// LLM gets clearer signal vs plain stripped text → more accurate field extraction.
+function extractStructured(html: string, baseUrl: string): string {
+  const get = (re: RegExp): string | null => {
+    const m = html.match(re);
+    return m?.[1] ? decodeEntities(m[1]).trim() : null;
+  };
+  const title = get(/<title[^>]*>([^<]+)<\/title>/i);
+  const desc = get(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+            ?? get(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+  const ogTitle = get(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  const ogDesc  = get(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+  const ogImage = get(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+  const ogSite  = get(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i);
+  const twitterTitle = get(/<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i);
+  const h1 = get(/<h1[^>]*>([^<]+)<\/h1>/i);
+  const canonical = get(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+
+  // Common signup/login link detection — pick first href matching keywords
+  const signupHrefMatch = html.match(/<a[^>]+href=["']([^"']*(?:signup|sign-up|register|join|get-started|start)[^"']*)["']/i);
+  const signupHref = signupHrefMatch ? new URL(signupHrefMatch[1]!, baseUrl).href : null;
+
+  // Body excerpt for additional context (after structured signals)
+  const bodyText = stripHtml(html).slice(0, 4000);
+
+  const lines: string[] = [];
+  lines.push(`URL: ${baseUrl}`);
+  if (canonical) lines.push(`Canonical: ${canonical}`);
+  if (title) lines.push(`Title: ${title}`);
+  if (ogTitle && ogTitle !== title) lines.push(`OG title: ${ogTitle}`);
+  if (twitterTitle && twitterTitle !== title) lines.push(`Twitter title: ${twitterTitle}`);
+  if (ogSite) lines.push(`OG site name: ${ogSite}`);
+  if (desc) lines.push(`Description: ${desc}`);
+  if (ogDesc && ogDesc !== desc) lines.push(`OG description: ${ogDesc}`);
+  if (h1) lines.push(`H1: ${h1}`);
+  if (ogImage) lines.push(`OG image: ${ogImage}`);
+  if (signupHref) lines.push(`Detected signup link: ${signupHref}`);
+  lines.push('---');
+  lines.push(`Body excerpt: ${bodyText}`);
+  return lines.join('\n');
 }
 
 async function fetchUrlAsText(url: string): Promise<{ ok: boolean; text?: string; error?: string }> {
@@ -41,14 +80,21 @@ async function fetchUrlAsText(url: string): Promise<{ ok: boolean; text?: string
     const u = new URL(url);
     if (!/^https?:$/.test(u.protocol)) return { ok: false, error: 'Only http/https URLs supported' };
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-FormParser/1.0)' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; MOS2-FormParser/1.0)',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
       signal: AbortSignal.timeout(15_000),
+      redirect: 'follow',
     });
     if (!res.ok) return { ok: false, error: `Fetch ${res.status}` };
     const ct = res.headers.get('content-type') || '';
     const raw = await res.text();
-    const text = ct.includes('html') ? stripHtml(raw) : raw;
-    // Truncate to ~12k chars (roughly 3k tokens) to control cost
+    if (!ct.includes('html')) {
+      return { ok: true, text: raw.slice(0, 12000) };
+    }
+    // Structured extraction for HTML
+    const text = extractStructured(raw, url);
     return { ok: true, text: text.slice(0, 12000) };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

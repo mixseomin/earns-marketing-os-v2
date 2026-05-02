@@ -343,6 +343,7 @@ function AddPlatformModal({ initialName, onClose, onCreated }: { initialName: st
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
+          currentValues={form}
           context="New platform catalog entry. Parse from website URL, about/pricing page, or paste platform description."
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News", "Indie Hackers")' },

@@ -271,6 +271,7 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
 
         <AIFormParser
           context="Platform catalog entry. Parse from website URL, About/Pricing page, or paste platform description."
+          currentValues={form}
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News")' },
             { key: 'key', label: 'Unique slug, lowercase no spaces' },

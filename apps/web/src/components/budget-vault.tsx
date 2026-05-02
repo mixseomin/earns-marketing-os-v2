@@ -162,6 +162,7 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser
+          currentValues={form}
           context="Budget entry form (income/expense/recurring). Parse invoice, payment receipt, statement, screenshot of charge."
           schema={[
             { key: 'kind', label: 'Entry kind', type: 'enum', enumValues: ['income', 'expense', 'recurring'] },

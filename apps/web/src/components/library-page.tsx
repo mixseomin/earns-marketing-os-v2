@@ -209,6 +209,7 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
+          currentValues={form}
           context="Tool catalog entry. Parse from API docs URL, README, vendor page, or paste tool description."
           schema={[
             { key: 'id', label: 'Slug ID (lowercase + dashes, e.g. "stripe-api")' },
@@ -495,6 +496,7 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
+          currentValues={form}
           context="Skill snippet — markdown persona/playbook for squads. Parse from URL article, paste markdown, or screenshot of guide."
           schema={[
             { key: 'title', label: 'Skill title' },

@@ -481,6 +481,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
         )}
 
         <AIFormParser
+          currentValues={form}
           context={`Platform account form for ${platform?.label || form.platformKey}. Parse signup confirmation email, screenshot, account info paste, or platform profile URL.`}
           schema={[
             { key: 'handle', label: 'Username/handle (without @)' },

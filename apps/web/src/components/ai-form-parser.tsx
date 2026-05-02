@@ -13,12 +13,36 @@ interface AIFormParserProps {
   onApply: (values: Record<string, string | number | boolean>) => void;
   context?: string;
   placeholder?: string;
+  /** Current form values — passed to enable "Enrich" mode (fills only empty fields). */
+  currentValues?: Record<string, string | number | boolean | null | undefined>;
 }
 
 // Match a single URL (text content is just URL, possibly trimmed)
 const URL_REGEX = /^https?:\/\/\S+$/i;
 
-export function AIFormParser({ schema, onApply, context, placeholder }: AIFormParserProps) {
+// Build a context string from current form values for enrich mode.
+function buildEnrichInput(values: Record<string, string | number | boolean | null | undefined>, schema: FormFieldSchema[]): { text: string; urlToFetch: string | null; emptyKeys: string[] } {
+  const filled: string[] = [];
+  const emptyKeys: string[] = [];
+  let urlToFetch: string | null = null;
+  for (const f of schema) {
+    const v = values[f.key];
+    // 0 is a legitimate value for number fields (size, cost, ...) — only null/undefined/'' = empty
+    if (v === null || v === undefined || v === '') {
+      emptyKeys.push(f.key);
+    } else {
+      filled.push(`${f.label}: ${String(v)}`);
+      // Pick first URL-shaped value to fetch (signupUrl, sourceUrl, etc.)
+      if (!urlToFetch && typeof v === 'string' && /^https?:\/\//.test(v.trim())) {
+        urlToFetch = v.trim();
+      }
+    }
+  }
+  const text = `Existing form values:\n${filled.join('\n')}\n\nFill ONLY the empty fields based on what's known + URL fetched. Do NOT overwrite the existing values above.`;
+  return { text, urlToFetch, emptyKeys };
+}
+
+export function AIFormParser({ schema, onApply, context, placeholder, currentValues }: AIFormParserProps) {
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
@@ -77,6 +101,35 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
     if (file) handleFile(file);
   };
 
+  const enrichMissing = () => {
+    if (!currentValues) return;
+    const { text, urlToFetch, emptyKeys } = buildEnrichInput(currentValues, schema);
+    if (emptyKeys.length === 0) {
+      setError('Tất cả fields đã có giá trị, không có gì để enrich.');
+      return;
+    }
+    setError(null);
+    setNotes(null);
+    startTransition(async () => {
+      const res = await parseFormInput({
+        text,
+        url: urlToFetch ?? undefined,
+        // Only ask AI to fill the missing fields
+        schema: schema.filter((f) => emptyKeys.includes(f.key)),
+        context: `${context ?? ''}\n[ENRICH MODE] Only fill empty fields. Use existing values + fetched URL as source.`,
+      });
+      if (!res.ok) { setError(res.error || 'Enrich thất bại'); return; }
+      if (res.values) {
+        const cleaned: Record<string, string | number | boolean> = {};
+        for (const [k, v] of Object.entries(res.values)) {
+          if (v !== null && v !== undefined) cleaned[k] = v;
+        }
+        onApply(cleaned);
+      }
+      if (res.notes) setNotes(res.notes);
+    });
+  };
+
   const submit = () => {
     setError(null);
     setNotes(null);
@@ -112,6 +165,15 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
     });
   };
 
+  // Count empty fields for enrich-pill hint
+  const emptyCount = currentValues
+    ? schema.filter((f) => {
+        const v = currentValues[f.key];
+        return v === null || v === undefined || v === '';
+      }).length
+    : 0;
+  const canEnrich = !!currentValues && emptyCount > 0 && emptyCount < schema.length;
+
   if (!expanded) {
     return (
       <div style={{
@@ -121,14 +183,41 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
         border: '1px dashed rgba(157,108,255,0.4)',
         borderRadius: 6,
         display: 'flex', alignItems: 'center', gap: 8,
-        cursor: 'pointer',
         fontSize: 11,
-      }} onClick={() => setExpanded(true)}>
+      }}>
         <span style={{ fontSize: 14 }}>✨</span>
-        <span style={{ color: 'var(--neon-violet)', fontWeight: 600 }}>AI fill</span>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          style={{
+            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+            color: 'var(--neon-violet)', fontWeight: 600, fontSize: 11,
+          }}
+        >AI fill</button>
         <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-          paste text / drop image → auto-fill {schema.length} fields
+          paste text / URL / image → {schema.length} fields
         </span>
+        {canEnrich && (
+          <>
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <button
+              type="button"
+              onClick={enrichMissing}
+              disabled={isPending}
+              style={{
+                background: 'transparent', border: 'none', padding: 0, cursor: isPending ? 'wait' : 'pointer',
+                color: 'var(--neon-amber)', fontWeight: 600, fontSize: 11,
+              }}
+            >
+              {isPending ? '✦ enriching…' : '✦ Enrich missing'}
+            </button>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+              ({emptyCount} empty)
+            </span>
+          </>
+        )}
+        {error && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--bad)' }}>⚠ {error}</span>}
+        {notes && !error && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic' }}>{notes}</span>}
       </div>
     );
   }
@@ -221,6 +310,24 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
           }}
         >📎 Upload image</button>
         <span style={{ flex: 1 }} />
+        {canEnrich && (
+          <button
+            type="button"
+            onClick={enrichMissing}
+            disabled={isPending}
+            title={`Enrich ${emptyCount} empty fields based on existing values + URL`}
+            style={{
+              padding: '5px 10px', fontSize: 11, fontWeight: 600,
+              background: 'transparent',
+              border: '1px solid var(--neon-amber)',
+              borderRadius: 4,
+              color: 'var(--neon-amber)',
+              cursor: isPending ? 'wait' : 'pointer',
+            }}
+          >
+            ✦ Enrich {emptyCount} empty
+          </button>
+        )}
         <button
           onClick={submit}
           disabled={isPending || (!text.trim() && !url.trim() && !image)}

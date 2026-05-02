@@ -157,6 +157,7 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser
+          currentValues={form}
           context="Infrastructure resource form (server/proxy/domain/SaaS subscription/storage). Parse invoice email, dashboard screenshot, or vendor confirmation."
           schema={[
             { key: 'kind', label: 'Resource kind', type: 'enum', enumValues: ['proxy', 'domain', 'server', 'saas', 'storage', 'cdn', 'database', 'other'] },

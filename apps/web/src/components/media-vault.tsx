@@ -206,6 +206,7 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser
+          currentValues={form}
           context="Media asset form. Parse from URL (image/video link), file metadata paste, screenshot of asset listing."
           schema={[
             { key: 'kind', label: 'Asset kind', type: 'enum', enumValues: ['image', 'video', 'audio', 'document', 'other'] },

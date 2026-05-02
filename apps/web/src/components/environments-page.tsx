@@ -342,6 +342,7 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
+          currentValues={form}
           context="Proxy form. Endpoint format: user:pass@host:port or socks5://user:pass@host:port. Type is mobile/residential/datacenter/isp."
           schema={[
             { key: 'label', label: 'Label', description: 'Short identifier like "SG-mobile-3" or "US-resi-1"' },
@@ -633,6 +634,7 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
+          currentValues={form}
           context="Browser profile form for anti-detect tools (GenLogin, Multilogin, AdsPower, Kameleo, Chrome, Firefox)."
           schema={[
             { key: 'label', label: 'Label', description: 'Short identifier like "GL-orit-medium-01"' },

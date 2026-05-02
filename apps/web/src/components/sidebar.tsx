@@ -64,14 +64,16 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
 
       <SystemNav />
 
-      <div className="kill-switch">
-        <div className="kill-label">⚠ Emergency control</div>
-        <button className="kill-btn">PAUSE ALL AGENTS</button>
-        <div className="kill-meta">
-          <span>{mode?.killBudget?.cap || 'budget cap'}</span>
-          <span>used {mode?.killBudget?.used || '—'}</span>
-        </div>
-      </div>
+      <button
+        className="kill-btn"
+        title={`⚠ Emergency — pause all agents${mode?.killBudget?.cap ? ` · cap ${mode.killBudget.cap}, used ${mode.killBudget.used ?? '—'}` : ''}`}
+        style={{
+          margin: 8, padding: '6px 10px', fontSize: 11, fontWeight: 600,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}
+      >
+        ⚠ <span>Pause all agents</span>
+      </button>
     </aside>
   );
 }

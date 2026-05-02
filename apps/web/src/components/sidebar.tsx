@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import type { Mode, Project } from '@/lib/mock/types';
@@ -132,15 +133,33 @@ function SystemNav() {
   );
 }
 
-// Single group row. Hover → float menu sang phải. Same close-delay pattern as topbar dropdown.
+// Single group row. Hover → float menu fixed-pos sang phải (escape parent clip).
 function SystemGroupRow({ group }: { group: { key: string; label: string; items: NavItem[] } }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number | null>(null);
+  const pathname = usePathname();
+
+  // Group is "active" if any of its items matches current pathname
+  const activeItem = group.items.find((it) => it.href && pathname === it.href);
+  const isGroupActive = !!activeItem;
+
   const cancelClose = () => {
     if (closeTimer.current !== null) { window.clearTimeout(closeTimer.current); closeTimer.current = null; }
   };
   const scheduleClose = () => { cancelClose(); closeTimer.current = window.setTimeout(() => setOpen(false), 250); };
-  const openNow = () => { cancelClose(); setOpen(true); };
+  const openNow = () => {
+    cancelClose();
+    if (rowRef.current) {
+      const r = rowRef.current.getBoundingClientRect();
+      setPos({ top: r.top, left: r.right });
+    }
+    setOpen(true);
+  };
+
+  // Close popout if pathname changes (clicked a link inside it)
+  useEffect(() => { setOpen(false); }, [pathname]);
 
   const itemRowStyle: React.CSSProperties = {
     cursor: 'pointer', textDecoration: 'none', color: 'inherit',
@@ -149,48 +168,53 @@ function SystemGroupRow({ group }: { group: { key: string; label: string; items:
 
   return (
     <div
-      style={{ position: 'relative' }}
+      ref={rowRef}
       onMouseEnter={openNow}
       onMouseLeave={scheduleClose}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '4px 10px', cursor: 'default', userSelect: 'none',
-        fontSize: 11, color: open ? 'var(--fg-0)' : 'var(--fg-2)',
-        background: open ? 'var(--bg-2)' : 'transparent',
-        borderLeft: `2px solid ${open ? 'var(--accent)' : 'transparent'}`,
+        fontSize: 11,
+        color: (open || isGroupActive) ? 'var(--fg-0)' : 'var(--fg-2)',
+        background: (open || isGroupActive) ? 'var(--bg-2)' : 'transparent',
+        borderLeft: `2px solid ${isGroupActive ? 'var(--accent)' : open ? 'rgba(0,229,255,0.4)' : 'transparent'}`,
         transition: 'background 0.15s, color 0.15s',
       }}>
-        <span style={{ fontWeight: 500 }}>{group.label}</span>
+        <span style={{ fontWeight: isGroupActive ? 600 : 500 }}>{group.label}</span>
+        {activeItem && (
+          <span style={{ fontSize: 12, lineHeight: 1, color: activeItem.color, marginLeft: 2 }}>{activeItem.icon}</span>
+        )}
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{group.items.length}</span>
         <span style={{ fontSize: 8, opacity: 0.5 }}>▸</span>
       </div>
-      {open && (
+      {open && pos && (
         <div
           onMouseEnter={openNow}
           onMouseLeave={scheduleClose}
           style={{
-            position: 'absolute', top: 0, left: '100%',
-            zIndex: 300,
+            position: 'fixed', top: pos.top, left: pos.left,
+            zIndex: 1000,
             background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
             borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
             minWidth: 220, padding: '4px 0',
-            // Bridge: 8px transparent left padding overlap với row để chuột traverse OK
-            marginLeft: -2,
+            marginLeft: 4,
           }}
         >
           <div style={{ padding: '4px 12px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--line)' }}>
             {group.label}
           </div>
           {group.items.map((it) => {
+            const isActive = it.href && pathname === it.href;
             const inner = (
               <>
                 <div style={{ fontSize: 14, color: it.color, width: 18, textAlign: 'center', flexShrink: 0 }}>{it.icon}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--fg-1)' }}>{it.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--accent)' : 'var(--fg-1)' }}>{it.label}</span>
                   <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{it.sub}</span>
                 </div>
+                {isActive && <span style={{ fontSize: 9, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>● here</span>}
               </>
             );
             if (it.soon) {
@@ -203,9 +227,13 @@ function SystemGroupRow({ group }: { group: { key: string; label: string; items:
             return (
               <Link
                 key={it.label} href={it.href!}
-                style={itemRowStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                style={{
+                  ...itemRowStyle,
+                  background: isActive ? 'var(--accent-soft)' : 'transparent',
+                  borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-2)'; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
               >
                 {inner}
               </Link>

@@ -298,7 +298,12 @@ function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage 
 
         <AIFormParser
           context="Platform catalog entry. Parse from website URL, About/Pricing page, or paste platform description."
-          currentValues={form}
+          currentValues={{
+            ...form,
+            tagsStr: form.tags.join(', '),
+            // Drop the array field — currentValues is flat record only
+            tags: undefined as never,
+          } as Record<string, string | number | boolean | null | undefined>}
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News")' },
             { key: 'key', label: 'Unique slug, lowercase no spaces' },

@@ -8,6 +8,7 @@ import {
   createProxy, updateProxy, archiveProxy,
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,
 } from '@/lib/actions/environments';
+import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
 
 type Tab = 'proxies' | 'profiles';
 
@@ -188,6 +189,29 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
+        <AIFormParser
+          context="Proxy form. Endpoint format: user:pass@host:port or socks5://user:pass@host:port. Type is mobile/residential/datacenter/isp."
+          schema={[
+            { key: 'label', label: 'Label', description: 'Short identifier like "SG-mobile-3" or "US-resi-1"' },
+            { key: 'type', label: 'Proxy type', type: 'enum', enumValues: ['mobile', 'residential', 'datacenter', 'isp'] },
+            { key: 'endpoint', label: 'Endpoint', description: 'Full proxy URL: user:pass@host:port or socks5://...' },
+            { key: 'location', label: 'Location', description: 'Country/region like "SG-Singapore" or "US-NY"' },
+            { key: 'costPerGbCents', label: 'Cost per GB in cents', type: 'number' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => {
+            setForm((f) => ({
+              ...f,
+              label: typeof v.label === 'string' ? v.label : f.label,
+              type: (v.type as ProxyType) || f.type,
+              endpoint: typeof v.endpoint === 'string' ? v.endpoint : f.endpoint,
+              location: typeof v.location === 'string' ? v.location : f.location,
+              costPerGbCents: typeof v.costPerGbCents === 'number' ? v.costPerGbCents : f.costPerGbCents,
+              notes: typeof v.notes === 'string' ? v.notes : f.notes,
+            }));
+          }}
+        />
+
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div style={{ gridColumn: '1 / 3' }}>
             <span style={lbl}>Label *</span>
@@ -347,6 +371,27 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+
+        <AIFormParser
+          context="Browser profile form for anti-detect tools (GenLogin, Multilogin, AdsPower, Kameleo, Chrome, Firefox)."
+          schema={[
+            { key: 'label', label: 'Label', description: 'Short identifier like "GL-orit-medium-01"' },
+            { key: 'tool', label: 'Tool', type: 'enum', enumValues: ['genlogin', 'multilogin', 'adspower', 'kameleo', 'chrome', 'firefox', 'other'] },
+            { key: 'externalId', label: 'External profile ID/UUID' },
+            { key: 'userAgent', label: 'User agent string' },
+            { key: 'notes', label: 'Notes' },
+          ]}
+          onApply={(v) => {
+            setForm((f) => ({
+              ...f,
+              label: typeof v.label === 'string' ? v.label : f.label,
+              tool: (v.tool as ProfileTool) || f.tool,
+              externalId: typeof v.externalId === 'string' ? v.externalId : f.externalId,
+              userAgent: typeof v.userAgent === 'string' ? v.userAgent : f.userAgent,
+              notes: typeof v.notes === 'string' ? v.notes : f.notes,
+            }));
+          }}
+        />
 
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div style={{ gridColumn: '1 / 3' }}>

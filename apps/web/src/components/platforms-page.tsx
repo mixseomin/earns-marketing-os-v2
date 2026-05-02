@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   type PlatformWithUsage, type PlatformPriority,
@@ -33,7 +33,15 @@ function useUrlParam(key: string, def: string): [string, (v: string) => void] {
 }
 
 export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] }) {
-  const [q, setQ] = useUrlParam('q', '');
+  const [qUrl, setQUrl] = useUrlParam('q', '');
+  // Local state for input — instant UI feedback. Sync to URL after 300ms debounce.
+  const [q, setQ] = useState(qUrl);
+  useEffect(() => {
+    if (q === qUrl) return;
+    const t = setTimeout(() => setQUrl(q), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
   const [priorityFilter, setPriorityFilter] = useUrlParam('p', 'all');
   const [editing, setEditing] = useState<PlatformWithUsage | null>(null);
   const [creating, setCreating] = useState(false);

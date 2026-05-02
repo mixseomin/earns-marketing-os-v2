@@ -128,45 +128,61 @@ function SystemNav() {
         <span>SYSTEM</span>
         <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· hover</span>
       </div>
-      {groups.map((g) => <SystemGroupRow key={g.key} group={g} />)}
+      <SystemGroups groups={groups} />
     </div>
   );
 }
 
-// Single group row. Hover → float menu fixed-pos sang phải (escape parent clip).
-function SystemGroupRow({ group }: { group: { key: string; label: string; items: NavItem[] } }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const rowRef = useRef<HTMLDivElement>(null);
+// Container: only ONE popout open at a time across rows.
+function SystemGroups({ groups }: { groups: Array<{ key: string; label: string; items: NavItem[] }> }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const closeTimer = useRef<number | null>(null);
-  const pathname = usePathname();
-
-  // Group is "active" if any of its items matches current pathname
-  const activeItem = group.items.find((it) => it.href && pathname === it.href);
-  const isGroupActive = !!activeItem;
-
   const cancelClose = () => {
     if (closeTimer.current !== null) { window.clearTimeout(closeTimer.current); closeTimer.current = null; }
   };
-  const scheduleClose = () => { cancelClose(); closeTimer.current = window.setTimeout(() => setOpen(false), 250); };
-  const openNow = () => {
+  const requestOpen = (key: string) => { cancelClose(); setOpenKey(key); };
+  const requestClose = () => {
     cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpenKey(null), 250);
+  };
+  return (
+    <>
+      {groups.map((g) => (
+        <SystemGroupRow
+          key={g.key}
+          group={g}
+          isOpen={openKey === g.key}
+          onOpen={() => requestOpen(g.key)}
+          onClose={requestClose}
+        />
+      ))}
+    </>
+  );
+}
+
+// Single group row. Hover → float menu fixed-pos sang phải (escape parent clip).
+function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
+  group: { key: string; label: string; items: NavItem[] };
+  isOpen: boolean; onOpen: () => void; onClose: () => void;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  const activeItem = group.items.find((it) => it.href && pathname === it.href);
+  const isGroupActive = !!activeItem;
+
+  const handleEnter = () => {
     if (rowRef.current) {
       const r = rowRef.current.getBoundingClientRect();
-      // Estimate popout height: 28px header + 36px per item + 8px padding
       const estH = 28 + group.items.length * 36 + 8;
       const vh = window.innerHeight;
-      // If would overflow bottom, anchor to row bottom (popout grows upward)
-      const top = r.top + estH > vh - 8
-        ? Math.max(8, r.bottom - estH)
-        : r.top;
+      const top = r.top + estH > vh - 8 ? Math.max(8, r.bottom - estH) : r.top;
       setPos({ top, left: r.right });
     }
-    setOpen(true);
+    onOpen();
   };
-
-  // Close popout if pathname changes (clicked a link inside it)
-  useEffect(() => { setOpen(false); }, [pathname]);
+  const open = isOpen;
 
   const itemRowStyle: React.CSSProperties = {
     cursor: 'pointer', textDecoration: 'none', color: 'inherit',
@@ -176,8 +192,8 @@ function SystemGroupRow({ group }: { group: { key: string; label: string; items:
   return (
     <div
       ref={rowRef}
-      onMouseEnter={openNow}
-      onMouseLeave={scheduleClose}
+      onMouseEnter={handleEnter}
+      onMouseLeave={onClose}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
@@ -198,8 +214,8 @@ function SystemGroupRow({ group }: { group: { key: string; label: string; items:
       </div>
       {open && pos && (
         <div
-          onMouseEnter={openNow}
-          onMouseLeave={scheduleClose}
+          onMouseEnter={onOpen}
+          onMouseLeave={onClose}
           style={{
             position: 'fixed', top: pos.top, left: pos.left,
             zIndex: 1000,

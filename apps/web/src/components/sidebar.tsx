@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import type { Mode, Project } from '@/lib/mock/types';
@@ -78,14 +78,11 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
   );
 }
 
-// Compact, grouped SYSTEM nav. Default ALL collapsed → sidebar primary focus là project SQUADS.
-// User expand group nào cần dùng. Group expanded có max-height + scroll bên trong, không đẩy SQUADS lên.
-function SystemNav() {
-  // Default: tất cả collapsed
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ monitor: true, library: true, setup: true });
-  const tog = (k: string) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
+// Compact SYSTEM nav: 3 group rows, hover → float menu sang phải.
+// Sidebar focus 100% vào project SQUADS, system items vẫn truy cập 1 hover.
+type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
 
-  type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
+function SystemNav() {
   const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
     {
       key: 'monitor', label: 'Monitor',
@@ -116,71 +113,106 @@ function SystemNav() {
     },
   ];
 
-  const itemRowStyle: React.CSSProperties = {
-    cursor: 'pointer', textDecoration: 'none', color: 'inherit',
-    padding: '4px 8px', minHeight: 28, display: 'flex', alignItems: 'center', gap: 8,
-  };
-
   return (
     <div
       className="side-section"
       style={{
-        display: 'flex', flexDirection: 'column', gap: 2,
+        display: 'flex', flexDirection: 'column', gap: 1,
         flex: '0 0 auto',
-        maxHeight: '40vh',
-        overflowY: 'auto',
         borderTop: '1px solid var(--line)',
-        paddingTop: 4,
+        paddingTop: 4, paddingBottom: 4,
       }}
     >
-      <div className="side-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="side-title" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 10px 4px' }}>
         <span>SYSTEM</span>
-        <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· click group để mở</span>
+        <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· hover</span>
       </div>
-      {groups.map((g) => {
-        const isCollapsed = collapsed[g.key] === true;
-        return (
-          <div key={g.key} style={{ marginTop: 2 }}>
-            <div
-              onClick={() => tog(g.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '2px 8px', cursor: 'pointer', userSelect: 'none',
-                fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-              }}
-            >
-              <span style={{ fontSize: 8 }}>{isCollapsed ? '▸' : '▾'}</span>
-              <span>{g.label}</span>
-              <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-              <span style={{ fontSize: 8.5, opacity: 0.6 }}>{g.items.length}</span>
-            </div>
-            {!isCollapsed && g.items.map((it) => {
-              const inner = (
-                <>
-                  <div style={{ fontSize: 14, color: it.color, width: 18, textAlign: 'center', lineHeight: 1, flexShrink: 0 }}>{it.icon}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.label}</span>
-                    <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{it.sub}</span>
-                  </div>
-                </>
-              );
-              if (it.soon) {
-                return (
-                  <div key={it.label} style={{ ...itemRowStyle, opacity: 0.45, cursor: 'not-allowed' }} title="Sắp ra">
-                    {inner}
-                  </div>
-                );
-              }
-              return (
-                <Link key={it.label} href={it.href!} style={itemRowStyle}>
-                  {inner}
-                </Link>
-              );
-            })}
+      {groups.map((g) => <SystemGroupRow key={g.key} group={g} />)}
+    </div>
+  );
+}
+
+// Single group row. Hover → float menu sang phải. Same close-delay pattern as topbar dropdown.
+function SystemGroupRow({ group }: { group: { key: string; label: string; items: NavItem[] } }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current !== null) { window.clearTimeout(closeTimer.current); closeTimer.current = null; }
+  };
+  const scheduleClose = () => { cancelClose(); closeTimer.current = window.setTimeout(() => setOpen(false), 250); };
+  const openNow = () => { cancelClose(); setOpen(true); };
+
+  const itemRowStyle: React.CSSProperties = {
+    cursor: 'pointer', textDecoration: 'none', color: 'inherit',
+    padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 10,
+  };
+
+  return (
+    <div
+      style={{ position: 'relative' }}
+      onMouseEnter={openNow}
+      onMouseLeave={scheduleClose}
+    >
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '4px 10px', cursor: 'default', userSelect: 'none',
+        fontSize: 11, color: open ? 'var(--fg-0)' : 'var(--fg-2)',
+        background: open ? 'var(--bg-2)' : 'transparent',
+        borderLeft: `2px solid ${open ? 'var(--accent)' : 'transparent'}`,
+        transition: 'background 0.15s, color 0.15s',
+      }}>
+        <span style={{ fontWeight: 500 }}>{group.label}</span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{group.items.length}</span>
+        <span style={{ fontSize: 8, opacity: 0.5 }}>▸</span>
+      </div>
+      {open && (
+        <div
+          onMouseEnter={openNow}
+          onMouseLeave={scheduleClose}
+          style={{
+            position: 'absolute', top: 0, left: '100%',
+            zIndex: 300,
+            background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
+            borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,.5)',
+            minWidth: 220, padding: '4px 0',
+            // Bridge: 8px transparent left padding overlap với row để chuột traverse OK
+            marginLeft: -2,
+          }}
+        >
+          <div style={{ padding: '4px 12px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--line)' }}>
+            {group.label}
           </div>
-        );
-      })}
+          {group.items.map((it) => {
+            const inner = (
+              <>
+                <div style={{ fontSize: 14, color: it.color, width: 18, textAlign: 'center', flexShrink: 0 }}>{it.icon}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--fg-1)' }}>{it.label}</span>
+                  <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{it.sub}</span>
+                </div>
+              </>
+            );
+            if (it.soon) {
+              return (
+                <div key={it.label} style={{ ...itemRowStyle, opacity: 0.45, cursor: 'not-allowed' }} title="Sắp ra">
+                  {inner}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={it.label} href={it.href!}
+                style={itemRowStyle}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                {inner}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

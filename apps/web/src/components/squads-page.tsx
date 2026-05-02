@@ -131,7 +131,17 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
         )}
 
         <AIFormParser
-          currentValues={form}
+          currentValues={{
+            name: form.name,
+            vi: form.vi,
+            icon: form.icon,
+            descText: form.descText,
+            mission: form.config?.mission ?? '',
+            systemPrompt: form.config?.systemPrompt ?? '',
+            model: form.config?.model ?? '',
+            trustLevel: form.config?.trustLevel ?? 0,
+            useAgentLoop: form.config?.useAgentLoop ?? false,
+          }}
           context="Squad config form. Parse from natural language description ('Writer squad using Claude with web search tool'), or paste squad spec markdown."
           schema={[
             { key: 'name', label: 'Display name (e.g. "Writer", "Publisher")' },

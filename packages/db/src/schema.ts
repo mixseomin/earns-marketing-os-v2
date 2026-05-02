@@ -18,6 +18,7 @@ import {
   jsonb,
   timestamp,
   bigserial,
+  bigint,
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
@@ -301,6 +302,13 @@ export const platformAccounts = pgTable(
     cookieSessionNeeded: boolean('cookie_session_needed').notNull().default(false),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     sortOrder: integer('sort_order').notNull().default(0),
+    // Phase 14: account environment — anti-detect setup
+    // environment JSONB structure (free-form, evolve over time):
+    //   { browser_profile_label, user_agent_pin, cookies_path, totp_secret_enc, sticky_session_id }
+    // proxyId / browserProfileId: normalized FKs (added 0028) — JSONB still works for ad-hoc keys.
+    environment: jsonb('environment').notNull().default({}),
+    proxyId: bigint('proxy_id', { mode: 'number' }),
+    browserProfileId: bigint('browser_profile_id', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -310,6 +318,58 @@ export const platformAccounts = pgTable(
     index('accounts_platform_idx').on(t.platformKey),
     index('accounts_status_idx').on(t.projectId, t.status),
     uniqueIndex('accounts_proj_platform_handle_uniq').on(t.projectId, t.platformKey, t.handle),
+  ],
+);
+
+// ── proxies ──────────────────────────────────────────────────────
+// Reusable proxy pool — accounts reference one. Type categorizes IP origin.
+export const proxies = pgTable(
+  'proxies',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    label: text('label').notNull(),
+    type: text('type').notNull().default('datacenter'),    // mobile|residential|datacenter|isp
+    endpoint: text('endpoint').notNull(),                  // user:pass@host:port
+    location: text('location'),                            // SG-Singapore, US-NY, ...
+    health: text('health').notNull().default('unknown'),   // ok|degraded|down|unknown
+    lastCheckAt: timestamp('last_check_at', { withTimezone: true }),
+    costPerGbCents: integer('cost_per_gb_cents').notNull().default(0),
+    rotatesAt: timestamp('rotates_at', { withTimezone: true }),
+    notes: text('notes'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('proxies_tenant_idx').on(t.tenantId),
+    index('proxies_type_idx').on(t.type),
+  ],
+);
+
+// ── browser_profiles ─────────────────────────────────────────────
+// Anti-detect browser profile (GenLogin / Multilogin / AdsPower / native Chrome).
+// Linked from platform_accounts.browser_profile_id.
+export const browserProfiles = pgTable(
+  'browser_profiles',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    label: text('label').notNull(),                        // GL-orit-medium-01
+    tool: text('tool').notNull(),                          // genlogin|multilogin|adspower|kameleo|chrome|firefox
+    externalId: text('external_id'),                       // profile UUID from the tool
+    userAgent: text('user_agent'),
+    fingerprint: jsonb('fingerprint').notNull().default({}),
+    defaultProxyId: bigint('default_proxy_id', { mode: 'number' }),
+    lastOpenedAt: timestamp('last_opened_at', { withTimezone: true }),
+    notes: text('notes'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('browser_profiles_tenant_idx').on(t.tenantId),
+    index('browser_profiles_tool_idx').on(t.tool),
   ],
 );
 
@@ -919,4 +979,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

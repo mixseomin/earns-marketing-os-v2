@@ -15,15 +15,25 @@ interface AIFormParserProps {
   placeholder?: string;
 }
 
+// Match a single URL (text content is just URL, possibly trimmed)
+const URL_REGEX = /^https?:\/\/\S+$/i;
+
 export function AIFormParser({ schema, onApply, context, placeholder }: AIFormParserProps) {
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
+  const [url, setUrl] = useState('');
   const [image, setImage] = useState<{ base64: string; mime: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  // Auto-detect: if textarea content is a single URL, mirror to url field
+  const trimmedText = text.trim();
+  const isTextJustUrl = URL_REGEX.test(trimmedText);
+  const effectiveUrl = url.trim() || (isTextJustUrl ? trimmedText : '');
+  const effectiveText = isTextJustUrl ? '' : text;
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -70,13 +80,14 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
   const submit = () => {
     setError(null);
     setNotes(null);
-    if (!text.trim() && !image) {
-      setError('Paste text or drop an image');
+    if (!effectiveText.trim() && !effectiveUrl && !image) {
+      setError('Paste text, URL, or drop an image');
       return;
     }
     startTransition(async () => {
       const res = await parseFormInput({
-        text: text.trim() || undefined,
+        text: effectiveText.trim() || undefined,
+        url: effectiveUrl || undefined,
         imageBase64: image?.base64,
         imageMimeType: image?.mime,
         schema,
@@ -87,7 +98,6 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
         return;
       }
       if (res.values && Object.keys(res.values).length > 0) {
-        // Cast values: caller may filter null already
         const cleaned: Record<string, string | number | boolean> = {};
         for (const [k, v] of Object.entries(res.values)) {
           if (v !== null && v !== undefined) cleaned[k] = v;
@@ -95,8 +105,8 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
         onApply(cleaned);
       }
       if (res.notes) setNotes(res.notes);
-      // Soft success — collapse
       setText('');
+      setUrl('');
       setImage(null);
       setExpanded(false);
     });
@@ -136,12 +146,28 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
         <span style={{ fontSize: 14 }}>✨</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--neon-violet)' }}>AI fill</span>
         <span style={{ flex: 1, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-          paste text · Ctrl+V image · drag-drop
+          text · URL · Ctrl+V image · drag-drop
         </span>
         <button onClick={() => setExpanded(false)} style={{
           background: 'transparent', border: 'none', color: 'var(--fg-3)',
           cursor: 'pointer', fontSize: 12, padding: 0,
         }}>✕</button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>🔗</span>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://... (server fetches & parses)"
+          style={{
+            flex: 1, padding: '5px 8px', fontSize: 12,
+            background: 'var(--bg-2)', border: '1px solid var(--line)',
+            borderRadius: 4, color: 'var(--fg-0)', outline: 'none',
+            fontFamily: 'var(--font-mono)',
+          }}
+        />
       </div>
 
       <div
@@ -157,7 +183,7 @@ export function AIFormParser({ schema, onApply, context, placeholder }: AIFormPa
           value={text}
           onChange={(e) => setText(e.target.value)}
           onPaste={handlePaste}
-          placeholder={placeholder || 'Paste raw text, JSON, signature, or paste/drop a screenshot...'}
+          placeholder={placeholder || 'Paste raw text, JSON, signature, URL, or paste/drop a screenshot...'}
           style={{
             width: '100%', minHeight: 70, padding: 8,
             background: 'transparent', border: 'none', outline: 'none',

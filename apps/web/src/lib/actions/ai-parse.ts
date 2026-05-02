@@ -18,8 +18,46 @@ export interface ParseResult {
   notes?: string;             // model có thể thêm note (vd "không thấy field X trong input")
 }
 
+// Strip HTML to readable text. Crude but cheap; LLM tolerates noise.
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchUrlAsText(url: string): Promise<{ ok: boolean; text?: string; error?: string }> {
+  try {
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol)) return { ok: false, error: 'Only http/https URLs supported' };
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-FormParser/1.0)' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return { ok: false, error: `Fetch ${res.status}` };
+    const ct = res.headers.get('content-type') || '';
+    const raw = await res.text();
+    const text = ct.includes('html') ? stripHtml(raw) : raw;
+    // Truncate to ~12k chars (roughly 3k tokens) to control cost
+    return { ok: true, text: text.slice(0, 12000) };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function parseFormInput(input: {
   text?: string;
+  url?: string;               // fetch URL → strip HTML → use as text input
   imageBase64?: string;       // data URL hoặc raw base64 (PNG/JPG)
   imageMimeType?: string;     // 'image/png' | 'image/jpeg'
   schema: FormFieldSchema[];
@@ -27,10 +65,22 @@ export async function parseFormInput(input: {
 }): Promise<ParseResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY not configured' };
-  if (!input.text?.trim() && !input.imageBase64) {
-    return { ok: false, error: 'Provide text or image' };
+  if (!input.text?.trim() && !input.imageBase64 && !input.url?.trim()) {
+    return { ok: false, error: 'Provide text, URL, or image' };
   }
   if (!input.schema?.length) return { ok: false, error: 'Schema empty' };
+
+  // If URL provided, fetch and merge into text input
+  let urlSourceNote: string | undefined;
+  let mergedText = input.text?.trim() || '';
+  if (input.url?.trim()) {
+    const fetched = await fetchUrlAsText(input.url.trim());
+    if (!fetched.ok) return { ok: false, error: `URL fetch failed: ${fetched.error}` };
+    urlSourceNote = `Source URL: ${input.url.trim()}`;
+    mergedText = mergedText
+      ? `${mergedText}\n\n--- Fetched from ${input.url.trim()} ---\n${fetched.text}`
+      : `${urlSourceNote}\n\n${fetched.text}`;
+  }
 
   const hasImage = !!input.imageBase64;
   const model = hasImage ? 'gpt-4o' : 'gpt-4o-mini';   // vision needs gpt-4o
@@ -64,8 +114,8 @@ Do not invent data. Be concise. If field is enum, pick the closest match.`;
 
   // Build user message — multi-modal if image provided
   const userContent: Array<Record<string, unknown>> = [];
-  if (input.text?.trim()) {
-    userContent.push({ type: 'text', text: `Input text:\n\n${input.text.trim()}` });
+  if (mergedText) {
+    userContent.push({ type: 'text', text: `Input text:\n\n${mergedText}` });
   }
   if (input.imageBase64) {
     const mime = input.imageMimeType || 'image/png';

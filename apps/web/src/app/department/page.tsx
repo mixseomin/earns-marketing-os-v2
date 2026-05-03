@@ -8,17 +8,18 @@ import { getLastProject } from '@/lib/last-project';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DepartmentRoute({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
+export default async function DepartmentRoute({ searchParams }: { searchParams: Promise<{ project?: string; all?: string }> }) {
   const me = await getCurrentUser();
   if (!me) redirect('/login?next=/department');
   if (me.role !== 'admin') redirect('/?error=admin-only');
 
   const sp = await searchParams;
-  const filterProject = sp.project;
+  const lastProject = await getLastProject();
+  // Auto-filter to last opened project unless user explicitly chose ?project=... or ?all=1
+  const filterProject = sp.all === '1' ? undefined : (sp.project ?? lastProject?.id);
 
-  const [projects, lastProject, fallbackMode, entries] = await Promise.all([
+  const [projects, fallbackMode, entries] = await Promise.all([
     listProjects(),
-    getLastProject(),
     getMode('affiliate'),
     listDepartment(filterProject),
   ]);

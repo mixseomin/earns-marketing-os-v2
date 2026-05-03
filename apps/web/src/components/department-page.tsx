@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import type { DepartmentEntry, DepartmentHuman, DepartmentAgent } from '@/lib/actions/department';
@@ -39,9 +39,18 @@ export function DepartmentPage({ entries, projects, filterProject }: {
   const pathname = usePathname();
   const sp = useSearchParams();
 
+  const [showIdle, setShowIdle] = useState(false);
+
   const setProject = (id: string | null) => {
     const next = new URLSearchParams(sp.toString());
-    if (!id) next.delete('project'); else next.set('project', id);
+    if (!id) {
+      // "All" → explicit ?all=1 (override the auto-default-to-last-project)
+      next.delete('project');
+      next.set('all', '1');
+    } else {
+      next.set('project', id);
+      next.delete('all');
+    }
     router.replace(next.toString() ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   };
 
@@ -52,6 +61,14 @@ export function DepartmentPage({ entries, projects, filterProject }: {
     const order = ['active', 'running', 'queued', 'idle', 'paused', 'offline', 'inactive'];
     return [...arr].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   };
+
+  // Split: "doing something" (active/running/queued) vs idle/offline/paused/inactive
+  const isBusy = (e: DepartmentEntry) =>
+    e.status === 'active' || e.status === 'running' || e.status === 'queued';
+  const busyHumans  = humans.filter(isBusy);
+  const idleHumans  = humans.filter((h) => !isBusy(h));
+  const busyAgents  = agents.filter(isBusy);
+  const idleAgents  = agents.filter((a) => !isBusy(a));
 
   const counts = useMemo(() => ({
     activeHumans: humans.filter((h) => h.status === 'active').length,
@@ -105,19 +122,67 @@ export function DepartmentPage({ entries, projects, filterProject }: {
         ))}
       </div>
 
-      {/* Humans */}
-      <div className="modal-section-title">👤 Humans ({humans.length})</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, marginBottom: 16 }}>
-        {sortByStatus(humans).map((h) => <HumanCard key={`h${h.userId}`} h={h} />)}
-        {humans.length === 0 && <div className="panel" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>Không có member nào</div>}
-      </div>
+      {/* Active humans */}
+      {busyHumans.length > 0 && (
+        <>
+          <div className="modal-section-title">👤 Humans active ({busyHumans.length})</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6, marginBottom: 12 }}>
+            {sortByStatus(busyHumans).map((h) => <HumanCard key={`h${h.userId}`} h={h} />)}
+          </div>
+        </>
+      )}
 
-      {/* Agents */}
-      <div className="modal-section-title">🤖 AI Agents ({agents.length})</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
-        {sortByStatus(agents).map((a) => <AgentCard key={`a${a.squadId}`} a={a} />)}
-        {agents.length === 0 && <div className="panel" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>Không có squad nào</div>}
-      </div>
+      {/* Active agents */}
+      {busyAgents.length > 0 && (
+        <>
+          <div className="modal-section-title">🤖 AI Agents active ({busyAgents.length})</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6, marginBottom: 12 }}>
+            {sortByStatus(busyAgents).map((a) => <AgentCard key={`a${a.squadId}`} a={a} />)}
+          </div>
+        </>
+      )}
+
+      {busyHumans.length === 0 && busyAgents.length === 0 && (
+        <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, marginBottom: 12 }}>
+          🌙 Không ai đang làm gì cả{filterProject ? ` trong project ${filterProject}` : ''}
+        </div>
+      )}
+
+      {/* Idle pool — collapsed by default */}
+      {(idleHumans.length > 0 || idleAgents.length > 0) && (
+        <div style={{ marginTop: 12 }}>
+          <button
+            onClick={() => setShowIdle((s) => !s)}
+            style={{
+              width: '100%', padding: '6px 10px',
+              background: 'var(--bg-2)', border: '1px dashed var(--line)',
+              borderRadius: 6, cursor: 'pointer',
+              fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            <span>{showIdle ? '▾' : '▸'}</span>
+            <span>Idle pool</span>
+            <span style={{ color: 'var(--fg-4)' }}>· {idleHumans.length} humans · {idleAgents.length} agents</span>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 9 }}>{showIdle ? 'collapse' : 'expand'}</span>
+          </button>
+          {showIdle && (
+            <div style={{ marginTop: 6 }}>
+              {idleHumans.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, marginBottom: 8 }}>
+                  {sortByStatus(idleHumans).map((h) => <HumanCardCompact key={`h${h.userId}`} h={h} />)}
+                </div>
+              )}
+              {idleAgents.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4 }}>
+                  {sortByStatus(idleAgents).map((a) => <AgentCardCompact key={`a${a.squadId}`} a={a} />)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -191,6 +256,44 @@ function AgentCard({ a }: { a: DepartmentAgent }) {
         <span>⚡ {a.runningCount} running</span>
         <span style={{ marginLeft: 'auto' }}>{fmtRel(a.lastRunAt)}</span>
       </div>
+    </div>
+  );
+}
+
+// ── Compact variants for idle pool (1-line summary) ──────────────
+function HumanCardCompact({ h }: { h: DepartmentHuman }) {
+  const sm = STATUS_META[h.status] ?? STATUS_META.idle!;
+  const icon = SPECIALTY_ICON[h.specialty] ?? '👤';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '4px 8px', background: 'var(--bg-1)',
+      border: '1px solid var(--line)', borderLeft: `2px solid ${sm.color}`,
+      borderRadius: 4, fontSize: 11,
+    }}>
+      <span>{icon}</span>
+      <span style={{ flex: 1, fontWeight: 600, color: 'var(--fg-1)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{h.displayName}</span>
+      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{h.specialty}</span>
+      <span style={{ fontSize: 9, color: sm.color, fontFamily: 'var(--font-mono)' }}>● {sm.label}</span>
+      <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{fmtRel(h.lastSeen)}</span>
+    </div>
+  );
+}
+
+function AgentCardCompact({ a }: { a: DepartmentAgent }) {
+  const sm = STATUS_META[a.status] ?? STATUS_META.idle!;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '4px 8px', background: 'var(--bg-1)',
+      border: '1px solid var(--line)', borderLeft: `2px solid ${sm.color}`,
+      borderRadius: 4, fontSize: 11,
+    }}>
+      <span>{a.icon}</span>
+      <span style={{ flex: 1, fontWeight: 600, color: 'var(--fg-1)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{a.squadName}</span>
+      <Link href={`/p/${a.projectId}/flow`} style={{ fontSize: 9, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>{a.projectId}</Link>
+      <span style={{ fontSize: 9, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>L{a.trustLevel}</span>
+      <span style={{ fontSize: 9, color: sm.color, fontFamily: 'var(--font-mono)' }}>● {sm.label}</span>
     </div>
   );
 }

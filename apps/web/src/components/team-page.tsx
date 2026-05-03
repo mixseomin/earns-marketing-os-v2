@@ -7,6 +7,7 @@ import {
   createTeamMember, updateTeamMember, archiveTeamMember,
 } from '@/lib/actions/team';
 import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
+import { enterImpersonateAction } from '@/lib/actions/impersonate';
 import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
@@ -147,17 +148,33 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
                   <span title="In progress">⏳ {m.inProgressTasksCount} active</span>
                   <span style={{ flex: 1 }} />
                   {isAdmin && m.active && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPwModal(m); }}
-                      title="Set hoặc reset password cho member này"
-                      style={{
-                        padding: '2px 6px', fontSize: 9, fontWeight: 600,
-                        background: 'transparent', color: 'var(--neon-cyan)',
-                        border: '1px solid var(--neon-cyan)', borderRadius: 3,
-                        cursor: 'pointer',
-                      }}>
-                      🔑 Set password
-                    </button>
+                    <>
+                      <form action={enterImpersonateAction} onClick={(e) => e.stopPropagation()}>
+                        <input type="hidden" name="userId" value={m.userId} />
+                        <input type="hidden" name="returnPath" value="/team" />
+                        <button type="submit"
+                          title={`Xem góc nhìn của ${m.displayName}`}
+                          style={{
+                            padding: '2px 6px', fontSize: 9, fontWeight: 600,
+                            background: 'transparent', color: 'var(--neon-violet)',
+                            border: '1px solid var(--neon-violet)', borderRadius: 3,
+                            cursor: 'pointer',
+                          }}>
+                          👁 Xem
+                        </button>
+                      </form>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPwModal(m); }}
+                        title="Set hoặc reset password cho member này"
+                        style={{
+                          padding: '2px 6px', fontSize: 9, fontWeight: 600,
+                          background: 'transparent', color: 'var(--neon-cyan)',
+                          border: '1px solid var(--neon-cyan)', borderRadius: 3,
+                          cursor: 'pointer',
+                        }}>
+                        🔑 Set password
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -10,6 +10,8 @@ import { BudgetVault } from '@/components/budget-vault';
 import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listKnowledge, listContacts, listMedia, listInfra, listBudget } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
 import { getCurrentUser } from '@/lib/auth';
+import { getImpersonateContext } from '@/lib/actions/impersonate';
+import { getEffectiveVisibility } from '@/lib/actions/visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +29,7 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
   const isDemo = project.isDemo === true;
 
   const me = await getCurrentUser();
-  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers] = await Promise.all([
+  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers, impCtx, visData] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listPlatforms(),
@@ -38,7 +40,11 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     isDemo ? Promise.resolve([]) : listInfra(id),
     isDemo ? Promise.resolve([]) : listBudget(id),
     me?.role === 'admin' ? listTeamMembers() : Promise.resolve([]),
+    getImpersonateContext(),
+    me && me.role !== 'admin' ? getEffectiveVisibility(me.id) : Promise.resolve(null),
   ]);
+  // Use visibility config for non-admin users (or impersonate target)
+  const vis = visData?.config ?? null;
 
   // Real-count subs cho VAULT_NAV — replaces mock "247 nick / 50tr/d cap" etc.
   // Demo projects giữ mock sub vì không có DB data → undefined skips override.
@@ -52,6 +58,12 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
   };
 
   const isOperator = me?.role !== 'admin';
+  // Visibility-gated: use vis config for non-admins, otherwise show all
+  const canSeeKnowledge = isOperator ? (vis?.resources?.knowledge ?? false) : true;
+  const canSeeContacts = isOperator ? (vis?.resources?.contacts ?? false) : true;
+  const canSeeMedia = isOperator ? (vis?.resources?.media ?? false) : true;
+  const canSeeInfra = isOperator ? (vis?.resources?.infra ?? false) : true;
+  const canSeeBudget = isOperator ? (vis?.resources?.budget ?? false) : true;
 
   return (
     <AppShell
@@ -60,6 +72,8 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
       projects={projects}
       tab="resources"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
+      impersonate={impCtx?.active ? { targetUserId: impCtx.targetUserId, targetName: impCtx.targetName, targetRole: impCtx.targetRole, config: impCtx.config } : null}
+      configVersion={visData?.configVersion}
     >
       <ResourcesPage
         isBlank={!isDemo}
@@ -67,11 +81,11 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
         accountsOverride={
           <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} />
         }
-        knowledgeOverride={isOperator ? <></> : (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />)}
-        contactsOverride={isOperator ? <></> : (isDemo ? undefined : <ContactsVault contacts={contacts} projectName={project.name} />)}
-        mediaOverride={isOperator ? <></> : (isDemo ? undefined : <MediaVault items={media} projectId={id} />)}
-        infraOverride={isOperator ? <></> : (isDemo ? undefined : <InfraVault items={infra} projectId={id} />)}
-        budgetOverride={isOperator ? <></> : (isDemo ? undefined : <BudgetVault items={budget} projectId={id} />)}
+        knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />) : <></>}
+        contactsOverride={canSeeContacts ? (isDemo ? undefined : <ContactsVault contacts={contacts} projectName={project.name} />) : <></>}
+        mediaOverride={canSeeMedia ? (isDemo ? undefined : <MediaVault items={media} projectId={id} />) : <></>}
+        infraOverride={canSeeInfra ? (isDemo ? undefined : <InfraVault items={infra} projectId={id} />) : <></>}
+        budgetOverride={canSeeBudget ? (isDemo ? undefined : <BudgetVault items={budget} projectId={id} />) : <></>}
       />
     </AppShell>
   );

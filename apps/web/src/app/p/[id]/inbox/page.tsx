@@ -5,6 +5,8 @@ import { getProject, getProjectMode, listProjects } from '@/lib/data';
 import { listInbox } from '@/lib/actions/inbox';
 import { listTeamMembers } from '@/lib/actions/team';
 import { getCurrentUser } from '@/lib/auth';
+import { getImpersonateContext } from '@/lib/actions/impersonate';
+import { getEffectiveVisibility } from '@/lib/actions/visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,16 +32,21 @@ export default async function ProjectInboxRoute({
     sp.assign && !isNaN(Number(sp.assign)) ? Number(sp.assign) :
     'all';
 
-  const [mode, projects, tasks, teamMembers] = await Promise.all([
+  const [mode, projects, tasks, teamMembers, impCtx, visData] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listInbox('all', id, { assignment, currentUserId: me.id }),
     me.role === 'admin' ? listTeamMembers() : Promise.resolve([]),
+    getImpersonateContext(),
+    me.role !== 'admin' ? getEffectiveVisibility(me.id) : Promise.resolve(null),
   ]);
 
   return (
     <AppShell mode={mode} project={project} projects={projects}
-      currentUser={{ id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty }}>
+      currentUser={{ id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty }}
+      impersonate={impCtx?.active ? { targetUserId: impCtx.targetUserId, targetName: impCtx.targetName, targetRole: impCtx.targetRole, config: impCtx.config } : null}
+      configVersion={visData?.configVersion}
+    >
       <InboxPage tasks={tasks} teamMembers={teamMembers} currentUserId={me.id} />
     </AppShell>
   );

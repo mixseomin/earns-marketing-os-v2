@@ -8,7 +8,10 @@ import { TopBar } from './topbar';
 import { Sidebar } from './sidebar';
 import { RightBar } from './rightbar';
 import { StatusBar } from './statusbar';
+import { ImpersonatePanel } from './impersonate-panel';
+import { VisibilityWatcher } from './visibility-watcher';
 import type { Mode, Project } from '@/lib/mock/types';
+import type { VisibilityConfig } from '@/lib/visibility';
 
 type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
 
@@ -28,6 +31,8 @@ export function AppShell({
   tab,
   isPortfolio = false,
   currentUser,
+  impersonate,
+  configVersion,
 }: {
   children: ReactNode;
   mode?: Mode;
@@ -36,6 +41,8 @@ export function AppShell({
   tab?: Tab;
   isPortfolio?: boolean;
   currentUser?: CurrentUserInfo | null;
+  impersonate?: { targetUserId: number; targetName: string; targetRole: string; config: VisibilityConfig } | null;
+  configVersion?: number;
 }) {
   const { tweaks, setTweak } = useTweaks();
   const { setLang } = useLang();
@@ -53,8 +60,18 @@ export function AppShell({
 
   return (
     <>
+      {impersonate && (
+        <ImpersonatePanel
+          targetUserId={impersonate.targetUserId}
+          targetName={impersonate.targetName}
+          targetRole={impersonate.targetRole}
+          initialConfig={impersonate.config}
+        />
+      )}
+      {configVersion !== undefined && <VisibilityWatcher initialVersion={configVersion} />}
       <ThemeApplier modeAccent={mode?.accent} />
-      <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}>
+      <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}
+        style={impersonate ? { paddingTop: 44 } : undefined}>
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} />
         {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>

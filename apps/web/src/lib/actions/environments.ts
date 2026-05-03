@@ -7,6 +7,7 @@
 import { revalidatePath } from 'next/cache';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
+import { getCurrentUser } from '@/lib/auth';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -37,12 +38,18 @@ export interface ProxyRow {
 export async function listProxies(): Promise<ProxyRow[]> {
   const db = getDb();
   if (!db) return [];
+  const me = await getCurrentUser();
+  // Operator scoping: only see proxies they own
+  const operatorFilter = (me && me.role !== 'admin')
+    ? sql`AND p.owner_user_id = ${me.id}`
+    : sql``;
   const rows = await db.execute(sql`
     SELECT p.id, p.label, p.type, p.endpoint, p.location, p.health,
            p.last_check_at, p.cost_per_gb_cents, p.rotates_at, p.notes,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE proxy_id = p.id) AS accounts_count
     FROM proxies p
     WHERE p.tenant_id = ${TENANT} AND p.archived_at IS NULL
+      ${operatorFilter}
     ORDER BY p.health DESC, p.label ASC
   `);
   const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
@@ -127,6 +134,10 @@ export interface BrowserProfileRow {
 export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
   const db = getDb();
   if (!db) return [];
+  const me = await getCurrentUser();
+  const operatorFilter = (me && me.role !== 'admin')
+    ? sql`AND bp.owner_user_id = ${me.id}`
+    : sql``;
   const rows = await db.execute(sql`
     SELECT bp.id, bp.label, bp.tool, bp.external_id, bp.user_agent, bp.fingerprint,
            bp.default_proxy_id, p.label AS proxy_label,
@@ -135,6 +146,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     FROM browser_profiles bp
     LEFT JOIN proxies p ON p.id = bp.default_proxy_id
     WHERE bp.tenant_id = ${TENANT} AND bp.archived_at IS NULL
+      ${operatorFilter}
     ORDER BY bp.tool ASC, bp.label ASC
   `);
   const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);

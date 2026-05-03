@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type TeamMemberRow, type Specialty, type MemberRole,
   createTeamMember, updateTeamMember, archiveTeamMember,
 } from '@/lib/actions/team';
 import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
+import { listMemberProjects, setProjectMembership, type MemberProjectRow } from '@/lib/actions/assignments';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -414,6 +415,11 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
               </label>
             </div>
           )}
+          {!isCreate && member && (
+            <div style={{ gridColumn: '1 / 3' }}>
+              <ProjectAccessSection userId={member.userId} userName={member.displayName} />
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">
@@ -426,6 +432,67 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
             <button className="btn primary" onClick={save}>{isCreate ? 'Invite' : 'Save'}</button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Project access for a member (admin only) ──────────────────────
+function ProjectAccessSection({ userId, userName }: { userId: number; userName: string }) {
+  const [rows, setRows] = useState<MemberProjectRow[] | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    listMemberProjects(userId).then((r) => { if (!cancelled) setRows(r); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const toggle = (projectId: string, isMember: boolean) => {
+    setBusyId(projectId);
+    startTransition(async () => {
+      const res = await setProjectMembership(userId, projectId, isMember);
+      if (res.ok) {
+        setRows((prev) => prev ? prev.map((r) => r.projectId === projectId ? { ...r, isMember } : r) : prev);
+      }
+      setBusyId(null);
+    });
+  };
+
+  if (!rows) return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>Loading projects...</div>;
+  const memberCount = rows.filter((r) => r.isMember).length;
+  return (
+    <div style={{
+      marginTop: 6, padding: 10,
+      background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6,
+    }}>
+      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>📁 Project access</span>
+        <span style={{ color: 'var(--fg-2)', textTransform: 'none', letterSpacing: 0 }}>· {userName} có thể vào {memberCount}/{rows.length} projects</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 4 }}>
+        {rows.map((r) => (
+          <label key={r.projectId} style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px',
+            background: r.isMember ? 'var(--accent-soft)' : 'transparent',
+            border: `1px solid ${r.isMember ? 'var(--accent)' : 'var(--line)'}`,
+            borderRadius: 4, fontSize: 11,
+            cursor: busyId === r.projectId ? 'wait' : 'pointer',
+            opacity: busyId === r.projectId ? 0.5 : 1,
+          }}>
+            <input type="checkbox" checked={r.isMember}
+              disabled={busyId === r.projectId}
+              onChange={(e) => toggle(r.projectId, e.target.checked)} />
+            <span style={{ flex: 1, color: r.isMember ? 'var(--accent)' : 'var(--fg-1)', fontWeight: r.isMember ? 600 : 400 }}>
+              {r.projectName}
+            </span>
+            {r.role && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{r.role}</span>}
+          </label>
+        ))}
+      </div>
+      <div style={{ marginTop: 6, fontSize: 9.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+        Operator chỉ thấy projects được tick. Admin luôn thấy tất cả.
       </div>
     </div>
   );

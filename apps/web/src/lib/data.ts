@@ -24,11 +24,31 @@ async function tryDb<T>(fn: () => Promise<T>, fallback: T, label: string): Promi
 }
 
 // ── Projects ────────────────────────────────────────────────────
+// Auto-filter for current user: admin sees all, operator/viewer only sees
+// projects they're a member of (members table row with project_id != NULL).
+import { getCurrentUser } from './auth';
+import { sql } from 'drizzle-orm';
+
 export async function listProjects(): Promise<Project[]> {
   return tryDb(
     async () => {
+      const me = await getCurrentUser();
       const rows = await dbListProjects();
-      return rows ? rows.map(rowToProject) : MOCK_PROJECTS;
+      if (!rows) return MOCK_PROJECTS;
+      let projects = rows.map(rowToProject);
+      // Operator/viewer scoping: only projects user is member of
+      if (me && me.role !== 'admin') {
+        const db = getDb();
+        if (db) {
+          const memberships = await db.execute(sql`
+            SELECT DISTINCT project_id FROM members
+            WHERE user_id = ${me.id} AND project_id IS NOT NULL AND active = true
+          `);
+          const allowed = new Set((memberships as unknown as Array<{ project_id: string }>).map((r) => r.project_id));
+          projects = projects.filter((p) => allowed.has(p.id));
+        }
+      }
+      return projects;
     },
     MOCK_PROJECTS,
     'listProjects',
@@ -38,6 +58,17 @@ export async function listProjects(): Promise<Project[]> {
 export async function getProject(id: string): Promise<Project | undefined> {
   return tryDb(
     async () => {
+      const me = await getCurrentUser();
+      // Access check: admin always; operator/viewer must have membership
+      if (me && me.role !== 'admin') {
+        const db = getDb();
+        if (db) {
+          const r = await db.execute(sql`
+            SELECT 1 FROM members WHERE user_id = ${me.id} AND project_id = ${id} AND active = true LIMIT 1
+          `);
+          if ((r as unknown as Array<unknown>).length === 0) return undefined;
+        }
+      }
       const row = await getProjectById(id);
       return row ? rowToProject(row) : MOCK_PROJECTS.find((p) => p.id === id);
     },
@@ -310,9 +341,14 @@ export interface AccountRow {
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
   return tryDb(
     async () => {
+      const me = await getCurrentUser();
       const rows = await listAccountsByProject(projectId);
       if (!rows) return [];
-      return rows.map((r) => ({
+      // Operator scoping: only see accounts they own
+      const filtered = (me && me.role !== 'admin')
+        ? rows.filter((r) => (r as { ownerUserId?: number | null }).ownerUserId === me.id)
+        : rows;
+      return filtered.map((r) => ({
         id: r.id,
         projectId: r.projectId,
         platformKey: r.platformKey,

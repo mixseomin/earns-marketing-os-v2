@@ -317,6 +317,8 @@ export const platformAccounts = pgTable(
     environment: jsonb('environment').notNull().default({}),
     proxyId: bigint('proxy_id', { mode: 'number' }),
     browserProfileId: bigint('browser_profile_id', { mode: 'number' }),
+    // Phase 14 (migration 0035): per-member ownership for operator scoping
+    ownerUserId: bigint('owner_user_id', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

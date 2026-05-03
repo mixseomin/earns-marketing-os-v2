@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { ResourcesPage } from '@/components/resources-page';
 import { AccountsVault } from '@/components/accounts-vault';
@@ -51,11 +51,21 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
 
   const vis = visData?.config ?? null;
   // Visibility gates — operators use their config, admins see everything
+  const canSeeAccounts  = isOperator ? (vis?.resources?.accounts  ?? false) : true;
   const canSeeMedia     = isOperator ? (vis?.resources?.media     ?? false) : true;
   const canSeeContacts  = isOperator ? (vis?.resources?.contacts  ?? false) : true;
   const canSeeInfra     = isOperator ? (vis?.resources?.infra     ?? false) : true;
   const canSeeBudget    = isOperator ? (vis?.resources?.budget    ?? false) : true;
   const canSeeKnowledge = isOperator ? (vis?.resources?.knowledge ?? false) : true;
+
+  // Operator with no assigned accounts AND no vault visibility → redirect to inbox
+  if (isOperator) {
+    const hasAnyVault = canSeeAccounts || canSeeMedia || canSeeContacts || canSeeInfra || canSeeBudget || canSeeKnowledge;
+    const hasAssignedAccounts = accounts.length > 0;
+    if (!hasAnyVault && !hasAssignedAccounts) {
+      redirect(`/p/${id}/inbox`);
+    }
+  }
 
   const vaultStats: Record<string, string> | undefined = isDemo ? undefined : {
     accounts: `${accounts.filter((a) => a.status === 'active').length}/${accounts.length} active`,
@@ -76,8 +86,9 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
       <ResourcesPage
         isBlank={!isDemo}
         vaultStats={vaultStats}
+        isAdmin={!isOperator}
         accountsOverride={
-          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} />
+          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} isAdmin={!isOperator} />
         }
         knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />) : <></>}
         contactsOverride ={canSeeContacts  ? (isDemo ? undefined : <ContactsVault  contacts={contacts} projectName={project.name} />) : <></>}

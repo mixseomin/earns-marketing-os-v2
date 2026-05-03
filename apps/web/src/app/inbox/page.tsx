@@ -42,7 +42,7 @@ export default async function InboxRoute({ searchParams }: { searchParams: Promi
       currentUser={{ id: eff!.id, displayName: eff!.displayName, email: eff!.email, role: eff!.role, specialty: eff!.specialty }}
       impersonate={impCtx?.active ? { targetUserId: impCtx.targetUserId, targetName: impCtx.targetName, targetRole: impCtx.targetRole, config: impCtx.config } : null}
       configVersion={visData?.configVersion}>
-      <InboxPage tasks={tasks} teamMembers={teamMembers} currentUserId={eff!.id} />
+      <InboxPage tasks={tasks} teamMembers={teamMembers} currentUserId={eff!.id} currentUserRole={eff!.role} />
     </AppShell>
   );
 }

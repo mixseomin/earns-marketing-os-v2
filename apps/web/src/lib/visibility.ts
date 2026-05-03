@@ -17,8 +17,8 @@ export interface VisibilityConfig {
 // Defaults per role (what operators/viewers can see by default)
 export const ROLE_DEFAULTS: Record<string, VisibilityConfig> = {
   operator: {
-    nav: { inbox: true, board: true, resources: true },
-    resources: { accounts: true, media: false, contacts: false, infra: false, budget: false, knowledge: false },
+    nav: { inbox: true, board: false, resources: false },
+    resources: { accounts: false, media: false, contacts: false, infra: false, budget: false, knowledge: false },
   },
   viewer: {
     nav: { inbox: true, board: false, resources: false },

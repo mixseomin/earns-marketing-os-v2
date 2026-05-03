@@ -677,6 +677,7 @@ export function ResourcesPage({
   budgetOverride,
   vaultStats,
   isBlank = false,
+  isAdmin = true,
 }: {
   accountsOverride?: React.ReactNode;
   knowledgeOverride?: React.ReactNode;
@@ -688,6 +689,7 @@ export function ResourcesPage({
   // truyền cho 1 vault, fallback giữ mock sub (cho demos design preview).
   vaultStats?: Partial<Record<string, string>>;
   isBlank?: boolean;
+  isAdmin?: boolean;
 } = {}) {
   const [vault, setVault] = useUrlVault('accounts');
   const Active = VAULT_COMPONENTS[vault];
@@ -704,10 +706,12 @@ export function ResourcesPage({
           </h1>
           <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)", margin: "4px 0 0" }}>"Tướng có quân nhưng không có lương thảo thì thua." Quản tài nguyên đầu vào — account, media, contact, infra, budget, knowledge.</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button style={{ ...S.btn, padding: "6px 12px", fontSize: 12 }}>⟲ Health check all</button>
-          <button style={{ ...S.btnPrimary, padding: "6px 12px", fontSize: 12 }}>＋ Add resource</button>
-        </div>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...S.btn, padding: "6px 12px", fontSize: 12 }}>⟲ Health check all</button>
+            <button style={{ ...S.btnPrimary, padding: "6px 12px", fontSize: 12 }}>＋ Add resource</button>
+          </div>
+        )}
       </div>
 
       {/* Vault nav — skip restricted vaults for operators */}

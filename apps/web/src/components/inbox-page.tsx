@@ -38,10 +38,11 @@ function fmtRel(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
-export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = null }: {
+export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = null, currentUserRole }: {
   tasks: HumanTaskRow[];
   teamMembers?: TeamMemberRow[];
   currentUserId?: number | null;
+  currentUserRole?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -300,6 +301,7 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
           task={openTask}
           teamMembers={teamMembers}
           currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
           onClose={() => setOpenTask(null)}
           onAction={() => { setOpenTask(null); router.refresh(); }}
           onSwapTask={(newTask) => { setOpenTask(newTask); router.refresh(); }}
@@ -310,14 +312,16 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
 }
 
 // ── Task detail modal ────────────────────────────────────────
-function TaskDetailModal({ task, teamMembers = [], currentUserId = null, onClose, onAction, onSwapTask }: {
+function TaskDetailModal({ task, teamMembers = [], currentUserId = null, currentUserRole, onClose, onAction, onSwapTask }: {
   task: HumanTaskRow;
   teamMembers?: TeamMemberRow[];
   currentUserId?: number | null;
+  currentUserRole?: string;
   onClose: () => void;
   onAction: () => void;
   onSwapTask: (newTask: HumanTaskRow) => void;
 }) {
+  const isViewer = currentUserRole === 'viewer';
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const draftKey = `inbox-draft-${task.id}`;
@@ -910,24 +914,25 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, onClose
           </div>
           <div className="modal-foot-actions">
             <button className="btn ghost" onClick={safeClose}>Close</button>
-            {!lastResult && task.status === 'pending' && (
+            {!isViewer && !lastResult && task.status === 'pending' && (
               <>
                 <button className="btn" onClick={handleClaim} disabled={busy}>👤 Claim only</button>
                 <button className="btn primary" onClick={handleComplete} disabled={busy}>✓ Submit + complete</button>
               </>
             )}
-            {!lastResult && (task.status === 'claimed' || task.status === 'in_progress') && (
+            {!isViewer && !lastResult && (task.status === 'claimed' || task.status === 'in_progress') && (
               <>
                 <button className="btn" onClick={handleUnclaim} disabled={busy}>↻ Unclaim</button>
                 <button className="btn primary" onClick={handleComplete} disabled={busy}>✓ Mark complete</button>
               </>
             )}
-            {!lastResult && (task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
+            {!isViewer && !lastResult && (task.status === 'pending' || task.status === 'claimed' || task.status === 'in_progress') && (
               <button className="btn danger" onClick={handleCancel} disabled={busy}>✕ Cancel</button>
             )}
-            {!lastResult && isStuck && (
+            {!isViewer && !lastResult && isStuck && (
               <button className="btn primary" onClick={handleResume} disabled={busy} title="Workflow dừng — spawn writer card mới với feedback để tiếp tục">↻ Resume / Re-revise</button>
             )}
+            {isViewer && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>Viewer — read only</span>}
           </div>
         </div>
       </div>

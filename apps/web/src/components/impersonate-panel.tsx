@@ -131,6 +131,11 @@ export function ImpersonatePanel({ targetUserId, targetName, targetRole, initial
           }}>
             {saving ? 'Dang luu...' : saved ? 'Da luu - user dang cap nhat' : 'Luu cau hinh'}
           </button>
+
+          {/* Quick assign note */}
+          <div style={{ marginTop: 12, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 6, fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.6 }}>
+            De giao account: vao <b style={{ color: 'var(--fg-2)' }}>Resources → [account] → Owner</b> hoac <b style={{ color: 'var(--fg-2)' }}>Team → [member] → Giao tai nguyen</b>
+          </div>
         </div>
       )}
     </div>

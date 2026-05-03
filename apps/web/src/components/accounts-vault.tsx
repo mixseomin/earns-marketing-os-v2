@@ -10,6 +10,7 @@ import {
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary,
 } from '@/lib/actions/accounts';
+import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import { Pill, EmptyState } from './ui';
 import { fillTemplate } from '@/lib/template';
@@ -159,12 +160,13 @@ function SnippetCard({ snippet, vars }: {
   );
 }
 
-export function AccountsVault({ projectId, project, platforms, accounts, teamMembers = [] }: {
+export function AccountsVault({ projectId, project, platforms, accounts, teamMembers = [], isAdmin = true }: {
   projectId: string;
   project: Project;
   platforms: PlatformRow[];
   accounts: AccountRow[];
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AccountRow | null>(null);
@@ -203,7 +205,28 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
             Đăng ký tài khoản trên các nền tảng. Click signup → mở tab mới với link đăng ký official.
           </p>
         </div>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button>
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {teamMembers.length > 0 && (
+              <select
+                onChange={async (e) => {
+                  const uid = Number(e.target.value);
+                  if (!uid) return;
+                  const ids = filtered.map((a) => a.id);
+                  await assignAccountsToMember(uid, ids, projectId);
+                  await enableResourcesForMember(uid);
+                  e.target.value = '';
+                  router.refresh();
+                }}
+                style={{ fontSize: 11, padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)' }}
+              >
+                <option value="">Giao cho...</option>
+                {teamMembers.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+              </select>
+            )}
+            <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -224,7 +247,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           icon="🔐"
           title={accounts.length === 0 ? 'Chưa có account nào' : `Không có account nào ở status "${filterStatus}"`}
           description={accounts.length === 0 ? 'Tạo account đầu tiên để bắt đầu đăng ký các platform.' : undefined}
-          action={accounts.length === 0 ? <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button> : undefined}
+          action={accounts.length === 0 && isAdmin ? <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button> : undefined}
           compact
         />
       ) : (

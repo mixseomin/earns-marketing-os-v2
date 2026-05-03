@@ -334,6 +334,100 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
   }));
 }
 
+// ── Account assignment actions ─────────────────────────────────────
+
+// Assign accounts to a member (sets owner_user_id)
+export async function assignAccountsToMember(
+  userId: number,
+  accountIds: number[],
+  projectId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return { ok: false, error: 'FORBIDDEN' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'No DB' };
+  try {
+    // First clear existing assignments for this user in this project
+    await db.execute(sql`
+      UPDATE platform_accounts SET owner_user_id = NULL
+      WHERE owner_user_id = ${userId} AND project_id = ${projectId}
+    `);
+    // Then assign selected
+    if (accountIds.length > 0) {
+      for (const aid of accountIds) {
+        await db.execute(sql`
+          UPDATE platform_accounts SET owner_user_id = ${userId}
+          WHERE id = ${aid} AND project_id = ${projectId}
+        `);
+      }
+    }
+    // Bump config_version so real-time watcher fires
+    await db.execute(sql`
+      UPDATE members SET config_version = config_version + 1
+      WHERE user_id = ${userId} AND project_id IS NULL
+    `);
+    revalidatePath(`/p/${projectId}/resources`);
+    revalidatePath('/team');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+// List all accounts in a project with their current owner
+export async function listProjectAccountsForAssignment(projectId: string): Promise<Array<{
+  id: number;
+  platformKey: string;
+  handle: string | null;
+  status: string;
+  ownerUserId: number | null;
+}>> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return [];
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT id, platform_key, handle, status, owner_user_id
+    FROM platform_accounts WHERE project_id = ${projectId}
+    ORDER BY platform_key, handle
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    platformKey: String(r.platform_key ?? ''),
+    handle: r.handle ? String(r.handle) : null,
+    status: String(r.status ?? 'todo'),
+    ownerUserId: r.owner_user_id ? Number(r.owner_user_id) : null,
+  }));
+}
+
+// Get accounts for a project with assignment flag for a specific user
+export async function getProjectAccountsForMember(projectId: string, userId: number): Promise<Array<{
+  id: number;
+  platformKey: string;
+  handle: string | null;
+  status: string;
+  ownerUserId: number | null;
+  isAssigned: boolean;
+}>> {
+  const accounts = await listProjectAccountsForAssignment(projectId);
+  return accounts.map((a) => ({ ...a, isAssigned: a.ownerUserId === userId }));
+}
+
+// Enable resources vault for a user when assigning accounts
+export async function enableResourcesForMember(userId: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  // Merge resources.accounts = true + nav.resources = true into existing visibility_config
+  await db.execute(sql`
+    UPDATE members
+    SET visibility_config = COALESCE(visibility_config, '{}'::jsonb)
+      || '{"nav":{"inbox":true,"resources":true},"resources":{"accounts":true}}'::jsonb,
+      config_version = config_version + 1,
+      updated_at = NOW()
+    WHERE user_id = ${userId} AND project_id IS NULL AND tenant_id = ${TENANT}
+  `);
+}
+
 export async function setEntityOwner(type: OwnableEntity, entityId: number, ownerUserId: number | null): Promise<{ ok: boolean; error?: string }> {
   const g = await adminGuard(); if (!g.ok) return g;
   const db = getDb();

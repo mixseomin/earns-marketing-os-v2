@@ -87,12 +87,14 @@ export function TopBar({
   currentProject,
   isPortfolio,
   projectCount,
+  currentUser,
 }: {
   tab?: Tab;
   mode?: Mode;
   currentProject?: Project;
   isPortfolio: boolean;
   projectCount: number;
+  currentUser?: { role: 'admin' | 'operator' | 'viewer' };
 }) {
   const t = useT();
 
@@ -100,19 +102,24 @@ export function TopBar({
   const needsCount = mode?.cards?.filter((c) => c.col === 'needs').length ?? 0;
 
   const pid = currentProject?.id ?? '';
-  const projectTabs: Array<{ id: Tab; label: string; badge?: string | number; subItems?: SubItem[] }> = [
-    { id: 'dashboard', label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief') },
+  const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
+
+  const allProjectTabs: Array<{ id: Tab; label: string; badge?: string | number; subItems?: SubItem[]; adminOnly?: boolean }> = [
+    { id: 'dashboard', label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief'), adminOnly: true },
     {
       id: 'board', label: t('nav.board', mode?.boardTitle || 'Command Board'),
       badge: needsCount > 0 ? needsCount : undefined,
-      subItems: [
-        { label: 'Command Board', href: `/p/${pid}/board`, icon: '📋' },
-        { label: 'Inbox',         href: `/p/${pid}/inbox`, icon: '📥' },
-      ],
+      subItems: isOperator
+        ? [{ label: 'Inbox', href: `/p/${pid}/inbox`, icon: '📥' }]
+        : [
+            { label: 'Command Board', href: `/p/${pid}/board`, icon: '📋' },
+            { label: 'Inbox',         href: `/p/${pid}/inbox`, icon: '📥' },
+          ],
     },
     {
       id: 'squads', label: t('nav.squads', 'Squads'),
       badge: totalAgents > 0 ? totalAgents : undefined,
+      adminOnly: true,
       subItems: [
         { label: 'Squads',       href: `/p/${pid}/squads`, icon: '🤖' },
         { label: 'Tribes',       href: `/p/${pid}/tribes`, icon: '🏕' },
@@ -120,22 +127,30 @@ export function TopBar({
         { label: 'Team',         href: `/p/${pid}/team`,   icon: '👥' },
       ],
     },
-    { id: 'studio', label: t('nav.studio', 'Studio') },
+    { id: 'studio', label: t('nav.studio', 'Studio'), adminOnly: true },
     {
       id: 'resources', label: t('nav.resources', 'Resources'),
-      subItems: [
-        { label: 'Overview',     href: `/p/${pid}/resources`,                  icon: '🗄' },
-        { label: 'Accounts',     href: `/p/${pid}/resources?vault=accounts`,   icon: '🔐' },
-        { label: 'Media',        href: `/p/${pid}/resources?vault=media`,      icon: '🎬' },
-        { label: 'Contacts',     href: `/p/${pid}/resources?vault=contacts`,   icon: '📇' },
-        { label: 'Infra',        href: `/p/${pid}/resources?vault=infra`,      icon: '🌐' },
-        { label: 'Budget',       href: `/p/${pid}/resources?vault=budget`,     icon: '💰' },
-        { label: 'Knowledge',    href: `/p/${pid}/resources?vault=knowledge`,  icon: '🧠' },
-        { label: 'Publications', href: `/p/${pid}/publications`,               icon: '📡' },
-      ],
+      subItems: isOperator
+        ? [
+            { label: 'Accounts', href: `/p/${pid}/resources?vault=accounts`, icon: '🔐' },
+          ]
+        : [
+            { label: 'Overview',     href: `/p/${pid}/resources`,                  icon: '🗄' },
+            { label: 'Accounts',     href: `/p/${pid}/resources?vault=accounts`,   icon: '🔐' },
+            { label: 'Media',        href: `/p/${pid}/resources?vault=media`,      icon: '🎬' },
+            { label: 'Contacts',     href: `/p/${pid}/resources?vault=contacts`,   icon: '📇' },
+            { label: 'Infra',        href: `/p/${pid}/resources?vault=infra`,      icon: '🌐' },
+            { label: 'Budget',       href: `/p/${pid}/resources?vault=budget`,     icon: '💰' },
+            { label: 'Knowledge',    href: `/p/${pid}/resources?vault=knowledge`,  icon: '🧠' },
+            { label: 'Publications', href: `/p/${pid}/publications`,               icon: '📡' },
+          ],
     },
-    { id: 'settings', label: '⚙' },
+    { id: 'settings', label: '⚙', adminOnly: true },
   ];
+
+  const projectTabs = isOperator
+    ? allProjectTabs.filter((pt) => !pt.adminOnly)
+    : allProjectTabs;
 
   return (
     <header className="topbar">

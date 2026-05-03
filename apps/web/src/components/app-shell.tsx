@@ -55,7 +55,7 @@ export function AppShell({
     <>
       <ThemeApplier modeAccent={mode?.accent} />
       <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}>
-        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} />
+        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} />
         {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
         <RightBar mode={mode} projectId={project?.id} />

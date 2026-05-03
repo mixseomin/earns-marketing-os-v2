@@ -41,26 +41,32 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
         ))}
         {currentProjectId && (
           <>
-            <Link href={`/p/${currentProjectId}/tribes`} className="squad" style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
-              <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>◍</div>
-              <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>audience clusters</span></div>
-              <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-            </Link>
-            <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+            {currentUser?.role === 'admin' && (
+              <Link href={`/p/${currentProjectId}/tribes`} className="squad" style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>◍</div>
+                <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>audience clusters</span></div>
+                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+              </Link>
+            )}
+            <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
               <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
               <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
             </Link>
-            <Link href={`/p/${currentProjectId}/publications`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>📡</div>
-              <div className="squad-name"><b>Publications</b><span>monitor · engage</span></div>
-              <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-            </Link>
-            <Link href={`/p/${currentProjectId}/flow`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="squad-icon" style={{ borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }}>🗺</div>
-              <div className="squad-name"><b>Flow</b><span>diagram · architecture</span></div>
-              <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-            </Link>
+            {currentUser?.role === 'admin' && (
+              <>
+                <Link href={`/p/${currentProjectId}/publications`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>📡</div>
+                  <div className="squad-name"><b>Publications</b><span>monitor · engage</span></div>
+                  <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+                </Link>
+                <Link href={`/p/${currentProjectId}/flow`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="squad-icon" style={{ borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }}>🗺</div>
+                  <div className="squad-name"><b>Flow</b><span>diagram · architecture</span></div>
+                  <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+                </Link>
+              </>
+            )}
           </>
         )}
       </div>

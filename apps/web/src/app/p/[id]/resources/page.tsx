@@ -51,19 +51,27 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     knowledge: knowledge.length === 0 ? 'empty' : `${knowledge.length} items`,
   };
 
+  const isOperator = me?.role !== 'admin';
+
   return (
-    <AppShell mode={mode} project={project} projects={projects} tab="resources">
+    <AppShell
+      mode={mode}
+      project={project}
+      projects={projects}
+      tab="resources"
+      currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
+    >
       <ResourcesPage
         isBlank={!isDemo}
         vaultStats={vaultStats}
         accountsOverride={
           <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} />
         }
-        knowledgeOverride={isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />}
-        contactsOverride={isDemo ? undefined : <ContactsVault contacts={contacts} projectName={project.name} />}
-        mediaOverride={isDemo ? undefined : <MediaVault items={media} projectId={id} />}
-        infraOverride={isDemo ? undefined : <InfraVault items={infra} projectId={id} />}
-        budgetOverride={isDemo ? undefined : <BudgetVault items={budget} projectId={id} />}
+        knowledgeOverride={isOperator ? <></> : (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />)}
+        contactsOverride={isOperator ? <></> : (isDemo ? undefined : <ContactsVault contacts={contacts} projectName={project.name} />)}
+        mediaOverride={isOperator ? <></> : (isDemo ? undefined : <MediaVault items={media} projectId={id} />)}
+        infraOverride={isOperator ? <></> : (isDemo ? undefined : <InfraVault items={infra} projectId={id} />)}
+        budgetOverride={isOperator ? <></> : (isDemo ? undefined : <BudgetVault items={budget} projectId={id} />)}
       />
     </AppShell>
   );

@@ -117,6 +117,7 @@ export function TopBar({
         { label: 'Squads',       href: `/p/${pid}/squads`, icon: '🤖' },
         { label: 'Tribes',       href: `/p/${pid}/tribes`, icon: '🏕' },
         { label: 'Flow Diagram', href: `/p/${pid}/flow`,   icon: '🗺' },
+        { label: 'Team',         href: `/p/${pid}/team`,   icon: '👥' },
       ],
     },
     { id: 'studio', label: t('nav.studio', 'Studio') },

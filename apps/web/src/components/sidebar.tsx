@@ -130,6 +130,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
     {
       key: 'monitor', label: 'Monitor',
       items: [
+        { href: '/department',icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
         { href: '/agents',    icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
         { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',        sub: 'human tasks queue' },
         { href: '/scheduler', icon: '⏱',  color: 'var(--neon-lime)',   label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },

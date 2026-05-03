@@ -164,6 +164,176 @@ const TABLE_BY_TYPE: Record<OwnableEntity, string> = {
   tribe: 'tribes',
 };
 
+// ── Member assignment summary (for /team inventory + visibility audit) ──
+export interface MemberAssignmentSummary {
+  projects: Array<{ projectId: string; projectName: string; role: string }>;
+  accounts: Array<{ id: number; handle: string; platformLabel: string; projectId: string }>;
+  proxies: Array<{ id: number; label: string; type: string }>;
+  profiles: Array<{ id: number; label: string; tool: string }>;
+  tribes: Array<{ id: number; label: string; projectId: string }>;
+  pendingTasks: number;
+  inProgressTasks: number;
+}
+
+export async function getMemberAssignments(userId: number): Promise<MemberAssignmentSummary> {
+  const db = getDb();
+  const empty: MemberAssignmentSummary = { projects: [], accounts: [], proxies: [], profiles: [], tribes: [], pendingTasks: 0, inProgressTasks: 0 };
+  if (!db) return empty;
+  const [projRows, accRows, pxRows, bpRows, trRows, taskRows] = await Promise.all([
+    db.execute(sql`
+      SELECT m.project_id, p.name AS project_name, m.role
+      FROM members m JOIN projects p ON p.id = m.project_id
+      WHERE m.user_id = ${userId} AND m.project_id IS NOT NULL AND m.active = true
+      ORDER BY p.name
+    `),
+    db.execute(sql`
+      SELECT pa.id, pa.handle, COALESCE(pl.label, pa.platform_key) AS platform_label, pa.project_id
+      FROM platform_accounts pa LEFT JOIN platforms pl ON pl.key = pa.platform_key
+      WHERE pa.owner_user_id = ${userId}
+      ORDER BY pa.project_id, pa.platform_key
+    `),
+    db.execute(sql`
+      SELECT id, label, type FROM proxies
+      WHERE owner_user_id = ${userId} AND archived_at IS NULL
+      ORDER BY label
+    `),
+    db.execute(sql`
+      SELECT id, label, tool FROM browser_profiles
+      WHERE owner_user_id = ${userId} AND archived_at IS NULL
+      ORDER BY label
+    `),
+    db.execute(sql`
+      SELECT id, name AS label, project_id FROM tribes
+      WHERE owner_user_id = ${userId}
+      ORDER BY project_id, name
+    `),
+    db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_count,
+        COUNT(*) FILTER (WHERE status IN ('claimed', 'in_progress'))::int AS in_progress_count
+      FROM human_tasks WHERE assigned_user_id = ${userId}
+    `),
+  ]);
+  const taskR = (taskRows as unknown as Array<{ pending_count: number; in_progress_count: number }>)[0];
+  return {
+    projects: (projRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      projectId: String(r.project_id), projectName: String(r.project_name), role: String(r.role ?? 'operator'),
+    })),
+    accounts: (accRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), handle: String(r.handle ?? '(no-handle)'),
+      platformLabel: String(r.platform_label), projectId: String(r.project_id),
+    })),
+    proxies: (pxRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), label: String(r.label), type: String(r.type),
+    })),
+    profiles: (bpRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), label: String(r.label), tool: String(r.tool),
+    })),
+    tribes: (trRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), label: String(r.label), projectId: String(r.project_id ?? ''),
+    })),
+    pendingTasks: taskR?.pending_count ?? 0,
+    inProgressTasks: taskR?.in_progress_count ?? 0,
+  };
+}
+
+// ── Member activity timeline ─────────────────────────────────────
+export interface MemberActivityEvent {
+  type: 'task_claimed' | 'task_completed' | 'task_assigned' | 'login' | 'task_published';
+  at: string;
+  taskId?: number;
+  taskTitle?: string;
+  projectId?: string | null;
+  feedbackType?: string | null;
+  publishUrl?: string | null;
+}
+
+export async function listMemberActivity(userId: number, limit = 30): Promise<MemberActivityEvent[]> {
+  const db = getDb();
+  if (!db) return [];
+  // Combine multiple event sources via UNION; dedupe + sort by time desc.
+  const rows = await db.execute(sql`
+    (
+      SELECT 'task_claimed' AS type, claimed_at AS at, id AS task_id, title AS task_title,
+             project_id, feedback_type, publish_url
+      FROM human_tasks WHERE assigned_user_id = ${userId} AND claimed_at IS NOT NULL
+    )
+    UNION ALL
+    (
+      SELECT 'task_completed', completed_at, id, title, project_id, feedback_type, publish_url
+      FROM human_tasks WHERE assigned_user_id = ${userId} AND completed_at IS NOT NULL
+    )
+    UNION ALL
+    (
+      SELECT 'task_published', verified_at, id, title, project_id, feedback_type, publish_url
+      FROM human_tasks WHERE assigned_user_id = ${userId} AND publish_url IS NOT NULL
+    )
+    UNION ALL
+    (
+      SELECT 'task_assigned', created_at, id, title, project_id, NULL, NULL
+      FROM human_tasks WHERE assigned_user_id = ${userId}
+    )
+    UNION ALL
+    (
+      SELECT 'login', last_login_at, NULL, NULL, NULL, NULL, NULL
+      FROM users WHERE id = ${userId} AND last_login_at IS NOT NULL
+    )
+    ORDER BY at DESC NULLS LAST LIMIT ${limit}
+  `);
+  const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : '');
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    type: String(r.type) as MemberActivityEvent['type'],
+    at: toIso(r.at),
+    taskId: r.task_id ? Number(r.task_id) : undefined,
+    taskTitle: r.task_title ? String(r.task_title) : undefined,
+    projectId: (r.project_id as string | null) ?? null,
+    feedbackType: (r.feedback_type as string | null) ?? null,
+    publishUrl: (r.publish_url as string | null) ?? null,
+  })).filter((e) => e.at);
+}
+
+// ── Project team (for per-project /p/[id]/team page) ──────────────
+export interface ProjectMemberRow {
+  userId: number;
+  email: string;
+  name: string;
+  displayName: string;
+  role: string;
+  specialty: string;
+  active: boolean;
+  // Counts within this project
+  accountsCount: number;
+  pendingTasks: number;
+}
+
+export async function listProjectMembers(projectId: string): Promise<ProjectMemberRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT u.id AS user_id, u.email, u.name,
+           m.role, m.display_name, m.active,
+           tw.specialty,                              -- tenant-wide specialty
+           (SELECT COUNT(*)::int FROM platform_accounts WHERE owner_user_id = u.id AND project_id = ${projectId}) AS accounts_count,
+           (SELECT COUNT(*)::int FROM human_tasks WHERE assigned_user_id = u.id AND project_id = ${projectId} AND status = 'pending') AS pending_count
+    FROM members m
+    JOIN users u ON u.id = m.user_id
+    LEFT JOIN members tw ON tw.user_id = u.id AND tw.project_id IS NULL
+    WHERE m.tenant_id = ${TENANT} AND m.project_id = ${projectId}
+    ORDER BY m.role, COALESCE(m.display_name, u.name)
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    userId: Number(r.user_id),
+    email: String(r.email),
+    name: String(r.name ?? ''),
+    displayName: String(r.display_name ?? r.name ?? ''),
+    role: String(r.role ?? 'operator'),
+    specialty: String(r.specialty ?? 'other'),
+    active: Boolean(r.active),
+    accountsCount: Number(r.accounts_count) || 0,
+    pendingTasks: Number(r.pending_count) || 0,
+  }));
+}
+
 export async function setEntityOwner(type: OwnableEntity, entityId: number, ownerUserId: number | null): Promise<{ ok: boolean; error?: string }> {
   const g = await adminGuard(); if (!g.ok) return g;
   const db = getDb();

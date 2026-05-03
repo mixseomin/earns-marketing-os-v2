@@ -7,7 +7,7 @@ import {
   createTeamMember, updateTeamMember, archiveTeamMember,
 } from '@/lib/actions/team';
 import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
-import { listMemberProjects, setProjectMembership, type MemberProjectRow } from '@/lib/actions/assignments';
+import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -416,9 +416,17 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
             </div>
           )}
           {!isCreate && member && (
-            <div style={{ gridColumn: '1 / 3' }}>
-              <ProjectAccessSection userId={member.userId} userName={member.displayName} />
-            </div>
+            <>
+              <div style={{ gridColumn: '1 / 3' }}>
+                <ProjectAccessSection userId={member.userId} userName={member.displayName} />
+              </div>
+              <div style={{ gridColumn: '1 / 3' }}>
+                <AssignmentInventory userId={member.userId} userName={member.displayName} />
+              </div>
+              <div style={{ gridColumn: '1 / 3' }}>
+                <ActivityTimeline userId={member.userId} userName={member.displayName} />
+              </div>
+            </>
           )}
         </div>
 
@@ -493,6 +501,139 @@ function ProjectAccessSection({ userId, userName }: { userId: number; userName: 
       </div>
       <div style={{ marginTop: 6, fontSize: 9.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
         Operator chỉ thấy projects được tick. Admin luôn thấy tất cả.
+      </div>
+    </div>
+  );
+}
+
+// ── Assignment inventory: what entities member owns ───────────────
+function AssignmentInventory({ userId, userName }: { userId: number; userName: string }) {
+  const [data, setData] = useState<MemberAssignmentSummary | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getMemberAssignments(userId).then((d) => { if (!cancelled) setData(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
+  if (!data) return null;
+  const total = data.accounts.length + data.proxies.length + data.profiles.length + data.tribes.length;
+  if (total === 0 && data.pendingTasks === 0 && data.inProgressTasks === 0) {
+    return (
+      <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px dashed var(--line)', borderRadius: 6, fontSize: 11, color: 'var(--fg-3)' }}>
+        🧹 {userName} chưa được assign account/proxy/profile/tribe nào. Vào /p/[id]/resources hoặc /environments để assign.
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        🔐 Assigned entities — {userName} quản lý
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 11 }}>
+        <InventoryGroup label="Accounts" icon="🔐" count={data.accounts.length}
+          items={data.accounts.map((a) => `@${a.handle} · ${a.platformLabel} (${a.projectId})`)} />
+        <InventoryGroup label="Proxies" icon="🔌" count={data.proxies.length}
+          items={data.proxies.map((p) => `${p.label} · ${p.type}`)} />
+        <InventoryGroup label="Browser profiles" icon="🧬" count={data.profiles.length}
+          items={data.profiles.map((p) => `${p.label} · ${p.tool}`)} />
+        <InventoryGroup label="Tribes" icon="🏘" count={data.tribes.length}
+          items={data.tribes.map((t) => `${t.label} (${t.projectId})`)} />
+      </div>
+      <div style={{ marginTop: 6, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+        📥 {data.pendingTasks} pending · ⏳ {data.inProgressTasks} in progress
+      </div>
+    </div>
+  );
+}
+
+function InventoryGroup({ label, icon, count, items }: { label: string; icon: string; count: number; items: string[] }) {
+  return (
+    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '6px 8px' }}>
+      <div style={{ fontSize: 10.5, color: count > 0 ? 'var(--fg-1)' : 'var(--fg-4)', fontWeight: 600, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span>{icon}</span>
+        <span>{label}</span>
+        <span style={{
+          fontFamily: 'var(--font-mono)',
+          color: count > 0 ? 'var(--ok)' : 'var(--fg-4)',
+          marginLeft: 'auto', fontSize: 10,
+        }}>{count}</span>
+      </div>
+      {items.length === 0 ? (
+        <div style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>chưa có</div>
+      ) : (
+        <ul style={{ margin: 0, padding: '0 0 0 14px', fontSize: 10.5, color: 'var(--fg-2)', lineHeight: 1.6 }}>
+          {items.slice(0, 5).map((it, i) => <li key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it}</li>)}
+          {items.length > 5 && <li style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>+{items.length - 5} more...</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Activity timeline: what member is/was doing ──────────────────
+function ActivityTimeline({ userId, userName }: { userId: number; userName: string }) {
+  const [events, setEvents] = useState<MemberActivityEvent[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    listMemberActivity(userId, 25).then((d) => { if (!cancelled) setEvents(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
+  if (!events) return null;
+  if (events.length === 0) {
+    return (
+      <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px dashed var(--line)', borderRadius: 6, fontSize: 11, color: 'var(--fg-3)' }}>
+        📊 Chưa có activity. {userName} chưa login hoặc chưa nhận task.
+      </div>
+    );
+  }
+  const fmtRel = (iso: string) => {
+    const ms = Date.now() - new Date(iso).getTime();
+    if (ms < 60_000) return `${Math.floor(ms / 1000)}s`;
+    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m`;
+    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h`;
+    return `${Math.floor(ms / 86_400_000)}d`;
+  };
+  const ICON: Record<MemberActivityEvent['type'], string> = {
+    task_assigned: '📥', task_claimed: '👆', task_completed: '✓',
+    task_published: '🚀', login: '🔓',
+  };
+  const COLOR: Record<MemberActivityEvent['type'], string> = {
+    task_assigned: 'var(--fg-3)', task_claimed: 'var(--neon-cyan)',
+    task_completed: 'var(--neon-violet)', task_published: 'var(--ok)',
+    login: 'var(--neon-amber)',
+  };
+  const LABEL: Record<MemberActivityEvent['type'], string> = {
+    task_assigned: 'Task assigned', task_claimed: 'Claimed',
+    task_completed: 'Completed', task_published: 'Published', login: 'Logged in',
+  };
+  return (
+    <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        📊 Activity timeline (last {events.length})
+      </div>
+      <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {events.map((e, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '4px 6px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4,
+            fontSize: 11,
+          }}>
+            <span style={{ fontSize: 13, color: COLOR[e.type], width: 18, textAlign: 'center', flexShrink: 0 }}>{ICON[e.type]}</span>
+            <span style={{ color: 'var(--fg-2)', minWidth: 90, fontWeight: 500 }}>{LABEL[e.type]}</span>
+            <span style={{ flex: 1, color: 'var(--fg-1)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+              {e.taskTitle ? `#${e.taskId} ${e.taskTitle}` : ''}
+              {e.feedbackType && e.feedbackType !== 'success' && (
+                <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>· {e.feedbackType}</span>
+              )}
+            </span>
+            {e.projectId && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{e.projectId}</span>}
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', whiteSpace: 'nowrap' }}>{fmtRel(e.at)}</span>
+            {e.publishUrl && (
+              <a href={`https://href.li/?${e.publishUrl}`} target="_blank" rel="noopener noreferrer"
+                onClick={(ev) => ev.stopPropagation()}
+                style={{ fontSize: 9, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>↗</a>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,17 +1,18 @@
-// Magic link auth + session management. Server-side only.
+// Email + password auth + session management. Server-side only.
 // Cookie 'mos2-session' = random 32-byte hex token, validated against DB.
 
 import { cookies, headers } from 'next/headers';
 import { sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { getDb } from '@mos2/db';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const SESSION_COOKIE = 'mos2-session';
 const SESSION_TTL_DAYS = 30;
-const MAGIC_TTL_HOURS = 24;
-// Bootstrap: when no users have any sessions yet (fresh install), allow first
-// admin to log in via /login?bootstrap=<MOS2_AGENT_TOKEN>. Disabled if env unset.
+const BCRYPT_ROUNDS = 10;
+// Bootstrap: if no admin has password set yet, allow setting initial password
+// via /login bootstrap form (gated by MOS2_AGENT_TOKEN env var).
 const BOOTSTRAP_TOKEN = process.env.MOS2_AGENT_TOKEN ?? '';
 
 function genToken(): string {
@@ -28,46 +29,64 @@ export interface AuthUser {
   active: boolean;
 }
 
-// ── Magic link generation (admin clicks "Generate login link" for member) ──
-export async function createMagicLink(targetUserId: number, createdBy?: number): Promise<{ ok: boolean; url?: string; error?: string }> {
+// ── Password login ──────────────────────────────────────────────────
+export async function loginWithPassword(email: string, password: string): Promise<{ ok: boolean; userId?: number; error?: string }> {
+  if (!email?.trim() || !password) return { ok: false, error: 'Email + password bắt buộc' };
   const db = getDb();
   if (!db) return { ok: false, error: 'DB not available' };
-  const token = genToken();
-  const expiresAt = new Date(Date.now() + MAGIC_TTL_HOURS * 3600_000);
-  await db.execute(sql`
-    INSERT INTO auth_tokens (token, user_id, purpose, expires_at, created_by_user_id)
-    VALUES (${token}, ${targetUserId}, 'login', ${expiresAt.toISOString()}::timestamptz, ${createdBy ?? null})
-  `);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://mos2.on.tc';
-  const url = `${baseUrl}/auth/verify?token=${token}`;
-  return { ok: true, url };
-}
-
-// ── Verify magic link → create session → set cookie ──
-export async function verifyMagicLink(token: string): Promise<{ ok: boolean; userId?: number; error?: string }> {
-  const db = getDb();
-  if (!db) return { ok: false, error: 'DB not available' };
-
-  // Look up token (must exist, not used, not expired)
   const rows = await db.execute(sql`
-    SELECT id, user_id, expires_at, used_at FROM auth_tokens
-    WHERE token = ${token} LIMIT 1
+    SELECT id, password_hash FROM users
+    WHERE tenant_id = ${TENANT} AND email = ${email.trim().toLowerCase()}
+    LIMIT 1
   `);
-  const r = (rows as unknown as Array<{ id: number; user_id: number; expires_at: string; used_at: string | null }>)[0];
-  if (!r) return { ok: false, error: 'Token không hợp lệ' };
-  if (r.used_at) return { ok: false, error: 'Token đã dùng rồi — yêu cầu link mới' };
-  if (new Date(r.expires_at).getTime() < Date.now()) return { ok: false, error: 'Token đã hết hạn — yêu cầu link mới' };
-
-  // Mark token used
-  await db.execute(sql`UPDATE auth_tokens SET used_at = NOW() WHERE id = ${r.id}`);
-
-  // Create session
-  await createSession(Number(r.user_id));
-  // Update last login
-  await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.user_id}`);
-  return { ok: true, userId: Number(r.user_id) };
+  const r = (rows as unknown as Array<{ id: number; password_hash: string | null }>)[0];
+  // Generic message — don't leak which emails exist
+  if (!r || !r.password_hash) return { ok: false, error: 'Email hoặc password sai' };
+  const ok = await bcrypt.compare(password, r.password_hash);
+  if (!ok) return { ok: false, error: 'Email hoặc password sai' };
+  await createSession(Number(r.id));
+  await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`);
+  return { ok: true, userId: Number(r.id) };
 }
 
+// ── Set / reset password (admin sets for member, or self) ──────────
+export async function setUserPassword(userId: number, newPassword: string): Promise<{ ok: boolean; error?: string }> {
+  if (!newPassword || newPassword.length < 8) return { ok: false, error: 'Password tối thiểu 8 ký tự' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB not available' };
+  const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  await db.execute(sql`
+    UPDATE users SET password_hash = ${hash}, password_set_at = NOW(), updated_at = NOW()
+    WHERE id = ${userId} AND tenant_id = ${TENANT}
+  `);
+  return { ok: true };
+}
+
+// ── Bootstrap: set initial admin password when no admin has one yet ──
+export async function bootstrapAdminPassword(suppliedToken: string, password: string): Promise<{ ok: boolean; userId?: number; error?: string }> {
+  if (!BOOTSTRAP_TOKEN) return { ok: false, error: 'Bootstrap disabled (MOS2_AGENT_TOKEN env not set)' };
+  if (suppliedToken !== BOOTSTRAP_TOKEN) return { ok: false, error: 'Bootstrap token mismatch' };
+  if (!password || password.length < 8) return { ok: false, error: 'Password tối thiểu 8 ký tự' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB not available' };
+  // Verify no admin already has password — bootstrap allowed only on fresh install.
+  const adminRows = await db.execute(sql`
+    SELECT u.id, u.password_hash FROM users u
+    JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.role = 'admin'
+    WHERE u.tenant_id = ${TENANT}
+    ORDER BY u.id ASC LIMIT 1
+  `);
+  const r = (adminRows as unknown as Array<{ id: number; password_hash: string | null }>)[0];
+  if (!r) return { ok: false, error: 'Chưa có admin user nào trong DB. Tạo trước (qua migration / script).' };
+  if (r.password_hash) return { ok: false, error: 'Admin đã có password — dùng /login form bình thường, hoặc reset via /team' };
+  const setRes = await setUserPassword(Number(r.id), password);
+  if (!setRes.ok) return { ok: false, error: setRes.error };
+  await createSession(Number(r.id));
+  await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`);
+  return { ok: true, userId: Number(r.id) };
+}
+
+// ── Internal: create session row + set cookie ──────────────────────
 async function createSession(userId: number): Promise<void> {
   const db = getDb();
   if (!db) throw new Error('DB not available');
@@ -90,27 +109,7 @@ async function createSession(userId: number): Promise<void> {
   });
 }
 
-// ── Bootstrap: first admin login when no sessions exist ──
-export async function bootstrapAdmin(suppliedToken: string): Promise<{ ok: boolean; userId?: number; error?: string }> {
-  if (!BOOTSTRAP_TOKEN) return { ok: false, error: 'Bootstrap disabled (MOS2_AGENT_TOKEN not set)' };
-  if (suppliedToken !== BOOTSTRAP_TOKEN) return { ok: false, error: 'Bootstrap token mismatch' };
-  const db = getDb();
-  if (!db) return { ok: false, error: 'DB not available' };
-  // Find first admin
-  const rows = await db.execute(sql`
-    SELECT u.id FROM users u
-    JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.role = 'admin'
-    WHERE u.tenant_id = ${TENANT}
-    ORDER BY u.id ASC LIMIT 1
-  `);
-  const r = (rows as unknown as Array<{ id: number }>)[0];
-  if (!r) return { ok: false, error: 'Chưa có admin user nào trong DB' };
-  await createSession(Number(r.id));
-  await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`);
-  return { ok: true, userId: Number(r.id) };
-}
-
-// ── Get current authenticated user (replaces old cookie hack) ──
+// ── Get current authenticated user ─────────────────────────────────
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
@@ -129,7 +128,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   if (!r) return null;
   if (r.revoked_at) return null;
   if (new Date(String(r.expires_at)).getTime() < Date.now()) return null;
-  // Touch last_seen_at (best-effort, no await needed)
+  // Touch last_seen_at (best-effort)
   db.execute(sql`UPDATE auth_sessions SET last_seen_at = NOW() WHERE session_token = ${token}`).catch(() => {});
   return {
     id: Number(r.user_id),
@@ -158,7 +157,7 @@ export async function logout(): Promise<void> {
   cookieStore.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
 }
 
-// ── Role guards (for server actions / pages) ──
+// ── Role guards ────────────────────────────────────────────────────
 export async function requireAuth(): Promise<AuthUser> {
   const u = await getCurrentUser();
   if (!u) throw new Error('UNAUTHENTICATED');
@@ -171,25 +170,15 @@ export async function requireRole(roles: Array<AuthUser['role']>): Promise<AuthU
   return u;
 }
 
-// ── Pending magic links (for /team admin view) ──
-export async function listPendingMagicLinks(): Promise<Array<{ tokenId: number; userId: number; userEmail: string; userName: string; url: string; expiresAt: string; createdAt: string }>> {
+// ── Bootstrap status check (for /login UI) ──────────────────────────
+export async function needsBootstrap(): Promise<boolean> {
   const db = getDb();
-  if (!db) return [];
-  const rows = await db.execute(sql`
-    SELECT t.id, t.token, t.user_id, t.expires_at, t.created_at, u.email, u.name
-    FROM auth_tokens t
-    JOIN users u ON u.id = t.user_id
-    WHERE t.used_at IS NULL AND t.expires_at > NOW() AND t.purpose = 'login'
-    ORDER BY t.created_at DESC LIMIT 20
+  if (!db) return false;
+  const r = await db.execute(sql`
+    SELECT COUNT(*)::int AS n FROM users u
+    JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.role = 'admin'
+    WHERE u.tenant_id = ${TENANT} AND u.password_hash IS NOT NULL
   `);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://mos2.on.tc';
-  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
-    tokenId: Number(r.id),
-    userId: Number(r.user_id),
-    userEmail: String(r.email),
-    userName: String(r.name ?? ''),
-    url: `${baseUrl}/auth/verify?token=${r.token}`,
-    expiresAt: r.expires_at instanceof Date ? r.expires_at.toISOString() : String(r.expires_at),
-    createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
-  }));
+  const n = (r as unknown as Array<{ n: number }>)[0]?.n ?? 0;
+  return n === 0;
 }

@@ -6,7 +6,7 @@ import {
   type TeamMemberRow, type Specialty, type MemberRole,
   createTeamMember, updateTeamMember, archiveTeamMember,
 } from '@/lib/actions/team';
-import { generateMagicLink, logoutAction } from '@/lib/actions/auth';
+import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -35,7 +35,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
   const [editing, setEditing] = useState<TeamMemberRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
-  const [linkModal, setLinkModal] = useState<{ url: string; member: TeamMemberRow } | null>(null);
+  const [pwModal, setPwModal] = useState<TeamMemberRow | null>(null);
   const isAdmin = currentRole === 'admin';
 
   const visible = members.filter((m) => showInactive || m.active);
@@ -43,17 +43,6 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
     total: members.length,
     active: members.filter((m) => m.active).length,
     inactive: members.filter((m) => !m.active).length,
-  };
-
-  const handleGenLink = (m: TeamMemberRow) => {
-    startTransition(async () => {
-      const res = await generateMagicLink(m.userId);
-      if (!res.ok || !res.url) {
-        alert(`Lỗi: ${res.error ?? 'không tạo được link'}`);
-        return;
-      }
-      setLinkModal({ url: res.url, member: m });
-    });
   };
 
   const handleLogout = () => {
@@ -156,17 +145,17 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
                   <span title="Pending tasks">📥 {m.pendingTasksCount} pending</span>
                   <span title="In progress">⏳ {m.inProgressTasksCount} active</span>
                   <span style={{ flex: 1 }} />
-                  {isAdmin && m.active && m.userId !== currentUserId && (
+                  {isAdmin && m.active && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleGenLink(m); }}
-                      title="Generate magic link 24h cho member này"
+                      onClick={(e) => { e.stopPropagation(); setPwModal(m); }}
+                      title="Set hoặc reset password cho member này"
                       style={{
                         padding: '2px 6px', fontSize: 9, fontWeight: 600,
                         background: 'transparent', color: 'var(--neon-cyan)',
                         border: '1px solid var(--neon-cyan)', borderRadius: 3,
                         cursor: 'pointer',
                       }}>
-                      🔑 Login link
+                      🔑 Set password
                     </button>
                   )}
                 </div>
@@ -180,47 +169,99 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
         <MemberFormModal member={editing} onClose={() => { setEditing(null); setCreating(false); }} />
       )}
 
-      {linkModal && (
-        <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setLinkModal(null); }}>
-          <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div>
-                <div className="id-line">MAGIC LINK · {linkModal.member.email}</div>
-                <h2>🔑 Login link cho {linkModal.member.displayName}</h2>
-              </div>
-              <button className="modal-close" onClick={() => setLinkModal(null)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ padding: 16 }}>
-              <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>
-                Link một-lần dưới đây có hiệu lực <b>24 giờ</b>. Member click vào sẽ được login + session 30 ngày.
-                Copy + gửi cho member qua Telegram/WhatsApp/email.
-              </p>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                <input readOnly value={linkModal.url}
-                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                  style={{
-                    flex: 1, padding: '8px 10px', fontSize: 12,
-                    background: 'var(--bg-2)', border: '1px solid var(--neon-cyan)', borderRadius: 5,
-                    color: 'var(--fg-0)', fontFamily: 'var(--font-mono)',
-                  }} />
-                <button className="btn primary"
-                  onClick={() => navigator.clipboard.writeText(linkModal.url).catch(() => {})}>
-                  📋 Copy
-                </button>
-              </div>
-              <p style={{ margin: 0, fontSize: 10.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-                ⚠ Link là one-time-use. Sau khi member dùng → invalidated. Tạo link mới nếu cần.
-              </p>
-            </div>
-            <div className="modal-foot">
-              <div className="meta">expires in 24h</div>
-              <div className="modal-foot-actions">
-                <button className="btn primary" onClick={() => setLinkModal(null)}>Done</button>
-              </div>
-            </div>
+      {pwModal && (
+        <SetPasswordModal member={pwModal} onClose={() => setPwModal(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Set/reset password modal ──────────────────────────────────────
+function SetPasswordModal({ member, onClose }: { member: TeamMemberRow; onClose: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [okMessage, setOkMessage] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const save = () => {
+    setError(null); setOkMessage(null);
+    if (password.length < 8) { setError('Password tối thiểu 8 ký tự'); return; }
+    if (password !== confirm) { setError('Password không khớp'); return; }
+    setBusy(true);
+    startTransition(async () => {
+      const res = await setPasswordAction(member.userId, password);
+      setBusy(false);
+      if (!res.ok) { setError(res.error || 'Set password thất bại'); return; }
+      setOkMessage(`Đã set password cho ${member.displayName} (${member.email}). Chia sẻ password mới qua kênh secure.`);
+      setPassword(''); setConfirm('');
+    });
+  };
+
+  // Generate random strong password
+  const generate = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let p = '';
+    for (let i = 0; i < 14; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(p); setConfirm(p);
+  };
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="id-line">{member.email}</div>
+            <h2>🔑 Set password — {member.displayName}</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+        {okMessage && <div style={{ padding: '8px 14px', background: 'rgba(16,185,129,.08)', borderBottom: '1px solid rgba(16,185,129,.3)', color: 'var(--ok)', fontSize: 12 }}>✓ {okMessage}</div>}
+        <div className="modal-body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-2)' }}>
+            Member sẽ login tại <code>/login</code> bằng email <b>{member.email}</b> + password này. Session 30 ngày.
+          </p>
+          <div>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>New password</label>
+            <input type="text" autoComplete="off" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ width: '100%', marginTop: 4, padding: '6px 8px', fontSize: 13,
+                background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5,
+                color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', outline: 'none' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confirm</label>
+            <input type="text" autoComplete="off" value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              style={{ width: '100%', marginTop: 4, padding: '6px 8px', fontSize: 13,
+                background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5,
+                color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', outline: 'none' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={generate}
+              style={{ padding: '6px 12px', fontSize: 11, background: 'transparent', color: 'var(--neon-cyan)', border: '1px solid var(--neon-cyan)', borderRadius: 4, cursor: 'pointer' }}>
+              ✦ Generate strong (14 chars)
+            </button>
+            {password && (
+              <button onClick={() => navigator.clipboard.writeText(password).catch(() => {})}
+                style={{ padding: '6px 10px', fontSize: 11, background: 'transparent', color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer' }}>
+                📋 Copy password
+              </button>
+            )}
           </div>
         </div>
-      )}
+        <div className="modal-foot">
+          <div className="meta">{member.displayName} · {member.specialty}</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Close</button>
+            <button className="btn primary" onClick={save} disabled={busy}>
+              {busy ? '...' : 'Set password'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

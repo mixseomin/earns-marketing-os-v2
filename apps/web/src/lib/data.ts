@@ -129,10 +129,31 @@ async function fetchMode(id: string): Promise<Mode> {
   };
 }
 
+// Strips sensitive data for operator/viewer: hides all squads, KPIs, AI suggestions.
+// They can only see their inbox tasks and assigned resources.
+function scopeModeForRole(mode: Mode, role: string): Mode {
+  if (role === 'admin') return mode;
+  return {
+    ...mode,
+    squads: [],
+    kpis: [],
+    revData: [],
+    suggestions: [],
+    topList: [],
+    cards: [],
+    alerts: [],
+  };
+}
+
 // Returns a project's full Mode with project-scoped squads/cards/alerts/feed merged in.
 export async function getProjectMode(projectId: string, modeId: string): Promise<Mode> {
   const baseMode = await getMode(modeId);
-  if (!getDb()) return baseMode;
+
+  // Check role before hitting DB — operators get a stripped view
+  const me = await getCurrentUser();
+  const role = me?.role ?? 'admin';
+
+  if (!getDb()) return scopeModeForRole(baseMode, role);
   return tryDb(
     async () => {
       const [squadRows, cardRows, alertRows, feedRows] = await Promise.all([
@@ -154,20 +175,13 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
       const isBlank = squadRows !== null && squadRows.length === 0
                    && cardRows !== null && cardRows.length === 0;
 
-      if (isBlank) {
-        return {
-          ...baseMode,
-          squads, cards, alerts, feed,
-          kpis: [],
-          revData: [],
-          suggestions: [],
-          topList: [],
-        };
-      }
+      const assembled = isBlank
+        ? { ...baseMode, squads, cards, alerts, feed, kpis: [], revData: [], suggestions: [], topList: [] }
+        : { ...baseMode, squads, cards, alerts, feed };
 
-      return { ...baseMode, squads, cards, alerts, feed };
+      return scopeModeForRole(assembled, role);
     },
-    baseMode,
+    scopeModeForRole(baseMode, role),
     'getProjectMode',
   );
 }

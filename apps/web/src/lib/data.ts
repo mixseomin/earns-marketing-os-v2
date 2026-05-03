@@ -26,13 +26,13 @@ async function tryDb<T>(fn: () => Promise<T>, fallback: T, label: string): Promi
 // ── Projects ────────────────────────────────────────────────────
 // Auto-filter for current user: admin sees all, operator/viewer only sees
 // projects they're a member of (members table row with project_id != NULL).
-import { getCurrentUser } from './auth';
+import { getEffectiveUser } from './auth';
 import { sql } from 'drizzle-orm';
 
 export async function listProjects(): Promise<Project[]> {
   return tryDb(
     async () => {
-      const me = await getCurrentUser();
+      const me = await getEffectiveUser();
       const rows = await dbListProjects();
       if (!rows) return MOCK_PROJECTS;
       let projects = rows.map(rowToProject);
@@ -58,7 +58,7 @@ export async function listProjects(): Promise<Project[]> {
 export async function getProject(id: string): Promise<Project | undefined> {
   return tryDb(
     async () => {
-      const me = await getCurrentUser();
+      const me = await getEffectiveUser();
       // Access check: admin always; operator/viewer must have membership
       if (me && me.role !== 'admin') {
         const db = getDb();
@@ -150,7 +150,7 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
   const baseMode = await getMode(modeId);
 
   // Check role before hitting DB — operators get a stripped view
-  const me = await getCurrentUser();
+  const me = await getEffectiveUser();
   const role = me?.role ?? 'admin';
 
   if (!getDb()) return scopeModeForRole(baseMode, role);
@@ -355,7 +355,7 @@ export interface AccountRow {
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
   return tryDb(
     async () => {
-      const me = await getCurrentUser();
+      const me = await getEffectiveUser();
       const rows = await listAccountsByProject(projectId);
       if (!rows) return [];
       // Operator scoping: only see accounts they own

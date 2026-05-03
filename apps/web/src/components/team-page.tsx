@@ -151,7 +151,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
                     <>
                       <form action={enterImpersonateAction} onClick={(e) => e.stopPropagation()}>
                         <input type="hidden" name="userId" value={m.userId} />
-                        <input type="hidden" name="returnPath" value="/team" />
+                        <input type="hidden" name="returnPath" value="/inbox" />
                         <button type="submit"
                           title={`Xem góc nhìn của ${m.displayName}`}
                           style={{

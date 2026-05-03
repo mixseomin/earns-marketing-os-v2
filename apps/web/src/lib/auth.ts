@@ -146,6 +146,36 @@ export async function getCurrentUserId(): Promise<number | null> {
   return u?.id ?? null;
 }
 
+// When admin is impersonating via mos2-view-as cookie, returns the target user.
+// Use this for data-fetching / rendering. Use getCurrentUser() for auth guards.
+export async function getEffectiveUser(): Promise<AuthUser | null> {
+  const real = await getCurrentUser();
+  if (!real || real.role !== 'admin') return real;
+  const cookieStore = await cookies();
+  const viewAsId = cookieStore.get('mos2-view-as')?.value;
+  if (!viewAsId) return real;
+  const db = getDb();
+  if (!db) return real;
+  const rows = await db.execute(sql`
+    SELECT u.id, u.email, u.name, m.display_name, m.role, m.specialty, m.active
+    FROM users u
+    LEFT JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.tenant_id = ${TENANT}
+    WHERE u.id = ${Number(viewAsId)} AND u.tenant_id = ${TENANT}
+    LIMIT 1
+  `);
+  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  if (!r) return real;
+  return {
+    id: Number(r.id),
+    email: String(r.email),
+    name: String(r.name ?? ''),
+    displayName: String(r.display_name ?? r.name ?? ''),
+    role: String(r.role ?? 'viewer') as AuthUser['role'],
+    specialty: String(r.specialty ?? 'other'),
+    active: Boolean(r.active),
+  };
+}
+
 // ── Logout (revoke current session) ──
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();

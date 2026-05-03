@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { loginAction, bootstrapAdminAction } from '@/lib/actions/auth';
 import { NoFillInput } from './no-fill-input';
 
+// Standard input style for credentials — does NOT use NoFillInput because
+// password managers SHOULD detect login fields (opposite of other forms).
+const credInputStyle: React.CSSProperties = {
+  width: '100%', marginTop: 4, padding: '8px 10px', fontSize: 13,
+  background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5,
+  color: 'var(--fg-0)', outline: 'none',
+};
+
 export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: string; bootstrapMode: boolean; initialError?: string }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -85,38 +93,35 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
           </div>
         )}
 
+        <form onSubmit={(e) => { e.preventDefault(); bootstrapMode ? handleBootstrap() : handleLogin(); }}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Email</label>
-          <NoFillInput
-            type="text"
+          <label htmlFor="login-email" style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Email</label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            inputMode="email"
             placeholder="you@team.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !bootstrapMode) handleLogin(); }}
-            style={{
-              width: '100%', marginTop: 4, padding: '8px 10px', fontSize: 13,
-              background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5,
-              color: 'var(--fg-0)', outline: 'none',
-            }}
+            style={credInputStyle}
           />
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <label htmlFor="login-password" style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Password{bootstrapMode ? ' (ít nhất 8 ký tự — sẽ là password admin)' : ''}
           </label>
           <input
+            id="login-password"
+            name="password"
             type="password"
             autoComplete={bootstrapMode ? 'new-password' : 'current-password'}
             placeholder={bootstrapMode ? 'Set new admin password' : 'Your password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') (bootstrapMode ? handleBootstrap() : handleLogin()); }}
-            style={{
-              width: '100%', marginTop: 4, padding: '8px 10px', fontSize: 13,
-              background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5,
-              color: 'var(--fg-0)', outline: 'none',
-            }}
+            style={credInputStyle}
           />
         </div>
 
@@ -141,7 +146,7 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
         )}
 
         <button
-          onClick={bootstrapMode ? handleBootstrap : handleLogin}
+          type="submit"
           disabled={busy}
           className="btn primary"
           style={{
@@ -156,6 +161,7 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
             Quên password? Liên hệ admin → /team → Reset password
           </p>
         )}
+        </form>
       </div>
     </div>
   );

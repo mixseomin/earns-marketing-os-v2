@@ -8,7 +8,7 @@ import {
 } from '@/lib/actions/team';
 import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
 import { enterImpersonateAction } from '@/lib/actions/impersonate';
-import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, getProjectAccountsForMember, assignAccountsToMember, enableResourcesForMember, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
+import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, getProjectAccountsForMember, assignAccountsToMember, enableResourcesForMember, listAllProjectsForAssignment, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -289,7 +289,6 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [memberProjectIds, setMemberProjectIds] = useState<string[]>([]);
   const isCreate = !member;
   const [form, setForm] = useState({
     email: member?.email ?? '',
@@ -439,12 +438,12 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
                 <ProjectAccessSection userId={member.userId} userName={member.displayName} />
               </div>
               <div style={{ gridColumn: '1 / 3' }}>
-                <AssignmentInventory userId={member.userId} userName={member.displayName} onProjectIds={setMemberProjectIds} />
+                <AssignmentInventory userId={member.userId} userName={member.displayName} />
               </div>
               <div style={{ gridColumn: '1 / 3' }}>
-                <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-3)', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>GIAO TAI NGUYEN</div>
-                  <AssignResourcesSection userId={member.userId} projectIds={memberProjectIds} />
+                <div style={{ padding: 10, background: 'var(--bg-2)', border: '1px solid var(--neon-cyan)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--neon-cyan)', letterSpacing: 1, marginBottom: 10, textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>🎯 GIAO TÀI NGUYÊN</div>
+                  <AssignResourcesSection userId={member.userId} />
                 </div>
               </div>
               <div style={{ gridColumn: '1 / 3' }}>
@@ -531,15 +530,12 @@ function ProjectAccessSection({ userId, userName }: { userId: number; userName: 
 }
 
 // ── Assignment inventory: what entities member owns ───────────────
-function AssignmentInventory({ userId, userName, onProjectIds }: { userId: number; userName: string; onProjectIds?: (ids: string[]) => void }) {
+function AssignmentInventory({ userId, userName }: { userId: number; userName: string }) {
   const [data, setData] = useState<MemberAssignmentSummary | null>(null);
   useEffect(() => {
     let cancelled = false;
     getMemberAssignments(userId).then((d) => {
-      if (!cancelled) {
-        setData(d);
-        if (onProjectIds) onProjectIds(d.projects.map((p) => p.projectId));
-      }
+      if (!cancelled) setData(d);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [userId]);
@@ -608,76 +604,88 @@ type AccountForAssign = {
   isAssigned: boolean;
 };
 
-function AssignResourcesSection({ userId, projectIds }: { userId: number; projectIds: string[] }) {
-  const [selectedProject, setSelectedProject] = useState(projectIds[0] ?? '');
+function AssignResourcesSection({ userId }: { userId: number }) {
+  const [allProjects, setAllProjects] = useState<Array<{ id: string; name: string; emoji: string }>>([]);
+  const [selectedProject, setSelectedProject] = useState('');
   const [accounts, setAccounts] = useState<AccountForAssign[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
+  // Load all projects on mount
+  useEffect(() => {
+    listAllProjectsForAssignment().then((rows) => {
+      setAllProjects(rows);
+      if (rows[0]) setSelectedProject(rows[0].id);
+      setLoadingProjects(false);
+    }).catch(() => setLoadingProjects(false));
+  }, []);
+
+  // Load accounts when project changes
   const loadAccounts = useCallback(() => {
     if (!selectedProject) return;
-    setLoaded(false);
+    setLoadingAccounts(true);
     getProjectAccountsForMember(selectedProject, userId).then((rows) => {
       setAccounts(rows);
       setSelected(new Set(rows.filter((r) => r.isAssigned).map((r) => r.id)));
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
+      setLoadingAccounts(false);
+    }).catch(() => setLoadingAccounts(false));
   }, [selectedProject, userId]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
   const toggle = (id: number) => setSelected((s) => {
-    const n = new Set(s);
-    n.has(id) ? n.delete(id) : n.add(id);
-    return n;
+    const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
   const save = async () => {
-    setSaving(true);
-    setSaveMsg(null);
+    if (!selectedProject) return;
+    setSaving(true); setSaveMsg(null);
     const res = await assignAccountsToMember(userId, [...selected], selectedProject);
     if (res.ok && selected.size > 0) await enableResourcesForMember(userId);
     setSaving(false);
-    setSaveMsg(res.ok ? `Da giao ${selected.size} accounts` : (res.error ?? 'Loi'));
+    setSaveMsg(res.ok ? `✓ Đã giao ${selected.size} account(s)` : (res.error ?? 'Lỗi'));
     if (res.ok) loadAccounts();
   };
 
-  if (projectIds.length === 0) {
-    return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: '8px 0' }}>Chua co project nao duoc giao.</div>;
-  }
+  if (loadingProjects) return <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Đang tải projects...</div>;
+  if (allProjects.length === 0) return <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có project nào.</div>;
 
   return (
     <div>
-      {projectIds.length > 1 && (
-        <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}
-          style={{ marginBottom: 8, fontSize: 11, padding: '3px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-1)', width: '100%' }}>
-          {projectIds.map((pid) => <option key={pid} value={pid}>{pid}</option>)}
-        </select>
-      )}
-      {!loaded ? (
-        <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Dang tai...</div>
+      <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}
+        style={{ marginBottom: 8, fontSize: 11, padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', width: '100%' }}>
+        {allProjects.map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>)}
+      </select>
+
+      {loadingAccounts ? (
+        <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: '8px 0' }}>Đang tải accounts...</div>
       ) : accounts.length === 0 ? (
-        <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Project nay chua co account nao.</div>
+        <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: '8px 0' }}>Project này chưa có account nào.</div>
       ) : (
-        <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 6 }}>
+        <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 6, marginBottom: 8 }}>
           {accounts.map((a) => (
-            <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', cursor: 'pointer', borderBottom: '1px solid var(--line)', fontSize: 11 }}>
-              <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggle(a.id)} style={{ accentColor: 'var(--neon-cyan)' }} />
-              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 10 }}>{a.platformKey}</span>
-              <span style={{ flex: 1, color: 'var(--fg-1)' }}>{a.handle ?? '—'}</span>
-              <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-2)', color: 'var(--fg-3)' }}>{a.status}</span>
+            <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid var(--line)', fontSize: 11 }}>
+              <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggle(a.id)} style={{ accentColor: 'var(--neon-cyan)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 10, width: 70, flexShrink: 0 }}>{a.platformKey}</span>
+              <span style={{ flex: 1, color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle ?? '—'}</span>
+              <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-2)', color: a.status === 'active' ? 'var(--neon-lime)' : 'var(--fg-3)', flexShrink: 0 }}>{a.status}</span>
+              {a.isAssigned && <span style={{ fontSize: 9, color: 'var(--neon-cyan)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>✓ assigned</span>}
             </label>
           ))}
         </div>
       )}
-      {saveMsg && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{saveMsg}</div>}
-      <button onClick={save} disabled={saving || !loaded} style={{
-        marginTop: 8, width: '100%', padding: '6px', borderRadius: 5, border: 'none',
-        background: 'var(--neon-cyan)', color: '#000', fontWeight: 700, fontSize: 11, cursor: 'pointer',
+
+      {saveMsg && <div style={{ fontSize: 10, color: saveMsg.startsWith('✓') ? 'var(--neon-lime)' : 'var(--bad)', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>{saveMsg}</div>}
+      <button onClick={save} disabled={saving || loadingAccounts || accounts.length === 0} style={{
+        width: '100%', padding: '7px', borderRadius: 5, border: 'none',
+        background: 'var(--neon-cyan)', color: '#000', fontWeight: 700, fontSize: 11,
+        cursor: saving || accounts.length === 0 ? 'not-allowed' : 'pointer',
+        opacity: saving || accounts.length === 0 ? 0.6 : 1,
       }}>
-        {saving ? 'Dang luu...' : `Luu phan cong (${selected.size} accounts)`}
+        {saving ? 'Đang lưu...' : `💾 Lưu phân công (${selected.size} accounts)`}
       </button>
     </div>
   );

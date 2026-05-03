@@ -439,3 +439,17 @@ export async function setEntityOwner(type: OwnableEntity, entityId: number, owne
   revalidatePath('/team');
   return { ok: true };
 }
+
+// All projects available for admin to assign resources from
+export async function listAllProjectsForAssignment(): Promise<Array<{ id: string; name: string; emoji: string }>> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return [];
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`SELECT id, name, emoji FROM projects WHERE tenant_id = ${TENANT} ORDER BY name`);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: String(r.id),
+    name: String(r.name ?? ''),
+    emoji: String(r.emoji ?? ''),
+  }));
+}

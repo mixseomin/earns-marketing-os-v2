@@ -71,7 +71,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
         )}
       </div>
 
-      <SystemNav role={currentUser?.role ?? 'admin'} />
+      {(currentUser?.role ?? 'admin') === 'admin' && <SystemNav role="admin" />}
 
       {currentUser && <UserPanel user={currentUser} />}
 

@@ -75,8 +75,8 @@ export function AppShell({
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} />
         {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
-        <RightBar mode={mode} projectId={project?.id} />
-        <StatusBar mode={mode} project={project} projectCount={projects.length} />
+        {(currentUser?.role ?? 'admin') === 'admin' && <RightBar mode={mode} projectId={project?.id} />}
+        {(currentUser?.role ?? 'admin') === 'admin' && <StatusBar mode={mode} project={project} projectCount={projects.length} />}
 
         <TweaksPanel>
           <TweakSection label="Language" />

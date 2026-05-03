@@ -31,7 +31,7 @@ export default async function InboxRoute({ searchParams }: { searchParams: Promi
     getLastProject(),
     getMode('affiliate'),
     listInbox('all', undefined, { assignment, currentUserId: eff!.id }),
-    me.role === 'admin' ? listTeamMembers() : Promise.resolve([]),
+    eff!.role === 'admin' ? listTeamMembers() : Promise.resolve([]),
     getImpersonateContext(),
     eff!.role !== 'admin' ? getEffectiveVisibility(eff!.id) : Promise.resolve(null),
   ]);

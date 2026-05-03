@@ -710,9 +710,9 @@ export function ResourcesPage({
         </div>
       </div>
 
-      {/* Vault nav */}
+      {/* Vault nav — skip restricted vaults for operators */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8, marginBottom: 16 }}>
-        {VAULT_NAV.map(v => {
+        {VAULT_NAV.filter(v => vaultStats?.[v.id] !== 'restricted').map(v => {
           const realSub = vaultStats?.[v.id];
           return (
             <button key={v.id} onClick={() => setVault(v.id)} style={{

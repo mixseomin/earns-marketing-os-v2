@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useTransition } from 'react';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
+import { logoutAction } from '@/lib/actions/auth';
 import type { Mode, Project } from '@/lib/mock/types';
+import type { CurrentUserInfo } from './app-shell';
 
-export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; currentProjectId?: string; projects: Project[] }) {
+export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo }) {
   const t = useT();
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
 
@@ -63,58 +65,103 @@ export function Sidebar({ mode, currentProjectId, projects }: { mode?: Mode; cur
         )}
       </div>
 
-      <SystemNav />
+      <SystemNav role={currentUser?.role ?? 'admin'} />
 
-      <button
-        className="kill-btn"
-        title={`⚠ Emergency — pause all agents${mode?.killBudget?.cap ? ` · cap ${mode.killBudget.cap}, used ${mode.killBudget.used ?? '—'}` : ''}`}
-        style={{
-          margin: 8, padding: '6px 10px', fontSize: 11, fontWeight: 600,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        }}
-      >
-        ⚠ <span>Pause all agents</span>
-      </button>
+      {currentUser && <UserPanel user={currentUser} />}
+
+      {currentUser?.role === 'admin' && (
+        <button
+          className="kill-btn"
+          title={`⚠ Emergency — pause all agents${mode?.killBudget?.cap ? ` · cap ${mode.killBudget.cap}, used ${mode.killBudget.used ?? '—'}` : ''}`}
+          style={{
+            margin: 8, padding: '6px 10px', fontSize: 11, fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          ⚠ <span>Pause all agents</span>
+        </button>
+      )}
     </aside>
   );
 }
 
-// Compact SYSTEM nav: 3 group rows, hover → float menu sang phải.
-// Sidebar focus 100% vào project SQUADS, system items vẫn truy cập 1 hover.
-type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean };
+// User badge + logout button — bottom of sidebar.
+function UserPanel({ user }: { user: CurrentUserInfo }) {
+  const [, startTransition] = useTransition();
+  const handleLogout = () => {
+    startTransition(async () => { await logoutAction(); });
+  };
+  return (
+    <div style={{
+      margin: '4px 8px', padding: '6px 8px',
+      background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6,
+      display: 'flex', alignItems: 'center', gap: 6,
+    }}>
+      <div style={{
+        width: 24, height: 24, borderRadius: 5,
+        background: user.role === 'admin' ? 'var(--neon-violet)' : user.role === 'operator' ? 'var(--neon-cyan)' : 'var(--fg-3)',
+        color: 'var(--bg-0)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontWeight: 700, fontSize: 11, flexShrink: 0,
+      }}>{user.displayName.charAt(0).toUpperCase()}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {user.displayName}
+        </div>
+        <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+          {user.role}{user.specialty ? ` · ${user.specialty}` : ''}
+        </div>
+      </div>
+      <button onClick={handleLogout} title="Logout"
+        style={{
+          background: 'transparent', border: '1px solid var(--line)',
+          borderRadius: 4, padding: '2px 6px', fontSize: 10, color: 'var(--fg-3)',
+          cursor: 'pointer',
+        }}>↪</button>
+    </div>
+  );
+}
 
-function SystemNav() {
+// Compact SYSTEM nav: 3 group rows, hover → float menu sang phải.
+// Filter items by user role — operator sees fewer.
+type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean; role?: 'admin' };
+
+function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' }) {
   const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
     {
       key: 'monitor', label: 'Monitor',
       items: [
-        { href: '/agents',  icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin',sub: 'runs · breakers · solo' },
-        { href: '/inbox',   icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',       sub: 'human tasks queue' },
-        { href: '/scheduler', icon: '⏱', color: 'var(--neon-lime)', label: 'Scheduler',   sub: 'cron · timers · config' },
-        { href: '/ai-log',  icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity', sub: 'OpenAI · cost · oversight' },
-        { href: '/tests',   icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',       sub: 'use cases · QA' },
-        { href: '/roadmap', icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',     sub: 'phases · deps' },
+        { href: '/agents',    icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
+        { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',        sub: 'human tasks queue' },
+        { href: '/scheduler', icon: '⏱',  color: 'var(--neon-lime)',   label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },
+        { href: '/ai-log',    icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },
+        { href: '/tests',     icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',        sub: 'use cases · QA',         role: 'admin' },
+        { href: '/roadmap',   icon: '🗺',  color: 'var(--neon-cyan)',   label: 'Roadmap',      sub: 'phases · deps' },
       ],
     },
     {
       key: 'library', label: 'Library',
       items: [
         { href: '/library', icon: '🗂', color: 'var(--neon-cyan)',  label: 'Tools & Skills', sub: 'shared catalog' },
-        {                   icon: '⌖', color: 'var(--neon-amber)', label: 'Playbooks',      sub: 'soon', soon: true },
+        {                   icon: '⌖',  color: 'var(--neon-amber)', label: 'Playbooks',      sub: 'soon', soon: true },
       ],
     },
     {
       key: 'setup', label: 'Setup',
       items: [
-        { href: '/team',          icon: '👥', color: 'var(--neon-lime)',   label: 'Team',             sub: 'members · roles · assignment' },
-        { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers' },
+        { href: '/team',          icon: '👥', color: 'var(--neon-lime)',   label: 'Team',             sub: 'members · roles · assignment', role: 'admin' },
+        { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers', role: 'admin' },
         { href: '/platforms',     icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',        sub: 'catalog · 59 entries' },
-        { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles' },
+        { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
         {                         icon: '⚙',  color: 'var(--neon-cyan)',   label: 'Trust thresholds', sub: 'soon', soon: true },
         { href: '/',              icon: '⊞',  color: 'var(--neon-violet)', label: 'All Projects',     sub: 'portfolio' },
       ],
     },
   ];
+
+  // Filter by role — admin sees all; non-admin skip items marked role==='admin'
+  const filteredGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((it) => !it.role || role === 'admin') }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div
@@ -130,7 +177,7 @@ function SystemNav() {
         <span>SYSTEM</span>
         <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· hover</span>
       </div>
-      <SystemGroups groups={groups} />
+      <SystemGroups groups={filteredGroups} />
     </div>
   );
 }

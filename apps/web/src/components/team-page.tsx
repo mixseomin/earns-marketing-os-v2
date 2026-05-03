@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   type TeamMemberRow, type Specialty, type MemberRole,
   createTeamMember, updateTeamMember, archiveTeamMember,
-  setCurrentUserId,
 } from '@/lib/actions/team';
+import { generateMagicLink, logoutAction } from '@/lib/actions/auth';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -29,12 +29,14 @@ const ROLE_META: Record<MemberRole, { label: string; color: string }> = {
   viewer:   { label: 'Viewer',   color: 'var(--fg-3)' },
 };
 
-export function TeamPage({ members, currentUserId }: { members: TeamMemberRow[]; currentUserId: number | null }) {
+export function TeamPage({ members, currentUserId, currentRole }: { members: TeamMemberRow[]; currentUserId: number | null; currentRole?: 'admin' | 'operator' | 'viewer' }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [editing, setEditing] = useState<TeamMemberRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [linkModal, setLinkModal] = useState<{ url: string; member: TeamMemberRow } | null>(null);
+  const isAdmin = currentRole === 'admin';
 
   const visible = members.filter((m) => showInactive || m.active);
   const counts = {
@@ -43,10 +45,20 @@ export function TeamPage({ members, currentUserId }: { members: TeamMemberRow[];
     inactive: members.filter((m) => !m.active).length,
   };
 
-  const switchTo = (uid: number) => {
+  const handleGenLink = (m: TeamMemberRow) => {
     startTransition(async () => {
-      await setCurrentUserId(uid);
-      router.refresh();
+      const res = await generateMagicLink(m.userId);
+      if (!res.ok || !res.url) {
+        alert(`Lỗi: ${res.error ?? 'không tạo được link'}`);
+        return;
+      }
+      setLinkModal({ url: res.url, member: m });
+    });
+  };
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await logoutAction();
     });
   };
 
@@ -68,24 +80,20 @@ export function TeamPage({ members, currentUserId }: { members: TeamMemberRow[];
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-          Currently logged in as:
-        </span>
-        <select
-          value={currentUserId ?? ''}
-          onChange={(e) => switchTo(Number(e.target.value))}
-          style={{
-            padding: '4px 8px', fontSize: 12,
-            background: 'var(--bg-2)', border: '1px solid var(--accent)',
-            borderRadius: 5, color: 'var(--fg-0)',
-          }}
-        >
-          {members.map((m) => (
-            <option key={m.userId} value={m.userId}>
-              {SPECIALTY_META[m.specialty]?.icon ?? '👤'} {m.displayName} ({m.email})
-            </option>
-          ))}
-        </select>
+        {currentUserId && (
+          <span style={{
+            padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-mono)',
+            background: 'var(--accent-soft)', color: 'var(--accent)',
+            border: '1px solid var(--accent)', borderRadius: 5,
+          }}>
+            👤 You: {members.find((m) => m.userId === currentUserId)?.displayName ?? `user #${currentUserId}`}
+            {currentRole && ` · ${currentRole}`}
+          </span>
+        )}
+        <button onClick={handleLogout}
+          style={{ padding: '4px 10px', fontSize: 11, background: 'var(--bg-2)', color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 5, cursor: 'pointer' }}>
+          ↪ Logout
+        </button>
         <span style={{ flex: 1 }} />
         <label style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
@@ -144,9 +152,23 @@ export function TeamPage({ members, currentUserId }: { members: TeamMemberRow[];
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 8, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                <div style={{ display: 'flex', gap: 8, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', alignItems: 'center' }}>
                   <span title="Pending tasks">📥 {m.pendingTasksCount} pending</span>
                   <span title="In progress">⏳ {m.inProgressTasksCount} active</span>
+                  <span style={{ flex: 1 }} />
+                  {isAdmin && m.active && m.userId !== currentUserId && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleGenLink(m); }}
+                      title="Generate magic link 24h cho member này"
+                      style={{
+                        padding: '2px 6px', fontSize: 9, fontWeight: 600,
+                        background: 'transparent', color: 'var(--neon-cyan)',
+                        border: '1px solid var(--neon-cyan)', borderRadius: 3,
+                        cursor: 'pointer',
+                      }}>
+                      🔑 Login link
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -156,6 +178,48 @@ export function TeamPage({ members, currentUserId }: { members: TeamMemberRow[];
 
       {(editing || creating) && (
         <MemberFormModal member={editing} onClose={() => { setEditing(null); setCreating(false); }} />
+      )}
+
+      {linkModal && (
+        <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setLinkModal(null); }}>
+          <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <div className="id-line">MAGIC LINK · {linkModal.member.email}</div>
+                <h2>🔑 Login link cho {linkModal.member.displayName}</h2>
+              </div>
+              <button className="modal-close" onClick={() => setLinkModal(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: 16 }}>
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>
+                Link một-lần dưới đây có hiệu lực <b>24 giờ</b>. Member click vào sẽ được login + session 30 ngày.
+                Copy + gửi cho member qua Telegram/WhatsApp/email.
+              </p>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                <input readOnly value={linkModal.url}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                  style={{
+                    flex: 1, padding: '8px 10px', fontSize: 12,
+                    background: 'var(--bg-2)', border: '1px solid var(--neon-cyan)', borderRadius: 5,
+                    color: 'var(--fg-0)', fontFamily: 'var(--font-mono)',
+                  }} />
+                <button className="btn primary"
+                  onClick={() => navigator.clipboard.writeText(linkModal.url).catch(() => {})}>
+                  📋 Copy
+                </button>
+              </div>
+              <p style={{ margin: 0, fontSize: 10.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+                ⚠ Link là one-time-use. Sau khi member dùng → invalidated. Tạo link mới nếu cần.
+              </p>
+            </div>
+            <div className="modal-foot">
+              <div className="meta">expires in 24h</div>
+              <div className="modal-foot-actions">
+                <button className="btn primary" onClick={() => setLinkModal(null)}>Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

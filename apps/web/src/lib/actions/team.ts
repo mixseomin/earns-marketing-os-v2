@@ -3,12 +3,18 @@
 // Team management — users + members CRUD + current-user cookie + assignment helpers.
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, users, members } from '@mos2/db';
+import { getCurrentUser } from '@/lib/auth';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
-const CURRENT_USER_COOKIE = 'mos2-current-user-id';
+
+async function adminGuard(): Promise<{ ok: boolean; error?: string }> {
+  const u = await getCurrentUser();
+  if (!u) return { ok: false, error: 'UNAUTHENTICATED' };
+  if (u.role !== 'admin') return { ok: false, error: 'FORBIDDEN — admin only' };
+  return { ok: true };
+}
 
 function ensureDb() {
   const db = getDb();
@@ -87,6 +93,7 @@ export interface MemberInput {
 }
 
 export async function createTeamMember(input: MemberInput): Promise<{ ok: boolean; userId?: number; error?: string }> {
+  const g = await adminGuard(); if (!g.ok) return g;
   if (!input.email?.trim()) return { ok: false, error: 'Email rỗng' };
   if (!input.name?.trim()) return { ok: false, error: 'Name rỗng' };
   const db = ensureDb();
@@ -152,6 +159,7 @@ export async function createTeamMember(input: MemberInput): Promise<{ ok: boolea
 }
 
 export async function updateTeamMember(userId: number, patch: Partial<MemberInput>): Promise<{ ok: boolean; error?: string }> {
+  const g = await adminGuard(); if (!g.ok) return g;
   const db = ensureDb();
   try {
     if (patch.name !== undefined || patch.email !== undefined || patch.avatarUrl !== undefined) {
@@ -183,7 +191,8 @@ export async function updateTeamMember(userId: number, patch: Partial<MemberInpu
   }
 }
 
-export async function archiveTeamMember(userId: number): Promise<{ ok: boolean }> {
+export async function archiveTeamMember(userId: number): Promise<{ ok: boolean; error?: string }> {
+  const g = await adminGuard(); if (!g.ok) return g;
   const db = ensureDb();
   await db.update(members)
     .set({ active: false, updatedAt: new Date() })
@@ -196,33 +205,11 @@ export async function archiveTeamMember(userId: number): Promise<{ ok: boolean }
   return { ok: true };
 }
 
-// ── Current user (cookie-based session, no real auth yet) ──────────
+// ── Current user — delegates to real session auth (lib/auth) ───────
+// Old cookie 'mos2-current-user-id' deprecated. Now driven by session cookie.
+import { getCurrentUserId as _getCurrentUserId } from '@/lib/auth';
 export async function getCurrentUserId(): Promise<number | null> {
-  const cookieStore = await cookies();
-  const c = cookieStore.get(CURRENT_USER_COOKIE);
-  if (c?.value) {
-    const id = Number(c.value);
-    if (!isNaN(id) && id > 0) return id;
-  }
-  // Fallback: first admin user in tenant
-  const db = getDb();
-  if (!db) return null;
-  const rows = await db.select({ id: users.id })
-    .from(users)
-    .where(eq(users.tenantId, TENANT))
-    .orderBy(users.id)
-    .limit(1);
-  return rows[0]?.id ?? null;
-}
-
-export async function setCurrentUserId(userId: number): Promise<{ ok: boolean }> {
-  const cookieStore = await cookies();
-  cookieStore.set(CURRENT_USER_COOKIE, String(userId), {
-    path: '/', maxAge: 60 * 60 * 24 * 365,
-    sameSite: 'lax',
-  });
-  revalidatePath('/');
-  return { ok: true };
+  return _getCurrentUserId();
 }
 
 // ── Assignment helpers ─────────────────────────────────────────────

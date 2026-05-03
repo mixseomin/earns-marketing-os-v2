@@ -1,12 +1,17 @@
+import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { ApiSettingsPage } from '@/components/api-settings-page';
 import { listProjects, getMode, getProjectMode } from '@/lib/data';
 import { getProviderStatuses } from '@/lib/ai-providers';
+import { getCurrentUser } from '@/lib/auth';
 import { getLastProject } from '@/lib/last-project';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ApiSettingsRoute() {
+  const me = await getCurrentUser();
+  if (!me) redirect('/login?next=/settings/api');
+  if (me.role !== 'admin') redirect('/?error=admin-only');
   const [projects, lastProject, fallbackMode] = await Promise.all([
     listProjects(),
     getLastProject(),

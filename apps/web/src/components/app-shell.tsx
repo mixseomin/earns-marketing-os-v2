@@ -12,6 +12,14 @@ import type { Mode, Project } from '@/lib/mock/types';
 
 type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
 
+export interface CurrentUserInfo {
+  id: number;
+  displayName: string;
+  email: string;
+  role: 'admin' | 'operator' | 'viewer';
+  specialty?: string;
+}
+
 export function AppShell({
   children,
   mode,
@@ -19,6 +27,7 @@ export function AppShell({
   projects,
   tab,
   isPortfolio = false,
+  currentUser,
 }: {
   children: ReactNode;
   mode?: Mode;
@@ -26,6 +35,7 @@ export function AppShell({
   projects: Project[];
   tab?: Tab;
   isPortfolio?: boolean;
+  currentUser?: CurrentUserInfo | null;
 }) {
   const { tweaks, setTweak } = useTweaks();
   const { setLang } = useLang();
@@ -46,7 +56,7 @@ export function AppShell({
       <ThemeApplier modeAccent={mode?.accent} />
       <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}>
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} />
-        {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} />}
+        {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
         <RightBar mode={mode} projectId={project?.id} />
         <StatusBar mode={mode} project={project} projectCount={projects.length} />

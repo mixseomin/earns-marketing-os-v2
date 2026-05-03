@@ -16,6 +16,7 @@ import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { PlatformPicker } from './platform-picker';
+import { OwnerSelect } from './owner-select';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -158,11 +159,12 @@ function SnippetCard({ snippet, vars }: {
   );
 }
 
-export function AccountsVault({ projectId, project, platforms, accounts }: {
+export function AccountsVault({ projectId, project, platforms, accounts, teamMembers = [] }: {
   projectId: string;
   project: Project;
   platforms: PlatformRow[];
   accounts: AccountRow[];
+  teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AccountRow | null>(null);
@@ -300,6 +302,7 @@ export function AccountsVault({ projectId, project, platforms, accounts }: {
           project={project}
           projectId={projectId}
           platforms={platforms}
+          teamMembers={teamMembers}
           onClose={() => { setEditing(null); setCreating(false); }}
         />
       )}
@@ -311,12 +314,13 @@ export function AccountsVault({ projectId, project, platforms, accounts }: {
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-function AccountFormModal({ account, project, projectId, platforms, onClose }: {
+function AccountFormModal({ account, project, projectId, platforms, onClose, teamMembers = [] }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
   platforms: PlatformRow[];
   onClose: () => void;
+  teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -334,6 +338,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
     monthlyCost: account?.monthlyCost ?? 0,
     blockReason: account?.blockReason ?? '',
     notes: account?.notes ?? '',
+    ownerUserId: (account as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -386,6 +391,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
         monthlyCost: form.monthlyCost,
         blockReason: form.blockReason || null,
         notes: form.notes || null,
+        ownerUserId: form.ownerUserId,
       };
       const res = isCreate
         ? await createAccount(projectId, payload)
@@ -596,6 +602,12 @@ function AccountFormModal({ account, project, projectId, platforms, onClose }: {
               <span style={lbl}>Notes</span>
               <textarea style={{ ...fld, minHeight: 60, resize: 'vertical' }} value={form.notes} onChange={(e) => setF('notes', e.target.value)} />
             </div>
+            {teamMembers.length > 0 && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={lbl}>👤 Assigned to manage <span style={{ color: 'var(--fg-4)' }}>(member nào quản lý account này)</span></span>
+                <OwnerSelect members={teamMembers} value={form.ownerUserId} onChange={(uid) => setF('ownerUserId', uid)} fld={fld} />
+              </div>
+            )}
           </div>
 
           {/* API Token (encrypted via pgcrypto) — only edit-mode */}

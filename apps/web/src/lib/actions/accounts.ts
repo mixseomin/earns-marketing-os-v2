@@ -40,6 +40,7 @@ export interface AccountInput {
   blockReason?: string | null;
   notes?: string | null;
   tags?: string[];
+  ownerUserId?: number | null;
 }
 
 export interface ChecklistEntry {
@@ -85,6 +86,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       notes: input.notes ?? null,
       tags: input.tags ?? [],
       warmupChecklist: {},
+      ownerUserId: input.ownerUserId ?? null,
     })
     .returning({ id: platformAccounts.id });
 
@@ -110,6 +112,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.notes !== undefined) set.notes = patch.notes;
   if (patch.tags !== undefined) set.tags = patch.tags;
   if (patch.platformKey !== undefined) set.platformKey = patch.platformKey;
+  if (patch.ownerUserId !== undefined) set.ownerUserId = patch.ownerUserId;
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
 

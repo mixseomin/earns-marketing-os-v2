@@ -8,6 +8,8 @@ import { MediaVault } from '@/components/media-vault';
 import { InfraVault } from '@/components/infra-vault';
 import { BudgetVault } from '@/components/budget-vault';
 import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listKnowledge, listContacts, listMedia, listInfra, listBudget } from '@/lib/data';
+import { listTeamMembers } from '@/lib/actions/team';
+import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +26,8 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
 
   const isDemo = project.isDemo === true;
 
-  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget] = await Promise.all([
+  const me = await getCurrentUser();
+  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listPlatforms(),
@@ -34,6 +37,7 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     isDemo ? Promise.resolve([]) : listMedia(id),
     isDemo ? Promise.resolve([]) : listInfra(id),
     isDemo ? Promise.resolve([]) : listBudget(id),
+    me?.role === 'admin' ? listTeamMembers() : Promise.resolve([]),
   ]);
 
   // Real-count subs cho VAULT_NAV — replaces mock "247 nick / 50tr/d cap" etc.
@@ -53,7 +57,7 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
         isBlank={!isDemo}
         vaultStats={vaultStats}
         accountsOverride={
-          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} />
+          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} />
         }
         knowledgeOverride={isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />}
         contactsOverride={isDemo ? undefined : <ContactsVault contacts={contacts} projectName={project.name} />}

@@ -76,25 +76,26 @@ export interface ProxyInput {
   health?: ProxyHealth;
   costPerGbCents?: number;
   notes?: string | null;
+  ownerUserId?: number | null;
 }
 
 export async function createProxy(input: ProxyInput): Promise<{ ok: boolean; id?: number; error?: string }> {
   if (!input.label.trim() || !input.endpoint.trim()) return { ok: false, error: 'label + endpoint không được rỗng' };
   const db = ensureDb();
-  const rows = await db.insert(proxies).values({
-    tenantId: TENANT, label: input.label.trim(), type: input.type,
-    endpoint: input.endpoint.trim(), location: input.location ?? null,
-    health: input.health ?? 'unknown',
-    costPerGbCents: input.costPerGbCents ?? 0,
-    notes: input.notes ?? null,
-  }).returning({ id: proxies.id });
+  const rows = await db.execute(sql`
+    INSERT INTO proxies (tenant_id, label, type, endpoint, location, health, cost_per_gb_cents, notes, owner_user_id)
+    VALUES (${TENANT}, ${input.label.trim()}, ${input.type}, ${input.endpoint.trim()},
+            ${input.location ?? null}, ${input.health ?? 'unknown'},
+            ${input.costPerGbCents ?? 0}, ${input.notes ?? null}, ${input.ownerUserId ?? null})
+    RETURNING id
+  `).then((r) => (r as unknown as Array<{ id: number | string }>));
   revalidatePath('/p/[id]/resources', 'page');
   return { ok: true, id: Number(rows[0]?.id) };
 }
 
 export async function updateProxy(id: number, patch: Partial<ProxyInput>): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
-  const set: Partial<typeof proxies.$inferInsert> = { updatedAt: new Date() };
+  const set: Record<string, unknown> = { updatedAt: new Date() };
   if (patch.label !== undefined) set.label = patch.label;
   if (patch.type !== undefined) set.type = patch.type;
   if (patch.endpoint !== undefined) set.endpoint = patch.endpoint;
@@ -102,7 +103,12 @@ export async function updateProxy(id: number, patch: Partial<ProxyInput>): Promi
   if (patch.health !== undefined) set.health = patch.health;
   if (patch.costPerGbCents !== undefined) set.costPerGbCents = patch.costPerGbCents;
   if (patch.notes !== undefined) set.notes = patch.notes;
-  await db.update(proxies).set(set).where(eq(proxies.id, id));
+  if (patch.ownerUserId !== undefined) {
+    await db.execute(sql`UPDATE proxies SET owner_user_id = ${patch.ownerUserId}, updated_at = NOW() WHERE id = ${id}`);
+  }
+  if (Object.keys(set).length > 1) {
+    await db.update(proxies).set(set as Partial<typeof proxies.$inferInsert>).where(eq(proxies.id, id));
+  }
   revalidatePath('/p/[id]/resources', 'page');
   return { ok: true };
 }
@@ -173,26 +179,27 @@ export interface BrowserProfileInput {
   fingerprint?: Record<string, unknown>;
   defaultProxyId?: number | null;
   notes?: string | null;
+  ownerUserId?: number | null;
 }
 
 export async function createBrowserProfile(input: BrowserProfileInput): Promise<{ ok: boolean; id?: number; error?: string }> {
   if (!input.label.trim() || !input.tool) return { ok: false, error: 'label + tool bắt buộc' };
   const db = ensureDb();
-  const rows = await db.insert(browserProfiles).values({
-    tenantId: TENANT, label: input.label.trim(), tool: input.tool,
-    externalId: input.externalId ?? null,
-    userAgent: input.userAgent ?? null,
-    fingerprint: input.fingerprint ?? {},
-    defaultProxyId: input.defaultProxyId ?? null,
-    notes: input.notes ?? null,
-  }).returning({ id: browserProfiles.id });
+  const rows = await db.execute(sql`
+    INSERT INTO browser_profiles (tenant_id, label, tool, external_id, user_agent, fingerprint, default_proxy_id, notes, owner_user_id)
+    VALUES (${TENANT}, ${input.label.trim()}, ${input.tool},
+            ${input.externalId ?? null}, ${input.userAgent ?? null},
+            ${JSON.stringify(input.fingerprint ?? {})}::jsonb,
+            ${input.defaultProxyId ?? null}, ${input.notes ?? null}, ${input.ownerUserId ?? null})
+    RETURNING id
+  `).then((r) => (r as unknown as Array<{ id: number | string }>));
   revalidatePath('/p/[id]/resources', 'page');
   return { ok: true, id: Number(rows[0]?.id) };
 }
 
 export async function updateBrowserProfile(id: number, patch: Partial<BrowserProfileInput>): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
-  const set: Partial<typeof browserProfiles.$inferInsert> = { updatedAt: new Date() };
+  const set: Record<string, unknown> = { updatedAt: new Date() };
   if (patch.label !== undefined) set.label = patch.label;
   if (patch.tool !== undefined) set.tool = patch.tool;
   if (patch.externalId !== undefined) set.externalId = patch.externalId;
@@ -200,7 +207,12 @@ export async function updateBrowserProfile(id: number, patch: Partial<BrowserPro
   if (patch.fingerprint !== undefined) set.fingerprint = patch.fingerprint;
   if (patch.defaultProxyId !== undefined) set.defaultProxyId = patch.defaultProxyId;
   if (patch.notes !== undefined) set.notes = patch.notes;
-  await db.update(browserProfiles).set(set).where(eq(browserProfiles.id, id));
+  if (patch.ownerUserId !== undefined) {
+    await db.execute(sql`UPDATE browser_profiles SET owner_user_id = ${patch.ownerUserId}, updated_at = NOW() WHERE id = ${id}`);
+  }
+  if (Object.keys(set).length > 1) {
+    await db.update(browserProfiles).set(set as Partial<typeof browserProfiles.$inferInsert>).where(eq(browserProfiles.id, id));
+  }
   revalidatePath('/p/[id]/resources', 'page');
   return { ok: true };
 }

@@ -10,6 +10,8 @@ import {
   testProxyEndpoint, testAndSaveProxy, type ProxyTestResult,
 } from '@/lib/actions/environments';
 import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
+import { OwnerSelect } from './owner-select';
+import type { TeamMemberRow } from '@/lib/actions/team';
 
 // Wrap external URLs through href.li to strip referrer (per global rule).
 const hl = (url: string) => `https://href.li/?${url}`;
@@ -112,7 +114,7 @@ const PROXY_TYPE_META: Record<ProxyType, { label: string; color: string }> = {
   isp:         { label: 'isp',         color: 'var(--neon-amber)' },
 };
 
-export function EnvironmentsPage({ proxies, profiles }: { proxies: ProxyRow[]; profiles: BrowserProfileRow[] }) {
+export function EnvironmentsPage({ proxies, profiles, teamMembers = [] }: { proxies: ProxyRow[]; profiles: BrowserProfileRow[]; teamMembers?: TeamMemberRow[] }) {
   const [tabRaw, setTabRaw] = useUrlParam('tab', 'proxies');
   const tab: Tab = tabRaw === 'profiles' ? 'profiles' : 'proxies';
 
@@ -143,7 +145,7 @@ export function EnvironmentsPage({ proxies, profiles }: { proxies: ProxyRow[]; p
         </button>
       </div>
 
-      {tab === 'proxies' ? <ProxiesTab proxies={proxies} /> : <ProfilesTab profiles={profiles} proxies={proxies} />}
+      {tab === 'proxies' ? <ProxiesTab proxies={proxies} teamMembers={teamMembers} /> : <ProfilesTab profiles={profiles} proxies={proxies} teamMembers={teamMembers} />}
     </div>
   );
 }
@@ -165,7 +167,7 @@ function isStale(iso: string | null, hours = 6): boolean {
 }
 
 // ── Proxies tab ───────────────────────────────────────────────────
-function ProxiesTab({ proxies }: { proxies: ProxyRow[] }) {
+function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<ProxyRow | null>(null);
   const [creating, setCreating] = useState(false);
@@ -258,13 +260,13 @@ function ProxiesTab({ proxies }: { proxies: ProxyRow[] }) {
       )}
 
       {(editing || creating) && (
-        <ProxyFormModal proxy={editing} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ProxyFormModal proxy={editing} teamMembers={teamMembers} onClose={() => { setEditing(null); setCreating(false); }} />
       )}
     </>
   );
 }
 
-function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: () => void }) {
+function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow | null; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -277,6 +279,7 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
     health: (proxy?.health ?? 'unknown') as ProxyHealth,
     costPerGbCents: proxy?.costPerGbCents ?? 0,
     notes: proxy?.notes ?? '',
+    ownerUserId: (proxy as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -316,7 +319,7 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
 
   const save = () => {
     startTransition(async () => {
-      const payload = { ...form, location: form.location || null, notes: form.notes || null };
+      const payload = { ...form, location: form.location || null, notes: form.notes || null, ownerUserId: form.ownerUserId };
       const res = isCreate ? await createProxy(payload) : await updateProxy(proxy!.id, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
       router.refresh();
@@ -446,6 +449,12 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
             <span style={lbl}>Notes</span>
             <textarea style={{ ...fld, minHeight: 60, fontFamily: 'var(--font-mono)' }} value={form.notes} onChange={(e) => setF('notes', e.target.value)} />
           </div>
+          {teamMembers.length > 0 && (
+            <div style={{ gridColumn: '1 / 3' }}>
+              <span style={lbl}>👤 Assigned to manage</span>
+              <OwnerSelect members={teamMembers} value={form.ownerUserId} onChange={(uid) => setF('ownerUserId', uid)} fld={fld} />
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">
@@ -462,7 +471,7 @@ function ProxyFormModal({ proxy, onClose }: { proxy: ProxyRow | null; onClose: (
 }
 
 // ── Profiles tab ──────────────────────────────────────────────────
-function ProfilesTab({ profiles, proxies }: { profiles: BrowserProfileRow[]; proxies: ProxyRow[] }) {
+function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: BrowserProfileRow[]; proxies: ProxyRow[]; teamMembers?: TeamMemberRow[] }) {
   const [editing, setEditing] = useState<BrowserProfileRow | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -501,7 +510,7 @@ function ProfilesTab({ profiles, proxies }: { profiles: BrowserProfileRow[]; pro
       )}
 
       {(editing || creating) && (
-        <ProfileFormModal profile={editing} proxies={proxies} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ProfileFormModal profile={editing} proxies={proxies} teamMembers={teamMembers} onClose={() => { setEditing(null); setCreating(false); }} />
       )}
     </>
   );
@@ -576,7 +585,7 @@ function ToolSuggestions() {
   );
 }
 
-function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfileRow | null; proxies: ProxyRow[]; onClose: () => void }) {
+function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { profile: BrowserProfileRow | null; proxies: ProxyRow[]; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -588,6 +597,7 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
     userAgent: profile?.userAgent ?? '',
     defaultProxyId: profile?.defaultProxyId ?? null as number | null,
     notes: profile?.notes ?? '',
+    ownerUserId: (profile as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -608,6 +618,7 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
         userAgent: form.userAgent || null,
         notes: form.notes || null,
         defaultProxyId: form.defaultProxyId,
+        ownerUserId: form.ownerUserId,
       };
       const res = isCreate ? await createBrowserProfile(payload) : await updateBrowserProfile(profile!.id, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
@@ -694,6 +705,12 @@ function ProfileFormModal({ profile, proxies, onClose }: { profile: BrowserProfi
             <span style={lbl}>Notes</span>
             <textarea style={{ ...fld, minHeight: 60, fontFamily: 'var(--font-mono)' }} value={form.notes} onChange={(e) => setF('notes', e.target.value)} />
           </div>
+          {teamMembers.length > 0 && (
+            <div style={{ gridColumn: '1 / 3' }}>
+              <span style={lbl}>👤 Assigned to manage</span>
+              <OwnerSelect members={teamMembers} value={form.ownerUserId} onChange={(uid) => setF('ownerUserId', uid)} fld={fld} />
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">

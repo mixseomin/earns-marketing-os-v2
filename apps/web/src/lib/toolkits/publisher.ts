@@ -172,10 +172,41 @@ register({
       if (acc) accountId = Number(acc.id);
     }
 
+    // Auto-assign to a team member by squad → specialty mapping.
+    // wf-writer / writer → specialty 'writer'
+    // wf-publisher / publish → specialty 'community' (community manager posts)
+    // wf-designer → 'designer'
+    // wf-monitor / monitor → 'community'
+    // fallback: marketing-lead, then founder
+    let assignedUserId: number | null = null;
+    try {
+      const squadKey = (ctx as { squadKey?: string }).squadKey ?? '';
+      const specPrefs: string[] = (
+        squadKey.includes('writer')      ? ['writer','marketing-lead'] :
+        squadKey.includes('publisher')   ? ['community','marketing-lead'] :
+        squadKey.includes('designer')    ? ['designer','marketing-lead'] :
+        squadKey.includes('monitor')     ? ['community','marketing-lead'] :
+        squadKey.includes('research')    ? ['analytics','marketing-lead'] :
+                                            ['marketing-lead','founder']
+      );
+      // Pick first active member matching one of the preferred specialties.
+      const pickRows = await db.execute(sql`
+        SELECT u.id FROM users u
+        JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.active = true
+        WHERE u.tenant_id = 'self'
+          AND m.specialty = ANY(${specPrefs}::text[])
+        ORDER BY array_position(${specPrefs}::text[], m.specialty) ASC,
+                 (SELECT COUNT(*) FROM human_tasks WHERE assigned_user_id = u.id AND status = 'pending') ASC
+        LIMIT 1
+      `);
+      const pick = (pickRows as unknown as Array<{ id: number | string }>)[0];
+      if (pick) assignedUserId = Number(pick.id);
+    } catch { /* best-effort, keep null */ }
+
     const insRows = await db.execute(sql`
       INSERT INTO human_tasks (
         tenant_id, project_id, parent_run_id, title, instructions,
-        prep_payload, platform_key, account_id, sla_due_at, status
+        prep_payload, platform_key, account_id, sla_due_at, status, assigned_user_id
       ) VALUES (
         'self', ${ctx.projectId},
         ${ctx.agentRunId ?? null},
@@ -185,7 +216,8 @@ register({
         ${input.platform},
         ${accountId},
         ${slaDue.toISOString()}::timestamptz,
-        'pending'
+        'pending',
+        ${assignedUserId}
       ) RETURNING id
     `);
     const r = (insRows as unknown as Array<{ id: number | string }>)[0]!;

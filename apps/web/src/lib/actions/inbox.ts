@@ -141,6 +141,87 @@ export async function listInbox(
   }));
 }
 
+// Get full execution context for a task — account + persona + environment
+// (proxy + browser profile) + assigned user info. Called when opening TaskDetailModal.
+export interface TaskExecutionContext {
+  task: { id: number; title: string };
+  assignedUser: { id: number; name: string; displayName: string; specialty: string } | null;
+  account: {
+    id: number; handle: string | null; email: string | null;
+    platformKey: string; platformLabel: string;
+    signupUrl: string; postUrl: string | null;
+    personaKind: string; personaOwnerName: string | null;
+    personaRole: string | null; disclosureText: string | null;
+    twoFa: boolean;
+  } | null;
+  proxy: { id: number; label: string; type: string; endpoint: string; location: string | null; health: string } | null;
+  browserProfile: { id: number; label: string; tool: string; externalId: string | null } | null;
+}
+
+export async function getTaskExecutionContext(taskId: number): Promise<TaskExecutionContext | null> {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute(sql`
+    SELECT
+      ht.id AS task_id, ht.title AS task_title,
+      ht.assigned_user_id, u.name AS user_name, m.display_name AS user_display, m.specialty AS user_specialty,
+      pa.id AS acc_id, pa.handle, pa.email, pa.platform_key,
+      pl.label AS platform_label, pl.signup_url, pl.post_url,
+      pa.persona_kind, pa.persona_owner_name, pa.persona_role, pa.disclosure_text, pa.has_2fa,
+      px.id AS proxy_id, px.label AS proxy_label, px.type AS proxy_type,
+      px.endpoint AS proxy_endpoint, px.location AS proxy_location, px.health AS proxy_health,
+      bp.id AS bp_id, bp.label AS bp_label, bp.tool AS bp_tool, bp.external_id AS bp_external
+    FROM human_tasks ht
+    LEFT JOIN users u ON u.id = ht.assigned_user_id
+    LEFT JOIN members m ON m.user_id = ht.assigned_user_id AND m.project_id IS NULL
+    LEFT JOIN platform_accounts pa ON pa.id = ht.account_id
+    LEFT JOIN platforms pl ON pl.key = pa.platform_key
+    LEFT JOIN proxies px ON px.id = pa.proxy_id
+    LEFT JOIN browser_profiles bp ON bp.id = pa.browser_profile_id
+    WHERE ht.id = ${taskId} AND ht.tenant_id = ${TENANT}
+    LIMIT 1
+  `);
+  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  if (!r) return null;
+  return {
+    task: { id: Number(r.task_id), title: String(r.task_title) },
+    assignedUser: r.assigned_user_id ? {
+      id: Number(r.assigned_user_id),
+      name: String(r.user_name ?? ''),
+      displayName: String(r.user_display ?? r.user_name ?? ''),
+      specialty: String(r.user_specialty ?? 'other'),
+    } : null,
+    account: r.acc_id ? {
+      id: Number(r.acc_id),
+      handle: (r.handle as string | null) ?? null,
+      email: (r.email as string | null) ?? null,
+      platformKey: String(r.platform_key),
+      platformLabel: String(r.platform_label ?? r.platform_key),
+      signupUrl: String(r.signup_url ?? ''),
+      postUrl: (r.post_url as string | null) ?? null,
+      personaKind: String(r.persona_kind ?? 'brand'),
+      personaOwnerName: (r.persona_owner_name as string | null) ?? null,
+      personaRole: (r.persona_role as string | null) ?? null,
+      disclosureText: (r.disclosure_text as string | null) ?? null,
+      twoFa: Boolean(r.has_2fa),
+    } : null,
+    proxy: r.proxy_id ? {
+      id: Number(r.proxy_id),
+      label: String(r.proxy_label),
+      type: String(r.proxy_type),
+      endpoint: String(r.proxy_endpoint),
+      location: (r.proxy_location as string | null) ?? null,
+      health: String(r.proxy_health ?? 'unknown'),
+    } : null,
+    browserProfile: r.bp_id ? {
+      id: Number(r.bp_id),
+      label: String(r.bp_label),
+      tool: String(r.bp_tool),
+      externalId: (r.bp_external as string | null) ?? null,
+    } : null,
+  };
+}
+
 export async function claimTask(taskId: number, userId: string = 'self'): Promise<{ ok: boolean }> {
   const db = getDb();
   if (!db) return { ok: false };

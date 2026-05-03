@@ -3,8 +3,9 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, resumeTaskAsRevise, type WorkflowProgress, type LineageEntry } from '@/lib/actions/inbox';
+import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, resumeTaskAsRevise, getTaskExecutionContext, type WorkflowProgress, type LineageEntry, type TaskExecutionContext } from '@/lib/actions/inbox';
 import { assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
+import { ExternalLink } from './external-link';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -297,6 +298,8 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
       {openTask && (
         <TaskDetailModal
           task={openTask}
+          teamMembers={teamMembers}
+          currentUserId={currentUserId}
           onClose={() => setOpenTask(null)}
           onAction={() => { setOpenTask(null); router.refresh(); }}
           onSwapTask={(newTask) => { setOpenTask(newTask); router.refresh(); }}
@@ -307,7 +310,14 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
 }
 
 // ── Task detail modal ────────────────────────────────────────
-function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanTaskRow; onClose: () => void; onAction: () => void; onSwapTask: (newTask: HumanTaskRow) => void }) {
+function TaskDetailModal({ task, teamMembers = [], currentUserId = null, onClose, onAction, onSwapTask }: {
+  task: HumanTaskRow;
+  teamMembers?: TeamMemberRow[];
+  currentUserId?: number | null;
+  onClose: () => void;
+  onAction: () => void;
+  onSwapTask: (newTask: HumanTaskRow) => void;
+}) {
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const draftKey = `inbox-draft-${task.id}`;
@@ -446,6 +456,21 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
   // Detect stuck state cho UI (task completed nhưng không có descendant + không phải success).
   const isStuck = task.status === 'completed' && !task.descendantTaskId && task.feedbackType !== 'success' && !!task.workflowRunId;
 
+  // Execution context (account + persona + proxy + browser profile + assigned user)
+  const [ctx, setCtx] = useState<TaskExecutionContext | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getTaskExecutionContext(task.id).then((c) => { if (!cancelled) setCtx(c); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [task.id]);
+
+  const handleAssignChange = (userId: number | null) => {
+    startTransition(async () => {
+      await assignTaskToUser(task.id, userId);
+      onAction();
+    });
+  };
+
   const payload = task.prepPayload as Record<string, unknown>;
   const caption = typeof payload.caption === 'string' ? payload.caption : '';
   const imageUrls = Array.isArray(payload.imageUrls) ? payload.imageUrls as string[] : [];
@@ -487,6 +512,121 @@ function TaskDetailModal({ task, onClose, onAction, onSwapTask }: { task: HumanT
               </div>
             </div>
           )}
+          {/* Assigned-to banner */}
+          {teamMembers.length > 0 && (
+            <div style={{
+              padding: '8px 10px', marginBottom: 10, borderRadius: 5,
+              background: ctx?.assignedUser?.id === currentUserId ? 'var(--accent-soft)' : 'var(--bg-2)',
+              border: `1px solid ${ctx?.assignedUser?.id === currentUserId ? 'var(--accent)' : 'var(--line)'}`,
+              display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5,
+            }}>
+              <span style={{ fontSize: 14 }}>📋</span>
+              <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>Assigned to</span>
+              <select
+                value={task.assignedUserId ?? ''}
+                onChange={(e) => handleAssignChange(e.target.value ? Number(e.target.value) : null)}
+                style={{ padding: '3px 6px', fontSize: 12, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)' }}
+              >
+                <option value="">◌ unassigned</option>
+                {teamMembers.filter((m) => m.active).map((m) => (
+                  <option key={m.userId} value={m.userId}>👤 {m.displayName} ({m.specialty})</option>
+                ))}
+              </select>
+              {ctx?.assignedUser?.id === currentUserId && (
+                <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', background: 'var(--accent)', color: 'var(--bg-0)', borderRadius: 3, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>YOU</span>
+              )}
+            </div>
+          )}
+
+          {/* Account to use */}
+          {ctx?.account && (
+            <div style={{
+              padding: '8px 10px', marginBottom: 10, borderRadius: 5,
+              background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.3)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 14 }}>🔐</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--neon-cyan)' }}>
+                  Use account
+                </span>
+                <span style={{ flex: 1 }} />
+                {ctx.account.postUrl && (
+                  <ExternalLink href={ctx.account.postUrl} style={{ fontSize: 10, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>↗ open {ctx.account.platformLabel}</ExternalLink>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
+                  @{ctx.account.handle ?? '(no-handle)'}
+                </span>
+                {ctx.account.email && (
+                  <>
+                    <span style={{ color: 'var(--fg-4)' }}>·</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+                      {ctx.account.email}
+                    </span>
+                    <button onClick={() => copyToClipboard(ctx.account!.email!)}
+                            style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 3, padding: '0 5px', fontSize: 9, color: 'var(--fg-3)', cursor: 'pointer' }}>
+                      📋
+                    </button>
+                  </>
+                )}
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
+                  {ctx.account.platformLabel}
+                </span>
+              </div>
+              {ctx.account.personaKind !== 'brand' && (ctx.account.personaOwnerName || ctx.account.disclosureText) && (
+                <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)' }}>
+                  👤 Persona: <b>{ctx.account.personaOwnerName ?? ctx.account.personaKind}</b>
+                  {ctx.account.personaRole && ` · ${ctx.account.personaRole}`}
+                  {ctx.account.disclosureText && (
+                    <> · <span style={{ color: 'var(--neon-amber)' }}>disclose: &quot;{ctx.account.disclosureText}&quot;</span></>
+                  )}
+                </div>
+              )}
+              {ctx.account.twoFa && (
+                <div style={{ marginTop: 4, fontSize: 10, color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>
+                  🔐 2FA enabled — chuẩn bị authenticator code trước khi đăng
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Environment (proxy + browser profile) */}
+          {(ctx?.proxy || ctx?.browserProfile) && (
+            <div style={{
+              padding: '8px 10px', marginBottom: 10, borderRadius: 5,
+              background: 'rgba(157,108,255,0.05)', border: '1px solid rgba(157,108,255,0.3)',
+              fontSize: 11, color: 'var(--fg-2)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: 13 }}>🛰</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--neon-violet)' }}>Environment</span>
+              </div>
+              {ctx.browserProfile && (
+                <div style={{ marginBottom: 3 }}>
+                  🧬 <b>{ctx.browserProfile.label}</b>
+                  <span style={{ marginLeft: 6, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 10 }}>
+                    ({ctx.browserProfile.tool}{ctx.browserProfile.externalId ? ` · ${ctx.browserProfile.externalId}` : ''})
+                  </span>
+                </div>
+              )}
+              {ctx.proxy && (
+                <div>
+                  🔌 <b>{ctx.proxy.label}</b>
+                  <span style={{ marginLeft: 6, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 10 }}>
+                    ({ctx.proxy.type}{ctx.proxy.location ? ` · ${ctx.proxy.location}` : ''} ·
+                    <span style={{ color: ctx.proxy.health === 'ok' ? 'var(--ok)' : 'var(--warn)' }}> {ctx.proxy.health}</span>)
+                  </span>
+                  <button onClick={() => copyToClipboard(ctx.proxy!.endpoint)}
+                          style={{ marginLeft: 6, background: 'transparent', border: '1px solid var(--line)', borderRadius: 3, padding: '0 5px', fontSize: 9, color: 'var(--fg-3)', cursor: 'pointer' }}>
+                    📋 endpoint
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="modal-section-title">Instructions</div>
           <div className="modal-text" style={{ whiteSpace: 'pre-wrap' }}>{task.instructions}</div>
 

@@ -56,7 +56,7 @@ export async function listTeamMembers(): Promise<TeamMemberRow[]> {
            (SELECT COUNT(*)::int FROM human_tasks WHERE assigned_user_id = u.id AND status IN ('claimed','in_progress')) AS in_progress_count
     FROM members m
     JOIN users u ON u.id = m.user_id
-    WHERE m.tenant_id = ${TENANT}
+    WHERE m.tenant_id = ${TENANT} AND m.project_id IS NULL
     ORDER BY m.active DESC, m.created_at ASC
   `);
   const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);

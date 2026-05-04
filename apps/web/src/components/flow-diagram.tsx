@@ -617,7 +617,7 @@ function InboxNode({ pos, pending, claimed }: { pos: { x: number; y: number }; p
 // Fallback rgb extractor for CSS var colors — returns an approx string
 function hexToRgbFallback(color: string): string {
   if (color.includes('neon-lime')) return '182,255,60';
-  if (color.includes('neon-cyan')) return '0,229,255';
+  if (color.includes('neon-cyan')) return '56,189,248';
   if (color.includes('neon-amber')) return '255,176,60';
   if (color.includes('neon-violet')) return '157,108,255';
   return '90,98,115';

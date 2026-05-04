@@ -7,7 +7,7 @@ export type Tweaks = {
   columnCount: number;
   showSidebar: boolean;
   animation: boolean;
-  accent: 'auto' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
+  accent: 'auto' | 'blue' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
   lang: 'vi' | 'en';
   livePolling: boolean;
 };

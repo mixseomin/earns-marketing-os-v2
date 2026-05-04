@@ -313,7 +313,9 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
     SELECT u.id AS user_id, u.email, u.name,
            m.role, m.display_name, m.active,
            tw.specialty,                              -- tenant-wide specialty
-           (SELECT COUNT(*)::int FROM platform_accounts WHERE owner_user_id = u.id AND project_id = ${projectId}) AS accounts_count,
+           (SELECT COUNT(*)::int FROM platform_accounts pa
+              JOIN project_accounts pj ON pj.account_id = pa.id
+              WHERE pa.owner_user_id = u.id AND pj.project_id = ${projectId}) AS accounts_count,
            (SELECT COUNT(*)::int FROM human_tasks WHERE assigned_user_id = u.id AND project_id = ${projectId} AND status = 'pending') AS pending_count
     FROM members m
     JOIN users u ON u.id = m.user_id
@@ -347,17 +349,26 @@ export async function assignAccountsToMember(
   const db = getDb();
   if (!db) return { ok: false, error: 'No DB' };
   try {
-    // First clear existing assignments for this user in this project
+    // Multi-brand: scope qua project_accounts pivot thay vì platform_accounts.project_id
+    // (account có thể thuộc project khác nhưng share sang project hiện tại).
+    // Clear existing assignments của user này cho mọi account đang link với project.
     await db.execute(sql`
-      UPDATE platform_accounts SET owner_user_id = NULL
-      WHERE owner_user_id = ${userId} AND project_id = ${projectId}
+      UPDATE platform_accounts pa SET owner_user_id = NULL
+      WHERE pa.owner_user_id = ${userId}
+        AND EXISTS (
+          SELECT 1 FROM project_accounts pj
+          WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}
+        )
     `);
-    // Then assign selected
     if (accountIds.length > 0) {
       for (const aid of accountIds) {
         await db.execute(sql`
-          UPDATE platform_accounts SET owner_user_id = ${userId}
-          WHERE id = ${aid} AND project_id = ${projectId}
+          UPDATE platform_accounts pa SET owner_user_id = ${userId}
+          WHERE pa.id = ${aid}
+            AND EXISTS (
+              SELECT 1 FROM project_accounts pj
+              WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}
+            )
         `);
       }
     }
@@ -387,9 +398,11 @@ export async function listProjectAccountsForAssignment(projectId: string): Promi
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
-    SELECT id, platform_key, handle, status, owner_user_id
-    FROM platform_accounts WHERE project_id = ${projectId}
-    ORDER BY platform_key, handle
+    SELECT pa.id, pa.platform_key, pa.handle, pa.status, pa.owner_user_id
+    FROM platform_accounts pa
+    JOIN project_accounts pj ON pj.account_id = pa.id
+    WHERE pj.project_id = ${projectId}
+    ORDER BY pa.platform_key, pa.handle
   `);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),

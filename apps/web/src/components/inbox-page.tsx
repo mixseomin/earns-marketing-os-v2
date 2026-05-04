@@ -38,11 +38,12 @@ function fmtRel(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
-export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = null, currentUserRole }: {
+export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = null, currentUserRole, projectId }: {
   tasks: HumanTaskRow[];
   teamMembers?: TeamMemberRow[];
   currentUserId?: number | null;
   currentUserRole?: string;
+  projectId?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -74,15 +75,21 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
   useEffect(() => { setTasks(initial); }, [initial]);
   useEffect(() => {
     let cancelled = false;
+    const isOperator = currentUserRole === 'operator' || currentUserRole === 'viewer';
     const refetch = async () => {
       try {
-        const fresh = await listInbox('all');
+        const refetchAssignment = isOperator ? 'mine' : assignFilter;
+        const fresh = await listInbox('all', projectId, {
+          assignment: refetchAssignment,
+          currentUserId: currentUserId ?? undefined,
+        });
         if (!cancelled) setTasks(fresh);
       } catch {}
     };
     const i = setInterval(refetch, 5000);
     return () => { cancelled = true; clearInterval(i); };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserRole, projectId, currentUserId, assignFilter]);
 
   // 3 virtual states giúp user theo dõi mọi task chưa kết thúc thành công:
   //  - revising: AI đang xử lý chain (revise/more-info, chưa có descendant)

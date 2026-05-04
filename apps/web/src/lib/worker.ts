@@ -136,6 +136,28 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         continue;
       }
 
+      // Layer 2: Project Brief — knowledge_items WHERE kind='playbook' AND tags @> ['project-brief']
+      const briefRows = await db.execute(sql`
+        SELECT content FROM knowledge_items
+        WHERE tenant_id = 'self'
+          AND project_id = ${card.project_id}
+          AND kind = 'playbook'
+          AND tags @> '["project-brief"]'::jsonb
+        ORDER BY updated_at DESC LIMIT 1
+      `);
+      const projectBrief = (briefRows as unknown as Array<{ content: string }>)[0]?.content ?? null;
+
+      // Layer 3: Squad Learnings — last 5 lessons tagged with squad_key
+      const learningRows = await db.execute(sql`
+        SELECT content FROM knowledge_items
+        WHERE tenant_id = 'self'
+          AND project_id = ${card.project_id}
+          AND kind = 'lesson'
+          AND tags @> ${JSON.stringify([card.squad_key])}::jsonb
+        ORDER BY updated_at DESC LIMIT 5
+      `);
+      const squadLearnings = (learningRows as unknown as Array<{ content: string }>).map((r) => r.content);
+
       // Breaker check
       const breaker = await checkBreaker(card.agent_kind);
       if (!breaker.allowed) {
@@ -173,7 +195,14 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
         trustDecision: 'allow',  // gate per-tool inside runtime via invokeTool
       };
 
-      const systemPrompt = [cfg.systemPrompt, cfg.skillsMd].filter(Boolean).join('\n\n---\n\n');
+      const systemPrompt = [
+        cfg.systemPrompt,
+        cfg.skillsMd,
+        projectBrief ? `## Project Brief\n${projectBrief}` : null,
+        squadLearnings.length > 0
+          ? `## Squad Learnings (${card.squad_key})\n${squadLearnings.join('\n\n---\n\n')}`
+          : null,
+      ].filter(Boolean).join('\n\n---\n\n');
 
       // Append hard tool-use instruction dựa trên tools available trong squad config.
       // Cheap models (gpt-4o-mini) thường skip persistence step nếu không buộc rõ.
@@ -222,10 +251,10 @@ export async function runWorkerCycle(maxCards: number = 5): Promise<WorkerCycleR
       if (result.ok && !calledSaveOk && (cfg.tools ?? []).includes('save-knowledge') && result.output.trim().length > 100) {
         try {
           const fallbackTitle = `${card.title} — auto-saved`;
-          const fallbackTags = ['auto-fallback', card.agent_kind];
+          const fallbackTags = ['auto-fallback', card.agent_kind, card.squad_key, ...(card.agent_ref ? [card.agent_ref] : [])];
           const insRows = await db.execute(sql`
             INSERT INTO knowledge_items (tenant_id, project_id, kind, title, content, tags, imported_from)
-            VALUES ('self', ${card.project_id}, 'research', ${fallbackTitle}, ${result.output},
+            VALUES ('self', ${card.project_id}, 'lesson', ${fallbackTitle}, ${result.output},
                     ${JSON.stringify(fallbackTags)}::jsonb, ${`agent-run-${run.id}-fallback`})
             RETURNING id
           `);

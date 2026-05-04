@@ -1,9 +1,9 @@
 // Read-side query helpers. Returned shape mirrors apps/web/src/lib/mock/types.ts
 // so the web app can swap mock <-> DB transparently via lib/data.ts.
 
-import { and, asc, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, projectAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -124,13 +124,48 @@ export async function getPlatform(key: string) {
 }
 
 // ── Platform accounts ──────────────────────────────────────────
+// JOIN qua project_accounts để cover cả accounts share từ project khác.
+// Backfill 0037 đảm bảo mọi account legacy đều có pivot row.
 export async function listAccountsByProject(projectId: string) {
   const db = getDb();
   if (!db) return null;
   return db
-    .select()
+    .select({
+      // platformAccounts fields
+      id: platformAccounts.id,
+      tenantId: platformAccounts.tenantId,
+      projectId: platformAccounts.projectId,
+      platformKey: platformAccounts.platformKey,
+      handle: platformAccounts.handle,
+      email: platformAccounts.email,
+      status: platformAccounts.status,
+      authMethod: platformAccounts.authMethod,
+      has2fa: platformAccounts.has2fa,
+      lastVerifiedAt: platformAccounts.lastVerifiedAt,
+      recoveryInfo: platformAccounts.recoveryInfo,
+      apiTokenEnc: platformAccounts.apiTokenEnc,
+      monthlyCost: platformAccounts.monthlyCost,
+      collectStats: platformAccounts.collectStats,
+      blockReason: platformAccounts.blockReason,
+      notes: platformAccounts.notes,
+      tags: platformAccounts.tags,
+      warmupChecklist: platformAccounts.warmupChecklist,
+      cookieSessionNeeded: platformAccounts.cookieSessionNeeded,
+      lastUsedAt: platformAccounts.lastUsedAt,
+      sortOrder: platformAccounts.sortOrder,
+      environment: platformAccounts.environment,
+      proxyId: platformAccounts.proxyId,
+      browserProfileId: platformAccounts.browserProfileId,
+      ownerUserId: platformAccounts.ownerUserId,
+      createdAt: platformAccounts.createdAt,
+      updatedAt: platformAccounts.updatedAt,
+      // pivot meta (project's view of this account)
+      shareRole: projectAccounts.role,
+      shareContentRatio: projectAccounts.contentRatio,
+    })
     .from(platformAccounts)
-    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId)))
+    .innerJoin(projectAccounts, eq(projectAccounts.accountId, platformAccounts.id))
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(projectAccounts.projectId, projectId)))
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 

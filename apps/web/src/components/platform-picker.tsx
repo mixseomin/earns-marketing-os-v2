@@ -10,6 +10,7 @@ import { createPlatform, type PlatformPriority } from '@/lib/actions/platforms';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { ExternalLink } from './external-link';
+import { LinkChip } from './ui';
 
 // ISO country code → flag emoji (regional indicator pairs)
 function flag(code: string | null | undefined): string {
@@ -38,16 +39,8 @@ export function PlatformInfoCard({ p }: { p: { key: string; label: string; descr
         <span style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{p.label}</span>
         {p.region && <span style={{ fontSize: 13 }} title={p.region}>{flag(p.region)}</span>}
         <span style={{ flex: 1 }} />
-        <ExternalLink href={p.signupUrl} onClick={(e) => e.stopPropagation()}
-                      style={{ fontSize: 10, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-          ↗ signup
-        </ExternalLink>
-        {p.postUrl && (
-          <ExternalLink href={p.postUrl} onClick={(e) => e.stopPropagation()}
-                        style={{ fontSize: 10, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-            ↗ post
-          </ExternalLink>
-        )}
+        <LinkChip href={p.signupUrl} onClick={(e) => e.stopPropagation()}>↗ signup</LinkChip>
+        {p.postUrl && <LinkChip href={p.postUrl} onClick={(e) => e.stopPropagation()}>↗ post</LinkChip>}
       </div>
       {p.description && <div style={{ marginBottom: 4 }}>{p.description}</div>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
@@ -70,7 +63,7 @@ const PRIORITY_ORDER: PlatformPriority[] = ['critical', 'high', 'medium', 'low']
 const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; star: string }> = {
   critical: { label: 'CRITICAL', color: 'var(--bad)',        star: '★★★' },
   high:     { label: 'HIGH',     color: 'var(--warn)',       star: '★★'  },
-  medium:   { label: 'MEDIUM',   color: 'var(--neon-cyan)',  star: '★'   },
+  medium:   { label: 'MEDIUM',   color: 'var(--accent)',     star: '★'   },
   low:      { label: 'LOW',      color: 'var(--fg-3)',       star: '·'   },
 };
 

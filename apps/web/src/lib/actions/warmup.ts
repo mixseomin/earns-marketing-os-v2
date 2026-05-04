@@ -112,6 +112,7 @@ export async function runAllPendingAutoChecks(): Promise<{
   let updated = 0, errors = 0;
   for (const a of filtered) {
     if (!a.handle) continue;
+    if (!a.projectId) continue;  // tenant-only account (no owner project) — skip cron auto-check for now
     const res = await runAccountAutoCheck(a.projectId, a.id);
     if (res.ok && res.report) {
       details.push(res.report);

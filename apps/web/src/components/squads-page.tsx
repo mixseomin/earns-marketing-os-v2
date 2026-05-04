@@ -9,6 +9,7 @@ import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import type { ToolRow, SkillRow } from '@/lib/actions/library';
 import { TOOL_STATUS_META } from './library-page';
 import { AIFormParser } from './ai-form-parser';
+import { SquadDrawer } from './squad-drawer';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -639,6 +640,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
 }) {
   const [editing, setEditing] = useState<Squad | null>(null);
   const [creating, setCreating] = useState(false);
+  const [drawerSquad, setDrawerSquad] = useState<string | null>(null);
   const toolById = new Map(dbTools.map((t) => [t.id, t]));
   const searchParams = useSearchParams();
 
@@ -710,6 +712,11 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
                       color: s.health === 'ok' ? 'var(--ok)' : s.health === 'warn' ? 'var(--warn)' : 'var(--bad)',
                       borderColor: s.health === 'ok' ? 'rgba(182,255,60,.3)' : s.health === 'warn' ? 'rgba(255,176,60,.3)' : 'rgba(255,77,94,.3)',
                     }}>{s.health.toUpperCase()}</span>
+                    <span
+                      title="Xem agents — growth journey"
+                      onClick={(e) => { e.stopPropagation(); setDrawerSquad(s.id); }}
+                      style={{ cursor: 'pointer', fontSize: 13, padding: '1px 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-2)' }}
+                    >👥</span>
                     <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>✎</span>
                   </div>
                 </div>
@@ -774,6 +781,15 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           dbTools={dbTools}
           dbSkills={dbSkills}
           onClose={() => { setEditing(null); setCreating(false); }}
+        />
+      )}
+
+      {drawerSquad && (
+        <SquadDrawer
+          squad={drawerSquad}
+          mode={{ squads: mode.squads, cards: mode.cards, feed: mode.feed }}
+          projectId={projectId}
+          onClose={() => setDrawerSquad(null)}
         />
       )}
     </div>

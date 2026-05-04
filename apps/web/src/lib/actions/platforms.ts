@@ -17,6 +17,7 @@ export interface PlatformInput {
   label: string;
   signupUrl: string;
   postUrl?: string | null;
+  profileUrlPattern?: string | null;
   priority: PlatformPriority;
   iconSlug: string;
   fallbackKeys?: string[];
@@ -53,6 +54,7 @@ export async function createPlatform(input: PlatformInput): Promise<{ ok: boolea
       key, label: input.label.trim(),
       signupUrl: input.signupUrl.trim(),
       postUrl: input.postUrl ?? null,
+      profileUrlPattern: input.profileUrlPattern ?? null,
       priority: input.priority,
       iconSlug: input.iconSlug || key,
       fallbackKeys: input.fallbackKeys ?? [],
@@ -78,6 +80,7 @@ export async function updatePlatform(key: string, patch: Partial<PlatformInput>)
   if (patch.label !== undefined) set.label = patch.label;
   if (patch.signupUrl !== undefined) set.signupUrl = patch.signupUrl;
   if (patch.postUrl !== undefined) set.postUrl = patch.postUrl;
+  if (patch.profileUrlPattern !== undefined) set.profileUrlPattern = patch.profileUrlPattern;
   if (patch.priority !== undefined) set.priority = patch.priority;
   if (patch.iconSlug !== undefined) set.iconSlug = patch.iconSlug;
   if (patch.fallbackKeys !== undefined) set.fallbackKeys = patch.fallbackKeys;
@@ -103,6 +106,7 @@ export interface PlatformWithUsage {
   label: string;
   signupUrl: string;
   postUrl: string | null;
+  profileUrlPattern: string | null;
   priority: PlatformPriority;
   iconSlug: string;
   fallbackKeys: string[];
@@ -120,7 +124,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
-    SELECT p.key, p.label, p.signup_url, p.post_url, p.priority, p.icon_slug, p.fallback_keys,
+    SELECT p.key, p.label, p.signup_url, p.post_url, p.profile_url_pattern, p.priority, p.icon_slug, p.fallback_keys,
            p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
     FROM platforms p
@@ -131,6 +135,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     label: String(r.label),
     signupUrl: String(r.signup_url),
     postUrl: (r.post_url as string | null) ?? null,
+    profileUrlPattern: (r.profile_url_pattern as string | null) ?? null,
     priority: String(r.priority) as PlatformPriority,
     iconSlug: String(r.icon_slug),
     fallbackKeys: Array.isArray(r.fallback_keys) ? (r.fallback_keys as string[]) : [],

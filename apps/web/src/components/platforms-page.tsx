@@ -4,18 +4,17 @@ import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   type PlatformWithUsage, type PlatformPriority,
-  createPlatform, updatePlatform, deletePlatform,
 } from '@/lib/actions/platforms';
-import { AIFormParser } from './ai-form-parser';
+import { TagsFilterChips } from './tags-input';
 import { NoFillInput } from './no-fill-input';
-import { ExternalLink } from './external-link';
-import { TagsInput, TagsFilterChips } from './tags-input';
+import { PlatformFormModal } from './platform-form-modal';
+import { LinkChip } from './ui';
 
 const PRIORITY_ORDER: PlatformPriority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; star: string }> = {
   critical: { label: 'CRITICAL', color: 'var(--bad)',       star: '★★★' },
   high:     { label: 'HIGH',     color: 'var(--warn)',      star: '★★'  },
-  medium:   { label: 'MEDIUM',   color: 'var(--neon-cyan)', star: '★'   },
+  medium:   { label: 'MEDIUM',   color: 'var(--accent)',    star: '★'   },
   low:      { label: 'LOW',      color: 'var(--fg-3)',      star: '·'   },
 };
 
@@ -199,13 +198,9 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
                       {p.pricing && <span>· {p.pricing}</span>}
                       {p.userCountEstimate && <span>· {p.userCountEstimate}</span>}
                     </div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 10 }}>
-                      <ExternalLink href={p.signupUrl} onClick={(e) => e.stopPropagation()}
-                                    style={{ color: 'var(--accent)', textDecoration: 'none' }}>↗ signup</ExternalLink>
-                      {p.postUrl && (
-                        <ExternalLink href={p.postUrl} onClick={(e) => e.stopPropagation()}
-                                      style={{ color: 'var(--accent)', textDecoration: 'none' }}>↗ post</ExternalLink>
-                      )}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <LinkChip href={p.signupUrl} size="xs" onClick={(e) => e.stopPropagation()}>↗ signup</LinkChip>
+                      {p.postUrl && <LinkChip href={p.postUrl} size="xs" onClick={(e) => e.stopPropagation()}>↗ post</LinkChip>}
                     </div>
                   </div>
                 ))}
@@ -225,195 +220,3 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
   );
 }
 
-function PlatformFormModal({ platform, onClose }: { platform: PlatformWithUsage | null; onClose: () => void }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const isCreate = !platform;
-  const [form, setForm] = useState({
-    key: platform?.key ?? '',
-    label: platform?.label ?? '',
-    signupUrl: platform?.signupUrl ?? '',
-    postUrl: platform?.postUrl ?? '',
-    priority: (platform?.priority ?? 'medium') as PlatformPriority,
-    iconSlug: platform?.iconSlug ?? '',
-    description: platform?.description ?? '',
-    pricing: platform?.pricing ?? '',
-    region: platform?.region ?? '',
-    category: (platform?.category ?? 'other') as string,
-    userCountEstimate: platform?.userCountEstimate ?? '',
-    tags: platform?.tags ?? [],
-  });
-  const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
-
-  const fld: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
-    borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
-  };
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
-  };
-
-  const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const payload = {
-        ...form,
-        postUrl: form.postUrl || null,
-        pricing: form.pricing || null,
-        region: form.region || null,
-        userCountEstimate: form.userCountEstimate || null,
-        category: form.category as import('@/lib/actions/platforms').PlatformCategory,
-        tags: form.tags,
-      };
-      const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
-      if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
-      router.refresh();
-      onClose();
-    });
-  };
-  const handleDelete = () => {
-    if (!platform) return;
-    if (!confirm(`Xóa platform "${platform.label}"? Không thể undo.`)) return;
-    startTransition(async () => {
-      const res = await deletePlatform(platform.key);
-      if (!res.ok) { setError(res.error || 'Xóa thất bại'); return; }
-      router.refresh();
-      onClose();
-    });
-  };
-
-  return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{platform?.key ?? 'NEW PLATFORM'}</div>
-            <h2>{isCreate ? '+ New platform' : `Edit ${platform!.label}`}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
-
-        <AIFormParser
-          context="Platform catalog entry. Parse from website URL, About/Pricing page, or paste platform description."
-          currentValues={{
-            ...form,
-            tagsStr: form.tags.join(', '),
-            // Drop the array field — currentValues is flat record only
-            tags: undefined as never,
-          } as Record<string, string | number | boolean | null | undefined>}
-          schema={[
-            { key: 'label', label: 'Display name (e.g. "Hacker News")' },
-            { key: 'key', label: 'Unique slug, lowercase no spaces' },
-            { key: 'signupUrl', label: 'Signup/register URL' },
-            { key: 'postUrl', label: 'Submit/post URL' },
-            { key: 'priority', label: 'Priority', type: 'enum', enumValues: ['critical', 'high', 'medium', 'low'] },
-            { key: 'iconSlug', label: 'Simple Icons slug' },
-            { key: 'description', label: 'Short 1-2 sentence description — what it does, audience, USP' },
-            { key: 'pricing', label: 'Pricing summary (e.g. "Free", "Free + Pro $9/mo")' },
-            { key: 'region', label: 'ISO 2-letter country code or "global"' },
-            { key: 'category', label: 'Category', type: 'enum', enumValues: ['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'] },
-            { key: 'userCountEstimate', label: 'User count estimate' },
-            { key: 'tagsStr', label: 'Comma-separated tags (e.g. "b2b, viral, vietnam, oss")' },
-          ]}
-          onApply={(v) => setForm((f) => ({
-            ...f,
-            label: typeof v.label === 'string' ? v.label : f.label,
-            key: !platform && typeof v.key === 'string' ? v.key : f.key,
-            signupUrl: typeof v.signupUrl === 'string' ? v.signupUrl : f.signupUrl,
-            postUrl: typeof v.postUrl === 'string' ? v.postUrl : f.postUrl,
-            priority: (v.priority as PlatformPriority) || f.priority,
-            iconSlug: typeof v.iconSlug === 'string' ? v.iconSlug : f.iconSlug,
-            description: typeof v.description === 'string' ? v.description : f.description,
-            pricing: typeof v.pricing === 'string' ? v.pricing : f.pricing,
-            region: typeof v.region === 'string' ? v.region : f.region,
-            category: typeof v.category === 'string' ? v.category : f.category,
-            userCountEstimate: typeof v.userCountEstimate === 'string' ? v.userCountEstimate : f.userCountEstimate,
-            tags: typeof v.tagsStr === 'string'
-              ? Array.from(new Set([...f.tags, ...v.tagsStr.split(/[,\n]/).map((t) => t.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')).filter(Boolean)]))
-              : f.tags,
-          }))}
-        />
-
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div>
-            <span style={lbl}>Label *</span>
-            <NoFillInput style={fld} value={form.label} onChange={(e) => setF('label', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>Key (slug) {isCreate ? '*' : ''}</span>
-            <NoFillInput style={fld} disabled={!isCreate} placeholder="auto từ label nếu rỗng"
-                         value={form.key} onChange={(e) => setF('key', e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Signup URL *</span>
-            <NoFillInput style={fld} type="url" placeholder="https://..." value={form.signupUrl} onChange={(e) => setF('signupUrl', e.target.value)} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Post URL <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
-            <NoFillInput style={fld} type="url" placeholder="https://...submit" value={form.postUrl} onChange={(e) => setF('postUrl', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>Priority</span>
-            <select style={fld} value={form.priority} onChange={(e) => setF('priority', e.target.value as PlatformPriority)}>
-              {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_META[p].star} {PRIORITY_META[p].label.toLowerCase()}</option>)}
-            </select>
-          </div>
-          <div>
-            <span style={lbl}>Icon slug <span style={{ color: 'var(--fg-4)' }}>(simpleicons.org)</span></span>
-            <NoFillInput style={fld} placeholder="auto từ key"
-                         value={form.iconSlug} onChange={(e) => setF('iconSlug', e.target.value.toLowerCase())} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Description <span style={{ color: 'var(--fg-4)' }}>(1-2 sentences)</span></span>
-            <textarea style={{ ...fld, minHeight: 50, fontFamily: 'inherit', resize: 'vertical' }}
-                      placeholder="Forum tech VN, ML-driven FYP, B2B-focused..."
-                      value={form.description} onChange={(e) => setF('description', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>Category</span>
-            <select style={fld} value={form.category} onChange={(e) => setF('category', e.target.value)}>
-              {['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'].map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <span style={lbl}>Region <span style={{ color: 'var(--fg-4)' }}>(US, VN, global...)</span></span>
-            <NoFillInput style={fld} placeholder="US, VN, global"
-                         value={form.region} onChange={(e) => setF('region', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>Pricing</span>
-            <NoFillInput style={fld} placeholder="Free / $9/mo..."
-                         value={form.pricing} onChange={(e) => setF('pricing', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>User count estimate</span>
-            <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
-                         value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Tags</span>
-            <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
-          </div>
-        </div>
-
-        <div className="modal-foot">
-          <div className="meta">
-            {platform ? `${platform.accountsCount} accounts · added globally` : 'Adds to platforms catalog (shared across projects)'}
-          </div>
-          <div className="modal-foot-actions">
-            {!isCreate && platform!.accountsCount === 0 && (
-              <button className="btn danger" onClick={handleDelete}>🗑 Delete</button>
-            )}
-            <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={save}>{isCreate ? 'Create' : 'Save'}</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -227,7 +227,7 @@ export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) 
       </div>
       )}
 
-      {isBlank && project && (
+      {isBlank && project && project.id !== 'cities-gg' && (
         <div className="row r-2" style={{ marginTop: 16 }}>
           <AISuggestionsPanel projectId={project.id} />
           <div className="panel">

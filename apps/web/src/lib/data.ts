@@ -175,9 +175,15 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
       const isBlank = squadRows !== null && squadRows.length === 0
                    && cardRows !== null && cardRows.length === 0;
 
-      const assembled = isBlank
+      let assembled = isBlank
         ? { ...baseMode, squads, cards, alerts, feed, kpis: [], revData: [], suggestions: [], topList: [] }
         : { ...baseMode, squads, cards, alerts, feed };
+
+      // Project-specific real-data overrides (replace mock KPIs with live metrics)
+      if (projectId === 'cities-gg') {
+        const { applyCitiesGgOverrides } = await import('@/lib/projects/cities-gg');
+        assembled = await applyCitiesGgOverrides(assembled);
+      }
 
       return scopeModeForRole(assembled, role);
     },
@@ -281,6 +287,7 @@ export interface PlatformRow {
   label: string;
   signupUrl: string;
   postUrl: string | null;
+  profileUrlPattern: string | null;     // admin override pattern, vd 'https://x.com/{handle}'
   priority: 'critical' | 'high' | 'medium';
   fallbackKeys: string[];
   iconSlug: string;
@@ -312,6 +319,7 @@ export async function listPlatforms(): Promise<PlatformRow[]> {
         label: r.label,
         signupUrl: r.signupUrl,
         postUrl: r.postUrl,
+        profileUrlPattern: (r as { profileUrlPattern?: string | null }).profileUrlPattern ?? null,
         priority: r.priority as PlatformRow['priority'],
         fallbackKeys: (r.fallbackKeys as string[]) ?? [],
         iconSlug: r.iconSlug,
@@ -331,10 +339,10 @@ export async function listPlatforms(): Promise<PlatformRow[]> {
   );
 }
 
-// ── Accounts (per-project, on platforms) ───────────────────────
+// ── Accounts (tenant-level, shared across projects via project_accounts pivot) ─
 export interface AccountRow {
   id: number;
-  projectId: string;
+  projectId: string | null;       // legacy "owner project", có thể null nếu account chỉ share qua pivot
   platformKey: string;
   handle: string | null;
   email: string | null;
@@ -350,6 +358,11 @@ export interface AccountRow {
   warmupChecklist: Record<string, { done: boolean; value?: number | string | null; updatedAt?: string }>;
   hasApiToken: boolean;
   sortOrder: number;
+  shareRole: string;              // 'primary' | 'shared' (project's view of this account)
+  shareContentRatio: number;      // 0-100, % nội dung account này dành cho project
+  proxyId: number | null;         // optional: anti-detect proxy
+  browserProfileId: number | null;// optional: anti-detect browser fingerprint
+  ownerUserId: number | null;     // member đang quản lý account (cho BulkAssign hiển thị "đã giao cho")
 }
 
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
@@ -380,6 +393,11 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
         warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
         hasApiToken: Boolean(r.apiTokenEnc),
         sortOrder: r.sortOrder,
+        shareRole: (r as { shareRole?: string }).shareRole ?? 'primary',
+        shareContentRatio: (r as { shareContentRatio?: number }).shareContentRatio ?? 100,
+        proxyId: (r as { proxyId?: number | null }).proxyId ?? null,
+        browserProfileId: (r as { browserProfileId?: number | null }).browserProfileId ?? null,
+        ownerUserId: (r as { ownerUserId?: number | null }).ownerUserId ?? null,
       }));
     },
     [],

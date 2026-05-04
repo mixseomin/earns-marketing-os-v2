@@ -9,6 +9,7 @@ import { InfraVault } from '@/components/infra-vault';
 import { BudgetVault } from '@/components/budget-vault';
 import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listKnowledge, listContacts, listMedia, listInfra, listBudget } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
+import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
 import { getCurrentUser, getEffectiveUser } from '@/lib/auth';
 import { getImpersonateContext } from '@/lib/actions/impersonate';
 import { getEffectiveVisibility } from '@/lib/actions/visibility';
@@ -32,7 +33,7 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
   const [, eff] = await Promise.all([getCurrentUser(), getEffectiveUser()]);
   const isOperator = eff?.role !== 'admin';
 
-  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers, impCtx, visData] = await Promise.all([
+  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers, impCtx, visData, proxies, browserProfiles] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listPlatforms(),
@@ -47,6 +48,9 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
     isOperator ? Promise.resolve([]) : listTeamMembers(),
     getImpersonateContext(),
     isOperator && eff ? getEffectiveVisibility(eff.id) : Promise.resolve(null),
+    // Proxy + browser profile lists for account modal "Environment" linking
+    isDemo ? Promise.resolve([]) : listProxies(),
+    isDemo ? Promise.resolve([]) : listBrowserProfiles(),
   ]);
 
   const vis = visData?.config ?? null;
@@ -88,9 +92,9 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
         vaultStats={vaultStats}
         isAdmin={!isOperator}
         accountsOverride={
-          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} isAdmin={!isOperator} />
+          <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} isAdmin={!isOperator} />
         }
-        knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} />) : <></>}
+        knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} projectId={id} />) : <></>}
         contactsOverride ={canSeeContacts  ? (isDemo ? undefined : <ContactsVault  contacts={contacts} projectName={project.name} />) : <></>}
         mediaOverride    ={canSeeMedia     ? (isDemo ? undefined : <MediaVault     items={media} projectId={id} />) : <></>}
         infraOverride    ={canSeeInfra     ? (isDemo ? undefined : <InfraVault     items={infra} projectId={id} />) : <></>}

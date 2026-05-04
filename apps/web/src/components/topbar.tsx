@@ -24,9 +24,10 @@ function DropdownTab({
       closeTimer.current = null;
     }
   };
+  // Generous 1500ms close delay — chống đóng sớm khi mouse đi chậm/chéo
   const scheduleClose = () => {
     cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 600);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 1500);
   };
   const openNow = () => { cancelClose(); setOpen(true); };
 
@@ -43,39 +44,64 @@ function DropdownTab({
       onMouseEnter={openNow}
       onMouseLeave={scheduleClose}
     >
-      <Link href={href} className="tab" data-active={active || undefined}
+      <Link href={href} className="tab" data-active={(active || open) || undefined}
         style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
         {label}{badge !== undefined && <span className="badge">{badge}</span>}
-        <span style={{ fontSize: 7, opacity: 0.5, marginLeft: 1 }}>▾</span>
+        <span style={{ fontSize: 7, opacity: 0.5, marginLeft: 1, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
       </Link>
       {open && (
-        <div
-          onMouseEnter={openNow}
-          onMouseLeave={scheduleClose}
-          style={{
-            position: 'absolute', top: '100%', left: 0, zIndex: 300,
-            background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
-            borderRadius: 7, boxShadow: '0 12px 32px rgba(0,0,0,.6)',
-            minWidth: 200, padding: '4px 0',
-            // Strong bridge: 16px transparent overlap để tolerate mouse di chéo, di chậm
-            paddingTop: 18,
-            marginTop: -10,
-          }}
-        >
-          {subItems.map((s) => (
-            <Link key={s.href} href={s.href} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 14px', textDecoration: 'none',
-              color: 'var(--fg-1)', fontSize: 12, whiteSpace: 'nowrap',
+        <>
+          {/* Invisible bridge — full width của tab, kéo dài 12px xuống dưới
+              để mouse di từ tab → menu không rời hover zone. */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, height: 12,
+              zIndex: 299,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              {s.icon && <span style={{ fontSize: 14 }}>{s.icon}</span>}
-              {s.label}
-            </Link>
-          ))}
-        </div>
+            onMouseEnter={openNow}
+          />
+          <div
+            onMouseEnter={openNow}
+            onMouseLeave={scheduleClose}
+            style={{
+              position: 'absolute',
+              // Anchor right để dropdown tabs (Studio/Resources) ở phía phải nav
+              // không tràn ra khỏi viewport.
+              top: 'calc(100% + 8px)',
+              right: 0,
+              zIndex: 300,
+              background: 'var(--bg-1)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 8,
+              boxShadow: '0 12px 32px rgba(0,0,0,.5)',
+              minWidth: 200,
+              padding: '6px 0',
+              animation: 'menuFadeIn .12s ease-out',
+            }}
+          >
+            {subItems.map((s) => (
+              <Link key={s.href} href={s.href} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 16px', textDecoration: 'none',
+                color: 'var(--fg-1)', fontSize: 12.5, whiteSpace: 'nowrap',
+                lineHeight: 1.4,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                {s.icon && <span style={{ fontSize: 14, width: 16, display: 'inline-flex', justifyContent: 'center' }}>{s.icon}</span>}
+                {s.label}
+              </Link>
+            ))}
+          </div>
+          <style>{`
+            @keyframes menuFadeIn {
+              from { opacity: 0; transform: translateY(-4px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+        </>
       )}
     </div>
   );
@@ -194,15 +220,19 @@ export function TopBar({
       )}
 
       <div className="topbar-spacer"></div>
-      <div className="topbar-search">
-        <span>⌕</span>
-        <input placeholder={t('common.search', 'Search agents, cards, projects…')} />
-        <span className="kbd">⌘K</span>
-      </div>
-      <div className="live-pill">
-        <span className="dot"></span>
-        {isPortfolio ? `${projectCount} PROJECTS LIVE` : (totalAgents > 0 ? (mode?.livePill || 'LIVE') : 'BLANK SLATE')}
-      </div>
+      {!isOperator && (
+        <div className="topbar-search">
+          <span>⌕</span>
+          <input placeholder={t('common.search', 'Search agents, cards, projects…')} />
+          <span className="kbd">⌘K</span>
+        </div>
+      )}
+      {!isOperator && (
+        <div className="live-pill">
+          <span className="dot"></span>
+          {isPortfolio ? `${projectCount} PROJECTS LIVE` : (totalAgents > 0 ? (mode?.livePill || 'LIVE') : 'BLANK SLATE')}
+        </div>
+      )}
     </header>
   );
 }

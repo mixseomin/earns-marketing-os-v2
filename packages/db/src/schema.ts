@@ -139,6 +139,7 @@ export const agents = pgTable(
     label: text('label'),                                   // optional human name
     status: text('status').notNull().default('active'),     // active | throttled | down | retired
     trustLevel: smallint('trust_level').notNull().default(2),
+    baseSkillMd: text('base_skill_md').notNull().default(''),
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -147,6 +148,23 @@ export const agents = pgTable(
     uniqueIndex('agents_project_ref_uniq').on(t.projectId, t.agentRef),
     index('agents_tenant_idx').on(t.tenantId),
     index('agents_squad_idx').on(t.squadId),
+  ],
+);
+
+// ── agent_messages ───────────────────────────────────────────────
+// Persistent chat history per agent. role: 'user' | 'assistant'.
+export const agentMessages = pgTable(
+  'agent_messages',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    agentId: bigint('agent_id', { mode: 'number' }).notNull().references(() => agents.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('agent_messages_agent_time').on(t.agentId, t.createdAt),
   ],
 );
 
@@ -254,6 +272,9 @@ export const platforms = pgTable(
     label: text('label').notNull(),                         // 'Product Hunt'
     signupUrl: text('signup_url').notNull(),
     postUrl: text('post_url'),
+    // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.
+    // NULL → fallback sang hardcoded helper trong apps/web/src/lib/platform-profile-urls.ts.
+    profileUrlPattern: text('profile_url_pattern'),
     priority: text('priority').notNull().default('medium'), // 'critical' | 'high' | 'medium'
     fallbackKeys: jsonb('fallback_keys').notNull().default([]),
     iconSlug: text('icon_slug').notNull().default(''),
@@ -279,7 +300,9 @@ export const platforms = pgTable(
 );
 
 // ── platform_accounts ────────────────────────────────────────────
-// Per-project accounts on platforms (Product Hunt, HackerNews, Reddit, ...).
+// Tenant-level accounts on platforms (Product Hunt, HackerNews, Reddit, ...).
+// projectId = legacy "owner/creator project" (nullable). For full multi-brand
+// mapping (1 account ↔ N projects với content_ratio), JOIN qua project_accounts.
 // status state machine: todo → creating → warming → active (linear)
 // side-states: limited / blocked / banned (reachable from any).
 // warmup_checklist mirrors the platforms.checklist shape, with per-item progress.
@@ -288,7 +311,7 @@ export const platformAccounts = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     tenantId: text('tenant_id').notNull().default('self'),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     platformKey: text('platform_key').notNull().references(() => platforms.key),
     handle: text('handle'),
     email: text('email'),
@@ -327,7 +350,49 @@ export const platformAccounts = pgTable(
     index('accounts_project_idx').on(t.projectId),
     index('accounts_platform_idx').on(t.platformKey),
     index('accounts_status_idx').on(t.projectId, t.status),
-    uniqueIndex('accounts_proj_platform_handle_uniq').on(t.projectId, t.platformKey, t.handle),
+    uniqueIndex('accounts_tenant_platform_handle_uniq').on(t.tenantId, t.platformKey, t.handle),
+  ],
+);
+
+// ── project_accounts (pivot, multi-brand) ────────────────────────
+// 1 platform_account có thể được dùng bởi nhiều projects (vd: @tuan_builds
+// trên X dùng cho cả Astrolas + Orit). content_ratio = % content từ account
+// này dành cho project này (tổng các share nên ~100).
+export const projectAccounts = pgTable(
+  'project_accounts',
+  {
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    accountId: bigint('account_id', { mode: 'number' }).notNull().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('shared'),                  // 'primary' | 'shared'
+    contentRatio: integer('content_ratio').notNull().default(0),     // 0-100
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('project_accounts_account_idx').on(t.accountId),
+  ],
+);
+
+// ── account_grants (share account cho agents/users khác ngoài owner) ─
+// Owner (platform_accounts.owner_user_id) = 1 user chính. Bảng này thêm
+// quyền sử dụng cho N entity khác — vd: account Reddit owner=Hoàng Tuấn,
+// share cho agent RES-04 + human Linh để cùng dùng (không phải owner).
+export const accountGrants = pgTable(
+  'account_grants',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    accountId: bigint('account_id', { mode: 'number' }).notNull().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+    granteeKind: text('grantee_kind').notNull(),    // 'agent' | 'user'
+    granteeId: text('grantee_id').notNull(),         // agent_ref string, hoặc user_id::text
+    role: text('role').notNull().default('use'),     // 'use' | 'admin'
+    notes: text('notes'),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+    grantedBy: bigint('granted_by', { mode: 'number' }),
+  },
+  (t) => [
+    index('account_grants_account_idx').on(t.accountId),
+    index('account_grants_grantee_idx').on(t.granteeKind, t.granteeId),
   ],
 );
 
@@ -997,4 +1062,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

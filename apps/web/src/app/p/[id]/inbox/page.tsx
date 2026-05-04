@@ -51,7 +51,7 @@ export default async function ProjectInboxRoute({
       impersonate={impCtx?.active ? { targetUserId: impCtx.targetUserId, targetName: impCtx.targetName, targetRole: impCtx.targetRole, config: impCtx.config } : null}
       configVersion={visData?.configVersion}
     >
-      <InboxPage tasks={tasks} teamMembers={teamMembers} currentUserId={eff!.id} currentUserRole={eff!.role} />
+      <InboxPage tasks={tasks} teamMembers={teamMembers} currentUserId={eff!.id} currentUserRole={eff!.role} projectId={id} />
     </AppShell>
   );
 }

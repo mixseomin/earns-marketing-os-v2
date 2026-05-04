@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PlatformRow, AccountRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
@@ -8,16 +8,25 @@ import {
   createAccount, updateAccount, deleteAccount, setAccountStatus, toggleChecklistItem,
   listDirectusAccountsForPlatform, importDirectusAccount,
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
-  type AccountStatus, type AuthMethod, type DirectusAccountSummary,
+  listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
+  type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
 } from '@/lib/actions/accounts';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
-import { Pill, EmptyState } from './ui';
+import {
+  updateAccountEnvironment, createProxy, createBrowserProfile,
+  type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
+} from '@/lib/actions/environments';
+import { Pill, EmptyState, Spinner, Segmented, CTACard } from './ui';
+import { ExternalLink } from './external-link';
+import { profileUrlFor } from '@/lib/platform-profile-urls';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { PlatformPicker } from './platform-picker';
 import { OwnerSelect } from './owner-select';
+import { PlatformFormModal } from './platform-form-modal';
+import type { PlatformWithUsage } from '@/lib/actions/platforms';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -88,13 +97,15 @@ function SnippetCard({ snippet, vars }: {
   const text = fillTemplate(rawText, vars);
   const overLimit = snippet.maxLen != null && text.length > snippet.maxLen;
 
+  const [copyErr, setCopyErr] = useState(false);
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      alert('Clipboard write failed — copy manually.');
+      setCopyErr(true);
+      setTimeout(() => setCopyErr(false), 2500);
     }
   };
 
@@ -117,31 +128,27 @@ function SnippetCard({ snippet, vars }: {
         )}
         <span style={{ flex: 1 }} />
         {snippet.alt && snippet.alt.length > 0 && (
-          <>
-            <button type="button"
-                    onClick={() => setVariant(-1)}
-                    title="Primary"
-                    className="btn ghost"
-                    style={{ fontSize: 9, padding: '1px 5px', background: variant === -1 ? 'var(--accent-soft)' : undefined, color: variant === -1 ? 'var(--accent)' : undefined }}>1</button>
-            {snippet.alt.map((_, i) => (
-              <button key={i} type="button"
-                      onClick={() => setVariant(i)}
-                      title={`Alt ${i + 1} (shorter)`}
-                      className="btn ghost"
-                      style={{ fontSize: 9, padding: '1px 5px', background: variant === i ? 'var(--accent-soft)' : undefined, color: variant === i ? 'var(--accent)' : undefined }}>{i + 2}</button>
-            ))}
-          </>
+          <Segmented
+            size="xs"
+            value={variant}
+            onChange={setVariant}
+            options={[
+              { value: -1, label: '1', title: 'Primary' },
+              ...snippet.alt.map((_, i) => ({ value: i, label: String(i + 2), title: `Alt ${i + 1} (shorter)` })),
+            ]}
+          />
         )}
         <button type="button"
                 onClick={handleCopy}
                 className="btn"
+                title={copyErr ? 'Clipboard bị chặn — chọn text + Cmd/Ctrl+C thủ công' : 'Copy to clipboard'}
                 style={{
                   fontSize: 10, padding: '2px 8px',
-                  background: copied ? 'rgba(16,185,129,.1)' : undefined,
-                  borderColor: copied ? 'rgba(16,185,129,.4)' : undefined,
-                  color: copied ? '#10b981' : undefined,
+                  background: copied ? 'rgba(16,185,129,.1)' : copyErr ? 'rgba(255,77,94,.1)' : undefined,
+                  borderColor: copied ? 'rgba(16,185,129,.4)' : copyErr ? 'rgba(255,77,94,.4)' : undefined,
+                  color: copied ? '#10b981' : copyErr ? 'var(--bad)' : undefined,
                 }}>
-          {copied ? '✓ Copied' : '📋 Copy'}
+          {copied ? '✓ Copied' : copyErr ? '⚠ blocked' : '📋 Copy'}
         </button>
       </div>
       <pre style={{
@@ -160,19 +167,528 @@ function SnippetCard({ snippet, vars }: {
   );
 }
 
-export function AccountsVault({ projectId, project, platforms, accounts, teamMembers = [], isAdmin = true }: {
+// ──────────────────────────────────────────────────────────────────
+// Collapsible — re-used trong modal để ẩn các nhóm ít dùng (advanced,
+// notes, warmup checklist, image specs). Open/close không persist —
+// reset mỗi lần mở modal vì điều quan trọng là default closed.
+// ──────────────────────────────────────────────────────────────────
+function Collapsible({
+  title, badge, defaultOpen = false, children, hint,
+}: {
+  title: React.ReactNode;
+  badge?: React.ReactNode;        // count, status indicator
+  hint?: React.ReactNode;          // muted helper text bên phải
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginTop: 10, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%', padding: '8px 12px',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: 'var(--fg-1)', fontSize: 12, textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 9, color: 'var(--fg-3)', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'none' }}>▶</span>
+        <span style={{ fontWeight: 600 }}>{title}</span>
+        {badge}
+        <span style={{ flex: 1 }} />
+        {hint && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hint}</span>}
+      </button>
+      {open && <div style={{ padding: '4px 12px 12px', borderTop: '1px solid var(--line)' }}>{children}</div>}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// BulkAssignPopover — thay thế <select> "Giao cho..." cũ. Click button
+// → mở popover có search + danh sách members. Scale tốt với 10+ members.
+// ──────────────────────────────────────────────────────────────────
+// VAULT-LEVEL assign: giao quản lý TOÀN BỘ vault Accounts cho 1 member.
+// Per-account override → vẫn dùng dropdown "Assigned to manage" trong từng
+// account modal. Đây là tab-level shortcut: 1 click = "X chịu trách nhiệm
+// quản lý vault Accounts của project này".
+function BulkAssignPopover({
+  members, accountIds, accountCount, projectId, onDone, currentCounts = {},
+}: {
+  members: import('@/lib/actions/team').TeamMemberRow[];
+  accountIds: number[];          // ALL accounts của project (không phải filter)
+  accountCount: number;
+  projectId: string;
+  onDone: () => void;
+  // Map userId → số accounts của project hiện tại đang gắn cho user đó.
+  // Giúp user thấy "Linh đã có 3 accounts" trước khi giao thêm.
+  currentCounts?: Record<number, number>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState(false);
+  // 2-step confirm: pick member → show "Confirm assign N → X" inline
+  // (KHÔNG dùng native confirm/alert — xem feedback_no_native_dialogs.md)
+  const [pending, setPending] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (popRef.current && !popRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setPending(null);
+        setError(null);
+        setSuccess(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) => m.displayName.toLowerCase().includes(q) || (m.email ?? '').toLowerCase().includes(q));
+  }, [members, query]);
+
+  const pendingMember = pending != null ? members.find((m) => m.userId === pending) : null;
+  // Toggle semantic: nếu member đang owned > 0 → action = unassign (clear).
+  // Còn lại → action = assign all to them.
+  // assignAccountsToMember(uid, [], projectId) hiện đang clear-then-assign,
+  // nên truyền [] = chỉ clear → unassign hoàn hảo.
+  const pendingOwned = pending != null ? (currentCounts[pending] ?? 0) : 0;
+  const action: 'assign' | 'unassign' = pendingOwned > 0 ? 'unassign' : 'assign';
+
+  const doAssign = async () => {
+    if (pending == null) return;
+    setBusy(true);
+    setError(null);
+    const ids = action === 'unassign' ? [] : accountIds;
+    const res = await assignAccountsToMember(pending, ids, projectId);
+    if (!res.ok) {
+      setError(res.error || (action === 'unassign' ? 'Unassign failed' : 'Assign failed'));
+      setBusy(false);
+      return;
+    }
+    if (action === 'assign') await enableResourcesForMember(pending);
+    setBusy(false);
+    setSuccess(action === 'unassign'
+      ? `Đã bỏ giao ${pendingOwned} account khỏi ${pendingMember?.displayName}`
+      : `Đã giao ${accountIds.length} account cho ${pendingMember?.displayName}`);
+    onDone();
+    setTimeout(() => {
+      setOpen(false);
+      setPending(null);
+      setSuccess(null);
+      setQuery('');
+    }, 1200);
+  };
+
+  return (
+    <div ref={popRef} style={{ position: 'relative' }}>
+      <button
+        className="btn"
+        onClick={() => { setOpen((o) => !o); setPending(null); setError(null); setSuccess(null); }}
+        title={`Giao quản lý toàn bộ vault Accounts (${accountCount} account) cho 1 member. Per-account override trong account modal.`}
+        style={{ fontSize: 11, padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+      >
+        👤 Giao quản lý vault <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>({accountCount})</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50,
+          background: 'var(--bg-1)', border: '1px solid var(--line-strong)',
+          borderRadius: 8, boxShadow: '0 12px 32px rgba(0,0,0,.5)',
+          minWidth: 300, maxWidth: 380,
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* STEP 2: confirm */}
+          {pending != null && pendingMember && (
+            <div style={{ padding: '12px 14px' }}>
+              {success ? (
+                <div style={{ fontSize: 12, color: 'var(--ok)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  ✓ {success}
+                </div>
+              ) : (
+                <>
+                  {action === 'unassign' ? (
+                    <>
+                      <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 6, lineHeight: 1.5 }}>
+                        Bỏ giao <b>{pendingOwned} account</b> khỏi{' '}
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '2px 8px', borderRadius: 4,
+                          background: 'rgba(255,176,60,.15)', color: 'var(--warn)',
+                          fontWeight: 600,
+                        }}>
+                          <span style={{ fontSize: 9, opacity: 0.7 }}>{pendingMember.displayName.slice(0, 2).toUpperCase()}</span>
+                          {pendingMember.displayName}
+                        </span>
+                        ?
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.4 }}>
+                        {pendingOwned} account đang gắn cho member này sẽ trở về <b>không có owner</b>.
+                        Member sẽ không còn thấy account này trong inbox của mình.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: 'var(--fg-1)', marginBottom: 6, lineHeight: 1.5 }}>
+                        Giao quản lý <b>vault Accounts</b> ({accountCount} account) cho{' '}
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '2px 8px', borderRadius: 4,
+                          background: 'var(--accent-soft)', color: 'var(--accent)',
+                          fontWeight: 600,
+                        }}>
+                          <span style={{ fontSize: 9, opacity: 0.7 }}>{pendingMember.displayName.slice(0, 2).toUpperCase()}</span>
+                          {pendingMember.displayName}
+                        </span>
+                        ?
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.4 }}>
+                        Tất cả {accountCount} account của project sẽ được gắn cho member này.
+                        Muốn override per-account → mở từng account modal sau.
+                      </div>
+                    </>
+                  )}
+                  {error && (
+                    <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 8 }}>⚠ {error}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn ghost" disabled={busy} onClick={() => { setPending(null); setError(null); }}
+                      style={{ fontSize: 11, padding: '4px 10px' }}>Cancel</button>
+                    <button
+                      className={action === 'unassign' ? 'btn danger' : 'btn primary'}
+                      disabled={busy}
+                      onClick={doAssign}
+                      style={{ fontSize: 11, padding: '4px 12px' }}
+                    >
+                      {busy ? '…' : action === 'unassign' ? 'Confirm unassign' : 'Confirm assign'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* STEP 1: pick member */}
+          {pending == null && (
+            <>
+              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 6 }}>
+                  Giao quản lý <b>vault Accounts</b> ({accountCount}) cho:
+                </div>
+                <NoFillInput
+                  autoFocus
+                  placeholder={`Search ${members.length} members...`}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  style={{
+                    width: '100%', padding: '5px 8px',
+                    background: 'var(--bg-2)', border: '1px solid var(--line)',
+                    borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                {filtered.length === 0 && (
+                  <div style={{ padding: 14, fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}>Không match</div>
+                )}
+                {filtered.map((m) => {
+                  const owned = currentCounts[m.userId] ?? 0;
+                  return (
+                    <button
+                      key={m.userId}
+                      onClick={() => setPending(m.userId)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        width: '100%', padding: '7px 10px', textAlign: 'left',
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: 'var(--fg-1)', fontSize: 12, borderBottom: '1px dashed var(--line)',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span style={{
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: owned > 0 ? 'var(--ok)' : 'var(--accent-soft)',
+                        color: owned > 0 ? '#fff' : 'var(--accent)',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 700,
+                      }}>
+                        {m.displayName.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: 'var(--fg-0)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {m.displayName}
+                        </div>
+                        {m.email && (
+                          <div style={{ fontSize: 10, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m.email}
+                          </div>
+                        )}
+                      </div>
+                      {owned > 0 && (
+                        <span title={`${m.displayName} đang quản lý ${owned} account. Click để bỏ giao.`}
+                          style={{
+                            fontFamily: 'var(--font-mono)', fontSize: 10,
+                            padding: '1px 7px', borderRadius: 10,
+                            background: 'rgba(16,185,129,.15)', color: 'var(--ok)',
+                            fontWeight: 600,
+                          }}>
+                          {owned} owned · click to unassign
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// QuickCreate modals — small inline create cho proxy + browser profile.
+// Pattern này cần refactor thành <ResourcePicker> generic sau (xem
+// feedback_quick_create_picker.md trong memory).
+// ──────────────────────────────────────────────────────────────────
+function QuickCreateProxyModal({ onClose, onCreated }: {
+  onClose: () => void;
+  onCreated: (id: number) => void;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    label: '',
+    type: 'datacenter' as ProxyType,
+    endpoint: '',
+    location: '',
+    notes: '',
+  });
+  const fld: React.CSSProperties = {
+    width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
+    border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)',
+    fontSize: 12, outline: 'none',
+  };
+  const lbl: React.CSSProperties = {
+    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
+  };
+  const submit = () => {
+    if (!form.label.trim() || !form.endpoint.trim()) {
+      setError('Label + endpoint bắt buộc'); return;
+    }
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const res = await createProxy({
+        label: form.label.trim(),
+        type: form.type,
+        endpoint: form.endpoint.trim(),
+        location: form.location || null,
+        notes: form.notes || null,
+      });
+      setBusy(false);
+      if (!res.ok || !res.id) { setError(res.error || 'create failed'); return; }
+      router.refresh();
+      onCreated(res.id);
+    });
+  };
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>🔌 New proxy</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        {error && (
+          <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
+        )}
+        <div className="modal-body">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Label *</span>
+              <NoFillInput style={fld} placeholder="vd: Webshare US-1" value={form.label}
+                onChange={(e) => setForm({ ...form, label: e.target.value })} />
+            </div>
+            <div>
+              <span style={lbl}>Type *</span>
+              <select style={fld} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ProxyType })}>
+                <option value="datacenter">datacenter</option>
+                <option value="residential">residential</option>
+                <option value="mobile">mobile</option>
+                <option value="isp">isp</option>
+              </select>
+            </div>
+            <div>
+              <span style={lbl}>Location</span>
+              <NoFillInput style={fld} placeholder="US, VN, Global..." value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Endpoint *</span>
+              <NoFillInput style={fld} placeholder="http://user:pass@host:port"
+                value={form.endpoint} onChange={(e) => setForm({ ...form, endpoint: e.target.value })} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Notes</span>
+              <textarea style={{ ...fld, minHeight: 50, resize: 'vertical' }}
+                value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <div className="meta">Tạo proxy mới và chọn cho account</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={submit} disabled={busy}>{busy ? '…' : 'Create proxy'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
+  onClose: () => void;
+  onCreated: (id: number) => void;
+  proxies: ProxyRow[];
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    label: '',
+    tool: 'multilogin' as ProfileTool,
+    externalId: '',
+    defaultProxyId: null as number | null,
+    notes: '',
+  });
+  const fld: React.CSSProperties = {
+    width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
+    border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)',
+    fontSize: 12, outline: 'none',
+  };
+  const lbl: React.CSSProperties = {
+    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
+  };
+  const submit = () => {
+    if (!form.label.trim()) { setError('Label bắt buộc'); return; }
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const res = await createBrowserProfile({
+        label: form.label.trim(),
+        tool: form.tool,
+        externalId: form.externalId || null,
+        defaultProxyId: form.defaultProxyId,
+        notes: form.notes || null,
+      });
+      setBusy(false);
+      if (!res.ok || !res.id) { setError(res.error || 'create failed'); return; }
+      router.refresh();
+      onCreated(res.id);
+    });
+  };
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>🦊 New browser profile</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        {error && (
+          <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
+        )}
+        <div className="modal-body">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Label *</span>
+              <NoFillInput style={fld} placeholder="vd: Reddit-US-Profile-1" value={form.label}
+                onChange={(e) => setForm({ ...form, label: e.target.value })} />
+            </div>
+            <div>
+              <span style={lbl}>Tool *</span>
+              <select style={fld} value={form.tool} onChange={(e) => setForm({ ...form, tool: e.target.value as ProfileTool })}>
+                <option value="multilogin">Multilogin</option>
+                <option value="adspower">Adspower</option>
+                <option value="genlogin">Genlogin</option>
+                <option value="kameleo">Kameleo</option>
+                <option value="chrome">Chrome (vanilla)</option>
+                <option value="firefox">Firefox (vanilla)</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <span style={lbl}>External ID</span>
+              <NoFillInput style={fld} placeholder="profile ID trong tool"
+                value={form.externalId} onChange={(e) => setForm({ ...form, externalId: e.target.value })} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Default proxy <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
+              <select style={fld} value={form.defaultProxyId ?? ''}
+                onChange={(e) => setForm({ ...form, defaultProxyId: e.target.value ? Number(e.target.value) : null })}>
+                <option value="">— none —</option>
+                {proxies.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label} · {p.type}{p.location ? ` · ${p.location}` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Notes</span>
+              <textarea style={{ ...fld, minHeight: 50, resize: 'vertical' }}
+                value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <div className="meta">Tạo profile mới và chọn cho account</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={submit} disabled={busy}>{busy ? '…' : 'Create profile'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AccountsVault({ projectId, project, platforms, accounts, teamMembers = [], proxies = [], browserProfiles = [], isAdmin = true }: {
   projectId: string;
   project: Project;
   platforms: PlatformRow[];
   accounts: AccountRow[];
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
+  proxies?: ProxyRow[];
+  browserProfiles?: BrowserProfileRow[];
   isAdmin?: boolean;
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState<AccountRow | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<AccountStatus | 'all'>('all');
   const [, startTransition] = useTransition();
+
+  // Derive `editing` from latest accounts list so router.refresh() (e.g. after
+  // toggling a warmup checkbox) feeds fresh data into the modal instead of a
+  // stale snapshot. Without this, second click on a checkbox sends the same
+  // value as the first and the toggle appears stuck.
+  const editing = useMemo(
+    () => (editingId == null ? null : accounts.find((a) => a.id === editingId) ?? null),
+    [editingId, accounts],
+  );
+  const setEditing = (acc: AccountRow | null) => setEditingId(acc?.id ?? null);
 
   const platformMap = useMemo(() => Object.fromEntries(platforms.map((p) => [p.key, p])), [platforms]);
   const filtered = filterStatus === 'all' ? accounts : accounts.filter((a) => a.status === filterStatus);
@@ -198,31 +714,24 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-            🔐 Accounts <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', fontWeight: 400 }}>// {accounts.length} on {platforms.length} platforms</small>
-          </h2>
-          <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fg-3)' }}>
-            Đăng ký tài khoản trên các nền tảng. Click signup → mở tab mới với link đăng ký official.
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-3)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-2)' }}>{accounts.length} accounts · {platforms.length} platforms</span> · Đăng ký tài khoản trên các nền tảng. Click signup → mở tab mới với link đăng ký official.
           </p>
         </div>
         {isAdmin && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {teamMembers.length > 0 && (
-              <select
-                onChange={async (e) => {
-                  const uid = Number(e.target.value);
-                  if (!uid) return;
-                  const ids = filtered.map((a) => a.id);
-                  await assignAccountsToMember(uid, ids, projectId);
-                  await enableResourcesForMember(uid);
-                  e.target.value = '';
-                  router.refresh();
-                }}
-                style={{ fontSize: 11, padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)' }}
-              >
-                <option value="">Giao cho...</option>
-                {teamMembers.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
-              </select>
+            {teamMembers.length > 0 && accounts.length > 0 && (
+              <BulkAssignPopover
+                members={teamMembers}
+                accountIds={accounts.map((a) => a.id)}
+                accountCount={accounts.length}
+                projectId={projectId}
+                currentCounts={accounts.reduce((acc, a) => {
+                  if (a.ownerUserId) acc[a.ownerUserId] = (acc[a.ownerUserId] ?? 0) + 1;
+                  return acc;
+                }, {} as Record<number, number>)}
+                onDone={() => router.refresh()}
+              />
             )}
             <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button>
           </div>
@@ -290,26 +799,39 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 4, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                    {/* Signup chỉ show khi đang onboarding (todo / creating). Khi đã warming/
-                       active/limited/blocked/banned thì account đã exist, không cần signup nữa. */}
+                    {/* PRIMARY CTA — depends on status:
+                        todo/creating → Signup (đăng ký account chưa tồn tại)
+                        active        → + Post (publish content)
+                        khác          → no primary, chỉ secondary actions */}
                     {pf?.signupUrl && (acc.status === 'todo' || acc.status === 'creating') && (
-                      <a href={pf.signupUrl} target="_blank" rel="noopener noreferrer"
+                      <ExternalLink href={pf.signupUrl}
                          className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}>
                         ↗ Signup
-                      </a>
+                      </ExternalLink>
                     )}
-                    {/* Post chỉ khi active — account đã sẵn sàng publish content. */}
                     {pf?.postUrl && acc.status === 'active' && (
-                      <a href={pf.postUrl} target="_blank" rel="noopener noreferrer"
-                         className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>
+                      <ExternalLink href={pf.postUrl}
+                         className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}>
                         + Post
-                      </a>
+                      </ExternalLink>
                     )}
+                    {/* SECONDARY: Profile link — neutral, chỉ icon + text */}
+                    {acc.handle && (() => {
+                      const profileUrl = profileUrlFor(acc.platformKey, acc.handle, pf?.profileUrlPattern);
+                      return profileUrl ? (
+                        <ExternalLink href={profileUrl}
+                          title={`Mở profile @${acc.handle.replace(/^@+/, '')} trên ${pf?.label}`}
+                          className="btn ghost" style={{ fontSize: 10, padding: '3px 8px', color: 'var(--fg-2)' }}>
+                          ↗ Profile
+                        </ExternalLink>
+                      ) : null;
+                    })()}
+                    {/* Status step nav — neutral, để KHÔNG cạnh tranh với CTA Signup/Post */}
                     {LINEAR_FLOW.includes(acc.status as AccountStatus) && acc.status !== 'todo' && (
-                      <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }} title="Step back" onClick={() => handleQuickAdvance(acc, -1)}>←</button>
+                      <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px', color: 'var(--fg-3)' }} title="Step back" onClick={() => handleQuickAdvance(acc, -1)}>←</button>
                     )}
                     {LINEAR_FLOW.includes(acc.status as AccountStatus) && acc.status !== 'active' && (
-                      <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }} title="Advance status" onClick={() => handleQuickAdvance(acc, 1)}>→</button>
+                      <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px', color: 'var(--fg-2)' }} title="Advance status" onClick={() => handleQuickAdvance(acc, 1)}>→</button>
                     )}
                   </div>
                 </div>
@@ -326,6 +848,8 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           projectId={projectId}
           platforms={platforms}
           teamMembers={teamMembers}
+          proxies={proxies}
+          browserProfiles={browserProfiles}
           onClose={() => { setEditing(null); setCreating(false); }}
         />
       )}
@@ -337,17 +861,24 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-function AccountFormModal({ account, project, projectId, platforms, onClose, teamMembers = [] }: {
+function AccountFormModal({ account, project, projectId, platforms, onClose, teamMembers = [], proxies = [], browserProfiles = [] }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
   platforms: PlatformRow[];
   onClose: () => void;
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
+  proxies?: ProxyRow[];
+  browserProfiles?: BrowserProfileRow[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Track pending toggle: which key + the value we sent. Cleared only after
+  // the refreshed `account` prop reflects that value (router.refresh is
+  // fire-and-forget so we can't rely on the await alone).
+  const [pendingChecklist, setPendingChecklist] = useState<{ key: string; expected: boolean } | null>(null);
+  const pendingChecklistKey = pendingChecklist?.key ?? null;
   const isCreate = !account;
 
   const [form, setForm] = useState({
@@ -362,8 +893,18 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
     blockReason: account?.blockReason ?? '',
     notes: account?.notes ?? '',
     ownerUserId: (account as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
+    proxyId: account?.proxyId ?? null as number | null,
+    browserProfileId: account?.browserProfileId ?? null as number | null,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Inline create modals state — pattern này (CRUD inline trong picker)
+  // sẽ được generalize thành <ResourcePicker> sau (xem feedback memory).
+  const [showCreateProxy, setShowCreateProxy] = useState(false);
+  const [showCreateProfile, setShowCreateProfile] = useState(false);
+  // Inline platform edit — mở PlatformFormModal stack lên trên account modal
+  // (feedback_picker_inline_crud: edit-anywhere, không bắt vào /platforms)
+  const [showEditPlatform, setShowEditPlatform] = useState(false);
 
   const platform = platforms.find((p) => p.key === form.platformKey);
 
@@ -420,29 +961,71 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
         ? await createAccount(projectId, payload)
         : await updateAccount(projectId, account!.id, payload);
       if (!res.ok) { setError(res.error || 'Save failed'); return; }
+
+      // Save environment links (proxy + browser profile) — only edit-mode
+      // (create flow gets the new account id từ res.id; nếu cần khi create cũng wire được)
+      const accId = isCreate ? (res as { id?: number }).id : account!.id;
+      const envChanged = (form.proxyId ?? null) !== (account?.proxyId ?? null)
+        || (form.browserProfileId ?? null) !== (account?.browserProfileId ?? null);
+      if (accId && envChanged) {
+        await updateAccountEnvironment(accId, {
+          proxyId: form.proxyId,
+          browserProfileId: form.browserProfileId,
+        });
+      }
+
       router.refresh();
       onClose();
     });
   };
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const handleDelete = () => {
     if (!account) return;
-    if (!confirm(`Xoá account "${account.handle || account.platformKey}"? Không thể undo.`)) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      // Auto-revert sau 4s nếu user không action
+      setTimeout(() => setConfirmDelete(false), 4000);
+      return;
+    }
     startTransition(async () => {
       const res = await deleteAccount(projectId, account.id);
-      if (!res.ok) { alert(res.error); return; }
+      if (!res.ok) { setError(res.error || 'Delete failed'); setConfirmDelete(false); return; }
       router.refresh();
       onClose();
     });
   };
 
   const handleToggleChecklist = (itemKey: string, currentDone: boolean) => {
-    if (!account) return;
+    if (!account || pendingChecklist) return;
+    const next = !currentDone;
+    setPendingChecklist({ key: itemKey, expected: next });
     startTransition(async () => {
-      await toggleChecklistItem(projectId, account.id, itemKey, !currentDone);
+      const res = await toggleChecklistItem(projectId, account.id, itemKey, next);
+      if (!res.ok) {
+        setError(res.error || 'Toggle failed');
+        setPendingChecklist(null);
+        return;
+      }
       router.refresh();
+      // Don't clear pending here — useEffect below clears once `account` prop
+      // reflects the new value.
     });
   };
+
+  // Clear the pending spinner once the refreshed account data arrives and
+  // matches what we sent. Safety timeout in case revalidation is silently
+  // dropped — release the lock after 5s so the UI never deadlocks.
+  useEffect(() => {
+    if (!pendingChecklist || !account) return;
+    const current = account.warmupChecklist?.[pendingChecklist.key]?.done ?? false;
+    if (current === pendingChecklist.expected) {
+      setPendingChecklist(null);
+      return;
+    }
+    const t = setTimeout(() => setPendingChecklist(null), 5000);
+    return () => clearTimeout(t);
+  }, [account, pendingChecklist]);
 
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -493,7 +1076,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div style={{ flex: 1 }}>
             <div className="id-line">
@@ -535,9 +1118,17 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
           }))}
         />
 
-        <div className="modal-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ gridColumn: '1 / -1' }}>
+        <div className="modal-body" style={{
+          display: 'flex', flexDirection: 'row', gap: 16, alignItems: 'stretch',
+          // Override .modal-body { overflow-y: auto } để mỗi cột scroll riêng
+          overflow: 'hidden', flex: 1, minHeight: 0,
+        }}>
+          {/* ═══ LEFT COLUMN — Essentials (form fields chính) ═══════ */}
+          <div style={{
+            flex: '0 0 420px', display: 'flex', flexDirection: 'column', gap: 12,
+            overflowY: 'auto', minHeight: 0, paddingRight: 8,
+          }}>
+            <div>
               <span style={lbl}>Platform *</span>
               <PlatformPicker
                 platforms={platforms}
@@ -545,22 +1136,58 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                 onChange={(k) => setF('platformKey', k)}
                 fld={fld}
               />
-              {platform && (
-                <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                  <a href={platform.signupUrl} target="_blank" rel="noopener noreferrer"
-                     style={{ color: 'var(--accent)', textDecoration: 'none' }}>↗ Signup page</a>
-                  {platform.postUrl && (
-                    <a href={platform.postUrl} target="_blank" rel="noopener noreferrer"
-                       style={{ color: 'var(--accent)', textDecoration: 'none' }}>↗ Post page</a>
-                  )}
-                  <span style={{ color: 'var(--fg-3)' }}>
-                    Priority: <b style={{ color: PRIORITY_COLOR[platform.priority] }}>{platform.priority}</b>
-                  </span>
-                </div>
-              )}
+              {platform && (() => {
+                const profileUrl = profileUrlFor(platform.key, form.handle, platform.profileUrlPattern);
+                return (
+                  <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, alignItems: 'center' }}>
+                    {profileUrl && (
+                      <ExternalLink href={profileUrl}
+                        title={`Mở profile @${form.handle.replace(/^@+/, '')} trên ${platform.label}`}
+                        style={{
+                          color: 'var(--fg-0)', textDecoration: 'none', fontWeight: 600,
+                          padding: '2px 8px', borderRadius: 4,
+                          background: 'var(--bg-3)', border: '1px solid var(--line)',
+                        }}>
+                        ↗ Profile @{form.handle.replace(/^@+/, '')}
+                      </ExternalLink>
+                    )}
+                    <ExternalLink href={platform.signupUrl}
+                      style={{ color: 'var(--fg-2)', textDecoration: 'none' }}>↗ Signup page</ExternalLink>
+                    {platform.postUrl && (
+                      <ExternalLink href={platform.postUrl}
+                        style={{ color: 'var(--fg-2)', textDecoration: 'none' }}>↗ Post page</ExternalLink>
+                    )}
+                    <span style={{ color: 'var(--fg-3)' }}>
+                      Priority: <b style={{ color: PRIORITY_COLOR[platform.priority] }}>{platform.priority}</b>
+                    </span>
+                    <button type="button"
+                      onClick={() => setShowEditPlatform(true)}
+                      title={`Edit platform "${platform.label}" — open CRUD modal`}
+                      style={{
+                        marginLeft: 'auto', background: 'transparent', border: '1px solid var(--line)',
+                        color: 'var(--fg-2)', fontSize: 10.5, padding: '2px 8px', borderRadius: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✏️ edit platform
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Import from as.on.tc — only when creating + bridge enabled. Collapsed by default. */}
+            {/* CTA "Tạo account" — visible khi status=todo/creating, account chưa tồn tại trên platform */}
+            {platform && (form.status === 'todo' || form.status === 'creating') && (
+              <CTACard
+                href={platform.signupUrl}
+                title={`Tạo account trên ${platform.label}`}
+                subtitle={form.status === 'todo'
+                  ? 'Mở signup page → đăng ký xong → cập nhật handle + chuyển status sang Creating/Warming'
+                  : 'Account đang trong giai đoạn tạo — quay lại signup page nếu cần'}
+              />
+            )}
+
+            {/* Import from as.on.tc — only when creating + bridge enabled */}
             {isCreate && form.platformKey && directusState.enabled && (
               <DirectusImportSection
                 state={directusState}
@@ -569,93 +1196,275 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                 onImport={handleImport}
               />
             )}
-            <div>
-              <span style={lbl}>Handle / username</span>
-              <NoFillInput
-                style={fld}
-                placeholder="orit, @oritapp..."
-                value={form.handle}
-                onChange={(e) => setF('handle', e.target.value)}
-              />
-            </div>
-            <div>
-              <span style={lbl}>Email</span>
-              <NoFillInput
-                style={fld}
-                placeholder="account@..."
-                value={form.email}
-                onChange={(e) => setF('email', e.target.value)}
-              />
-            </div>
-            <div>
-              <span style={lbl}>Status</span>
-              <select style={fld} value={form.status} onChange={(e) => setF('status', e.target.value as AccountStatus)}>
-                {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.dot} {s.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <span style={lbl}>Auth method</span>
-              <select style={fld} value={form.authMethod} onChange={(e) => setF('authMethod', e.target.value as AuthMethod)}>
-                {AUTH_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-              </select>
-            </div>
-            {(form.status === 'limited' || form.status === 'blocked' || form.status === 'banned') && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={lbl}>Block reason</span>
-                <select style={fld} value={form.blockReason} onChange={(e) => setF('blockReason', e.target.value)}>
-                  <option value="">— select —</option>
-                  {BLOCK_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <span style={lbl}>Handle / username</span>
+                <NoFillInput
+                  style={fld}
+                  placeholder="orit, @oritapp..."
+                  value={form.handle}
+                  onChange={(e) => setF('handle', e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={lbl}>Email</span>
+                <NoFillInput
+                  style={fld}
+                  placeholder="account@..."
+                  value={form.email}
+                  onChange={(e) => setF('email', e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={lbl}>Status</span>
+                <select style={fld} value={form.status} onChange={(e) => setF('status', e.target.value as AccountStatus)}>
+                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.dot} {s.label}</option>)}
                 </select>
               </div>
-            )}
-            <div>
-              <span style={lbl}>Monthly cost ($)</span>
-              <input style={fld} type="number" min={0} value={form.monthlyCost} onChange={(e) => setF('monthlyCost', Number(e.target.value))} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-1)' }}>
-                <input type="checkbox" checked={form.has2fa} onChange={(e) => setF('has2fa', e.target.checked)} /> 2FA enabled
-              </label>
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={lbl}>Recovery info (codes / backup email)</span>
-              <input style={fld} placeholder="Backup codes, recovery email…" value={form.recoveryInfo} onChange={(e) => setF('recoveryInfo', e.target.value)} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={lbl}>Notes</span>
-              <textarea style={{ ...fld, minHeight: 60, resize: 'vertical' }} value={form.notes} onChange={(e) => setF('notes', e.target.value)} />
-            </div>
-            {teamMembers.length > 0 && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={lbl}>👤 Assigned to manage <span style={{ color: 'var(--fg-4)' }}>(member nào quản lý account này)</span></span>
-                <OwnerSelect members={teamMembers} value={form.ownerUserId} onChange={(uid) => setF('ownerUserId', uid)} fld={fld} />
+              <div>
+                <span style={lbl}>Auth method</span>
+                <select style={fld} value={form.authMethod} onChange={(e) => setF('authMethod', e.target.value as AuthMethod)}>
+                  {AUTH_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                </select>
               </div>
-            )}
+              {(form.status === 'limited' || form.status === 'blocked' || form.status === 'banned') && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={lbl}>Block reason</span>
+                  <select style={fld} value={form.blockReason} onChange={(e) => setF('blockReason', e.target.value)}>
+                    <option value="">— select —</option>
+                    {BLOCK_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+                  </select>
+                </div>
+              )}
+              {teamMembers.length > 0 && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={lbl}>👤 Assigned to manage</span>
+                  <OwnerSelect members={teamMembers} value={form.ownerUserId} onChange={(uid) => setF('ownerUserId', uid)} fld={fld} />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* API Token (encrypted via pgcrypto) — only edit-mode */}
-          {!isCreate && (
-            <ApiTokenSection
-              projectId={projectId}
-              accountId={account!.id}
-              hasToken={account!.hasApiToken}
+          {/* ═══ RIGHT COLUMN — Dynamic info (collapsibles) ═══════ */}
+          <div style={{
+            flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
+            overflowY: 'auto', minHeight: 0, paddingRight: 8, paddingLeft: 12,
+            borderLeft: '1px dashed var(--line)',
+          }}>
+          {/* ── Notes — collapsible. Open mặc định nếu đã có nội dung. ── */}
+          <Collapsible
+            title="Notes"
+            defaultOpen={!!form.notes}
+            badge={form.notes && (
+              <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                {form.notes.length} chars
+              </span>
+            )}
+            hint={!form.notes ? '+ add note' : undefined}
+          >
+            <textarea
+              style={{ ...fld, minHeight: 70, resize: 'vertical' }}
+              placeholder="Notes về account này (link, context, lưu ý…)"
+              value={form.notes}
+              onChange={(e) => setF('notes', e.target.value)}
+            />
+          </Collapsible>
+
+          {/* ── Environment (Proxy + Browser profile) — anti-detect setup ── */}
+          <Collapsible
+            title="🌐 Environment"
+            defaultOpen={!!form.proxyId || !!form.browserProfileId}
+            hint={
+              form.proxyId || form.browserProfileId
+                ? `${form.proxyId ? '🔌 proxy' : ''}${form.proxyId && form.browserProfileId ? ' · ' : ''}${form.browserProfileId ? '🦊 profile' : ''}`
+                : 'link proxy + browser profile (optional)'
+            }
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* PROXY picker — luôn có nút "+ New" để tạo mới ngay tại đây */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ ...lbl, marginBottom: 0 }}>
+                    🔌 Proxy <span style={{ color: 'var(--fg-4)' }}>({proxies.length} available)</span>
+                  </span>
+                  <button type="button" onClick={() => setShowCreateProxy(true)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 10.5, cursor: 'pointer', padding: 0 }}>
+                    + new proxy
+                  </button>
+                </div>
+                <select
+                  style={fld}
+                  value={form.proxyId ?? ''}
+                  onChange={(e) => setF('proxyId', e.target.value ? Number(e.target.value) : null)}
+                  disabled={proxies.length === 0}
+                >
+                  <option value="">{proxies.length === 0 ? '— chưa có proxy nào —' : '— none —'}</option>
+                  {proxies.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.health === 'ok' ? '🟢' : p.health === 'degraded' ? '🟡' : p.health === 'down' ? '🔴' : '⚪'}{' '}
+                      {p.label} · {p.type}{p.location ? ` · ${p.location}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* BROWSER PROFILE picker — luôn có nút "+ New" */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ ...lbl, marginBottom: 0 }}>
+                    🦊 Browser profile <span style={{ color: 'var(--fg-4)' }}>({browserProfiles.length} available)</span>
+                  </span>
+                  <button type="button" onClick={() => setShowCreateProfile(true)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 10.5, cursor: 'pointer', padding: 0 }}>
+                    + new profile
+                  </button>
+                </div>
+                <select
+                  style={fld}
+                  value={form.browserProfileId ?? ''}
+                  onChange={(e) => setF('browserProfileId', e.target.value ? Number(e.target.value) : null)}
+                  disabled={browserProfiles.length === 0}
+                >
+                  <option value="">{browserProfiles.length === 0 ? '— chưa có profile nào —' : '— none —'}</option>
+                  {browserProfiles.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.label} · {b.tool}{b.defaultProxyLabel ? ` (proxy: ${b.defaultProxyLabel})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, fontStyle: 'italic' }}>
+              Link account này với 1 proxy + 1 browser profile (vd: Multilogin, Adspower) để
+              anti-detect khi run automated actions. Không bắt buộc — chỉ cần khi platform
+              strict về fingerprint (Reddit, Twitter, FB).
+            </div>
+          </Collapsible>
+
+          {showCreateProxy && (
+            <QuickCreateProxyModal
+              onClose={() => setShowCreateProxy(false)}
+              onCreated={(id) => {
+                setF('proxyId', id);
+                setShowCreateProxy(false);
+              }}
+            />
+          )}
+          {showCreateProfile && (
+            <QuickCreateBrowserProfileModal
+              proxies={proxies}
+              onClose={() => setShowCreateProfile(false)}
+              onCreated={(id) => {
+                setF('browserProfileId', id);
+                setShowCreateProfile(false);
+              }}
+            />
+          )}
+          {showEditPlatform && platform && (
+            <PlatformFormModal
+              platform={{
+                key: platform.key,
+                label: platform.label,
+                signupUrl: platform.signupUrl,
+                postUrl: platform.postUrl,
+                profileUrlPattern: platform.profileUrlPattern,
+                priority: platform.priority,
+                iconSlug: platform.iconSlug,
+                fallbackKeys: platform.fallbackKeys,
+                description: platform.description ?? '',
+                pricing: platform.pricing ?? null,
+                region: platform.region ?? null,
+                category: (platform.category ?? 'other') as PlatformWithUsage['category'],
+                tags: platform.tags ?? [],
+                userCountEstimate: platform.userCountEstimate ?? null,
+                notes: null,
+                accountsCount: 1, // hide delete button khi edit từ context account
+              }}
+              onClose={() => setShowEditPlatform(false)}
             />
           )}
 
-          {/* Warmup checklist + image specs (only when editing existing account) */}
-          {!isCreate && platform && platform.checklist.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div className="modal-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Warmup checklist · {platform.label}</span>
-                {phasesToShow.length === 1 && (
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontWeight: 400 }}>
-                    showing only "{phasesToShow[0]}" phase (matches account status)
-                  </span>
-                )}
-                {(platform.checklist as Array<{ auto?: string }>).some((c) => c.auto) && (
-                  <AutoCheckButton projectId={projectId} accountId={account!.id} />
-                )}
+          {/* ── Share to agents/users — chỉ edit-mode. Owner đã có ở "Assigned to manage". ── */}
+          {!isCreate && (
+            <Collapsible
+              title="🔗 Shared with"
+              hint="agents + users (ngoài owner) được phép dùng account này"
+            >
+              <AccountGrantsSection
+                accountId={account!.id}
+                projectId={projectId}
+                members={teamMembers}
+              />
+            </Collapsible>
+          )}
+
+          {/* ── Advanced (Monthly cost, 2FA, Recovery, API token) — collapsed mặc định. ── */}
+          <Collapsible
+            title="Advanced"
+            defaultOpen={form.monthlyCost > 0 || form.has2fa || !!form.recoveryInfo || (!isCreate && !!account?.hasApiToken)}
+            hint="cost · 2FA · recovery · API token"
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <span style={lbl}>Monthly cost ($)</span>
+                <input style={fld} type="number" min={0} value={form.monthlyCost} onChange={(e) => setF('monthlyCost', Number(e.target.value))} />
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-1)' }}>
+                  <input type="checkbox" checked={form.has2fa} onChange={(e) => setF('has2fa', e.target.checked)} /> 2FA enabled
+                </label>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={lbl}>Recovery info (codes / backup email)</span>
+                <input style={fld} placeholder="Backup codes, recovery email…" value={form.recoveryInfo} onChange={(e) => setF('recoveryInfo', e.target.value)} />
+              </div>
+            </div>
+            {!isCreate && (
+              <div style={{ marginTop: 10 }}>
+                <ApiTokenSection
+                  projectId={projectId}
+                  accountId={account!.id}
+                  hasToken={account!.hasApiToken}
+                />
+              </div>
+            )}
+          </Collapsible>
+
+          {/* ── Warmup checklist — collapsible. Open mặc định nếu chưa hoàn tất. ── */}
+          {!isCreate && platform && platform.checklist.length > 0 && (() => {
+            const total = platform.checklist.length;
+            const done = platform.checklist.filter((it) => account!.warmupChecklist[it.key]?.done).length;
+            const allDone = done === total;
+            return (
+              <Collapsible
+                title={`Warmup checklist · ${platform.label}`}
+                defaultOpen={!allDone}
+                badge={
+                  <span style={{
+                    fontSize: 9.5, fontFamily: 'var(--font-mono)',
+                    padding: '1px 6px', borderRadius: 3,
+                    background: allDone ? 'rgba(16,185,129,.15)' : 'var(--bg-2)',
+                    color: allDone ? 'var(--ok)' : 'var(--fg-3)',
+                  }}>
+                    {done}/{total}
+                  </span>
+                }
+                hint={
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {phasesToShow.length === 1 && (
+                      <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}>
+                        phase: {phasesToShow[0]}
+                      </span>
+                    )}
+                    {(platform.checklist as Array<{ auto?: string }>).some((c) => c.auto) && (
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <AutoCheckButton projectId={projectId} accountId={account!.id} />
+                      </span>
+                    )}
+                  </span>
+                }
+              >
               {phasesToShow.map((phase) => (
                 checklistByPhase[phase].length > 0 && (
                   <div key={phase} style={{ marginBottom: 10 }}>
@@ -665,10 +1474,18 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                     {checklistByPhase[phase].map((item) => {
                       const state = account!.warmupChecklist[item.key] ?? { done: false };
                       const snippets = item.snippets ?? [];
+                      const isPending = pendingChecklistKey === item.key;
+                      const otherPending = pendingChecklistKey != null && !isPending;
                       return (
-                        <div key={item.key} style={{ padding: '5px 0', borderBottom: '1px dashed var(--line)' }}>
+                        <div key={item.key} style={{ padding: '5px 0', borderBottom: '1px dashed var(--line)', opacity: otherPending ? 0.5 : 1 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                            <input type="checkbox" checked={state.done} onChange={() => handleToggleChecklist(item.key, state.done)} style={{ marginTop: 2 }} />
+                            <span style={{ position: 'relative', display: 'inline-flex', marginTop: 2, width: 13, height: 13, alignItems: 'center', justifyContent: 'center' }}>
+                              {isPending ? (
+                                <Spinner size="sm" label="saving" />
+                              ) : (
+                                <input type="checkbox" checked={state.done} disabled={otherPending} onChange={() => handleToggleChecklist(item.key, state.done)} style={{ margin: 0, cursor: otherPending ? 'wait' : 'pointer' }} />
+                              )}
+                            </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 12, color: state.done ? 'var(--fg-3)' : 'var(--fg-0)', textDecoration: state.done ? 'line-through' : 'none' }}>
                                 {item.key.replace(/_/g, ' ')}
@@ -691,12 +1508,20 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                   </div>
                 )
               ))}
-            </div>
-          )}
+              </Collapsible>
+            );
+          })()}
 
           {!isCreate && platform && platform.imageSpecs.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <div className="modal-section-title">Image specs</div>
+            <Collapsible
+              title="Image specs"
+              badge={
+                <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                  {platform.imageSpecs.length}
+                </span>
+              }
+              hint="logo / banner / avatar dimensions"
+            >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {platform.imageSpecs.map((s, i) => (
                   <div key={i} style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11 }}>
@@ -706,14 +1531,24 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                   </div>
                 ))}
               </div>
-            </div>
+            </Collapsible>
           )}
+          </div>{/* /right column */}
         </div>
 
         <div className="modal-foot">
           <div className="meta">{isCreate ? 'New account' : `Editing #${account!.id}`}</div>
           <div className="modal-foot-actions">
-            {!isCreate && <button className="btn danger" onClick={handleDelete}>🗑 Delete</button>}
+            {!isCreate && (
+              <button
+                className="btn danger"
+                onClick={handleDelete}
+                title={confirmDelete ? 'Click lần nữa để xác nhận xoá vĩnh viễn' : 'Xoá account này (cần confirm)'}
+                style={confirmDelete ? { animation: 'pulseDanger 1s ease-in-out infinite' } : undefined}
+              >
+                {confirmDelete ? '⚠ Click again to confirm' : '🗑 Delete'}
+              </button>
+            )}
             <button className="btn ghost" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create account' : 'Save'}</button>
           </div>
@@ -814,6 +1649,157 @@ function DirectusImportSection({
   );
 }
 
+// ──────────────────────────────────────────────────────────────────
+// AccountGrantsSection — share account cho agents + users khác.
+// Owner (1 user chính) đã có ở "Assigned to manage". Bảng này thêm
+// quyền sử dụng cho N entity khác. Vd: account Reddit owner=Hoàng Tuấn,
+// share cho agent RES-04 + Linh để cùng dùng (không phải owner).
+// ──────────────────────────────────────────────────────────────────
+function AccountGrantsSection({ accountId, projectId, members }: {
+  accountId: number;
+  projectId: string;
+  members: import('@/lib/actions/team').TeamMemberRow[];
+}) {
+  const router = useRouter();
+  const [grants, setGrants] = useState<AccountGrantRow[]>([]);
+  const [agents, setAgents] = useState<Array<{ agentRef: string; label: string | null; squadKey: string | null }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState<'agent' | 'user' | null>(null);
+  const [picking, setPicking] = useState('');
+
+  const reload = async () => {
+    setLoading(true);
+    const [g, a] = await Promise.all([
+      listAccountGrants(accountId),
+      listProjectAgentsForGrant(projectId),
+    ]);
+    setGrants(g);
+    setAgents(a);
+    setLoading(false);
+  };
+
+  useEffect(() => { reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [accountId]);
+
+  const grantedAgentIds = new Set(grants.filter((g) => g.granteeKind === 'agent').map((g) => g.granteeId));
+  const grantedUserIds = new Set(grants.filter((g) => g.granteeKind === 'user').map((g) => g.granteeId));
+
+  const handleAdd = async (kind: 'agent' | 'user', id: string) => {
+    const res = await addAccountGrant(accountId, kind, id, 'use');
+    if (res.ok) {
+      await reload();
+      setAdding(null); setPicking('');
+      router.refresh();
+    }
+  };
+
+  const handleRemove = async (grantId: number) => {
+    await removeAccountGrant(grantId);
+    await reload();
+    router.refresh();
+  };
+
+  return (
+    <div>
+      {loading && <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Loading…</div>}
+
+      {!loading && grants.length === 0 && !adding && (
+        <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic', marginBottom: 8 }}>
+          Chưa share cho ai. Owner (Assigned to manage) là người duy nhất truy cập được.
+        </div>
+      )}
+
+      {!loading && grants.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+          {grants.map((g) => (
+            <div key={g.id} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '5px 10px',
+              background: 'var(--bg-2)', border: '1px solid var(--line)',
+              borderRadius: 5, fontSize: 12,
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 9,
+                padding: '1px 6px', borderRadius: 3,
+                background: g.granteeKind === 'agent' ? 'rgba(167,139,250,.15)' : 'rgba(56,189,248,.15)',
+                color: g.granteeKind === 'agent' ? 'var(--neon-violet)' : 'var(--neon-cyan)',
+                fontWeight: 700,
+              }}>
+                {g.granteeKind === 'agent' ? '🤖 AGENT' : '👤 USER'}
+              </span>
+              <span style={{ flex: 1, color: 'var(--fg-0)' }}>{g.granteeLabel}</span>
+              <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{g.role}</span>
+              <button type="button"
+                onClick={() => handleRemove(g.id)}
+                title="Bỏ share"
+                style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 14, padding: 0 }}
+              >×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add grant flow */}
+      {!adding && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" className="btn" onClick={() => { setAdding('agent'); setPicking(''); }}
+            style={{ fontSize: 11, padding: '4px 10px' }}>+ share to agent</button>
+          <button type="button" className="btn" onClick={() => { setAdding('user'); setPicking(''); }}
+            style={{ fontSize: 11, padding: '4px 10px' }}>+ share to user</button>
+        </div>
+      )}
+
+      {adding === 'agent' && (
+        <div style={{ marginTop: 4, padding: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5 }}>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>Chọn agent để share:</div>
+          <select value={picking} onChange={(e) => setPicking(e.target.value)}
+            style={{ width: '100%', padding: '5px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, marginBottom: 6 }}>
+            <option value="">— pick agent —</option>
+            {agents.map((a) => (
+              <option key={a.agentRef} value={a.agentRef} disabled={grantedAgentIds.has(a.agentRef)}>
+                {a.agentRef}{a.label ? ` · ${a.label}` : ''}{a.squadKey ? ` (${a.squadKey})` : ''}{grantedAgentIds.has(a.agentRef) ? ' ✓ already' : ''}
+              </option>
+            ))}
+          </select>
+          {agents.length === 0 && (
+            <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontStyle: 'italic', marginBottom: 6 }}>
+              Project chưa có agent nào. Tạo squad + agent ở Squads page trước.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn ghost" onClick={() => { setAdding(null); setPicking(''); }}
+              style={{ fontSize: 11, padding: '3px 10px' }}>Cancel</button>
+            <button type="button" className="btn primary" disabled={!picking}
+              onClick={() => handleAdd('agent', picking)}
+              style={{ fontSize: 11, padding: '3px 10px' }}>Share</button>
+          </div>
+        </div>
+      )}
+
+      {adding === 'user' && (
+        <div style={{ marginTop: 4, padding: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5 }}>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>Chọn user để share:</div>
+          <select value={picking} onChange={(e) => setPicking(e.target.value)}
+            style={{ width: '100%', padding: '5px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, marginBottom: 6 }}>
+            <option value="">— pick user —</option>
+            {members.map((m) => (
+              <option key={m.userId} value={String(m.userId)} disabled={grantedUserIds.has(String(m.userId))}>
+                {m.displayName}{m.email ? ` · ${m.email}` : ''}{grantedUserIds.has(String(m.userId)) ? ' ✓ already' : ''}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn ghost" onClick={() => { setAdding(null); setPicking(''); }}
+              style={{ fontSize: 11, padding: '3px 10px' }}>Cancel</button>
+            <button type="button" className="btn primary" disabled={!picking}
+              onClick={() => handleAdd('user', picking)}
+              style={{ fontSize: 11, padding: '3px 10px' }}>Share</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ApiTokenSection({ projectId, accountId, hasToken }: {
   projectId: string;
   accountId: number;
@@ -857,11 +1843,17 @@ function ApiTokenSection({ projectId, accountId, hasToken }: {
     if (!revealed) return;
     try { await navigator.clipboard.writeText(revealed); setCopyOk(true); setTimeout(() => setCopyOk(false), 1500); } catch {}
   };
+  const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = () => {
-    if (!confirm('Xoá API token? Action này không hoàn tác — token plaintext không khôi phục được.')) return;
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 4000);
+      return;
+    }
     startTransition(async () => {
       await clearAccountApiToken(projectId, accountId);
       setRevealed(null);
+      setConfirmClear(false);
       router.refresh();
     });
   };
@@ -911,7 +1903,14 @@ function ApiTokenSection({ projectId, accountId, hasToken }: {
                 {revealing ? '⟲ decrypting…' : '🔑 Reveal'}
               </button>
               <button className="btn" onClick={() => setEditing(true)} style={{ fontSize: 11, padding: '4px 10px' }}>↻ Replace</button>
-              <button className="btn danger" onClick={handleClear} style={{ fontSize: 11, padding: '4px 10px' }}>🗑 Clear</button>
+              <button
+                className="btn danger"
+                onClick={handleClear}
+                title={confirmClear ? 'Click lần nữa để xoá token vĩnh viễn' : 'Clear API token (cần confirm)'}
+                style={{ fontSize: 11, padding: '4px 10px', ...(confirmClear ? { animation: 'pulseDanger 1s ease-in-out infinite' } : {}) }}
+              >
+                {confirmClear ? '⚠ Click again to clear' : '🗑 Clear'}
+              </button>
             </>
           ) : (
             <button className="btn primary" onClick={() => setEditing(true)} style={{ fontSize: 11, padding: '4px 10px' }}>+ Set token</button>

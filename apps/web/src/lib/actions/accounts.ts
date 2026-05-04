@@ -3,7 +3,7 @@
 // Server Actions for platform account CRUD + warmup checklist updates.
 
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import {
   fetchDirectusAccountsByPlatform, fetchDirectusAccount,
@@ -52,10 +52,16 @@ export interface ChecklistEntry {
 
 async function findById(projectId: string, id: number) {
   const db = ensureDb();
+  // project_id on platform_accounts may be NULL (multi-brand) — verify access via pivot.
+  // Use query builder (returns camelCase) instead of raw execute (returns snake_case).
   const rows = await db
     .select()
     .from(platformAccounts)
-    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)))
+    .where(and(
+      eq(platformAccounts.tenantId, TENANT),
+      eq(platformAccounts.id, id),
+      sql`EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = ${platformAccounts.id} AND pj.project_id = ${projectId})`,
+    ))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -90,8 +96,160 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
     })
     .returning({ id: platformAccounts.id });
 
+  // Pivot: account vừa tạo mặc định 'primary' 100% cho project owner.
+  if (row?.id) {
+    await db.execute(sql`
+      INSERT INTO project_accounts (project_id, account_id, role, content_ratio)
+      VALUES (${projectId}, ${row.id}, 'primary', 100)
+      ON CONFLICT DO NOTHING
+    `);
+  }
+
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true, id: row?.id };
+}
+
+// ── Multi-brand sharing ──────────────────────────────────────────
+// Liên kết account hiện có với project khác (vd: @tuan_builds dùng cho
+// Astrolas + Orit). role: 'primary' (account chính của brand) | 'shared'.
+// contentRatio: % content từ account này dành cho project (0-100).
+export async function linkAccountToProject(
+  accountId: number,
+  projectId: string,
+  role: 'primary' | 'shared' = 'shared',
+  contentRatio = 0,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  await db.execute(sql`
+    INSERT INTO project_accounts (project_id, account_id, role, content_ratio)
+    VALUES (${projectId}, ${accountId}, ${role}, ${contentRatio})
+    ON CONFLICT (project_id, account_id) DO UPDATE
+      SET role = EXCLUDED.role, content_ratio = EXCLUDED.content_ratio
+  `);
+  revalidatePath(`/p/${projectId}/resources`);
+  return { ok: true };
+}
+
+export async function unlinkAccountFromProject(
+  accountId: number,
+  projectId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  await db.execute(sql`
+    DELETE FROM project_accounts
+    WHERE account_id = ${accountId} AND project_id = ${projectId}
+  `);
+  revalidatePath(`/p/${projectId}/resources`);
+  return { ok: true };
+}
+
+// ── Account grants (share account cho agents + users khác ngoài owner) ──
+export interface AccountGrantRow {
+  id: number;
+  granteeKind: 'agent' | 'user';
+  granteeId: string;        // agent_ref hoặc user_id (string)
+  granteeLabel: string;     // tên hiển thị (label agent / displayName user)
+  role: 'use' | 'admin';
+  notes: string | null;
+  grantedAt: Date;
+}
+
+export async function listAccountGrants(accountId: number): Promise<AccountGrantRow[]> {
+  const db = ensureDb();
+  // Join để lấy label cho cả agent + user trong 1 query
+  const rows = await db.execute(sql`
+    SELECT g.id, g.grantee_kind, g.grantee_id, g.role, g.notes, g.granted_at,
+           CASE g.grantee_kind
+             WHEN 'agent' THEN COALESCE(a.label, a.agent_ref)
+             WHEN 'user'  THEN COALESCE(m.display_name, u.name, u.email, '?')
+           END AS grantee_label
+    FROM account_grants g
+    LEFT JOIN agents a ON g.grantee_kind = 'agent' AND a.agent_ref = g.grantee_id
+    LEFT JOIN users  u ON g.grantee_kind = 'user'  AND u.id::text = g.grantee_id
+    LEFT JOIN members m ON g.grantee_kind = 'user' AND m.user_id::text = g.grantee_id AND m.project_id IS NULL
+    WHERE g.account_id = ${accountId}
+    ORDER BY g.grantee_kind, g.granted_at DESC
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    granteeKind: String(r.grantee_kind) as 'agent' | 'user',
+    granteeId: String(r.grantee_id),
+    granteeLabel: String(r.grantee_label ?? '?'),
+    role: String(r.role) as 'use' | 'admin',
+    notes: (r.notes as string | null) ?? null,
+    grantedAt: new Date(r.granted_at as string),
+  }));
+}
+
+export async function addAccountGrant(
+  accountId: number,
+  granteeKind: 'agent' | 'user',
+  granteeId: string,
+  role: 'use' | 'admin' = 'use',
+  notes?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  try {
+    await db.execute(sql`
+      INSERT INTO account_grants (account_id, grantee_kind, grantee_id, role, notes)
+      VALUES (${accountId}, ${granteeKind}, ${granteeId}, ${role}, ${notes ?? null})
+      ON CONFLICT (account_id, grantee_kind, grantee_id) DO UPDATE
+        SET role = EXCLUDED.role, notes = EXCLUDED.notes
+    `);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+export async function removeAccountGrant(grantId: number): Promise<{ ok: boolean }> {
+  const db = ensureDb();
+  await db.execute(sql`DELETE FROM account_grants WHERE id = ${grantId}`);
+  return { ok: true };
+}
+
+// Lấy danh sách agents available cho project hiện tại (để picker share)
+export async function listProjectAgentsForGrant(projectId: string): Promise<Array<{
+  agentRef: string;
+  label: string | null;
+  squadKey: string | null;
+}>> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT a.agent_ref, a.label, s.squad_key
+    FROM agents a
+    LEFT JOIN squads s ON s.id = a.squad_id
+    WHERE a.project_id = ${projectId} AND a.status = 'active'
+    ORDER BY s.squad_key, a.agent_ref
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    agentRef: String(r.agent_ref),
+    label: r.label ? String(r.label) : null,
+    squadKey: r.squad_key ? String(r.squad_key) : null,
+  }));
+}
+
+// Trả về tất cả projects đang share 1 account (cho UI "Used by" badge).
+export async function listAccountProjects(accountId: number): Promise<Array<{
+  projectId: string;
+  projectName: string;
+  role: string;
+  contentRatio: number;
+}>> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT pj.project_id, p.name AS project_name, pj.role, pj.content_ratio
+    FROM project_accounts pj
+    JOIN projects p ON p.id = pj.project_id
+    WHERE pj.account_id = ${accountId}
+    ORDER BY pj.role DESC, p.name
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    projectId: String(r['project_id']),
+    projectName: String(r['project_name']),
+    role: String(r['role']),
+    contentRatio: Number(r['content_ratio'] ?? 0),
+  }));
 }
 
 export async function updateAccount(projectId: string, id: number, patch: Partial<AccountInput>): Promise<{ ok: boolean; error?: string }> {
@@ -210,20 +368,27 @@ export async function importDirectusAccount(projectId: string, directusId: strin
     return { ok: false, error: `Platform "${d.platform}" not in MOS2 catalog. Add to catalog first.` };
   }
 
-  // Idempotent: check if same (project, platform, handle) already exists.
+  // Idempotent (tenant-scoped): account đã tồn tại ở tenant ⇒ chỉ link vào pivot
+  // cho project hiện tại (multi-brand). Nếu pivot đã có ⇒ no-op.
   if (d.handle) {
     const existing = await db
       .select({ id: platformAccounts.id })
       .from(platformAccounts)
       .where(and(
         eq(platformAccounts.tenantId, TENANT),
-        eq(platformAccounts.projectId, projectId),
         eq(platformAccounts.platformKey, platformKey),
         eq(platformAccounts.handle, d.handle),
       ))
       .limit(1);
     if (existing.length > 0) {
-      return { ok: true, id: existing[0]!.id, alreadyExists: true };
+      const accId = existing[0]!.id;
+      await db.execute(sql`
+        INSERT INTO project_accounts (project_id, account_id, role, content_ratio)
+        VALUES (${projectId}, ${accId}, 'shared', 0)
+        ON CONFLICT DO NOTHING
+      `);
+      revalidatePath(`/p/${projectId}/resources`);
+      return { ok: true, id: accId, alreadyExists: true };
     }
   }
 
@@ -250,6 +415,14 @@ export async function importDirectusAccount(projectId: string, directusId: strin
       warmupChecklist: (d.warmup_checklist as Record<string, unknown>) || {},
     })
     .returning({ id: platformAccounts.id });
+
+  if (row?.id) {
+    await db.execute(sql`
+      INSERT INTO project_accounts (project_id, account_id, role, content_ratio)
+      VALUES (${projectId}, ${row.id}, 'primary', 100)
+      ON CONFLICT DO NOTHING
+    `);
+  }
 
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true, id: row?.id };

@@ -93,10 +93,10 @@ export function AppShell({
             options={['dark', 'light']}
             onChange={(v) => setTweak('theme', v)}
           />
-          <TweakSelect<'auto' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink'>
+          <TweakSelect<'auto' | 'blue' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink'>
             label="Accent"
             value={tweaks.accent}
-            options={['auto', 'cyan', 'lime', 'amber', 'violet', 'pink']}
+            options={['auto', 'blue', 'cyan', 'lime', 'amber', 'violet', 'pink']}
             onChange={(v) => setTweak('accent', v)}
           />
           <TweakSection label="Layout" />

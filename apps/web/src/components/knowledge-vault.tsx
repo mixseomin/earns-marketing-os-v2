@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import type { KnowledgeRow } from '@/lib/data';
 import { Pill, EmptyState } from './ui';
+import { createKnowledgeItem } from '@/lib/actions/knowledge';
 
 const KIND_COLOR: Record<string, string> = {
   playbook: '#fbbf24', prompt: '#a78bfa', template: '#10b981',
@@ -17,11 +18,32 @@ function fmtDate(d: Date): string {
   return new Date(d).toLocaleDateString();
 }
 
-export function KnowledgeVault({ items, projectName }: { items: KnowledgeRow[]; projectName: string }) {
+const PROJECT_BRIEF_TEMPLATE = `## Product
+[tên sản phẩm, tagline, URL]
+
+## Target Audience
+[ai, pain points, demographics]
+
+## Tone & Voice
+[formal/casual, keywords ưu tiên, tránh gì]
+
+## Current Focus
+[campaign đang chạy, mục tiêu tháng này]
+
+## Platforms Active
+[Reddit, Twitter, YouTube — note gotchas từng platform]
+
+## Known Gotchas
+[những gì đã fail, những gì đã work tốt]`;
+
+export function KnowledgeVault({ items, projectName, projectId }: { items: KnowledgeRow[]; projectName: string; projectId: string }) {
   const [filterKind, setFilterKind] = useState<string>('all');
   const [filterScope, setFilterScope] = useState<'all' | 'project' | 'portfolio'>('all');
   const [search, setSearch] = useState('');
   const [openItem, setOpenItem] = useState<KnowledgeRow | null>(null);
+  const [showBriefModal, setShowBriefModal] = useState(false);
+
+  const hasBrief = items.some((i) => i.kind === 'playbook' && i.tags.includes('project-brief') && i.projectId === projectId);
 
   const kinds = useMemo(() => Array.from(new Set(items.map((i) => i.kind))), [items]);
 
@@ -60,6 +82,14 @@ export function KnowledgeVault({ items, projectName }: { items: KnowledgeRow[]; 
             Playbooks, prompts, templates, lessons, gotchas. Project-specific + portfolio-wide.
           </p>
         </div>
+        {!hasBrief && (
+          <button className="btn ghost" onClick={() => setShowBriefModal(true)} title="Tạo Project Brief để agent biết context project này">
+            📋 Project Brief
+          </button>
+        )}
+        {hasBrief && (
+          <span style={{ fontSize: 11, color: 'var(--ok)', fontFamily: 'var(--font-mono)' }} title="Project Brief đã có — agents sẽ nhận context này khi dispatch">✓ brief</span>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -118,6 +148,71 @@ export function KnowledgeVault({ items, projectName }: { items: KnowledgeRow[]; 
       )}
 
       {openItem && <KnowledgeModal item={openItem} onClose={() => setOpenItem(null)} />}
+      {showBriefModal && (
+        <ProjectBriefModal
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setShowBriefModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProjectBriefModal({ projectId, projectName, onClose }: { projectId: string; projectName: string; onClose: () => void }) {
+  const [content, setContent] = useState(PROJECT_BRIEF_TEMPLATE);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSave() {
+    startTransition(async () => {
+      await createKnowledgeItem({
+        projectId,
+        kind: 'playbook',
+        title: `${projectName} — Project Brief`,
+        content,
+        tags: ['project-brief'],
+      });
+      onClose();
+    });
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+      <div className="modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div className="id-line">playbook · {projectId}</div>
+            <h2>📋 Project Brief</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--fg-3)' }}>
+            Agents nhận brief này tự động khi dispatch vào project <strong>{projectName}</strong>. Điền càng cụ thể càng tốt.
+          </p>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={16}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '10px 12px', background: 'var(--bg-2)',
+              border: '1px solid var(--line)', borderRadius: 6,
+              color: 'var(--fg-0)', fontSize: 12, fontFamily: 'var(--font-mono)',
+              lineHeight: 1.6, outline: 'none', resize: 'vertical',
+            }}
+          />
+        </div>
+        <div className="modal-foot">
+          <div className="meta">tags: project-brief · kind: playbook</div>
+          <div className="modal-foot-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn" onClick={handleSave} disabled={isPending || !content.trim()}>
+              {isPending ? 'Saving…' : 'Save Brief'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

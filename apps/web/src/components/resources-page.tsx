@@ -222,7 +222,7 @@ const S = {
   dot: { width: 7, height: 7, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 6px var(--accent)" },
   small: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-3)", letterSpacing: "0.04em", fontWeight: 400 },
   btn: { appearance: "none", background: "var(--bg-3)", color: "var(--fg-1)", border: "1px solid var(--line)", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontFamily: "var(--font-sans)", cursor: "pointer" },
-  btnPrimary: { appearance: "none", background: "var(--accent)", color: "var(--bg-0)", border: "1px solid var(--accent)", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontFamily: "var(--font-sans)", fontWeight: 600, cursor: "pointer" },
+  btnPrimary: { appearance: "none", background: "var(--accent)", color: "#0d1117", border: "1px solid var(--accent)", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontFamily: "var(--font-sans)", fontWeight: 600, cursor: "pointer" },
   mono: { fontFamily: "var(--font-mono)" },
   row2: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 },
   row11: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
@@ -735,7 +735,8 @@ export function ResourcesPage({
         })}
       </div>
 
-      {/* Vault header — hide mock sub khi có override (sub mock không khớp DB thực tế) */}
+      {/* Vault header — khi có real-data override, ẩn cả title/sub mock vì
+          override component (vd AccountsVault) đã tự render header riêng. */}
       {(() => {
         const hasOverride =
           (vault === 'accounts' && accountsOverride) ||
@@ -744,10 +745,11 @@ export function ResourcesPage({
           (vault === 'media' && mediaOverride) ||
           (vault === 'infra' && infraOverride) ||
           (vault === 'budget' && budgetOverride);
+        if (hasOverride) return null;
         return (
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: "1px dashed var(--line-2)" }}>
             <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg-0)" }}>{cur.icon} {cur.title}</div>
-            {!hasOverride && <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>}
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-2)" }}>{cur.sub}</div>
           </div>
         );
       })()}

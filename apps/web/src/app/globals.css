@@ -21,23 +21,23 @@
   --fg-4: #3a4150;
 
   /* Neon accents */
-  --neon-cyan: #00e5ff;
+  --neon-cyan: #38bdf8;
   --neon-lime: #b6ff3c;
   --neon-amber: #ffb03c;
   --neon-pink: #ff3ca8;
   --neon-violet: #9d6cff;
   --neon-red: #ff4d5e;
-  --neon-blue: #3c9bff;
+  --neon-blue: #5badff;
 
-  --accent: var(--neon-cyan);
-  --accent-soft: rgba(0, 229, 255, 0.12);
-  --accent-line: rgba(0, 229, 255, 0.35);
+  --accent: var(--neon-blue);
+  --accent-soft: rgba(91, 173, 255, 0.12);
+  --accent-line: rgba(91, 173, 255, 0.35);
 
   /* Semantic */
   --ok: var(--neon-lime);
   --warn: var(--neon-amber);
   --bad: var(--neon-red);
-  --info: var(--neon-blue);
+  --info: var(--neon-cyan);
 
   /* Trust levels — restrained: only L4 is loud */
   --l1: #5a6273;
@@ -63,6 +63,24 @@
   --s-6: 24px;
 
   --density: 1;
+
+  /* Button tokens — exposed so /design-system can edit per-variant fg/bg/border */
+  --btn-fg: var(--fg-1);
+  --btn-bg: var(--bg-2);
+  --btn-border: var(--line);
+  --btn-hover-bg: var(--bg-3);
+
+  --btn-primary-fg: #0d1117;
+  --btn-primary-bg: var(--accent);
+  --btn-primary-border: var(--accent);
+
+  --btn-danger-fg: #ffffff;
+  --btn-danger-bg: var(--bad);
+  --btn-danger-border: var(--bad);
+
+  --btn-success-fg: #0d1117;
+  --btn-success-bg: var(--ok);
+  --btn-success-border: var(--ok);
 }
 
 html[data-theme="light"] {
@@ -81,17 +99,21 @@ html[data-theme="light"] {
   --fg-3: #8a92a3;
   --fg-4: #b0b6c2;
 
-  --neon-cyan: #0099b8;
-  --neon-lime: #4f9e00;
-  --neon-amber: #d97800;
-  --neon-pink: #d81e7c;
-  --neon-violet: #6b3ed6;
-  --neon-red: #d8233a;
-  --neon-blue: #1466d6;
+  --neon-cyan: #0369a1;
+  --neon-lime: #3f7e00;
+  --neon-amber: #c46a00;
+  --neon-pink: #c81970;
+  --neon-violet: #5d2fc4;
+  --neon-red: #c61c30;
+  --neon-blue: #1e6fe0;
 
-  --accent: var(--neon-cyan);
-  --accent-soft: rgba(0, 153, 184, 0.10);
-  --accent-line: rgba(0, 153, 184, 0.35);
+  --accent: var(--neon-blue);
+  --accent-soft: rgba(30, 111, 224, 0.16);
+  --accent-line: rgba(30, 111, 224, 0.50);
+
+  /* Button tokens override — light mode needs WHITE text on dark accent button */
+  --btn-primary-fg: #ffffff;
+  --btn-success-fg: #ffffff;
 }
 
 * { box-sizing: border-box; }
@@ -286,6 +308,17 @@ button { font-family: inherit; color: inherit; }
 @keyframes pulse-cyan {
   0%, 100% { box-shadow: 0 0 0 0 rgba(56,189,248,.4); }
   50% { box-shadow: 0 0 0 4px rgba(56,189,248,0); }
+}
+
+/* Used by inline 2-step confirm buttons (delete account, clear API token, etc.) */
+@keyframes pulseDanger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,94,.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(255,77,94,0); }
+}
+
+/* Inline mini-spinner (saving indicators on checkboxes, buttons) */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ── Sidebar ── */
@@ -669,9 +702,9 @@ button { font-family: inherit; color: inherit; }
 }
 .btn {
   appearance: none;
-  background: var(--bg-2);
-  color: var(--fg-1);
-  border: 1px solid var(--line);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-border);
   border-radius: var(--r-md);
   padding: 6px 10px;
   font-size: 11.5px;
@@ -680,17 +713,17 @@ button { font-family: inherit; color: inherit; }
   cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.btn:hover { background: var(--bg-3); border-color: var(--line-2); }
+.btn:hover { background: var(--btn-hover-bg); border-color: var(--line-2); }
 .btn.primary {
-  background: var(--accent);
-  color: var(--bg-0);
-  border-color: var(--accent);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-border);
   font-weight: 600;
 }
 .btn.primary:hover { filter: brightness(1.1); }
 .btn.ghost { background: transparent; }
-.btn.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
-.btn.success { background: var(--ok); color: var(--bg-0); border-color: var(--ok); }
+.btn.danger { background: var(--btn-danger-bg); color: var(--btn-danger-fg); border-color: var(--btn-danger-border); }
+.btn.success { background: var(--btn-success-bg); color: var(--btn-success-fg); border-color: var(--btn-success-border); }
 
 /* KPI grid */
 .kpi-grid {

@@ -162,6 +162,14 @@ button { font-family: inherit; color: inherit; }
 }
 .app[data-sidebar="hidden"] .sidebar { display: none; }
 
+.app[data-rightbar="hidden"] {
+  grid-template-columns: 240px 1fr 0;
+}
+.app[data-rightbar="hidden"] .rightbar { display: none; }
+.app[data-sidebar="hidden"][data-rightbar="hidden"] {
+  grid-template-columns: 0 1fr 0;
+}
+
 /* ── Top bar ── */
 .topbar {
   grid-area: topbar;

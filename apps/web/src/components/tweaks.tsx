@@ -6,6 +6,7 @@ export type Tweaks = {
   theme: 'dark' | 'light';
   columnCount: number;
   showSidebar: boolean;
+  showRightbar: boolean;
   animation: boolean;
   accent: 'auto' | 'blue' | 'cyan' | 'lime' | 'amber' | 'violet' | 'pink';
   lang: 'vi' | 'en';
@@ -16,6 +17,7 @@ export const TWEAK_DEFAULTS: Tweaks = {
   theme: 'dark',
   columnCount: 5,
   showSidebar: true,
+  showRightbar: false,
   animation: true,
   accent: 'auto',
   lang: 'vi',

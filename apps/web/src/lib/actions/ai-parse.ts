@@ -101,6 +101,85 @@ async function fetchUrlAsText(url: string): Promise<{ ok: boolean; text?: string
   }
 }
 
+// Suggest the rules/guidelines page URL for a community.
+// Fast path: deterministic pattern matching for known platforms (Reddit, FB).
+// Slow path: GPT-4o-mini infers URL from its knowledge of platform structure.
+export async function suggestRulesUrl(input: {
+  communityUrl?: string | null;
+  kind: string;
+  name: string;
+}): Promise<{ ok: boolean; url?: string; confidence?: 'certain' | 'likely' | 'guess'; method?: string; error?: string }> {
+  const url = input.communityUrl?.trim();
+
+  // Pattern matching — no AI call needed
+  if (url) {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('reddit.com') || input.kind === 'subreddit') {
+        const m = u.pathname.match(/^\/r\/([^/]+)/i);
+        if (m) return { ok: true, url: `https://www.reddit.com/r/${m[1]}/about/rules`, confidence: 'certain', method: 'pattern' };
+      }
+      if ((u.hostname.includes('facebook.com') || u.hostname.includes('fb.com')) && input.kind === 'fb-group') {
+        const base = url.replace(/\/$/, '');
+        return { ok: true, url: `${base}/about`, confidence: 'likely', method: 'pattern' };
+      }
+      if (u.hostname.includes('discord.com') || input.kind === 'discord') {
+        return { ok: false, error: 'Discord rules sống trong channel — không có URL cố định. Vào server → kênh #rules → copy link.' };
+      }
+    } catch { /* invalid URL, fall through to AI */ }
+  }
+
+  // AI fallback — no live fetch, GPT infers from training knowledge
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY not configured' };
+
+  const prompt = [
+    'Given an online community, return the EXACT rules/guidelines page URL — ONLY if you know it with certainty from your training data.',
+    url ? `Community URL: ${url}` : null,
+    `Community name: ${input.name}`,
+    `Platform kind: ${input.kind}`,
+    '',
+    'Return ONLY JSON: {"url": "string | null", "confidence": "certain | null", "reason": "string"}',
+    '',
+    'CRITICAL RULES:',
+    '- Set url=null and confidence=null if you have ANY doubt whatsoever.',
+    '- NEVER construct a URL by guessing. NEVER append /rules or /guidelines to an unknown base URL.',
+    '- NEVER return a URL you have not seen verbatim in training data for this exact community.',
+    '- Only return url if it is a well-known, stable, public URL you are 100% sure about.',
+    '- Custom forums, niche blogs, private communities → ALWAYS return null.',
+    '',
+    'Known CERTAIN patterns (only these qualify):',
+    '- Reddit: https://www.reddit.com/r/{sub}/about/rules',
+    '- Hacker News: https://news.ycombinator.com/newsguidelines.html',
+    '- Indie Hackers: https://www.indiehackers.com/guidelines',
+    '- Discourse with known base URL: {base}/guidelines',
+    '- Nothing else unless you have seen it explicitly in training data.',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 150,
+      }),
+    });
+    if (!res.ok) return { ok: false, error: `OpenAI ${res.status}` };
+    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+    const parsed = JSON.parse(data.choices[0]?.message?.content ?? '{}') as { url?: string | null; confidence?: string };
+    if (!parsed.url || parsed.confidence !== 'certain') {
+      return { ok: false, error: 'AI không chắc URL rules — điền tay hoặc "📋 Paste raw".' };
+    }
+    return { ok: true, url: parsed.url, confidence: 'certain', method: 'ai' };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function parseFormInput(input: {
   text?: string;
   url?: string;               // fetch URL → strip HTML → use as text input

@@ -307,6 +307,8 @@ export interface PlatformRow {
   category?: string;
   tags?: string[];
   userCountEstimate?: string | null;
+  technologyKey?: string | null;
+  signupFields?: Array<{ key: string; label: string; type: string; required: boolean; notes?: string; options?: string[] }>;
 }
 
 export async function listPlatforms(): Promise<PlatformRow[]> {
@@ -332,6 +334,8 @@ export async function listPlatforms(): Promise<PlatformRow[]> {
         category: r.category,
         tags: (r.tags as string[]) ?? [],
         userCountEstimate: r.userCountEstimate,
+        technologyKey: (r as { technologyKey?: string | null }).technologyKey ?? null,
+        signupFields: (r as { signupFields?: unknown }).signupFields as PlatformRow['signupFields'] ?? [],
       }));
     },
     [],
@@ -363,6 +367,7 @@ export interface AccountRow {
   proxyId: number | null;         // optional: anti-detect proxy
   browserProfileId: number | null;// optional: anti-detect browser fingerprint
   ownerUserId: number | null;     // member đang quản lý account (cho BulkAssign hiển thị "đã giao cho")
+  persona: Record<string, string>; // pre-deployment signup data (dob, gender, city, etc.)
 }
 
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
@@ -398,6 +403,7 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
         proxyId: (r as { proxyId?: number | null }).proxyId ?? null,
         browserProfileId: (r as { browserProfileId?: number | null }).browserProfileId ?? null,
         ownerUserId: (r as { ownerUserId?: number | null }).ownerUserId ?? null,
+        persona: ((r as { persona?: Record<string, string> }).persona) ?? {},
       }));
     },
     [],
@@ -541,7 +547,36 @@ export async function listRoadmap(): Promise<RoadmapRow[]> {
 
 // ── Phase 8 vaults: Tribes / Habitats / Knowledge / Contacts ──
 export interface TribeRow { id: number; projectId: string; slug: string; name: string; descText: string; signal: string; sentiment: number; lifecycle: string; lexicon: string[]; avoid: string[]; psychographic: string; importedFrom: string | null }
-export interface HabitatRow { id: number; tribeId: number | null; projectId: string; kind: string; name: string; url: string | null; members: number; activity: string; scrapeFrequency: string; lastSyncAt: Date | null; health: string; importedFrom: string | null }
+export interface HabitatRow {
+  id: number;
+  tribeId: number | null;
+  projectId: string;
+  kind: string;
+  name: string;
+  url: string | null;
+  platformKey: string | null;
+  technologyKey: string | null;
+  members: number;
+  activity: string;
+  scrapeFrequency: string;
+  lastSyncAt: Date | null;
+  health: string;
+  importedFrom: string | null;
+  // Outreach meta
+  language: string;
+  communityType: string;
+  status: string;
+  modStrictness: string;
+  postingRules: string;
+  postingRulesUrl: string;
+  minAccountAgeDays: number;
+  minKarma: number;
+  minPosts: number;
+  linksAllowedAfter: string;
+  dominantTopics: string[];
+  forbiddenTopics: string[];
+  bestPostTimes: string;
+}
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
 
@@ -563,9 +598,24 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
     const rows = await listHabitatsByProject(projectId);
     return (rows ?? []).map((r) => ({
       id: r.id, tribeId: r.tribeId, projectId: r.projectId, kind: r.kind,
-      name: r.name, url: r.url, members: r.members, activity: r.activity,
+      name: r.name, url: r.url, platformKey: r.platformKey ?? null,
+      technologyKey: r.technologyKey ?? null,
+      members: r.members, activity: r.activity,
       scrapeFrequency: r.scrapeFrequency, lastSyncAt: r.lastSyncAt,
       health: r.health, importedFrom: r.importedFrom,
+      language: r.language ?? '',
+      communityType: r.communityType ?? '',
+      status: r.status ?? 'target',
+      modStrictness: r.modStrictness ?? '',
+      postingRules: r.postingRules ?? '',
+      postingRulesUrl: r.postingRulesUrl ?? '',
+      minAccountAgeDays: r.minAccountAgeDays ?? 0,
+      minKarma: r.minKarma ?? 0,
+      minPosts: r.minPosts ?? 0,
+      linksAllowedAfter: r.linksAllowedAfter ?? '',
+      dominantTopics: (r.dominantTopics as string[]) ?? [],
+      forbiddenTopics: (r.forbiddenTopics as string[]) ?? [],
+      bestPostTimes: r.bestPostTimes ?? '',
     }));
   }, [], 'listHabitats');
 }

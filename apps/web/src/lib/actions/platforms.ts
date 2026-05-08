@@ -6,6 +6,57 @@
 import { revalidatePath } from 'next/cache';
 import { eq, sql } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
+import type { SignupField } from './technologies';
+import {
+  fetchDirectusPlatformCatalog, directusEnabled,
+  findDirectusPlatformBySlug, createDirectusPlatform, updateDirectusPlatform,
+} from '../bridge/directus';
+
+// MOS2 category → Directus type. Directus has a smaller enum
+// (api / marketplace / messaging / platform / tool); map MOS2's broader
+// categories down to closest Directus value.
+const CATEGORY_TO_DIRECTUS_TYPE: Record<string, string> = {
+  marketplace: 'marketplace',
+  messaging: 'messaging',
+  community: 'platform',
+  social: 'platform',
+  video: 'platform',
+  blog: 'platform',
+  launch: 'platform',
+  newsletter: 'platform',
+  design: 'tool',
+  audio: 'platform',
+  other: 'platform',
+};
+
+// Push a MOS2 platform record to Directus. Idempotent: dedupes by slug —
+// if Directus already has the slug, PATCH; otherwise POST. Soft-fails so
+// MOS2 mutations never block on Directus availability.
+async function pushPlatformToDirectus(input: {
+  key: string; label: string; signupUrl: string;
+  category?: PlatformCategory; description?: string;
+}): Promise<{ directusId: string | null; created: boolean; error?: string }> {
+  if (!directusEnabled()) return { directusId: null, created: false };
+  try {
+    const existing = await findDirectusPlatformBySlug(input.key);
+    const payload = {
+      name: input.label,
+      slug: input.key,
+      type: CATEGORY_TO_DIRECTUS_TYPE[input.category ?? 'other'] ?? 'platform',
+      url: input.signupUrl || null,
+      notes: input.description || null,
+      status: 'active',
+    };
+    if (existing) {
+      await updateDirectusPlatform(existing.id, payload);
+      return { directusId: existing.id, created: false };
+    }
+    const created = await createDirectusPlatform(payload);
+    return { directusId: created.id, created: true };
+  } catch (e) {
+    return { directusId: null, created: false, error: (e as Error).message };
+  }
+}
 
 export type PlatformPriority = 'critical' | 'high' | 'medium' | 'low';
 export type PlatformCategory =
@@ -28,6 +79,8 @@ export interface PlatformInput {
   tags?: string[];
   userCountEstimate?: string | null;
   notes?: string | null;
+  technologyKey?: string | null;
+  signupFields?: SignupField[];
 }
 
 function ensureDb() {
@@ -43,12 +96,92 @@ function slugify(s: string): string {
     .slice(0, 32);
 }
 
-export async function createPlatform(input: PlatformInput): Promise<{ ok: boolean; key?: string; error?: string }> {
+// Pull canonical platforms catalog from Directus `platforms` collection
+// (155+ rows with proper structure: name, slug, type, url, notes, etc).
+// Idempotent — existing keys are LEFT ALONE (no overwrite of admin edits).
+// New keys carry tag 'directus-sync' so admin can find/refine them later.
+//
+// Directus type → MOS2 category mapping:
+//   marketplace → marketplace, messaging → messaging, api → other,
+//   tool → other, platform → other (generic), default → other
+const TYPE_TO_CATEGORY: Record<string, PlatformCategory> = {
+  marketplace: 'marketplace',
+  messaging: 'messaging',
+  api: 'other',
+  tool: 'other',
+  platform: 'other',
+};
+
+export async function syncPlatformsFromDirectus(): Promise<{
+  ok: boolean; created: number; alreadyExisted: number; error?: string;
+}> {
+  if (!directusEnabled()) return { ok: false, created: 0, alreadyExisted: 0, error: 'Directus bridge disabled' };
+  const db = ensureDb();
+  let catalog;
+  try {
+    catalog = await fetchDirectusPlatformCatalog();
+  } catch (e) {
+    return { ok: false, created: 0, alreadyExisted: 0, error: (e as Error).message };
+  }
+
+  // Existing keys
+  const existing = await db.select({ key: platforms.key }).from(platforms);
+  const existingSet = new Set(existing.map((r) => r.key));
+
+  let alreadyExisted = 0;
+  const toInsert: Array<typeof platforms.$inferInsert> = [];
+  for (const it of catalog) {
+    // Use Directus slug if valid, else slugify name. Lowercase for MOS2.
+    const key = (it.slug || slugify(it.name)).toLowerCase();
+    if (!key) continue;
+    if (existingSet.has(key)) { alreadyExisted += 1; continue; }
+    toInsert.push({
+      key,
+      label: it.name,
+      signupUrl: it.url ?? '',
+      postUrl: null,
+      profileUrlPattern: null,
+      priority: 'low',
+      iconSlug: key,
+      fallbackKeys: [],
+      imageSpecs: [],
+      description: it.notes ?? `Imported from Directus platforms catalog (${it.accountsCount} account${it.accountsCount === 1 ? '' : 's'}).`,
+      pricing: null,
+      region: null,
+      category: TYPE_TO_CATEGORY[it.type.toLowerCase()] ?? 'other',
+      tags: ['directus-sync', `directus-id:${it.id}`, ...(it.type ? [`type:${it.type}`] : [])],
+      userCountEstimate: null,
+      notes: null,
+    });
+  }
+  let created = 0;
+  if (toInsert.length > 0) {
+    for (let i = 0; i < toInsert.length; i += 50) {
+      const chunk = toInsert.slice(i, i + 50);
+      await db.insert(platforms).values(chunk).onConflictDoNothing();
+      created += chunk.length;
+    }
+  }
+  revalidatePath('/platforms');
+  return { ok: true, created, alreadyExisted };
+}
+
+export async function createPlatform(input: PlatformInput): Promise<{ ok: boolean; key?: string; error?: string; directusWarning?: string }> {
   const key = input.key?.trim() || slugify(input.label);
   if (!key) return { ok: false, error: 'key/label rỗng' };
   if (!input.label?.trim()) return { ok: false, error: 'label rỗng' };
   if (!input.signupUrl?.trim()) return { ok: false, error: 'signup URL rỗng' };
   const db = ensureDb();
+  // Auto-push to Directus first so we can stamp the directus-id tag at insert time.
+  // Directus is treated as source of truth; if it dedupes a slug we use its row.
+  const push = await pushPlatformToDirectus({
+    key, label: input.label.trim(),
+    signupUrl: input.signupUrl.trim(),
+    category: input.category,
+    description: input.description,
+  });
+  const baseTags = input.tags ?? [];
+  const directusTag = push.directusId ? [`directus-id:${push.directusId}`] : [];
   try {
     await db.insert(platforms).values({
       key, label: input.label.trim(),
@@ -63,18 +196,24 @@ export async function createPlatform(input: PlatformInput): Promise<{ ok: boolea
       pricing: input.pricing ?? null,
       region: input.region ?? null,
       category: input.category ?? 'other',
-      tags: input.tags ?? [],
+      tags: [...baseTags, ...directusTag],
       userCountEstimate: input.userCountEstimate ?? null,
       notes: input.notes ?? null,
+      technologyKey: input.technologyKey ?? null,
+      signupFields: input.signupFields ?? [],
     });
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
   revalidatePath('/p/[id]/resources', 'page');
-  return { ok: true, key };
+  revalidatePath('/platforms');
+  return {
+    ok: true, key,
+    directusWarning: push.error ? `Saved to MOS2 but Directus push failed: ${push.error}` : undefined,
+  };
 }
 
-export async function updatePlatform(key: string, patch: Partial<PlatformInput>): Promise<{ ok: boolean; error?: string }> {
+export async function updatePlatform(key: string, patch: Partial<PlatformInput>): Promise<{ ok: boolean; error?: string; directusWarning?: string }> {
   const db = ensureDb();
   const set: Partial<typeof platforms.$inferInsert> = {};
   if (patch.label !== undefined) set.label = patch.label;
@@ -91,14 +230,51 @@ export async function updatePlatform(key: string, patch: Partial<PlatformInput>)
   if (patch.tags !== undefined) set.tags = patch.tags;
   if (patch.userCountEstimate !== undefined) set.userCountEstimate = patch.userCountEstimate;
   if (patch.notes !== undefined) set.notes = patch.notes;
+  if (patch.technologyKey !== undefined) set.technologyKey = patch.technologyKey;
+  if (patch.signupFields !== undefined) set.signupFields = patch.signupFields;
   if (Object.keys(set).length === 0) return { ok: true };
   try {
     await db.update(platforms).set(set).where(eq(platforms.key, key));
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+
+  // Auto-sync to Directus — Directus = source of truth, so any MOS2 edit
+  // propagates. dedupe by slug ensures we PATCH existing rather than create
+  // duplicate. Tag MOS2 row with directus-id if newly linked.
+  let directusWarning: string | undefined;
+  if (directusEnabled()) {
+    const [current] = await db
+      .select()
+      .from(platforms)
+      .where(eq(platforms.key, key))
+      .limit(1);
+    if (current) {
+      const push = await pushPlatformToDirectus({
+        key: current.key,
+        label: current.label,
+        signupUrl: current.signupUrl,
+        category: current.category as PlatformCategory,
+        description: current.description,
+      });
+      if (push.error) {
+        directusWarning = `MOS2 saved but Directus sync failed: ${push.error}`;
+      } else if (push.directusId) {
+        // Stamp directus-id tag if not already present
+        const tags = (current.tags as string[]) ?? [];
+        const hasIdTag = tags.some((t) => t.startsWith('directus-id:'));
+        if (!hasIdTag) {
+          await db.update(platforms)
+            .set({ tags: [...tags, `directus-id:${push.directusId}`] })
+            .where(eq(platforms.key, key));
+        }
+      }
+    }
+  }
+
   revalidatePath('/p/[id]/resources', 'page');
-  return { ok: true };
+  revalidatePath('/platforms');
+  return { ok: true, directusWarning };
 }
 
 export interface PlatformWithUsage {
@@ -118,6 +294,8 @@ export interface PlatformWithUsage {
   userCountEstimate: string | null;
   notes: string | null;
   accountsCount: number;
+  technologyKey: string | null;
+  signupFields: SignupField[];
 }
 
 export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
@@ -126,6 +304,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   const rows = await db.execute(sql`
     SELECT p.key, p.label, p.signup_url, p.post_url, p.profile_url_pattern, p.priority, p.icon_slug, p.fallback_keys,
            p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes,
+           p.technology_key, p.signup_fields,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
     FROM platforms p
     ORDER BY p.label
@@ -147,7 +326,23 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     userCountEstimate: (r.user_count_estimate as string | null) ?? null,
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
+    technologyKey: (r.technology_key as string | null) ?? null,
+    signupFields: Array.isArray(r.signup_fields) ? (r.signup_fields as SignupField[]) : [],
   }));
+}
+
+// Toggle archived tag on a platform. Archived platforms are hidden from the
+// picker by default — still exist in DB, can be restored.
+export async function archivePlatform(key: string, archive: boolean): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const [row] = await db.select({ tags: platforms.tags }).from(platforms).where(eq(platforms.key, key)).limit(1);
+  if (!row) return { ok: false, error: 'Platform not found' };
+  const tags = ((row.tags as string[]) ?? []).filter((t) => t !== 'archived');
+  if (archive) tags.push('archived');
+  await db.update(platforms).set({ tags, updatedAt: new Date() }).where(eq(platforms.key, key));
+  revalidatePath('/p/[id]/resources', 'page');
+  revalidatePath('/platforms', 'page');
+  return { ok: true };
 }
 
 export async function deletePlatform(key: string): Promise<{ ok: boolean; error?: string }> {

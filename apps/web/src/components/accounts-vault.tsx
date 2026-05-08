@@ -6,7 +6,8 @@ import type { PlatformRow, AccountRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import {
   createAccount, updateAccount, deleteAccount, setAccountStatus, toggleChecklistItem,
-  listDirectusAccountsForPlatform, importDirectusAccount,
+  listAccountsForProjectByPlatform,
+  listDirectusAccountsForPlatform, importDirectusAccount, pushAccountToDirectus,
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
   listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
@@ -17,7 +18,15 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker } from './ui';
+import {
+  listBriefsForAccount, listAddableHabitatsForAccount,
+  type BriefForAccount,
+} from '@/lib/actions/community-briefs';
+import { listTribesForProject } from '@/lib/actions/tribes-crud';
+import type { TribeRow } from '@/lib/data';
+import { BriefEditModal } from './brief-edit-modal';
+import { HabitatFormModal } from './habitat-form-modal';
 import { ExternalLink } from './external-link';
 import { profileUrlFor } from '@/lib/platform-profile-urls';
 import { fillTemplate } from '@/lib/template';
@@ -26,7 +35,9 @@ import { NoFillInput } from './no-fill-input';
 import { PlatformPicker } from './platform-picker';
 import { OwnerSelect } from './owner-select';
 import { PlatformFormModal } from './platform-form-modal';
-import type { PlatformWithUsage } from '@/lib/actions/platforms';
+import { updatePlatform, type PlatformWithUsage } from '@/lib/actions/platforms';
+import { getEffectiveSignupFields, listTechnologies, upsertTechnology, detectTechnologyFromUrl, type SignupField, type TechnologyRow } from '@/lib/actions/technologies';
+import { TechnologyPicker, SignupFieldsChecklist, SignupFieldsBuilder, type SignupFieldDef } from './technology-picker';
 
 const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
   { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
@@ -851,6 +862,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           proxies={proxies}
           browserProfiles={browserProfiles}
           onClose={() => { setEditing(null); setCreating(false); }}
+          onSwitchToEdit={(localId) => { setCreating(false); setEditingId(localId); }}
         />
       )}
     </div>
@@ -861,12 +873,21 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-function AccountFormModal({ account, project, projectId, platforms, onClose, teamMembers = [], proxies = [], browserProfiles = [] }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, teamMembers = [], proxies = [], browserProfiles = [] }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
   platforms: PlatformRow[];
   onClose: () => void;
+  onSwitchToEdit?: (accountId: number) => void;
+  // Preset platform when creating from a context that knows the platform
+  // (e.g. "+ New account on reddit" from a subreddit habitat drawer).
+  presetPlatformKey?: string;
+  onCreated?: (newAccountId: number) => void;
+  // When opened from a habitat drawer for a specific habitat, pass the
+  // habitat id so the local-accounts picker can flag rows that ALREADY
+  // have a brief for this habitat (still pickable — BriefEditModal upserts).
+  pickContextHabitatId?: number;
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
   proxies?: ProxyRow[];
   browserProfiles?: BrowserProfileRow[];
@@ -882,7 +903,11 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
   const isCreate = !account;
 
   const [form, setForm] = useState({
-    platformKey: account?.platformKey ?? platforms[0]?.key ?? '',
+    // No silent fallback to platforms[0] — when neither account nor preset
+    // gives us a platform (e.g. opened from a habitat with kind=forum which
+    // is platform-agnostic), leave empty so user MUST pick. handleSave
+    // already validates `!form.platformKey`.
+    platformKey: account?.platformKey ?? presetPlatformKey ?? '',
     handle: account?.handle ?? '',
     email: account?.email ?? '',
     status: (account?.status ?? 'todo') as AccountStatus,
@@ -895,8 +920,120 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
     ownerUserId: (account as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
     proxyId: account?.proxyId ?? null as number | null,
     browserProfileId: account?.browserProfileId ?? null as number | null,
+    persona: account?.persona ?? {} as Record<string, string>,
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Inline tech picker — lets user set platform engine without opening Platform modal
+  const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
+  const [localTechKey, setLocalTechKey] = useState<string | null>(null);
+  const [pendingTechKey, setPendingTechKey] = useState<string | null>(null);
+  const [techSaving, setTechSaving] = useState(false);
+  const [techDetecting, setTechDetecting] = useState(false);
+  const [techDetectMsg, setTechDetectMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [fieldsTrigger, setFieldsTrigger] = useState(0);
+  useEffect(() => { listTechnologies().then(setTechnologies); }, []);
+
+  // Sync localTechKey when platform changes
+  const platform = platforms.find((p) => p.key === form.platformKey);
+  useEffect(() => {
+    setLocalTechKey(platform?.technologyKey ?? null);
+    setPendingTechKey(null);
+  }, [form.platformKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDetectEngine = () => {
+    const signupUrl = platform?.signupUrl;
+    if (!signupUrl) return;
+    setTechDetecting(true); setTechDetectMsg(null);
+    startTransition(async () => {
+      const result = await detectTechnologyFromUrl(signupUrl);
+      setTechDetecting(false);
+      if (result.techKey) {
+        setPendingTechKey(result.techKey);
+        setTechDetectMsg({ text: `${result.techKey} (${result.confidence}) — ${result.method}`, ok: true });
+      } else {
+        setTechDetectMsg({ text: `No match — ${result.method}`, ok: false });
+      }
+    });
+  };
+
+  const handleSetEngine = () => {
+    if (!form.platformKey) return;
+    setTechSaving(true);
+    startTransition(async () => {
+      const res = await updatePlatform(form.platformKey, { technologyKey: pendingTechKey });
+      setTechSaving(false);
+      if (!res.ok) { setError(res.error || 'Engine update failed'); return; }
+      setLocalTechKey(pendingTechKey);
+      setPendingTechKey(null);
+      setFieldsTrigger((n) => n + 1);
+    });
+  };
+
+  // Inline field editors for engine defaults + platform overrides
+  const [showEditEngine, setShowEditEngine] = useState(false);
+  const [showEditPlatformFields, setShowEditPlatformFields] = useState(false);
+  const [editEngineFields, setEditEngineFields] = useState<SignupFieldDef[]>([]);
+  const [editPlatformFields, setEditPlatformFields] = useState<SignupFieldDef[]>([]);
+  const [fieldsSaving, setFieldsSaving] = useState<'engine' | 'platform' | null>(null);
+
+  // Sync editor state when engine/platform picker changes
+  useEffect(() => {
+    if (!showEditEngine) return;
+    const tech = technologies.find((t) => t.key === localTechKey);
+    setEditEngineFields((tech?.signupFields ?? []) as SignupFieldDef[]);
+  }, [showEditEngine, localTechKey, technologies]);
+
+  useEffect(() => {
+    if (!showEditPlatformFields) return;
+    setEditPlatformFields((platform?.signupFields ?? []) as SignupFieldDef[]);
+  }, [showEditPlatformFields]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveEngineFields = () => {
+    if (!localTechKey) return;
+    const tech = technologies.find((t) => t.key === localTechKey);
+    if (!tech) return;
+    setFieldsSaving('engine');
+    startTransition(async () => {
+      const res = await upsertTechnology({
+        key: tech.key,
+        label: tech.label,
+        description: tech.description,
+        signupFields: editEngineFields as SignupField[],
+        notes: tech.notes,
+      });
+      setFieldsSaving(null);
+      if (!res.ok) { setError(res.error || 'Save engine fields failed'); return; }
+      setShowEditEngine(false);
+      setFieldsTrigger((n) => n + 1);
+    });
+  };
+
+  const handleSavePlatformFields = () => {
+    if (!form.platformKey) return;
+    setFieldsSaving('platform');
+    startTransition(async () => {
+      const res = await updatePlatform(form.platformKey, { signupFields: editPlatformFields as SignupField[] });
+      setFieldsSaving(null);
+      if (!res.ok) { setError(res.error || 'Save platform fields failed'); return; }
+      setShowEditPlatformFields(false);
+      setFieldsTrigger((n) => n + 1);
+    });
+  };
+
+  // Load effective signup fields when platform is selected and status is todo/creating
+  const [effectiveFields, setEffectiveFields] = useState<SignupField[]>([]);
+  useEffect(() => {
+    if (!form.platformKey || (form.status !== 'todo' && form.status !== 'creating')) {
+      setEffectiveFields([]);
+      return;
+    }
+    let cancelled = false;
+    getEffectiveSignupFields(form.platformKey).then((fields) => {
+      if (!cancelled) setEffectiveFields(fields);
+    });
+    return () => { cancelled = true; };
+  }, [form.platformKey, form.status, fieldsTrigger]);
 
   // Inline create modals state — pattern này (CRUD inline trong picker)
   // sẽ được generalize thành <ResourcePicker> sau (xem feedback memory).
@@ -905,8 +1042,6 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
   // Inline platform edit — mở PlatformFormModal stack lên trên account modal
   // (feedback_picker_inline_crud: edit-anywhere, không bắt vào /platforms)
   const [showEditPlatform, setShowEditPlatform] = useState(false);
-
-  const platform = platforms.find((p) => p.key === form.platformKey);
 
   // ── Directus bridge: load existing accounts for this platform ──
   const [directusState, setDirectusState] = useState<{
@@ -937,6 +1072,10 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
       setImportingId(null);
       if (!res.ok) { setError(res.error || 'Import failed'); return; }
       router.refresh();
+      // Feed the newly-imported (or already-existing-and-linked) account
+      // ID back to the parent so flows like "+ Add account from habitat
+      // drawer" can chain straight into the BriefEditModal.
+      if (res.id != null) onCreated?.(res.id);
       onClose();
     });
   };
@@ -956,6 +1095,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
         blockReason: form.blockReason || null,
         notes: form.notes || null,
         ownerUserId: form.ownerUserId,
+        persona: form.persona,
       };
       const res = isCreate
         ? await createAccount(projectId, payload)
@@ -975,6 +1115,7 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
       }
 
       router.refresh();
+      if (isCreate && accId != null) onCreated?.(accId);
       onClose();
     });
   };
@@ -1093,7 +1234,12 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
         )}
 
         <AIFormParser
-          currentValues={form}
+          currentValues={{
+            platformKey: form.platformKey, handle: form.handle, email: form.email,
+            status: form.status, authMethod: form.authMethod, has2fa: form.has2fa,
+            recoveryInfo: form.recoveryInfo, monthlyCost: form.monthlyCost,
+            blockReason: form.blockReason, notes: form.notes,
+          }}
           context={`Platform account form for ${platform?.label || form.platformKey}. Parse signup confirmation email, screenshot, account info paste, or platform profile URL.`}
           schema={[
             { key: 'handle', label: 'Username/handle (without @)' },
@@ -1134,8 +1280,23 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                 platforms={platforms}
                 value={form.platformKey}
                 onChange={(k) => setF('platformKey', k)}
-                fld={fld}
+                fld={!form.platformKey
+                  ? { ...fld, borderColor: 'var(--warn)', boxShadow: '0 0 0 2px rgba(196,106,0,0.15)' }
+                  : fld}
               />
+              {!form.platformKey && (
+                <div style={{
+                  marginTop: 4, padding: '5px 8px', fontSize: 11,
+                  background: 'rgba(196,106,0,0.08)', color: 'var(--warn)',
+                  border: '1px solid rgba(196,106,0,0.30)', borderRadius: 4,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span>⚠ Chọn platform để tiếp tục.</span>
+                  <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>
+                    Chưa có trong catalog? Mở picker → gõ tên → click <strong>+ Tạo platform mới</strong>.
+                  </span>
+                </div>
+              )}
               {platform && (() => {
                 const profileUrl = profileUrlFor(platform.key, form.handle, platform.profileUrlPattern);
                 return (
@@ -1187,6 +1348,20 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
               />
             )}
 
+
+            {/* Pick existing MOS2 account on this platform — only useful in
+                pick-mode (parent passed onCreated, e.g. habitat-drawer flow).
+                Doesn't show in plain "+ New account" from AccountsVault. */}
+            {isCreate && form.platformKey && onCreated && (
+              <LocalAccountsPickerSection
+                projectId={projectId}
+                platformKey={form.platformKey}
+                platformLabel={platform?.label ?? form.platformKey}
+                excludeHabitatId={pickContextHabitatId}
+                onPick={(localId) => { onCreated(localId); onClose(); }}
+              />
+            )}
+
             {/* Import from as.on.tc — only when creating + bridge enabled */}
             {isCreate && form.platformKey && directusState.enabled && (
               <DirectusImportSection
@@ -1194,6 +1369,13 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                 platformLabel={platform?.label ?? form.platformKey}
                 importingId={importingId}
                 onImport={handleImport}
+                onEditLocal={(localId) => {
+                  // Pick-mode: parent passed onCreated → resolve modal to this
+                  // existing local account (e.g. habitat drawer feeds it into
+                  // the BriefEditModal). Otherwise switch to in-modal edit.
+                  if (onCreated) { onCreated(localId); onClose(); return; }
+                  onSwitchToEdit?.(localId);
+                }}
               />
             )}
 
@@ -1252,6 +1434,189 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
             overflowY: 'auto', minHeight: 0, paddingRight: 8, paddingLeft: 12,
             borderLeft: '1px dashed var(--line)',
           }}>
+            {/* ── Pre-deployment: inline engine picker + signup fields ──
+                Visible khi status=todo/creating. Engine picker saves trực tiếp
+                vào platform record (không cần mở Platform modal riêng).
+                Signup fields (persona) lưu cùng account khi Save. */}
+            {platform && (form.status === 'todo' || form.status === 'creating') && (
+              <div style={{
+                border: '1px solid var(--line)', borderRadius: 6,
+                background: 'var(--bg-1)',
+              }}>
+                {/* Header */}
+                <div style={{
+                  padding: '6px 10px', background: 'var(--bg-2)',
+                  borderBottom: '1px solid var(--line)',
+                  borderRadius: '6px 6px 0 0',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)' }}>📋 Pre-deployment</span>
+                  {effectiveFields.filter((f) => f.required).length > 0 && (
+                    <span style={{
+                      fontSize: 9.5, padding: '1px 6px', borderRadius: 10,
+                      background: 'var(--accent-soft)', color: 'var(--accent)',
+                      fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    }}>
+                      {effectiveFields.filter((f) => f.required).length} required
+                    </span>
+                  )}
+                  <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto' }}>
+                    điền trước khi vào signup page → lưu cùng account
+                  </span>
+                </div>
+
+                <div style={{ padding: '10px 10px 12px' }}>
+                  {/* Inline engine picker — saves to platform record directly */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                      <span style={{
+                        fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>⚙ Forum engine</span>
+                      {!localTechKey && (
+                        <span style={{ fontSize: 9.5, color: 'var(--warn)', fontStyle: 'italic' }}>
+                          — unknown, chọn để xem required fields
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <TechnologyPicker
+                          technologies={technologies}
+                          value={pendingTechKey !== null ? pendingTechKey : localTechKey}
+                          onChange={(k) => setPendingTechKey(k ?? '')}
+                          fld={{ ...fld, fontSize: 12 }}
+                        />
+                      </div>
+                      <button type="button" onClick={handleDetectEngine}
+                        disabled={techDetecting || !platform?.signupUrl}
+                        title={platform?.signupUrl ? 'Auto-detect engine từ signup URL' : 'Platform chưa có signup URL'}
+                        style={{
+                          flexShrink: 0, padding: '5px 8px', fontSize: 11, whiteSpace: 'nowrap',
+                          background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
+                          color: techDetecting ? 'var(--fg-3)' : 'var(--accent)',
+                          cursor: (techDetecting || !platform?.signupUrl) ? 'not-allowed' : 'pointer',
+                          opacity: !platform?.signupUrl ? 0.5 : 1,
+                        }}>
+                        {techDetecting ? '...' : '🔍'}
+                      </button>
+                      {(pendingTechKey !== null && pendingTechKey !== localTechKey) && (
+                        <button type="button"
+                          onClick={handleSetEngine}
+                          disabled={techSaving}
+                          title="Lưu engine vào platform record (áp dụng cho tất cả accounts của platform này)"
+                          style={{
+                            flexShrink: 0, padding: '6px 10px', fontSize: 11, fontWeight: 700,
+                            background: 'var(--accent)', color: '#0d1117',
+                            border: 'none', borderRadius: 5, cursor: techSaving ? 'wait' : 'pointer',
+                            opacity: techSaving ? 0.7 : 1, whiteSpace: 'nowrap',
+                          }}>
+                          {techSaving ? '...' : '↑ Set engine'}
+                        </button>
+                      )}
+                    </div>
+                    {techDetectMsg && (
+                      <div style={{ fontSize: 10, marginTop: 4, fontFamily: 'var(--font-mono)',
+                        color: techDetectMsg.ok ? 'var(--good)' : 'var(--fg-3)' }}>
+                        {techDetectMsg.text}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Signup fields checklist */}
+                  {effectiveFields.length > 0 ? (
+                    <SignupFieldsChecklist
+                      fields={effectiveFields}
+                      persona={form.persona}
+                      onPersonaChange={(key, value) => setF('persona', { ...form.persona, [key]: value })}
+                      templateVars={templateVars}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic', padding: '4px 0' }}>
+                      {localTechKey
+                        ? 'Engine này không có required signup fields đặc biệt.'
+                        : 'Chọn engine ở trên để xem danh sách fields cần chuẩn bị.'}
+                    </div>
+                  )}
+
+                  {/* ── Edit buttons for engine defaults + platform overrides ── */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--line)' }}>
+                    {localTechKey && (
+                      <button type="button"
+                        onClick={() => { setShowEditEngine((v) => !v); setShowEditPlatformFields(false); }}
+                        style={{
+                          fontSize: 10, padding: '3px 8px',
+                          background: showEditEngine ? 'var(--accent-soft)' : 'var(--bg-2)',
+                          border: `1px solid ${showEditEngine ? 'var(--accent-line)' : 'var(--line)'}`,
+                          color: showEditEngine ? 'var(--accent)' : 'var(--fg-2)',
+                          borderRadius: 4, cursor: 'pointer',
+                        }}
+                        title="Sửa default fields của engine này (áp dụng toàn cầu cho tất cả platform dùng engine này)">
+                        ✏ Engine defaults ({technologies.find((t) => t.key === localTechKey)?.label ?? localTechKey})
+                      </button>
+                    )}
+                    <button type="button"
+                      onClick={() => { setShowEditPlatformFields((v) => !v); setShowEditEngine(false); }}
+                      style={{
+                        fontSize: 10, padding: '3px 8px',
+                        background: showEditPlatformFields ? 'var(--accent-soft)' : 'var(--bg-2)',
+                        border: `1px solid ${showEditPlatformFields ? 'var(--accent-line)' : 'var(--line)'}`,
+                        color: showEditPlatformFields ? 'var(--accent)' : 'var(--fg-2)',
+                        borderRadius: 4, cursor: 'pointer',
+                      }}
+                      title="Sửa platform-specific signup fields (chỉ áp dụng cho platform này, override engine defaults)">
+                      ✏ Platform fields ({platform?.label ?? form.platformKey})
+                    </button>
+                  </div>
+
+                  {/* Engine field editor */}
+                  {showEditEngine && localTechKey && (
+                    <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-0)', border: '1px solid var(--accent-line)', borderRadius: 5 }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 700, marginBottom: 6 }}>
+                        ⚙ Engine defaults — {technologies.find((t) => t.key === localTechKey)?.label}
+                        <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
+                          (áp dụng cho mọi platform dùng engine này)
+                        </span>
+                      </div>
+                      <SignupFieldsBuilder fields={editEngineFields} onChange={setEditEngineFields} />
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+                        <button type="button" onClick={() => setShowEditEngine(false)}
+                          style={{ fontSize: 10, padding: '3px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-3)', borderRadius: 4, cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleSaveEngineFields} disabled={fieldsSaving === 'engine'}
+                          style={{ fontSize: 10, padding: '3px 12px', fontWeight: 700, background: 'var(--accent)', color: '#0d1117', border: 'none', borderRadius: 4, cursor: fieldsSaving === 'engine' ? 'wait' : 'pointer', opacity: fieldsSaving === 'engine' ? 0.7 : 1 }}>
+                          {fieldsSaving === 'engine' ? 'Saving…' : '↑ Save engine defaults'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Platform field editor */}
+                  {showEditPlatformFields && (
+                    <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-0)', border: '1px solid var(--accent-line)', borderRadius: 5 }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 700, marginBottom: 6 }}>
+                        Platform overrides — {platform?.label ?? form.platformKey}
+                        <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
+                          (override/bổ sung trên engine defaults)
+                        </span>
+                      </div>
+                      <SignupFieldsBuilder fields={editPlatformFields} onChange={setEditPlatformFields} />
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+                        <button type="button" onClick={() => setShowEditPlatformFields(false)}
+                          style={{ fontSize: 10, padding: '3px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-3)', borderRadius: 4, cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleSavePlatformFields} disabled={fieldsSaving === 'platform'}
+                          style={{ fontSize: 10, padding: '3px 12px', fontWeight: 700, background: 'var(--accent)', color: '#0d1117', border: 'none', borderRadius: 4, cursor: fieldsSaving === 'platform' ? 'wait' : 'pointer', opacity: fieldsSaving === 'platform' ? 0.7 : 1 }}>
+                          {fieldsSaving === 'platform' ? 'Saving…' : '↑ Save platform fields'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           {/* ── Notes — collapsible. Open mặc định nếu đã có nội dung. ── */}
           <Collapsible
             title="Notes"
@@ -1380,6 +1745,8 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                 userCountEstimate: platform.userCountEstimate ?? null,
                 notes: null,
                 accountsCount: 1, // hide delete button khi edit từ context account
+                technologyKey: platform.technologyKey ?? null,
+                signupFields: (platform.signupFields as PlatformWithUsage['signupFields']) ?? [],
               }}
               onClose={() => setShowEditPlatform(false)}
             />
@@ -1497,9 +1864,15 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
                                  className="btn" style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}>↗</a>
                             )}
                           </div>
-                          {snippets.length > 0 && (
+                          {/* Hide snippets in creating phase — already shown in Pre-deployment panel above */}
+                          {snippets.length > 0 && phase !== 'creating' && (
                             <div style={{ marginLeft: 26, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                               {snippets.map((snip, i) => <SnippetCard key={i} snippet={snip} vars={templateVars} />)}
+                            </div>
+                          )}
+                          {snippets.length > 0 && phase === 'creating' && (
+                            <div style={{ marginLeft: 26, marginTop: 4, fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+                              📋 {snippets.length} snippet{snippets.length === 1 ? '' : 's'} → xem ở Pre-deployment panel
                             </div>
                           )}
                         </div>
@@ -1511,6 +1884,15 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
               </Collapsible>
             );
           })()}
+
+          {!isCreate && account && (
+            <AccountBriefsSection
+              projectId={projectId}
+              accountId={account.id}
+              accountLabel={`@${account.handle || 'no-handle'} · ${platform?.label ?? account.platformKey}`}
+              platforms={platforms}
+            />
+          )}
 
           {!isCreate && platform && platform.imageSpecs.length > 0 && (
             <Collapsible
@@ -1539,6 +1921,9 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
         <div className="modal-foot">
           <div className="meta">{isCreate ? 'New account' : `Editing #${account!.id}`}</div>
           <div className="modal-foot-actions">
+            {!isCreate && account && (
+              <SyncToDirectusButton projectId={projectId} accountId={account.id} tags={(account.tags as string[]) ?? []} />
+            )}
             {!isCreate && (
               <button
                 className="btn danger"
@@ -1550,7 +1935,11 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
               </button>
             )}
             <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create account' : 'Save'}</button>
+            <button className="btn primary" onClick={handleSave}
+                    disabled={!form.platformKey}
+                    title={!form.platformKey ? 'Phải chọn platform trước' : undefined}>
+              {isCreate ? 'Create account' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
@@ -1558,20 +1947,198 @@ function AccountFormModal({ account, project, projectId, platforms, onClose, tea
   );
 }
 
+// ──────────────────────────────────────────────────────────────────
+// LocalAccountsPickerSection — pick an existing MOS2 account on this
+// platform (already in this project) instead of creating a duplicate.
+// Only mounted when AccountFormModal is in pick-mode (onCreated set).
+// ──────────────────────────────────────────────────────────────────
+interface LocalPickerRow {
+  id: number;
+  handle: string | null;
+  email: string | null;
+  status: string;
+  tags: string[];
+  briefedHabitats: string[];
+  alreadyBriefedHere: boolean;
+}
+
+function LocalAccountsPickerSection({
+  projectId, platformKey, platformLabel, excludeHabitatId, onPick,
+}: {
+  projectId: string;
+  platformKey: string;
+  platformLabel: string;
+  excludeHabitatId?: number;
+  onPick: (localAccountId: number) => void;
+}) {
+  const [accounts, setAccounts] = useState<LocalPickerRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listAccountsForProjectByPlatform(projectId, platformKey, excludeHabitatId).then((rows) => {
+      if (!cancelled) { setAccounts(rows); setLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [projectId, platformKey, excludeHabitatId]);
+
+  const total = accounts?.length ?? 0;
+  const visible = useMemo(() => {
+    if (!accounts) return [];
+    const ql = query.trim().toLowerCase();
+    if (!ql) return accounts;
+    return accounts.filter((a) =>
+      (a.handle || '').toLowerCase().includes(ql) ||
+      (a.email  || '').toLowerCase().includes(ql) ||
+      a.tags.some((t) => t.toLowerCase().includes(ql))
+    );
+  }, [accounts, query]);
+
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <button type="button" onClick={() => setOpen((o) => !o)}
+              style={{
+                width: '100%', padding: '6px 10px',
+                background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
+                borderRadius: 6, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+                fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)',
+              }}>
+        <span style={{ fontSize: 12 }}>⊕</span>
+        <span style={{ color: 'var(--fg-0)', fontWeight: 600 }}>Pick existing MOS2 account on {platformLabel}</span>
+        {loading
+          ? <span style={{ color: 'var(--fg-3)' }}>· loading…</span>
+          : total > 0
+            ? <span style={{ padding: '1px 6px', borderRadius: 3, background: 'var(--accent)', color: '#fff', fontSize: 9, fontWeight: 700 }}>{total}</span>
+            : <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>· none</span>}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 9, opacity: 0.6 }}>{open ? '▾' : '▸'}</span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+          {loading ? (
+            <div style={{ padding: 10, textAlign: 'center' }}><Spinner size="sm" /></div>
+          ) : total === 0 ? (
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+              Project chưa có account nào trên {platformLabel}. Điền form bên trên để tạo mới, hoặc import từ Directus bên dưới.
+            </div>
+          ) : (
+            <>
+              {total > 5 && (
+                <input type="text" placeholder="Search handle / email / tag…"
+                       value={query} onChange={(e) => setQuery(e.target.value)}
+                       autoComplete="off" data-1p-ignore data-lpignore="true" name="local-pk-q"
+                       style={{ width: '100%', padding: '4px 8px', marginBottom: 6, background: 'var(--bg-1)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4, fontSize: 11, outline: 'none' }} />
+              )}
+              {visible.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic', padding: 8, textAlign: 'center' }}>
+                  Không match &ldquo;{query}&rdquo;.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 240, overflowY: 'auto' }}>
+                  {visible.map((acc) => {
+                    const otherBriefs = excludeHabitatId
+                      ? acc.briefedHabitats.filter((_, i) => acc.briefedHabitats[i] && true)  // simple list
+                      : acc.briefedHabitats;
+                    const briefCount = acc.briefedHabitats.length;
+                    return (
+                      <div key={acc.id}
+                           style={{
+                             display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto',
+                             gap: 8, padding: '6px 8px',
+                             background: acc.alreadyBriefedHere ? 'rgba(91,173,255,.06)' : 'var(--bg-1)',
+                             border: `1px solid ${acc.alreadyBriefedHere ? 'var(--accent-line)' : 'var(--line)'}`,
+                             borderRadius: 5, fontSize: 12, alignItems: 'center',
+                           }}>
+                        <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                          <span title={acc.handle || 'no-handle'}
+                                style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%', flexShrink: 1 }}>
+                            @{acc.handle || <em style={{ color: 'var(--fg-3)' }}>no-handle</em>}
+                          </span>
+                          {acc.email && (
+                            <span title={acc.email}
+                                  style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                              {acc.email}
+                            </span>
+                          )}
+                          <StatusPill status={acc.status} />
+                          {acc.alreadyBriefedHere && (
+                            <span title="Account đã có brief cho habitat này — pick sẽ mở edit modal"
+                                  style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)', fontFamily: 'var(--font-mono)', fontWeight: 600, flexShrink: 0 }}>
+                              ✓ here
+                            </span>
+                          )}
+                          {briefCount > 0 && (
+                            <span title={`Đã có brief ở: ${otherBriefs.join(', ')}`}
+                                  style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-3)', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                              🎯 {briefCount}
+                            </span>
+                          )}
+                        </div>
+                        <button type="button"
+                                className={acc.alreadyBriefedHere ? 'btn' : 'btn primary'}
+                                style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}
+                                onClick={() => onPick(acc.id)}>
+                          {acc.alreadyBriefedHere ? '✎ Edit' : '✓ Pick'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div style={{ fontSize: 9.5, color: 'var(--fg-4)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                Pick = link account vào flow gọi modal (vd: thêm brief cho habitat). 🎯 N = đã có brief ở N habitat khác. ✓ here = đã có brief cho habitat hiện tại — Pick = edit brief.
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── ApiTokenSection: write-only set + reveal modal + clear ─────────
 // Collapsible Directus import — collapsed by default, only expand if user wants to import.
 function DirectusImportSection({
-  state, platformLabel, importingId, onImport,
+  state, platformLabel, importingId, onImport, onEditLocal,
 }: {
   state: { loading: boolean; enabled: boolean; accounts: DirectusAccountSummary[]; error?: string };
   platformLabel: string;
   importingId: string | null;
   onImport: (directusId: string) => void;
+  onEditLocal?: (localAccountId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const count = state.accounts.length;
+  const [query, setQuery] = useState('');
+  const [showFilter, setShowFilter] = useState<'all' | 'available' | 'imported'>('available');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'todo' | 'creating' | 'warming' | 'limited' | 'blocked' | 'banned'>('all');
+
+  const totalCount = state.accounts.length;
+
+  // Counts per show-filter to render in the segmented control
+  const importedCount = useMemo(() => state.accounts.filter((a) => a.localAccountId != null).length, [state.accounts]);
+  const availableCount = totalCount - importedCount;
+
+  const visible = useMemo(() => {
+    const ql = query.trim().toLowerCase();
+    return state.accounts.filter((a) => {
+      if (showFilter === 'available' && a.localAccountId != null) return false;
+      if (showFilter === 'imported'  && a.localAccountId == null) return false;
+      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
+      if (!ql) return true;
+      return (a.handle || '').toLowerCase().includes(ql)
+          || (a.email  || '').toLowerCase().includes(ql)
+          || (a.notes  || '').toLowerCase().includes(ql)
+          || a.tags.some((t) => t.toLowerCase().includes(ql));
+    });
+  }, [state.accounts, query, showFilter, statusFilter]);
+
   // Auto-expand if there's an error or zero accounts is uncertain — but default closed.
-  const hasContent = state.loading || state.error || count > 0;
+  const hasContent = state.loading || state.error || totalCount > 0;
 
   return (
     <div style={{ gridColumn: '1 / -1' }}>
@@ -1589,13 +2156,13 @@ function DirectusImportSection({
         <span style={{ fontSize: 12 }}>📥</span>
         <span>Import từ as.on.tc Directus</span>
         {state.loading && <span style={{ color: 'var(--fg-3)' }}>· loading…</span>}
-        {!state.loading && count > 0 && (
+        {!state.loading && totalCount > 0 && (
           <span style={{
             padding: '1px 6px', borderRadius: 3,
             background: 'var(--neon-lime)', color: 'var(--bg-0)', fontSize: 9, fontWeight: 700,
-          }}>{count} available</span>
+          }}>{availableCount} available · {importedCount} imported</span>
         )}
-        {!state.loading && count === 0 && !state.error && (
+        {!state.loading && totalCount === 0 && !state.error && (
           <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>· no records</span>
         )}
         {state.error && <span style={{ color: 'var(--bad)' }}>· error</span>}
@@ -1606,39 +2173,135 @@ function DirectusImportSection({
       {open && hasContent && (
         <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
           {state.error && <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 6 }}>⚠ {state.error}</div>}
-          {!state.loading && !state.error && count === 0 && (
+          {!state.loading && !state.error && totalCount === 0 && (
             <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
               Không có account nào trên platform &quot;{platformLabel}&quot; trong as.on.tc Directus.
             </div>
           )}
-          {count > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
-              {state.accounts.map((acc) => (
-                <div key={acc.directusId}
-                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, fontSize: 12 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)' }}>
-                    @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
-                  </span>
-                  {acc.duplicateCount > 1 && (
-                    <span title={`Directus has ${acc.duplicateCount} records (variants: ${acc.duplicatePlatformKeys.join(', ')})`}
-                          style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,176,60,.15)', color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>
-                      ⚠ ×{acc.duplicateCount}
-                    </span>
-                  )}
-                  {acc.email && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{acc.email}</span>}
-                  <StatusPill status={acc.status} />
-                  {acc.has2fa && <span title="2FA" style={{ fontSize: 10 }}>🔐</span>}
-                  <span style={{ flex: 1 }} />
-                  <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
-                          disabled={importingId === acc.directusId}
-                          onClick={() => onImport(acc.directusId)}>
-                    {importingId === acc.directusId ? '…' : '↓ Import'}
-                  </button>
+          {totalCount > 0 && (
+            <>
+              {/* ── Filter bar ─────────────────────────────── */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                <input
+                  type="text" placeholder="Search handle / email / tag / notes…"
+                  value={query} onChange={(e) => setQuery(e.target.value)}
+                  autoComplete="off" data-1p-ignore data-lpignore="true" name="dx-q"
+                  style={{
+                    flex: '1 1 220px', minWidth: 160, padding: '4px 8px',
+                    background: 'var(--bg-1)', color: 'var(--fg-0)',
+                    border: '1px solid var(--line)', borderRadius: 4,
+                    fontSize: 11, outline: 'none',
+                  }}
+                />
+                <div style={{ display: 'inline-flex', gap: 2 }}>
+                  {([
+                    ['available', `↓ ${availableCount}`, 'Chưa import'],
+                    ['imported',  `✓ ${importedCount}`,  'Đã import'],
+                    ['all',       `· ${totalCount}`,     'Tất cả'],
+                  ] as const).map(([k, lbl, hint]) => (
+                    <button key={k} type="button"
+                            title={hint}
+                            onClick={() => setShowFilter(k)}
+                            style={{
+                              padding: '3px 7px', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                              background: showFilter === k ? 'var(--accent-soft)' : 'transparent',
+                              color: showFilter === k ? 'var(--accent)' : 'var(--fg-2)',
+                              border: `1px solid ${showFilter === k ? 'var(--accent-line)' : 'var(--line)'}`,
+                              borderRadius: 4, cursor: 'pointer',
+                            }}>
+                      {lbl}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                        style={{
+                          padding: '3px 6px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                          background: 'var(--bg-1)', color: 'var(--fg-0)',
+                          border: '1px solid var(--line)', borderRadius: 4, outline: 'none',
+                        }}>
+                  <option value="all">All status</option>
+                  <option value="active">active</option>
+                  <option value="warming">warming</option>
+                  <option value="creating">creating</option>
+                  <option value="todo">todo</option>
+                  <option value="limited">limited</option>
+                  <option value="blocked">blocked</option>
+                  <option value="banned">banned</option>
+                </select>
+                {(query || showFilter !== 'available' || statusFilter !== 'all') && (
+                  <button type="button"
+                          onClick={() => { setQuery(''); setShowFilter('available'); setStatusFilter('all'); }}
+                          title="Reset filter"
+                          style={{ fontSize: 10, padding: '3px 7px', background: 'transparent', color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                    ↺
+                  </button>
+                )}
+                <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
+                  {visible.length}/{totalCount} match
+                </span>
+              </div>
+
+              {visible.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic', padding: 8, textAlign: 'center' }}>
+                  Không match filter.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 240, overflowY: 'auto' }}>
+              {visible.map((acc) => {
+                const imported = acc.localAccountId != null;
+                return (
+                  <div key={acc.directusId}
+                       style={{
+                         display: 'grid',
+                         gridTemplateColumns: 'minmax(0, 1fr) auto',
+                         gap: 8, padding: '6px 8px',
+                         background: imported ? 'rgba(16,185,129,.06)' : 'var(--bg-1)',
+                         border: `1px solid ${imported ? 'rgba(16,185,129,.2)' : 'var(--line)'}`,
+                         borderRadius: 5, fontSize: 12, alignItems: 'center',
+                       }}>
+                    <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                      <span title={acc.handle || 'no-handle'}
+                            style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%', flexShrink: 1 }}>
+                        @{acc.handle || <em style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>no-handle</em>}
+                      </span>
+                      {acc.duplicateCount > 1 && (
+                        <span title={`Directus has ${acc.duplicateCount} records (variants: ${acc.duplicatePlatformKeys.join(', ')})`}
+                              style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,176,60,.15)', color: 'var(--warn)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                          ⚠ ×{acc.duplicateCount}
+                        </span>
+                      )}
+                      {acc.email && (
+                        <span title={acc.email}
+                              style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                          {acc.email}
+                        </span>
+                      )}
+                      <StatusPill status={acc.status} />
+                      {acc.has2fa && <span title="2FA" style={{ fontSize: 10, flexShrink: 0 }}>🔐</span>}
+                      {imported && <span title="Đã import vào MOS2" style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(16,185,129,.15)', color: 'var(--ok)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>✓ imported</span>}
+                    </div>
+                    <div style={{ flexShrink: 0 }}>
+                      {imported && onEditLocal ? (
+                        <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }}
+                                onClick={() => onEditLocal(acc.localAccountId!)}>
+                          ✎ Edit
+                        </button>
+                      ) : (
+                        <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }}
+                                disabled={importingId === acc.directusId}
+                                onClick={() => onImport(acc.directusId)}>
+                          {importingId === acc.directusId ? '…' : '↓ Import'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+                </div>
+              )}
+            </>
           )}
-          {count > 0 && (
+          {totalCount > 0 && (
             <div style={{ fontSize: 9.5, color: 'var(--fg-4)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               Import = copy + tag <code>imported:directus:&lt;id&gt;</code>. Idempotent.
             </div>
@@ -1956,5 +2619,222 @@ function AutoCheckButton({ projectId, accountId }: { projectId: string; accountI
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--bad)' }} title={error}>⚠ error</span>
       )}
     </span>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// SyncToDirectusButton — push current MOS2 account to as.on.tc Directus.
+// PATCH if account already has imported:directus:<id> tag, else POST new.
+// ──────────────────────────────────────────────────────────────────
+function SyncToDirectusButton({
+  projectId, accountId, tags,
+}: {
+  projectId: string;
+  accountId: number;
+  tags: string[];
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<'created' | 'updated' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const importTag = tags.find((t) => t.startsWith('imported:directus:'));
+  const hasDirectus = !!importTag;
+
+  const handleClick = () => {
+    setBusy(true); setError(null); setDone(null);
+    startTransition(async () => {
+      const res = await pushAccountToDirectus(projectId, accountId);
+      setBusy(false);
+      if (!res.ok) { setError(res.error || 'sync failed'); return; }
+      setDone(res.created ? 'created' : 'updated');
+      setTimeout(() => setDone(null), 3000);
+      router.refresh();
+    });
+  };
+
+  return (
+    <button type="button" className="btn"
+            onClick={handleClick} disabled={busy}
+            title={hasDirectus
+              ? 'Push thay đổi từ MOS2 → Directus (PATCH existing record)'
+              : 'Tạo bản sao trên as.on.tc Directus (POST new record + tag local)'}
+            style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+      {busy ? <><Spinner size="xs" /> Syncing</>
+        : done === 'created' ? '✓ Created in Directus'
+        : done === 'updated' ? '✓ Updated in Directus'
+        : error ? <span style={{ color: 'var(--bad)' }} title={error}>⚠ Sync failed</span>
+        : <>↑ Sync to Directus{hasDirectus ? '' : ' (new)'}</>}
+    </button>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// AccountBriefsSection — list + edit briefs for THIS account.
+// Renders inside the account modal, lazy-loads briefs on mount.
+// ──────────────────────────────────────────────────────────────────
+function AccountBriefsSection({
+  projectId, accountId, accountLabel, platforms,
+}: {
+  projectId: string;
+  accountId: number;
+  accountLabel: string;
+  platforms: PlatformRow[];
+}) {
+  const [briefs, setBriefs] = useState<BriefForAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<BriefForAccount | null>(null);
+  const [creatingHabitatId, setCreatingHabitatId] = useState<number | null>(null);
+  const [creatingHabitatLabel, setCreatingHabitatLabel] = useState<string>('');
+  const [picking, setPicking] = useState(false);
+  const [addable, setAddable] = useState<Array<{ id: number; name: string; kind: string; url: string | null; tribeName: string | null }>>([]);
+  const [bumpKey, setBumpKey] = useState(0);
+  // Inline "+ New habitat" — opens HabitatFormModal in-place instead of navigating
+  const [showQuickHabitat, setShowQuickHabitat] = useState(false);
+  const [tribesForPicker, setTribesForPicker] = useState<TribeRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listBriefsForAccount(accountId).then((rows) => {
+      if (!cancelled) { setBriefs(rows); setLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [accountId, bumpKey]);
+
+  const refresh = () => setBumpKey((n) => n + 1);
+
+  const handleAdd = async () => {
+    setPicking(true);
+    const list = await listAddableHabitatsForAccount(projectId, accountId);
+    setAddable(list);
+  };
+
+  return (
+    <Collapsible
+      title="🎯 Phương án tiếp cận"
+      defaultOpen={briefs.length > 0}
+      badge={
+        <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
+          {briefs.length}
+        </span>
+      }
+      hint={
+        <button className="btn" type="button" onClick={(e) => { e.stopPropagation(); handleAdd(); }}
+                style={{ fontSize: 10, padding: '2px 8px' }}>
+          + Add community
+        </button>
+      }
+    >
+      {loading ? (
+        <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)' }}>
+          <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 11 }}>Loading briefs…</span>
+        </div>
+      ) : briefs.length === 0 ? (
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)', borderRadius: 5, background: 'var(--bg-2)', border: '1px dashed var(--line)' }}>
+          Chưa có phương án tiếp cận nào. Click <strong>+ Add community</strong> để link account này vào 1 community + viết approach.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {briefs.map((b) => (
+            <div key={b.id}
+                 onClick={() => setEditing(b)}
+                 style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, cursor: 'pointer', alignItems: 'center' }}
+                 title="Click để edit">
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {b.habitatName}
+                  </span>
+                  <Pill color="var(--fg-3)" label={b.habitatKind} size="xs" tone="ghost" />
+                  {b.tribeName && <Pill color="var(--accent)" label={b.tribeName} size="xs" tone="soft" uppercase={false} />}
+                  {b.habitatMembers > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{(b.habitatMembers / 1000).toFixed(b.habitatMembers > 9999 ? 0 : 1)}k</span>}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {b.approachMd ? b.approachMd.split('\n')[0] : <em style={{ color: 'var(--fg-4)' }}>chưa viết approach</em>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {b.cadence && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title="Cadence">⏱ {b.cadence}</span>}
+                {b.tone && <span style={{ fontSize: 10, color: 'var(--fg-3)' }} title={`Tone: ${b.tone}`}>🎵</span>}
+                {b.templates.length > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title={`${b.templates.length} templates`}>📝 {b.templates.length}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {picking && (
+        <ResourcePicker
+          title="Chọn community để add brief"
+          hint="Habitat trong cùng project. Add brief = link account này × community + viết phương án tiếp cận."
+          items={addable}
+          getKey={(h) => h.id}
+          renderItem={(h) => ({
+            title: h.name,
+            subtitle: `${h.kind}${h.tribeName ? ` · tribe: ${h.tribeName}` : ''}${h.url ? ` · ${h.url}` : ''}`,
+          })}
+          onPick={(h) => {
+            setCreatingHabitatId(h.id);
+            setCreatingHabitatLabel(`${h.name} · ${h.kind}${h.tribeName ? ` · tribe: ${h.tribeName}` : ''}`);
+            setPicking(false);
+          }}
+          onClose={() => setPicking(false)}
+          createLabel="+ New habitat"
+          onCreateNew={async () => {
+            // Lazy-load tribes for the form's tribe-picker dropdown
+            const t = await listTribesForProject(projectId);
+            setTribesForPicker(t as TribeRow[]);
+            setPicking(false);
+            setShowQuickHabitat(true);
+          }}
+          emptyMessage={
+            <>Project này chưa có habitat (community) nào, hoặc account đã có brief cho mọi community.<br />
+            Click <strong>+ New habitat</strong> bên dưới để tạo nhanh tại đây.</>
+          }
+        />
+      )}
+
+      {showQuickHabitat && (
+        <HabitatFormModal
+          projectId={projectId}
+          habitat={null}
+          tribes={tribesForPicker}
+          platforms={platforms}
+          onClose={() => setShowQuickHabitat(false)}
+          onCreated={(newHabitatId) => {
+            // Auto-pick the just-created habitat into the brief flow
+            setCreatingHabitatId(newHabitatId);
+            setCreatingHabitatLabel('(new habitat)');
+          }}
+        />
+      )}
+
+      {/* Edit modal — for existing brief */}
+      {editing && (
+        <BriefEditModal
+          projectId={projectId}
+          accountId={accountId}
+          habitatId={editing.habitatId}
+          accountLabel={accountLabel}
+          habitatLabel={`${editing.habitatName} · ${editing.habitatKind}`}
+          existing={editing}
+          onClose={() => { setEditing(null); refresh(); }}
+        />
+      )}
+
+      {/* Create modal — for new (account, habitat) pair */}
+      {creatingHabitatId != null && (
+        <BriefEditModal
+          projectId={projectId}
+          accountId={accountId}
+          habitatId={creatingHabitatId}
+          accountLabel={accountLabel}
+          habitatLabel={creatingHabitatLabel}
+          existing={null}
+          onClose={() => { setCreatingHabitatId(null); refresh(); }}
+        />
+      )}
+    </Collapsible>
   );
 }

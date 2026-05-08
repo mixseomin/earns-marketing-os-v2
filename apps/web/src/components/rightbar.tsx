@@ -1,17 +1,41 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import type { Mode } from '@/lib/mock/types';
 import { dismissAlert } from '@/lib/actions/alerts';
 import { usePolling } from '@/lib/use-polling';
 import { useTweaks } from './tweaks';
 
-export function RightBar({ mode, projectId }: { mode?: Mode; projectId?: string }) {
+export function RightBar({ mode, projectId, visible = true, onAutoShow }: {
+  mode?: Mode;
+  projectId?: string;
+  visible?: boolean;
+  onAutoShow?: () => void;
+}) {
   const [tab, setTab] = useState<'alerts' | 'feed'>('alerts');
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
   const allAlerts = (mode?.alerts ?? []).filter((a) => !dismissed.has(a.id));
   const badCount = allAlerts.filter((a) => a.tone === 'bad').length;
+
+  // Auto-show when a NEW alert appears (compare ids vs previous render).
+  // Default state is hidden; user-driven toggle in StatusBar controls visibility.
+  // We only fire onAutoShow when the bad-alert ids set GROWS — not on initial
+  // mount and not when alerts merely re-render without new ids.
+  const seenAlertIdsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const currentIds = new Set((mode?.alerts ?? []).filter((a) => a.tone === 'bad').map((a) => a.id));
+    if (seenAlertIdsRef.current === null) {
+      seenAlertIdsRef.current = currentIds;
+      return;
+    }
+    let hasNew = false;
+    for (const id of currentIds) {
+      if (!seenAlertIdsRef.current.has(id)) { hasNew = true; break; }
+    }
+    seenAlertIdsRef.current = currentIds;
+    if (hasNew && !visible) onAutoShow?.();
+  }, [mode?.alerts, visible, onAutoShow]);
 
   // Live polling: refresh server data every 30s when tab visible.
   // Only enabled when user has Live polling tweak ON AND we're on a project page

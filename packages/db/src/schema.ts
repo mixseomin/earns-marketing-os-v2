@@ -260,6 +260,32 @@ export const feedEvents = pgTable(
   ],
 );
 
+// ── platform_technologies ────────────────────────────────────────
+// Catalog of forum/CMS engines (vBulletin, XenForo, Discourse…).
+// signup_fields = default registration field requirements for this engine.
+// platforms and habitats can link here; effective fields = tech defaults
+// merged with platform-specific overrides (platform wins on same key).
+export const platformTechnologies = pgTable('platform_technologies', {
+  key:          text('key').primaryKey(),            // 'vbulletin', 'xenforo'
+  label:        text('label').notNull(),             // 'vBulletin'
+  description:  text('description').notNull().default(''),
+  signupFields: jsonb('signup_fields').notNull().default([]),
+  notes:        text('notes'),
+  createdAt:    timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// signup_fields element shape (stored in both platformTechnologies and platforms):
+// {
+//   key: string,          -- 'dob' | 'gender' | 'captcha' | 'phone' | …
+//   label: string,
+//   type: 'text' | 'date' | 'select' | 'boolean' | 'phone' | 'email' | 'captcha' | 'info',
+//   required: boolean,
+//   notes?: string,       -- tip/gotcha for this field
+//   placeholder?: string,
+//   options?: string[],   -- only for type='select'
+// }
+
 // ── platforms ────────────────────────────────────────────────────
 // Catalog of social/community/content platforms. Shared across tenants
 // (tenant_id default 'self'); seed once, edit centrally. Per-tenant
@@ -293,6 +319,9 @@ export const platforms = pgTable(
     tags: jsonb('tags').notNull().default([]),
     userCountEstimate: text('user_count_estimate'),       // human-readable: "1B+", "10M MAU"
     notes: text('notes'),
+    // migration 0044: forum engine + per-platform signup field overrides
+    technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
+    signupFields: jsonb('signup_fields').notNull().default([]), // platform-specific additions/overrides
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -342,6 +371,9 @@ export const platformAccounts = pgTable(
     browserProfileId: bigint('browser_profile_id', { mode: 'number' }),
     // Phase 14 (migration 0035): per-member ownership for operator scoping
     ownerUserId: bigint('owner_user_id', { mode: 'number' }),
+    // migration 0045: persona — character brief for pre-deployment prep
+    // { dob, gender, country, city, name_first, name_last, phone, backstory, interests[] }
+    persona: jsonb('persona').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -487,12 +519,29 @@ export const habitats = pgTable(
     kind: text('kind').notNull().default('forum'),         // subreddit|fb-group|discord|forum|hashtag|...
     name: text('name').notNull(),
     url: text('url'),
+    platformKey: text('platform_key').references(() => platforms.key, { onDelete: 'set null' }), // explicit link cho kinds không tự map (forum/hashtag/other)
     members: integer('members').notNull().default(0),
     activity: text('activity').notNull().default(''),       // free-form: 'high', '120 posts/d'
     scrapeFrequency: text('scrape_frequency').notNull().default('manual'), // live|manual|weekly|comments
     lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
     health: text('health').notNull().default('ok'),        // ok|warn|bad
     importedFrom: text('imported_from'),
+    // Outreach meta (mirrors Directus communities)
+    language: text('language').notNull().default(''),                              // vi|en|zh|multi|...
+    communityType: text('community_type').notNull().default(''),                    // discussion|news|q-a|portfolio|sharing|other
+    status: text('status').notNull().default('target'),                             // target|engaged|saturated|banned|dormant
+    modStrictness: text('mod_strictness').notNull().default(''),                    // low|medium|high
+    postingRules: text('posting_rules').notNull().default(''),                      // markdown — full rules
+    postingRulesUrl: text('posting_rules_url').notNull().default(''),                // canonical rules page URL
+    minAccountAgeDays: integer('min_account_age_days').notNull().default(0),
+    minKarma: integer('min_karma').notNull().default(0),
+    minPosts: integer('min_posts').notNull().default(0),
+    linksAllowedAfter: text('links_allowed_after').notNull().default(''),
+    dominantTopics: jsonb('dominant_topics').notNull().default([]),
+    forbiddenTopics: jsonb('forbidden_topics').notNull().default([]),
+    bestPostTimes: text('best_post_times').notNull().default(''),
+    // migration 0044: forum engine detection (can override platform's tech)
+    technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -500,6 +549,38 @@ export const habitats = pgTable(
     index('habitats_tenant_idx').on(t.tenantId),
     index('habitats_tribe_idx').on(t.tribeId),
     index('habitats_project_idx').on(t.projectId),
+  ],
+);
+
+// ── community_briefs (account × habitat approach plan) ───────────
+// Per (persona-account, concrete community) outreach strategy. One row
+// stores how this account-persona engages this specific community —
+// approach narrative, cadence, tone, do/dont, reusable templates.
+export const communityBriefs = pgTable(
+  'community_briefs',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    accountId: integer('account_id').notNull().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+    habitatId: integer('habitat_id').notNull().references(() => habitats.id, { onDelete: 'cascade' }),
+    approachMd: text('approach_md').notNull().default(''),
+    cadence: text('cadence').notNull().default(''),
+    tone: text('tone').notNull().default(''),
+    doMd: text('do_md').notNull().default(''),
+    dontMd: text('dont_md').notNull().default(''),
+    templates: jsonb('templates').notNull().default([]),
+    aiSuggestion: jsonb('ai_suggestion'),                                     // last generated AI suggestion (BriefSuggestion shape)
+    aiSuggestionAt: timestamp('ai_suggestion_at', { withTimezone: true }),     // when generated
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('community_briefs_account_habitat_uniq').on(t.accountId, t.habitatId),
+    index('community_briefs_project_idx').on(t.projectId),
+    index('community_briefs_account_idx').on(t.accountId),
+    index('community_briefs_habitat_idx').on(t.habitatId),
+    index('community_briefs_tenant_idx').on(t.tenantId),
   ],
 );
 
@@ -1062,4 +1143,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, communityBriefs, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

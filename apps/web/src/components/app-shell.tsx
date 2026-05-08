@@ -70,12 +70,19 @@ export function AppShell({
       )}
       {configVersion !== undefined && <VisibilityWatcher initialVersion={configVersion} />}
       <ThemeApplier modeAccent={mode?.accent} />
-      <div className="app" data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'} data-anim={tweaks.animation ? 'on' : 'off'}
+      <div className="app"
+           data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'}
+           data-rightbar={tweaks.showRightbar ? 'shown' : 'hidden'}
+           data-anim={tweaks.animation ? 'on' : 'off'}
         style={impersonate ? { paddingTop: 44 } : undefined}>
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} />
         {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
-        {(currentUser?.role ?? 'admin') === 'admin' && <RightBar mode={mode} projectId={project?.id} />}
+        {(currentUser?.role ?? 'admin') === 'admin' && (
+          <RightBar mode={mode} projectId={project?.id}
+                    visible={tweaks.showRightbar}
+                    onAutoShow={() => setTweak('showRightbar', true)} />
+        )}
         {(currentUser?.role ?? 'admin') === 'admin' && <StatusBar mode={mode} project={project} projectCount={projects.length} />}
 
         <TweaksPanel>
@@ -101,6 +108,7 @@ export function AppShell({
           />
           <TweakSection label="Layout" />
           <TweakToggle label="Show sidebar" value={tweaks.showSidebar} onChange={(v) => setTweak('showSidebar', v)} />
+          <TweakToggle label="Show alerts column (auto on new alert)" value={tweaks.showRightbar} onChange={(v) => setTweak('showRightbar', v)} />
           <TweakSlider label="Kanban columns" value={tweaks.columnCount} min={3} max={5} step={1} onChange={(v) => setTweak('columnCount', v)} />
           <TweakSection label="Motion" />
           <TweakToggle label="Real-time animation" value={tweaks.animation} onChange={(v) => setTweak('animation', v)} />

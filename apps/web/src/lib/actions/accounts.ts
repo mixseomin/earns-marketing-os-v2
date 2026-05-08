@@ -3,12 +3,13 @@
 // Server Actions for platform account CRUD + warmup checklist updates.
 
 import { revalidatePath } from 'next/cache';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import {
   fetchDirectusAccountsByPlatform, fetchDirectusAccount,
-  normalizeStatus, directusEnabled,
-  type DirectusAccount,
+  createDirectusAccount, updateDirectusAccount,
+  normalizeStatus, denormalizeStatus, directusEnabled,
+  type DirectusAccount, type DirectusAccountWritable,
 } from '../bridge/directus';
 import { encryptValue, decryptValue, cryptoEnabled } from '../crypto';
 
@@ -41,6 +42,7 @@ export interface AccountInput {
   notes?: string | null;
   tags?: string[];
   ownerUserId?: number | null;
+  persona?: Record<string, string>;
 }
 
 export interface ChecklistEntry {
@@ -93,6 +95,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       tags: input.tags ?? [],
       warmupChecklist: {},
       ownerUserId: input.ownerUserId ?? null,
+      persona: input.persona ?? {},
     })
     .returning({ id: platformAccounts.id });
 
@@ -271,6 +274,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.tags !== undefined) set.tags = patch.tags;
   if (patch.platformKey !== undefined) set.platformKey = patch.platformKey;
   if (patch.ownerUserId !== undefined) set.ownerUserId = patch.ownerUserId;
+  if (patch.persona !== undefined) set.persona = patch.persona;
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
 
@@ -306,6 +310,7 @@ export interface DirectusAccountSummary {
   notes: string | null;
   duplicateCount: number;     // 1 if unique; >1 if Directus has dupes (case variants)
   duplicatePlatformKeys: string[]; // raw platform values found across dupes
+  localAccountId: number | null; // populated by listDirectusAccountsForPlatform — null = not imported
 }
 
 function summarize(d: DirectusAccount): DirectusAccountSummary {
@@ -321,7 +326,64 @@ function summarize(d: DirectusAccount): DirectusAccountSummary {
     notes: d.notes,
     duplicateCount: 1,
     duplicatePlatformKeys: [d.platform || ''],
+    localAccountId: null,
   };
+}
+
+// MOS2-native accounts on a platform within a project. Used by the
+// AccountFormModal when in "pick or create" mode (e.g. opened from
+// habitat drawer "+ Add account") so the user can attach an EXISTING
+// MOS2 account instead of creating a duplicate or only being able to
+// pick from the Directus mirror.
+//
+// Each row also carries:
+//   briefedHabitats — habitat names this account already has briefs in,
+//                      so the picker can show "đã có brief ở 2 tribe khác".
+//   alreadyBriefedHere — bool, true when caller passes excludeHabitatId
+//                          AND a brief exists for that pair (we still
+//                          return the row but flag it).
+export async function listAccountsForProjectByPlatform(
+  projectId: string, platformKey: string, excludeHabitatId?: number,
+): Promise<Array<{
+  id: number;
+  handle: string | null;
+  email: string | null;
+  status: string;
+  tags: string[];
+  briefedHabitats: string[];
+  alreadyBriefedHere: boolean;
+}>> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT
+      pa.id, pa.handle, pa.email, pa.status, pa.tags,
+      COALESCE(
+        ARRAY(
+          SELECT h.name FROM community_briefs b
+          JOIN habitats h ON h.id = b.habitat_id
+          WHERE b.account_id = pa.id
+          ORDER BY h.name
+        ),
+        ARRAY[]::text[]
+      ) AS briefed_habitats,
+      ${excludeHabitatId != null
+        ? sql`EXISTS (SELECT 1 FROM community_briefs b WHERE b.account_id = pa.id AND b.habitat_id = ${excludeHabitatId})`
+        : sql`false`} AS already_briefed_here
+    FROM platform_accounts pa
+    JOIN project_accounts pj ON pj.account_id = pa.id AND pj.project_id = ${projectId}
+    WHERE pa.tenant_id = ${TENANT}
+      AND pa.platform_key = ${platformKey.toLowerCase()}
+    ORDER BY pa.handle ASC NULLS LAST
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    handle: r.handle ? String(r.handle) : null,
+    email:  r.email  ? String(r.email)  : null,
+    status: String(r.status ?? 'todo'),
+    tags:   Array.isArray(r.tags) ? (r.tags as string[]) : [],
+    briefedHabitats: Array.isArray(r.briefed_habitats) ? (r.briefed_habitats as string[]) : [],
+    alreadyBriefedHere: !!r.already_briefed_here,
+  }));
 }
 
 export async function listDirectusAccountsForPlatform(platformKey: string): Promise<{
@@ -348,7 +410,39 @@ export async function listDirectusAccountsForPlatform(platformKey: string): Prom
       }
       dedup.set(key, summarize(a));
     }
-    return { ok: true, enabled: true, accounts: Array.from(dedup.values()) };
+    const summaries = Array.from(dedup.values());
+    // Enrich with localAccountId: any MOS2 account whose tags include
+    // `imported:directus:<id>` OR matches (platform, handle) of a directus row.
+    if (summaries.length > 0) {
+      const db = ensureDb();
+      const handles = summaries.map((s) => s.handle).filter((h): h is string => !!h);
+      // Drizzle inArray() handles the pg array binding properly — earlier
+      // raw `handle = ANY(${handles})` failed with "op ANY/ALL (array)
+      // requires array on right side" because the JS array was bound as
+      // a scalar parameter.
+      if (handles.length > 0) {
+        const localRows = await db
+          .select({
+            id: platformAccounts.id,
+            handle: platformAccounts.handle,
+            tags: platformAccounts.tags,
+          })
+          .from(platformAccounts)
+          .where(and(
+            eq(platformAccounts.tenantId, TENANT),
+            eq(platformAccounts.platformKey, platformKey.toLowerCase()),
+            inArray(platformAccounts.handle, handles),
+          ));
+        for (const s of summaries) {
+          // Tag match first (survives handle rename)
+          const byTag = localRows.find((r) => Array.isArray(r.tags) && (r.tags as string[]).includes(`imported:directus:${s.directusId}`));
+          if (byTag) { s.localAccountId = byTag.id; continue; }
+          const byHandle = localRows.find((r) => r.handle && r.handle === s.handle);
+          if (byHandle) s.localAccountId = byHandle.id;
+        }
+      }
+    }
+    return { ok: true, enabled: true, accounts: summaries };
   } catch (e) {
     return { ok: false, enabled: true, accounts: [], error: (e as Error).message };
   }
@@ -426,6 +520,53 @@ export async function importDirectusAccount(projectId: string, directusId: strin
 
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true, id: row?.id };
+}
+
+// Push MOS2 account → Directus. If account has tag `imported:directus:<id>`,
+// PATCH that row; otherwise POST new + tag the local row with the new directus id.
+export async function pushAccountToDirectus(
+  projectId: string, accountId: number,
+): Promise<{ ok: boolean; directusId?: string; created?: boolean; error?: string }> {
+  if (!directusEnabled()) return { ok: false, error: 'Directus bridge disabled' };
+  const acc = await findById(projectId, accountId);
+  if (!acc) return { ok: false, error: 'account not found' };
+
+  const tags = Array.isArray(acc.tags) ? (acc.tags as string[]) : [];
+  const importTag = tags.find((t) => t.startsWith('imported:directus:'));
+  const existingDirectusId = importTag ? importTag.slice('imported:directus:'.length) : null;
+
+  const payload: DirectusAccountWritable = {
+    platform: acc.platformKey,
+    handle: acc.handle ?? null,
+    email: acc.email ?? null,
+    status: denormalizeStatus(acc.status),
+    auth_method: acc.authMethod ?? null,
+    has_2fa: !!acc.has2fa,
+    monthly_cost: acc.monthlyCost ?? 0,
+    collect_stats: !!acc.collectStats,
+    tags: tags.filter((t) => !t.startsWith('imported:directus:')),
+    notes: acc.notes ?? null,
+    recovery_info: acc.recoveryInfo ?? null,
+    warmup_checklist: (acc.warmupChecklist as Record<string, unknown>) ?? {},
+  };
+
+  try {
+    if (existingDirectusId) {
+      await updateDirectusAccount(existingDirectusId, payload);
+      return { ok: true, directusId: existingDirectusId, created: false };
+    }
+    const created = await createDirectusAccount(payload);
+    // Tag the local account with new directus id so subsequent pushes PATCH
+    const db = ensureDb();
+    const newTags = [...tags, `imported:directus:${created.id}`];
+    await db.update(platformAccounts)
+      .set({ tags: newTags, updatedAt: new Date() })
+      .where(eq(platformAccounts.id, accountId));
+    revalidatePath(`/p/${projectId}/resources`);
+    return { ok: true, directusId: created.id, created: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 export async function toggleChecklistItem(projectId: string, id: number, itemKey: string, done: boolean, value?: number | string | null): Promise<{ ok: boolean; error?: string }> {

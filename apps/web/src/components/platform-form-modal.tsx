@@ -4,16 +4,21 @@
 // từ account modal (✏️ edit), từ publication picker, etc.
 // Pattern: feedback_picker_inline_crud.md (edit-anywhere via modal).
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   type PlatformWithUsage, type PlatformPriority, type PlatformCategory,
   createPlatform, updatePlatform, deletePlatform,
 } from '@/lib/actions/platforms';
+import { listCommunitiesByPlatform } from '@/lib/actions/tribes-crud';
+import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type SignupField } from '@/lib/actions/technologies';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
+import { IconCommunity } from './ui';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
+import { TechnologyPicker, SignupFieldsBuilder } from './technology-picker';
 
 const PRIORITY_ORDER: PlatformPriority[] = ['critical', 'high', 'medium', 'low'];
 const PRIORITY_META: Record<PlatformPriority, { star: string; label: string }> = {
@@ -42,12 +47,42 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     category: (platform?.category ?? 'other') as string,
     userCountEstimate: platform?.userCountEstimate ?? '',
     tags: platform?.tags ?? [],
+    technologyKey: platform?.technologyKey ?? null as string | null,
+    signupFields: (platform?.signupFields ?? []) as SignupField[],
   });
+  const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
+  useEffect(() => { listTechnologies().then(setTechnologies); }, []);
+  const [detecting, setDetecting] = useState(false);
+  const [detectMsg, setDetectMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const handleDetect = async () => {
+    if (!form.signupUrl) return;
+    setDetecting(true); setDetectMsg(null);
+    const result = await detectTechnologyFromUrl(form.signupUrl);
+    setDetecting(false);
+    if (result.techKey) {
+      setF('technologyKey', result.techKey);
+      setDetectMsg({ text: `${result.techKey} (${result.confidence}) via ${result.method}`, ok: true });
+    } else {
+      setDetectMsg({ text: `No match — ${result.method}`, ok: false });
+    }
+  };
   const suggestedProfileUrl = useMemo(() => {
     if (!form.key) return null;
     return getSuggestedProfileUrlPattern(form.key);
   }, [form.key]);
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Reverse view: list communities (habitats) using THIS platform across
+  // every project. Lazy-load when modal opens with an existing platform.
+  const [communities, setCommunities] = useState<Awaited<ReturnType<typeof listCommunitiesByPlatform>>>([]);
+  useEffect(() => {
+    if (!platform?.key) { setCommunities([]); return; }
+    let cancelled = false;
+    listCommunitiesByPlatform(platform.key, 50).then((rows) => {
+      if (!cancelled) setCommunities(rows);
+    });
+    return () => { cancelled = true; };
+  }, [platform?.key]);
 
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
@@ -70,6 +105,8 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         userCountEstimate: form.userCountEstimate || null,
         category: form.category as PlatformCategory,
         tags: form.tags,
+        technologyKey: form.technologyKey || null,
+        signupFields: form.signupFields,
       };
       const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
       if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
@@ -109,10 +146,13 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         <AIFormParser
           context="Platform catalog entry. Parse from website URL, About/Pricing page, or paste platform description."
           currentValues={{
-            ...form,
+            key: form.key, label: form.label, signupUrl: form.signupUrl,
+            postUrl: form.postUrl, profileUrlPattern: form.profileUrlPattern,
+            priority: form.priority, iconSlug: form.iconSlug, description: form.description,
+            pricing: form.pricing, region: form.region, category: form.category,
+            userCountEstimate: form.userCountEstimate,
             tagsStr: form.tags.join(', '),
-            tags: undefined as never,
-          } as Record<string, string | number | boolean | null | undefined>}
+          }}
           schema={[
             { key: 'label', label: 'Display name (e.g. "Hacker News")' },
             { key: 'key', label: 'Unique slug, lowercase no spaces' },
@@ -240,6 +280,95 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             <span style={lbl}>Tags</span>
             <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
           </div>
+
+          {/* ── Technology engine section ── */}
+          <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
+            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6 }}>
+              ⚙ Forum engine / technology
+            </span>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <TechnologyPicker
+                  technologies={technologies}
+                  value={form.technologyKey}
+                  onChange={(k) => setF('technologyKey', k)}
+                  fld={fld}
+                />
+              </div>
+              <button type="button" onClick={handleDetect} disabled={detecting || !form.signupUrl}
+                title={form.signupUrl ? 'Auto-detect engine từ signup URL' : 'Nhập signup URL trước'}
+                style={{
+                  flexShrink: 0, padding: '5px 9px', fontSize: 11, whiteSpace: 'nowrap',
+                  background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
+                  color: detecting ? 'var(--fg-3)' : 'var(--accent)', cursor: detecting ? 'wait' : 'pointer',
+                }}>
+                {detecting ? '...' : '🔍 Detect'}
+              </button>
+            </div>
+            {detectMsg && (
+              <div style={{ fontSize: 10.5, marginTop: 4, fontFamily: 'var(--font-mono)',
+                color: detectMsg.ok ? 'var(--good)' : 'var(--fg-3)' }}>
+                {detectMsg.text}
+              </div>
+            )}
+          </div>
+
+          {/* ── Platform signup fields override ── */}
+          <div style={{ gridColumn: '1 / 3' }}>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ ...lbl, marginBottom: 0 }}>
+                Signup fields
+                <span style={{ color: 'var(--fg-4)', textTransform: 'none', marginLeft: 4 }}>
+                  // platform-specific overrides; inherits from engine above
+                </span>
+              </span>
+            </div>
+            <SignupFieldsBuilder
+              fields={form.signupFields}
+              onChange={(fields) => setF('signupFields', fields)}
+            />
+          </div>
+
+          {/* Reverse view — communities (habitats) using this platform.
+              Click row → navigate to that project's tribes page with habitat opened. */}
+          {!isCreate && (
+            <div style={{ gridColumn: '1 / 3', marginTop: 6 }}>
+              <span style={{ ...lbl, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <IconCommunity size={11} color="var(--accent)" />
+                Communities dùng platform này
+                <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
+                  // {communities.length} cross-project
+                </span>
+              </span>
+              {communities.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8, background: 'var(--bg-2)', border: '1px dashed var(--line)', borderRadius: 5 }}>
+                  Chưa có habitat nào link tới platform này. Add habitat ở /p/{'{id}'}/tribes hoặc dùng auto-detect khi paste URL.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+                  {communities.map((c) => (
+                    <Link key={c.id} href={`/p/${c.projectId}/tribes?habitat=${c.id}`}
+                          onClick={() => onClose()}
+                          style={{
+                            display: 'block', padding: '6px 8px',
+                            background: 'var(--bg-2)', border: '1px solid var(--line)',
+                            borderRadius: 5, textDecoration: 'none', color: 'var(--fg-0)', fontSize: 11.5,
+                          }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <IconCommunity size={11} color="var(--accent)" />
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <span>📁 {c.projectName}</span>
+                        {c.tribeName && <span>· ◍ {c.tribeName}</span>}
+                        {c.members > 0 && <span>· 👥 {(c.members / 1000).toFixed(c.members > 9999 ? 0 : 1)}k</span>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">

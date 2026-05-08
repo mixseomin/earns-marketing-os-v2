@@ -14,11 +14,12 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { getDb } from './client';
-import { modes, projects, squads, cards, alerts, feedEvents, platforms, useCases, roadmapItems } from './schema';
+import { modes, projects, squads, cards, alerts, feedEvents, platformTechnologies, platforms, useCases, roadmapItems } from './schema';
 
 import { MODES_BASE } from './seed-data/modes-base';
 import { MODES_EXTRA } from './seed-data/modes-extra';
 import { PROJECTS_SEED } from './seed-data/projects';
+import { TECHNOLOGIES } from './seed-data/technologies';
 import { PLATFORMS } from './seed-data/platforms';
 import { USE_CASES } from './seed-data/use-cases';
 import { ROADMAP_ITEMS } from './seed-data/roadmap';
@@ -38,7 +39,19 @@ console.log(`[mos2/db:seed] Tenant=${TENANT}, destructive=${DESTRUCTIVE}`);
 console.log(`[mos2/db:seed] Modes: ${Object.keys(ALL_MODES).length}, Platforms: ${PLATFORMS.length}, Use cases: ${USE_CASES.length}`);
 if (DESTRUCTIVE) console.log(`[mos2/db:seed] Projects: ${PROJECTS_SEED.length} (will WIPE per-project squads/cards/alerts/feed)`);
 
-// ── 0. Seed platforms catalog ──────────────────────────────
+// ── 0a. Seed platform technologies ────────────────────────────
+for (const t of TECHNOLOGIES) {
+  await db
+    .insert(platformTechnologies)
+    .values({ key: t.key, label: t.label, description: t.description, signupFields: t.signupFields, notes: t.notes ?? null })
+    .onConflictDoUpdate({
+      target: platformTechnologies.key,
+      set: { label: t.label, description: t.description, signupFields: t.signupFields, notes: t.notes ?? null, updatedAt: new Date() },
+    });
+}
+console.log(`[mos2/db:seed] ✓ Platform technologies upserted (${TECHNOLOGIES.length})`);
+
+// ── 0b. Seed platforms catalog ──────────────────────────────
 for (const p of PLATFORMS) {
   const row = {
     key: p.key,

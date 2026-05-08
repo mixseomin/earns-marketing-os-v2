@@ -157,6 +157,7 @@ export async function listAccountsByProject(projectId: string) {
       proxyId: platformAccounts.proxyId,
       browserProfileId: platformAccounts.browserProfileId,
       ownerUserId: platformAccounts.ownerUserId,
+      persona: platformAccounts.persona,
       createdAt: platformAccounts.createdAt,
       updatedAt: platformAccounts.updatedAt,
       // pivot meta (project's view of this account)

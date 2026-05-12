@@ -26,12 +26,11 @@ const SITE_MAPPING: Array<{ matchKey: string; project: string; label: string; em
 ];
 
 function pickSite(payload: GscPayload, matchKey: string): GscSiteStats | null {
-  // Prefer sc-domain entry, then https://, then any matching key
   for (const k of Object.keys(payload.sites)) {
-    if (k.startsWith('sc-domain:') && k.includes(matchKey)) return payload.sites[k];
+    if (k.startsWith('sc-domain:') && k.includes(matchKey)) return payload.sites[k] ?? null;
   }
   for (const k of Object.keys(payload.sites)) {
-    if (k.includes(matchKey)) return payload.sites[k];
+    if (k.includes(matchKey)) return payload.sites[k] ?? null;
   }
   return null;
 }

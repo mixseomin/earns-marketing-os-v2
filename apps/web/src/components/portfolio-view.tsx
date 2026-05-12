@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SHARED_POOL } from '@/lib/data';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
+import { SeoSitesPanel } from './seo-sites-panel';
 
 const healthColor = (h: number) => (h > 80 ? 'var(--ok)' : h > 65 ? 'var(--warn)' : 'var(--bad)');
 
@@ -59,6 +60,9 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
           {SHARED_POOL.available} <span style={{ color: 'var(--ok)' }}>avail</span> · {SHARED_POOL.busy} busy · {SHARED_POOL.total} shared pool
         </div>
       </div>
+
+      {/* SEO Sites Overview — GSC live data for monitored sites */}
+      <SeoSitesPanel />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {PROJECTS.map((p) => {

@@ -18,21 +18,54 @@ type GscPayload = {
   sites: Record<string, GscSiteStats>;
 };
 
-// Map GSC site URL → MOS2 project id + display name
-const SITE_MAPPING: Array<{ matchKey: string; project: string; label: string; emoji: string }> = [
-  { matchKey: 'militarymarkdown', project: 'militarymarkdown', label: 'militarymarkdown.com', emoji: '🪖' },
-  { matchKey: 'cities.gg', project: 'cities-gg', label: 'cities.gg', emoji: '🏙️' },
-  { matchKey: 'maileyes', project: 'maileyes', label: 'maileyes.com', emoji: '📧' },
-];
+// Map domain → MOS2 project id + visual label
+const SITE_META: Record<string, { project?: string; emoji: string }> = {
+  'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
+  'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
+  'maileyes.com': { project: 'maileyes', emoji: '📧' },
+  'cee-trust.org': { emoji: '🔍' },
+  'techwhiff.com': { emoji: '🤓' },
+  'sitedd.com': { emoji: '🌐' },
+  'wenoted.com': { emoji: '📝' },
+  'loginwiz.com': { emoji: '🔐' },
+  'steamsolo.com': { emoji: '🎮' },
+  'on.tc': { emoji: '🛠️' },
+  'scriptinstant.blogspot.com': { emoji: '📜' },
+};
 
-function pickSite(payload: GscPayload, matchKey: string): GscSiteStats | null {
-  for (const k of Object.keys(payload.sites)) {
-    if (k.startsWith('sc-domain:') && k.includes(matchKey)) return payload.sites[k] ?? null;
+function normalize(key: string): string {
+  // sc-domain:militarymarkdown.com → militarymarkdown.com
+  // https://cities.gg/ → cities.gg
+  return key
+    .replace(/^sc-domain:/, '')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/$/, '');
+}
+
+// Deduplicate sites: when same domain has multiple keys (sc-domain + https), pick
+// the one with the most data (impressions desc, then sitemap_urls_submitted desc).
+function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: GscSiteStats }> {
+  const byDomain = new Map<string, GscSiteStats>();
+  for (const [key, stats] of Object.entries(payload.sites)) {
+    const d = normalize(key);
+    const existing = byDomain.get(d);
+    if (!existing) { byDomain.set(d, stats); continue; }
+    // Prefer richer entry
+    const richer =
+      stats.impressions_7d > existing.impressions_7d ? stats :
+      stats.impressions_7d < existing.impressions_7d ? existing :
+      stats.sitemap_urls_submitted > existing.sitemap_urls_submitted ? stats : existing;
+    byDomain.set(d, richer);
   }
-  for (const k of Object.keys(payload.sites)) {
-    if (k.includes(matchKey)) return payload.sites[k] ?? null;
-  }
-  return null;
+  return Array.from(byDomain.entries())
+    .map(([domain, stats]) => ({ domain, stats }))
+    .sort((a, b) => {
+      // Sort by impressions desc, then by sitemap_urls desc, then by domain alpha
+      if (b.stats.impressions_7d !== a.stats.impressions_7d) return b.stats.impressions_7d - a.stats.impressions_7d;
+      if (b.stats.sitemap_urls_submitted !== a.stats.sitemap_urls_submitted) return b.stats.sitemap_urls_submitted - a.stats.sitemap_urls_submitted;
+      return a.domain.localeCompare(b.domain);
+    });
 }
 
 export async function SeoSitesPanel() {
@@ -51,16 +84,13 @@ export async function SeoSitesPanel() {
     );
   }
 
-  const rows = SITE_MAPPING
-    .map((m) => ({ ...m, stats: pickSite(payload!, m.matchKey) }))
-    .filter((r) => r.stats !== null) as Array<typeof SITE_MAPPING[0] & { stats: GscSiteStats }>;
-
-  // Totals
+  const rows = mergeAndDedupe(payload);
   const totalImps = rows.reduce((s, r) => s + r.stats.impressions_7d, 0);
   const totalClicks = rows.reduce((s, r) => s + r.stats.clicks_7d, 0);
   const totalPages = rows.reduce((s, r) => s + r.stats.pages_with_impressions_7d, 0);
   const totalSitemap = rows.reduce((s, r) => s + r.stats.sitemap_urls_submitted, 0);
-  const avgPos = rows.length ? rows.reduce((s, r) => s + r.stats.avg_position_7d, 0) / rows.length : 0;
+  const weightedPos = rows.reduce((acc, r) => acc + (r.stats.avg_position_7d * r.stats.impressions_7d), 0);
+  const avgPos = totalImps > 0 ? weightedPos / totalImps : 0;
   const updated = new Date(payload.updated_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
 
   const cell: React.CSSProperties = { padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)' };
@@ -74,7 +104,6 @@ export async function SeoSitesPanel() {
           SEO Sites Overview
           <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// GSC live · {rows.length} sites · last sync {updated}</small>
         </h2>
-        <Link href="/seo" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>Details →</Link>
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -92,13 +121,13 @@ export async function SeoSitesPanel() {
         <tbody>
           {rows.map((r) => {
             const ctr = r.stats.impressions_7d ? (r.stats.clicks_7d / r.stats.impressions_7d * 100) : 0;
+            const meta = SITE_META[r.domain] || { emoji: '🌐' };
+            const SiteCell = meta.project
+              ? <Link href={`/p/${meta.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{meta.emoji} {r.domain}</Link>
+              : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{meta.emoji} {r.domain}</span>;
             return (
-              <tr key={r.project}>
-                <td style={{ ...cell, textAlign: 'left' }}>
-                  <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>
-                    {r.emoji} {r.label}
-                  </Link>
-                </td>
+              <tr key={r.domain}>
+                <td style={{ ...cell, textAlign: 'left' }}>{SiteCell}</td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.impressions_7d > 0) }}>{r.stats.impressions_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.clicks_7d > 0) }}>{r.stats.clicks_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(ctr > 0) }}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
@@ -109,7 +138,7 @@ export async function SeoSitesPanel() {
             );
           })}
           <tr style={{ background: 'var(--bg-2)' }}>
-            <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>TOTAL</td>
+            <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>TOTAL ({rows.length})</td>
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalImps.toLocaleString()}</td>
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalClicks.toLocaleString()}</td>
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalImps > 0 ? (totalClicks / totalImps * 100).toFixed(2) + '%' : '—'}</td>

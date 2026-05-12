@@ -183,6 +183,22 @@ export async function getProjectMode(projectId: string, modeId: string): Promise
       if (projectId === 'cities-gg') {
         const { applyCitiesGgOverrides } = await import('@/lib/projects/cities-gg');
         assembled = await applyCitiesGgOverrides(assembled);
+        // Also append GSC stats for cities.gg (extends cities-gg overrides)
+        const { gscKpisForDomain } = await import('@/lib/projects/gsc-stats');
+        const gscKpis = await gscKpisForDomain('cities.gg');
+        if (gscKpis.length && assembled.kpis) {
+          assembled = { ...assembled, kpis: [...assembled.kpis, ...gscKpis] };
+        }
+      } else if (projectId === 'militarymarkdown' || projectId === 'maileyes') {
+        const projectRow = await getProject(projectId);
+        if (projectRow) {
+          const { applyGscOverrides } = await import('@/lib/projects/gsc-stats');
+          assembled = await applyGscOverrides(assembled, {
+            id: projectRow.id,
+            name: projectRow.name,
+            website: projectRow.website,
+          });
+        }
       }
 
       return scopeModeForRole(assembled, role);

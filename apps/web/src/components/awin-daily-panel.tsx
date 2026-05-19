@@ -19,6 +19,10 @@ type AwinDaily = {
   delta_pending: number;
   prev_date: string | null;
   applied_since_last: boolean;
+  streak_current?: number;
+  streak_best?: number;
+  missed_30d?: number;
+  tracked_days?: number;
 };
 
 function todayUtcPlus7(): string {
@@ -62,10 +66,13 @@ export async function AwinDailyPanel() {
   // Otherwise prompt to run the extension.
   const isToday = d.date === todayUtcPlus7();
   const appliedToday = isToday && d.applied_since_last;
-  const statusColor = appliedToday ? 'var(--ok)' : 'var(--warn, #e8a13a)';
+  const statusColor = appliedToday ? 'var(--ok)' : 'var(--warn)';
   const statusText = appliedToday
     ? `Applied — +${d.delta_joined} joined, +${d.delta_pending} pending since ${d.prev_date ?? 'last run'}`
     : 'Not applied yet today — open the extension and run Auto';
+  const streak = d.streak_current ?? 0;
+  const best = d.streak_best ?? 0;
+  const missed = d.missed_30d ?? 0;
 
   const updated = new Date(d.updated_at).toLocaleString('en-US', {
     dateStyle: 'short',
@@ -111,20 +118,38 @@ export async function AwinDailyPanel() {
       </div>
 
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 12px',
-          borderRadius: 6,
-          background: 'var(--bg-2)',
-          marginBottom: 14,
-          fontSize: 12,
-          fontFamily: 'var(--font-mono)',
-          color: statusColor,
-        }}
+        style={
+          appliedToday
+            ? {
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 6,
+                background: 'var(--bg-2)',
+                marginBottom: 14,
+                fontSize: 12,
+                fontFamily: 'var(--font-mono)',
+                color: statusColor,
+              }
+            : {
+                // Loud, hard-to-ignore banner when the daily route hasn't run.
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 6,
+                background: 'rgba(255,176,60,.12)',
+                borderLeft: '4px solid var(--warn)',
+                marginBottom: 14,
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                color: statusColor,
+              }
+        }
       >
-        <span style={{ fontSize: 14 }}>{appliedToday ? '✓' : '⚠'}</span>
+        <span style={{ fontSize: appliedToday ? 14 : 18 }}>{appliedToday ? '✓' : '⚠'}</span>
         {statusText}
       </div>
 
@@ -133,6 +158,30 @@ export async function AwinDailyPanel() {
         {stat('Pending', d.pending, 'var(--neon-violet, #a78bfa)')}
         {stat('Rejected', d.rejected, 'var(--fg-2)')}
         {stat('Backlog (notjoined)', d.notjoined, 'var(--fg-1)')}
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          paddingTop: 12,
+          borderTop: '1px solid var(--line)',
+          display: 'flex',
+          gap: 18,
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--fg-2)',
+        }}
+      >
+        <span title="Consecutive days the daily route ran (joined or pending grew)">
+          🔥 Streak <b style={{ color: streak > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{streak}d</b>
+        </span>
+        <span title="Longest run since tracking started">
+          Best <b style={{ color: 'var(--fg-1)' }}>{best}d</b>
+        </span>
+        <span title="Days in the last 30 where the route did not run">
+          Missed 30d{' '}
+          <b style={{ color: missed > 0 ? 'var(--warn)' : 'var(--ok)' }}>{missed}</b>
+        </span>
       </div>
     </div>
   );

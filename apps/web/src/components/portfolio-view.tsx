@@ -3,6 +3,7 @@ import { SHARED_POOL } from '@/lib/data';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
+import { AwinDailyPanel } from './awin-daily-panel';
 
 const healthColor = (h: number) => (h > 80 ? 'var(--ok)' : h > 65 ? 'var(--warn)' : 'var(--bad)');
 
@@ -63,6 +64,9 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
 
       {/* SEO Sites Overview — GSC live data for monitored sites */}
       <SeoSitesPanel />
+
+      {/* Awin Daily Route — reminder to run the apply-extension batch */}
+      <AwinDailyPanel />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {PROJECTS.map((p) => {

@@ -82,7 +82,7 @@ export async function listAwinProgrammes(): Promise<AwinProgramme[]> {
       mid?: number;
       logoUrl?: string | null;
       displayUrl?: string | null;
-      validDomains?: string[];
+      validDomains?: Array<string | { domain?: string }>;
       currency?: string | null;
       region?: string | null;
       region_name?: string | null;
@@ -105,7 +105,11 @@ export async function listAwinProgrammes(): Promise<AwinProgramme[]> {
       logoUrl: blob.logoUrl ?? null,
       displayUrl: blob.displayUrl ?? r.preview_url,
       affiliateUrl: r.affiliate_url,
-      validDomains: Array.isArray(blob.validDomains) ? blob.validDomains : [],
+      validDomains: Array.isArray(blob.validDomains)
+        ? blob.validDomains
+            .map((d): string => (typeof d === 'string' ? d : (d as { domain?: string })?.domain ?? ''))
+            .filter((s): s is string => Boolean(s))
+        : [],
       description: blob.description ?? null,
       syncedAt: blob.synced_at ?? null,
     };

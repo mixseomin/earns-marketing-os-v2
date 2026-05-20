@@ -99,22 +99,38 @@ export async function AwinDailyPanel() {
             // pub {d.pub} · last sync {updated}
           </small>
         </h2>
-        <a
-          href="https://ui.awin.com/awin/publisher/410323/partnerships/explore"
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            color: 'var(--neon-violet, #a78bfa)',
-            textDecoration: 'none',
-            border: '1px solid var(--line)',
-            borderRadius: 6,
-            padding: '5px 10px',
-          }}
-        >
-          Open Awin → run extension
-        </a>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a
+            href="/p/militarymarkdown/affiliates"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              color: 'var(--fg-1)',
+              textDecoration: 'none',
+              border: '1px solid var(--line)',
+              borderRadius: 6,
+              padding: '5px 10px',
+            }}
+          >
+            Programmes →
+          </a>
+          <a
+            href="https://ui.awin.com/awin/publisher/410323/partnerships/explore"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              color: 'var(--neon-violet, #a78bfa)',
+              textDecoration: 'none',
+              border: '1px solid var(--line)',
+              borderRadius: 6,
+              padding: '5px 10px',
+            }}
+          >
+            Open Awin → run extension
+          </a>
+        </div>
       </div>
 
       <div

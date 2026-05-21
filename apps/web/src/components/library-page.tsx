@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import {
   type ToolRow, type SkillRow, type ToolStatus,
   createTool, updateTool, archiveTool,
@@ -81,8 +82,9 @@ export function LibraryPage({ tools, skills }: { tools: ToolRow[]; skills: Skill
 
 // ── Tools tab ─────────────────────────────────────────────────────
 function ToolsTab({ tools }: { tools: ToolRow[] }) {
-  const [editing, setEditing] = useState<ToolRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam("tool");
+  const editing = modal.is("edit") ? tools.find((x) => x.id === modal.id) ?? null : null;
+  const creating = modal.is("new");
 
   const byCat = TOOL_CATEGORIES.map((cat) => ({
     cat,
@@ -106,7 +108,7 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
         Để biến thành integrated: cần build MCP server hoặc function endpoint tương ứng + đổi status.
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New tool</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New tool</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -119,7 +121,7 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
               {items.map((t) => {
                 const sm = TOOL_STATUS_META[t.status];
                 return (
-                  <div key={t.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => setEditing(t)}>
+                  <div key={t.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => modal.open("edit", t.id)}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -144,7 +146,7 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
       </div>
 
       {(editing || creating) && (
-        <ToolFormModal tool={editing} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ToolFormModal tool={editing} onClose={() => modal.close()} />
       )}
     </>
   );
@@ -300,8 +302,9 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
 
 // ── Skills tab ────────────────────────────────────────────────────
 function SkillsTab({ skills }: { skills: SkillRow[] }) {
-  const [editing, setEditing] = useState<SkillRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam("skill");
+  const editing = modal.is("edit") ? skills.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is("new");
   const [q, setQ] = useUrlParam('q', '');
   const [cat, setCat] = useUrlParam('cat', 'all');
 
@@ -354,7 +357,7 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
           }}
         />
         <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{filtered.length} / {skills.length}</span>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New skill</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New skill</button>
       </div>
 
       {/* Category chips */}
@@ -376,7 +379,7 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
           <div className="panel-body" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
             <div style={{ fontSize: 28, marginBottom: 6 }}>✦</div>
             <p style={{ margin: '0 0 10px', fontSize: 12 }}>Chưa có skill snippet nào. Tạo snippet đầu tiên để Squad reuse.</p>
-            <button className="btn primary" onClick={() => setCreating(true)}>+ New skill</button>
+            <button className="btn primary" onClick={() => modal.open("new")}>+ New skill</button>
           </div>
         </div>
       ) : filtered.length === 0 ? (
@@ -400,7 +403,7 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
                 {items.map((s) => (
-                  <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(s)}>
+                  <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => modal.open("edit", s.id)}>
                     <div className="panel-head" style={{ padding: '6px 10px' }}>
                       <div className="panel-title" style={{ fontSize: 12 }}>
                         <span style={{ color: 'var(--neon-violet)' }}>✦</span>
@@ -430,7 +433,7 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
       )}
 
       {(editing || creating) && (
-        <SkillFormModal skill={editing} onClose={() => { setEditing(null); setCreating(false); }} />
+        <SkillFormModal skill={editing} onClose={() => modal.close()} />
       )}
     </>
   );

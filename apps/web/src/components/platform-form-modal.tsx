@@ -11,12 +11,16 @@ import {
   type PlatformWithUsage, type PlatformPriority, type PlatformCategory,
   createPlatform, updatePlatform, deletePlatform,
 } from '@/lib/actions/platforms';
-import { listCommunitiesByPlatform } from '@/lib/actions/tribes-crud';
+import {
+  listCommunitiesByPlatform, countCardsByContentTypeForPlatform, archiveCardsByTypesForPlatform,
+  type AffectedCardsByType,
+} from '@/lib/actions/tribes-crud';
 import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type SignupField } from '@/lib/actions/technologies';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity } from './ui';
+import { IconCommunity, FormatIcon } from './ui';
+import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
 import { TechnologyPicker, SignupFieldsBuilder } from './technology-picker';
 
@@ -32,6 +36,11 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmRemoval, setConfirmRemoval] = useState<{
+    removedTypes: string[];
+    affected: AffectedCardsByType[];
+  } | null>(null);
   const isCreate = !platform;
   const [form, setForm] = useState({
     key: platform?.key ?? '',
@@ -49,6 +58,9 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     tags: platform?.tags ?? [],
     technologyKey: platform?.technologyKey ?? null as string | null,
     signupFields: (platform?.signupFields ?? []) as SignupField[],
+    // null = chưa override (dùng hardcoded fallback). [] = override = không
+    // cho format nào (rare). Array các key = list custom.
+    allowedFormats: platform?.allowedFormats ?? null,
   });
   const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
@@ -93,8 +105,8 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
   };
 
-  const save = () => {
-    setError(null);
+  const doSave = (archiveOrphans: boolean, typesToArchive: string[] = []) => {
+    setError(null); setBusy(true);
     startTransition(async () => {
       const payload = {
         ...form,
@@ -107,13 +119,43 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         tags: form.tags,
         technologyKey: form.technologyKey || null,
         signupFields: form.signupFields,
+        allowedFormats: form.allowedFormats,
       };
       const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
-      if (!res.ok) { setError(res.error || 'Lưu thất bại'); return; }
+      if (!res.ok) { setBusy(false); setError(res.error || 'Lưu thất bại'); return; }
+      if (!isCreate && archiveOrphans && typesToArchive.length > 0) {
+        await archiveCardsByTypesForPlatform(platform!.key, typesToArchive);
+      }
+      setBusy(false);
       router.refresh();
       onClose();
     });
   };
+
+  // Effective allowed format keys = override nếu set, else hardcoded fallback.
+  const effectiveAllowedSet = (override: string[] | null | undefined): Set<string> => {
+    if (Array.isArray(override)) return new Set(override);
+    return new Set(allowedFormats(form.key, form.category as string).map((f) => f.key));
+  };
+
+  const save = () => {
+    // Pre-save check: nếu tạo mới → skip. Nếu edit và allowedFormats đổi →
+    // tính types BỊ BỎ → count cards affected → show confirm nếu > 0.
+    if (isCreate || !platform) { doSave(false); return; }
+    const oldSet = effectiveAllowedSet(platform.allowedFormats);
+    const newSet = effectiveAllowedSet(form.allowedFormats);
+    const removedTypes = [...oldSet].filter((t) => !newSet.has(t));
+    if (removedTypes.length === 0) { doSave(false); return; }
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const counts = await countCardsByContentTypeForPlatform(platform.key);
+      const affected = counts.filter((c) => removedTypes.includes(c.contentType) && c.count > 0);
+      setBusy(false);
+      if (affected.length === 0) { doSave(false); return; }
+      setConfirmRemoval({ removedTypes, affected });
+    });
+  };
+
   // 2-step delete confirm (no native confirm — feedback_no_native_dialogs)
   const [confirmDelete, setConfirmDelete] = useState(false);
   const handleDelete = () => {
@@ -281,10 +323,74 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
           </div>
 
+          {/* ── Allowed content formats (override hardcoded) ── */}
+          <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
+            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              📋 Loại bài hỗ trợ
+              <span style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
+                // default cho mọi habitat của platform này (habitat có thể override thêm)
+              </span>
+            </span>
+            {(() => {
+              const hardcodedDefault = new Set(allowedFormats(form.key, form.category as string).map((f) => f.key));
+              const override = form.allowedFormats;
+              const isOverridden = override != null && Array.isArray(override);
+              const selected = new Set(isOverridden ? override : Array.from(hardcodedDefault));
+              const toggle = (k: string) => {
+                const next = new Set(selected);
+                if (next.has(k)) next.delete(k); else next.add(k);
+                const arr = Array.from(next);
+                const sameAsDefault = arr.length === hardcodedDefault.size && arr.every((x) => hardcodedDefault.has(x));
+                setF('allowedFormats', sameAsDefault ? null : arr);
+              };
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 6 }}>
+                    {CONTENT_FORMATS.map((f) => {
+                      const on = selected.has(f.key);
+                      const inHardcoded = hardcodedDefault.has(f.key);
+                      const col = formatColors(f.key);
+                      return (
+                        <label key={f.key} title={`${f.label} — ${f.hint}${inHardcoded ? '\n(hardcoded default: có)' : '\n(hardcoded default: không)'}`}
+                               style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
+                                        padding: '4px 7px', borderRadius: 5, cursor: 'pointer',
+                                        background: on ? col.bg : 'var(--bg-2)',
+                                        border: `1px solid ${on ? col.border : 'var(--line)'}`,
+                                        color: on ? col.fg : (inHardcoded ? 'var(--fg-2)' : 'var(--fg-4)'),
+                                        opacity: on ? 1 : (inHardcoded ? 0.7 : 0.45) }}>
+                          <input type="checkbox" checked={on} onChange={() => toggle(f.key)}
+                                 style={{ accentColor: col.fg, cursor: 'pointer' }} />
+                          <FormatIcon kind={f.key} size={12} />
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {f.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
+                                display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {isOverridden
+                      ? <>Override: <strong style={{ color: 'var(--fg-2)' }}>{(override ?? []).length}/{CONTENT_FORMATS.length}</strong> loại</>
+                      : <>Dùng hardcoded fallback: <strong style={{ color: 'var(--fg-2)' }}>{hardcodedDefault.size}/{CONTENT_FORMATS.length}</strong> loại</>}
+                    {isOverridden && (
+                      <button type="button" onClick={() => setF('allowedFormats', null)}
+                              style={{ fontSize: 9.5, padding: '1px 6px', background: 'transparent',
+                                       color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 3,
+                                       cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                        reset → hardcoded
+                      </button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
           {/* ── Technology engine section ── */}
           <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
             <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6 }}>
-              ⚙ Forum engine / technology
+              ⚙ Engine / CMS / framework
             </span>
             <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
@@ -385,11 +491,71 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                 {confirmDelete ? '⚠ Click again to confirm' : '🗑 Delete'}
               </button>
             )}
-            <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={save}>{isCreate ? 'Create' : 'Save'}</button>
+            <button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
+            <button className="btn primary" onClick={save} disabled={busy}>
+              {busy ? '… Saving' : (isCreate ? 'Create' : 'Save')}
+            </button>
           </div>
         </div>
       </div>
+      {confirmRemoval && (
+        <div className="modal-backdrop" onClick={() => !busy && setConfirmRemoval(null)}>
+          <div className="modal" style={{ width: 'min(560px, 96vw)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div style={{ flex: 1 }}>
+                <div className="id-line">PLATFORM FORMAT REMOVAL · CARDS AFFECTED</div>
+                <h2 style={{ fontSize: 15, marginTop: 4 }}>
+                  ⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài ở platform <strong>{platform?.label}</strong>, còn{' '}
+                  {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng
+                </h2>
+              </div>
+              <button type="button" className="btn ghost" onClick={() => !busy && setConfirmRemoval(null)} disabled={busy}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: 0 }}>
+                Tất cả communities của platform này sẽ không còn hỗ trợ các loại bài sau,
+                nhưng vẫn có cards loại đó (tính trên mọi habitat dùng platform):
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {confirmRemoval.affected.map((a) => {
+                  const meta = formatMeta(a.contentType);
+                  const col = formatColors(a.contentType);
+                  return (
+                    <div key={a.contentType}
+                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                                  background: col.bg, border: `1px solid ${col.border}`, borderRadius: 5 }}>
+                      <FormatIcon kind={a.contentType} size={14} />
+                      <span style={{ flex: 1, color: col.fg, fontWeight: 700 }}>{meta.label}</span>
+                      <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>
+                        {a.count} bài
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)',
+                            borderRadius: 5, border: '1px dashed var(--line)' }}>
+                💡 <strong>Lưu trữ</strong> = ẩn cards khỏi list/count nhưng giữ data. Khi bật lại format ↔ tự khôi phục.
+                <br />
+                💡 <strong>Giữ orphan</strong> = cards vẫn hiện — xử lý thủ công sau.
+              </div>
+            </div>
+            <div className="modal-foot" style={{ display: 'flex', gap: 8, padding: 14, justifyContent: 'flex-end' }}>
+              <button className="btn ghost" disabled={busy} onClick={() => setConfirmRemoval(null)}>
+                Huỷ (không Save)
+              </button>
+              <button className="btn" disabled={busy}
+                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(false); }}>
+                Giữ orphan
+              </button>
+              <button className="btn primary" disabled={busy}
+                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(true, c.removedTypes); }}>
+                {busy ? '… Lưu trữ' : '🗃 Lưu trữ + Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

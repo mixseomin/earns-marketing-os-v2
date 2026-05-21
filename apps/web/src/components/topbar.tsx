@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
 interface SubItem { label: string; href: string; icon?: string }
 
@@ -114,6 +114,7 @@ export function TopBar({
   isPortfolio,
   projectCount,
   currentUser,
+  onMobileMenuClick,
 }: {
   tab?: Tab;
   mode?: Mode;
@@ -121,6 +122,7 @@ export function TopBar({
   isPortfolio: boolean;
   projectCount: number;
   currentUser?: { role: 'admin' | 'operator' | 'viewer' };
+  onMobileMenuClick?: () => void;
 }) {
   const t = useT();
 
@@ -147,13 +149,21 @@ export function TopBar({
       badge: totalAgents > 0 ? totalAgents : undefined,
       adminOnly: true,
       subItems: [
-        { label: 'Squads',       href: `/p/${pid}/squads`, icon: '🤖' },
-        { label: 'Tribes',       href: `/p/${pid}/tribes`, icon: '🏕' },
-        { label: 'Flow Diagram', href: `/p/${pid}/flow`,   icon: '🗺' },
+        { label: 'Squads',       href: `/p/${pid}/squads`,  icon: '🤖' },
+        { label: 'Tribes',       href: `/p/${pid}/tribes`,  icon: '🏕' },
+        { label: 'Trụ cột',      href: `/p/${pid}/pillars`, icon: '📚' },
+        { label: 'Seeding',      href: `/p/${pid}/seeding`, icon: '⏱' },
+        { label: 'Flow Diagram', href: `/p/${pid}/flow`,    icon: '🗺' },
         { label: 'Team',         href: `/p/${pid}/team`,   icon: '👥' },
       ],
     },
     { id: 'studio', label: t('nav.studio', 'Studio'), adminOnly: true },
+    {
+      id: 'plans', label: t('nav.plans', 'Kế hoạch'), adminOnly: true,
+      subItems: [
+        { label: 'Tất cả kế hoạch', href: `/p/${pid}/plans`, icon: '🎯' },
+      ],
+    },
     {
       id: 'resources', label: t('nav.resources', 'Resources'),
       subItems: isOperator
@@ -180,10 +190,19 @@ export function TopBar({
 
   return (
     <header className="topbar">
-      <div className="brand">
+      <button
+        type="button"
+        className="mobile-menu-btn"
+        onClick={onMobileMenuClick}
+        aria-label="Toggle navigation"
+      >
+        ☰
+      </button>
+      <Link href="/" className="brand" title="MOS — về trang chủ (portfolio)"
+            style={{ textDecoration: 'none', color: 'inherit' }}>
         <div className="brand-mark"></div>
         MOS <small>// MARKETING OS</small>
-      </div>
+      </Link>
 
       <Link
         href="/"

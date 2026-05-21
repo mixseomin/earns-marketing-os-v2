@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import type { TechnologyRow } from '@/lib/actions/technologies';
+import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 
 const TECH_ICON: Record<string, string> = {
   vbulletin: '🔧', xenforo: '⚡', phpbb: '🐘', discourse: '💬',
@@ -128,15 +129,13 @@ function SnippetFieldRow({ field, templateVars, override, onOverrideChange }: {
 }) {
   const fillVars = (text: string) => text.replace(/\{\{(\w[\w\s\-]*)\}\}/g, (m, k: string) => templateVars[k.trim()] ?? m);
   const variants = [field.template ?? '', ...(field.alt ?? [])].map(fillVars);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard(1200);
   const baseText = variants[0] ?? '';
   const value: string = override !== undefined && override !== '' ? override : baseText;
   const overLimit = field.maxLen != null && value.length > field.maxLen;
   const isOverridden = override !== undefined && override !== '' && override !== baseText;
 
-  const onCopy = async () => {
-    try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {}
-  };
+  const onCopy = () => { void copy(value); };
 
   return (
     <div style={{

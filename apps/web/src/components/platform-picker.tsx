@@ -11,7 +11,7 @@ import { createPlatform, archivePlatform, type PlatformPriority } from '@/lib/ac
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { ExternalLink } from './external-link';
-import { LinkChip, IconCommunity } from './ui';
+import { LinkChip, IconCommunity, SiteFavicon } from './ui';
 import { searchHabitatsAcrossProjects } from '@/lib/actions/tribes-crud';
 
 // ISO country code → flag emoji (regional indicator pairs)
@@ -351,7 +351,8 @@ export function PlatformPicker({ platforms, value, onChange, fld }: Props) {
                         display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
                       }}
                     >
-                      <span style={{ fontSize: 14 }}>{p.region ? flag(p.region) : (p.category && CATEGORY_ICON[p.category]) || '🗂'}</span>
+                      <SiteFavicon iconSlug={p.iconSlug} url={p.signupUrl || p.postUrl} size={15}
+                        glyph={p.region ? flag(p.region) : (p.category && CATEGORY_ICON[p.category]) || '🗂'} title={p.label} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: 'var(--fg-1)', fontWeight: p.key === value ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {p.label}

@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description: 'Earns Marketing OS — orchestrate AI agents across all your portfolio projects.',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover' as const,
+};
+
 // Inline blocking script — runs synchronously BEFORE first paint to read
 // theme + colour overrides from localStorage and apply them to <html>. This
 // is the standard pattern (next-themes does this) to avoid the "dark flash"

@@ -15,4 +15,9 @@ export function getOpenAI(): OpenAI | null {
 
 export const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
+// Reasoning model cho task multi-step thinking (sinh post draft, critique).
+// o3-mini: reasoning model giá rẻ hơn o1 nhưng vẫn có thinking phase.
+// Override qua env OPENAI_REASONING_MODEL nếu muốn dùng gpt-4o / o1 / o3.
+export const REASONING_MODEL = process.env.OPENAI_REASONING_MODEL || 'o3-mini';
+
 export const aiEnabled = (): boolean => Boolean(process.env.OPENAI_API_KEY);

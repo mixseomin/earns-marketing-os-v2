@@ -48,6 +48,13 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
+            {currentUser?.role === 'admin' && (
+              <Link href={`/p/${currentProjectId}/seeding`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>⏱</div>
+                <div className="squad-name"><b>{t('nav.seeding', 'Seeding')}</b><span>cadence · nhận diện</span></div>
+                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+              </Link>
+            )}
             <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
               <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
@@ -139,6 +146,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/department',icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
         { href: '/agents',    icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
         { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',        sub: 'human tasks queue' },
+        { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
         { href: '/scheduler', icon: '⏱',  color: 'var(--neon-lime)',   label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },
         { href: '/ai-log',    icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },
         { href: '/tests',     icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',        sub: 'use cases · QA',         role: 'admin' },

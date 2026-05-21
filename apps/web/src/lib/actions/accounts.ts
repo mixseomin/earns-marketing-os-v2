@@ -296,6 +296,14 @@ export async function deleteAccount(projectId: string, id: number): Promise<{ ok
   return { ok: true };
 }
 
+// 1 account (AccountRow đầy đủ) để sửa TẠI CHỖ từ trang Seeding —
+// reuse mapper của data.listAccounts (tránh drift). Dynamic import tránh
+// kéo data layer vào client bundle.
+export async function getAccountForEdit(projectId: string, id: number) {
+  const { getAccountRow } = await import('@/lib/data');
+  return getAccountRow(projectId, id);
+}
+
 // ── Bridge: Directus as.on.tc (READ-ONLY import) ─────────────
 
 export interface DirectusAccountSummary {

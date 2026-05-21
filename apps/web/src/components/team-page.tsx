@@ -9,6 +9,7 @@ import {
 import { setPasswordAction, logoutAction } from '@/lib/actions/auth';
 import { enterImpersonateAction } from '@/lib/actions/impersonate';
 import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, getProjectAccountsForMember, assignAccountsToMember, enableResourcesForMember, listAllProjectsForAssignment, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
+import { useModalParam } from '@/lib/use-modal-param';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 
@@ -34,8 +35,9 @@ const ROLE_META: Record<MemberRole, { label: string; color: string }> = {
 export function TeamPage({ members, currentUserId, currentRole }: { members: TeamMemberRow[]; currentUserId: number | null; currentRole?: 'admin' | 'operator' | 'viewer' }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [editing, setEditing] = useState<TeamMemberRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam();
+  const editing = modal.is("edit") ? members.find((x) => x.userId === modal.numId) ?? null : null;
+  const creating = modal.is("new");
   const [showInactive, setShowInactive] = useState(false);
   const [pwModal, setPwModal] = useState<TeamMemberRow | null>(null);
   const isAdmin = currentRole === 'admin';
@@ -66,7 +68,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
           </p>
         </div>
         <div className="page-actions">
-          <button className="btn primary" onClick={() => setCreating(true)}>+ New member</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ New member</button>
         </div>
       </div>
 
@@ -96,7 +98,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
         <div className="panel" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-3)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
           <p style={{ margin: '0 0 12px', fontSize: 13 }}>Chưa có member nào.</p>
-          <button className="btn primary" onClick={() => setCreating(true)}>+ Invite first member</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ Invite first member</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
@@ -108,7 +110,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
               <div key={m.userId} className="panel"
                    style={{ padding: '12px 14px', cursor: 'pointer', opacity: m.active ? 1 : 0.5,
                             border: isMe ? '1px solid var(--accent)' : undefined }}
-                   onClick={() => setEditing(m)}>
+                   onClick={() => modal.open("edit", m.userId)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
@@ -184,7 +186,7 @@ export function TeamPage({ members, currentUserId, currentRole }: { members: Tea
       )}
 
       {(editing || creating) && (
-        <MemberFormModal member={editing} onClose={() => { setEditing(null); setCreating(false); }} />
+        <MemberFormModal member={editing} onClose={() => modal.close()} />
       )}
 
       {pwModal && (

@@ -7,11 +7,12 @@
 // to copy/replace manually.
 
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from './openai';
-import { getDb, platformAccounts, platforms, habitats, tribes, projects } from '@mos2/db';
+import { getDb, platformAccounts, platforms, habitats, tribes, habitatTribes, projects } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 
 export interface BriefSuggestionLang {
   approachMd: string;
+  narrativeMd: string;
   cadence: string;
   tone: string;
   doMd: string;
@@ -29,6 +30,7 @@ export interface BriefSuggestRequest {
   habitatId: number;
   current: {
     approachMd: string;
+    narrativeMd: string;
     cadence: string;
     tone: string;
     doMd: string;
@@ -38,6 +40,15 @@ export interface BriefSuggestRequest {
   // "more aggressive tone", "focus on Vietnamese moms", "avoid emojis".
   // Included in the user prompt with HIGH priority weight.
   extraInstruction?: string;
+  // Optional: when the user clicks per-field "↻ Regen" on a single
+  // SuggestionInline card, we ask AI to focus refinement on just that
+  // field. AI still returns the full bundle (we don't break the JSON
+  // contract) but the named field gets the strongest variation.
+  regenField?: keyof BriefSuggestionLang;
+  // Optional: chỉ generate suggestion cho các field đang trống. Field
+  // đã có nội dung được AI return empty string → client merge sẽ giữ
+  // suggestion cũ. Tiết kiệm token + nhanh hơn full regen.
+  regenEmptyOnly?: boolean;
 }
 
 const SYSTEM_PROMPT = `You are a community-marketing strategist helping shape an outreach plan
@@ -47,7 +58,8 @@ in BOTH English and Vietnamese so the operator can pick whichever fits.
 Output STRICT JSON (no markdown wrapper):
 {
   "en": {
-    "approachMd": "...",   // 4-8 line markdown narrative
+    "approachMd":  "...",   // 4-8 line markdown - WHERE/WHEN to engage (tactical plan)
+    "narrativeMd": "...",   // 5-10 line markdown - HOW to tell the story (story arc, voice, hooks, ending)
     "cadence": "...",       // e.g. "3 replies/day"
     "tone": "...",          // 3-6 words
     "doMd": "...",          // 3-6 markdown bullets ("- ...")
@@ -55,7 +67,8 @@ Output STRICT JSON (no markdown wrapper):
     "rationale": "..."      // 1-2 sentences explaining WHY this fits
   },
   "vi": {
-    "approachMd": "...",   // SAME meaning as en, but in Vietnamese
+    "approachMd":  "...",   // SAME meaning as en, but in Vietnamese
+    "narrativeMd": "...",
     "cadence": "...",
     "tone": "...",
     "doMd": "...",
@@ -64,6 +77,18 @@ Output STRICT JSON (no markdown wrapper):
   }
 }
 
+NARRATIVE FIELD GUIDANCE (narrativeMd):
+- This is the STORYTELLING framework, NOT the engagement tactic.
+- Structure as markdown with labelled sections:
+  **Arc** (or **Vòng cung** in vi): the story arc the persona uses (hook → context → insight → invite)
+  **Voice** (or **Giọng**): narrative voice DNA for this persona on this community
+  **Opening hook** (or **Hook mở bài**): 1-3 example opening lines this persona would use
+  **Climax**: the turning point or payoff style
+  **Ending** (or **Kết**): how posts close (CTA / question / open)
+  **Avoid** (or **Tránh**): patterns this persona must NOT use here
+- Tailor to the community culture (scholarly forum vs lifestyle vs Reddit-meme).
+- Reference specific persona traits if account context provides them.
+
 RULES:
 - Both versions express the SAME strategy — vi is not a literal word-for-word translation
   but a natural Vietnamese rendering with native idioms / register / flow.
@@ -71,7 +96,7 @@ RULES:
 - Respect community rules and self-promotion conventions of the platform. Reddit ≠ FB ≠ Discord.
 - If a field is already filled by the user, propose an ALTERNATIVE / refinement, NOT a copy.
 - If a field is empty, fill it from scratch.
-- Keep approach 4-8 lines, no fluff.
+- Keep approach 4-8 lines, narrative 5-10 lines, no fluff.
 - Use vi-VN with diacritics (có dấu) — never bị bỏ dấu.
 - Keep platform-specific jargon as-is in BOTH versions (e.g. "subreddit", "upvote") — do not translate technical terms.`;
 
@@ -108,6 +133,8 @@ function buildUserPrompt(args: {
   projectBio: string | null;
   current: BriefSuggestRequest['current'];
   extraInstruction?: string;
+  regenField?: keyof BriefSuggestionLang;
+  regenEmptyOnly?: boolean;
 }): string {
   const filled = (k: keyof BriefSuggestRequest['current']) => args.current[k]?.trim() ? '(FILLED — propose REFINEMENT)' : '(EMPTY — fill)';
   return [
@@ -146,14 +173,24 @@ function buildUserPrompt(args: {
     args.tribeAvoid.length > 0 ? `  tribe avoid (do NOT say): ${args.tribeAvoid.join(', ')}` : null,
     '',
     `CURRENT BRIEF STATE:`,
-    `  approachMd ${filled('approachMd')}: ${args.current.approachMd || '(empty)'}`,
-    `  cadence ${filled('cadence')}: ${args.current.cadence || '(empty)'}`,
-    `  tone ${filled('tone')}: ${args.current.tone || '(empty)'}`,
-    `  doMd ${filled('doMd')}: ${args.current.doMd || '(empty)'}`,
-    `  dontMd ${filled('dontMd')}: ${args.current.dontMd || '(empty)'}`,
+    `  approachMd  ${filled('approachMd')}: ${args.current.approachMd || '(empty)'}`,
+    `  narrativeMd ${filled('narrativeMd')}: ${args.current.narrativeMd || '(empty)'}`,
+    `  cadence     ${filled('cadence')}: ${args.current.cadence || '(empty)'}`,
+    `  tone        ${filled('tone')}: ${args.current.tone || '(empty)'}`,
+    `  doMd        ${filled('doMd')}: ${args.current.doMd || '(empty)'}`,
+    `  dontMd      ${filled('dontMd')}: ${args.current.dontMd || '(empty)'}`,
     args.extraInstruction?.trim() ? '' : null,
     args.extraInstruction?.trim() ? `OPERATOR EXTRA INSTRUCTION (HIGH PRIORITY — apply on top of everything above):` : null,
     args.extraInstruction?.trim() ? `  ${args.extraInstruction.trim()}` : null,
+    args.regenField ? '' : null,
+    args.regenField ? `FOCUS REGEN: the operator is refreshing ONLY the "${args.regenField}" field of the suggestion.` : null,
+    args.regenField ? `  Generate a STRONG ALTERNATIVE for "${args.regenField}" that materially differs from the current value.` : null,
+    args.regenField ? `  Other fields should stay close to their current state (mild refinement only — do not propose new directions for them).` : null,
+    args.regenEmptyOnly ? '' : null,
+    args.regenEmptyOnly ? `ENRICH-MISSING MODE: the operator wants suggestions ONLY for EMPTY fields.` : null,
+    args.regenEmptyOnly ? `  For each field marked "(EMPTY — fill)" above: generate a high-quality suggestion as normal.` : null,
+    args.regenEmptyOnly ? `  For each field marked "(FILLED — propose REFINEMENT)" above: return EMPTY STRING "" for that key in BOTH en and vi.` : null,
+    args.regenEmptyOnly ? `  This applies to fields: approachMd, narrativeMd, cadence, tone, doMd, dontMd. Always include "rationale".` : null,
     '',
     'Generate the JSON response now.',
   ].filter(Boolean).join('\n');
@@ -179,11 +216,30 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
   const habitat = habRows[0];
   if (!habitat) return { ok: false, error: 'habitat not found' };
 
-  let tribe: typeof tribes.$inferSelect | null = null;
-  if (habitat.tribeId) {
+  // M2M: a habitat can span multiple tribes. Pull the FULL set (primary
+  // first) and aggregate lexicon/avoid so the brief AI sees every
+  // audience that hangs out there — not just the primary.
+  const linkedTribes = await db
+    .select({ t: tribes, isPrimary: habitatTribes.isPrimary })
+    .from(habitatTribes)
+    .innerJoin(tribes, eq(tribes.id, habitatTribes.tribeId))
+    .where(eq(habitatTribes.habitatId, habitat.id));
+  linkedTribes.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+  // Fallback to the denormalized single tribe if no join rows yet.
+  let tribeList = linkedTribes.map((x) => x.t);
+  if (tribeList.length === 0 && habitat.tribeId) {
     const tRows = await db.select().from(tribes).where(eq(tribes.id, habitat.tribeId)).limit(1);
-    tribe = tRows[0] ?? null;
+    if (tRows[0]) tribeList = [tRows[0]];
   }
+  const primaryTribe = tribeList[0] ?? null;
+  const uniq = (xs: string[]) => [...new Set(xs.map((s) => s.trim()).filter(Boolean))];
+  const tribeNameAgg = primaryTribe
+    ? (tribeList.length > 1
+        ? `${primaryTribe.name} (+ ${tribeList.slice(1).map((t) => t.name).join(', ')})`
+        : primaryTribe.name)
+    : null;
+  const tribeLexiconAgg = uniq(tribeList.flatMap((t) => (t.lexicon as string[]) ?? []));
+  const tribeAvoidAgg = uniq(tribeList.flatMap((t) => (t.avoid as string[]) ?? []));
 
   const projRows = await db.select().from(projects).where(eq(projects.id, habitat.projectId)).limit(1);
   const proj = projRows[0];
@@ -211,16 +267,18 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
     habitatDominantTopics: (habitat.dominantTopics as string[]) ?? [],
     habitatForbiddenTopics: (habitat.forbiddenTopics as string[]) ?? [],
     habitatBestPostTimes: habitat.bestPostTimes ?? '',
-    tribeName: tribe?.name ?? null,
-    tribeDesc: tribe?.descText ?? null,
-    tribePsychographic: tribe?.psychographic ?? null,
-    tribeLexicon: (tribe?.lexicon as string[]) ?? [],
-    tribeAvoid: (tribe?.avoid as string[]) ?? [],
+    tribeName: tribeNameAgg,
+    tribeDesc: primaryTribe?.descText ?? null,
+    tribePsychographic: primaryTribe?.psychographic ?? null,
+    tribeLexicon: tribeLexiconAgg,
+    tribeAvoid: tribeAvoidAgg,
     projectName: proj?.name ?? habitat.projectId,
     projectOneLiner: proj?.oneLiner ?? null,
     projectBio: proj?.bio ?? null,
     current: req.current,
     extraInstruction: req.extraInstruction,
+    regenField: req.regenField,
+    regenEmptyOnly: req.regenEmptyOnly,
   });
 
   try {
@@ -238,12 +296,13 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
     const pick = (lang: 'en' | 'vi'): BriefSuggestionLang => {
       const o = parsed[lang] ?? {};
       return {
-        approachMd: String(o.approachMd ?? ''),
-        cadence:    String(o.cadence ?? ''),
-        tone:       String(o.tone ?? ''),
-        doMd:       String(o.doMd ?? ''),
-        dontMd:     String(o.dontMd ?? ''),
-        rationale:  String(o.rationale ?? ''),
+        approachMd:  String(o.approachMd ?? ''),
+        narrativeMd: String(o.narrativeMd ?? ''),
+        cadence:     String(o.cadence ?? ''),
+        tone:        String(o.tone ?? ''),
+        doMd:        String(o.doMd ?? ''),
+        dontMd:      String(o.dontMd ?? ''),
+        rationale:   String(o.rationale ?? ''),
       };
     };
     return { ok: true, suggestion: { en: pick('en'), vi: pick('vi') } };

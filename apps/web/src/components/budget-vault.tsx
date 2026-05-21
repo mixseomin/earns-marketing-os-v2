@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BudgetRow } from '@/lib/data';
 import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInput } from '@/lib/actions/vaults';
+import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
@@ -19,8 +20,10 @@ function fmtDate(d: Date): string {
 }
 
 export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectId: string }) {
-  const [editing, setEditing] = useState<BudgetRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  // URL-synced modal (DEFAULT pattern — lib/use-modal-param.ts).
+  const modal = useModalParam();
+  const editing = modal.is('edit') ? items.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is('new');
 
   // Aggregate per currency to avoid mixing VND + USD vào 1 sum (issue trên image #2).
   const stats: StatCard[] = useMemo(() => {
@@ -64,7 +67,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
     <>
       <StatsStrip cards={stats} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New entry</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New entry</button>
       </div>
       {items.length === 0 ? (
         <EmptyState icon="💳" title="No budget entries" description="Track ad spend, tool subs, income..." compact />
@@ -83,7 +86,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
             </thead>
             <tbody>
               {items.map((b) => (
-                <tr key={b.id} onClick={() => setEditing(b)} style={{ borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
+                <tr key={b.id} onClick={() => modal.open("edit", b.id)} style={{ borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                   <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{fmtDate(b.occurredAt)}</td>
                   <td style={{ padding: '6px 10px' }}>{KIND_ICON[b.kind] ?? '—'} {b.kind}</td>
                   <td style={{ padding: '6px 10px', color: 'var(--fg-2)' }}>{b.category}</td>
@@ -101,7 +104,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
         </div>
       )}
       {(editing || creating) && (
-        <BudgetFormModal entry={editing} projectId={projectId} onClose={() => { setEditing(null); setCreating(false); }} />
+        <BudgetFormModal entry={editing} projectId={projectId} onClose={() => modal.close()} />
       )}
     </>
   );

@@ -427,6 +427,13 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
   );
 }
 
+// 1 account theo id (reuse listAccounts mapper + operator scoping). Dùng
+// để sửa account tại chỗ từ trang Seeding.
+export async function getAccountRow(projectId: string, id: number): Promise<AccountRow | null> {
+  const all = await listAccounts(projectId);
+  return all.find((a) => a.id === id) ?? null;
+}
+
 // ── Use cases ──────────────────────────────────────────────────
 export type UseCaseStatus = 'pending' | 'wip' | 'pass' | 'fail' | 'needs-fix' | 'blocked' | 'skip';
 
@@ -565,13 +572,16 @@ export async function listRoadmap(): Promise<RoadmapRow[]> {
 export interface TribeRow { id: number; projectId: string; slug: string; name: string; descText: string; signal: string; sentiment: number; lifecycle: string; lexicon: string[]; avoid: string[]; psychographic: string; importedFrom: string | null }
 export interface HabitatRow {
   id: number;
-  tribeId: number | null;
+  tribeId: number | null;      // PRIMARY tribe (denormalized mirror)
+  tribeIds: number[];          // full M2M set, primary first
   projectId: string;
   kind: string;
   name: string;
   url: string | null;
   platformKey: string | null;
   technologyKey: string | null;
+  // CDN icon URL (Discord guild icon, etc.) — auto-fill from invite extract.
+  iconUrl: string | null;
   members: number;
   activity: string;
   scrapeFrequency: string;
@@ -592,6 +602,14 @@ export interface HabitatRow {
   dominantTopics: string[];
   forbiddenTopics: string[];
   bestPostTimes: string;
+  // Override platform.allowed_formats cho community cụ thể (vd r/AskReddit
+  // cấm link → bỏ 'link'). NULL/[] = kế thừa platform.
+  allowedFormatsOverride: string[] | null;
+  // Voice profile cho AI gen — enum trong VOICE_PROFILES, default 'regular'.
+  voiceProfile: string;
+  voiceNotes: string;
+  fewShotExamples: Array<{ title?: string; body: string; whyItWorks?: string }> | null;
+  visualStyleDescriptor: string | null;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -612,10 +630,32 @@ export async function listTribes(projectId: string): Promise<TribeRow[]> {
 export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
   return tryDb(async () => {
     const rows = await listHabitatsByProject(projectId);
+    // Enrich with the full M2M tribe set (primary first). One grouped
+    // query keeps readers.ts untouched.
+    const tribeIdsByHab = new Map<number, number[]>();
+    const db = getDb();
+    if (db && (rows ?? []).length) {
+      const link = await db.execute(sql`
+        SELECT ht.habitat_id, ht.tribe_id, ht.is_primary
+        FROM habitat_tribes ht
+        JOIN habitats h ON h.id = ht.habitat_id
+        WHERE h.project_id = ${projectId}
+        ORDER BY ht.is_primary DESC, ht.tribe_id ASC
+      `);
+      for (const row of link as unknown as Array<{ habitat_id: number; tribe_id: number }>) {
+        const hid = Number(row.habitat_id);
+        const arr = tribeIdsByHab.get(hid) ?? [];
+        arr.push(Number(row.tribe_id));
+        tribeIdsByHab.set(hid, arr);
+      }
+    }
     return (rows ?? []).map((r) => ({
-      id: r.id, tribeId: r.tribeId, projectId: r.projectId, kind: r.kind,
+      id: r.id, tribeId: r.tribeId,
+      tribeIds: tribeIdsByHab.get(r.id) ?? (r.tribeId != null ? [r.tribeId] : []),
+      projectId: r.projectId, kind: r.kind,
       name: r.name, url: r.url, platformKey: r.platformKey ?? null,
       technologyKey: r.technologyKey ?? null,
+      iconUrl: r.iconUrl ?? null,
       members: r.members, activity: r.activity,
       scrapeFrequency: r.scrapeFrequency, lastSyncAt: r.lastSyncAt,
       health: r.health, importedFrom: r.importedFrom,
@@ -632,8 +672,71 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
       dominantTopics: (r.dominantTopics as string[]) ?? [],
       forbiddenTopics: (r.forbiddenTopics as string[]) ?? [],
       bestPostTimes: r.bestPostTimes ?? '',
+      allowedFormatsOverride: (r.allowedFormatsOverride as string[] | null) ?? null,
+      voiceProfile: r.voiceProfile ?? 'regular',
+      voiceNotes: r.voiceNotes ?? '',
+      fewShotExamples: (r.fewShotExamples as HabitatRow['fewShotExamples']) ?? null,
+      visualStyleDescriptor: r.visualStyleDescriptor ?? null,
     }));
   }, [], 'listHabitats');
+}
+
+// Single habitat by id (dùng để mở HabitatFormModal in-place từ brief modal
+// — tránh load toàn bộ list khi chỉ cần 1 row). Cùng mapper shape với
+// listHabitats để type chung HabitatRow.
+export async function getHabitatById(projectId: string, habitatId: number): Promise<HabitatRow | null> {
+  return tryDb(async () => {
+    const db = getDb();
+    if (!db) return null;
+    const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
+    const rows = await db.execute(sql`
+      SELECT * FROM habitats
+      WHERE tenant_id = ${TENANT} AND project_id = ${projectId} AND id = ${habitatId}
+      LIMIT 1
+    `);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (!r) return null;
+    // Full M2M tribe set (primary first).
+    const link = await db.execute(sql`
+      SELECT tribe_id, is_primary FROM habitat_tribes
+      WHERE habitat_id = ${habitatId}
+      ORDER BY is_primary DESC, tribe_id ASC
+    `);
+    const tribeIds = (link as unknown as Array<{ tribe_id: number }>).map((x) => Number(x.tribe_id));
+    const primaryTribe = r.tribe_id != null ? Number(r.tribe_id) : null;
+    return {
+      id: Number(r.id), tribeId: primaryTribe,
+      tribeIds: tribeIds.length ? tribeIds : (primaryTribe != null ? [primaryTribe] : []),
+      projectId: String(r.project_id), kind: String(r.kind ?? ''),
+      name: String(r.name ?? ''), url: r.url ? String(r.url) : null,
+      platformKey: r.platform_key ? String(r.platform_key) : null,
+      technologyKey: r.technology_key ? String(r.technology_key) : null,
+      iconUrl: r.icon_url ? String(r.icon_url) : null,
+      members: Number(r.members ?? 0), activity: String(r.activity ?? ''),
+      scrapeFrequency: String(r.scrape_frequency ?? ''),
+      lastSyncAt: r.last_sync_at ? new Date(String(r.last_sync_at)) : null,
+      health: String(r.health ?? ''),
+      importedFrom: r.imported_from ? String(r.imported_from) : null,
+      language: String(r.language ?? ''),
+      communityType: String(r.community_type ?? ''),
+      status: String(r.status ?? 'target'),
+      modStrictness: String(r.mod_strictness ?? ''),
+      postingRules: String(r.posting_rules ?? ''),
+      postingRulesUrl: String(r.posting_rules_url ?? ''),
+      minAccountAgeDays: Number(r.min_account_age_days ?? 0),
+      minKarma: Number(r.min_karma ?? 0),
+      minPosts: Number(r.min_posts ?? 0),
+      linksAllowedAfter: String(r.links_allowed_after ?? ''),
+      dominantTopics: (r.dominant_topics as string[]) ?? [],
+      forbiddenTopics: (r.forbidden_topics as string[]) ?? [],
+      bestPostTimes: String(r.best_post_times ?? ''),
+      allowedFormatsOverride: (r.allowed_formats_override as string[] | null) ?? null,
+      voiceProfile: String(r.voice_profile ?? 'regular'),
+      voiceNotes: String(r.voice_notes ?? ''),
+      fewShotExamples: (r.few_shot_examples as HabitatRow['fewShotExamples']) ?? null,
+      visualStyleDescriptor: r.visual_style_descriptor ? String(r.visual_style_descriptor) : null,
+    };
+  }, null, 'getHabitatById');
 }
 
 export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]> {

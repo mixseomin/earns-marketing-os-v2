@@ -21,6 +21,7 @@ import {
   bigint,
   uniqueIndex,
   index,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 
 // ── modes ────────────────────────────────────────────────────────
@@ -203,7 +204,45 @@ export const cards = pgTable(
     workflowStep: text('workflow_step'),                    // e.g. 'plan' / 'write' / 'design' / 'publish'
     workflowContext: jsonb('workflow_context').notNull().default({}),  // outputs từ prev steps cho input mapping
     body: text('body'),
+    // 0051: liên kết card về (community_brief × phase) để PhaseEntryEditor
+    // có thể list + tạo card từ context phase. NULL khi card không thuộc brief.
+    briefId: bigint('brief_id', { mode: 'number' }),
+    briefPhase: text('brief_phase'),
+    // 0052: bilingual posts. body_review luôn vi-VN (review). body_target
+    // theo target_lang (= habitat.language) - đăng thật. Khi target_lang='vi'
+    // thì 2 trường merge thành 1 (chỉ dùng body_target).
+    bodyReview: text('body_review').notNull().default(''),
+    bodyTarget: text('body_target').notNull().default(''),
+    targetLang: text('target_lang').notNull().default('en'),
+    // 0055: content-type-aware seeding. content_type = text|image|video|
+    // link|thread|poll|carousel|story|doc (xem lib/content-formats.ts).
+    // media_asset_id = link tuỳ chọn tới media_assets (ảnh/video kèm bài).
+    contentType: text('content_type').notNull().default('text'),
+    mediaAssetId: bigint('media_asset_id', { mode: 'number' }),
+    // Channel link — chỉ có giá trị với habitat multi-channel (Discord/Slack/
+    // Telegram). Null = habitat-level (subreddit/forum 1 ruleset).
+    channelId: bigint('channel_id', { mode: 'number' }),
+    // Content Pillar System — link to project's macro content positioning.
+    // Pillar inherit voice + key_messages + forbidden + languages cho bài.
+    // Null = legacy / no pillar (behavior y như cũ).
+    pillarId: bigint('pillar_id', { mode: 'number' }),
+    // Distribution kind (khác content_type là medium). seed = community post,
+    // blog = website article, email = newsletter, thread = X/LinkedIn thread.
+    // Default 'seed' để backward-compat cards cũ.
+    contentKind: text('content_kind').notNull().default('seed'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
+    // Lý do archive — dùng cho format-removed auto-restore: nếu reason match
+    // 'format-removed:<type>' và format bật lại → tự unarchive.
+    archivedReason: text('archived_reason'),
+    // Dispatch / đã đăng — set khi user bấm "🚀 Đăng bài" + confirm modal.
+    // postUrl = link bài thật trên platform (Reddit thread, Discord msg link, ...).
+    // postedAt = timestamp khi bài đăng (auto-fill now() nhưng có thể override).
+    // postScreenshotUrl = ảnh chụp pin làm bằng chứng (optional).
+    // postNote = ghi chú free-text (vd "mod approved x mins", "shadow ban").
+    postUrl: text('post_url'),
+    postedAt: timestamp('posted_at', { withTimezone: true }),
+    postScreenshotUrl: text('post_screenshot_url'),
+    postNote: text('post_note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -322,6 +361,11 @@ export const platforms = pgTable(
     // migration 0044: forum engine + per-platform signup field overrides
     technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
     signupFields: jsonb('signup_fields').notNull().default([]), // platform-specific additions/overrides
+    // Override content formats hardcoded (content-formats.ts PROFILE_BY_KEY/CATEGORY).
+    // allowedFormats = JSONB array of format keys; NULL = dùng hardcoded fallback.
+    // formatMix = JSONB object {format_key: weight}.
+    allowedFormats: jsonb('allowed_formats'),
+    formatMix: jsonb('format_mix'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -520,6 +564,9 @@ export const habitats = pgTable(
     name: text('name').notNull(),
     url: text('url'),
     platformKey: text('platform_key').references(() => platforms.key, { onDelete: 'set null' }), // explicit link cho kinds không tự map (forum/hashtag/other)
+    // Icon URL của community (Discord CDN icon, subreddit icon, FB group cover...).
+    // Tự fill khi extract từ platform API (Discord invite, Reddit /about).
+    iconUrl: text('icon_url'),
     members: integer('members').notNull().default(0),
     activity: text('activity').notNull().default(''),       // free-form: 'high', '120 posts/d'
     scrapeFrequency: text('scrape_frequency').notNull().default('manual'), // live|manual|weekly|comments
@@ -542,6 +589,24 @@ export const habitats = pgTable(
     bestPostTimes: text('best_post_times').notNull().default(''),
     // migration 0044: forum engine detection (can override platform's tech)
     technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
+    // Override platform.allowed_formats cho community cụ thể (vd r/AskReddit
+    // cấm link → habitat bỏ 'link' khỏi list). NULL = kế thừa platform.
+    allowedFormatsOverride: jsonb('allowed_formats_override'),
+    // Voice profile preset (lurker|regular|shitposter|edgelord|expert|hype) —
+    // điều khiển length/emoji/slang/hook style trong AI prompt. Channel có thể
+    // override; nếu không thì kế thừa habitat. Default 'regular' (như cũ).
+    voiceProfile: text('voice_profile').notNull().default('regular'),
+    // Free-text voice notes (admin viết thêm context: "lots of finance bro
+    // lingo, ironic technical terms, never serious"). Inject vào prompt sau
+    // voice profile preset.
+    voiceNotes: text('voice_notes').notNull().default(''),
+    // Array of high-performing example posts để AI mimic: [{title, body, whyItWorks}].
+    // Inject vào prompt as few-shot examples (sau voice notes, trước task).
+    fewShotExamples: jsonb('few_shot_examples'),
+    // AI-inferred visual descriptor từ habitat icon (Vision call 1x, cached).
+    // VD: "purple cosmic gradient, mystical astrology aesthetic". Inject vào
+    // image-gen prompt để ảnh sinh fit theme habitat.
+    visualStyleDescriptor: text('visual_style_descriptor'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -550,6 +615,88 @@ export const habitats = pgTable(
     index('habitats_tribe_idx').on(t.tribeId),
     index('habitats_project_idx').on(t.projectId),
   ],
+);
+
+// ── habitat_channels — sub-channel của habitat (Discord/Slack/Telegram) ──
+// 1 server có nhiều channel với rule + format riêng (off-topic / promo /
+// showcase…). Card có channel_id để biết bài đăng cụ thể vào channel nào.
+// Cards.channel_id nullable: subreddit/forum chỉ có 1 ruleset → không cần.
+export const habitatChannels = pgTable(
+  'habitat_channels',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    habitatId: integer('habitat_id').notNull().references(() => habitats.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),                          // '#promo' / '#showcase' / 'general'
+    url: text('url'),                                       // deep-link channel nếu có
+    description: text('description').notNull().default(''),// off-topic / showcase / Q&A...
+    rules: text('rules').notNull().default(''),             // markdown — channel-specific
+    allowedFormats: jsonb('allowed_formats'),               // override habitat-level
+    postingGates: jsonb('posting_gates'),                   // {minAge, minKarma, linksAllowedAfter...}
+    // Channel-level voice override. NULL = kế thừa habitat.voiceProfile.
+    // Vd habitat shitposter + #rules channel = 'regular' để bài #rules đỡ trolling.
+    voiceProfileOverride: text('voice_profile_override'),
+    // Few-shot examples specific cho channel này. NULL = kế thừa habitat.fewShotExamples.
+    fewShotExamples: jsonb('few_shot_examples'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('habitat_channels_habitat_idx').on(t.habitatId)],
+);
+
+// ── content_pillars (macro content positioning per project) ─────────
+// Top-level brand/content strategy: 3-5 trụ cột định nghĩa "viết cho ai",
+// "key messages", "forbidden", "voice", "languages supported". Cards
+// (blog + seeding + email + thread) link tới pillar để inherit positioning.
+// Brief có primary_pillar_id để default mọi card trong brief.
+export const contentPillars = pgTable(
+  'content_pillars',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    tagline: text('tagline').notNull().default(''),
+    positioningMd: text('positioning_md').notNull().default(''),
+    keyMessages: jsonb('key_messages').notNull().default([]),
+    forbiddenMsgs: jsonb('forbidden_msgs').notNull().default([]),
+    // Languages this pillar supports — e.g. ['en','vi'] for universal,
+    // ['vi'] for VN-cultural-specific. Mismatch language → UI warning.
+    languages: jsonb('languages').notNull().default(['en']),
+    voiceProfile: text('voice_profile').notNull().default('regular'),
+    voiceNotes: text('voice_notes').notNull().default(''),
+    // Preferred content_kinds for this pillar (vd ['blog','thread'] for SEO pillar).
+    preferredTypes: jsonb('preferred_types').notNull().default([]),
+    // Strategic exemplars (high-level — khác habitat few-shot là community-level).
+    exemplars: jsonb('exemplars'),
+    seoPillarUrl: text('seo_pillar_url'),
+    seoKeywords: jsonb('seo_keywords').default([]),
+    // Map sang tag enum của external system (Astrolas content_pieces.pillar
+    // = mundane|technique|demo|education|weekly-forecast). Khi MOS2 push card
+    // sang Directus, dùng tag này để Astrolas dashboard hiển thị đúng.
+    // 2 hệ thống độc lập — MOS2 = strategy, content_pieces.pillar = tag layer.
+    externalTag: text('external_tag'),
+    priority: integer('priority').notNull().default(50),
+    status: text('status').notNull().default('active'),                // active|paused|archived
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('content_pillars_project_idx').on(t.projectId),
+    uniqueIndex('content_pillars_project_slug_uniq').on(t.projectId, t.slug),
+  ],
+);
+
+// M2M pillar × tribe — audience targeting
+export const contentPillarTribes = pgTable(
+  'content_pillar_tribes',
+  {
+    pillarId: bigint('pillar_id', { mode: 'number' }).notNull().references(() => contentPillars.id, { onDelete: 'cascade' }),
+    tribeId: integer('tribe_id').notNull().references(() => tribes.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.pillarId, t.tribeId] })],
 );
 
 // ── community_briefs (account × habitat approach plan) ───────────
@@ -572,6 +719,28 @@ export const communityBriefs = pgTable(
     templates: jsonb('templates').notNull().default([]),
     aiSuggestion: jsonb('ai_suggestion'),                                     // last generated AI suggestion (BriefSuggestion shape)
     aiSuggestionAt: timestamp('ai_suggestion_at', { withTimezone: true }),     // when generated
+    // 0049: per-phase strategy. currentPhase = which phase this account is in
+    // RIGHT NOW for this habitat (warm-up|value|bridge|seed|direct|cooldown|paused).
+    // phasePlan = ordered list of PhaseEntry objects, see lib/phase-plan.ts.
+    // phaseHistory = append-only log of transitions.
+    currentPhase: text('current_phase').notNull().default('warm-up'),
+    phasePlan: jsonb('phase_plan').notNull().default([]),
+    phaseHistory: jsonb('phase_history').notNull().default([]),
+    // 0050: storytelling/narrative guidance markdown - HOW to write the
+    // content (story arc, hooks, narrative voice) as opposed to approachMd
+    // which is WHERE/WHEN to engage.
+    narrativeMd: text('narrative_md').notNull().default(''),
+    // Default content pillar cho brief — mọi card tạo trong brief inherit.
+    // Override per-card qua cards.pillar_id.
+    primaryPillarId: bigint('primary_pillar_id', { mode: 'number' }),
+    // 0057: per-brief join membership state (separate from engagement phase).
+    // Phase warm-up chỉ có ý nghĩa khi joinStatus='joined'. Pre-join states
+    // gate seeding (cannot post to community you haven't joined).
+    //   not_joined | pending | joined | rejected | kicked | left
+    joinStatus: text('join_status').notNull().default('not_joined'),
+    joinedAt: timestamp('joined_at', { withTimezone: true }),
+    joinUrl: text('join_url'),       // invite link / join request URL
+    joinNote: text('join_note'),     // free-text: 'mod requires intro post', 'shadowed', etc.
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -581,6 +750,65 @@ export const communityBriefs = pgTable(
     index('community_briefs_account_idx').on(t.accountId),
     index('community_briefs_habitat_idx').on(t.habitatId),
     index('community_briefs_tenant_idx').on(t.tenantId),
+    index('community_briefs_current_phase_idx').on(t.currentPhase),
+    index('community_briefs_join_status_idx').on(t.joinStatus),
+  ],
+);
+
+// ── habitat_tribes (M2M: habitat ↔ tribe) ────────────────────────
+// One community spans multiple audience tribes. habitats.tribe_id is
+// kept as a denormalized PRIMARY-tribe mirror (single-tribe reads keep
+// working); this table is the full set. Exactly one row per habitat has
+// is_primary=true and it must equal habitats.tribe_id — app code
+// (setHabitatTribes) keeps them in sync. See migration 0053.
+export const habitatTribes = pgTable(
+  'habitat_tribes',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    habitatId: integer('habitat_id').notNull().references(() => habitats.id, { onDelete: 'cascade' }),
+    tribeId: integer('tribe_id').notNull().references(() => tribes.id, { onDelete: 'cascade' }),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('habitat_tribes_uniq').on(t.habitatId, t.tribeId),
+    index('habitat_tribes_tribe_idx').on(t.tribeId),
+    index('habitat_tribes_habitat_idx').on(t.habitatId),
+    index('habitat_tribes_tenant_idx').on(t.tenantId),
+  ],
+);
+
+// ── seeding_schedules (recurring seeding cadence per brief) ──────
+// Brand-awareness / periodic seeding cadence for one community brief
+// (account × habitat). next_due = COALESCE(last_seeded_at, created_at)
+// + frequency_days, computed on read (no cron in v1). See migration 0054.
+export const seedingSchedules = pgTable(
+  'seeding_schedules',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    briefId: bigint('brief_id', { mode: 'number' }).notNull().references(() => communityBriefs.id, { onDelete: 'cascade' }),
+    // 0056: lanes — mỗi brief có nhiều lịch, key = (brief, content_type,
+    // language). content_type='mix' = xoay theo formatMix (tương thích lane
+    // cũ); 1 loại cố định = luôn loại đó. language='' = kế thừa
+    // habitat.language; 1 mã ngôn ngữ = override khi sinh nháp.
+    contentType: text('content_type').notNull().default('mix'),
+    language: text('language').notNull().default(''),
+    frequencyDays: integer('frequency_days').notNull().default(3),
+    activePhases: jsonb('active_phases').notNull().default([]),
+    paused: boolean('paused').notNull().default(false),
+    autoDraft: boolean('auto_draft').notNull().default(true),
+    lastSeededAt: timestamp('last_seeded_at', { withTimezone: true }),
+    touchLog: jsonb('touch_log').notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('seeding_schedules_brief_lane_uniq').on(t.briefId, t.contentType, t.language),
+    index('seeding_schedules_project_idx').on(t.projectId),
+    index('seeding_schedules_tenant_idx').on(t.tenantId),
   ],
 );
 
@@ -1143,4 +1371,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, communityBriefs, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

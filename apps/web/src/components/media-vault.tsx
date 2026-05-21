@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
 import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, type MediaInput } from '@/lib/actions/vaults';
+import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
@@ -18,8 +19,9 @@ function fmtSize(bytes: number): string {
 }
 
 export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId: string }) {
-  const [editing, setEditing] = useState<MediaRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam();
+  const editing = modal.is("edit") ? items.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is("new");
 
   const stats: StatCard[] = [
     { key: 'total', label: 'Total', value: items.length, color: 'var(--fg-0)' },
@@ -33,14 +35,14 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
     <>
       <StatsStrip cards={stats} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New asset</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New asset</button>
       </div>
       {items.length === 0 ? (
         <EmptyState icon="🎬" title="No media" description="Upload hoặc external link asset đầu tiên." compact />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
           {items.map((m) => (
-            <div key={m.id} className="panel" style={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => setEditing(m)}>
+            <div key={m.id} className="panel" style={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => modal.open("edit", m.id)}>
               {m.kind === 'image' && (
                 <div style={{ aspectRatio: '16 / 10', background: 'var(--bg-2)', overflow: 'hidden' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -67,7 +69,7 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
         </div>
       )}
       {(editing || creating) && (
-        <MediaFormModal asset={editing} projectId={projectId} onClose={() => { setEditing(null); setCreating(false); }} />
+        <MediaFormModal asset={editing} projectId={projectId} onClose={() => modal.close()} />
       )}
     </>
   );

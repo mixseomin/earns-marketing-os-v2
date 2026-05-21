@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import { Spinner, IconPlatform, IconCommunity } from './ui';
+import { Spinner, IconCommunity, SiteFavicon } from './ui';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   syncPlatformsFromDirectus,
@@ -246,7 +246,7 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
                        style={{ padding: '10px 12px', cursor: 'pointer' }}
                        onClick={() => setEditing(p)}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <IconPlatform size={13} color="var(--fg-3)" title="Software platform / catalog" />
+                      <SiteFavicon iconSlug={p.iconSlug} url={p.signupUrl || p.postUrl} size={15} title={p.label} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {p.label}
                       </span>

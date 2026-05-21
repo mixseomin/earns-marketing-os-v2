@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import type { Mode, Squad } from '@/lib/mock/types';
 import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
@@ -638,22 +639,16 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
   dbTools: ToolRow[];
   dbSkills: SkillRow[];
 }) {
-  const [editing, setEditing] = useState<Squad | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [drawerSquad, setDrawerSquad] = useState<string | null>(null);
+  // URL-synced modal (DEFAULT pattern — lib/use-modal-param.ts). squad.id là
+  // string key (vd 'wf-writer') nên dùng modal.id, không phải modal.numId.
+  //   ?m=new                 → tạo squad
+  //   ?m=edit&mId=<key>      → sửa squad
+  //   ?m=drawer&mId=<key>    → SquadDrawer
+  const modal = useModalParam();
+  const editing = modal.is('edit') ? mode.squads.find((s) => s.id === modal.id) ?? null : null;
+  const creating = modal.is('new');
+  const drawerSquad = modal.is('drawer') ? modal.id : null;
   const toolById = new Map(dbTools.map((t) => [t.id, t]));
-  const searchParams = useSearchParams();
-
-  // Auto-open edit modal when URL has ?edit=<squadKey> (deep-link from other pages)
-  useEffect(() => {
-    const editKey = searchParams.get('edit');
-    if (editKey && !editing) {
-      const squad = mode.squads.find((s) => s.id === editKey);
-      if (squad) setEditing(squad);
-    }
-    // Only re-run when URL changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   return (
     <div className="page squads-page">
@@ -666,7 +661,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           <p className="page-sub">Throughput = Σ (agent tự xử ở L1+L2). Bottleneck = tốc độ bạn duyệt L3.</p>
         </div>
         <div className="page-actions">
-          <button className="btn primary" onClick={() => setCreating(true)}>+ New squad</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ New squad</button>
         </div>
       </div>
 
@@ -691,7 +686,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>🤖</div>
             <p style={{ margin: '0 0 12px', fontSize: 13 }}>Chưa có squad nào. Tạo squad đầu tiên để bắt đầu phân loại agent.</p>
-            <button className="btn primary" onClick={() => setCreating(true)}>+ New squad</button>
+            <button className="btn primary" onClick={() => modal.open("new")}>+ New squad</button>
           </div>
         </div>
       ) : (
@@ -699,7 +694,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           {mode.squads.map((s) => {
             const utilization = s.agents > 0 ? Math.round((s.active / s.agents) * 100) : 0;
             return (
-              <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(s)}>
+              <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => modal.open("edit", s.id)}>
                 <div className="panel-head">
                   <div className="panel-title">
                     <span className="squad-card-icon" style={{ width: 22, height: 22, fontSize: 11, borderColor: s.color, color: s.color }}>{s.icon}</span>
@@ -714,7 +709,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
                     }}>{s.health.toUpperCase()}</span>
                     <span
                       title="Xem agents — growth journey"
-                      onClick={(e) => { e.stopPropagation(); setDrawerSquad(s.id); }}
+                      onClick={(e) => { e.stopPropagation(); modal.open("drawer", s.id); }}
                       style={{ cursor: 'pointer', fontSize: 13, padding: '1px 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-2)' }}
                     >👥</span>
                     <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>✎</span>
@@ -780,7 +775,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           availableModels={availableModels}
           dbTools={dbTools}
           dbSkills={dbSkills}
-          onClose={() => { setEditing(null); setCreating(false); }}
+          onClose={() => modal.close()}
         />
       )}
 
@@ -789,7 +784,7 @@ export function SquadsPage({ mode, projectId, availableModels, dbTools, dbSkills
           squad={drawerSquad}
           mode={{ squads: mode.squads, cards: mode.cards, feed: mode.feed }}
           projectId={projectId}
-          onClose={() => setDrawerSquad(null)}
+          onClose={() => modal.close()}
         />
       )}
     </div>

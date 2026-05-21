@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSelect, TweakToggle, TweakSlider } from './tweaks';
 import { useLang } from '@/lib/lang-context';
 import { ThemeApplier } from './theme-applier';
@@ -13,7 +13,7 @@ import { VisibilityWatcher } from './visibility-watcher';
 import type { Mode, Project } from '@/lib/mock/types';
 import type { VisibilityConfig } from '@/lib/visibility';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'studio' | 'resources' | 'settings';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
 export interface CurrentUserInfo {
   id: number;
@@ -46,7 +46,11 @@ export function AppShell({
 }) {
   const { tweaks, setTweak } = useTweaks();
   const { setLang } = useLang();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const screenLabel = isPortfolio ? 'portfolio' : project ? `${project.id}-${tab ?? 'dashboard'}` : 'shell';
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileNavOpen(false); }, [project?.id, tab, isPortfolio]);
 
   // Persist last-viewed project ID. Portfolio routes (Library, AI Log, Roadmap, Tests,
   // Settings/API) đọc cookie này để giữ context project đang chọn cho Sidebar /
@@ -74,9 +78,11 @@ export function AppShell({
            data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'}
            data-rightbar={tweaks.showRightbar ? 'shown' : 'hidden'}
            data-anim={tweaks.animation ? 'on' : 'off'}
+           data-mobile-nav={mobileNavOpen ? 'open' : 'closed'}
         style={impersonate ? { paddingTop: 44 } : undefined}>
-        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} />
-        {tweaks.showSidebar && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
+        <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} onMobileMenuClick={() => setMobileNavOpen(v => !v)} />
+        {(tweaks.showSidebar || mobileNavOpen) && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
+        {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
         {(currentUser?.role ?? 'admin') === 'admin' && (
           <RightBar mode={mode} projectId={project?.id}

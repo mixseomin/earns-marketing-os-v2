@@ -5,8 +5,8 @@
 // owns mutations + revalidation.
 
 import { revalidatePath } from 'next/cache';
-import { eq, and, asc, inArray, sql, isNull } from 'drizzle-orm';
-import { getDb, tribes, habitats, platforms } from '@mos2/db';
+import { eq, ne, and, asc, inArray, sql, isNull } from 'drizzle-orm';
+import { getDb, tribes, habitats, habitatTribes, platforms, cards, communityBriefs, platformAccounts } from '@mos2/db';
 import { fetchDirectusCommunitiesByIds, directusEnabled } from '../bridge/directus';
 import { platformKeysForHabitatKind } from '../habitat-platform-map';
 
@@ -281,9 +281,25 @@ export async function deleteTribe(
   projectId: string, id: number,
 ): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
-  // Habitats with tribe_id=this will have their FK set NULL (ON DELETE
-  // CASCADE on the FK is set, so they DELETE actually — see schema).
-  // Re-check schema before relying on either behaviour.
+  // habitats.tribe_id FK is ON DELETE CASCADE — deleting a tribe that is
+  // some habitat's PRIMARY would otherwise delete the habitat itself.
+  // M2M-safe: first repoint each affected habitat to another tribe from
+  // its remaining join set (or NULL), promote that to primary, THEN
+  // delete the tribe (habitat_tribes rows for it cascade away cleanly).
+  const affected = await db.select({ id: habitats.id }).from(habitats)
+    .where(and(eq(habitats.tribeId, id), eq(habitats.projectId, projectId)));
+  for (const h of affected) {
+    const others = await db.select({ tribeId: habitatTribes.tribeId })
+      .from(habitatTribes)
+      .where(and(eq(habitatTribes.habitatId, h.id), ne(habitatTribes.tribeId, id)));
+    const next = others[0]?.tribeId ?? null;
+    await db.update(habitats).set({ tribeId: next, updatedAt: new Date() })
+      .where(eq(habitats.id, h.id));
+    if (next != null) {
+      await db.update(habitatTribes).set({ isPrimary: sql`(${habitatTribes.tribeId} = ${next})` })
+        .where(eq(habitatTribes.habitatId, h.id));
+    }
+  }
   await db.delete(tribes).where(and(eq(tribes.id, id), eq(tribes.projectId, projectId)));
   revalidatePath(`/p/${projectId}/tribes`);
   return { ok: true };
@@ -297,6 +313,7 @@ export interface HabitatInput {
   url?: string | null;
   platformKey?: string | null;   // explicit platform link (auto-derived from kind for known kinds)
   technologyKey?: string | null; // forum engine override (vbulletin, xenforo, phpbb...)
+  iconUrl?: string | null;       // CDN icon URL (Discord guild icon, subreddit icon...)
   members?: number;
   activity?: string;
   scrapeFrequency?: 'live' | 'manual' | 'weekly' | 'comments';
@@ -316,6 +333,14 @@ export interface HabitatInput {
   dominantTopics?: string[];
   forbiddenTopics?: string[];
   bestPostTimes?: string;
+  // Override platform.allowed_formats cho community cụ thể. [] = empty array
+  // được lưu (override = không cho format nào — rare). null = clear override.
+  allowedFormatsOverride?: string[] | null;
+  // Voice profile (lurker|regular|shitposter|edgelord|expert|hype) — AI gen tone.
+  voiceProfile?: string;
+  voiceNotes?: string;
+  fewShotExamples?: Array<{ title?: string; body: string; whyItWorks?: string }> | null;
+  visualStyleDescriptor?: string | null;
 }
 
 export async function createHabitat(
@@ -332,6 +357,7 @@ export async function createHabitat(
     url: input.url ?? null,
     platformKey: input.platformKey ?? null,
     technologyKey: input.technologyKey ?? null,
+    iconUrl: input.iconUrl ?? null,
     members: input.members ?? 0,
     activity: input.activity ?? '',
     scrapeFrequency: input.scrapeFrequency ?? 'manual',
@@ -349,9 +375,23 @@ export async function createHabitat(
     dominantTopics: input.dominantTopics ?? [],
     forbiddenTopics: input.forbiddenTopics ?? [],
     bestPostTimes: input.bestPostTimes ?? '',
+    allowedFormatsOverride: input.allowedFormatsOverride ?? null,
+    voiceProfile: input.voiceProfile ?? 'regular',
+    voiceNotes: input.voiceNotes ?? '',
+    fewShotExamples: input.fewShotExamples ?? null,
+    visualStyleDescriptor: input.visualStyleDescriptor ?? null,
   }).returning({ id: habitats.id });
+  const newId = inserted[0]?.id;
+  // M2M: mirror the (single) tribe picked at create-time as the primary
+  // row in habitat_tribes. Multi-tribe is managed afterwards via the
+  // edit modal / AI assign tool.
+  if (newId != null && input.tribeId != null) {
+    await db.insert(habitatTribes)
+      .values({ tenantId: TENANT, habitatId: newId, tribeId: input.tribeId, isPrimary: true })
+      .onConflictDoNothing();
+  }
   revalidatePath(`/p/${projectId}/tribes`);
-  return { ok: true, id: inserted[0]?.id };
+  return { ok: true, id: newId };
 }
 
 export async function updateHabitat(
@@ -364,6 +404,7 @@ export async function updateHabitat(
   if (patch.url !== undefined)       set.url = patch.url;
   if (patch.platformKey !== undefined) set.platformKey = patch.platformKey;
   if (patch.technologyKey !== undefined) set.technologyKey = patch.technologyKey;
+  if (patch.iconUrl !== undefined)   set.iconUrl = patch.iconUrl;
   if (patch.members != null)         set.members = patch.members;
   if (patch.activity != null)        set.activity = patch.activity;
   if (patch.scrapeFrequency != null) set.scrapeFrequency = patch.scrapeFrequency;
@@ -382,9 +423,103 @@ export async function updateHabitat(
   if (patch.dominantTopics != null)      set.dominantTopics = patch.dominantTopics;
   if (patch.forbiddenTopics != null)     set.forbiddenTopics = patch.forbiddenTopics;
   if (patch.bestPostTimes != null)       set.bestPostTimes = patch.bestPostTimes;
+  if (patch.voiceProfile != null)        set.voiceProfile = patch.voiceProfile;
+  if (patch.voiceNotes != null)          set.voiceNotes = patch.voiceNotes;
+  if (patch.fewShotExamples !== undefined) set.fewShotExamples = patch.fewShotExamples;
+  if (patch.visualStyleDescriptor !== undefined) set.visualStyleDescriptor = patch.visualStyleDescriptor;
+  // allowed_formats_override: nếu đổi → tính diff để auto-restore (types
+  // được ADD lại sau khi từng bị remove). Archive cho types REMOVED là
+  // responsibility của client (qua confirm dialog gọi
+  // archiveCardsByTypesForHabitat riêng).
+  let restoredTypes: string[] = [];
+  if (patch.allowedFormatsOverride !== undefined) {
+    const prev = await db.execute(sql`
+      SELECT allowed_formats_override FROM habitats
+      WHERE id = ${id} AND project_id = ${projectId} LIMIT 1
+    `);
+    const prevList = (prev as unknown as Array<{ allowed_formats_override: unknown }>)[0]?.allowed_formats_override;
+    const prevSet = new Set(Array.isArray(prevList) ? (prevList as string[]) : []);
+    const newSet = new Set(Array.isArray(patch.allowedFormatsOverride) ? (patch.allowedFormatsOverride as string[]) : []);
+    // Types được thêm lại = trong new mà không trong prev (chỉ áp dụng khi
+    // CẢ HAI là array; nếu prev null/new null thì skip auto-restore — case
+    // chuyển sang inherit/default nên broad restore không an toàn).
+    if (Array.isArray(patch.allowedFormatsOverride) && Array.isArray(prevList)) {
+      restoredTypes = [...newSet].filter((t) => !prevSet.has(t));
+    }
+    set.allowedFormatsOverride = patch.allowedFormatsOverride;
+  }
   await db.update(habitats).set(set).where(and(eq(habitats.id, id), eq(habitats.projectId, projectId)));
+  // Auto-restore archived cards của types vừa được tick lại.
+  if (restoredTypes.length > 0) {
+    await db.execute(sql`
+      UPDATE cards SET archived_at = NULL, archived_reason = NULL, updated_at = now()
+      WHERE archived_at IS NOT NULL
+        AND content_type IN (${sql.join(restoredTypes, sql`, `)})
+        AND archived_reason LIKE 'format-removed:%'
+        AND brief_id IN (
+          SELECT id FROM community_briefs
+          WHERE habitat_id = ${id} AND project_id = ${projectId}
+        )
+    `);
+  }
+  // M2M sync for the legacy single-tribe field. We do NOT wipe secondary
+  // tribes here — this path only changes WHICH tribe is primary.
+  //   tribeId = null   → unlink everything (no primary ⇒ no tribes)
+  //   tribeId = <id>   → ensure that tribe is linked + is the primary,
+  //                      keep other (secondary) links intact.
+  if (patch.tribeId !== undefined) {
+    if (patch.tribeId == null) {
+      await db.delete(habitatTribes).where(eq(habitatTribes.habitatId, id));
+    } else {
+      await db.insert(habitatTribes)
+        .values({ tenantId: TENANT, habitatId: id, tribeId: patch.tribeId, isPrimary: true })
+        .onConflictDoNothing();
+      await db.update(habitatTribes)
+        .set({ isPrimary: sql`(${habitatTribes.tribeId} = ${patch.tribeId})` })
+        .where(eq(habitatTribes.habitatId, id));
+    }
+  }
   revalidatePath(`/p/${projectId}/tribes`);
   return { ok: true };
+}
+
+// ── M2M tribe set (full replace) ──────────────────────────────────
+// Source of truth for a habitat's COMPLETE tribe set. Replaces all
+// habitat_tribes rows + syncs the denormalized habitats.tribe_id mirror
+// to the chosen primary. Used by the AI assign modal + the edit form's
+// multi-tribe picker. Invalid tribe ids (not in project) are dropped.
+export async function setHabitatTribes(
+  projectId: string, habitatId: number,
+  tribeIds: number[], primaryTribeId: number | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const h = await db.select({ id: habitats.id }).from(habitats)
+    .where(and(eq(habitats.id, habitatId), eq(habitats.projectId, projectId))).limit(1);
+  if (!h.length) return { ok: false, error: 'habitat not found in project' };
+  const projTribes = await db.select({ id: tribes.id }).from(tribes)
+    .where(and(eq(tribes.projectId, projectId), eq(tribes.tenantId, TENANT)));
+  const valid = new Set(projTribes.map((t) => t.id));
+  const ids = [...new Set(tribeIds.filter((x) => valid.has(x)))];
+  const primary: number | null =
+    primaryTribeId != null && ids.includes(primaryTribeId) ? primaryTribeId : (ids[0] ?? null);
+  await db.delete(habitatTribes).where(eq(habitatTribes.habitatId, habitatId));
+  if (ids.length) {
+    await db.insert(habitatTribes).values(
+      ids.map((tid) => ({ tenantId: TENANT, habitatId, tribeId: tid, isPrimary: tid === primary })),
+    );
+  }
+  await db.update(habitats).set({ tribeId: primary, updatedAt: new Date() })
+    .where(and(eq(habitats.id, habitatId), eq(habitats.projectId, projectId)));
+  revalidatePath(`/p/${projectId}/tribes`);
+  return { ok: true };
+}
+
+// Read the full tribe-id set for a habitat (primary first).
+export async function listHabitatTribeIds(habitatId: number): Promise<number[]> {
+  const db = ensureDb();
+  const rows = await db.select({ tribeId: habitatTribes.tribeId, isPrimary: habitatTribes.isPrimary })
+    .from(habitatTribes).where(eq(habitatTribes.habitatId, habitatId));
+  return rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary)).map((r) => r.tribeId);
 }
 
 export async function deleteHabitat(
@@ -396,4 +531,180 @@ export async function deleteHabitat(
   await db.delete(habitats).where(and(eq(habitats.id, id), eq(habitats.projectId, projectId)));
   revalidatePath(`/p/${projectId}/tribes`);
   return { ok: true };
+}
+
+// Bulk re-assign habitats → tribe SET. Used by AIHabitatTribesModal to
+// apply AI classification in one shot. Each assignment fully replaces a
+// habitat's tribe set (primary + secondaries). Invalid/foreign ids are
+// dropped per-habitat so a partial-bad payload still applies good rows.
+export async function bulkAssignHabitatTribe(
+  projectId: string,
+  assignments: Array<{ habitatId: number; tribeIds: number[]; primaryTribeId: number | null }>,
+): Promise<{ ok: boolean; updated: number; error?: string }> {
+  const db = ensureDb();
+  if (assignments.length === 0) return { ok: true, updated: 0 };
+  const projTribes = await db.select({ id: tribes.id })
+    .from(tribes).where(and(eq(tribes.projectId, projectId), eq(tribes.tenantId, TENANT)));
+  const valid = new Set(projTribes.map((t) => t.id));
+  const habRows = await db.select({ id: habitats.id }).from(habitats)
+    .where(eq(habitats.projectId, projectId));
+  const validHab = new Set(habRows.map((h) => h.id));
+  let updated = 0;
+  for (const a of assignments) {
+    if (!validHab.has(a.habitatId)) continue;
+    const ids = [...new Set(a.tribeIds.filter((x) => valid.has(x)))];
+    const primary = a.primaryTribeId != null && ids.includes(a.primaryTribeId)
+      ? a.primaryTribeId : (ids[0] ?? null);
+    await db.delete(habitatTribes).where(eq(habitatTribes.habitatId, a.habitatId));
+    if (ids.length) {
+      await db.insert(habitatTribes).values(
+        ids.map((tid) => ({ tenantId: TENANT, habitatId: a.habitatId, tribeId: tid, isPrimary: tid === primary })),
+      );
+    }
+    await db.update(habitats).set({ tribeId: primary, updatedAt: new Date() })
+      .where(and(eq(habitats.id, a.habitatId), eq(habitats.projectId, projectId)));
+    updated++;
+  }
+  revalidatePath(`/p/${projectId}/tribes`);
+  return { ok: true, updated };
+}
+
+// ── Format support change resolution ──────────────────────────────
+// Khi user bỏ 1 format support ở habitat (allowed_formats_override),
+// bài dạng đó trong cards thuộc mọi brief của habitat này trở thành
+// "orphan". Pre-save: count theo type. Save xong: archive (soft) với
+// archived_reason='format-removed:<type>'. Bật lại format → auto-unarchive.
+
+export interface AffectedCardsByType {
+  contentType: string;
+  count: number;
+}
+
+// Count cards ACTIVE (chưa archived) của habitat group theo content_type.
+// Dùng để detect orphan trước khi save habitat.allowed_formats_override.
+export async function countCardsByContentTypeForHabitat(
+  habitatId: number,
+): Promise<AffectedCardsByType[]> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT c.content_type AS ct, count(*)::int AS n
+      FROM cards c
+      JOIN community_briefs b ON b.id = c.brief_id
+     WHERE b.habitat_id = ${habitatId} AND c.archived_at IS NULL
+     GROUP BY c.content_type
+     ORDER BY count(*) DESC
+  `);
+  return (rows as unknown as Array<{ ct: string; n: number }>)
+    .map((r) => ({ contentType: String(r.ct ?? 'text'), count: Number(r.n) }));
+}
+
+// Soft-archive cards ở habitat này có content_type nằm trong list. Reason
+// dùng cho auto-restore khi bật lại.
+export async function archiveCardsByTypesForHabitat(
+  projectId: string, habitatId: number, types: string[],
+): Promise<{ ok: boolean; archived: number }> {
+  if (types.length === 0) return { ok: true, archived: 0 };
+  const db = ensureDb();
+  const result = await db.execute(sql`
+    UPDATE cards SET archived_at = now(),
+      archived_reason = 'format-removed:' || content_type,
+      updated_at = now()
+    WHERE archived_at IS NULL
+      AND content_type IN (${sql.join(types, sql`, `)})
+      AND brief_id IN (
+        SELECT id FROM community_briefs
+        WHERE habitat_id = ${habitatId} AND project_id = ${projectId}
+      )
+  `);
+  // rowCount k m_pkg-specific; pg trả 'rowCount' top-level
+  const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
+  revalidatePath(`/p/${projectId}/tribes`);
+  revalidatePath(`/p/${projectId}/seeding`);
+  return { ok: true, archived: rc };
+}
+
+// Auto-restore: khi format bật lại, unarchive cards có reason khớp.
+// Chỉ restore đúng những card archive bởi format-removed (không đụng
+// cards archive vì lý do khác).
+export async function restoreArchivedCardsByTypesForHabitat(
+  projectId: string, habitatId: number, types: string[],
+): Promise<{ ok: boolean; restored: number }> {
+  if (types.length === 0) return { ok: true, restored: 0 };
+  const db = ensureDb();
+  const result = await db.execute(sql`
+    UPDATE cards SET archived_at = NULL, archived_reason = NULL, updated_at = now()
+    WHERE archived_at IS NOT NULL
+      AND content_type IN (${sql.join(types, sql`, `)})
+      AND archived_reason LIKE 'format-removed:%'
+      AND brief_id IN (
+        SELECT id FROM community_briefs
+        WHERE habitat_id = ${habitatId} AND project_id = ${projectId}
+      )
+  `);
+  const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
+  revalidatePath(`/p/${projectId}/tribes`);
+  revalidatePath(`/p/${projectId}/seeding`);
+  return { ok: true, restored: rc };
+}
+
+// Variant cho platform-level: cùng logic nhưng phạm vi rộng hơn (mọi
+// account dùng platform này → mọi habitat brief của chúng).
+export async function countCardsByContentTypeForPlatform(
+  platformKey: string,
+): Promise<AffectedCardsByType[]> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT c.content_type AS ct, count(*)::int AS n
+      FROM cards c
+      JOIN community_briefs b ON b.id = c.brief_id
+      JOIN platform_accounts pa ON pa.id = b.account_id
+     WHERE pa.platform_key = ${platformKey} AND c.archived_at IS NULL
+     GROUP BY c.content_type
+     ORDER BY count(*) DESC
+  `);
+  return (rows as unknown as Array<{ ct: string; n: number }>)
+    .map((r) => ({ contentType: String(r.ct ?? 'text'), count: Number(r.n) }));
+}
+
+export async function archiveCardsByTypesForPlatform(
+  platformKey: string, types: string[],
+): Promise<{ ok: boolean; archived: number }> {
+  if (types.length === 0) return { ok: true, archived: 0 };
+  const db = ensureDb();
+  const result = await db.execute(sql`
+    UPDATE cards SET archived_at = now(),
+      archived_reason = 'format-removed:' || content_type,
+      updated_at = now()
+    WHERE archived_at IS NULL
+      AND content_type IN (${sql.join(types, sql`, `)})
+      AND brief_id IN (
+        SELECT b.id FROM community_briefs b
+        JOIN platform_accounts pa ON pa.id = b.account_id
+        WHERE pa.platform_key = ${platformKey}
+      )
+  `);
+  const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
+  revalidatePath('/platforms');
+  return { ok: true, archived: rc };
+}
+
+export async function restoreArchivedCardsByTypesForPlatform(
+  platformKey: string, types: string[],
+): Promise<{ ok: boolean; restored: number }> {
+  if (types.length === 0) return { ok: true, restored: 0 };
+  const db = ensureDb();
+  const result = await db.execute(sql`
+    UPDATE cards SET archived_at = NULL, archived_reason = NULL, updated_at = now()
+    WHERE archived_at IS NOT NULL
+      AND content_type IN (${sql.join(types, sql`, `)})
+      AND archived_reason LIKE 'format-removed:%'
+      AND brief_id IN (
+        SELECT b.id FROM community_briefs b
+        JOIN platform_accounts pa ON pa.id = b.account_id
+        WHERE pa.platform_key = ${platformKey}
+      )
+  `);
+  const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
+  revalidatePath('/platforms');
+  return { ok: true, restored: rc };
 }

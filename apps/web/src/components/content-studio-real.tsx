@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { ContentPieceRow } from '@/lib/data';
 import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, type ContentInput } from '@/lib/actions/content';
+import { useModalParam } from '@/lib/use-modal-param';
 import { CHANNELS, STATUSES, type ContentStatus } from '@/lib/content-channels';
 import type { SkillRow } from '@/lib/actions/library';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
@@ -37,8 +38,10 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
   tribes: Array<{ slug: string; name: string }>;
   accounts: Array<{ handle: string; platformKey: string }>;
 }) {
-  const [editing, setEditing] = useState<ContentPieceRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  // URL-synced modal (DEFAULT pattern — lib/use-modal-param.ts).
+  const modal = useModalParam();
+  const editing = modal.is('edit') ? items.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is('new');
   const [channel, setChannel] = useUrlParam('ch', 'all');
   const [status, setStatus] = useUrlParam('st', 'all');
   const [q, setQ] = useUrlParam('q', '');
@@ -93,7 +96,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
           <p className="page-sub">Multi-channel content drafts. AI co-pilot via gpt-4o-mini · skill từ /library hỗ trợ persona/style.</p>
         </div>
         <div className="page-actions">
-          <button className="btn primary" onClick={() => setCreating(true)}>+ New piece</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ New piece</button>
         </div>
       </div>
 
@@ -152,7 +155,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
                 {list.map((p) => (
-                  <div key={p.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(p)}>
+                  <div key={p.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => modal.open("edit", p.id)}>
                     <div className="panel-head" style={{ padding: '6px 10px' }}>
                       <div className="panel-title" style={{ fontSize: 12 }}>{p.title}</div>
                       <Pill color={STATUS_COLOR[p.status] ?? 'var(--fg-3)'} label={p.status} size="xs" />
@@ -184,7 +187,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
           skills={skills}
           tribes={tribes}
           accounts={accounts}
-          onClose={() => { setEditing(null); setCreating(false); }}
+          onClose={() => modal.close()}
         />
       )}
     </div>

@@ -81,6 +81,10 @@ export interface PlatformInput {
   notes?: string | null;
   technologyKey?: string | null;
   signupFields?: SignupField[];
+  // Override content formats hardcoded (content-formats.ts PROFILE_BY_KEY).
+  // null/undefined = không thay đổi DB; pass [] để clear xuống fallback hardcoded.
+  allowedFormats?: string[] | null;
+  formatMix?: Record<string, number> | null;
 }
 
 function ensureDb() {
@@ -232,11 +236,39 @@ export async function updatePlatform(key: string, patch: Partial<PlatformInput>)
   if (patch.notes !== undefined) set.notes = patch.notes;
   if (patch.technologyKey !== undefined) set.technologyKey = patch.technologyKey;
   if (patch.signupFields !== undefined) set.signupFields = patch.signupFields;
+  if (patch.allowedFormats !== undefined) set.allowedFormats = patch.allowedFormats;
+  if (patch.formatMix !== undefined) set.formatMix = patch.formatMix;
   if (Object.keys(set).length === 0) return { ok: true };
+  // allowed_formats: auto-restore archived cards của types được tick lại
+  // (cùng pattern updateHabitat). Archive cho types removed: client gọi
+  // archiveCardsByTypesForPlatform sau confirm dialog.
+  let restoredTypes: string[] = [];
+  if (patch.allowedFormats !== undefined) {
+    const [prev] = await db.select({ af: platforms.allowedFormats }).from(platforms).where(eq(platforms.key, key)).limit(1);
+    const prevList = prev?.af;
+    if (Array.isArray(patch.allowedFormats) && Array.isArray(prevList)) {
+      const prevSet = new Set(prevList as string[]);
+      const newSet = new Set(patch.allowedFormats as string[]);
+      restoredTypes = [...newSet].filter((t) => !prevSet.has(t));
+    }
+  }
   try {
     await db.update(platforms).set(set).where(eq(platforms.key, key));
   } catch (e) {
     return { ok: false, error: (e as Error).message };
+  }
+  if (restoredTypes.length > 0) {
+    await db.execute(sql`
+      UPDATE cards SET archived_at = NULL, archived_reason = NULL, updated_at = now()
+      WHERE archived_at IS NOT NULL
+        AND content_type IN (${sql.join(restoredTypes, sql`, `)})
+        AND archived_reason LIKE 'format-removed:%'
+        AND brief_id IN (
+          SELECT b.id FROM community_briefs b
+          JOIN platform_accounts pa ON pa.id = b.account_id
+          WHERE pa.platform_key = ${key}
+        )
+    `);
   }
 
   // Auto-sync to Directus — Directus = source of truth, so any MOS2 edit
@@ -296,6 +328,8 @@ export interface PlatformWithUsage {
   accountsCount: number;
   technologyKey: string | null;
   signupFields: SignupField[];
+  allowedFormats: string[] | null;
+  formatMix: Record<string, number> | null;
 }
 
 export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
@@ -304,7 +338,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   const rows = await db.execute(sql`
     SELECT p.key, p.label, p.signup_url, p.post_url, p.profile_url_pattern, p.priority, p.icon_slug, p.fallback_keys,
            p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes,
-           p.technology_key, p.signup_fields,
+           p.technology_key, p.signup_fields, p.allowed_formats, p.format_mix,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
     FROM platforms p
     ORDER BY p.label
@@ -328,6 +362,9 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     accountsCount: Number(r.accounts_count) || 0,
     technologyKey: (r.technology_key as string | null) ?? null,
     signupFields: Array.isArray(r.signup_fields) ? (r.signup_fields as SignupField[]) : [],
+    allowedFormats: Array.isArray(r.allowed_formats) ? (r.allowed_formats as string[]) : null,
+    formatMix: (r.format_mix && typeof r.format_mix === 'object' && !Array.isArray(r.format_mix))
+      ? (r.format_mix as Record<string, number>) : null,
   }));
 }
 

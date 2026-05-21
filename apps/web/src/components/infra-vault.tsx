@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { InfraRow } from '@/lib/data';
 import { createInfraResource, updateInfraResource, deleteInfraResource, type InfraInput } from '@/lib/actions/vaults';
+import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
@@ -26,8 +27,9 @@ function daysUntil(d: Date | null): number | null {
 }
 
 export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId: string }) {
-  const [editing, setEditing] = useState<InfraRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam();
+  const editing = modal.is("edit") ? items.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is("new");
 
   const stats: StatCard[] = useMemo(() => [
     { key: 'total', label: 'Total', value: items.length, color: 'var(--fg-0)' },
@@ -51,7 +53,7 @@ export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId:
     <>
       <StatsStrip cards={stats} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New resource</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New resource</button>
       </div>
       {items.length === 0 ? (
         <EmptyState icon="🌐" title="No infra resources" description="Thêm proxy / SIM / API key / domain..." compact />
@@ -68,7 +70,7 @@ export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId:
                 {rows.map((r) => {
                   const days = daysUntil(r.expiresAt);
                   return (
-                    <div key={r.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => setEditing(r)}>
+                    <div key={r.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => modal.open("edit", r.id)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 14 }}>{KIND_ICON[r.kind] ?? '🗂'}</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
@@ -92,7 +94,7 @@ export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId:
         </div>
       )}
       {(editing || creating) && (
-        <InfraFormModal item={editing} projectId={projectId} onClose={() => { setEditing(null); setCreating(false); }} />
+        <InfraFormModal item={editing} projectId={projectId} onClose={() => modal.close()} />
       )}
     </>
   );

@@ -2,17 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 
 export function SettingsIndex({ extKey }: { extKey: string }) {
   const [revealed, setRevealed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: doCopy } = useCopyToClipboard();
 
   const masked = extKey ? `${extKey.slice(0, 6)}${'•'.repeat(Math.max(0, extKey.length - 10))}${extKey.slice(-4)}` : '';
 
-  const copy = async () => {
-    if (!extKey) return;
-    try { await navigator.clipboard.writeText(extKey); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
-  };
+  const copy = () => { if (extKey) void doCopy(extKey); };
 
   return (
     <div className="page" style={{ padding: 16, maxWidth: 980 }}>

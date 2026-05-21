@@ -30,6 +30,34 @@ export function platformKeysForHabitatKind(kind: string): string[] | null {
   return null;
 }
 
+// Reverse map: platform_key → kind preset mặc định. Khi user chọn platform
+// trong HabitatFormModal mà kind hiện tại không khớp → auto-set kind = preset.
+const PLATFORM_TO_KIND: Record<string, string> = {
+  reddit:   'subreddit',
+  facebook: 'fb-group',
+  discord:  'discord-server',
+  twitter:  'hashtag-community',
+  telegram: 'telegram',
+  slack:    'slack',
+  linkedin: 'linkedin',
+  youtube:  'youtube',
+};
+
+export function defaultKindForPlatformKey(platformKey?: string | null): string | null {
+  if (!platformKey) return null;
+  return PLATFORM_TO_KIND[platformKey] ?? null;
+}
+
+// Kind có HỢP LỆ với platform không? True = match hoặc platform-agnostic.
+// False = chắc chắn sai (vd platform=discord nhưng kind=subreddit).
+export function isKindPlatformCompatible(kind: string, platformKey?: string | null): boolean {
+  if (!platformKey) return true;
+  const validKeys = MAP[kind];
+  if (validKeys === undefined) return true; // unknown kind → cho qua
+  if (validKeys === null) return true;       // platform-agnostic kind
+  return validKeys.includes(platformKey);
+}
+
 // Best platform-key candidate for a habitat: explicit platformKey on the
 // row wins over kind→map fallback. Returns single key (not array) since
 // callers need the lock-target.

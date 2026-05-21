@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import type { PlatformRow, AccountRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import {
@@ -18,7 +19,33 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, fieldStyle, labelStyle } from './ui';
+import {
+  ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
+  type AccountStatusGroup,
+} from '@/lib/status-meta';
+import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
+
+// Dòng ghi chú dưới field: 🔒 lý do khoá, hoặc ✎ nhắc điền nốt khi trống.
+function LockNote({ lock }: { lock: { why: string; fillNote?: string } }) {
+  if (lock.why) {
+    return (
+      <div style={{ marginTop: 3, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                    display: 'flex', alignItems: 'center', gap: 4 }}>
+        <IconLock size={10} /> {lock.why}
+      </div>
+    );
+  }
+  if (lock.fillNote) {
+    return (
+      <div style={{ marginTop: 3, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--warn)',
+                    display: 'flex', alignItems: 'center', gap: 4 }}>
+        <IconPencil size={10} /> {lock.fillNote}
+      </div>
+    );
+  }
+  return null;
+}
 import {
   listBriefsForAccount, listAddableHabitatsForAccount,
   type BriefForAccount,
@@ -39,15 +66,45 @@ import { updatePlatform, type PlatformWithUsage } from '@/lib/actions/platforms'
 import { getEffectiveSignupFields, listTechnologies, upsertTechnology, detectTechnologyFromUrl, type SignupField, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker, SignupFieldsChecklist, SignupFieldsBuilder, type SignupFieldDef } from './technology-picker';
 
-const STATUSES: { key: AccountStatus; label: string; color: string; dot: string }[] = [
-  { key: 'todo',     label: 'TODO',     color: '#60a5fa', dot: '🔵' },
-  { key: 'creating', label: 'CREATING', color: '#fb923c', dot: '🟠' },
-  { key: 'warming',  label: 'WARMING',  color: '#fbbf24', dot: '🟡' },
-  { key: 'active',   label: 'ACTIVE',   color: '#10b981', dot: '🟢' },
-  { key: 'limited',  label: 'LIMITED',  color: '#a78bfa', dot: '🟣' },
-  { key: 'blocked',  label: 'BLOCKED',  color: '#6b7280', dot: '🚫' },
-  { key: 'banned',   label: 'BANNED',   color: '#f87171', dot: '🔴' },
-];
+// ──────────────────────────────────────────────────────────────────────
+// STATUS MODEL (2 cấp — đừng nhầm lẫn):
+//   Cấp 1: platform_accounts.status = "account này CÓ DÙNG ĐƯỢC trên platform không?"
+//          KHÔNG mô tả per-habitat. Setup/warmup ở đây là GLOBAL (đủ tuổi
+//          account, đủ karma min, qua KYC, không bị rate-limit).
+//   Cấp 2: community_briefs.currentPhase = "account này đang ở phase nào
+//          TRONG TỪNG community" (warm-up/value/bridge/seed/direct/cooldown).
+//          → Sửa ở Brief modal của habitat, không phải ở đây.
+//
+// UI gom 7 DB status thành 4 nhóm hiển thị + sub-reason cho locked:
+//   setup   = todo | creating   (chưa setup xong — chưa có cred / chưa verify)
+//   warming = warming           (đã có account, đang đợi đủ tuổi/karma GLOBAL)
+//   ready   = active            (đủ điều kiện → có thể assign vào community)
+//   locked  = limited|blocked|banned (platform khoá — có lockReason)
+// ──────────────────────────────────────────────────────────────────────
+
+// STATUSES + STATUS_GROUPS đã centralize trong @/lib/status-meta. Build local
+// shape compat (giữ shape cũ {key, label, color, dot, hint}) từ registry để
+// các chỗ dùng cũ không phải sửa cấu trúc.
+// AccountStatus ở @/lib/actions/accounts có 7 keys; ACCOUNT_STATUS_META mở
+// rộng thêm dormant/defunct (legacy). Lọc dormant/defunct và cast về local
+// AccountStatus union để tương thích các callsite cũ trong file.
+const STATUSES: { key: AccountStatus; label: string; color: string; dot: string; hint: string }[] =
+  Object.entries(ACCOUNT_STATUS_META)
+    .filter(([k]) => k !== 'dormant' && k !== 'defunct')
+    .map(([key, m]) => ({
+      key: key as AccountStatus, label: m.label, color: m.color,
+      dot: String(m.icon ?? ''), hint: m.hint ?? '',
+    }));
+
+// 4 display groups — adapter để JSX cũ dùng tiếp shape array.
+type StatusGroup = AccountStatusGroup;
+const STATUS_GROUPS = (Object.entries(ACCOUNT_STATUS_GROUPS) as Array<[StatusGroup, typeof ACCOUNT_STATUS_GROUPS[StatusGroup]]>)
+  .map(([key, g]) => ({
+    key, label: g.label, dot: String(g.icon ?? ''), color: g.color,
+    tooltip: g.tooltip, members: g.members,
+  }));
+
+const groupOf = accountStatusGroupOf;
 
 const AUTH_METHODS: { key: AuthMethod; label: string }[] = [
   { key: 'password',     label: 'Password' },
@@ -71,6 +128,45 @@ const BLOCK_REASONS = [
   { key: 'other',        label: 'Other' },
 ];
 
+// ── Field policy theo lifecycle status ─────────────────────────────
+// Quy tắc: field định danh chỉ sửa khi account CHƯA "live" trên nền tảng.
+// banned/blocked = account ngưng → field vận hành chỉ-đọc (lịch sử),
+// chỉ status/blockReason/notes/tags còn sửa (để revive/ghi chú).
+//   platform : chỉ TODO (đổi platform = account khác)
+//   handle   : chỉ TODO / CREATING (định danh live khi WARMING+)
+//   email    : TODO / CREATING / WARMING
+//   security : authMethod/has2fa/recovery — mọi status trừ blocked/banned
+//   status   : LUÔN sửa (state-machine driver)
+// QUAN TRỌNG: lock chỉ chống SỬA giá trị đã có (chống drift). Field ĐANG
+// TRỐNG luôn cho điền (data thiếu cần bù) — kèm fillNote "sẽ khoá sau lưu".
+type AcctField = 'platform' | 'handle' | 'email' | 'security';
+export interface FieldLock { locked: boolean; why: string; fillNote?: string }
+export function accountFieldLock(
+  field: AcctField, status: AccountStatus, isCreate: boolean, value?: string | null,
+): FieldLock {
+  if (isCreate) return { locked: false, why: '' };
+  const dead = status === 'blocked' || status === 'banned';
+  const lockBy: Record<AcctField, boolean> = {
+    platform: status !== 'todo',
+    handle: !(status === 'todo' || status === 'creating'),
+    email: !(status === 'todo' || status === 'creating' || status === 'warming'),
+    security: dead,
+  };
+  const whyBy: Record<AcctField, string> = {
+    platform: 'Đổi platform = account khác — chỉ sửa khi status TODO',
+    handle: 'Handle là định danh live trên nền tảng — chỉ sửa khi TODO/CREATING',
+    email: 'Email account đã chốt — chỉ sửa khi TODO/CREATING/WARMING',
+    security: 'Account ngưng — chỉ xem (lịch sử). Đổi status để mở lại.',
+  };
+  const wantLock = lockBy[field];
+  if (!wantLock) return { locked: false, why: '' };
+  // Trống → vẫn cho điền (không chặn data thiếu), báo sẽ khoá sau khi lưu.
+  if (!value || !String(value).trim()) {
+    return { locked: false, why: '', fillNote: 'Đang trống — điền nốt cho đủ (status này sẽ khoá field sau khi lưu).' };
+  }
+  return { locked: true, why: whyBy[field] };
+}
+
 const PRIORITY_COLOR: Record<string, string> = {
   critical: '#f87171', high: '#fbbf24', medium: '#a1a1aa',
 };
@@ -89,8 +185,7 @@ function PlatformIcon({ slug, size = 14 }: { slug: string; size?: number }) {
 }
 
 function StatusPill({ status }: { status: string }) {
-  const s = STATUSES.find((x) => x.key === status) ?? STATUSES[0]!;
-  return <Pill color={s.color} icon={s.dot} label={s.label} size="xs" />;
+  return <StatusBadge meta={accountStatusMeta(status)} size="xs" />;
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -487,15 +582,8 @@ function QuickCreateProxyModal({ onClose, onCreated }: {
     location: '',
     notes: '',
   });
-  const fld: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
-    border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)',
-    fontSize: 12, outline: 'none',
-  };
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
-  };
+  const fld = fieldStyle();
+  const lbl = labelStyle;
   const submit = () => {
     if (!form.label.trim() || !form.endpoint.trim()) {
       setError('Label + endpoint bắt buộc'); return;
@@ -586,15 +674,8 @@ function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
     defaultProxyId: null as number | null,
     notes: '',
   });
-  const fld: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
-    border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)',
-    fontSize: 12, outline: 'none',
-  };
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
-  };
+  const fld = fieldStyle();
+  const lbl = labelStyle;
   const submit = () => {
     if (!form.label.trim()) { setError('Label bắt buộc'); return; }
     setBusy(true); setError(null);
@@ -686,9 +767,14 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
   isAdmin?: boolean;
 }) {
   const router = useRouter();
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<AccountStatus | 'all'>('all');
+  // URL-synced modal (DEFAULT pattern — lib/use-modal-param.ts). F5 / share
+  // → mở lại đúng modal account.  ?m=new | ?m=edit&mId=<accountId>
+  const modal = useModalParam();
+  const editingId = modal.is('edit') ? modal.numId : null;
+  const creating = modal.is('new');
+  // filterStatus chấp nhận: 'all', StatusGroup key (setup/warming/ready/locked),
+  // hoặc AccountStatus thẳng (legacy URL param). Resolver xử lý cả 3 trường hợp.
+  const [filterStatus, setFilterStatus] = useState<AccountStatus | StatusGroup | 'all'>('all');
   const [, startTransition] = useTransition();
 
   // Derive `editing` from latest accounts list so router.refresh() (e.g. after
@@ -699,14 +785,24 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
     () => (editingId == null ? null : accounts.find((a) => a.id === editingId) ?? null),
     [editingId, accounts],
   );
-  const setEditing = (acc: AccountRow | null) => setEditingId(acc?.id ?? null);
+  const setEditing = (acc: AccountRow | null) => (acc ? modal.open('edit', acc.id) : modal.close());
 
   const platformMap = useMemo(() => Object.fromEntries(platforms.map((p) => [p.key, p])), [platforms]);
-  const filtered = filterStatus === 'all' ? accounts : accounts.filter((a) => a.status === filterStatus);
+  // filterStatus có thể là 'all', tên 1 group (setup/warming/ready/locked) — match
+  // theo group nếu tên trùng STATUS_GROUPS.key; ngược lại fall back match status thẳng.
+  const filtered = (() => {
+    if (filterStatus === 'all') return accounts;
+    const grp = STATUS_GROUPS.find((g) => g.key === filterStatus);
+    if (grp) return accounts.filter((a) => grp.members.includes(a.status as AccountStatus));
+    return accounts.filter((a) => a.status === filterStatus);
+  })();
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: accounts.length };
-    for (const s of STATUSES) c[s.key] = accounts.filter((a) => a.status === s.key).length;
+    // Count by display group (gộp 7 DB status thành 4 nhóm).
+    for (const g of STATUS_GROUPS) {
+      c[g.key] = accounts.filter((a) => g.members.includes(a.status as AccountStatus)).length;
+    }
     return c;
   }, [accounts]);
 
@@ -744,22 +840,27 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
                 onDone={() => router.refresh()}
               />
             )}
-            <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button>
+            <button className="btn primary" onClick={() => modal.open("new")}>+ New account</button>
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <span className="chip" data-active={filterStatus === 'all' || undefined} onClick={() => setFilterStatus('all')}>
           All <span style={{ marginLeft: 4, opacity: 0.6 }}>{counts.all}</span>
         </span>
-        {STATUSES.map((s) => (
-          <span key={s.key} className="chip" data-active={filterStatus === s.key || undefined}
-                onClick={() => setFilterStatus(s.key)}
-                style={{ color: filterStatus === s.key ? s.color : undefined }}>
-            {s.dot} {s.label} <span style={{ marginLeft: 4, opacity: 0.6 }}>{counts[s.key] ?? 0}</span>
+        {STATUS_GROUPS.map((g) => (
+          <span key={g.key} className="chip" data-active={filterStatus === g.key || undefined}
+                onClick={() => setFilterStatus(g.key)}
+                title={g.tooltip}
+                style={{ color: filterStatus === g.key ? g.color : undefined, cursor: 'pointer' }}>
+            {g.dot} {g.label} <span style={{ marginLeft: 4, opacity: 0.6 }}>{counts[g.key] ?? 0}</span>
           </span>
         ))}
+        <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}
+              title="Account status = trạng thái tổng quan trên platform. Phase trong từng community (warm-up/seed/direct) quản ở Brief modal của habitat.">
+          ℹ︎ phase per-community ở Brief
+        </span>
       </div>
 
       {filtered.length === 0 ? (
@@ -767,7 +868,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           icon="🔐"
           title={accounts.length === 0 ? 'Chưa có account nào' : `Không có account nào ở status "${filterStatus}"`}
           description={accounts.length === 0 ? 'Tạo account đầu tiên để bắt đầu đăng ký các platform.' : undefined}
-          action={accounts.length === 0 && isAdmin ? <button className="btn primary" onClick={() => setCreating(true)}>+ New account</button> : undefined}
+          action={accounts.length === 0 && isAdmin ? <button className="btn primary" onClick={() => modal.open("new")}>+ New account</button> : undefined}
           compact
         />
       ) : (
@@ -861,8 +962,8 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           teamMembers={teamMembers}
           proxies={proxies}
           browserProfiles={browserProfiles}
-          onClose={() => { setEditing(null); setCreating(false); }}
-          onSwitchToEdit={(localId) => { setCreating(false); setEditingId(localId); }}
+          onClose={() => modal.close()}
+          onSwitchToEdit={(localId) => modal.open("edit", localId)}
         />
       )}
     </div>
@@ -873,7 +974,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, teamMembers = [], proxies = [], browserProfiles = [] }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [] }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
@@ -888,6 +989,14 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // habitat id so the local-accounts picker can flag rows that ALREADY
   // have a brief for this habitat (still pickable — BriefEditModal upserts).
   pickContextHabitatId?: number;
+  // Banner ngữ cảnh: nhắc user đang tạo/chọn account ĐỂ LÀM GÌ (vd fix brief
+  // sai nền tảng cho 1 kênh) → không bị "quên phải điền gì".
+  pickContext?: {
+    purpose: string;
+    habitatName: string;
+    habitatKind: string;
+    habitatUrl?: string | null;
+  };
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
   proxies?: ProxyRow[];
   browserProfiles?: BrowserProfileRow[];
@@ -1168,14 +1277,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     return () => clearTimeout(t);
   }, [account, pendingChecklist]);
 
-  const fld: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
-    borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
-  };
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
-  };
+  const fld = fieldStyle({ size: 'lg' });   // fontSize 13 = lg variant
+  const lbl = labelStyle;
 
   const checklistByPhase = useMemo(() => {
     if (!platform) return { creating: [], warming: [], active: [] };
@@ -1218,16 +1321,34 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
       <div className="modal" style={{ width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1 }}>
-            <div className="id-line">
-              {account ? `Account #${account.id}` : 'NEW ACCOUNT'}
-              {platform && <> • <PlatformIcon slug={platform.iconSlug} /> {platform.label}</>}
-            </div>
-            <h2>{isCreate ? '+ New account' : `${platform?.label} — @${account!.handle || 'no-handle'}`}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+        <ModalHeader
+          kind="account"
+          action={isCreate ? 'create' : 'edit'}
+          idText={account ? `#${account.id}` : undefined}
+          title={isCreate
+            ? (form.platformKey ? `Account mới · ${platform?.label ?? form.platformKey}` : 'Account mới')
+            : `@${account!.handle || 'no-handle'}`}
+          subtitle={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {platform
+                ? <><PlatformIcon slug={platform.iconSlug} /> {platform.label}</>
+                : <span style={{ color: 'var(--warn)' }}>Chưa chọn platform</span>}
+              {!isCreate && account?.email ? <span style={{ color: 'var(--fg-4)' }}>· {account.email}</span> : null}
+            </span>
+          }
+          context={pickContext
+            ? <span>
+                <strong>{pickContext.purpose}</strong> — kênh <strong>{pickContext.habitatName}</strong>{' '}
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                  ({pickContext.habitatKind}{pickContext.habitatUrl ? ` · ${pickContext.habitatUrl}` : ''})
+                </span>{'. '}
+                {form.platformKey
+                  ? `Chọn/import account trên platform này hoặc ✨ AI fill từ URL/ảnh.`
+                  : `Kênh ngoài chưa có platform → ô Platform: mở picker, gõ tên, + Tạo platform mới.`}
+              </span>
+            : undefined}
+          onClose={onClose}
+        />
 
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
@@ -1276,15 +1397,32 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           }}>
             <div>
               <span style={lbl}>Platform *</span>
-              <PlatformPicker
-                platforms={platforms}
-                value={form.platformKey}
-                onChange={(k) => setF('platformKey', k)}
-                fld={!form.platformKey
-                  ? { ...fld, borderColor: 'var(--warn)', boxShadow: '0 0 0 2px rgba(196,106,0,0.15)' }
-                  : fld}
-              />
-              {!form.platformKey && (
+              {(() => {
+                const lk = accountFieldLock('platform', form.status, isCreate, form.platformKey);
+                if (lk.locked) {
+                  return (
+                    <>
+                      <div style={{ ...fld, display: 'flex', alignItems: 'center', gap: 6,
+                                    opacity: 0.7, cursor: 'not-allowed' }}>
+                        <IconLock size={12} />
+                        <span>{platform?.label ?? form.platformKey ?? '—'}</span>
+                      </div>
+                      <LockNote lock={lk} />
+                    </>
+                  );
+                }
+                return (
+                  <PlatformPicker
+                    platforms={platforms}
+                    value={form.platformKey}
+                    onChange={(k) => setF('platformKey', k)}
+                    fld={!form.platformKey
+                      ? { ...fld, borderColor: 'var(--warn)', boxShadow: '0 0 0 2px rgba(196,106,0,0.15)' }
+                      : fld}
+                  />
+                );
+              })()}
+              {!form.platformKey && !accountFieldLock('platform', form.status, isCreate, form.platformKey).locked && (
                 <div style={{
                   marginTop: 4, padding: '5px 8px', fontSize: 11,
                   background: 'rgba(196,106,0,0.08)', color: 'var(--warn)',
@@ -1380,43 +1518,96 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {(() => {
+                const hLk = accountFieldLock('handle', form.status, isCreate, form.handle);
+                const eLk = accountFieldLock('email', form.status, isCreate, form.email);
+                const lockStyle = (locked: boolean) =>
+                  locked ? { ...fld, opacity: 0.6, cursor: 'not-allowed' } : fld;
+                return (
+                  <>
+                    <div>
+                      <span style={lbl}>Handle / username</span>
+                      <NoFillInput
+                        style={lockStyle(hLk.locked)}
+                        placeholder="orit, @oritapp..."
+                        value={form.handle}
+                        disabled={hLk.locked}
+                        onChange={(e) => setF('handle', e.target.value)}
+                      />
+                      <LockNote lock={hLk} />
+                    </div>
+                    <div>
+                      <span style={lbl}>Email</span>
+                      <NoFillInput
+                        style={lockStyle(eLk.locked)}
+                        placeholder="account@..."
+                        value={form.email}
+                        disabled={eLk.locked}
+                        onChange={(e) => setF('email', e.target.value)}
+                      />
+                      <LockNote lock={eLk} />
+                    </div>
+                  </>
+                );
+              })()}
               <div>
-                <span style={lbl}>Handle / username</span>
-                <NoFillInput
-                  style={fld}
-                  placeholder="orit, @oritapp..."
-                  value={form.handle}
-                  onChange={(e) => setF('handle', e.target.value)}
-                />
-              </div>
-              <div>
-                <span style={lbl}>Email</span>
-                <NoFillInput
-                  style={fld}
-                  placeholder="account@..."
-                  value={form.email}
-                  onChange={(e) => setF('email', e.target.value)}
-                />
-              </div>
-              <div>
-                <span style={lbl}>Status</span>
-                <select style={fld} value={form.status} onChange={(e) => setF('status', e.target.value as AccountStatus)}>
-                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.dot} {s.label}</option>)}
+                <span style={lbl} title="Trạng thái GLOBAL của account trên platform (KHÔNG phải phase trong từng community)">
+                  Status <span style={{ fontSize: 9, color: 'var(--fg-4)', fontWeight: 400 }}>(global, không phải per-habitat)</span>
+                </span>
+                <select style={fld} value={form.status}
+                        onChange={(e) => setF('status', e.target.value as AccountStatus)}
+                        title={STATUSES.find((s) => s.key === form.status)?.hint || ''}>
+                  <optgroup label="🔧 Setup — chưa dùng được">
+                    {STATUSES.filter((s) => s.key === 'todo' || s.key === 'creating').map((s) =>
+                      <option key={s.key} value={s.key}>{s.dot} {s.label} — {s.hint}</option>)}
+                  </optgroup>
+                  <optgroup label="🔥 Warming — đợi đủ tuổi/karma GLOBAL">
+                    {STATUSES.filter((s) => s.key === 'warming').map((s) =>
+                      <option key={s.key} value={s.key}>{s.dot} {s.label} — đợi platform tin (warmupChecklist)</option>)}
+                  </optgroup>
+                  <optgroup label="✅ Ready — có thể assign vào community">
+                    {STATUSES.filter((s) => s.key === 'active').map((s) =>
+                      <option key={s.key} value={s.key}>{s.dot} READY — đủ điều kiện platform</option>)}
+                  </optgroup>
+                  <optgroup label="🔒 Locked — platform giới hạn/chặn">
+                    {STATUSES.filter((s) => s.key === 'limited' || s.key === 'blocked' || s.key === 'banned').map((s) =>
+                      <option key={s.key} value={s.key}>{s.dot} {s.label} — {s.hint}</option>)}
+                  </optgroup>
                 </select>
+                {/* Hint dưới dropdown: nhắc 2 cấp */}
+                {(form.status === 'warming' || form.status === 'active') && (
+                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
+                                display: 'flex', alignItems: 'center', gap: 4 }}>
+                    💡 Phase per-community (warm-up trong sub-Discord/subreddit) → sửa ở <strong>Brief modal</strong> của habitat đó.
+                  </div>
+                )}
               </div>
-              <div>
-                <span style={lbl}>Auth method</span>
-                <select style={fld} value={form.authMethod} onChange={(e) => setF('authMethod', e.target.value as AuthMethod)}>
-                  {AUTH_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-                </select>
-              </div>
+              {(() => {
+                const sLk = accountFieldLock('security', form.status, isCreate, form.authMethod);
+                return (
+                  <div>
+                    <span style={lbl}>Auth method</span>
+                    <select style={sLk.locked ? { ...fld, opacity: 0.6, cursor: 'not-allowed' } : fld}
+                            value={form.authMethod} disabled={sLk.locked}
+                            onChange={(e) => setF('authMethod', e.target.value as AuthMethod)}>
+                      {AUTH_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                    </select>
+                    <LockNote lock={sLk} />
+                  </div>
+                );
+              })()}
               {(form.status === 'limited' || form.status === 'blocked' || form.status === 'banned') && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <span style={lbl}>Block reason</span>
+                  <span style={lbl} title="Lý do cụ thể tại sao account bị locked">Lock reason</span>
                   <select style={fld} value={form.blockReason} onChange={(e) => setF('blockReason', e.target.value)}>
                     <option value="">— select —</option>
                     {BLOCK_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
                   </select>
+                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+                    {form.status === 'limited' && '⏱ Rate-limit tạm thời — chờ vài giờ/ngày, có thể quay lại READY'}
+                    {form.status === 'blocked' && '🚧 Bị chặn — cần appeal hoặc fix thủ công'}
+                    {form.status === 'banned' && '❌ Ban vĩnh viễn — drop account, tạo cái mới'}
+                  </div>
                 </div>
               )}
               {teamMembers.length > 0 && (
@@ -1747,6 +1938,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 accountsCount: 1, // hide delete button khi edit từ context account
                 technologyKey: platform.technologyKey ?? null,
                 signupFields: (platform.signupFields as PlatformWithUsage['signupFields']) ?? [],
+                allowedFormats: null,
+                formatMix: null,
               }}
               onClose={() => setShowEditPlatform(false)}
             />
@@ -2473,14 +2666,12 @@ function ApiTokenSection({ projectId, accountId, hasToken }: {
   const [editing, setEditing] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
-  const [copyOk, setCopyOk] = useState(false);
+  const clip = useCopyToClipboard();
+  const copyOk = clip.copied;
   const [tokenInput, setTokenInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const fld: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
-    borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none', fontFamily: 'var(--font-mono)',
-  };
+  const fld = fieldStyle({ mono: true });
 
   const handleSave = () => {
     if (!tokenInput.trim()) { setError('token rỗng'); return; }
@@ -2502,10 +2693,7 @@ function ApiTokenSection({ projectId, accountId, hasToken }: {
       setRevealed(res.plaintext ?? '');
     });
   };
-  const handleCopy = async () => {
-    if (!revealed) return;
-    try { await navigator.clipboard.writeText(revealed); setCopyOk(true); setTimeout(() => setCopyOk(false), 1500); } catch {}
-  };
+  const handleCopy = () => { if (revealed) void clip.copy(revealed); };
   const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = () => {
     if (!confirmClear) {
@@ -2818,6 +3006,7 @@ function AccountBriefsSection({
           habitatId={editing.habitatId}
           accountLabel={accountLabel}
           habitatLabel={`${editing.habitatName} · ${editing.habitatKind}`}
+          habitatUrl={editing.habitatUrl}
           existing={editing}
           onClose={() => { setEditing(null); refresh(); }}
         />

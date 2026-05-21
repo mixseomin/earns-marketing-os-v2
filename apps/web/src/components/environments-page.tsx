@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import {
   type ProxyRow, type ProxyType, type ProxyHealth,
   type BrowserProfileRow, type ProfileTool,
@@ -169,8 +170,9 @@ function isStale(iso: string | null, hours = 6): boolean {
 // ── Proxies tab ───────────────────────────────────────────────────
 function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
-  const [editing, setEditing] = useState<ProxyRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam("proxy");
+  const editing = modal.is("edit") ? proxies.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is("new");
   const [testingId, setTestingId] = useState<number | null>(null);
   const [testResults, setTestResults] = useState<Record<number, ProxyTestResult>>({});
 
@@ -189,14 +191,14 @@ function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMe
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New proxy</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New proxy</button>
       </div>
 
       {proxies.length === 0 ? (
         <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>🔌</div>
           <p style={{ margin: '0 0 12px', fontSize: 12 }}>Chưa có proxy. Add 1 để dùng cho mobile/residential rotation.</p>
-          <button className="btn primary" onClick={() => setCreating(true)}>+ Add first proxy</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ Add first proxy</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
@@ -208,7 +210,7 @@ function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMe
             const recent = testResults[p.id];
             const isTesting = testingId === p.id;
             return (
-              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => setEditing(p)}>
+              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => modal.open("edit", p.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.label}</span>
                   <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: tm.color, padding: '1px 5px', border: `1px solid ${tm.color}`, borderRadius: 3 }}>{tm.label}</span>
@@ -260,7 +262,7 @@ function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMe
       )}
 
       {(editing || creating) && (
-        <ProxyFormModal proxy={editing} teamMembers={teamMembers} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ProxyFormModal proxy={editing} teamMembers={teamMembers} onClose={() => modal.close()} />
       )}
     </>
   );
@@ -472,27 +474,28 @@ function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow 
 
 // ── Profiles tab ──────────────────────────────────────────────────
 function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: BrowserProfileRow[]; proxies: ProxyRow[]; teamMembers?: TeamMemberRow[] }) {
-  const [editing, setEditing] = useState<BrowserProfileRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  const modal = useModalParam("profile");
+  const editing = modal.is("edit") ? profiles.find((x) => x.id === modal.numId) ?? null : null;
+  const creating = modal.is("new");
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New profile</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New profile</button>
       </div>
 
       {profiles.length === 0 ? (
         <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>🧬</div>
           <p style={{ margin: '0 0 12px', fontSize: 12 }}>Chưa có browser profile. Add từ GenLogin / Multilogin / Chrome native để link với account.</p>
-          <button className="btn primary" onClick={() => setCreating(true)}>+ Add first profile</button>
+          <button className="btn primary" onClick={() => modal.open("new")}>+ Add first profile</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
           {profiles.map((p) => {
             const tm = TOOL_META[p.tool];
             return (
-              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => setEditing(p)}>
+              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => modal.open("edit", p.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 16 }}>{tm.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.label}</span>
@@ -510,7 +513,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
       )}
 
       {(editing || creating) && (
-        <ProfileFormModal profile={editing} proxies={proxies} teamMembers={teamMembers} onClose={() => { setEditing(null); setCreating(false); }} />
+        <ProfileFormModal profile={editing} proxies={proxies} teamMembers={teamMembers} onClose={() => modal.close()} />
       )}
     </>
   );

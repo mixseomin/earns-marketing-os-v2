@@ -170,6 +170,110 @@ button { font-family: inherit; color: inherit; }
   grid-template-columns: 0 1fr 0;
 }
 
+/* ── Mobile menu button (hidden on desktop) ── */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-1);
+  width: 34px; height: 34px;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+  align-items: center; justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.mobile-menu-btn:hover { background: var(--bg-2); }
+
+.mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 48px 0 0 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 90;
+  cursor: pointer;
+}
+
+/* ── Mobile breakpoint (≤768px) ── */
+@media (max-width: 768px) {
+  .app,
+  .app[data-sidebar="hidden"],
+  .app[data-sidebar="hidden"][data-rightbar="hidden"],
+  .app[data-rightbar="hidden"] {
+    grid-template-columns: 0 1fr 0;
+  }
+  /* iPhone 15+ Dynamic Island / notch: push topbar below safe area */
+  .app {
+    grid-template-rows: calc(48px + env(safe-area-inset-top)) 1fr;
+    grid-template-areas: "topbar topbar topbar" "main main main";
+    height: 100dvh;
+  }
+  .app .sidebar {
+    display: none;
+    position: fixed;
+    top: calc(48px + env(safe-area-inset-top));
+    left: 0;
+    width: min(260px, 80vw);
+    height: calc(100dvh - 48px - env(safe-area-inset-top));
+    z-index: 100;
+    overflow-y: auto;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.6);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .app[data-mobile-nav="open"] .sidebar { display: block; }
+  .app[data-mobile-nav="open"] .mobile-nav-backdrop { display: block; }
+  .mobile-nav-backdrop {
+    top: calc(48px + env(safe-area-inset-top));
+  }
+
+  .rightbar { display: none !important; }
+  .statusbar { display: none !important; }
+
+  .mobile-menu-btn { display: inline-flex; }
+
+  .topbar {
+    padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: calc(48px + env(safe-area-inset-top));
+    box-sizing: border-box;
+  }
+  .topbar .brand small { display: none; }
+  .topbar-search { display: none !important; }
+  .live-pill { display: none !important; }
+  .topbar-spacer { flex: 0 !important; }
+  .topbar .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .topbar .tab {
+    font-size: 11px;
+    padding: 0 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .main {
+    overflow-x: hidden;
+    padding: 12px !important;
+  }
+  .page { padding: 12px !important; max-width: 100% !important; }
+  .page-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .page-title { font-size: 18px !important; }
+
+  /* Tables/grids — force single column where possible */
+  .acc-grid, .contact-grid, .pool-grid { grid-template-columns: 1fr !important; }
+  .row.r-2, .row.r-3, .row.r-23 { grid-template-columns: 1fr !important; }
+
+  /* Modals fullscreen on mobile */
+  .modal-body { max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; }
+  .modal-cols.cols-2,
+  .modal-cols.cols-2.right-wide { grid-template-columns: 1fr !important; }
+}
+
 /* ── Top bar ── */
 .topbar {
   grid-area: topbar;
@@ -322,6 +426,12 @@ button { font-family: inherit; color: inherit; }
 @keyframes pulseDanger {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,94,.5); }
   50%      { box-shadow: 0 0 0 5px rgba(255,77,94,0); }
+}
+
+/* Subtle warning pulse — dùng cho JoinChip not_joined (banner ở header) */
+@keyframes pulseWarn {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(156,163,175,.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(156,163,175,0); }
 }
 
 /* Inline mini-spinner (saving indicators on checkboxes, buttons) */
@@ -732,6 +842,30 @@ button { font-family: inherit; color: inherit; }
 .btn.ghost { background: transparent; }
 .btn.danger { background: var(--btn-danger-bg); color: var(--btn-danger-fg); border-color: var(--btn-danger-border); }
 .btn.success { background: var(--btn-success-bg); color: var(--btn-success-fg); border-color: var(--btn-success-border); }
+
+/* InfoHint — ẩn mô tả dài, hover hiện NGAY (0ms, không native title) */
+.info-hint {
+  position: relative; display: inline-flex; align-items: center;
+  color: var(--fg-4); cursor: help; vertical-align: middle;
+}
+.info-hint:hover { color: var(--accent); }
+.info-hint__pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+  width: max-content; max-width: 360px;
+  background: var(--bg-1); color: var(--fg-1);
+  border: 1px solid var(--line-2); border-radius: 7px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  padding: 8px 10px; font-size: 11.5px; line-height: 1.5;
+  font-family: var(--font-sans); font-weight: 400; text-transform: none;
+  letter-spacing: 0; white-space: normal;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  /* hiện NGAY khi hover — không delay, không transition vào */
+}
+.info-hint:hover .info-hint__pop,
+.info-hint:focus-visible .info-hint__pop {
+  opacity: 1; visibility: visible;
+}
+.info-hint__pop.right { left: auto; right: 0; }
 
 /* KPI grid */
 .kpi-grid {
@@ -1255,7 +1389,8 @@ button { font-family: inherit; color: inherit; }
   backdrop-filter: blur(6px);
   z-index: 100;
   display: grid; place-items: center;
-  padding: 40px;
+  /* trước 40px → phí ~80px chiều dọc. clamp để mọi modal cao hơn, ít scroll */
+  padding: clamp(10px, 3vh, 26px) clamp(12px, 3vw, 40px);
 }
 .modal {
   background: var(--bg-1);
@@ -1294,6 +1429,29 @@ button { font-family: inherit; color: inherit; }
 .modal-grid {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+/* Tận dụng chiều ngang: nhóm field xếp 2+ cột, tự co về 1 cột khi modal hẹp.
+   Dùng cho body modal nhiều field (brief / habitat / tribe / account…). */
+.modal-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px 18px;
+  align-items: start;
+}
+.modal-cols > * { min-width: 0; }
+.modal-col {
+  display: flex; flex-direction: column; gap: 12px;
+  min-width: 0;
+}
+/* Ngăn auto-fit kéo dài 1 phần tử khi chỉ vừa 1 cột */
+.modal-cols.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* cột phải (nội dung-nặng, vd danh sách bài) rộng hơn cột trái */
+.modal-cols.cols-2.right-wide { grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); }
+@media (max-width: 760px) {
+  .modal-cols.cols-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 1000px) {
+  .modal-cols.cols-2.right-wide { grid-template-columns: 1fr; }
 }
 .modal-cell {
   background: var(--bg-2);

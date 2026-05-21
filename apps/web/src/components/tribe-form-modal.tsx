@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createTribe, updateTribe, deleteTribe, type TribeInput } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
 import { TagsInput } from './tags-input';
-import { Spinner } from './ui';
+import { Spinner, FormModal, fieldStyle, labelStyle, ConfirmDeleteButton } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const LIFECYCLES = ['discovery', 'active', 'saturated', 'fading', 'defunct'] as const;
@@ -21,7 +21,6 @@ export function TribeFormModal({
   const isCreate = !tribe;
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<TribeInput>({
@@ -37,8 +36,8 @@ export function TribeFormModal({
   });
   const setF = <K extends keyof TribeInput>(k: K, v: TribeInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
-  const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
+  const fld = fieldStyle({ size: 'lg' });
+  const lbl = labelStyle;
 
   const handleSave = () => {
     setBusy(true); setError(null);
@@ -55,11 +54,6 @@ export function TribeFormModal({
 
   const handleDelete = () => {
     if (!tribe) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 4000);
-      return;
-    }
     setBusy(true);
     startTransition(async () => {
       await deleteTribe(projectId, tribe.id);
@@ -70,16 +64,16 @@ export function TribeFormModal({
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(720px, 100%)', maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1 }}>
-            <div className="id-line">{isCreate ? 'NEW TRIBE' : `Tribe #${tribe!.id}`}</div>
-            <h2>{isCreate ? '+ New tribe' : tribe!.name}</h2>
-          </div>
-          <button className="btn ghost" onClick={onClose}>✕</button>
-        </div>
-
+    <FormModal
+      kind="tribe"
+      action={isCreate ? 'create' : 'edit'}
+      idText={isCreate ? undefined : `#${tribe!.id}`}
+      title={isCreate ? 'Tribe mới' : tribe!.name}
+      subtitle="Nhóm đối tượng (audience cluster) — định danh / lexicon / psychographic"
+      width={960}
+      preventBackdropClose
+      onClose={onClose}
+    >
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <AIFormParser
             context="Đây là 1 tribe (audience cluster) cho marketing project. Suy ra từ text/URL: name (ngắn), descText (1-2 câu), signal (vì sao tribe này quan trọng), psychographic (mindset), lexicon (3-7 từ tribe dùng), avoid (3-5 từ tribe ghét)."
@@ -101,6 +95,9 @@ export function TribeFormModal({
               if (v.avoid != null)         setF('avoid', String(v.avoid).split(',').map((s) => s.trim()).filter(Boolean));
             }}
           />
+
+          <div className="modal-cols cols-2">
+          <div className="modal-col">
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
             <div>
@@ -128,6 +125,9 @@ export function TribeFormModal({
                       style={{ ...fld, fontFamily: 'var(--font-sans)', resize: 'vertical' }}
                       placeholder="High-intent paying users; chart-reading questions weekly" />
           </div>
+
+          </div>{/* /modal-col: nội dung tribe */}
+          <div className="modal-col">
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <div>
@@ -159,6 +159,9 @@ export function TribeFormModal({
             <TagsInput value={form.avoid ?? []} onChange={(v) => setF('avoid', v)} placeholder="generic horoscope, fortune-telling, fake guru…" />
           </div>
 
+          </div>{/* /modal-col: phân loại + lexicon */}
+          </div>{/* /modal-cols */}
+
           {error && (
             <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>
               {error}
@@ -170,11 +173,10 @@ export function TribeFormModal({
           <div className="meta">{isCreate ? 'New tribe' : `Editing #${tribe!.id}`}</div>
           <div className="modal-foot-actions">
             {!isCreate && (
-              <button className="btn danger" onClick={handleDelete} disabled={busy}
-                      title={confirmDelete ? 'Click lần nữa để xác nhận xoá vĩnh viễn' : 'Xoá tribe (habitats có tribe_id sẽ unlink)'}
-                      style={confirmDelete ? { animation: 'pulseDanger 1s ease-in-out infinite' } : undefined}>
-                {confirmDelete ? '⚠ Click again to confirm' : '🗑 Delete'}
-              </button>
+              <ConfirmDeleteButton
+                onDelete={handleDelete} disabled={busy}
+                title="Xoá tribe (habitats có tribe_id sẽ unlink) / Click lần nữa để xác nhận xoá vĩnh viễn"
+              />
             )}
             <button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
             <button className="btn primary" onClick={handleSave} disabled={busy || !form.name.trim()}>
@@ -182,7 +184,6 @@ export function TribeFormModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

@@ -125,9 +125,21 @@ export async function SeoSitesPanel() {
             const SiteCell = meta.project
               ? <Link href={`/p/${meta.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{meta.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{meta.emoji} {r.domain}</span>;
+            const gscUrl = `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`;
             return (
               <tr key={r.domain}>
-                <td style={{ ...cell, textAlign: 'left' }}>{SiteCell}</td>
+                <td style={{ ...cell, textAlign: 'left' }}>
+                  {SiteCell}
+                  <a
+                    href={gscUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Open ${r.domain} in Google Search Console`}
+                    style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
+                  >
+                    GSC&nbsp;↗
+                  </a>
+                </td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.impressions_7d > 0) }}>{r.stats.impressions_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.clicks_7d > 0) }}>{r.stats.clicks_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(ctr > 0) }}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>

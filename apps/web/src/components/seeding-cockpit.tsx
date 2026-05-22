@@ -541,13 +541,22 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                     padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)',
                     borderLeft: `3px solid ${sm.color}`, borderRadius: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-          <SiteFavicon url={it.habitatUrl} kind={it.habitatKind} size={30}
-                       title={`${it.habitatName} · ${it.platformLabel}`} style={{ borderRadius: 7 }} />
+          {/* Favicon (avatar) = entry point cho brief — click mở Brief modal.
+              Account chip click mở Account modal, Habitat chip click mở Habitat
+              modal. Mỗi đối tượng click vào đúng nó. */}
+          <button type="button"
+                  onClick={() => openBrief(it.briefId)}
+                  title={`Mở brief: ${it.accountHandle} × ${it.habitatName} (chiến lược + bài)`}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                           display: 'inline-flex', borderRadius: 7 }}>
+            <SiteFavicon url={it.habitatUrl} kind={it.habitatKind} size={30}
+                         title="" style={{ borderRadius: 7 }} />
+          </button>
           <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)' }}>
-              <EntityLink color="var(--fg-0)" onClick={() => openBrief(it.briefId)}
-                title="Mở brief (approach/phase/narrative) tại chỗ">@{it.accountHandle}</EntityLink>
+              <EntityLink color="var(--fg-0)" onClick={() => modal.open('acct', it.accountId)}
+                title={`Mở Account modal: @${it.accountHandle} (status/credential/persona)`}>@{it.accountHandle}</EntityLink>
             </span>
             {notReady(it.accountStatus) && (() => {
               const m = ACCT_STATUS_META[it.accountStatus]
@@ -566,8 +575,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{it.platformLabel}</span>
             <span style={{ color: 'var(--fg-4)' }}>·</span>
             <span style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>
-              <EntityLink color="var(--fg-1)" onClick={() => openBrief(it.briefId)}
-                title="Mở brief (account × habitat này) tại chỗ">{it.habitatName}</EntityLink>
+              <EntityLink color="var(--fg-1)" onClick={() => setHabitatOverlayId(it.habitatId)}
+                title={`Mở Habitat modal: ${it.habitatName} (rules/members/topics)`}>{it.habitatName}</EntityLink>
             </span>
             <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{it.habitatKind}</span>
             {!it.habitatUrl && (

@@ -425,7 +425,7 @@ export function HabitatFormModal({
 
   return (
     <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(1080px, 100%)', maxWidth: 1080 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ width: 'min(1280px, 96vw)', maxWidth: 1280 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="id-line">
@@ -548,8 +548,8 @@ export function HabitatFormModal({
             }}
           />
 
-          {/* ── 2-column body ── left = identity, right = outreach meta ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+          {/* ── 3-column body ── col1: identity | col2: outreach gates | col3: voice + rules + topics + channels ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
           <div title="Nhận diện community + link platform + tribes mà habitat thuộc về"
                style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--line)', paddingBottom: 4, cursor: 'help' }}>
@@ -931,6 +931,14 @@ export function HabitatFormModal({
               );
             })()}
 
+          </div>{/* /col2 — outreach gates + formats */}
+
+          {/* ── COL 3: Voice + Rules + Channels + Topics ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div title="Voice profile + posting rules + channels + topics — section nội dung. Click ▾ để mở rộng phần dùng nhiều."
+                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--accent-line)', paddingBottom: 4, cursor: 'help' }}>
+              🎙 Voice · Rules · Channels
+            </div>
             {/* Voice & few-shot — điều khiển độ "bựa" của AI gen. Đây là
                 section quan trọng nhất cho chất lượng bài: voice_profile
                 preset + voice_notes free-text + few-shot example posts. */}
@@ -1167,8 +1175,8 @@ export function HabitatFormModal({
                 <TagsInput value={form.forbiddenTopics ?? []} onChange={(v) => setF('forbiddenTopics', v)} placeholder="prediction guarantee, fake guru…" />
               </div>
             </div>
-          </div>{/* /right column */}
-          </div>{/* /2-col wrapper */}
+          </div>{/* /col3 — voice + rules + channels + topics */}
+          </div>{/* /3-col wrapper */}
 
           {error && (
             <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>
@@ -1969,7 +1977,7 @@ function HabitatBriefsSection({
   return (
     <Collapsible
       title="🎯 Accounts engaging"
-      defaultOpen={true}
+      defaultOpen={false}
       badge={
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
           {briefs.length}

@@ -1445,8 +1445,10 @@ button { font-family: inherit; color: inherit; }
 }
 /* Ngăn auto-fit kéo dài 1 phần tử khi chỉ vừa 1 cột */
 .modal-cols.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-/* cột phải (nội dung-nặng, vd danh sách bài) rộng hơn cột trái */
-.modal-cols.cols-2.right-wide { grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); }
+/* cột phải (nội dung-nặng, vd danh sách bài) rộng hơn cột trái.
+   2026-05-22: thu nhỏ cột trái thêm (3.2fr/8.8fr ~ 27%/73%) — phase plan
+   panel compact, list bài cần nhiều không gian hơn cho chips toolbar + rows. */
+.modal-cols.cols-2.right-wide { grid-template-columns: minmax(0, 3.2fr) minmax(0, 8.8fr); }
 @media (max-width: 760px) {
   .modal-cols.cols-2 { grid-template-columns: 1fr; }
 }

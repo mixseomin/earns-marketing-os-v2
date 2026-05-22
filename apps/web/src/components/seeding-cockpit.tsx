@@ -180,6 +180,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
 }) {
   const router = useRouter();
   const modal = useModalParam('m'); // ?m=schedule&mId=<briefId>
+  // Nested modal params — chồng lên brief modal mà không đè `?m`. F5 giữ
+  // được account/habitat overlay. acct = account overlay, hab = habitat overlay.
+  const acctNested = useModalParam('acct'); // ?acct=open&acctId=<accountId>
+  const habNested = useModalParam('hab');   // ?hab=open&habId=<habitatId>
   const [busy, startBusy] = useTransition();
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // Filter theo loại blocking issue — click chip ở banner → lọc queue chỉ hiển
@@ -198,13 +202,20 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [expandedNeedJoin, setExpandedNeedJoin] = useState<Set<string>>(() => new Set());
   const [fmtMenuFor, setFmtMenuFor] = useState<number | null>(null); // scheduleId mở menu chọn format
   const [actionMenuFor, setActionMenuFor] = useState<number | null>(null); // scheduleId mở overflow menu
-  // Account modal CHỒNG lên brief modal (không đụng URL slot ?m — modal slot
-  // duy nhất, nếu dùng modal.open('acct') sẽ đè mất briefModalId → đóng acct
-  // không còn brief để về). Dùng local state riêng, render overlay z-cao hơn.
-  const [accountOverlayId, setAccountOverlayId] = useState<number | null>(null);
-  // Habitat overlay — cùng lý do với accountOverlayId (chồng modal habitat
-  // lên brief modal, không đụng URL slot ?m để brief vẫn còn khi đóng).
-  const [habitatOverlayId, setHabitatOverlayId] = useState<number | null>(null);
+  // Account + Habitat overlay CHỒNG lên brief modal. Trước đây dùng local
+  // state để không đè `?m` (brief modal slot), nhưng F5 mất overlay. Giờ
+  // dùng useModalParam('acct') / useModalParam('hab') — URL param riêng
+  // chạy parallel với `?m`, F5 giữ nguyên cả 3 modal nếu mở.
+  const accountOverlayId = acctNested.numId;
+  const habitatOverlayId = habNested.numId;
+  const setAccountOverlayId = (id: number | null) => {
+    if (id == null) acctNested.close();
+    else acctNested.open('open', id);
+  };
+  const setHabitatOverlayId = (id: number | null) => {
+    if (id == null) habNested.close();
+    else habNested.open('open', id);
+  };
   // Counter để buộc BriefModalLoader re-fetch khi overlay con (account/habitat
   // /post mutation) thay đổi data nền. Bump → loader invalidate cache + reload.
   const [briefReloadKey, setBriefReloadKey] = useState(0);
@@ -288,7 +299,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   useEffect(() => { briefModalIdRef.current = briefModalId; }, [briefModalId]);
   const tribeModalId = modal.is('tribe') ? modal.numId : null;
   const pipelineId = modal.is('pipeline') ? modal.numId : null;
-  const acctModalId = modal.is('acct') ? modal.numId : null;
+  // Legacy: `?m=acct` cũ (deep-link sharing) — fall back qua accountOverlayId
+  // để cùng 1 modal handle. Mới mọi callsite dùng setAccountOverlayId → nested
+  // param `?acct=open&acctId=`. Giữ legacy để URL cũ vẫn hoạt động.
+  const acctModalId = accountOverlayId ?? (modal.is('acct') ? modal.numId : null);
   const tribeRow = tribeModalId != null ? tribes.find((t) => t.id === tribeModalId) ?? null : null;
 
   // Search-only (status filter applied later, only to live rows).
@@ -555,7 +569,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)' }}>
-              <EntityLink color="var(--fg-0)" onClick={() => modal.open('acct', it.accountId)}
+              <EntityLink color="var(--fg-0)" onClick={() => setAccountOverlayId(it.accountId)}
                 title={`Mở Account modal: @${it.accountHandle} (status/credential/persona)`}>@{it.accountHandle}</EntityLink>
             </span>
             {notReady(it.accountStatus) && (() => {
@@ -761,7 +775,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                     Account @{it.accountHandle} (mọi brief)
                   </div>
                   <button className="btn ghost" disabled={busy}
-                          onClick={() => { setActionMenuFor(null); modal.open('acct', it.accountId); }}
+                          onClick={() => { setActionMenuFor(null); setAccountOverlayId(it.accountId); }}
                           title={`Sửa profile @${it.accountHandle} — login / handle / status / persona / proxy. Áp dụng cho mọi brief dùng account này.`}
                           style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
                                    fontSize: 11.5, padding: '5px 8px', textAlign: 'left',
@@ -1271,7 +1285,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           {needAccountGroups.length > 0 && (
             <NeedAccountSection
               groups={needAccountGroups}
-              onOpenAccount={(accountId) => modal.open('acct', accountId)}
+              onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
               onOpenBrief={(briefId) => modal.open('brief', briefId)}
             />
           )}
@@ -1344,20 +1358,17 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         />
       )}
 
+      {/* Account modal — dùng nested param `?acct=open&acctId=N` (chồng trên
+          brief modal, không đè `?m`). Legacy `?m=acct&mId=N` fallback qua
+          acctModalId. Close: clear cả 2 path. */}
       {acctModalId != null && (
         <AccountModalLoader
           projectId={projectId} accountId={acctModalId}
           project={project} platforms={platforms}
-          onClose={() => { modal.close(); router.refresh(); }} />
-      )}
-      {/* Account modal CHỒNG khi mở từ brief modal — đóng về lại brief, không
-          làm mất brief vì không đụng URL slot. */}
-      {accountOverlayId != null && (
-        <AccountModalLoader
-          projectId={projectId} accountId={accountOverlayId}
-          project={project} platforms={platforms}
           onClose={() => {
-            setAccountOverlayId(null);
+            // Đóng cả 2 paths: nested overlay (mới) + legacy `?m=acct`.
+            if (accountOverlayId != null) setAccountOverlayId(null);
+            if (modal.is('acct')) modal.close();
             router.refresh();
             // Account có thể đã đổi platform/status/persona → brief modal
             // (header pill, formats…) cần re-fetch. 0ms = ngay khi đóng.

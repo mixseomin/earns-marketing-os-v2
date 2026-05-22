@@ -80,8 +80,15 @@ export async function GET(req: Request) {
           headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, cache: 'no-store',
         }).then((r) => r.json()).catch(() => null),
       ]);
-      appliedAttempts   = parseInt(a?.data?.[0]?.count ?? '0', 10) || 0;
-      pendingInDirectus = parseInt(p?.data?.[0]?.count ?? '0', 10) || 0;
+      // Directus returns aggregate count as `{count: {id: "N"}}` — extract the nested id.
+      const extractCount = (resp: { data?: Array<{ count?: { id?: string } | string }> } | null): number => {
+        const c = resp?.data?.[0]?.count;
+        if (typeof c === 'string') return parseInt(c, 10) || 0;
+        if (c && typeof c === 'object' && typeof c.id === 'string') return parseInt(c.id, 10) || 0;
+        return 0;
+      };
+      appliedAttempts   = extractCount(a);
+      pendingInDirectus = extractCount(p);
     } catch { /* keep zeros */ }
   }
   const autoRejectedEstimate = Math.max(0, appliedAttempts - pendingInDirectus - joined);

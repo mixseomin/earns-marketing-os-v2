@@ -1631,6 +1631,20 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             overflowY: 'auto', minHeight: 0, paddingRight: 8, paddingLeft: 12,
             borderLeft: '1px dashed var(--line)',
           }}>
+            {/* Habitats engaging section LÊN ĐẦU right column — luôn hiển thị
+                khi edit existing account (parallel với Habitat modal). User
+                không phải scroll xuống cuối để xem account này engage habitat
+                nào. */}
+            {!isCreate && account && (
+              <AccountBriefsSection
+                projectId={projectId}
+                accountId={account.id}
+                accountLabel={`@${account.handle || 'no-handle'} · ${platform?.label ?? account.platformKey}`}
+                platforms={platforms}
+                onOpenHabitat={onOpenHabitat}
+                onOpenBrief={onOpenBrief}
+              />
+            )}
             {/* ── Pre-deployment: inline engine picker + signup fields ──
                 Visible khi status=todo/creating. Engine picker saves trực tiếp
                 vào platform record (không cần mở Platform modal riêng).
@@ -2084,16 +2098,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             );
           })()}
 
-          {!isCreate && account && (
-            <AccountBriefsSection
-              projectId={projectId}
-              accountId={account.id}
-              accountLabel={`@${account.handle || 'no-handle'} · ${platform?.label ?? account.platformKey}`}
-              platforms={platforms}
-              onOpenHabitat={onOpenHabitat}
-              onOpenBrief={onOpenBrief}
-            />
-          )}
+          {/* AccountBriefsSection đã move LÊN ĐẦU right column (line ~1633). */}
 
           {!isCreate && platform && platform.imageSpecs.length > 0 && (
             <Collapsible
@@ -2911,8 +2916,8 @@ function AccountBriefsSection({
 
   return (
     <Collapsible
-      title="🎯 Phương án tiếp cận"
-      defaultOpen={briefs.length > 0}
+      title="🎯 Habitats engaging"
+      defaultOpen={true}
       badge={
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
           {briefs.length}

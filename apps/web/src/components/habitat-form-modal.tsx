@@ -460,6 +460,17 @@ export function HabitatFormModal({
         </div>
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Accounts engaging section — đặt LÊN ĐẦU modal-body để user thấy
+              ngay (không phải scroll xuống cuối). Hiện khi đã edit (không phải
+              create), vì habitat mới tạo chưa có brief nào. */}
+          {!isCreate && habitat && (
+            <HabitatBriefsSection
+              habitatId={habitat.id}
+              habitatName={habitat.name}
+              onOpenAccount={onOpenAccount}
+              onOpenBrief={onOpenBrief}
+            />
+          )}
           <AIFormParser
             context={[
               'Đây là 1 habitat (community/group concrete) cho marketing project. Đọc URL/text/screenshot/wiki rules → fill mọi field bên dưới.',
@@ -1153,17 +1164,6 @@ export function HabitatFormModal({
             </div>
           </div>{/* /right column */}
           </div>{/* /2-col wrapper */}
-
-          {/* Account briefs section — chỉ hiện khi đã edit habitat (isCreate=false).
-              List accounts đã engage habitat này + status + join + phase. */}
-          {!isCreate && habitat && (
-            <HabitatBriefsSection
-              habitatId={habitat.id}
-              habitatName={habitat.name}
-              onOpenAccount={onOpenAccount}
-              onOpenBrief={onOpenBrief}
-            />
-          )}
 
           {error && (
             <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>

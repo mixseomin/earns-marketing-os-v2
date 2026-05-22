@@ -20,6 +20,9 @@ export const dynamic = 'force-dynamic';
 const CJ_PAT          = process.env.CJ_PAT || '';
 const CJ_PUBLISHER_ID = process.env.CJ_PUBLISHER_ID || '3877648';
 const CJ_LOOKUP       = 'https://advertiser-lookup.api.cj.com/v2/advertiser-lookup';
+const DIRECTUS_URL    = process.env.DIRECTUS_URL || 'https://as.on.tc';
+const DIRECTUS_TOKEN  = process.env.DIRECTUS_TOKEN || '';
+const CJ_ACCOUNT_ID   = '45388bdb-ffdc-4a0d-993a-da66e3d28105';
 
 // 60s cache to avoid hammering CJ on every panel render
 let cache: { at: number; data: unknown } | null = null;
@@ -57,17 +60,39 @@ export async function GET(req: Request) {
   }
 
   if (baselineNotjoined === null || notjoined > baselineNotjoined) {
-    // Seed/raise baseline on first call (or if pool grew). Pending estimate
-    // resets when baseline rises (pool growth means new advertisers, not new applies).
     baselineNotjoined = notjoined;
   }
-  const pendingEstimate = Math.max(0, baselineNotjoined - notjoined - joined);
+
+  // Count attempted applies recorded by cj-events endpoint.
+  // - `applied_attempts`: rows whose notes contain `"result":"applied"` (ext POSTed apply event)
+  // - `pending_in_directus`: rows where we flipped status to 'pending' (ext applied successfully)
+  // - `auto_rejected_estimate`: applied_attempts - pending_in_directus - joined
+  //   (we asked, advertiser auto-rejected → row didn't flip to pending → still 'paused')
+  let appliedAttempts = 0;
+  let pendingInDirectus = 0;
+  if (DIRECTUS_TOKEN) {
+    try {
+      const [a, p] = await Promise.all([
+        fetch(`${DIRECTUS_URL}/items/affiliate_programs?filter[account_id][_eq]=${CJ_ACCOUNT_ID}&filter[notes][_contains]=${encodeURIComponent('"result":"applied"')}&aggregate[count]=id`, {
+          headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, cache: 'no-store',
+        }).then((r) => r.json()).catch(() => null),
+        fetch(`${DIRECTUS_URL}/items/affiliate_programs?filter[account_id][_eq]=${CJ_ACCOUNT_ID}&filter[status][_eq]=pending&aggregate[count]=id`, {
+          headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, cache: 'no-store',
+        }).then((r) => r.json()).catch(() => null),
+      ]);
+      appliedAttempts   = parseInt(a?.data?.[0]?.count ?? '0', 10) || 0;
+      pendingInDirectus = parseInt(p?.data?.[0]?.count ?? '0', 10) || 0;
+    } catch { /* keep zeros */ }
+  }
+  const autoRejectedEstimate = Math.max(0, appliedAttempts - pendingInDirectus - joined);
 
   const data = {
     joined,
     notjoined,
     baselineNotjoined,
-    pendingEstimate,
+    pendingEstimate: pendingInDirectus,             // now from Directus (precise)
+    autoRejectedEstimate,
+    appliedAttempts,
     fetchedAt: new Date().toISOString(),
   };
   cache = { at: Date.now(), data };

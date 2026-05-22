@@ -11,7 +11,14 @@ import {
   listChannelsForHabitat, bulkReplaceChannels, type HabitatChannelInput,
 } from '@/lib/actions/habitat-channels';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill } from './ui';
+import {
+  listBriefsForHabitat,
+  type BriefForHabitat,
+} from '@/lib/actions/community-briefs';
+import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
+import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
+import { accountStatusMeta } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { PlatformPicker } from './platform-picker';
 import { platformKeysForHabitatKind, detectPlatformKeyFromUrl, defaultKindForPlatformKey, isKindPlatformCompatible } from '@/lib/habitat-platform-map';
@@ -35,6 +42,7 @@ const LANGUAGES = ['', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'pt', 'fr', 'de', 'mu
 
 export function HabitatFormModal({
   projectId, habitat, tribes, platforms, presetTribeId, onClose, onCreated,
+  onOpenAccount, onOpenBrief,
 }: {
   projectId: string;
   habitat: HabitatRow | null;     // null = create
@@ -43,6 +51,10 @@ export function HabitatFormModal({
   presetTribeId?: number | null;  // create with this tribe pre-selected
   onClose: () => void;
   onCreated?: (newId: number) => void;  // fired after successful creation
+  /** Click @accountHandle trong HabitatBriefsSection → mở Account modal */
+  onOpenAccount?: (accountId: number) => void;
+  /** Click favicon/row → mở Brief modal */
+  onOpenBrief?: (briefId: number) => void;
 }) {
   const router = useRouter();
   const isCreate = !habitat;
@@ -1142,6 +1154,17 @@ export function HabitatFormModal({
           </div>{/* /right column */}
           </div>{/* /2-col wrapper */}
 
+          {/* Account briefs section — chỉ hiện khi đã edit habitat (isCreate=false).
+              List accounts đã engage habitat này + status + join + phase. */}
+          {!isCreate && habitat && (
+            <HabitatBriefsSection
+              habitatId={habitat.id}
+              habitatName={habitat.name}
+              onOpenAccount={onOpenAccount}
+              onOpenBrief={onOpenBrief}
+            />
+          )}
+
           {error && (
             <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>
               {error}
@@ -1831,6 +1854,145 @@ function ChannelBulkParser({
       </div>
       {error && <div style={{ fontSize: 10, color: 'var(--bad)' }}>⚠ {error}</div>}
       {notes && <div style={{ fontSize: 10, color: 'var(--ok)' }}>{notes}</div>}
+    </div>
+  );
+}
+
+// HabitatBriefsSection — list accounts đã engage habitat này. Hiển thị
+// account handle + status (tầng 1) + join status (tầng 2) + phase (tầng 3).
+// Mỗi part click vào đúng đối tượng tương ứng:
+//   - Favicon / row body → Brief modal (chiến lược + bài)
+//   - @accountHandle → Account modal (status/credential/persona)
+function HabitatBriefsSection({
+  habitatId, habitatName, onOpenAccount, onOpenBrief,
+}: {
+  habitatId: number;
+  habitatName: string;
+  onOpenAccount?: (accountId: number) => void;
+  onOpenBrief?: (briefId: number) => void;
+}) {
+  const [briefs, setBriefs] = useState<BriefForHabitat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listBriefsForHabitat(habitatId).then((rows) => {
+      if (!cancelled) { setBriefs(rows); setLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [habitatId]);
+
+  return (
+    <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 6,
+                  background: 'var(--bg-1)', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)',
+                    background: 'var(--bg-2)', display: 'flex',
+                    alignItems: 'center', gap: 8 }}>
+        <strong style={{ fontSize: 12, color: 'var(--fg-1)' }}>
+          🎯 Accounts engaging
+        </strong>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-4)',
+                       fontFamily: 'var(--font-mono)' }}>
+          {briefs.length} brief{briefs.length === 1 ? '' : 's'} · habitat "{habitatName}"
+        </span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+          icon → Brief · @handle → Account modal
+        </span>
+      </div>
+      {loading ? (
+        <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)', fontSize: 11 }}>
+          <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
+        </div>
+      ) : briefs.length === 0 ? (
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+          Chưa có account nào engage habitat này. Tribes / Seeding cockpit → tạo brief mới.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {briefs.map((b) => {
+            const acctMeta = accountStatusMeta(b.accountStatus);
+            const joinColor = JOIN_STATUS_COLOR[b.joinStatus];
+            const joinIcon = JOIN_STATUS_ICON[b.joinStatus];
+            const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
+            const phaseColor = PHASE_COLOR[b.currentPhase];
+            const phaseLabel = PHASE_LABEL[b.currentPhase];
+            return (
+              <div key={b.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', borderTop: '1px solid var(--line)',
+              }}>
+                {/* Favicon → Brief modal */}
+                <button type="button"
+                        onClick={() => onOpenBrief?.(b.id)}
+                        disabled={!onOpenBrief}
+                        title={onOpenBrief ? `Mở Brief modal: @${b.accountHandle ?? '?'} × ${habitatName}` : ''}
+                        style={{ background: 'none', border: 'none', padding: 0,
+                                 cursor: onOpenBrief ? 'pointer' : 'default',
+                                 display: 'inline-flex', flexShrink: 0 }}>
+                  <span style={{ width: 24, height: 24, borderRadius: 4,
+                                 background: 'var(--bg-3)', color: 'var(--accent)',
+                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                 fontSize: 14, fontWeight: 700 }}>📋</span>
+                </button>
+                {/* @accountHandle → Account modal */}
+                <button type="button"
+                        onClick={() => b.accountHandle && onOpenAccount?.(b.accountId)}
+                        disabled={!onOpenAccount}
+                        title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
+                        style={{ background: 'none', border: 'none', padding: 0,
+                                 cursor: onOpenAccount ? 'pointer' : 'default',
+                                 fontSize: 12, fontWeight: 600, color: 'var(--fg-0)',
+                                 textDecoration: 'underline',
+                                 textDecorationStyle: 'dotted',
+                                 textDecorationColor: 'var(--fg-4)',
+                                 textUnderlineOffset: 3,
+                                 fontFamily: 'var(--font-mono)' }}>
+                  @{b.accountHandle ?? 'no-handle'}
+                </button>
+                <Pill color="var(--fg-3)" label={b.platformLabel} size="xs" tone="ghost" />
+                {/* Account status chip — tầng 1 */}
+                {b.accountStatus !== 'active' && (
+                  <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                 background: acctMeta.color + '22', color: acctMeta.color,
+                                 border: `1px solid ${acctMeta.color}66` }}>
+                    {acctMeta.icon} {acctMeta.label}
+                  </span>
+                )}
+                {/* Join status chip — tầng 2 */}
+                <span title={`Join status (tầng 2 — per-habitat membership): ${joinLabel}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                               padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                               fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                               background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
+                               color: joinColor,
+                               border: `1px solid ${joinColor}66` }}>
+                  {joinIcon} {joinLabel}
+                </span>
+                {/* Phase chip — tầng 3 */}
+                <span title={`Engagement phase (tầng 3): ${phaseLabel}`}
+                      style={{ display: 'inline-flex', alignItems: 'center',
+                               padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                               fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                               background: phaseColor + '22', color: phaseColor,
+                               border: `1px solid ${phaseColor}66` }}>
+                  {phaseLabel}
+                </span>
+                <span style={{ flex: 1 }} />
+                {b.cadence && (
+                  <span title="Cadence"
+                        style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                    ⏱ {b.cadence}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

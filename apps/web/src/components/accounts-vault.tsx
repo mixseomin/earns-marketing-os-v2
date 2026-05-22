@@ -3,6 +3,8 @@
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
+import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
+import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
 import type { PlatformRow, AccountRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import {
@@ -19,7 +21,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, fieldStyle, labelStyle } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -974,13 +976,17 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
-export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [] }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
   platforms: PlatformRow[];
   onClose: () => void;
   onSwitchToEdit?: (accountId: number) => void;
+  /** Click habitat name trong AccountBriefsSection → mở Habitat modal */
+  onOpenHabitat?: (habitatId: number) => void;
+  /** Click favicon row → mở Brief modal (overlay riêng) */
+  onOpenBrief?: (briefId: number) => void;
   // Preset platform when creating from a context that knows the platform
   // (e.g. "+ New account on reddit" from a subreddit habitat drawer).
   presetPlatformKey?: string;
@@ -2084,6 +2090,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               accountId={account.id}
               accountLabel={`@${account.handle || 'no-handle'} · ${platform?.label ?? account.platformKey}`}
               platforms={platforms}
+              onOpenHabitat={onOpenHabitat}
+              onOpenBrief={onOpenBrief}
             />
           )}
 
@@ -2864,11 +2872,14 @@ function SyncToDirectusButton({
 // ──────────────────────────────────────────────────────────────────
 function AccountBriefsSection({
   projectId, accountId, accountLabel, platforms,
+  onOpenHabitat, onOpenBrief,
 }: {
   projectId: string;
   accountId: number;
   accountLabel: string;
   platforms: PlatformRow[];
+  onOpenHabitat?: (habitatId: number) => void;
+  onOpenBrief?: (briefId: number) => void;
 }) {
   const [briefs, setBriefs] = useState<BriefForAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2924,19 +2935,70 @@ function AccountBriefsSection({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {briefs.map((b) => (
+          {briefs.map((b) => {
+            const joinColor = JOIN_STATUS_COLOR[b.joinStatus];
+            const joinIcon = JOIN_STATUS_ICON[b.joinStatus];
+            const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
+            const phaseColor = PHASE_COLOR[b.currentPhase];
+            const phaseLabel = PHASE_LABEL[b.currentPhase];
+            // Mỗi part click vào đúng đối tượng:
+            //   row body / icon → Brief modal (chiến lược + bài)
+            //   habitat name → Habitat modal (rules/members/topics)
+            //   Edit fallback (legacy) khi parent ko pass onOpenBrief
+            const handleBriefClick = () => {
+              if (onOpenBrief) onOpenBrief(b.id);
+              else setEditing(b);
+            };
+            const handleHabitatClick = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (onOpenHabitat) onOpenHabitat(b.habitatId);
+              else setEditing(b); // fallback nếu parent ko wire — vẫn mở brief edit
+            };
+            return (
             <div key={b.id}
-                 onClick={() => setEditing(b)}
-                 style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, cursor: 'pointer', alignItems: 'center' }}
-                 title="Click để edit">
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                 style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, alignItems: 'center' }}>
+              {/* Icon → click mở Brief modal (chiến lược) */}
+              <button type="button" onClick={handleBriefClick}
+                      title={`Mở Brief modal (chiến lược + phase + bài) cho ${b.habitatName}`}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                               display: 'inline-flex', borderRadius: 5 }}>
+                <SiteFavicon url={b.habitatUrl} kind={b.habitatKind} size={28}
+                             title="" style={{ borderRadius: 5 }} />
+              </button>
+              <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={handleBriefClick} title="Click để mở Brief modal">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2, flexWrap: 'wrap' }}>
+                  {/* Habitat name → click mở Habitat modal */}
+                  <button type="button" onClick={handleHabitatClick}
+                          title={`Mở Habitat modal (rules/members/topics): ${b.habitatName}`}
+                          style={{ background: 'none', border: 'none', padding: 0, fontSize: 12,
+                                   fontWeight: 600, color: 'var(--fg-0)', cursor: 'pointer',
+                                   textDecoration: 'underline', textDecorationStyle: 'dotted',
+                                   textDecorationColor: 'var(--fg-4)', textUnderlineOffset: 3,
+                                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {b.habitatName}
-                  </span>
+                  </button>
                   <Pill color="var(--fg-3)" label={b.habitatKind} size="xs" tone="ghost" />
                   {b.tribeName && <Pill color="var(--accent)" label={b.tribeName} size="xs" tone="soft" uppercase={false} />}
                   {b.habitatMembers > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{(b.habitatMembers / 1000).toFixed(b.habitatMembers > 9999 ? 0 : 1)}k</span>}
+                  {/* Join status chip — tầng 2 */}
+                  <span title={`Join status (tầng 2 — membership per-habitat): ${joinLabel}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                 background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
+                                 color: joinColor,
+                                 border: `1px solid ${joinColor}66` }}>
+                    {joinIcon} {joinLabel}
+                  </span>
+                  {/* Phase chip — tầng 3 */}
+                  <span title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`}
+                        style={{ display: 'inline-flex', alignItems: 'center',
+                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                 background: phaseColor + '22', color: phaseColor,
+                                 border: `1px solid ${phaseColor}66` }}>
+                    {phaseLabel}
+                  </span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {b.approachMd ? b.approachMd.split('\n')[0] : <em style={{ color: 'var(--fg-4)' }}>chưa viết approach</em>}
@@ -2948,7 +3010,8 @@ function AccountBriefsSection({
                 {b.templates.length > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title={`${b.templates.length} templates`}>📝 {b.templates.length}</span>}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

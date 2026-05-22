@@ -1365,6 +1365,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         <AccountModalLoader
           projectId={projectId} accountId={acctModalId}
           project={project} platforms={platforms}
+          // Cross-modal: click habitat trong AccountBriefsSection → mở Habitat
+          // modal overlay (đè lên Account modal). Click brief icon → mở Brief
+          // modal (đè cả Account + Habitat — brief là top stack).
+          onOpenHabitat={(habId) => setHabitatOverlayId(habId)}
+          onOpenBrief={(briefId) => modal.open('brief', briefId)}
           onClose={() => {
             // Đóng cả 2 paths: nested overlay (mới) + legacy `?m=acct`.
             if (accountOverlayId != null) setAccountOverlayId(null);
@@ -1381,6 +1386,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         <HabitatModalLoader
           projectId={projectId} habitatId={habitatOverlayId}
           tribes={tribes} platforms={platforms}
+          // Cross-modal: click @accountHandle trong HabitatBriefsSection → mở
+          // Account modal overlay. Click brief icon → mở Brief modal.
+          onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
+          onOpenBrief={(briefId) => modal.open('brief', briefId)}
           onClose={() => {
             setHabitatOverlayId(null);
             router.refresh();
@@ -1587,12 +1596,14 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
 
 // Tải AccountRow đầy đủ rồi mở AccountFormModal ở CHẾ ĐỘ SỬA tại chỗ
 // (sửa account tạm: điền login/handle/status) — không rời trang Seeding.
-function AccountModalLoader({ projectId, accountId, project, platforms, onClose }: {
+function AccountModalLoader({ projectId, accountId, project, platforms, onClose, onOpenHabitat, onOpenBrief }: {
   projectId: string;
   accountId: number;
   project: Project;
   platforms: PlatformRow[];
   onClose: () => void;
+  onOpenHabitat?: (habitatId: number) => void;
+  onOpenBrief?: (briefId: number) => void;
 }) {
   const [row, setRow] = useState<AccountRow | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -1632,6 +1643,8 @@ function AccountModalLoader({ projectId, accountId, project, platforms, onClose 
       projectId={projectId}
       platforms={platforms}
       onClose={onClose}
+      onOpenHabitat={onOpenHabitat}
+      onOpenBrief={onOpenBrief}
     />
   );
 }
@@ -1639,12 +1652,14 @@ function AccountModalLoader({ projectId, accountId, project, platforms, onClose 
 // Habitat loader — fetch HabitatRow đầy đủ rồi mở HabitatFormModal in-place
 // từ brief modal header (chip community click → edit platform/url/kind/
 // posting rules/topics). Cùng pattern AccountModalLoader.
-function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose }: {
+function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, onOpenAccount, onOpenBrief }: {
   projectId: string;
   habitatId: number;
   tribes: TribeRow[];
   platforms: PlatformRow[];
   onClose: () => void;
+  onOpenAccount?: (accountId: number) => void;
+  onOpenBrief?: (briefId: number) => void;
 }) {
   const [row, setRow] = useState<HabitatRow | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -1684,6 +1699,8 @@ function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose }
       tribes={tribes}
       platforms={platforms}
       onClose={onClose}
+      onOpenAccount={onOpenAccount}
+      onOpenBrief={onOpenBrief}
     />
   );
 }

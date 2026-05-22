@@ -17,6 +17,30 @@ import {
 } from '@/lib/join-status';
 import { TextField, TextAreaField } from './ui';
 
+// Habitat context — đủ thông tin để user "biết phải làm gì khi join":
+// name + kind (Discord server vs subreddit vs FB group có flow khác),
+// members (cảnh giác community nhỏ), modStrictness + rules (cần intro post
+// trước không?), min karma/age (account đủ điều kiện chưa?), dominant/
+// forbidden topics (post gì vào để được approve).
+export interface HabitatJoinContext {
+  name: string;
+  kind: string;                 // discord-server, subreddit, fb-group, ...
+  url: string | null;
+  members: number;
+  language: string;
+  status: string;               // active|saturated|fading|defunct
+  modStrictness: string;        // low|medium|high|invite-only
+  postingRules: string;         // free-text mod rules
+  postingRulesUrl: string;      // external rules page (Reddit wiki, Discord rules channel)
+  minAccountAgeDays: number;
+  minKarma: number;
+  minPosts: number;
+  dominantTopics: string[];
+  forbiddenTopics: string[];
+  tribeName: string | null;
+  habitatIconUrl: string | null;
+}
+
 export interface JoinStatusBannerProps {
   projectId: string;
   briefId: number;
@@ -26,6 +50,12 @@ export interface JoinStatusBannerProps {
   joinedAt: string | null;
   joinUrl: string;
   joinNote: string;
+  /** Habitat context cho popover edit — nếu không pass, popover chỉ có form
+      cơ bản (URL + note). Pass vào để show "yêu cầu join" + "cấm/khuyến khích". */
+  habitatInfo?: HabitatJoinContext | null;
+  /** Click "Mở chi tiết habitat" trong popover → mở HabitatFormModal sửa rules.
+      Optional vì có thể context view-only. */
+  onOpenHabitat?: () => void;
   onChange: (next: JoinStatus, payload?: { joinUrl?: string | null; joinNote?: string | null }) => void;
 }
 
@@ -34,7 +64,8 @@ JoinStatusBanner.displayName = 'JoinStatusBanner';
 
 function JoinStatusBannerImpl({
   projectId, briefId, habitatLabel, habitatUrl,
-  joinStatus, joinedAt, joinUrl, joinNote, onChange,
+  joinStatus, joinedAt, joinUrl, joinNote,
+  habitatInfo, onOpenHabitat, onChange,
 }: JoinStatusBannerProps) {
   const [editing, setEditing] = useState(false);
   const [, startTrans] = useTransition();
@@ -95,6 +126,9 @@ function JoinStatusBannerImpl({
             onSet={handleSet} onClose={() => setEditing(false)}
             onUrlChange={setEditUrl} onNoteChange={setEditNote}
             habitatUrl={habitatUrl}
+            habitatInfo={habitatInfo ?? null}
+            habitatLabel={habitatLabel}
+            onOpenHabitat={onOpenHabitat}
           />
         )}
       </div>
@@ -202,6 +236,9 @@ function JoinStatusBannerImpl({
           onSet={handleSet} onClose={() => setEditing(false)}
           onUrlChange={setEditUrl} onNoteChange={setEditNote}
           habitatUrl={habitatUrl}
+          habitatInfo={habitatInfo ?? null}
+          habitatLabel={habitatLabel}
+          onOpenHabitat={onOpenHabitat}
         />
       )}
     </div>
@@ -217,27 +254,44 @@ function joinBtnStyle(color: string): CSSProperties {
 }
 
 function JoinStatusEditPopover({
-  current, url, note, busy, onSet, onClose, onUrlChange, onNoteChange, habitatUrl,
+  current, url, note, busy, onSet, onClose, onUrlChange, onNoteChange,
+  habitatUrl, habitatInfo, habitatLabel, onOpenHabitat,
 }: {
   current: JoinStatus; url: string; note: string; busy: boolean;
   habitatUrl: string | null;
+  habitatInfo: HabitatJoinContext | null;
+  habitatLabel: string;
+  onOpenHabitat?: () => void;
   onSet: (next: JoinStatus) => void;
   onClose: () => void;
   onUrlChange: (v: string) => void;
   onNoteChange: (v: string) => void;
 }) {
+  const h = habitatInfo;
   return (
     <div className="modal-backdrop" style={{ zIndex: 2100 }}
          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ width: 'min(520px, 95vw)', padding: 16 }}
+      <div className="modal" style={{ width: 'min(640px, 95vw)', padding: 0, display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}
            onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px',
+                      borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
           <span style={{ fontSize: 16 }}>{JOIN_STATUS_ICON[current]}</span>
-          <h3 style={{ margin: 0, fontSize: 14 }}>Membership state</h3>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 14 }}>Membership state</h3>
+            <div style={{ marginTop: 2, fontSize: 11, color: 'var(--fg-3)' }}>{habitatLabel}</div>
+          </div>
           <span style={{ flex: 1 }} />
           <button onClick={onClose} className="btn ghost" style={{ fontSize: 13 }}>✕</button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+        {/* Body — scrollable */}
+        <div style={{ overflowY: 'auto', flex: 1, padding: 16,
+                      display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Habitat context — show "đang quyết định join community nào" */}
+          {h && <HabitatContextPanel info={h} habitatUrl={habitatUrl} onOpenHabitat={onOpenHabitat} />}
+
+          {/* Status picker */}
           <div>
             <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)',
                             color: 'var(--fg-3)', textTransform: 'uppercase',
@@ -262,6 +316,7 @@ function JoinStatusEditPopover({
               ))}
             </div>
           </div>
+
           <TextField
             type="url"
             label={<>🔗 Join URL <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>(invite link / request URL)</span></>}
@@ -274,10 +329,175 @@ function JoinStatusEditPopover({
             placeholder="vd: 'mod yêu cầu intro post', 'phải có 100 karma trước khi post', 'bị shadow ban sau bài 2'"
           />
         </div>
-        <div style={{ marginTop: 12, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+
+        {/* Footer hint */}
+        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)',
+                      background: 'var(--bg-1)', fontSize: 10, color: 'var(--fg-4)',
+                      fontStyle: 'italic', flexShrink: 0 }}>
           💡 Bấm 1 button trạng thái phía trên để lưu (auto close).
         </div>
       </div>
     </div>
   );
+}
+
+// HabitatContextPanel — show community info để user biết phải làm gì
+// trước khi đánh dấu joined. Compact stat-row + rules section.
+function HabitatContextPanel({
+  info, habitatUrl, onOpenHabitat,
+}: {
+  info: HabitatJoinContext;
+  habitatUrl: string | null;
+  onOpenHabitat?: () => void;
+}) {
+  const statusColor = info.status === 'active' ? 'var(--ok)'
+                    : info.status === 'saturated' ? 'var(--warn)'
+                    : info.status === 'defunct' || info.status === 'fading' ? 'var(--bad)'
+                    : 'var(--fg-3)';
+  const modColor = info.modStrictness === 'high' || info.modStrictness === 'invite-only' ? 'var(--bad)'
+                 : info.modStrictness === 'medium' ? 'var(--warn)'
+                 : 'var(--ok)';
+  // Pre-join gates: account-level requirements community này yêu cầu
+  const hasMinReq = info.minAccountAgeDays > 0 || info.minKarma > 0 || info.minPosts > 0;
+  // Active link to open in new tab
+  const openLink = habitatUrl || info.url;
+
+  return (
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)',
+                  borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Header — name + icon + status + open button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {info.habitatIconUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={info.habitatIconUrl} alt="" width={28} height={28}
+               style={{ borderRadius: 5, flexShrink: 0, border: '1px solid var(--line)' }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {info.name}
+          </div>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)',
+                        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>{info.kind}</span>
+            {info.members > 0 && <span>· 👥 {fmtMembers(info.members)}</span>}
+            {info.language && <span>· {info.language.toUpperCase()}</span>}
+            {info.tribeName && <span>· tribe: {info.tribeName}</span>}
+            <span style={{ color: statusColor }}>· {info.status}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          {openLink && (
+            <a href={openLink} target="_blank" rel="noopener noreferrer"
+               title={`Mở community: ${openLink}`}
+               style={{ fontSize: 10.5, padding: '4px 9px', textDecoration: 'none',
+                        background: 'var(--accent-soft)', color: 'var(--accent)',
+                        border: '1px solid var(--accent-line)', borderRadius: 4, fontWeight: 700,
+                        whiteSpace: 'nowrap' }}>
+              ↗ Mở
+            </a>
+          )}
+          {onOpenHabitat && (
+            <button type="button" onClick={onOpenHabitat}
+                    title="Mở Habitat modal — sửa rules, posting gates, members count"
+                    style={{ fontSize: 10.5, padding: '4px 9px', background: 'transparent',
+                             color: 'var(--fg-2)', border: '1px solid var(--line)',
+                             borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              ✎ Sửa
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Mod strictness + min requirements row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                    fontSize: 11, color: 'var(--fg-2)' }}>
+        <span title="Mức độ khắt khe của mod khi duyệt join + post">
+          <span style={{ color: 'var(--fg-4)' }}>Mod:</span>{' '}
+          <strong style={{ color: modColor, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+            {info.modStrictness || '?'}
+          </strong>
+        </span>
+        {hasMinReq && (
+          <span title="Yêu cầu account tối thiểu trước khi post được">
+            <span style={{ color: 'var(--fg-4)' }}>Cần:</span>{' '}
+            {info.minAccountAgeDays > 0 && <code style={codeStyle}>{info.minAccountAgeDays}d tuổi</code>}
+            {info.minKarma > 0 && <code style={codeStyle}>{info.minKarma} karma</code>}
+            {info.minPosts > 0 && <code style={codeStyle}>{info.minPosts} posts</code>}
+          </span>
+        )}
+        {info.postingRulesUrl && (
+          <a href={info.postingRulesUrl} target="_blank" rel="noopener noreferrer"
+             style={{ fontSize: 10.5, color: 'var(--accent)', textDecoration: 'none' }}>
+            📖 Rules ↗
+          </a>
+        )}
+      </div>
+
+      {/* Posting rules text (mod requirements) */}
+      {info.postingRules && (
+        <div style={{ fontSize: 11, color: 'var(--fg-1)', lineHeight: 1.5,
+                      padding: '6px 8px', background: 'var(--bg-1)',
+                      borderLeft: '2px solid var(--warn)', borderRadius: 3 }}>
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                        textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 }}>
+            ⚠ Quy định mod
+          </div>
+          {info.postingRules}
+        </div>
+      )}
+
+      {/* Topics grid */}
+      {(info.dominantTopics.length > 0 || info.forbiddenTopics.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: info.dominantTopics.length && info.forbiddenTopics.length ? '1fr 1fr' : '1fr', gap: 8 }}>
+          {info.dominantTopics.length > 0 && (
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ok)',
+                            textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>
+                ✓ Topics phù hợp
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {info.dominantTopics.map((t, i) => (
+                  <span key={i} style={topicChipStyle('var(--ok)')}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {info.forbiddenTopics.length > 0 && (
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--bad)',
+                            textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>
+                ✗ Cấm kỵ
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {info.forbiddenTopics.map((t, i) => (
+                  <span key={i} style={topicChipStyle('var(--bad)')}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fmtMembers(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+const codeStyle: CSSProperties = {
+  fontFamily: 'var(--font-mono)', fontSize: 10,
+  padding: '0 5px', background: 'var(--bg-2)', borderRadius: 3,
+  border: '1px solid var(--line)', marginRight: 4,
+};
+
+function topicChipStyle(color: string): CSSProperties {
+  return {
+    fontSize: 10, padding: '1px 6px', borderRadius: 3,
+    background: color + '15', color, border: `1px solid ${color}44`,
+    fontFamily: 'var(--font-mono)',
+  };
 }

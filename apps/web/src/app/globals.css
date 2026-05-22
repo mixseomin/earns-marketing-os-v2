@@ -434,6 +434,14 @@ button { font-family: inherit; color: inherit; }
   50%      { box-shadow: 0 0 0 4px rgba(156,163,175,0); }
 }
 
+/* Info pulse — dùng cho AccountReadinessChip todo/creating (account NEVER
+   created yet). Khác pulseDanger (đỏ — broken state) ở chỗ: blue + gentle =
+   task TO-DO chưa làm, không phải lỗi cần fix gấp. */
+@keyframes pulseInfo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
+}
+
 /* Inline mini-spinner (saving indicators on checkboxes, buttons) */
 @keyframes spin {
   to { transform: rotate(360deg); }

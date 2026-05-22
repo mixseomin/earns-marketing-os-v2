@@ -28,9 +28,11 @@ interface DispatchButtonProps {
   isJoined?: boolean;
   /** Click khi !isJoined — parent open JoinStatusBanner để fix */
   onRequestJoin?: () => void;
-  /** Lý do !isJoined: 'account' = account-tầng-1, 'membership' = join-tầng-2.
+  /** Lý do !isJoined: 'account-never-created' = todo/creating (chưa tạo trên platform),
+      'account-broken' = blocked/banned/dormant/defunct (đã tạo nhưng platform khoá),
+      'membership' = account active nhưng chưa join community.
       Default 'membership' (backwards compat). */
-  notReadyReason?: 'account' | 'membership';
+  notReadyReason?: 'account-never-created' | 'account-broken' | 'membership';
   // Callback sau confirm: refresh list + clear local state
   onConfirmed?: (postUrl: string) => void;
   onUnconfirmed?: () => void;
@@ -49,38 +51,60 @@ function DispatchPostFlowImpl({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const clip = useCopyToClipboard(2000);
 
-  // 0057 GATE: isJoined=false có 2 lý do — account chưa ready HOẶC chưa join.
-  // notReadyReason cho phép parent chỉ rõ tầng nào blocking để UI label đúng.
+  // 0057 GATE: isJoined=false có 3 lý do — account-never-created, account-broken,
+  // hoặc membership chưa joined. Mỗi case UI khác nhau (màu + wording + action).
   if (!isJoined && !postUrl) {
-    const isAccountIssue = notReadyReason === 'account';
-    const label = isAccountIssue ? '🔒 Account chưa sẵn sàng' : '🔒 Chưa join community';
-    const desc = isAccountIssue
-      ? 'Account chưa tạo / chưa verify / bị khoá. Tạo + verify account trước khi đăng bài.'
-      : 'Không đăng bài được khi chưa join. Đăng = nguy cơ shadowban + spam-flag.';
-    const btnLabel = isAccountIssue ? 'Fix account →' : 'Fix join status →';
-    const btnTip = isAccountIssue
-      ? 'Mở Account modal để setup / verify / fix account'
-      : 'Mở Join status banner để đánh dấu đã join community';
+    // 3 visual tiers: blue (todo task), red pulse (broken state), amber (missing membership)
+    const tier =
+      notReadyReason === 'account-never-created' ? {
+        label: '➕ Cần tạo account',
+        desc: 'Account chưa tồn tại trên platform. Phải đăng ký account thật trước khi nói tới việc đăng bài.',
+        btn: 'Tạo account →',
+        btnTip: 'Mở Account modal — có signup link + form điền credential',
+        bg: 'rgba(59,130,246,.10)',
+        border: 'rgba(59,130,246,.5)',
+        color: '#3b82f6',
+        btnBg: '#3b82f6',
+        btnFg: '#fff',
+      } : notReadyReason === 'account-broken' ? {
+        label: '🚫 Account bị khoá',
+        desc: 'Account đã tạo nhưng platform đã block/ban/dormant. Cần appeal mod hoặc swap account khác.',
+        btn: 'Xem chi tiết →',
+        btnTip: 'Mở Account modal để xem block_reason + lịch sử',
+        bg: 'rgba(248,113,113,.10)',
+        border: 'rgba(248,113,113,.45)',
+        color: 'var(--bad)',
+        btnBg: 'var(--bad)',
+        btnFg: '#0d1117',
+      } : {
+        // membership (default)
+        label: '🔒 Chưa join community',
+        desc: 'Không đăng bài được khi chưa join. Đăng = nguy cơ shadowban + spam-flag.',
+        btn: 'Fix join status →',
+        btnTip: 'Mở Join status banner để đánh dấu đã join community',
+        bg: 'rgba(251,191,36,.10)',
+        border: 'rgba(251,191,36,.4)',
+        color: 'var(--warn)',
+        btnBg: 'var(--warn)',
+        btnFg: '#0d1117',
+      };
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-                    padding: '7px 9px',
-                    background: isAccountIssue ? 'rgba(248,113,113,.10)' : 'rgba(251,191,36,.10)',
-                    border: `1px solid ${isAccountIssue ? 'rgba(248,113,113,.4)' : 'rgba(251,191,36,.4)'}`,
-                    borderRadius: 5 }}>
+                    padding: '7px 9px', background: tier.bg,
+                    border: `1px solid ${tier.border}`, borderRadius: 5 }}>
         <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                       color: isAccountIssue ? 'var(--bad)' : 'var(--warn)',
+                       color: tier.color,
                        textTransform: 'uppercase', letterSpacing: '.05em' }}>
-          {label}
+          {tier.label}
         </span>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1 }}>{desc}</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1 }}>{tier.desc}</span>
         {onRequestJoin && (
           <button type="button" onClick={onRequestJoin}
-                  title={btnTip}
+                  title={tier.btnTip}
                   style={{ fontSize: 10.5, padding: '4px 10px', fontWeight: 700,
-                           background: isAccountIssue ? 'var(--bad)' : 'var(--warn)',
-                           color: '#0d1117',
+                           background: tier.btnBg, color: tier.btnFg,
                            border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-            {btnLabel}
+            {tier.btn}
           </button>
         )}
       </div>

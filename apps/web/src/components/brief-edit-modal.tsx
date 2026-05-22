@@ -10,9 +10,11 @@ import { useRouter } from 'next/navigation';
 import {
   upsertBrief, deleteBrief, saveBriefSuggestion,
   savePhasePlan, advancePhase, initPhasePlanFromDefaults,
-  getAccountPersonaVoice,
+  getAccountPersonaVoice, getHabitatRowAction,
   type BriefRow, type BriefTemplate, type PersonaVoice,
 } from '@/lib/actions/community-briefs';
+import type { HabitatRow } from '@/lib/data';
+import type { HabitatJoinContext } from './join-status-banner';
 import { type JoinStatus } from '@/lib/join-status';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 import { fmtAgo } from '@/lib/time-format';
@@ -137,6 +139,37 @@ export function BriefEditModal({
     return () => { cancelled = true; };
   }, [accountId]);
 
+  // ── Habitat data (cho JoinStatusEditPopover: rules + members + gates) ──
+  // Fetch 1 lần khi modal mở. Nếu user sửa habitat → habitatId không đổi
+  // nhưng data có thể stale; refresh khi onPostsChanged hoặc onOpenHabitat close.
+  const [habitatRow, setHabitatRow] = useState<HabitatRow | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getHabitatRowAction(projectId, habitatId).then((h) => {
+      if (!cancelled) setHabitatRow(h);
+    });
+    return () => { cancelled = true; };
+  }, [projectId, habitatId]);
+  // Map HabitatRow → HabitatJoinContext (subset đủ cho popover)
+  const habitatInfo: HabitatJoinContext | null = habitatRow ? {
+    name: habitatRow.name,
+    kind: habitatRow.kind,
+    url: habitatRow.url,
+    members: habitatRow.members,
+    language: habitatRow.language,
+    status: habitatRow.status,
+    modStrictness: habitatRow.modStrictness,
+    postingRules: habitatRow.postingRules,
+    postingRulesUrl: habitatRow.postingRulesUrl,
+    minAccountAgeDays: habitatRow.minAccountAgeDays,
+    minKarma: habitatRow.minKarma,
+    minPosts: habitatRow.minPosts,
+    dominantTopics: habitatRow.dominantTopics,
+    forbiddenTopics: habitatRow.forbiddenTopics,
+    tribeName: null,  // tribeId only — name lookup tốn query; sẽ pass null tạm
+    habitatIconUrl: habitatRow.iconUrl,
+  } : null;
+
   // ── Phase plan state ────────────────────────────────────────────
   // currentPhase + phasePlan come from DB. activeTab decides which
   // editor pane is visible.
@@ -174,9 +207,16 @@ export function BriefEditModal({
 
   // 2-layer readiness: account (tầng 1) + join (tầng 2). Pass xuống children
   // qua isReady + notReadyReason để banner/button có thông điệp đúng layer.
+  // notReadyReason có 3 tier (xem DispatchPostFlow):
+  //   account-never-created = todo/creating (chưa tạo) → màu xanh dương, action "Tạo"
+  //   account-broken        = blocked/banned/dormant/defunct → đỏ pulse, action "Xem"
+  //   membership            = account active nhưng !joined → vàng, action "Fix join"
   const accountReady = isAccountReady(accountStatus);
   const isReady = accountReady && joinStatus === 'joined';
-  const notReadyReason: 'account' | 'membership' = !accountReady ? 'account' : 'membership';
+  const notReadyReason: 'account-never-created' | 'account-broken' | 'membership' =
+    accountStatus === 'todo' || accountStatus === 'creating' ? 'account-never-created' :
+    accountStatus && !accountReady ? 'account-broken' :
+    'membership';
   // onRequestFix: account-layer → mở Account modal; membership-layer → scroll banner.
   const onRequestFix = () => {
     if (!accountReady && onOpenAccount) onOpenAccount(accountId);
@@ -531,6 +571,8 @@ export function BriefEditModal({
               joinedAt={joinedAt}
               joinUrl={joinUrl}
               joinNote={joinNote}
+              habitatInfo={habitatInfo}
+              onOpenHabitat={onOpenHabitat ? () => onOpenHabitat(habitatId) : undefined}
               onChange={(next, payload) => {
                 setJoinStatusState(next);
                 if (payload?.joinUrl !== undefined) setJoinUrl(payload.joinUrl ?? '');
@@ -1441,7 +1483,7 @@ function PhaseEntryEditor({
   // 0057 GATE: pass-through xuống PostsForPhase → PostRow → DispatchPostFlow.
   isJoined?: boolean;
   onRequestJoin?: () => void;
-  notReadyReason?: 'account' | 'membership';
+  notReadyReason?: 'account-never-created' | 'account-broken' | 'membership';
 }) {
   const fld: CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
@@ -1923,7 +1965,7 @@ function PostsForPhase({
   // 0057 GATE: disable create/batch buttons + pass-through to PostRow → DispatchPostFlow
   isJoined?: boolean;
   onRequestJoin?: () => void;
-  notReadyReason?: 'account' | 'membership';
+  notReadyReason?: 'account-never-created' | 'account-broken' | 'membership';
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -2397,7 +2439,7 @@ function PostRow({
   // 0057 GATE: pass-through to DispatchPostFlow
   isJoined?: boolean;
   onRequestJoin?: () => void;
-  notReadyReason?: 'account' | 'membership';
+  notReadyReason?: 'account-never-created' | 'account-broken' | 'membership';
   onPostsChanged?: () => void;         // báo parent reload coverage grid sau khi đổi channel
   expanded: boolean;
   onToggle: () => void;

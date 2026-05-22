@@ -20,6 +20,7 @@ import { JoinStatusBanner } from './join-status-banner';
 import { JoinChip } from './join-chip';
 import { CritiquePanel } from './critique-panel';
 import { PhaseHistoryView } from './phase-history-view';
+import { PostFiltersBar, EMPTY_FILTERS, applyPostFilters, type PostFilters } from './post-filters-bar';
 import {
   type Phase, type PhaseEntry, PLANNED_PHASES,
   PHASE_LABEL, PHASE_COLOR, PHASE_DESCRIPTION,
@@ -1931,7 +1932,8 @@ function PostsForPhase({
   const [batchError, setBatchError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(focusCardId ?? null);
   const [bumpKey, setBumpKey] = useState(0);
-  const [typeFilter, setTypeFilter] = useState<string>('all'); // lọc bài theo content_type
+  // Multi-dimension filter — thay typeFilter cũ. Xem PostFiltersBar cho UI + logic.
+  const [filters, setFilters] = useState<PostFilters>(EMPTY_FILTERS);
   // Bundle context (channels + pillars + tribe counts) — fetch 1 lần / brief
   // thay vì mỗi PostRow tự fetch (N rows × 3 chip = 3N RSC requests → 1).
   const [bundle, setBundle] = useState<BriefRowContextBundle | null>(null);
@@ -2330,35 +2332,8 @@ function PostsForPhase({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {strategyOpen && (() => {
-            const counts = new Map<string, number>();
-            for (const p of posts) counts.set(p.contentType || 'text', (counts.get(p.contentType || 'text') ?? 0) + 1);
-            if (counts.size < 2) return null;
-            const chip = (key: string, label: React.ReactNode, n: number, on: boolean, formatKey?: string) => {
-              // formatKey != null → chip dùng màu của format đó. 'all' giữ accent.
-              const col = formatKey ? formatColors(formatKey) : null;
-              return (
-                <button key={key} type="button" onClick={() => setTypeFilter(on ? 'all' : key)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px',
-                                 fontSize: 10.5, borderRadius: 999, cursor: 'pointer',
-                                 border: `1px solid ${on ? (col?.fg ?? 'var(--accent)') : (col?.border ?? 'var(--line)')}`,
-                                 background: on ? (col?.bg ?? 'var(--accent-soft)') : 'var(--bg-2)',
-                                 color: on ? (col?.fg ?? 'var(--accent)') : (col?.fg ?? 'var(--fg-2)'),
-                                 fontWeight: on ? 700 : 400 }}>
-                  {label} <span style={{ color: 'var(--fg-4)' }}>{n}</span>
-                </button>
-              );
-            };
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>lọc loại:</span>
-                {chip('all', 'Tất cả', posts.length, typeFilter === 'all')}
-                {[...counts.entries()].sort((a, b) => b[1] - a[1]).map(([ct, n]) =>
-                  chip(ct, <><FormatIcon kind={ct} size={12} /> {formatMeta(ct).label}</>, n, typeFilter === ct, ct))}
-              </div>
-            );
-          })()}
-          {posts.filter((p) => typeFilter === 'all' || (p.contentType || 'text') === typeFilter).map((p) => (
+          <PostFiltersBar posts={posts} filters={filters} onChange={setFilters} />
+          {applyPostFilters(posts, filters).map((p) => (
             <div key={p.id} id={`post-row-${p.id}`}
                  style={focusCardId === p.id ? { outline: '2px solid var(--accent)', borderRadius: 6 } : undefined}>
             <PostRow post={p} projectId={projectId} briefId={briefId}

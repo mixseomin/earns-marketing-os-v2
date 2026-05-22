@@ -1904,8 +1904,9 @@ function Collapsible({
 // list những accounts cùng platform CHƯA có brief để gắn nhanh.
 //
 // Click pattern:
-//   - Favicon / @accountHandle → Account modal (credential/persona/status)
-//   - 📋 icon / row body → Brief modal (chiến lược, phase, bài)
+//   - 👤 avatar / @accountHandle → Account modal (credential/persona/status)
+//   - Row body → Brief modal (chiến lược, phase, bài)
+//   - Platform icon overlay (góc dưới avatar) chỉ thị platform của account.
 function HabitatBriefsSection({
   projectId, habitatId, habitatName, habitatKind, platformKey,
   onOpenAccount, onOpenBrief,
@@ -2012,17 +2013,28 @@ function HabitatBriefsSection({
             return (
               <div key={b.id}
                    style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, alignItems: 'center' }}>
-                {/* Avatar/icon → click mở Brief modal */}
-                <button type="button" onClick={handleBriefClick}
-                        disabled={!onOpenBrief}
-                        title={onOpenBrief ? `Mở Brief modal: @${b.accountHandle ?? '?'} × ${habitatName}` : ''}
+                {/* Avatar 👤 + platform overlay → click mở Account modal
+                    (đối xứng Account modal: favicon habitat → Brief modal).
+                    Body row click → Brief modal. */}
+                <button type="button" onClick={handleAccountClick}
+                        disabled={!onOpenAccount || !b.accountHandle}
+                        title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
                         style={{ background: 'none', border: 'none', padding: 0,
-                                 cursor: onOpenBrief ? 'pointer' : 'default',
-                                 display: 'inline-flex', borderRadius: 5 }}>
+                                 cursor: onOpenAccount ? 'pointer' : 'default',
+                                 display: 'inline-flex', position: 'relative', flexShrink: 0 }}>
                   <span style={{ width: 28, height: 28, borderRadius: 5,
-                                 background: 'var(--bg-3)', color: 'var(--accent)',
+                                 background: 'var(--bg-3)', color: 'var(--fg-2)',
                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                 fontSize: 14, fontWeight: 700 }}>📋</span>
+                                 fontSize: 16, border: '1px solid var(--line)' }}>👤</span>
+                  {b.platformKey && (
+                    <img src={`https://cdn.simpleicons.org/${b.platformKey}/d4d4d8`}
+                         alt={b.platformLabel}
+                         width={12} height={12}
+                         title={b.platformLabel}
+                         style={{ position: 'absolute', right: -3, bottom: -3,
+                                  background: 'var(--bg-1)', borderRadius: 3, padding: 1,
+                                  border: '1px solid var(--line)' }} />
+                  )}
                 </button>
                 <div style={{ minWidth: 0, cursor: onOpenBrief ? 'pointer' : 'default' }}
                      onClick={onOpenBrief ? handleBriefClick : undefined}

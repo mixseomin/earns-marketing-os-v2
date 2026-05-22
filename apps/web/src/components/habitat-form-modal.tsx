@@ -27,7 +27,6 @@ import { platformKeysForHabitatKind, detectPlatformKeyFromUrl, defaultKindForPla
 import { TagsInput } from './tags-input';
 import { parseFormInput, suggestRulesUrl, type FormFieldSchema } from '@/lib/actions/ai-parse';
 import { extractDiscordInvite } from '@/lib/actions/discord-extract';
-import { enrichRedditHabitat } from '@/lib/actions/enrich-reddit';
 import { parseChannelsFromInput } from '@/lib/actions/parse-channels';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
@@ -76,8 +75,6 @@ export function HabitatFormModal({
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
   const [rulesFetchBusy, setRulesFetchBusy] = useState(false);
   const [rulesFetchMsg, setRulesFetchMsg] = useState<string | null>(null);
-  const [redditEnrichBusy, setRedditEnrichBusy] = useState(false);
-  const [redditEnrichMsg, setRedditEnrichMsg] = useState<string | null>(null);
   const [findUrlBusy, setFindUrlBusy] = useState(false);
   // Discord invite extractor: paste discord.gg/xxx → 1-click fill
   // name/url/description/members (qua Discord public Invite API, no auth).
@@ -253,35 +250,11 @@ export function HabitatFormModal({
     });
   };
 
-  // Reddit auto-enrich: gọi 3 endpoint qua OAuth (about + rules + hot),
-  // fill mọi field cùng lúc. Khác AI fill: structured, không cần paste,
-  // không cần LLM. Chỉ work khi platform=reddit + có url/name parse được.
-  const handleEnrichReddit = () => {
-    const input = (form.url || form.name || '').trim();
-    if (!input) { setRedditEnrichMsg('⚠ Cần URL hoặc name (r/subreddit) trước'); return; }
-    setRedditEnrichBusy(true); setRedditEnrichMsg(null);
-    startTransition(async () => {
-      const res = await enrichRedditHabitat(input);
-      setRedditEnrichBusy(false);
-      if (!res.ok || !res.patch) { setRedditEnrichMsg(`⚠ ${res.error ?? 'enrich failed'}`); return; }
-      const p = res.patch;
-      setF('name', p.name);
-      setF('members', p.members);
-      setF('activity', p.activity);
-      setF('language', p.language);
-      setF('communityType', p.communityType as HabitatInput['communityType']);
-      setF('modStrictness', p.modStrictness as HabitatInput['modStrictness']);
-      if (p.postingRules) setF('postingRules', p.postingRules);
-      setF('postingRulesUrl', p.postingRulesUrl);
-      if (p.minAccountAgeDays != null) setF('minAccountAgeDays', p.minAccountAgeDays);
-      if (p.minKarma != null) setF('minKarma', p.minKarma);
-      if (p.minPosts != null) setF('minPosts', p.minPosts);
-      if (p.dominantTopics.length > 0) setF('dominantTopics', p.dominantTopics);
-      if (p.iconUrl) setF('iconUrl', p.iconUrl);
-      setRedditEnrichMsg(`✓ Filled ${res.fields.length} field${res.fields.length === 1 ? '' : 's'}: ${res.fields.join(', ')}`);
-      setTimeout(() => setRedditEnrichMsg(null), 8000);
-    });
-  };
+  // Reddit auto-enrich đã bị gỡ — Reddit Responsible Builder Policy
+  // (2024+) cấm dùng Reddit data cho marketing + AI generation, đồng
+  // thời ngăn tạo OAuth script-app mới (đẩy mọi developer sang Devvit).
+  // Xem memory reference_reddit_oauth_blocked.md. Fallback: AIFormParser
+  // user-paste (compliant: user-driven, không call API).
 
   // Discord invite → 1-click extract server info qua Discord public Invite API.
   // Auto-fill name (nếu trống), url, members + icon. Khi habitat ĐÃ tồn tại
@@ -609,25 +582,6 @@ export function HabitatFormModal({
                               border: '1px solid var(--accent-line)' }}>↗ mở</a>
                 );
               })()}
-              {/* Reddit auto-fill — inline cạnh label URL khi platform=reddit.
-                  Rule: feedback_mos2_compact_modal_design (action button không
-                  đứng dòng riêng nếu có field input liên quan). */}
-              {form.platformKey === 'reddit' && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); handleEnrichReddit(); }}
-                        disabled={redditEnrichBusy}
-                        title={redditEnrichMsg ?? 'Reddit OAuth /about + /rules + /hot → fill ~10 fields'}
-                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 700,
-                                 color: redditEnrichMsg?.startsWith('⚠') ? 'var(--bad)' : 'var(--accent)',
-                                 fontFamily: 'var(--font-mono)', textDecoration: 'none',
-                                 padding: '0 5px', borderRadius: 3,
-                                 background: 'var(--accent-soft)',
-                                 border: `1px solid ${redditEnrichMsg?.startsWith('⚠') ? 'rgba(248,113,113,.5)' : 'var(--accent-line)'}`,
-                                 cursor: redditEnrichBusy ? 'wait' : 'pointer',
-                                 display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                  <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={9} height={9} />
-                  {redditEnrichBusy ? '⏳' : redditEnrichMsg?.startsWith('⚠') ? '⚠' : redditEnrichMsg?.startsWith('✓') ? '✓' : '✨'} auto
-                </button>
-              )}
             </label>
             <input type="url" value={form.url ?? ''}
                    onChange={(e) => {

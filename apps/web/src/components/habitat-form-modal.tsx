@@ -462,20 +462,6 @@ export function HabitatFormModal({
         </div>
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Accounts engaging section — đặt LÊN ĐẦU modal-body để user thấy
-              ngay (không phải scroll xuống cuối). Hiện khi đã edit (không phải
-              create), vì habitat mới tạo chưa có brief nào. */}
-          {!isCreate && habitat && (
-            <HabitatBriefsSection
-              projectId={projectId}
-              habitatId={habitat.id}
-              habitatName={habitat.name}
-              habitatKind={habitat.kind}
-              platformKey={habitat.platformKey ?? form.platformKey ?? null}
-              onOpenAccount={onOpenAccount}
-              onOpenBrief={onOpenBrief}
-            />
-          )}
           <AIFormParser
             context={[
               'Đây là 1 habitat (community/group concrete) cho marketing project. Đọc URL/text/screenshot/wiki rules → fill mọi field bên dưới.',
@@ -799,8 +785,21 @@ export function HabitatFormModal({
           </div>
           </div>{/* /left column */}
 
-          {/* ── RIGHT: Outreach meta — feeds AI brief generator + persona-fit hints ── */}
+          {/* ── COL 2: Outreach meta + Accounts engaging — feeds AI brief generator + persona-fit hints ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            {/* Accounts engaging — đặt ĐẦU col Outreach để user thấy ai đang
+                engage habitat này trong khi xem các outreach gates. */}
+            {!isCreate && habitat && (
+              <HabitatBriefsSection
+                projectId={projectId}
+                habitatId={habitat.id}
+                habitatName={habitat.name}
+                habitatKind={habitat.kind}
+                platformKey={habitat.platformKey ?? form.platformKey ?? null}
+                onOpenAccount={onOpenAccount}
+                onOpenBrief={onOpenBrief}
+              />
+            )}
             <div title="AI brief generator đọc các field này để sinh chiến lược tiếp cận (approach / narrative / phase plan / hooks). Điền càng đầy → brief càng chuẩn."
                  style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--accent-line)', paddingBottom: 4, cursor: 'help' }}>
               🎯 Outreach meta
@@ -1977,7 +1976,7 @@ function HabitatBriefsSection({
   return (
     <Collapsible
       title="🎯 Accounts engaging"
-      defaultOpen={false}
+      defaultOpen={true}
       badge={
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
           {briefs.length}

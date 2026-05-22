@@ -2053,7 +2053,17 @@ function HabitatBriefsSection({
                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       @{b.accountHandle ?? 'no-handle'}
                     </button>
-                    <Pill color="var(--fg-3)" label={b.platformLabel} size="xs" tone="ghost" />
+                    <span title={b.platformLabel}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                   fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                   color: 'var(--fg-3)', border: '1px solid var(--line)' }}>
+                      {b.platformKey && (
+                        <img src={`https://cdn.simpleicons.org/${b.platformKey}/9ca3af`}
+                             alt="" width={9} height={9} style={{ opacity: 0.9 }} />
+                      )}
+                      {b.platformLabel}
+                    </span>
                     {/* Account status — chỉ hiện khi ≠ active (giảm noise) */}
                     {b.accountStatus !== 'active' && (
                       <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}

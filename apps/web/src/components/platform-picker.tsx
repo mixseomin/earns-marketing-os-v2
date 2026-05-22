@@ -266,6 +266,10 @@ export function PlatformPicker({ platforms, value, onChange, fld }: Props) {
       >
         {selected ? (
           <>
+            <SiteFavicon iconSlug={selected.iconSlug}
+              url={selected.signupUrl || selected.postUrl} size={16}
+              glyph={selected.region ? flag(selected.region) : (selected.category && CATEGORY_ICON[selected.category]) || '🗂'}
+              title={selected.label} />
             <span style={{ flex: 1, color: 'var(--fg-0)', fontWeight: 600 }}>
               {selected.label}{' '}
               <span style={{ color: PRIORITY_META[selected.priority as PlatformPriority]?.color, fontSize: 11, marginLeft: 4 }}>

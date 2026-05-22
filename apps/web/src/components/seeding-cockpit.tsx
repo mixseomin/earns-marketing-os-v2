@@ -390,6 +390,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       return {
         accountId,
         handle: r0.accountHandle,
+        platformKey: r0.platformKey,
         platformLabel: r0.platformLabel,
         accountStatus: r0.accountStatus,
         blockReason: r0.accountBlockReason,
@@ -586,7 +587,14 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 </span>
               );
             })()}
-            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{it.platformLabel}</span>
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                           display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              {it.platformKey && (
+                <img src={`https://cdn.simpleicons.org/${it.platformKey}/d4d4d8`}
+                     alt="" width={11} height={11} style={{ opacity: 0.85 }} />
+              )}
+              {it.platformLabel}
+            </span>
             <span style={{ color: 'var(--fg-4)' }}>·</span>
             <span style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>
               <EntityLink color="var(--fg-1)" onClick={() => setHabitatOverlayId(it.habitatId)}
@@ -1120,7 +1128,14 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 onClick={() => toggleDead(g.accountId)}>
             <IconBan size={13} color="var(--bad)" /> @{g.handle}
           </span>
-          <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{g.platformLabel}</span>
+          <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                         display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            {g.platformKey && (
+              <img src={`https://cdn.simpleicons.org/${g.platformKey}/9ca3af`}
+                   alt="" width={11} height={11} style={{ opacity: 0.85 }} />
+            )}
+            {g.platformLabel}
+          </span>
           <span style={{ padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
                          textTransform: 'uppercase', borderRadius: 3, background: 'var(--bad)', color: '#fff' }}>
             {g.accountStatus}

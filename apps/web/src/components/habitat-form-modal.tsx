@@ -1873,26 +1873,35 @@ function HabitatBriefsSection({
 }) {
   const [briefs, setBriefs] = useState<BriefForHabitat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    listBriefsForHabitat(habitatId).then((rows) => {
-      if (!cancelled) { setBriefs(rows); setLoading(false); }
-    });
+    listBriefsForHabitat(habitatId)
+      .then((rows) => {
+        if (!cancelled) { setBriefs(rows); setLoading(false); }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setFetchError(err?.message || String(err));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, [habitatId]);
 
   return (
-    <div style={{ marginBottom: 4, border: '2px solid var(--accent)', borderRadius: 6,
-                  background: 'var(--accent-soft)', overflow: 'hidden' }}>
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--accent-line)',
-                    background: 'var(--bg-2)', display: 'flex',
+    <div style={{ marginBottom: 8, border: '1px solid var(--warn)',
+                  borderRadius: 6, background: 'rgba(251,191,36,.06)',
+                  overflow: 'hidden' }}>
+      <div style={{ padding: '10px 14px', background: 'rgba(251,191,36,.15)',
+                    borderBottom: '1px solid rgba(251,191,36,.35)', display: 'flex',
                     alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <strong style={{ fontSize: 14, color: 'var(--accent)' }}>
+        <strong style={{ fontSize: 13, color: 'var(--warn)' }}>
           🎯 Accounts engaging community này
         </strong>
-        <span style={{ padding: '1px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
-                       fontWeight: 700, background: 'var(--accent)', color: 'var(--bg-0)',
+        <span style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                       fontWeight: 700, background: 'var(--warn)', color: '#0d1117',
                        borderRadius: 3 }}>
           {briefs.length} brief{briefs.length === 1 ? '' : 's'}
         </span>
@@ -1904,6 +1913,12 @@ function HabitatBriefsSection({
       {loading ? (
         <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)', fontSize: 11 }}>
           <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
+        </div>
+      ) : fetchError ? (
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--bad)',
+                      background: 'rgba(248,113,113,.08)',
+                      borderTop: '1px solid rgba(248,113,113,.3)' }}>
+          ⚠ Fetch error: {fetchError}
         </div>
       ) : briefs.length === 0 ? (
         <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>

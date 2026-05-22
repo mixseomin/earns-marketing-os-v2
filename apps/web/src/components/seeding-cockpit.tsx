@@ -13,6 +13,7 @@ import {
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
 } from '@/lib/actions/seeding';
 import { getBriefForModal, getHabitatRowAction, reassignBriefAccount, autoFixBriefAccount, type BriefRow, type BriefModalCtx } from '@/lib/actions/community-briefs';
+import { SwapAccountButton } from './swap-account-button';
 import type { TribeRow, PlatformRow, AccountRow, HabitatRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import { getAccountForEdit } from '@/lib/actions/accounts';
@@ -1047,6 +1048,12 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                         {r.backlogCount > 0 ? `${r.backlogCount} bài chờ` : 'chưa có bài'}
                         {r.currentPhase && ` · phase ${r.currentPhase}`}
                       </span>
+                      <SwapAccountButton
+                        projectId={projectId}
+                        briefId={r.briefId}
+                        currentAccountId={r.accountId}
+                        onSwapped={() => router.refresh()}
+                      />
                       <button type="button" onClick={() => onOpenBrief(r.briefId)}
                               title="Mở Brief modal — xem chiến lược + bài đã prep"
                               style={{ fontSize: 10, padding: '2px 7px', background: 'transparent',

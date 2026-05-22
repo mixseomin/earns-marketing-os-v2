@@ -24,6 +24,10 @@ function ensureDb() {
 export type AccountStatus =
   | 'todo' | 'creating' | 'warming' | 'active' | 'limited' | 'blocked' | 'banned';
 
+// 0058: phân biệt user vs bot/app account. Logic gate khác nhau hoàn toàn —
+// xem brief-readiness.ts cho rule details + accountKindMeta() ở status-meta.
+export type AccountKind = 'user' | 'bot' | 'app';
+
 export type AuthMethod =
   | 'password' | 'sso-google' | 'sso-github' | 'sso-x' | 'sso-linkedin'
   | 'sso-facebook' | 'sso-apple' | 'magic-link' | 'passkey' | 'phone-otp';
@@ -43,6 +47,11 @@ export interface AccountInput {
   tags?: string[];
   ownerUserId?: number | null;
   persona?: Record<string, string>;
+  // 0058: bot/app fields. Khi accountKind='bot'|'app' thì client_id required +
+  // bot_token thay cho password.
+  accountKind?: AccountKind;
+  clientId?: string | null;
+  // bot_token raw set qua setAccountApiToken / setAccountBotToken (encrypted).
 }
 
 export interface ChecklistEntry {
@@ -275,6 +284,8 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.platformKey !== undefined) set.platformKey = patch.platformKey;
   if (patch.ownerUserId !== undefined) set.ownerUserId = patch.ownerUserId;
   if (patch.persona !== undefined) set.persona = patch.persona;
+  if (patch.accountKind !== undefined) set.accountKind = patch.accountKind;
+  if (patch.clientId !== undefined) set.clientId = patch.clientId;
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
 

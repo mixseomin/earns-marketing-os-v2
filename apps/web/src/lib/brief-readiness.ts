@@ -51,6 +51,18 @@ export function isAccountReady(accountStatus: string | null | undefined): boolea
 }
 
 /**
+ * 0058: Bot/app account skip 'warming' state — bot mới created vẫn post được
+ * (không cần đủ tuổi/karma). Bot có 2 effective states:
+ *   - 'todo' (chưa có client_id + token) = not ready
+ *   - 'active' (đã có credentials + permission) = ready
+ * Status 'warming/limited' với bot là noise — không apply. 'blocked/banned'
+ * vẫn relevant (bot bị Discord disable).
+ */
+export function isBotAccount(accountKind: string | null | undefined): boolean {
+  return accountKind === 'bot' || accountKind === 'app';
+}
+
+/**
  * Combined readiness — account + membership.
  * accountStatus ưu tiên cao hơn membership (vì không thể join khi account chưa tồn tại).
  */

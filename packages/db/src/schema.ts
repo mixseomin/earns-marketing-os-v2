@@ -418,6 +418,13 @@ export const platformAccounts = pgTable(
     // migration 0045: persona — character brief for pre-deployment prep
     // { dob, gender, country, city, name_first, name_last, phone, backstory, interests[] }
     persona: jsonb('persona').notNull().default({}),
+    // migration 0058: account_kind — phân biệt user vs bot/app account.
+    // 'user' (default) = manual login, cần warming + persona + voice.
+    // 'bot' = Discord/Slack bot, có bot_token, không warming, không persona.
+    // 'app' = OAuth integration (Reddit script-app), tương tự bot.
+    accountKind: text('account_kind').notNull().default('user'),
+    clientId: text('client_id'),
+    botTokenEnc: text('bot_token_enc'),  // pgcrypto encrypted bytea (text-encoded base64)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

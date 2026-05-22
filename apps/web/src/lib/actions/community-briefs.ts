@@ -708,7 +708,7 @@ export async function listAddableAccountsForHabitat(
     JOIN project_accounts pj ON pj.account_id = pa.id AND pj.project_id = ${projectId}
     WHERE pa.tenant_id = ${TENANT}
       ${platformKeys && platformKeys.length > 0
-        ? sql`AND pa.platform_key = ANY(${platformKeys}::text[])`
+        ? sql`AND pa.platform_key IN (${sql.join(platformKeys.map((k) => sql`${k}`), sql`, `)})`
         : sql``}
       AND NOT EXISTS (
         SELECT 1 FROM community_briefs b

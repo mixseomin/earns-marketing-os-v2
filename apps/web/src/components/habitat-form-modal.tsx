@@ -27,6 +27,7 @@ import { platformKeysForHabitatKind, detectPlatformKeyFromUrl, defaultKindForPla
 import { TagsInput } from './tags-input';
 import { parseFormInput, suggestRulesUrl, type FormFieldSchema } from '@/lib/actions/ai-parse';
 import { extractDiscordInvite } from '@/lib/actions/discord-extract';
+import { enrichRedditHabitat } from '@/lib/actions/enrich-reddit';
 import { parseChannelsFromInput } from '@/lib/actions/parse-channels';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
@@ -75,6 +76,8 @@ export function HabitatFormModal({
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
   const [rulesFetchBusy, setRulesFetchBusy] = useState(false);
   const [rulesFetchMsg, setRulesFetchMsg] = useState<string | null>(null);
+  const [redditEnrichBusy, setRedditEnrichBusy] = useState(false);
+  const [redditEnrichMsg, setRedditEnrichMsg] = useState<string | null>(null);
   const [findUrlBusy, setFindUrlBusy] = useState(false);
   // Discord invite extractor: paste discord.gg/xxx → 1-click fill
   // name/url/description/members (qua Discord public Invite API, no auth).
@@ -247,6 +250,36 @@ export function HabitatFormModal({
       setPasteText('');
       setPasteOpen(false);
       setTimeout(() => setRulesFetchMsg(null), 4000);
+    });
+  };
+
+  // Reddit auto-enrich: gọi 3 endpoint qua OAuth (about + rules + hot),
+  // fill mọi field cùng lúc. Khác AI fill: structured, không cần paste,
+  // không cần LLM. Chỉ work khi platform=reddit + có url/name parse được.
+  const handleEnrichReddit = () => {
+    const input = (form.url || form.name || '').trim();
+    if (!input) { setRedditEnrichMsg('⚠ Cần URL hoặc name (r/subreddit) trước'); return; }
+    setRedditEnrichBusy(true); setRedditEnrichMsg(null);
+    startTransition(async () => {
+      const res = await enrichRedditHabitat(input);
+      setRedditEnrichBusy(false);
+      if (!res.ok || !res.patch) { setRedditEnrichMsg(`⚠ ${res.error ?? 'enrich failed'}`); return; }
+      const p = res.patch;
+      setF('name', p.name);
+      setF('members', p.members);
+      setF('activity', p.activity);
+      setF('language', p.language);
+      setF('communityType', p.communityType as HabitatInput['communityType']);
+      setF('modStrictness', p.modStrictness as HabitatInput['modStrictness']);
+      if (p.postingRules) setF('postingRules', p.postingRules);
+      setF('postingRulesUrl', p.postingRulesUrl);
+      if (p.minAccountAgeDays != null) setF('minAccountAgeDays', p.minAccountAgeDays);
+      if (p.minKarma != null) setF('minKarma', p.minKarma);
+      if (p.minPosts != null) setF('minPosts', p.minPosts);
+      if (p.dominantTopics.length > 0) setF('dominantTopics', p.dominantTopics);
+      if (p.iconUrl) setF('iconUrl', p.iconUrl);
+      setRedditEnrichMsg(`✓ Filled ${res.fields.length} field${res.fields.length === 1 ? '' : 's'}: ${res.fields.join(', ')}`);
+      setTimeout(() => setRedditEnrichMsg(null), 8000);
     });
   };
 
@@ -465,6 +498,38 @@ export function HabitatFormModal({
         </div>
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Reddit auto-enrich: chỉ hiện khi platform=reddit. 1 click gọi
+              OAuth + about + rules + hot, fill ~10 field tự động (members,
+              rules markdown, gates, topics, activity, language, icon). */}
+          {form.platformKey === 'reddit' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                          background: 'var(--accent-soft)', border: '1px dashed var(--accent-line)',
+                          borderRadius: 5, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, color: 'var(--fg-1)' }}>
+                <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={12} height={12}
+                     style={{ verticalAlign: '-2px', marginRight: 4 }} />
+                <strong>Reddit auto-enrich</strong>
+                <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>
+                  OAuth gọi /about + /rules + /hot → fill ~10 fields
+                </span>
+              </span>
+              <span style={{ flex: 1 }} />
+              <button type="button" onClick={handleEnrichReddit} disabled={redditEnrichBusy}
+                      title="Cần URL hoặc name (r/subreddit) đã điền"
+                      style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px',
+                               background: 'var(--accent)', color: 'var(--btn-primary-fg, #0d1117)',
+                               border: 'none', borderRadius: 4,
+                               cursor: redditEnrichBusy ? 'wait' : 'pointer' }}>
+                {redditEnrichBusy ? '⏳ Fetching…' : '✨ Auto-fill'}
+              </button>
+              {redditEnrichMsg && (
+                <div style={{ flexBasis: '100%', fontSize: 10.5,
+                              color: redditEnrichMsg.startsWith('⚠') ? 'var(--bad)' : 'var(--ok)' }}>
+                  {redditEnrichMsg}
+                </div>
+              )}
+            </div>
+          )}
           <AIFormParser
             context={[
               'Đây là 1 habitat (community/group concrete) cho marketing project. Đọc URL/text/screenshot/wiki rules → fill mọi field bên dưới.',

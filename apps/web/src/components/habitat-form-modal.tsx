@@ -11,7 +11,7 @@ import {
   listChannelsForHabitat, bulkReplaceChannels, type HabitatChannelInput,
 } from '@/lib/actions/habitat-channels';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible } from './ui';
 import {
   listBriefsForHabitat,
   listAddableAccountsForHabitat,
@@ -1870,41 +1870,6 @@ function ChannelBulkParser({
   );
 }
 
-// Local Collapsible — copy của accounts-vault.tsx Collapsible (chưa export
-// chung). Khi shared primitives được tách ra `ui/`, replace 2 chỗ.
-function Collapsible({
-  title, badge, defaultOpen = false, children, hint,
-}: {
-  title: React.ReactNode;
-  badge?: React.ReactNode;
-  hint?: React.ReactNode;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div style={{ marginTop: 4, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          width: '100%', padding: '8px 12px',
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: 'var(--fg-1)', fontSize: 12, textAlign: 'left',
-        }}
-      >
-        <span style={{ fontSize: 9, color: 'var(--fg-3)', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'none' }}>▶</span>
-        <span style={{ fontWeight: 600 }}>{title}</span>
-        {badge}
-        <span style={{ flex: 1 }} />
-        {hint && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hint}</span>}
-      </button>
-      {open && <div style={{ padding: '4px 12px 12px', borderTop: '1px solid var(--line)' }}>{children}</div>}
-    </div>
-  );
-}
-
 // HabitatBriefsSection — Mirror của AccountBriefsSection (xem
 // accounts-vault.tsx:2878). List accounts đã engage habitat này (mỗi
 // account = 1 brief = 1 row), + "+ Add account" button mở ResourcePicker
@@ -1976,6 +1941,7 @@ function HabitatBriefsSection({
   return (
     <Collapsible
       title="🎯 Accounts engaging"
+      marginTop={4}
       defaultOpen={true}
       badge={
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>

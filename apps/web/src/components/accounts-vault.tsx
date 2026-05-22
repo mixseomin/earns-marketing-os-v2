@@ -21,7 +21,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -280,39 +280,6 @@ function SnippetCard({ snippet, vars }: {
 // notes, warmup checklist, image specs). Open/close không persist —
 // reset mỗi lần mở modal vì điều quan trọng là default closed.
 // ──────────────────────────────────────────────────────────────────
-function Collapsible({
-  title, badge, defaultOpen = false, children, hint,
-}: {
-  title: React.ReactNode;
-  badge?: React.ReactNode;        // count, status indicator
-  hint?: React.ReactNode;          // muted helper text bên phải
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div style={{ marginTop: 10, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          width: '100%', padding: '8px 12px',
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: 'var(--fg-1)', fontSize: 12, textAlign: 'left',
-        }}
-      >
-        <span style={{ fontSize: 9, color: 'var(--fg-3)', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'none' }}>▶</span>
-        <span style={{ fontWeight: 600 }}>{title}</span>
-        {badge}
-        <span style={{ flex: 1 }} />
-        {hint && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hint}</span>}
-      </button>
-      {open && <div style={{ padding: '4px 12px 12px', borderTop: '1px solid var(--line)' }}>{children}</div>}
-    </div>
-  );
-}
-
 // ──────────────────────────────────────────────────────────────────
 // BulkAssignPopover — thay thế <select> "Giao cho..." cũ. Click button
 // → mở popover có search + danh sách members. Scale tốt với 10+ members.

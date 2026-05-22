@@ -11,7 +11,7 @@ import {
   listChannelsForHabitat, bulkReplaceChannels, type HabitatChannelInput,
 } from '@/lib/actions/habitat-channels';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon, Pill } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker } from './ui';
 import {
   listBriefsForHabitat,
   listAddableAccountsForHabitat,
@@ -467,17 +467,10 @@ export function HabitatFormModal({
               create), vì habitat mới tạo chưa có brief nào. */}
           {!isCreate && habitat && (
             <HabitatBriefsSection
-              habitatId={habitat.id}
-              habitatName={habitat.name}
-              onOpenAccount={onOpenAccount}
-              onOpenBrief={onOpenBrief}
-            />
-          )}
-          {!isCreate && habitat && (
-            <AvailableAccountsSection
               projectId={projectId}
               habitatId={habitat.id}
               habitatName={habitat.name}
+              habitatKind={habitat.kind}
               platformKey={habitat.platformKey ?? form.platformKey ?? null}
               onOpenAccount={onOpenAccount}
               onOpenBrief={onOpenBrief}
@@ -1870,22 +1863,69 @@ function ChannelBulkParser({
   );
 }
 
-// HabitatBriefsSection — list accounts đã engage habitat này. Hiển thị
-// account handle + status (tầng 1) + join status (tầng 2) + phase (tầng 3).
-// Mỗi part click vào đúng đối tượng tương ứng:
-//   - Favicon / row body → Brief modal (chiến lược + bài)
-//   - @accountHandle → Account modal (status/credential/persona)
-function HabitatBriefsSection({
-  habitatId, habitatName, onOpenAccount, onOpenBrief,
+// Local Collapsible — copy của accounts-vault.tsx Collapsible (chưa export
+// chung). Khi shared primitives được tách ra `ui/`, replace 2 chỗ.
+function Collapsible({
+  title, badge, defaultOpen = false, children, hint,
 }: {
+  title: React.ReactNode;
+  badge?: React.ReactNode;
+  hint?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginTop: 4, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%', padding: '8px 12px',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: 'var(--fg-1)', fontSize: 12, textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 9, color: 'var(--fg-3)', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'none' }}>▶</span>
+        <span style={{ fontWeight: 600 }}>{title}</span>
+        {badge}
+        <span style={{ flex: 1 }} />
+        {hint && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hint}</span>}
+      </button>
+      {open && <div style={{ padding: '4px 12px 12px', borderTop: '1px solid var(--line)' }}>{children}</div>}
+    </div>
+  );
+}
+
+// HabitatBriefsSection — Mirror của AccountBriefsSection (xem
+// accounts-vault.tsx:2878). List accounts đã engage habitat này (mỗi
+// account = 1 brief = 1 row), + "+ Add account" button mở ResourcePicker
+// list những accounts cùng platform CHƯA có brief để gắn nhanh.
+//
+// Click pattern:
+//   - Favicon / @accountHandle → Account modal (credential/persona/status)
+//   - 📋 icon / row body → Brief modal (chiến lược, phase, bài)
+function HabitatBriefsSection({
+  projectId, habitatId, habitatName, habitatKind, platformKey,
+  onOpenAccount, onOpenBrief,
+}: {
+  projectId: string;
   habitatId: number;
   habitatName: string;
+  habitatKind: string;
+  platformKey: string | null;
   onOpenAccount?: (accountId: number) => void;
   onOpenBrief?: (briefId: number) => void;
 }) {
+  const router = useRouter();
   const [briefs, setBriefs] = useState<BriefForHabitat[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [picking, setPicking] = useState(false);
+  const [addable, setAddable] = useState<Array<{ id: number; handle: string | null; status: string; platformKey: string; platformLabel: string }>>([]);
+  const [creatingFor, setCreatingFor] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1900,182 +1940,19 @@ function HabitatBriefsSection({
         }
       });
     return () => { cancelled = true; };
-  }, [habitatId]);
+  }, [habitatId, reloadTick]);
 
-  return (
-    <div style={{ marginBottom: 8, border: '2px solid var(--warn)',
-                  borderRadius: 6, background: 'var(--bg-1)',
-                  overflow: 'hidden' }}>
-      {/* Header bar: solid warn background + dark text — contrast cao,
-          không bị blend với modal --bg-2. */}
-      <div style={{ padding: '10px 14px', background: 'var(--warn)',
-                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <strong style={{ fontSize: 13, color: '#0d1117', fontWeight: 800 }}>
-          🎯 Accounts engaging community này
-        </strong>
-        <span style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
-                       fontWeight: 700, background: '#0d1117', color: 'var(--warn)',
-                       borderRadius: 3 }}>
-          {briefs.length} brief{briefs.length === 1 ? '' : 's'}
-        </span>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: '#0d1117', opacity: .75, fontStyle: 'italic' }}>
-          📋 icon → Brief modal · @handle → Account modal
-        </span>
-      </div>
-      {loading ? (
-        <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)', fontSize: 11 }}>
-          <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
-        </div>
-      ) : fetchError ? (
-        <div style={{ padding: 10, fontSize: 11, color: 'var(--bad)',
-                      background: 'rgba(248,113,113,.08)',
-                      borderTop: '1px solid rgba(248,113,113,.3)' }}>
-          ⚠ Fetch error: {fetchError}
-        </div>
-      ) : briefs.length === 0 ? (
-        <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-          Chưa có account nào engage habitat này. Tribes / Seeding cockpit → tạo brief mới.
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {briefs.map((b) => {
-            const acctMeta = accountStatusMeta(b.accountStatus);
-            const joinColor = JOIN_STATUS_COLOR[b.joinStatus];
-            const joinIcon = JOIN_STATUS_ICON[b.joinStatus];
-            const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
-            const phaseColor = PHASE_COLOR[b.currentPhase];
-            const phaseLabel = PHASE_LABEL[b.currentPhase];
-            return (
-              <div key={b.id} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', borderTop: '1px solid var(--line)',
-              }}>
-                {/* Favicon → Brief modal */}
-                <button type="button"
-                        onClick={() => onOpenBrief?.(b.id)}
-                        disabled={!onOpenBrief}
-                        title={onOpenBrief ? `Mở Brief modal: @${b.accountHandle ?? '?'} × ${habitatName}` : ''}
-                        style={{ background: 'none', border: 'none', padding: 0,
-                                 cursor: onOpenBrief ? 'pointer' : 'default',
-                                 display: 'inline-flex', flexShrink: 0 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 4,
-                                 background: 'var(--bg-3)', color: 'var(--accent)',
-                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                 fontSize: 14, fontWeight: 700 }}>📋</span>
-                </button>
-                {/* @accountHandle → Account modal */}
-                <button type="button"
-                        onClick={() => b.accountHandle && onOpenAccount?.(b.accountId)}
-                        disabled={!onOpenAccount}
-                        title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
-                        style={{ background: 'none', border: 'none', padding: 0,
-                                 cursor: onOpenAccount ? 'pointer' : 'default',
-                                 fontSize: 12, fontWeight: 600, color: 'var(--fg-0)',
-                                 textDecoration: 'underline',
-                                 textDecorationStyle: 'dotted',
-                                 textDecorationColor: 'var(--fg-4)',
-                                 textUnderlineOffset: 3,
-                                 fontFamily: 'var(--font-mono)' }}>
-                  @{b.accountHandle ?? 'no-handle'}
-                </button>
-                <Pill color="var(--fg-3)" label={b.platformLabel} size="xs" tone="ghost" />
-                {/* Account status chip — tầng 1 */}
-                {b.accountStatus !== 'active' && (
-                  <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                                 background: acctMeta.color + '22', color: acctMeta.color,
-                                 border: `1px solid ${acctMeta.color}66` }}>
-                    {acctMeta.icon} {acctMeta.label}
-                  </span>
-                )}
-                {/* Join status chip — tầng 2 */}
-                <span title={`Join status (tầng 2 — per-habitat membership): ${joinLabel}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                               padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                               fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                               background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
-                               color: joinColor,
-                               border: `1px solid ${joinColor}66` }}>
-                  {joinIcon} {joinLabel}
-                </span>
-                {/* Phase chip — tầng 3 */}
-                <span title={`Engagement phase (tầng 3): ${phaseLabel}`}
-                      style={{ display: 'inline-flex', alignItems: 'center',
-                               padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                               fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                               background: phaseColor + '22', color: phaseColor,
-                               border: `1px solid ${phaseColor}66` }}>
-                  {phaseLabel}
-                </span>
-                <span style={{ flex: 1 }} />
-                {b.cadence && (
-                  <span title="Cadence"
-                        style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-                    ⏱ {b.cadence}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+  const handleAdd = async () => {
+    const list = await listAddableAccountsForHabitat(projectId, habitatId, platformKey ? [platformKey] : null);
+    setAddable(list);
+    setPicking(true);
+  };
 
-// AvailableAccountsSection — list accounts cùng platform với habitat NHƯNG
-// chưa có brief với habitat này. Mỗi row có nút "+ Tạo brief" để gắn nhanh
-// (upsertBrief với empty patch), sau đó refresh cả 2 section (engaging +
-// available). Max-height + scroll khi >10 accounts để tránh modal quá dài.
-interface AvailableAccount {
-  id: number;
-  handle: string | null;
-  status: string;
-  platformKey: string;
-  platformLabel: string;
-}
-
-function AvailableAccountsSection({
-  projectId, habitatId, habitatName, platformKey, onOpenAccount, onOpenBrief,
-}: {
-  projectId: string;
-  habitatId: number;
-  habitatName: string;
-  platformKey: string | null;
-  onOpenAccount?: (accountId: number) => void;
-  onOpenBrief?: (briefId: number) => void;
-}) {
-  const router = useRouter();
-  const [accounts, setAccounts] = useState<AvailableAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [reloadTick, setReloadTick] = useState(0);
-  const [creatingFor, setCreatingFor] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const platformKeys = platformKey ? [platformKey] : null;
-    listAddableAccountsForHabitat(projectId, habitatId, platformKeys)
-      .then((rows) => {
-        if (!cancelled) { setAccounts(rows); setLoading(false); }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setFetchError(err?.message || String(err));
-          setLoading(false);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [projectId, habitatId, platformKey, reloadTick]);
-
-  async function createBriefFor(account: AvailableAccount) {
-    setCreatingFor(account.id);
+  const handlePick = async (accountId: number) => {
+    setPicking(false);
+    setCreatingFor(accountId);
     try {
-      const r = await upsertBrief(projectId, account.id, habitatId, {});
+      const r = await upsertBrief(projectId, accountId, habitatId, {});
       if (r.ok && r.id) {
         setReloadTick((t) => t + 1);
         router.refresh();
@@ -2083,105 +1960,152 @@ function AvailableAccountsSection({
       } else {
         setFetchError(r.error || 'Không tạo được brief');
       }
-    } catch (err) {
-      setFetchError((err as Error)?.message || String(err));
     } finally {
       setCreatingFor(null);
     }
-  }
-
-  // Empty state khi không có available account — ẩn section hẳn để tránh
-  // noise (user đã thấy engaging section ở trên rồi).
-  if (!loading && !fetchError && accounts.length === 0) return null;
-
-  const showScroll = accounts.length > 10;
+  };
 
   return (
-    <div style={{ marginBottom: 8, border: '1px dashed var(--line-2)',
-                  borderRadius: 6, background: 'var(--bg-1)',
-                  overflow: 'hidden' }}>
-      <div style={{ padding: '8px 14px', background: 'var(--bg-2)',
-                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-                    borderBottom: '1px solid var(--line)' }}>
-        <strong style={{ fontSize: 12, color: 'var(--fg-1)', fontWeight: 700 }}>
-          🪪 Available accounts cùng platform{platformKey ? ` (${platformKey})` : ''}
-        </strong>
-        <span style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
-                       fontWeight: 700, background: 'var(--bg-3)', color: 'var(--fg-2)',
-                       borderRadius: 3 }}>
-          {accounts.length}
+    <Collapsible
+      title="🎯 Accounts engaging"
+      defaultOpen={true}
+      badge={
+        <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
+          {briefs.length}
         </span>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-          chưa engage habitat này · "+ Tạo brief" để gắn
-        </span>
-      </div>
+      }
+      hint={
+        <button className="btn" type="button" onClick={(e) => { e.stopPropagation(); handleAdd(); }}
+                style={{ fontSize: 10, padding: '2px 8px' }}
+                disabled={creatingFor !== null}>
+          {creatingFor !== null ? '…' : '+ Add account'}
+        </button>
+      }
+    >
       {loading ? (
-        <div style={{ padding: 10, textAlign: 'center', color: 'var(--fg-3)', fontSize: 11 }}>
-          <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
+        <div style={{ padding: 12, textAlign: 'center', color: 'var(--fg-3)' }}>
+          <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 11 }}>Loading briefs…</span>
         </div>
       ) : fetchError ? (
-        <div style={{ padding: 10, fontSize: 11, color: 'var(--bad)',
-                      background: 'rgba(248,113,113,.08)' }}>
-          ⚠ {fetchError}
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--bad)', borderRadius: 5,
+                      background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.3)' }}>
+          ⚠ Fetch error: {fetchError}
+        </div>
+      ) : briefs.length === 0 ? (
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)', borderRadius: 5, background: 'var(--bg-2)', border: '1px dashed var(--line)' }}>
+          Chưa có account nào engage habitat này. Click <strong>+ Add account</strong> để link 1 account cùng platform vào community + viết approach.
         </div>
       ) : (
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          maxHeight: showScroll ? 280 : undefined,
-          overflowY: showScroll ? 'auto' : undefined,
-        }}>
-          {accounts.map((a) => {
-            const acctMeta = accountStatusMeta(a.status);
-            const isBusy = creatingFor === a.id;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {briefs.map((b) => {
+            const acctMeta = accountStatusMeta(b.accountStatus);
+            const joinColor = JOIN_STATUS_COLOR[b.joinStatus];
+            const joinIcon = JOIN_STATUS_ICON[b.joinStatus];
+            const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
+            const phaseColor = PHASE_COLOR[b.currentPhase];
+            const phaseLabel = PHASE_LABEL[b.currentPhase];
+            const handleBriefClick = () => onOpenBrief?.(b.id);
+            const handleAccountClick = (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (b.accountHandle) onOpenAccount?.(b.accountId);
+            };
             return (
-              <div key={a.id} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '6px 12px', borderTop: '1px solid var(--line)',
-              }}>
-                <button type="button"
-                        onClick={() => onOpenAccount?.(a.id)}
-                        disabled={!onOpenAccount}
-                        title={onOpenAccount ? `Mở Account modal: @${a.handle ?? '?'}` : ''}
+              <div key={b.id}
+                   style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, alignItems: 'center' }}>
+                {/* Avatar/icon → click mở Brief modal */}
+                <button type="button" onClick={handleBriefClick}
+                        disabled={!onOpenBrief}
+                        title={onOpenBrief ? `Mở Brief modal: @${b.accountHandle ?? '?'} × ${habitatName}` : ''}
                         style={{ background: 'none', border: 'none', padding: 0,
-                                 cursor: onOpenAccount ? 'pointer' : 'default',
-                                 fontSize: 12, fontWeight: 600, color: 'var(--fg-0)',
-                                 textDecoration: 'underline',
-                                 textDecorationStyle: 'dotted',
-                                 textDecorationColor: 'var(--fg-4)',
-                                 textUnderlineOffset: 3,
-                                 fontFamily: 'var(--font-mono)' }}>
-                  @{a.handle ?? 'no-handle'}
+                                 cursor: onOpenBrief ? 'pointer' : 'default',
+                                 display: 'inline-flex', borderRadius: 5 }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 5,
+                                 background: 'var(--bg-3)', color: 'var(--accent)',
+                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                 fontSize: 14, fontWeight: 700 }}>📋</span>
                 </button>
-                <Pill color="var(--fg-3)" label={a.platformLabel} size="xs" tone="ghost" />
-                {a.status !== 'active' && (
-                  <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                                 background: acctMeta.color + '22', color: acctMeta.color,
-                                 border: `1px solid ${acctMeta.color}66` }}>
-                    {acctMeta.icon} {acctMeta.label}
-                  </span>
-                )}
-                <span style={{ flex: 1 }} />
-                <button type="button"
-                        onClick={() => createBriefFor(a)}
-                        disabled={isBusy}
-                        title={`Tạo brief: @${a.handle ?? '?'} × ${habitatName}`}
-                        style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, padding: '3px 8px',
-                                 background: 'var(--accent-soft)', color: 'var(--accent)',
-                                 border: '1px dashed var(--accent-line)',
-                                 borderRadius: 3,
-                                 cursor: isBusy ? 'wait' : 'pointer' }}>
-                  {isBusy ? '…' : '+ Tạo brief'}
-                </button>
+                <div style={{ minWidth: 0, cursor: onOpenBrief ? 'pointer' : 'default' }}
+                     onClick={onOpenBrief ? handleBriefClick : undefined}
+                     title={onOpenBrief ? 'Click để mở Brief modal' : ''}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2, flexWrap: 'wrap' }}>
+                    {/* @handle → click mở Account modal */}
+                    <button type="button" onClick={handleAccountClick}
+                            disabled={!onOpenAccount || !b.accountHandle}
+                            title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
+                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 12,
+                                     fontWeight: 600, color: 'var(--fg-0)',
+                                     cursor: onOpenAccount ? 'pointer' : 'default',
+                                     textDecoration: 'underline', textDecorationStyle: 'dotted',
+                                     textDecorationColor: 'var(--fg-4)', textUnderlineOffset: 3,
+                                     fontFamily: 'var(--font-mono)',
+                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      @{b.accountHandle ?? 'no-handle'}
+                    </button>
+                    <Pill color="var(--fg-3)" label={b.platformLabel} size="xs" tone="ghost" />
+                    {/* Account status — chỉ hiện khi ≠ active (giảm noise) */}
+                    {b.accountStatus !== 'active' && (
+                      <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                     padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                     fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                     background: acctMeta.color + '22', color: acctMeta.color,
+                                     border: `1px solid ${acctMeta.color}66` }}>
+                        {acctMeta.icon} {acctMeta.label}
+                      </span>
+                    )}
+                    {/* Join status chip — tầng 2 */}
+                    <span title={`Join status (tầng 2 — membership per-habitat): ${joinLabel}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                   fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                   background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
+                                   color: joinColor,
+                                   border: `1px solid ${joinColor}66` }}>
+                      {joinIcon} {joinLabel}
+                    </span>
+                    {/* Phase chip — tầng 3 */}
+                    <span title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`}
+                          style={{ display: 'inline-flex', alignItems: 'center',
+                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                   fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                   background: phaseColor + '22', color: phaseColor,
+                                   border: `1px solid ${phaseColor}66` }}>
+                      {phaseLabel}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {b.approachMd ? b.approachMd.split('\n')[0] : <em style={{ color: 'var(--fg-4)' }}>chưa viết approach</em>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {b.cadence && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title="Cadence">⏱ {b.cadence}</span>}
+                  {b.tone && <span style={{ fontSize: 10, color: 'var(--fg-3)' }} title={`Tone: ${b.tone}`}>🎵</span>}
+                  {b.templates.length > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title={`${b.templates.length} templates`}>📝 {b.templates.length}</span>}
+                </div>
               </div>
             );
           })}
         </div>
       )}
-    </div>
+
+      {picking && (
+        <ResourcePicker
+          title="Chọn account để add brief"
+          hint={`Accounts cùng platform${platformKey ? ` (${platformKey})` : ''} trong project, chưa có brief với habitat này.`}
+          items={addable}
+          getKey={(a) => a.id}
+          renderItem={(a) => ({
+            title: `@${a.handle ?? 'no-handle'}`,
+            subtitle: `${a.platformLabel} · status: ${a.status}`,
+          })}
+          onPick={(a) => handlePick(a.id)}
+          onClose={() => setPicking(false)}
+          emptyMessage={
+            <>Project này chưa có account nào cùng platform <strong>{platformKey ?? '—'}</strong> để gắn vào {habitatKind} <strong>{habitatName}</strong>.<br />
+            Tạo account mới ở tab Accounts, hoặc dùng <strong>+ Add community</strong> trong Account modal.</>
+          }
+        />
+      )}
+    </Collapsible>
   );
 }

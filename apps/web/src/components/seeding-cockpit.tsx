@@ -193,6 +193,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [retireText, setRetireText] = useState('');
   const [confirmCleanup, setConfirmCleanup] = useState<number | null>(null); // accountId 2-step
   const [expandedDead, setExpandedDead] = useState<Set<number>>(() => new Set()); // collapse default
+  const [expandedNeed, setExpandedNeed] = useState<Set<string>>(() => new Set()); // platformKey set
   const [fmtMenuFor, setFmtMenuFor] = useState<number | null>(null); // scheduleId mở menu chọn format
   const [actionMenuFor, setActionMenuFor] = useState<number | null>(null); // scheduleId mở overflow menu
   // Account modal CHỒNG lên brief modal (không đụng URL slot ?m — modal slot
@@ -298,6 +299,37 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       (x.tribeName ?? '').toLowerCase().includes(s));
   }, [queue, q]);
 
+  // "Cần tạo account" → briefs có account.status ∈ {todo, creating}. Gom theo
+  // platform thay vì account (vì user cần biết platform nào cần đăng ký, không
+  // phải account nào). Luôn hiện regardless of statusFilter — đây là DEMAND
+  // signal (community cần seeding nhưng chưa có account ready). Bug 2026-05-22:
+  // sau khi cascade joinStatus, briefs ẩn khỏi default view → user không biết
+  // platform nào còn cần tạo account.
+  const needAccountGroups = useMemo(() => {
+    const NEED = new Set(['todo', 'creating']);
+    const by = new Map<string, { platformLabel: string; rows: SeedingQueueItem[] }>();
+    for (const x of searchOnly) {
+      if (!NEED.has(x.accountStatus)) continue;
+      const key = x.platformKey || x.platformLabel || 'unknown';
+      const existing = by.get(key);
+      if (existing) existing.rows.push(x);
+      else by.set(key, { platformLabel: x.platformLabel || key, rows: [x] });
+    }
+    return [...by.entries()].map(([platformKey, group]) => {
+      const accounts = new Set(group.rows.map((r) => r.accountId)).size;
+      const habitats = new Set(group.rows.map((r) => r.habitatId)).size;
+      const totalEstimatedPosts = group.rows.reduce((s, x) => s + Math.max(0, x.backlogCount), 0);
+      return {
+        platformKey,
+        platformLabel: group.platformLabel,
+        rows: group.rows,
+        accounts,           // số account cần tạo (distinct)
+        habitats,           // số community đang chờ
+        totalEstimatedPosts,
+      };
+    }).sort((a, b) => b.habitats - a.habitats);
+  }, [searchOnly]);
+
   // Account chết → gom theo account, hiển thị riêng (luôn hiện, kể cả filter
   // "Đang chạy") để không bao giờ biến mất âm thầm + có chỗ revive/dọn.
   const deadGroups = useMemo(() => {
@@ -328,6 +360,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     let list = issueFilter === 'acct-dead'
       ? searchOnly
       : searchOnly.filter((x) => !isDeadStatus(x.accountStatus));
+    // Exclude need-account briefs khỏi main list — đã hiện ở section "Cần tạo
+    // account" riêng phía trên (luôn visible). Trừ khi user filter rõ ràng.
+    if (issueFilter !== 'acct-not-ready') {
+      list = list.filter((x) => x.accountStatus !== 'todo' && x.accountStatus !== 'creating');
+    }
     if (statusFilter === 'active' && !issueFilter) {
       list = list.filter((x) => x.status === 'overdue' || x.status === 'due' || x.status === 'upcoming');
     }
@@ -758,9 +795,146 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   // Thẻ account chết — COLLAPSE mặc định: chỉ 1 dòng tóm tắt + action;
   // bấm ▸ mới bung lý do + danh sách lịch.
   type DeadGroup = (typeof deadGroups)[number];
+  type NeedGroup = (typeof needAccountGroups)[number];
   const toggleDead = (id: number) => setExpandedDead((prev) => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
+  const toggleNeed = (platformKey: string) => setExpandedNeed((prev) => {
+    const n = new Set(prev); n.has(platformKey) ? n.delete(platformKey) : n.add(platformKey); return n;
+  });
+
+  // NeedAccountSection — hiển thị các briefs ở trạng thái account-NEVER-CREATED
+  // (todo/creating) grouped by platform. UI xanh dương (info, task-to-do —
+  // không phải error như dead account). Click platform header bung danh sách
+  // habitats cần seeding + nút "Mở Account" để jump tới Account modal tạo.
+  const NeedAccountSection = ({ groups, onOpenAccount, onOpenBrief }: {
+    groups: NeedGroup[];
+    onOpenAccount: (accountId: number) => void;
+    onOpenBrief: (briefId: number) => void;
+  }) => {
+    const totalHabitats = groups.reduce((s, g) => s + g.habitats, 0);
+    const totalAccounts = groups.reduce((s, g) => s + g.accounts, 0);
+    return (
+      <div style={{ marginBottom: 12, border: '1px solid #2563eb', borderRadius: 6,
+                    background: 'rgba(59,130,246,.06)', overflow: 'hidden' }}>
+        {/* Header summary cho cả section */}
+        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8,
+                      borderBottom: '1px solid rgba(59,130,246,.25)' }}>
+          <span style={{ fontSize: 14 }}>➕</span>
+          <strong style={{ fontSize: 13, color: '#60a5fa' }}>Cần tạo account để seeding</strong>
+          <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+            {totalAccounts} account · {totalHabitats} community đang chờ · {groups.length} platform
+          </span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+            Briefs đã có chiến lược + lịch nhưng chưa có account thật → tạo account để start seeding.
+          </span>
+        </div>
+        {/* Per-platform rows */}
+        {groups.map((g) => {
+          const open = expandedNeed.has(g.platformKey);
+          const platform = platforms.find((p) => p.key === g.platformKey);
+          return (
+            <div key={g.platformKey} style={{
+              borderTop: '1px solid rgba(59,130,246,.15)',
+            }}>
+              <div style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => toggleNeed(g.platformKey)}
+                        title={open ? 'Thu gọn' : 'Mở danh sách community đang chờ'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer',
+                                 color: '#60a5fa', padding: 0, display: 'inline-flex', alignItems: 'center' }}>
+                  <IconChevron dir={open ? 'down' : 'right'} size={13} />
+                </button>
+                <SiteFavicon iconSlug={platform?.iconSlug ?? ''} kind={g.platformKey}
+                             size={16} title={g.platformLabel} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-0)', cursor: 'pointer' }}
+                      onClick={() => toggleNeed(g.platformKey)}>
+                  {g.platformLabel}
+                </span>
+                <span style={{ padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                               textTransform: 'uppercase', borderRadius: 3, background: '#3b82f6', color: '#fff' }}>
+                  Cần {g.accounts} acc
+                </span>
+                <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                  {g.habitats} community · ~{g.totalEstimatedPosts} bài backlog đang chờ
+                </span>
+                <span style={{ flex: 1 }} />
+                {/* Signup link nhanh nếu platform có */}
+                {platform?.signupUrl && (
+                  <a href={platform.signupUrl} target="_blank" rel="noopener noreferrer"
+                     title={`Mở trang đăng ký official: ${platform.signupUrl}`}
+                     style={{ fontSize: 10.5, padding: '3px 9px',
+                              background: 'rgba(59,130,246,.18)', color: '#60a5fa',
+                              border: '1px solid rgba(59,130,246,.4)', borderRadius: 4,
+                              textDecoration: 'none', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                    ↗ Signup
+                  </a>
+                )}
+                {/* Group account-id distinct → jump nhanh tới account đầu tiên */}
+                {(() => {
+                  const firstAcct = g.rows[0]!.accountId;
+                  return (
+                    <button type="button" onClick={() => onOpenAccount(firstAcct)}
+                            title="Mở Account modal để hoàn tất setup (điền credential, đổi status → active)"
+                            style={{ fontSize: 10.5, padding: '3px 9px', fontWeight: 700,
+                                     background: '#3b82f6', color: '#fff',
+                                     border: 'none', borderRadius: 4, cursor: 'pointer',
+                                     whiteSpace: 'nowrap' }}>
+                      ➕ Mở Account
+                    </button>
+                  );
+                })()}
+              </div>
+              {open && (
+                <div style={{ padding: '4px 12px 10px 36px', display: 'flex',
+                              flexDirection: 'column', gap: 4 }}>
+                  {g.rows.map((r) => (
+                    <div key={r.scheduleId} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
+                      background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
+                      fontSize: 11,
+                    }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                        @{r.accountHandle}
+                      </span>
+                      <span style={{ color: 'var(--fg-4)' }}>×</span>
+                      <span style={{ color: 'var(--fg-1)' }}>{r.habitatName}</span>
+                      <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
+                        ({r.habitatKind}{r.tribeName ? ` · ${r.tribeName}` : ''})
+                      </span>
+                      <span style={{ flex: 1 }} />
+                      <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)',
+                                     color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
+                        {r.backlogCount > 0 ? `${r.backlogCount} bài chờ` : 'chưa có bài'}
+                        {r.currentPhase && ` · phase ${r.currentPhase}`}
+                      </span>
+                      <button type="button" onClick={() => onOpenBrief(r.briefId)}
+                              title="Mở Brief modal — xem chiến lược + bài đã prep"
+                              style={{ fontSize: 10, padding: '2px 7px', background: 'transparent',
+                                       color: 'var(--fg-2)', border: '1px solid var(--line)',
+                                       borderRadius: 3, cursor: 'pointer' }}>
+                        Brief ↗
+                      </button>
+                      {r.habitatUrl && (
+                        <a href={r.habitatUrl} target="_blank" rel="noopener noreferrer"
+                           title="Mở community trong tab mới"
+                           style={{ fontSize: 10, padding: '2px 7px', color: 'var(--accent)',
+                                    textDecoration: 'none', borderRadius: 3,
+                                    border: '1px solid var(--accent-line)',
+                                    background: 'var(--accent-soft)' }}>
+                          ↗
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
   const DeadAccountCard = ({ g }: { g: DeadGroup }) => {
     const open = expandedDead.has(g.accountId);
     return (
@@ -933,10 +1107,19 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       {queue.length === 0 ? (
         <EmptyState icon="⏱" title="Chưa có lịch seeding nào"
           description="Vào trang Tribes → mở 1 account-brief → '+ Lịch seed' để tạo nhịp seeding cho cộng đồng đó." />
-      ) : (liveList.length === 0 && deadGroups.length === 0) ? (
+      ) : (liveList.length === 0 && deadGroups.length === 0 && needAccountGroups.length === 0) ? (
         <EmptyState icon="🔍" title="Không có lịch match filter" compact />
       ) : (
         <>
+          {/* "Cần tạo account" — DEMAND signal, luôn hiện trên cùng để user
+              chủ động tạo account thay vì chờ. */}
+          {needAccountGroups.length > 0 && (
+            <NeedAccountSection
+              groups={needAccountGroups}
+              onOpenAccount={(accountId) => modal.open('acct', accountId)}
+              onOpenBrief={(briefId) => modal.open('brief', briefId)}
+            />
+          )}
           {deadGroups.map((g) => <DeadAccountCard key={g.accountId} g={g} />)}
           <Bucket title="Quá hạn" items={buckets.overdue!} accent="var(--bad)" />
           <Bucket title="Đến hạn" items={buckets.due!} accent="var(--warn)" />

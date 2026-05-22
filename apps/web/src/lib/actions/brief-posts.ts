@@ -236,20 +236,33 @@ export async function createPostForBriefPhase(
 ): Promise<{ ok: boolean; id?: number; cardRef?: string; channelId?: number | null; pillarId?: number | null; error?: string }> {
   const db = ensureDb();
   // Verify brief belongs to project + lấy habitat_id để auto-pick channel.
-  // Cũng pull join_status để gate (0057 — tránh tạo bài rác cho brief
-  // chưa join, dẫn đến orphan cards + AI cost vô ích).
+  // Cũng pull join_status + account.status để gate 2-layer (account ready +
+  // membership ready). Bug 2026-05-22: brief 11 có account=todo nhưng
+  // joinStatus=joined → impossible. Bây giờ gate cả 2 tầng.
   const briefCheck = await db.execute(sql`
-    SELECT b.id, b.habitat_id, b.join_status, h.platform_key
+    SELECT b.id, b.habitat_id, b.join_status, pa.status AS account_status, h.platform_key
       FROM community_briefs b
       LEFT JOIN habitats h ON h.id = b.habitat_id
+      LEFT JOIN platform_accounts pa ON pa.id = b.account_id
      WHERE b.id = ${briefId} AND b.project_id = ${projectId}
   `);
   const briefRow = (briefCheck as unknown as Array<Record<string, unknown>>)[0];
   if (!briefRow) {
     return { ok: false, error: 'brief not in project' };
   }
-  // GATE: chỉ cho tạo bài khi đã join. Trừ phase warm-up có thể chuẩn bị
-  // bài trước cũng OK (đang chuẩn bị join) — chặn các phase active hơn.
+  // Layer 1 GATE: account phải active (không phải todo/creating/limited/blocked/banned).
+  // Áp dụng cho mọi phase — account chưa tồn tại thì warmup cũng vô nghĩa.
+  const accountStatus = String(briefRow.account_status ?? 'todo');
+  if (accountStatus !== 'active') {
+    const { accountStatusMeta } = await import('@/lib/status-meta');
+    const meta = accountStatusMeta(accountStatus);
+    return {
+      ok: false,
+      error: `❌ Account đang "${meta.label}" — ${meta.hint}. Fix account trước khi tạo bài.`,
+    };
+  }
+  // Layer 2 GATE: bridge/seed/direct yêu cầu joined. warm-up + value cho phép prep
+  // khi account active nhưng chưa join (chuẩn bị nội dung trước khi gửi join request).
   const joinStatus = String(briefRow.join_status ?? 'not_joined');
   if (joinStatus !== 'joined' && ['bridge', 'seed', 'direct'].includes(phase)) {
     return {
@@ -356,17 +369,26 @@ export async function createPlaceholdersForBriefPhase(
 ): Promise<{ ok: boolean; created: number[]; error?: string }> {
   const db = ensureDb();
 
-  // Pull habitat + phase_plan để biết platform + pillarMix override + join_status (gate 0057)
+  // Pull habitat + phase_plan + 2-layer gate (account + join)
   const briefRow = await db.execute(sql`
-    SELECT b.habitat_id, b.phase_plan, b.join_status, h.platform_key
+    SELECT b.habitat_id, b.phase_plan, b.join_status, pa.status AS account_status, h.platform_key
       FROM community_briefs b
       LEFT JOIN habitats h ON h.id = b.habitat_id
+      LEFT JOIN platform_accounts pa ON pa.id = b.account_id
      WHERE b.id = ${briefId} AND b.project_id = ${projectId} LIMIT 1
   `);
   const br = (briefRow as unknown as Array<Record<string, unknown>>)[0];
-  // GATE: batch tạo bài chỉ khi joined (cho mọi phase — batch = preset N bài
-  // pillar mix sẵn sàng đăng, nên cần membership thật). Phase warm-up vẫn
-  // có thể tạo từng bài qua createPostForBriefPhase nếu cần prep.
+  // Layer 1 GATE: account-level (xem comment trong createPostForBriefPhase)
+  const accountStatus = String(br?.account_status ?? 'todo');
+  if (accountStatus !== 'active') {
+    const { accountStatusMeta } = await import('@/lib/status-meta');
+    const meta = accountStatusMeta(accountStatus);
+    return {
+      ok: false, created: [],
+      error: `❌ Account đang "${meta.label}" — ${meta.hint}. Fix account trước khi batch tạo bài.`,
+    };
+  }
+  // Layer 2 GATE: batch (mọi phase) cần membership thật
   const joinStatus = String(br?.join_status ?? 'not_joined');
   if (joinStatus !== 'joined') {
     return {

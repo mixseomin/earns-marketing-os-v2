@@ -278,7 +278,24 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
 
+  // CASCADE 0057: nếu account chuyển sang todo/creating/blocked/banned →
+  // tất cả community_briefs của account này phải reset join_status='not_joined'
+  // (logically: account chưa tồn tại hoặc đã ban → không thể là member community).
+  // Giữ joined_at làm lịch sử ('đã từng join') nhưng đổi status để gate fire.
+  if (patch.status !== undefined) {
+    const s = patch.status;
+    if (s === 'todo' || s === 'creating' || s === 'blocked' || s === 'banned') {
+      await db.execute(sql`
+        UPDATE community_briefs
+           SET join_status = 'not_joined', updated_at = now()
+         WHERE account_id = ${acc.id} AND join_status != 'not_joined'
+      `);
+    }
+  }
+
   revalidatePath(`/p/${projectId}/resources`);
+  revalidatePath(`/p/${projectId}/seeding`);
+  revalidatePath(`/p/${projectId}/tribes`);
   return { ok: true };
 }
 

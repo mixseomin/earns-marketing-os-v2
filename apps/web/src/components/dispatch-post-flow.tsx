@@ -28,6 +28,9 @@ interface DispatchButtonProps {
   isJoined?: boolean;
   /** Click khi !isJoined — parent open JoinStatusBanner để fix */
   onRequestJoin?: () => void;
+  /** Lý do !isJoined: 'account' = account-tầng-1, 'membership' = join-tầng-2.
+      Default 'membership' (backwards compat). */
+  notReadyReason?: 'account' | 'membership';
   // Callback sau confirm: refresh list + clear local state
   onConfirmed?: (postUrl: string) => void;
   onUnconfirmed?: () => void;
@@ -40,33 +43,44 @@ function DispatchPostFlowImpl({
   projectId, briefId, cardId, bodyToCopy,
   postUrl, channelUrl, habitatUrl,
   channelName, habitatName,
-  isJoined = true, onRequestJoin,
+  isJoined = true, onRequestJoin, notReadyReason = 'membership',
   onConfirmed, onUnconfirmed,
 }: DispatchButtonProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const clip = useCopyToClipboard(2000);
 
-  // 0057 GATE: Chưa joined → block dispatch UI hoàn toàn, hiện banner cảnh báo + CTA
-  // click → onRequestJoin (parent scroll JoinStatusBanner vào viewport).
+  // 0057 GATE: isJoined=false có 2 lý do — account chưa ready HOẶC chưa join.
+  // notReadyReason cho phép parent chỉ rõ tầng nào blocking để UI label đúng.
   if (!isJoined && !postUrl) {
+    const isAccountIssue = notReadyReason === 'account';
+    const label = isAccountIssue ? '🔒 Account chưa sẵn sàng' : '🔒 Chưa join community';
+    const desc = isAccountIssue
+      ? 'Account chưa tạo / chưa verify / bị khoá. Tạo + verify account trước khi đăng bài.'
+      : 'Không đăng bài được khi chưa join. Đăng = nguy cơ shadowban + spam-flag.';
+    const btnLabel = isAccountIssue ? 'Fix account →' : 'Fix join status →';
+    const btnTip = isAccountIssue
+      ? 'Mở Account modal để setup / verify / fix account'
+      : 'Mở Join status banner để đánh dấu đã join community';
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-                    padding: '7px 9px', background: 'rgba(251,191,36,.10)',
-                    border: '1px solid rgba(251,191,36,.4)', borderRadius: 5 }}>
+                    padding: '7px 9px',
+                    background: isAccountIssue ? 'rgba(248,113,113,.10)' : 'rgba(251,191,36,.10)',
+                    border: `1px solid ${isAccountIssue ? 'rgba(248,113,113,.4)' : 'rgba(251,191,36,.4)'}`,
+                    borderRadius: 5 }}>
         <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                       color: 'var(--warn)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-          🔒 Chưa join community
+                       color: isAccountIssue ? 'var(--bad)' : 'var(--warn)',
+                       textTransform: 'uppercase', letterSpacing: '.05em' }}>
+          {label}
         </span>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1 }}>
-          Không đăng bài được khi chưa join. Đăng = nguy cơ shadowban + spam-flag.
-        </span>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1 }}>{desc}</span>
         {onRequestJoin && (
           <button type="button" onClick={onRequestJoin}
-                  title="Mở Join status banner để đánh dấu đã join community"
+                  title={btnTip}
                   style={{ fontSize: 10.5, padding: '4px 10px', fontWeight: 700,
-                           background: 'var(--warn)', color: '#0d1117',
+                           background: isAccountIssue ? 'var(--bad)' : 'var(--warn)',
+                           color: '#0d1117',
                            border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-            Fix join status →
+            {btnLabel}
           </button>
         )}
       </div>

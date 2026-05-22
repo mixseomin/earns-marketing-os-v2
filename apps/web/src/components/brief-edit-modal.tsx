@@ -18,9 +18,11 @@ import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 import { fmtAgo } from '@/lib/time-format';
 import { JoinStatusBanner } from './join-status-banner';
 import { JoinChip } from './join-chip';
+import { AccountReadinessChip } from './account-readiness-chip';
 import { CritiquePanel } from './critique-panel';
 import { PhaseHistoryView } from './phase-history-view';
 import { PostFiltersBar, EMPTY_FILTERS, applyPostFilters, type PostFilters } from './post-filters-bar';
+import { isAccountReady } from '@/lib/brief-readiness';
 import {
   type Phase, type PhaseEntry, PLANNED_PHASES,
   PHASE_LABEL, PHASE_COLOR, PHASE_DESCRIPTION,
@@ -169,6 +171,17 @@ export function BriefEditModal({
       return () => clearTimeout(t);
     }
   }, [joinStatus, existing]);
+
+  // 2-layer readiness: account (tầng 1) + join (tầng 2). Pass xuống children
+  // qua isReady + notReadyReason để banner/button có thông điệp đúng layer.
+  const accountReady = isAccountReady(accountStatus);
+  const isReady = accountReady && joinStatus === 'joined';
+  const notReadyReason: 'account' | 'membership' = !accountReady ? 'account' : 'membership';
+  // onRequestFix: account-layer → mở Account modal; membership-layer → scroll banner.
+  const onRequestFix = () => {
+    if (!accountReady && onOpenAccount) onOpenAccount(accountId);
+    else focusJoinBanner();
+  };
 
   // First time a brief is opened with empty plan, auto-init from archetype
   // defaults. Idempotent on the server (only fills if empty).
@@ -398,27 +411,15 @@ export function BriefEditModal({
                   </span>
                 );
               })()}
-              {/* Status pill — CHỈ hiện khi !== 'active' để header không bị
-                  nhồi nhét. Active = mặc định mong đợi → không cần label. */}
-              {accountStatus && accountStatus !== 'active' && (() => {
-                const meta = accountStatusMeta(accountStatus);
-                const reasonSuffix = accountBlockReason ? ` — ${accountBlockReason}` : '';
-                const clickable = !!onOpenAccount;
-                return (
-                  <button type="button" disabled={!clickable}
-                          onClick={clickable ? (e) => { e.stopPropagation(); onOpenAccount(accountId); } : undefined}
-                          title={`${meta.label}: ${meta.hint ?? ''}${reasonSuffix}${clickable ? ' — click để sửa' : ''}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 5px',
-                                   fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                   borderRadius: 3,
-                                   background: meta.color + '22', color: meta.color,
-                                   border: `1px solid ${meta.color}66`,
-                                   cursor: clickable ? 'pointer' : 'default' }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
-                    {meta.label}
-                  </button>
-                );
-              })()}
+              {/* AccountReadinessChip — TẦNG 1 (account global). Hiện khi
+                  account != active. Dead status (todo/creating/blocked/banned/dormant/defunct)
+                  → pulse warning đỏ rõ rệt. Click → mở Account modal fix.
+                  Khác với JoinChip (tầng 2 — membership per-habitat). */}
+              <AccountReadinessChip
+                accountStatus={accountStatus ?? ''}
+                blockReason={accountBlockReason}
+                onClick={onOpenAccount ? () => onOpenAccount(accountId) : undefined}
+              />
               <span style={{ color: 'var(--fg-4)' }}>×</span>
               {/* Habitat chip — click mở HabitatFormModal (sửa url / kind /
                   platform / mod rules / members / posting rules / topics). */}
@@ -460,11 +461,11 @@ export function BriefEditModal({
                   ↗
                 </a>
               )}
-              {/* Join chip — luôn visible ở header. Cho user biết account
-                  CÓ thực sự trong community này không (tầng membership,
-                  khác account.status global). Click → scroll JoinStatusBanner
-                  ở body vào viewport. */}
-              {existing && (
+              {/* Join chip — tầng 2 (per-habitat membership). CHỈ render khi
+                  account ready (tầng 1). Account !ready → AccountReadinessChip
+                  đã loud rồi, JoinChip thêm vào sẽ nhiễu vì join phụ thuộc
+                  account tồn tại. */}
+              {existing && isAccountReady(accountStatus) && (
                 <JoinChip joinStatus={joinStatus} joinedAt={joinedAt}
                           onClick={focusJoinBanner} />
               )}
@@ -552,7 +553,7 @@ export function BriefEditModal({
               if (t === 'overview' || t === 'history') onFocusChange?.('', undefined);
               else onFocusChange?.(t, undefined);
             }}
-            isJoined={joinStatus === 'joined'}
+            isJoined={isReady}
           />
         )}
 
@@ -609,8 +610,9 @@ export function BriefEditModal({
               onFocusChange={onFocusChange}
               onPostsChanged={onPostsChanged}
               postsReloadKey={postsReloadKey}
-              isJoined={joinStatus === 'joined'}
-              onRequestJoin={focusJoinBanner}
+              isJoined={isReady}
+              onRequestJoin={onRequestFix}
+              notReadyReason={notReadyReason}
             />
           )}
 
@@ -1414,7 +1416,7 @@ function PhaseEntryEditor({
   projectId, briefId, habitatId, habitatUrl, onOpenHabitat, platformKey, platformCategory,
   platformAllowedFormats, habitatAllowedFormats,
   actualPostCount, phase, entry, isCurrentPhase, onChange, onBlur, onAdvance, focusCardId, onFocusChange, onPostsChanged, postsReloadKey,
-  isJoined, onRequestJoin,
+  isJoined, onRequestJoin, notReadyReason,
 }: {
   projectId: string;
   briefId: number;
@@ -1439,6 +1441,7 @@ function PhaseEntryEditor({
   // 0057 GATE: pass-through xuống PostsForPhase → PostRow → DispatchPostFlow.
   isJoined?: boolean;
   onRequestJoin?: () => void;
+  notReadyReason?: 'account' | 'membership';
 }) {
   const fld: CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
@@ -1603,7 +1606,8 @@ function PhaseEntryEditor({
                      onPostsChanged={onPostsChanged}
                      externalReloadKey={postsReloadKey}
                      isJoined={isJoined}
-                     onRequestJoin={onRequestJoin} />
+                     onRequestJoin={onRequestJoin}
+                     notReadyReason={notReadyReason} />
       </div>
       </div>{/* /modal-cols */}
 
@@ -1899,7 +1903,7 @@ function PostsForPhase({
   projectId, briefId, habitatId, habitatUrl, onOpenHabitat, platformKey, platformCategory,
   platformAllowedFormats, habitatAllowedFormats, phaseFormatMix,
   phase, focusCardId, onFocusChange, onPostsChanged, externalReloadKey = 0,
-  isJoined = true, onRequestJoin,
+  isJoined = true, onRequestJoin, notReadyReason,
 }: {
   projectId: string;
   briefId: number;
@@ -1919,6 +1923,7 @@ function PostsForPhase({
   // 0057 GATE: disable create/batch buttons + pass-through to PostRow → DispatchPostFlow
   isJoined?: boolean;
   onRequestJoin?: () => void;
+  notReadyReason?: 'account' | 'membership';
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -2345,6 +2350,7 @@ function PostsForPhase({
                      bundle={bundle}
                      isJoined={isJoined}
                      onRequestJoin={onRequestJoin}
+                     notReadyReason={notReadyReason}
                      onPostsChanged={onPostsChanged}
                      expanded={openId === p.id}
                      onToggle={() => {
@@ -2372,7 +2378,7 @@ function PostRow({
   post, projectId, briefId, habitatId, habitatUrl, onOpenHabitat, platformKey, platformCategory,
   platformAllowedFormats, habitatAllowedFormats, voicePillReloadKey = 0,
   bundle,
-  isJoined = true, onRequestJoin,
+  isJoined = true, onRequestJoin, notReadyReason,
   expanded, onToggle, onChange, onLocalPatch, onPostsChanged,
 }: {
   post: BriefPost;
@@ -2391,6 +2397,7 @@ function PostRow({
   // 0057 GATE: pass-through to DispatchPostFlow
   isJoined?: boolean;
   onRequestJoin?: () => void;
+  notReadyReason?: 'account' | 'membership';
   onPostsChanged?: () => void;         // báo parent reload coverage grid sau khi đổi channel
   expanded: boolean;
   onToggle: () => void;
@@ -3000,6 +3007,7 @@ function PostRow({
                 habitatName={undefined}
                 isJoined={isJoined}
                 onRequestJoin={onRequestJoin}
+                notReadyReason={notReadyReason}
                 onConfirmed={(url) => {
                   onLocalPatch?.({ postUrl: url, postedAt: new Date().toISOString() });
                   onPostsChanged?.();

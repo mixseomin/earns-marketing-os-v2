@@ -1146,14 +1146,24 @@ export async function advancePhase(
   const db = ensureDb();
   const me = await getCurrentUser();
   const rows = await db.execute(sql`
-    SELECT current_phase, phase_history, join_status FROM community_briefs WHERE id = ${briefId} LIMIT 1
+    SELECT b.current_phase, b.phase_history, b.join_status, pa.status AS account_status
+      FROM community_briefs b
+      LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+     WHERE b.id = ${briefId} LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
   if (!r) return { ok: false, error: 'brief not found' };
   const from = parsePhase(r.current_phase);
   if (from === nextPhase) return { ok: true };
-  // GATE 0057: chuyển sang bridge/seed/direct chỉ khi đã joined. Phase
-  // warm-up + value + cooldown + paused vẫn cho phép (không yêu cầu membership).
+  // GATE 0057 + 2-layer: chuyển sang bridge/seed/direct yêu cầu account
+  // active VÀ joined. warm-up/value/cooldown/paused thì chỉ cần account active.
+  const accountStatus = String(r.account_status ?? 'todo');
+  if (accountStatus !== 'active') {
+    return {
+      ok: false,
+      error: `❌ Account đang "${accountStatus}" (không phải 'active') — không thể advance phase. Fix account trước.`,
+    };
+  }
   const joinStatus = String(r.join_status ?? 'not_joined');
   if (joinStatus !== 'joined' && ['bridge', 'seed', 'direct'].includes(nextPhase)) {
     return {

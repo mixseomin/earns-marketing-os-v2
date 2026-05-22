@@ -741,16 +741,24 @@ export async function confirmCardPosted(
   const postedAt = payload.postedAt ? new Date(payload.postedAt) : new Date();
   if (isNaN(postedAt.getTime())) return { ok: false, error: 'Thời gian đăng không hợp lệ' };
 
-  // 0057 GATE: account phải joined community thì mới được mark đã đăng.
-  // Mark "đăng tay" khi chưa join = nguy cơ shadowban (post lạc / spam) +
-  // sai analytics. Bắt user fix join state trước, không phải sau.
-  const joinCheck = await db.execute(sql`
-    SELECT join_status FROM community_briefs
-    WHERE id = ${briefId} AND project_id = ${projectId} LIMIT 1
+  // 0057 GATE: brief phải READY (account active + joined community). Pull cả
+  // 2 tầng: account.status + join_status. Helper getBriefReadiness sẽ giải
+  // thích blocking layer (account vs membership).
+  const readyCheck = await db.execute(sql`
+    SELECT b.join_status, pa.status AS account_status
+      FROM community_briefs b
+      JOIN platform_accounts pa ON pa.id = b.account_id
+     WHERE b.id = ${briefId} AND b.project_id = ${projectId} LIMIT 1
   `);
-  const js = (joinCheck as unknown as Array<{ join_status: string }>)[0]?.join_status ?? 'not_joined';
-  if (js !== 'joined') {
-    return { ok: false, error: `❌ Brief đang ở trạng thái "${js}" — phải đánh dấu "đã join" trước khi confirm đăng bài. Tránh shadowban: post vào community chưa join sẽ bị mod flag.` };
+  const rc = (readyCheck as unknown as Array<{ join_status: string; account_status: string }>)[0];
+  if (!rc) return { ok: false, error: 'Brief không tồn tại trong project' };
+  const { getBriefReadiness } = await import('@/lib/brief-readiness');
+  const verdict = getBriefReadiness(rc.account_status, rc.join_status);
+  if (!verdict.ready) {
+    return {
+      ok: false,
+      error: `❌ ${verdict.reason}. ${verdict.fixHint}. (Blocking layer: ${verdict.blockingLayer})`,
+    };
   }
 
   // 1. Update card với metadata đã đăng

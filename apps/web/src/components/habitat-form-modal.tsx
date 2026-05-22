@@ -14,6 +14,8 @@ import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
 import { Spinner, FormatIcon, SiteFavicon, Pill } from './ui';
 import {
   listBriefsForHabitat,
+  listAddableAccountsForHabitat,
+  upsertBrief,
   type BriefForHabitat,
 } from '@/lib/actions/community-briefs';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
@@ -467,6 +469,16 @@ export function HabitatFormModal({
             <HabitatBriefsSection
               habitatId={habitat.id}
               habitatName={habitat.name}
+              onOpenAccount={onOpenAccount}
+              onOpenBrief={onOpenBrief}
+            />
+          )}
+          {!isCreate && habitat && (
+            <AvailableAccountsSection
+              projectId={projectId}
+              habitatId={habitat.id}
+              habitatName={habitat.name}
+              platformKey={habitat.platformKey ?? form.platformKey ?? null}
               onOpenAccount={onOpenAccount}
               onOpenBrief={onOpenBrief}
             />
@@ -2005,6 +2017,166 @@ function HabitatBriefsSection({
                     ⏱ {b.cadence}
                   </span>
                 )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// AvailableAccountsSection — list accounts cùng platform với habitat NHƯNG
+// chưa có brief với habitat này. Mỗi row có nút "+ Tạo brief" để gắn nhanh
+// (upsertBrief với empty patch), sau đó refresh cả 2 section (engaging +
+// available). Max-height + scroll khi >10 accounts để tránh modal quá dài.
+interface AvailableAccount {
+  id: number;
+  handle: string | null;
+  status: string;
+  platformKey: string;
+  platformLabel: string;
+}
+
+function AvailableAccountsSection({
+  projectId, habitatId, habitatName, platformKey, onOpenAccount, onOpenBrief,
+}: {
+  projectId: string;
+  habitatId: number;
+  habitatName: string;
+  platformKey: string | null;
+  onOpenAccount?: (accountId: number) => void;
+  onOpenBrief?: (briefId: number) => void;
+}) {
+  const router = useRouter();
+  const [accounts, setAccounts] = useState<AvailableAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [creatingFor, setCreatingFor] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const platformKeys = platformKey ? [platformKey] : null;
+    listAddableAccountsForHabitat(projectId, habitatId, platformKeys)
+      .then((rows) => {
+        if (!cancelled) { setAccounts(rows); setLoading(false); }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setFetchError(err?.message || String(err));
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [projectId, habitatId, platformKey, reloadTick]);
+
+  async function createBriefFor(account: AvailableAccount) {
+    setCreatingFor(account.id);
+    try {
+      const r = await upsertBrief(projectId, account.id, habitatId, {});
+      if (r.ok && r.id) {
+        setReloadTick((t) => t + 1);
+        router.refresh();
+        onOpenBrief?.(r.id);
+      } else {
+        setFetchError(r.error || 'Không tạo được brief');
+      }
+    } catch (err) {
+      setFetchError((err as Error)?.message || String(err));
+    } finally {
+      setCreatingFor(null);
+    }
+  }
+
+  // Empty state khi không có available account — ẩn section hẳn để tránh
+  // noise (user đã thấy engaging section ở trên rồi).
+  if (!loading && !fetchError && accounts.length === 0) return null;
+
+  const showScroll = accounts.length > 10;
+
+  return (
+    <div style={{ marginBottom: 8, border: '1px dashed var(--line-2)',
+                  borderRadius: 6, background: 'var(--bg-1)',
+                  overflow: 'hidden' }}>
+      <div style={{ padding: '8px 14px', background: 'var(--bg-2)',
+                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                    borderBottom: '1px solid var(--line)' }}>
+        <strong style={{ fontSize: 12, color: 'var(--fg-1)', fontWeight: 700 }}>
+          🪪 Available accounts cùng platform{platformKey ? ` (${platformKey})` : ''}
+        </strong>
+        <span style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                       fontWeight: 700, background: 'var(--bg-3)', color: 'var(--fg-2)',
+                       borderRadius: 3 }}>
+          {accounts.length}
+        </span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+          chưa engage habitat này · "+ Tạo brief" để gắn
+        </span>
+      </div>
+      {loading ? (
+        <div style={{ padding: 10, textAlign: 'center', color: 'var(--fg-3)', fontSize: 11 }}>
+          <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
+        </div>
+      ) : fetchError ? (
+        <div style={{ padding: 10, fontSize: 11, color: 'var(--bad)',
+                      background: 'rgba(248,113,113,.08)' }}>
+          ⚠ {fetchError}
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          maxHeight: showScroll ? 280 : undefined,
+          overflowY: showScroll ? 'auto' : undefined,
+        }}>
+          {accounts.map((a) => {
+            const acctMeta = accountStatusMeta(a.status);
+            const isBusy = creatingFor === a.id;
+            return (
+              <div key={a.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 12px', borderTop: '1px solid var(--line)',
+              }}>
+                <button type="button"
+                        onClick={() => onOpenAccount?.(a.id)}
+                        disabled={!onOpenAccount}
+                        title={onOpenAccount ? `Mở Account modal: @${a.handle ?? '?'}` : ''}
+                        style={{ background: 'none', border: 'none', padding: 0,
+                                 cursor: onOpenAccount ? 'pointer' : 'default',
+                                 fontSize: 12, fontWeight: 600, color: 'var(--fg-0)',
+                                 textDecoration: 'underline',
+                                 textDecorationStyle: 'dotted',
+                                 textDecorationColor: 'var(--fg-4)',
+                                 textUnderlineOffset: 3,
+                                 fontFamily: 'var(--font-mono)' }}>
+                  @{a.handle ?? 'no-handle'}
+                </button>
+                <Pill color="var(--fg-3)" label={a.platformLabel} size="xs" tone="ghost" />
+                {a.status !== 'active' && (
+                  <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                 background: acctMeta.color + '22', color: acctMeta.color,
+                                 border: `1px solid ${acctMeta.color}66` }}>
+                    {acctMeta.icon} {acctMeta.label}
+                  </span>
+                )}
+                <span style={{ flex: 1 }} />
+                <button type="button"
+                        onClick={() => createBriefFor(a)}
+                        disabled={isBusy}
+                        title={`Tạo brief: @${a.handle ?? '?'} × ${habitatName}`}
+                        style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, padding: '3px 8px',
+                                 background: 'var(--accent-soft)', color: 'var(--accent)',
+                                 border: '1px dashed var(--accent-line)',
+                                 borderRadius: 3,
+                                 cursor: isBusy ? 'wait' : 'pointer' }}>
+                  {isBusy ? '…' : '+ Tạo brief'}
+                </button>
               </div>
             );
           })}

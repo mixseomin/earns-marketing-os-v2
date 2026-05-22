@@ -497,36 +497,25 @@ export function HabitatFormModal({
           <button className="btn ghost" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Reddit auto-enrich: chỉ hiện khi platform=reddit. 1 click gọi
-              OAuth + about + rules + hot, fill ~10 field tự động (members,
-              rules markdown, gates, topics, activity, language, icon). */}
+        <div className="modal-body" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Reddit auto-enrich — 1-line compact chip (rule: feedback_mos2_compact_modal_design). */}
           {form.platformKey === 'reddit' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                          background: 'var(--accent-soft)', border: '1px dashed var(--accent-line)',
-                          borderRadius: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: 'var(--fg-1)' }}>
-                <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={12} height={12}
-                     style={{ verticalAlign: '-2px', marginRight: 4 }} />
-                <strong>Reddit auto-enrich</strong>
-                <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>
-                  OAuth gọi /about + /rules + /hot → fill ~10 fields
-                </span>
-              </span>
-              <span style={{ flex: 1 }} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                          alignSelf: 'flex-start' }}>
               <button type="button" onClick={handleEnrichReddit} disabled={redditEnrichBusy}
-                      title="Cần URL hoặc name (r/subreddit) đã điền"
-                      style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px',
-                               background: 'var(--accent)', color: 'var(--btn-primary-fg, #0d1117)',
-                               border: 'none', borderRadius: 4,
+                      title="Reddit OAuth /about + /rules + /hot → fill ~10 fields (cần URL hoặc r/name)"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                               fontSize: 11, fontWeight: 700, padding: '3px 9px',
+                               background: 'var(--accent-soft)', color: 'var(--accent)',
+                               border: '1px solid var(--accent-line)', borderRadius: 4,
                                cursor: redditEnrichBusy ? 'wait' : 'pointer' }}>
-                {redditEnrichBusy ? '⏳ Fetching…' : '✨ Auto-fill'}
+                <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={11} height={11} />
+                {redditEnrichBusy ? '⏳ Reddit…' : '✨ Auto-fill Reddit'}
               </button>
               {redditEnrichMsg && (
-                <div style={{ flexBasis: '100%', fontSize: 10.5,
-                              color: redditEnrichMsg.startsWith('⚠') ? 'var(--bad)' : 'var(--ok)' }}>
+                <span style={{ fontSize: 10, color: redditEnrichMsg.startsWith('⚠') ? 'var(--bad)' : 'var(--ok)' }}>
                   {redditEnrichMsg}
-                </div>
+                </span>
               )}
             </div>
           )}
@@ -603,10 +592,10 @@ export function HabitatFormModal({
           />
 
           {/* ── 3-column body ── col1: identity | col2: outreach gates | col3: voice + rules + topics + channels ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-          <div title="Nhận diện community + link platform + tribes mà habitat thuộc về"
-               style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--line)', paddingBottom: 4, cursor: 'help' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          <div title="Nhận diện community + link platform + tribes"
+               style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
             🪪 Nhận diện
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
@@ -890,7 +879,7 @@ export function HabitatFormModal({
           </div>{/* /left column */}
 
           {/* ── COL 2: Outreach meta + Accounts engaging — feeds AI brief generator + persona-fit hints ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
             {/* Accounts engaging — đặt ĐẦU col Outreach để user thấy ai đang
                 engage habitat này trong khi xem các outreach gates. */}
             {!isCreate && habitat && (
@@ -904,8 +893,8 @@ export function HabitatFormModal({
                 onOpenBrief={onOpenBrief}
               />
             )}
-            <div title="AI brief generator đọc các field này để sinh chiến lược tiếp cận (approach / narrative / phase plan / hooks). Điền càng đầy → brief càng chuẩn."
-                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--accent-line)', paddingBottom: 4, cursor: 'help' }}>
+            <div title="AI brief generator đọc các field này để sinh chiến lược tiếp cận. Điền càng đầy → brief càng chuẩn."
+                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
               🎯 Outreach meta
             </div>
 
@@ -1037,9 +1026,9 @@ export function HabitatFormModal({
           </div>{/* /col2 — outreach gates + formats */}
 
           {/* ── COL 3: Voice + Rules + Channels + Topics ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-            <div title="Voice profile + posting rules + channels + topics — section nội dung. Click ▾ để mở rộng phần dùng nhiều."
-                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px dashed var(--accent-line)', paddingBottom: 4, cursor: 'help' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+            <div title="Voice profile + posting rules + channels + topics"
+                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
               🎙 Voice · Rules · Channels
             </div>
             {/* Voice & few-shot — điều khiển độ "bựa" của AI gen. Đây là

@@ -1883,21 +1883,22 @@ function HabitatBriefsSection({
   }, [habitatId]);
 
   return (
-    <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 6,
-                  background: 'var(--bg-1)', overflow: 'hidden' }}>
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)',
+    <div style={{ marginBottom: 4, border: '2px solid var(--accent)', borderRadius: 6,
+                  background: 'var(--accent-soft)', overflow: 'hidden' }}>
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--accent-line)',
                     background: 'var(--bg-2)', display: 'flex',
-                    alignItems: 'center', gap: 8 }}>
-        <strong style={{ fontSize: 12, color: 'var(--fg-1)' }}>
-          🎯 Accounts engaging
+                    alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: 14, color: 'var(--accent)' }}>
+          🎯 Accounts engaging community này
         </strong>
-        <span style={{ fontSize: 10.5, color: 'var(--fg-4)',
-                       fontFamily: 'var(--font-mono)' }}>
-          {briefs.length} brief{briefs.length === 1 ? '' : 's'} · habitat "{habitatName}"
+        <span style={{ padding: '1px 8px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                       fontWeight: 700, background: 'var(--accent)', color: 'var(--bg-0)',
+                       borderRadius: 3 }}>
+          {briefs.length} brief{briefs.length === 1 ? '' : 's'}
         </span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
-          icon → Brief · @handle → Account modal
+        <span style={{ fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+          📋 icon → Brief modal · @handle → Account modal
         </span>
       </div>
       {loading ? (

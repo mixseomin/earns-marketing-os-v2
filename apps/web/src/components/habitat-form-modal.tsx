@@ -152,6 +152,9 @@ export function HabitatFormModal({
   );
   const toggleExtra = (id: number) =>
     setExtraTribeIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Default: chỉ show selected extra tribes. Click "+ thêm" để expand
+  // list candidates đầy đủ.
+  const [extraTribePicking, setExtraTribePicking] = useState(false);
 
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -764,24 +767,60 @@ export function HabitatFormModal({
             <label style={lbl}
                    title="1 community có thể thuộc nhiều tribe (audience identity). Tribe chính ở trên = primary; thêm tribe phụ ở đây nếu chéo nhiều nhóm.">
               <span style={{ cursor: 'help' }}>Tribe phụ</span>
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {tribes.filter((t) => t.lifecycle !== 'defunct' && t.id !== form.tribeId).length === 0 && (
-                <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>(không có tribe phụ khả dụng)</span>
+              {extraTribeIds.length > 0 && (
+                <span style={{ color: 'var(--accent)', fontWeight: 600, marginLeft: 4 }}>
+                  ({extraTribeIds.length})
+                </span>
               )}
-              {tribes.filter((t) => t.lifecycle !== 'defunct' && t.id !== form.tribeId).map((t) => {
-                const on = extraTribeIds.includes(t.id);
-                return (
-                  <span key={t.id} onClick={() => toggleExtra(t.id)}
-                        style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
-                                 border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
-                                 background: on ? 'var(--accent-soft)' : 'transparent',
-                                 color: on ? 'var(--accent)' : 'var(--fg-3)' }}>
-                    {on ? '✓ ' : '+ '}{t.name}
-                  </span>
-                );
-              })}
-            </div>
+            </label>
+            {(() => {
+              const candidates = tribes.filter((t) => t.lifecycle !== 'defunct' && t.id !== form.tribeId);
+              const selected = candidates.filter((t) => extraTribeIds.includes(t.id));
+              const unselected = candidates.filter((t) => !extraTribeIds.includes(t.id));
+              if (candidates.length === 0) {
+                return <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>(không có tribe phụ khả dụng)</span>;
+              }
+              return (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                  {/* Luôn show selected chips */}
+                  {selected.map((t) => (
+                    <span key={t.id} onClick={() => toggleExtra(t.id)}
+                          title="Click để bỏ chọn"
+                          style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
+                                   border: '1px solid var(--accent-line)',
+                                   background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                      ✓ {t.name}
+                    </span>
+                  ))}
+                  {/* Picking mode: show unselected candidates */}
+                  {extraTribePicking && unselected.map((t) => (
+                    <span key={t.id} onClick={() => toggleExtra(t.id)}
+                          title="Click để chọn"
+                          style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
+                                   border: '1px solid var(--line)',
+                                   background: 'transparent', color: 'var(--fg-3)' }}>
+                      + {t.name}
+                    </span>
+                  ))}
+                  {/* Toggle button: hiện picker / ẩn picker */}
+                  {unselected.length > 0 && (
+                    <button type="button"
+                            onClick={() => setExtraTribePicking((v) => !v)}
+                            title={extraTribePicking ? 'Ẩn list chọn' : `Chọn thêm từ ${unselected.length} tribe`}
+                            style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
+                                     border: '1px dashed var(--line-2)', background: 'transparent',
+                                     color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+                      {extraTribePicking ? '× ẩn' : `+ thêm (${unselected.length})`}
+                    </button>
+                  )}
+                  {selected.length === 0 && !extraTribePicking && (
+                    <span style={{ fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+                      chưa chọn tribe phụ nào
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
           </div>{/* /left column */}
 

@@ -498,27 +498,6 @@ export function HabitatFormModal({
         </div>
 
         <div className="modal-body" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Reddit auto-enrich — 1-line compact chip (rule: feedback_mos2_compact_modal_design). */}
-          {form.platformKey === 'reddit' && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-                          alignSelf: 'flex-start' }}>
-              <button type="button" onClick={handleEnrichReddit} disabled={redditEnrichBusy}
-                      title="Reddit OAuth /about + /rules + /hot → fill ~10 fields (cần URL hoặc r/name)"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                               fontSize: 11, fontWeight: 700, padding: '3px 9px',
-                               background: 'var(--accent-soft)', color: 'var(--accent)',
-                               border: '1px solid var(--accent-line)', borderRadius: 4,
-                               cursor: redditEnrichBusy ? 'wait' : 'pointer' }}>
-                <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={11} height={11} />
-                {redditEnrichBusy ? '⏳ Reddit…' : '✨ Auto-fill Reddit'}
-              </button>
-              {redditEnrichMsg && (
-                <span style={{ fontSize: 10, color: redditEnrichMsg.startsWith('⚠') ? 'var(--bad)' : 'var(--ok)' }}>
-                  {redditEnrichMsg}
-                </span>
-              )}
-            </div>
-          )}
           <AIFormParser
             context={[
               'Đây là 1 habitat (community/group concrete) cho marketing project. Đọc URL/text/screenshot/wiki rules → fill mọi field bên dưới.',
@@ -630,6 +609,25 @@ export function HabitatFormModal({
                               border: '1px solid var(--accent-line)' }}>↗ mở</a>
                 );
               })()}
+              {/* Reddit auto-fill — inline cạnh label URL khi platform=reddit.
+                  Rule: feedback_mos2_compact_modal_design (action button không
+                  đứng dòng riêng nếu có field input liên quan). */}
+              {form.platformKey === 'reddit' && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); handleEnrichReddit(); }}
+                        disabled={redditEnrichBusy}
+                        title={redditEnrichMsg ?? 'Reddit OAuth /about + /rules + /hot → fill ~10 fields'}
+                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 700,
+                                 color: redditEnrichMsg?.startsWith('⚠') ? 'var(--bad)' : 'var(--accent)',
+                                 fontFamily: 'var(--font-mono)', textDecoration: 'none',
+                                 padding: '0 5px', borderRadius: 3,
+                                 background: 'var(--accent-soft)',
+                                 border: `1px solid ${redditEnrichMsg?.startsWith('⚠') ? 'rgba(248,113,113,.5)' : 'var(--accent-line)'}`,
+                                 cursor: redditEnrichBusy ? 'wait' : 'pointer',
+                                 display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <img src="https://cdn.simpleicons.org/reddit/ff4500" alt="" width={9} height={9} />
+                  {redditEnrichBusy ? '⏳' : redditEnrichMsg?.startsWith('⚠') ? '⚠' : redditEnrichMsg?.startsWith('✓') ? '✓' : '✨'} auto
+                </button>
+              )}
             </label>
             <input type="url" value={form.url ?? ''}
                    onChange={(e) => {

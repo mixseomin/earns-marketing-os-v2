@@ -4,6 +4,7 @@ import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema } from '@/lib/habitat-field-schema';
+import { validateSelector } from '@/lib/selector-validate';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -67,12 +68,24 @@ ${parseHint ? `Expected parse type: ${parseHint}` : ''}
 
 Nhiệm vụ: sinh CSS selector STABLE trỏ ĐÚNG tới element user đã tag (NOT element khác giống nhau).
 
-RULES:
+RULES (vi phạm = LLM fail, selector sẽ bị reject server-side):
 1. Selector phải work với document.querySelector từ document root.
-2. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, id, slot, semantic tag names (faceplate-number, shreddit-subreddit-icon).
+2. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, shreddit-subreddit-icon).
 3. CẤM nth-of-type / nth-child / direct-child chains >3 levels (re-render = break).
 4. KHÔNG dùng class hash random (.css-1abc23d).
-5. Selector PHẢI specific đủ để KHÔNG bắt nhầm element khác cùng platform (vd nếu element là <p> đầu trong sidebar, selector "p" sẽ bắt mọi <p> trên page → SAI).
+5. Selector PHẢI generic cho MỌI subreddit (KHÔNG chỉ cho subreddit này). Test trong đầu: "Selector này dùng được cho r/A, r/B, r/anything khác không?".
+6. ⚠ CẤM TUYỆT ĐỐI hardcode subreddit-specific values trong selector:
+   - Sub IDs: t5_xxxxx (vd t5_3nnef → CHỈ work cho 1 sub)
+   - Subreddit names: /r/AstrologyChartShare, [href*="AstrologyChart"]
+   - URL paths: src^='https://styles.redditmedia.com/t5_xxx/...'
+   - Numeric tokens trong attribute values
+   → Nếu element có href/src chứa sub ID, dùng selector ON TAG/CLASS/SLOT khác, KHÔNG match attribute value.
+7. ⚠ CẤM lấy nhầm field (semantic mismatch):
+   - members (total subscribers) ≠ weekly_visitors (weekly active) ≠ weekly_contributions (posts+comments). 3 số khác hẳn nhau.
+   - Nếu element có slot='weekly-active-users-count' → đó là weekly_visitors HOẶC members (Reddit dùng cùng metric). Chỉ pick MỘT field cho selector này, KHÔNG dùng cho 2 fields.
+   - created_at = time element, NEVER faceplate-number.
+   - description = paragraph mô tả community, NEVER privacy hint.
+8. CẤM :has() pseudo-class (Safari < 15.4 không support).
 
 Output JSON shape:
 {
@@ -130,6 +143,26 @@ Sinh selector trỏ chính xác element này.`;
 
   if (!spec || typeof spec.css !== 'string') {
     return NextResponse.json({ ok: false, error: 'LLM returned no valid spec', raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+  }
+
+  // Server-side validation - reject selectors vi phạm rules (sub IDs,
+  // nth-of-type, :has, deep child chains).
+  const validation = validateSelector(spec.css as string);
+  if (!validation.ok) {
+    await logExtCall({
+      endpoint: 'train-selector', method: 'POST',
+      extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+      payloadMeta: { field_name: body.field_name, target_scope: body.target_scope ?? 'platform' },
+      responseMeta: { ok: false, css: spec.css, validation_error: validation.error, raw_llm: rawLlm.slice(0, 500) },
+      status: 422, durationMs: Date.now() - startedAt,
+      errorMsg: validation.error,
+    });
+    return NextResponse.json({
+      ok: false,
+      error: `Selector rejected: ${validation.error}`,
+      rejected_css: spec.css,
+      hint: 'LLM sinh selector không stable. Thử click element khác (specific hơn) hoặc edit manual.',
+    }, { status: 422 });
   }
 
   // Save - source='trained' priority cao hơn 'llm' (user explicitly tag).

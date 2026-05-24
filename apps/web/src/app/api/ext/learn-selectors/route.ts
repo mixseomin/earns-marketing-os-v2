@@ -4,6 +4,7 @@ import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
 import { getFieldHint } from '@/lib/habitat-field-schema';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
+import { validateSelector } from '@/lib/selector-validate';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -154,8 +155,14 @@ RULES:
 3. Selector phải work với document.querySelector. KHÔNG dùng jQuery/contains/has.
 4. Test trong đầu: selector này select element nào trong HTML user gửi? Nếu không chắc chắn → bỏ field.
 5. CẤM TUYỆT ĐỐI: nth-of-type, nth-child, > direct-child chains dài (>3 levels). Reddit re-render thay đổi DOM order liên tục → selectors này break ngay tuần sau.
-6. CẤM cross-field aliasing: nếu css 'faceplate-timeago' trỏ tới element TIME, KHÔNG được dùng cho field 'members' (số). Verify SEMANTIC match (members = number element, created_at = time element, description = paragraph element).
-7. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, faceplate-timeago, shreddit-subreddit-icon). Tránh bao bọc bằng parent chains dài.`;
+6. CẤM cross-field aliasing: nếu css 'faceplate-timeago' trỏ tới element TIME, KHÔNG được dùng cho field 'members' (số). Verify SEMANTIC match (members = number element, created_at = time element, description = paragraph element). Members ≠ weekly_visitors ≠ weekly_contributions (3 số riêng biệt).
+7. ⚠ CẤM TUYỆT ĐỐI hardcode subreddit-specific values:
+   - Sub IDs: t5_xxxxx (vd t5_3nnef CHỈ cho 1 sub)
+   - Subreddit names trong selector: /r/AstrologyChartShare, [href*="AstrologyChart"]
+   - URL paths: src^='https://styles.redditmedia.com/t5_xxx/...'
+   → Selector PHẢI generic cho mọi r/X. Test: "Selector này work cho r/A, r/B, r/anything?"
+8. CẤM :has() pseudo (Safari <15.4 không support).
+9. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, faceplate-timeago, shreddit-subreddit-icon). Tránh parent chains dài.`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
@@ -209,11 +216,20 @@ RULES:
     return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}`, selectors, model }, { status: 400 });
   }
 
+  // Validate từng selector trước khi save - reject bad ones.
+  const validSelectors: SelectorMap = {};
+  const rejected: Array<{ field: string; css: string; reason: string }> = [];
+  for (const [field, spec] of Object.entries(selectors)) {
+    const v = validateSelector(spec.css);
+    if (v.ok) validSelectors[field] = spec;
+    else rejected.push({ field, css: spec.css, reason: v.error || 'unknown' });
+  }
+
   const save = await setMap({
     scopeKind: targetScope,
     scopeKey: targetKey,
     pageKind: body.page_kind,
-    selectors,
+    selectors: validSelectors,
     source: 'llm',
   });
 
@@ -229,8 +245,12 @@ RULES:
       target_scope: targetScope, target_key: targetKey,
     },
     responseMeta: {
-      ok: true, selectors_count: Object.keys(selectors).length,
-      selectors_keys: Object.keys(selectors),
+      ok: true,
+      selectors_count: Object.keys(selectors).length,
+      valid_count: Object.keys(validSelectors).length,
+      rejected_count: rejected.length,
+      rejected,
+      selectors_keys: Object.keys(validSelectors),
       html_empty: htmlEmpty,
       raw_llm: rawLlmResponse.slice(0, 500),
       saved: save.saved,
@@ -241,7 +261,8 @@ RULES:
 
   return NextResponse.json({
     ok: true,
-    selectors,
+    selectors: validSelectors,
+    rejected,
     model,
     saved_to: { scope: targetScope, key: targetKey, count: save.saved },
   });

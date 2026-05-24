@@ -1,5 +1,22 @@
 # MOS v2 — Claude Context
 
+## 🚨 CRITICAL DEPLOY RULE
+
+**NEVER rsync code directly to `/opt/earns-marketing-os-v2/` on server.**
+
+Always: `git add <my files only> && git commit && git push origin main`. GHA
+auto-deploys. Server runs `git reset --hard` on every deploy — any uncommitted
+file on server gets wiped when another session pushes.
+
+Multi-session race: incident 2026-05-24 — GSC sparkline work disappeared when
+parallel session pushed habitat changes. Recover meant re-rsync + chase down
+"why did it vanish".
+
+Full deploy rules + script in `.claude/contexts/deploy.md` — read it before
+any deploy step.
+
+---
+
 ## Module context files (auto-load)
 
 Trước khi làm bất kỳ module nào, đọc context file tương ứng trong `.claude/contexts/`:

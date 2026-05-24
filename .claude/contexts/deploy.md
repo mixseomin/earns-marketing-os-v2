@@ -1,5 +1,35 @@
 # MOS v2 - Deploy Context
 
+## ⚠️ DEPLOY RULE — never rsync directly
+
+**ALWAYS deploy via `git push origin main` → GHA auto-deploys.**
+
+Reason: server runs `git reset --hard origin/main` on every GHA fire. Any file
+on server `/opt/earns-marketing-os-v2/` that ISN'T in the GitHub commit will be
+**silently wiped** next time another session pushes. Multiple Claude sessions
+push concurrently — happened 2026-05-24 with GSC sparkline work being erased.
+
+```bash
+# ❌ NEVER do this:
+rsync ... root@5.78.65.158:/opt/earns-marketing-os-v2/...
+ssh ... 'npm run build && systemctl restart mos2-web'
+
+# ✅ ALWAYS do this:
+git add <specific files only — not other sessions' work>
+git commit -m "..."
+git push origin main   # GHA pulls, builds, restarts
+```
+
+**Server-only files** (cron scripts in `/usr/local/bin/`, `/etc/*.json`,
+`/opt/cgg-report/`): document trong skill files at `~/.claude/skills/<topic>/`
++ commit nội dung script file vào repo `scripts/` nếu cần version control.
+
+**Before starting any new work**: `git status` to see what's uncommitted from
+prior sessions. If untracked/modified files exist that aren't yours, leave them
+alone — only commit YOUR changes by explicit `git add <files>` (never `git add .`).
+
+---
+
 ## Server
 
 - **Host**: Hetzner 5.78.65.158 (`as.on.tc`)

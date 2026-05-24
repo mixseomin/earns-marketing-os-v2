@@ -152,7 +152,16 @@ export async function POST(req: Request) {
     // v1.4.9 (mig 0059)
     weeklyVisitors: body.weekly_visitors ?? 0,
     weeklyContributions: body.weekly_contributions ?? 0,
-    privacy: body.privacy ?? '',
+    // Normalize privacy: LLM scrape có thể trả 'Public' / 'PUBLIC' /
+    // 'Private community' nhưng constraint chỉ accept lowercase enum.
+    // Bất kỳ value lạ → '' (skip) để không break check constraint 23514.
+    privacy: (() => {
+      const raw = (body.privacy ?? '').toLowerCase().trim();
+      if (raw.includes('private')) return 'private';
+      if (raw.includes('restricted')) return 'restricted';
+      if (raw.includes('public')) return 'public';
+      return '';
+    })(),
     createdAtSource: body.created_at_source ? new Date(body.created_at_source) : null,
     description: body.description ?? '',
     importedFrom: 'mos2-crew-ext',

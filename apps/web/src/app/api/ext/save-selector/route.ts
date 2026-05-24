@@ -16,12 +16,25 @@ interface SaveReq {
   page_kind: string;
   field_name: string;
   css: string;
+  kind?: 'css' | 'xpath';
   attr?: string;
   parse?: string;
   target_scope?: 'engine' | 'platform' | 'habitat';
   target_key?: string;
   habitat_id?: number;
   technology_key?: string;
+}
+
+// Minimal XPath validation — chỉ check non-empty + reject ID t5_xxx
+// (Reddit-specific sub IDs vẫn không stable cho dù CSS hay XPath).
+function validateXPath(xpath: string): { ok: boolean; error?: string } {
+  if (!xpath || typeof xpath !== 'string') return { ok: false, error: 'xpath empty' };
+  const trimmed = xpath.trim();
+  if (trimmed.length < 2) return { ok: false, error: 'xpath quá ngắn' };
+  if (trimmed.length > 500) return { ok: false, error: 'xpath quá dài' };
+  if (/\bt5_[a-z0-9]+/i.test(trimmed)) return { ok: false, error: 'Sub ID t5_xxx (Reddit-specific)' };
+  if (/styles\.redditmedia\.com\/t5_/i.test(trimmed)) return { ok: false, error: 'Reddit CDN path chứa sub ID' };
+  return { ok: true };
 }
 
 export async function POST(req: Request) {
@@ -39,12 +52,13 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
-  const validation = validateSelector(body.css);
+  const kind = body.kind || 'css';
+  const validation = kind === 'xpath' ? validateXPath(body.css) : validateSelector(body.css);
   if (!validation.ok) {
     await logExtCall({
       endpoint: 'save-selector', method: 'POST',
       extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
-      payloadMeta: { field_name: body.field_name, css: body.css },
+      payloadMeta: { field_name: body.field_name, css: body.css, kind },
       responseMeta: { ok: false, validation_error: validation.error },
       status: 422, durationMs: Date.now() - startedAt,
       errorMsg: validation.error,
@@ -68,7 +82,7 @@ export async function POST(req: Request) {
     else attr = 'textContent';
   }
 
-  const spec: Record<string, unknown> = { css: body.css, attr, parse };
+  const spec: Record<string, unknown> = { css: body.css, attr, parse, kind };
   if (schema?.enumValues && parse === 'enum') spec.enum_values = schema.enumValues;
 
   const targetScope = body.target_scope ?? 'platform';

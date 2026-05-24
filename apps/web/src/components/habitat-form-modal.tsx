@@ -456,12 +456,12 @@ export function HabitatFormModal({
                 // phải habitat.iconUrl (chỉ đổi sau Save).
                 (form.iconUrl || habitat.iconUrl) ? (
                   <img src={(form.iconUrl ?? habitat.iconUrl)!}
-                       alt={habitat.name} width={22} height={22}
-                       title={habitat.name}
+                       alt={habitat.name} width={24} height={24}
+                       title={`${habitat.name} (community icon)`}
                        style={{ borderRadius: 4, border: '1px solid var(--line)', objectFit: 'cover' }} />
                 ) : (
-                  <SiteFavicon url={habitat.url} kind={habitat.kind} size={20}
-                               title={habitat.url ?? habitat.name} />
+                  <SiteFavicon url={habitat.url} kind={habitat.kind} size={22}
+                               title={`${habitat.url ?? habitat.name} — community icon chưa scrape, fallback platform favicon`} />
                 )
               )}
               <span>{isCreate ? '+ New habitat' : (form.name.trim() || habitat!.name)}</span>

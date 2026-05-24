@@ -86,6 +86,8 @@ RULES (vi phạm = LLM fail, selector sẽ bị reject server-side):
    - created_at = time element, NEVER faceplate-number.
    - description = paragraph mô tả community, NEVER privacy hint.
 8. CẤM :has() pseudo-class (Safari < 15.4 không support).
+9. ⚠ Class selector LUÔN có dấu chấm "." trước: ".shreddit-subreddit-icon__icon" KHÔNG phải "shreddit-subreddit-icon__icon" (cái sau là tên tag custom element, không tồn tại). Nếu element có class BEM-style → tag.class hoặc .class.
+10. Verify trong đầu: viết selector → mentally run document.querySelector → có match đúng element user tag không? Nếu không chắc, chọn parent + class.
 
 Output JSON shape:
 {

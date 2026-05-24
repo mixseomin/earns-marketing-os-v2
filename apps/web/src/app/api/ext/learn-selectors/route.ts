@@ -162,7 +162,8 @@ RULES:
    - URL paths: src^='https://styles.redditmedia.com/t5_xxx/...'
    → Selector PHẢI generic cho mọi r/X. Test: "Selector này work cho r/A, r/B, r/anything?"
 8. CẤM :has() pseudo (Safari <15.4 không support).
-9. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, faceplate-timeago, shreddit-subreddit-icon). Tránh parent chains dài.`;
+9. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, faceplate-timeago, shreddit-subreddit-icon). Tránh parent chains dài.
+10. ⚠ Class selector LUÔN có dấu chấm "." trước: ".shreddit-subreddit-icon__icon" hoặc "img.shreddit-subreddit-icon__icon" — KHÔNG được "shreddit-subreddit-icon__icon" (cái này là tag selector, sẽ search custom element không tồn tại).`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });

@@ -22,6 +22,13 @@ const FORBIDDEN_PATTERNS: Array<{ regex: RegExp; reason: string }> = [
   // Deep > direct-child chains (>3 levels)
   // Match "x > y > z > w" (4 elements separated by >)
   { regex: />[^>]+>[^>]+>[^>]+>/i, reason: 'Direct-child chain >3 levels deep (fragile)' },
+  // Class BEM (__elem) thiếu dấu chấm trước — không phải custom tag.
+  // Match standalone "something__something" mà KHÔNG có "." hoặc "-" custom-element-like ngay trước.
+  // Cụ thể: matches "shreddit-subreddit-icon__icon" nếu KHÔNG có "." trước.
+  // Regex: word-char + __ + word-char, KHÔNG có "." ngay trước.
+  // Custom elements có "-" trong tên tag (vd <shreddit-subreddit-icon>), nhưng KHÔNG có "__".
+  // Vậy "__" trong selector = chắc chắn BEM class, phải có dấu "." trước.
+  { regex: /(?:^|[\s>~+(])[a-zA-Z][\w-]*__\w/, reason: 'BEM class (__elem) thiếu dấu chấm trước - phải là .class' },
 ];
 
 export function validateSelector(css: string): ValidationResult {

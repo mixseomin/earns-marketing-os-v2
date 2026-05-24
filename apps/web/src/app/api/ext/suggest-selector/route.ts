@@ -1,0 +1,187 @@
+import { NextResponse } from 'next/server';
+import { checkAuth } from '../_auth';
+import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
+import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
+import { validateSelector } from '@/lib/selector-validate';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
+// LLM-suggest selector for picked region.
+// Khác /train-selector ở chỗ: train-selector LƯU ngay, suggest-selector chỉ
+// đề xuất + trả về để user preview/tweak trong manual panel rồi mới /save-selector.
+// Cho phép intent free-form (vd "extract every rule title h2") thay vì field
+// schema hint, để user pick 1 vùng rồi yêu cầu rút trích.
+
+interface SuggestReq {
+  platform_key: string;
+  page_kind: string;
+  field_name: string;
+  intent?: string;             // free-form yêu cầu (vd "all rule titles")
+  kind?: 'css' | 'xpath';
+  element_html: string;        // outerHTML element user pick
+  parent_html?: string;
+  element_text?: string;
+}
+
+export async function POST(req: Request) {
+  const err = checkAuth(req);
+  if (err) return err;
+  if (!aiEnabled()) {
+    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+  }
+
+  const startedAt = Date.now();
+  const extMeta = extractExtMeta(req);
+  const body = (await req.json()) as SuggestReq;
+
+  if (!body.platform_key || !body.field_name || !body.element_html) {
+    return NextResponse.json({
+      ok: false,
+      error: 'platform_key + field_name + element_html required',
+    }, { status: 400 });
+  }
+
+  const kind = body.kind || 'css';
+  const intent = body.intent?.trim() || `extract value for field "${body.field_name}"`;
+
+  const sysPrompt = `Bạn là CSS/XPath selector engineer cho ${body.platform_key} ${body.page_kind} page.
+
+Output kind YÊU CẦU: ${kind.toUpperCase()}.
+User intent: ${intent}
+Field: ${body.field_name}
+
+Nhiệm vụ: sinh ${kind === 'css' ? 'CSS selector' : 'XPath expression'} trỏ tới element(s) phù hợp với intent trong HTML user đã pick.
+
+RULES CHUNG (vi phạm = reject server-side):
+1. Selector phải work với ${kind === 'css' ? 'document.querySelectorAll (light DOM hoặc shadow DOM với deep-walker)' : 'document.evaluate (light DOM only)'}.
+2. CẤM hardcode subreddit-specific values:
+   - Sub IDs: t5_xxxxx
+   - Tên subreddit cụ thể (r/AstrologyChartShare, "Astrology Memes"…)
+   - URL paths chứa sub name / sub ID
+   - Số/hash UUID specific (rule-0bc3856f-…, /rule-xxx-id)
+   → Selector phải generic, dùng được cho MỌI subreddit khác.
+3. CẤM nth-of-type / nth-child / direct-child chain >3 levels (DOM re-render = vỡ).
+4. CẤM class hash random (.css-1abc23d) hoặc utility class chỉ visual (.mt-sm, .px-md có thể OK nếu kết hợp với semantic class).
+5. Ưu tiên TUYỆT ĐỐI: custom element tags (faceplate-*, shreddit-*), data-testid, slot, aria-label, semantic class names.
+6. Nếu intent yêu cầu MULTI element (vd "all rule titles") → selector phải match tất cả; nếu intent SINGLE → selector unique cho element đó.
+${kind === 'css' ? '7. CẤM :has() pseudo (Safari <15.4). Class BEM phải có dấu chấm trước (.tag.class hoặc .class).' : '7. XPath dùng contains(@class, " name ") thay vì equality để khớp khi class có nhiều token. Tránh /text() chính xác (dễ vỡ); ưu tiên element matching.'}
+
+Output JSON shape:
+{
+  "spec": {
+    "css": "<${kind === 'css' ? 'css' : 'xpath'} expression>",
+    "attr": "textContent" | "src" | "datetime" | "<attr-name>",
+    "parse": "none" | "number" | "number-suffix" | "date" | "enum",
+    "notes": "<lý do chọn + selector này match được bao nhiêu element>"
+  },
+  "confidence": <0-100>,
+  "expected_count": <số element selector khả năng match — 1 nếu unique, >1 nếu list>
+}`;
+
+  const userPrompt = `INTENT: ${intent}
+
+PICKED ELEMENT (outerHTML, có thể là vùng wrap nhiều child cần extract):
+\`\`\`html
+${body.element_html.slice(0, 12_000)}
+\`\`\`
+${body.parent_html ? `\nPARENT CONTEXT (3 levels up):\n\`\`\`html\n${body.parent_html.slice(0, 8_000)}\n\`\`\`` : ''}
+${body.element_text ? `\nSample text (text user thấy): "${body.element_text.slice(0, 300)}"` : ''}
+
+Sinh ${kind === 'css' ? 'CSS selector' : 'XPath'} thoả intent + rules.`;
+
+  const ai = getOpenAI();
+  if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
+  const model = 'gpt-4.1-mini';
+
+  let spec: Record<string, unknown> | null = null;
+  let confidence = 0;
+  let expectedCount = 0;
+  let rawLlm = '';
+  try {
+    const completion = await ai.chat.completions.create({
+      model,
+      temperature: 0,
+      max_tokens: 700,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: sysPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    });
+    rawLlm = completion.choices[0]?.message?.content?.trim() ?? '';
+    const parsed = JSON.parse(rawLlm);
+    spec = parsed.spec ?? parsed;
+    confidence = Number(parsed.confidence ?? 70);
+    expectedCount = Number(parsed.expected_count ?? 1);
+  } catch (e) {
+    await logExtCall({
+      endpoint: 'suggest-selector', method: 'POST',
+      extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+      payloadMeta: { field_name: body.field_name, intent, kind, element_html_size: body.element_html.length },
+      responseMeta: { raw_llm: rawLlm.slice(0, 500) },
+      status: 502, durationMs: Date.now() - startedAt,
+      errorMsg: (e as Error).message,
+    });
+    return NextResponse.json({ ok: false, error: (e as Error).message, raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+  }
+
+  if (!spec || typeof spec.css !== 'string') {
+    return NextResponse.json({ ok: false, error: 'LLM no valid spec', raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+  }
+
+  // Validate (CSS = full FORBIDDEN_PATTERNS, XPath = minimal — chỉ sub IDs).
+  if (kind === 'css') {
+    const v = validateSelector(spec.css as string);
+    if (!v.ok) {
+      await logExtCall({
+        endpoint: 'suggest-selector', method: 'POST',
+        extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+        payloadMeta: { field_name: body.field_name, intent, kind },
+        responseMeta: { ok: false, css: spec.css, validation_error: v.error, raw_llm: rawLlm.slice(0, 500) },
+        status: 422, durationMs: Date.now() - startedAt,
+        errorMsg: v.error,
+      });
+      return NextResponse.json({
+        ok: false,
+        error: `Selector rejected: ${v.error}`,
+        rejected_css: spec.css,
+        raw_llm: rawLlm.slice(0, 500),
+      }, { status: 422 });
+    }
+  } else {
+    const xp = spec.css as string;
+    if (/\bt5_[a-z0-9]+/i.test(xp) || /styles\.redditmedia\.com\/t5_/i.test(xp)) {
+      return NextResponse.json({
+        ok: false,
+        error: 'XPath chứa sub ID t5_xxx (Reddit-specific)',
+        rejected_css: xp,
+      }, { status: 422 });
+    }
+  }
+
+  await logExtCall({
+    endpoint: 'suggest-selector', method: 'POST',
+    extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+    payloadMeta: {
+      field_name: body.field_name, intent, kind,
+      element_html_size: body.element_html.length,
+    },
+    responseMeta: {
+      ok: true, css: spec.css, attr: spec.attr, parse: spec.parse,
+      confidence, expected_count: expectedCount,
+      raw_llm: rawLlm.slice(0, 500), model,
+    },
+    status: 200, durationMs: Date.now() - startedAt,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    field: body.field_name,
+    kind,
+    spec,                  // KHÔNG save — ext sẽ preview rồi user mới /save-selector
+    confidence,
+    expected_count: expectedCount,
+    model,
+  });
+}

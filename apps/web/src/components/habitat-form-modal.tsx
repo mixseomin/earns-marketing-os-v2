@@ -121,6 +121,11 @@ export function HabitatFormModal({
     visualStyleDescriptor: habitat?.visualStyleDescriptor ?? null,
     bestPostTimes: habitat?.bestPostTimes ?? '',
     allowedFormatsOverride: habitat?.allowedFormatsOverride ?? null,
+    // migration 0059: Reddit sidebar metadata
+    createdAtSource: habitat?.createdAtSource ?? null,
+    privacy: (habitat?.privacy as HabitatInput['privacy']) ?? '',
+    weeklyVisitors: habitat?.weeklyVisitors ?? 0,
+    weeklyContributions: habitat?.weeklyContributions ?? 0,
   });
   const setF = <K extends keyof HabitatInput>(k: K, v: HabitatInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -737,6 +742,23 @@ export function HabitatFormModal({
                      style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div>
+              <label style={lbl} title="Weekly visitors - real traffic (vs subscribers cố định). 200k subs / 500 weekly visitors = dormant.">
+                <span style={{ cursor: 'help' }}>Weekly visit</span>
+              </label>
+              <input type="number" min={0} value={form.weeklyVisitors ?? 0} onChange={(e) => setF('weeklyVisitors', Number(e.target.value))}
+                     style={{ ...fld, fontFamily: 'var(--font-mono)' }} placeholder="2000" />
+            </div>
+            <div>
+              <label style={lbl} title="Weekly contributions - posts + comments/tuần. Density signal cho competition của bài seed.">
+                <span style={{ cursor: 'help' }}>Weekly contrib</span>
+              </label>
+              <input type="number" min={0} value={form.weeklyContributions ?? 0} onChange={(e) => setF('weeklyContributions', Number(e.target.value))}
+                     style={{ ...fld, fontFamily: 'var(--font-mono)' }} placeholder="280" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <div>
               <label style={lbl}>Activity</label>
               <input type="text" value={form.activity ?? ''} onChange={(e) => setF('activity', e.target.value)}
                      style={fld} placeholder="high · 120 posts/d" />
@@ -747,7 +769,28 @@ export function HabitatFormModal({
                 {HEALTH.map((h) => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
+            <div>
+              <label style={lbl} title="Public / Restricted (approved posters only) / Private (không seed được)">
+                <span style={{ cursor: 'help' }}>Privacy</span>
+              </label>
+              <select value={form.privacy ?? ''} onChange={(e) => setF('privacy', e.target.value as HabitatInput['privacy'])} style={fld}>
+                <option value="">—</option>
+                <option value="public">public</option>
+                <option value="restricted">restricted</option>
+                <option value="private">private</option>
+              </select>
+            </div>
           </div>
+
+          {form.createdAtSource && (
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}
+                 title="Community created date - scrape từ Reddit sidebar. Sub mới (<6 tháng) khó leverage; sub cũ (>5 năm) thường strict rules.">
+              📅 Created: {new Date(form.createdAtSource as string).toISOString().slice(0, 10)}
+              <span style={{ color: 'var(--fg-4)', marginLeft: 4 }}>
+                ({Math.round((Date.now() - new Date(form.createdAtSource as string).getTime()) / (365 * 86400 * 1000) * 10) / 10}y old)
+              </span>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>

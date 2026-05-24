@@ -341,6 +341,11 @@ export interface HabitatInput {
   voiceNotes?: string;
   fewShotExamples?: Array<{ title?: string; body: string; whyItWorks?: string }> | null;
   visualStyleDescriptor?: string | null;
+  // migration 0059: Reddit sidebar metadata
+  createdAtSource?: Date | string | null;
+  privacy?: 'public' | 'restricted' | 'private' | '';
+  weeklyVisitors?: number;
+  weeklyContributions?: number;
 }
 
 export async function createHabitat(
@@ -380,6 +385,10 @@ export async function createHabitat(
     voiceNotes: input.voiceNotes ?? '',
     fewShotExamples: input.fewShotExamples ?? null,
     visualStyleDescriptor: input.visualStyleDescriptor ?? null,
+    createdAtSource: input.createdAtSource ? new Date(input.createdAtSource as string | Date) : null,
+    privacy: input.privacy ?? '',
+    weeklyVisitors: input.weeklyVisitors ?? 0,
+    weeklyContributions: input.weeklyContributions ?? 0,
   }).returning({ id: habitats.id });
   const newId = inserted[0]?.id;
   // M2M: mirror the (single) tribe picked at create-time as the primary
@@ -427,6 +436,11 @@ export async function updateHabitat(
   if (patch.voiceNotes != null)          set.voiceNotes = patch.voiceNotes;
   if (patch.fewShotExamples !== undefined) set.fewShotExamples = patch.fewShotExamples;
   if (patch.visualStyleDescriptor !== undefined) set.visualStyleDescriptor = patch.visualStyleDescriptor;
+  // migration 0059: Reddit sidebar metadata
+  if (patch.createdAtSource !== undefined)   set.createdAtSource = patch.createdAtSource ? new Date(patch.createdAtSource as string | Date) : null;
+  if (patch.privacy != null)                 set.privacy = patch.privacy;
+  if (patch.weeklyVisitors != null)          set.weeklyVisitors = patch.weeklyVisitors;
+  if (patch.weeklyContributions != null)     set.weeklyContributions = patch.weeklyContributions;
   // allowed_formats_override: nếu đổi → tính diff để auto-restore (types
   // được ADD lại sau khi từng bị remove). Archive cho types REMOVED là
   // responsibility của client (qua confirm dialog gọi

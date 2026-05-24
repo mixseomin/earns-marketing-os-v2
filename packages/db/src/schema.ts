@@ -614,6 +614,14 @@ export const habitats = pgTable(
     // VD: "purple cosmic gradient, mystical astrology aesthetic". Inject vào
     // image-gen prompt để ảnh sinh fit theme habitat.
     visualStyleDescriptor: text('visual_style_descriptor'),
+    // migration 0059: Reddit sidebar metadata (scrape qua MOS2 Crew ext).
+    // createdAtSource: community age — sub mới khó leverage, sub cũ thường strict.
+    // privacy: 'public' | 'restricted' | 'private' (= không seed được).
+    // weeklyVisitors / weeklyContributions: traffic real + density signal.
+    createdAtSource: timestamp('created_at_source', { withTimezone: true }),
+    privacy: text('privacy').notNull().default(''),
+    weeklyVisitors: integer('weekly_visitors').notNull().default(0),
+    weeklyContributions: integer('weekly_contributions').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, habitats } from '@mos2/db';
-import { and, eq } from 'drizzle-orm';
+import { getDb, habitats, platformAccounts, communityBriefs } from '@mos2/db';
+import { and, eq, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +20,15 @@ interface ExtHabitatPayload {
   hot_titles?: string[];
   source_url?: string;
   captured_at?: string;
+  // v1.4.9 (migration 0059): Reddit sidebar metadata
+  weekly_visitors?: number;
+  weekly_contributions?: number;
+  privacy?: 'public' | 'restricted' | 'private' | '';
+  created_at_source?: string | null;  // ISO timestamp
+  // v1.4.9: viewer membership state (auto-update community_briefs.joinStatus
+  // cho account đang login trên Reddit ↔ habitat này).
+  viewer_handle?: string | null;       // 'Lithervard' (no u/ prefix)
+  viewer_joined?: boolean | null;      // true | false | null (chưa detect)
 }
 
 // GET /api/ext/habitats?platform_key=reddit&name=r%2Fastrology → duplicate check
@@ -136,27 +145,105 @@ export async function POST(req: Request) {
     dominantTopics,
     modStrictness,
     communityType,
+    // v1.4.9 (mig 0059)
+    weeklyVisitors: body.weekly_visitors ?? 0,
+    weeklyContributions: body.weekly_contributions ?? 0,
+    privacy: body.privacy ?? '',
+    createdAtSource: body.created_at_source ? new Date(body.created_at_source) : null,
     importedFrom: 'mos2-crew-ext',
     lastSyncAt: new Date(),
     updatedAt: new Date(),
   };
 
+  let habitatId: number;
+  let action: 'created' | 'updated';
   if (existing.length > 0) {
-    await db.update(habitats)
-      .set(patch)
-      .where(eq(habitats.id, existing[0]!.id));
-    return NextResponse.json({ ok: true, id: existing[0]!.id, action: 'updated', fields: Object.keys(patch).length });
+    habitatId = existing[0]!.id;
+    action = 'updated';
+    await db.update(habitats).set(patch).where(eq(habitats.id, habitatId));
+  } else {
+    const inserted = await db.insert(habitats).values({
+      tenantId: 'self',
+      projectId: body.projectId,
+      kind: body.kind || 'subreddit',
+      name: body.name,
+      url: body.url,
+      platformKey: body.platform_key,
+      ...patch,
+    }).returning({ id: habitats.id });
+    habitatId = inserted[0]!.id;
+    action = 'created';
   }
 
-  const inserted = await db.insert(habitats).values({
-    tenantId: 'self',
-    projectId: body.projectId,
-    kind: body.kind || 'subreddit',
-    name: body.name,
-    url: body.url,
-    platformKey: body.platform_key,
-    ...patch,
-  }).returning({ id: habitats.id });
+  // ── v1.4.9: viewer membership upsert ──────────────────────────
+  // Nếu ext detect được logged-in handle + join state → tìm
+  // platform_accounts (same platform_key + handle) → upsert
+  // community_briefs.join_status. KHÔNG fail toàn endpoint nếu lookup
+  // miss (account chưa được tạo trong MOS2 = bình thường).
+  let viewerUpdate: { handle: string; joined: boolean; briefAction: string } | null = null;
+  if (body.viewer_handle && typeof body.viewer_joined === 'boolean') {
+    try {
+      const cleanHandle = body.viewer_handle.replace(/^u\//i, '').replace(/^@/, '');
+      const acct = await db.select({ id: platformAccounts.id })
+        .from(platformAccounts)
+        .where(and(
+          eq(platformAccounts.tenantId, 'self'),
+          eq(platformAccounts.platformKey, body.platform_key),
+          eq(platformAccounts.handle, cleanHandle),
+        ))
+        .limit(1);
 
-  return NextResponse.json({ ok: true, id: inserted[0]?.id, action: 'created', fields: Object.keys(patch).length });
+      if (acct.length > 0) {
+        const accountId = acct[0]!.id;
+        const newJoinStatus = body.viewer_joined ? 'joined' : 'not_joined';
+        const existingBrief = await db.select({ id: communityBriefs.id, joinStatus: communityBriefs.joinStatus })
+          .from(communityBriefs)
+          .where(and(
+            eq(communityBriefs.accountId, accountId),
+            eq(communityBriefs.habitatId, habitatId),
+          ))
+          .limit(1);
+
+        if (existingBrief.length > 0) {
+          const cur = existingBrief[0]!;
+          if (cur.joinStatus !== newJoinStatus) {
+            await db.update(communityBriefs)
+              .set({
+                joinStatus: newJoinStatus,
+                joinedAt: body.viewer_joined ? sql`COALESCE(${communityBriefs.joinedAt}, NOW())` : null,
+                updatedAt: new Date(),
+              })
+              .where(eq(communityBriefs.id, cur.id));
+            viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'updated' };
+          } else {
+            viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'unchanged' };
+          }
+        } else {
+          // Tạo brief mới với joinStatus = detected. Chỉ upsert minimal —
+          // approach/cadence/tone user fill sau trong modal.
+          await db.insert(communityBriefs).values({
+            tenantId: 'self',
+            projectId: body.projectId,
+            accountId,
+            habitatId,
+            joinStatus: newJoinStatus,
+            joinedAt: body.viewer_joined ? new Date() : null,
+          });
+          viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'created' };
+        }
+      } else {
+        viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'account-not-found' };
+      }
+    } catch (e) {
+      console.warn('[ext/habitats] viewer upsert failed:', e);
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    id: habitatId,
+    action,
+    fields: Object.keys(patch).length,
+    viewer: viewerUpdate,
+  });
 }

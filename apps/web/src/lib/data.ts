@@ -610,6 +610,11 @@ export interface HabitatRow {
   voiceNotes: string;
   fewShotExamples: Array<{ title?: string; body: string; whyItWorks?: string }> | null;
   visualStyleDescriptor: string | null;
+  // migration 0059: Reddit sidebar metadata
+  createdAtSource: Date | null;
+  privacy: string;
+  weeklyVisitors: number;
+  weeklyContributions: number;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -677,6 +682,10 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
       voiceNotes: r.voiceNotes ?? '',
       fewShotExamples: (r.fewShotExamples as HabitatRow['fewShotExamples']) ?? null,
       visualStyleDescriptor: r.visualStyleDescriptor ?? null,
+      createdAtSource: r.createdAtSource ?? null,
+      privacy: r.privacy ?? '',
+      weeklyVisitors: r.weeklyVisitors ?? 0,
+      weeklyContributions: r.weeklyContributions ?? 0,
     }));
   }, [], 'listHabitats');
 }
@@ -735,6 +744,10 @@ export async function getHabitatById(projectId: string, habitatId: number): Prom
       voiceNotes: String(r.voice_notes ?? ''),
       fewShotExamples: (r.few_shot_examples as HabitatRow['fewShotExamples']) ?? null,
       visualStyleDescriptor: r.visual_style_descriptor ? String(r.visual_style_descriptor) : null,
+      createdAtSource: r.created_at_source ? new Date(String(r.created_at_source)) : null,
+      privacy: String(r.privacy ?? ''),
+      weeklyVisitors: Number(r.weekly_visitors ?? 0),
+      weeklyContributions: Number(r.weekly_contributions ?? 0),
     };
   }, null, 'getHabitatById');
 }

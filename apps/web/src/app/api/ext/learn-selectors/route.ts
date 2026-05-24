@@ -145,7 +145,10 @@ RULES:
 1. NEVER return {} nếu HTML có About panel với data. Trả best-guess selector với notes "low confidence".
 2. Nếu HTML KHÔNG có About panel (vd captcha page, login wall, full body chỉ có header) → trả {"selectors": {}, "html_empty": true, "reason": "..."}.
 3. Selector phải work với document.querySelector. KHÔNG dùng jQuery/contains/has.
-4. Test trong đầu: selector này select element nào trong HTML user gửi? Nếu không chắc chắn → bỏ field.`;
+4. Test trong đầu: selector này select element nào trong HTML user gửi? Nếu không chắc chắn → bỏ field.
+5. CẤM TUYỆT ĐỐI: nth-of-type, nth-child, > direct-child chains dài (>3 levels). Reddit re-render thay đổi DOM order liên tục → selectors này break ngay tuần sau.
+6. CẤM cross-field aliasing: nếu css 'faceplate-timeago' trỏ tới element TIME, KHÔNG được dùng cho field 'members' (số). Verify SEMANTIC match (members = number element, created_at = time element, description = paragraph element).
+7. Ưu tiên TUYỆT ĐỐI: data-testid, aria-label, slot, semantic tag names (faceplate-number, faceplate-timeago, shreddit-subreddit-icon). Tránh bao bọc bằng parent chains dài.`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });

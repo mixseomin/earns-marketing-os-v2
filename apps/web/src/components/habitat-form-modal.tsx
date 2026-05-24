@@ -2003,6 +2003,26 @@ function HabitatBriefsSection({
     return () => { cancelled = true; };
   }, [habitatId, reloadTick]);
 
+  // Auto-poll 15s — ext có thể update brief.join_status từ Reddit page
+  // mà không cần user F5 modal. Cũng listen window message 'mos2:habitat-updated'
+  // từ ext content.js để refresh ngay (instant, không đợi poll).
+  useEffect(() => {
+    const interval = setInterval(() => setReloadTick((t) => t + 1), 15000);
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const data = e.data as { type?: string; habitatId?: number } | undefined;
+      if (data?.type === 'mos2:habitat-updated' && data.habitatId === habitatId) {
+        setReloadTick((t) => t + 1);
+        router.refresh();
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('message', onMessage);
+    };
+  }, [habitatId, router]);
+
   const handleAdd = async () => {
     const list = await listAddableAccountsForHabitat(projectId, habitatId, platformKey ? [platformKey] : null);
     setAddable(list);

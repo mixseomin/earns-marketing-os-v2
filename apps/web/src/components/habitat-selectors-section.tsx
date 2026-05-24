@@ -209,25 +209,26 @@ export function HabitatSelectorsSection({
                     <div key={schema.key} style={{ display: 'grid',
                                                     gridTemplateColumns: '110px 60px 1fr auto auto',
                                                     gap: 6, alignItems: 'center',
-                                                    padding: '3px 4px', borderTop: '1px solid var(--line)',
-                                                    opacity: 0.6 }}>
+                                                    padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
                       <span title={schema.hint}
                             style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
-                                     color: 'var(--fg-3)', fontWeight: 600, cursor: 'help' }}>
+                                     color: 'var(--fg-1)', fontWeight: 600, cursor: 'help' }}>
                         {schema.key}
                       </span>
-                      <span style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                      <span title="Chưa có selector — ext sẽ LLM-learn khi gặp 1 page tương ứng"
+                            style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
                                      fontWeight: 700, borderRadius: 3, textAlign: 'center',
-                                     background: 'var(--bg-2)', color: 'var(--fg-4)',
-                                     border: '1px dashed var(--line)' }}>
+                                     background: 'rgba(251,191,36,.18)', color: 'var(--warn)',
+                                     border: '1px dashed var(--warn)' }}>
                         none
                       </span>
-                      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
+                      <span style={{ fontSize: 10.5, color: 'var(--fg-2)',
                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                             title={schema.hint}>
-                        {schema.label}: {schema.hint || '(no hint)'}
+                        <strong style={{ color: 'var(--fg-1)' }}>{schema.label}</strong>
+                        <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>{schema.hint}</span>
                       </span>
-                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
+                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                         {schema.parse ? `→ ${schema.parse}` : ''}
                       </span>
                       <span />

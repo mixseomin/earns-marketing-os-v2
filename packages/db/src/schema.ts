@@ -876,6 +876,28 @@ export const selectorOverrides = pgTable(
   ],
 );
 
+// ── ext_call_log (mig 0062) - debug log mọi call ext ────────────
+export const extCallLog = pgTable(
+  'ext_call_log',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    endpoint: text('endpoint').notNull(),
+    method: text('method').notNull(),
+    extVersion: text('ext_version'),
+    pageUrl: text('page_url'),
+    payloadMeta: jsonb('payload_meta'),
+    responseMeta: jsonb('response_meta'),
+    status: integer('status'),
+    durationMs: integer('duration_ms'),
+    errorMsg: text('error_msg'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('ext_call_log_endpoint_idx').on(t.endpoint, t.createdAt),
+    index('ext_call_log_created_idx').on(t.createdAt),
+  ],
+);
+
 // ── contacts (Resources/Contacts vault) ──────────────────────────
 export const contacts = pgTable(
   'contacts',
@@ -1413,4 +1435,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

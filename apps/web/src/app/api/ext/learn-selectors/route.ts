@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
 import { getFieldHint } from '@/lib/habitat-field-schema';
+import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -93,6 +94,8 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
+  const startedAt = Date.now();
+  const extMeta = extractExtMeta(req);
   const html = body.html.slice(0, 30_000);
   const fieldsList = body.fields
     .map((f) => `- "${f}": ${getFieldHint(body.page_kind, f)}`)
@@ -104,34 +107,34 @@ export async function POST(req: Request) {
     ? `\nEngine detected: ${body.detected_engine}. Ưu tiên selectors generic engine (vd 'shreddit-*' cho Reddit, '.vbulletin-*' cho vBulletin).`
     : '';
 
-  const sysPrompt = `Bạn là CSS selector discovery agent. Cho HTML của ${body.platform_key} ${body.page_kind} page, sinh CSS selectors STABLE (ưu tiên data-testid, faceplate-*, shreddit-*, semantic tags; tránh class hash random).${engineHint}
+  const sysPrompt = `Bạn là CSS selector discovery agent cho ${body.platform_key} ${body.page_kind} page. Sinh CSS selectors STABLE từ HTML user paste (ưu tiên data-testid, faceplate-*, shreddit-*, semantic tags; tránh class hash random).${engineHint}
 
-Trả về JSON CHỈ với shape:
-{
-  "selectors": {
-    "<fieldName>": {
-      "css": "<css selector>",
-      "attr": "textContent" | "src" | "datetime" | "number" (optional, default textContent),
-      "parse": "number" | "date" | "number-suffix" | "enum" (optional),
-      "enum_values": ["public","restricted","private"] (chỉ khi parse=enum),
-      "notes": "<1 dòng giải thích chọn selector này>"
-    }
-  }
-}
+Trả về JSON shape:
+{"selectors": {"members": {"css": "shreddit-subreddit-about faceplate-number[number]", "attr": "number", "parse": "number"}, ...}}
 
-Fields cần tìm:
+Field cần discover (chỉ trả những field tìm được trong HTML):
 ${fieldsList}
 
-QUAN TRỌNG:
-- Nếu KHÔNG tìm được field → bỏ field khỏi map (KHÔNG return null).
-- CSS phải work với document.querySelector (no jQuery, no :contains).
-- Cho "number-suffix": ext sẽ tự parse "2K" → 2000.`;
+EXAMPLE Reddit subreddit-about page (2026):
+- Text "2K Members" thường trong <faceplate-number number="2000"> hoặc text node bên trong <shreddit-subreddit-about>
+- "Created Aug 14, 2017" thường có <time datetime="2017-08-14...">
+- "Public" / "Private community" trong span/text node của panel "About community"
+- Icon URL thường trong <img src="..."> trong shreddit-subreddit-icon hoặc img.h-* trong sidebar
+
+NGUYÊN TẮC BẮT BUỘC:
+1. Phải scan kỹ HTML và TRẢ về ÍT NHẤT 1 selector nếu HTML có chứa data community.
+2. Selectors cho attr=textContent thì có thể omit attr field.
+3. Cho number-suffix: ext tự parse "2K"→2000. Selector chỉ cần trỏ tới element chứa text.
+4. NEVER return {} hoặc {"selectors": {}} nếu HTML có thông tin — đó là fail. Thay vào trả selector best-guess + notes "low confidence".
+5. Nếu HTML KHÔNG có info gì cả (vd captcha page, login wall) → trả {"selectors": {}, "html_empty": true}.`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
   const model = 'gpt-4.1-mini';
 
   let selectors: SelectorMap = {};
+  let rawLlmResponse = '';
+  let htmlEmpty = false;
   try {
     const completion = await ai.chat.completions.create({
       model,
@@ -140,14 +143,28 @@ QUAN TRỌNG:
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: sysPrompt },
-        { role: 'user', content: `HTML:\n\`\`\`html\n${html}\n\`\`\`` },
+        { role: 'user', content: `HTML (${html.length} chars):\n\`\`\`html\n${html}\n\`\`\`` },
       ],
     });
-    const txt = completion.choices[0]?.message?.content?.trim() ?? '';
-    const parsed = JSON.parse(txt);
+    rawLlmResponse = completion.choices[0]?.message?.content?.trim() ?? '';
+    const parsed = JSON.parse(rawLlmResponse);
     selectors = parsed.selectors ?? parsed;
+    htmlEmpty = parsed.html_empty === true;
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message, model }, { status: 502 });
+    await logExtCall({
+      endpoint: 'learn-selectors', method: 'POST',
+      extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+      payloadMeta: {
+        platform_key: body.platform_key, page_kind: body.page_kind,
+        fields: body.fields, html_size: body.html.length,
+        html_preview: body.html.slice(0, 200),
+        detected_engine: body.detected_engine,
+      },
+      responseMeta: { raw_llm: rawLlmResponse.slice(0, 500) },
+      status: 502, durationMs: Date.now() - startedAt,
+      errorMsg: (e as Error).message,
+    });
+    return NextResponse.json({ ok: false, error: (e as Error).message, model, raw_llm: rawLlmResponse.slice(0, 500) }, { status: 502 });
   }
 
   // Default scope = platform (broadest). Ext có thể override gửi 'habitat'
@@ -169,6 +186,28 @@ QUAN TRỌNG:
     pageKind: body.page_kind,
     selectors,
     source: 'llm',
+  });
+
+  // Log success — selectors_count = 0 = LLM trả {} = signal cần debug
+  await logExtCall({
+    endpoint: 'learn-selectors', method: 'POST',
+    extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+    payloadMeta: {
+      platform_key: body.platform_key, page_kind: body.page_kind,
+      fields: body.fields, html_size: body.html.length,
+      html_preview: body.html.slice(0, 500),
+      detected_engine: body.detected_engine,
+      target_scope: targetScope, target_key: targetKey,
+    },
+    responseMeta: {
+      ok: true, selectors_count: Object.keys(selectors).length,
+      selectors_keys: Object.keys(selectors),
+      html_empty: htmlEmpty,
+      raw_llm: rawLlmResponse.slice(0, 500),
+      saved: save.saved,
+      model,
+    },
+    status: 200, durationMs: Date.now() - startedAt,
   });
 
   return NextResponse.json({

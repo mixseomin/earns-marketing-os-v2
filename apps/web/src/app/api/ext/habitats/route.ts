@@ -154,6 +154,7 @@ export async function POST(req: Request) {
     weeklyContributions: body.weekly_contributions ?? 0,
     privacy: body.privacy ?? '',
     createdAtSource: body.created_at_source ? new Date(body.created_at_source) : null,
+    description: body.description ?? '',
     importedFrom: 'mos2-crew-ext',
     lastSyncAt: new Date(),
     updatedAt: new Date(),

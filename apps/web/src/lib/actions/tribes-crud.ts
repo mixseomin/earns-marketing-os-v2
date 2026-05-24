@@ -346,6 +346,8 @@ export interface HabitatInput {
   privacy?: 'public' | 'restricted' | 'private' | '';
   weeklyVisitors?: number;
   weeklyContributions?: number;
+  // migration 0063
+  description?: string;
 }
 
 export async function createHabitat(
@@ -389,6 +391,7 @@ export async function createHabitat(
     privacy: input.privacy ?? '',
     weeklyVisitors: input.weeklyVisitors ?? 0,
     weeklyContributions: input.weeklyContributions ?? 0,
+    description: input.description ?? '',
   }).returning({ id: habitats.id });
   const newId = inserted[0]?.id;
   // M2M: mirror the (single) tribe picked at create-time as the primary
@@ -441,6 +444,8 @@ export async function updateHabitat(
   if (patch.privacy != null)                 set.privacy = patch.privacy;
   if (patch.weeklyVisitors != null)          set.weeklyVisitors = patch.weeklyVisitors;
   if (patch.weeklyContributions != null)     set.weeklyContributions = patch.weeklyContributions;
+  // migration 0063
+  if (patch.description != null)             set.description = patch.description;
   // allowed_formats_override: nếu đổi → tính diff để auto-restore (types
   // được ADD lại sau khi từng bị remove). Archive cho types REMOVED là
   // responsibility của client (qua confirm dialog gọi

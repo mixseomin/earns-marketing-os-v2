@@ -615,6 +615,8 @@ export interface HabitatRow {
   privacy: string;
   weeklyVisitors: number;
   weeklyContributions: number;
+  // migration 0063: description paragraph
+  description: string;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -686,6 +688,7 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
       privacy: r.privacy ?? '',
       weeklyVisitors: r.weeklyVisitors ?? 0,
       weeklyContributions: r.weeklyContributions ?? 0,
+      description: r.description ?? '',
     }));
   }, [], 'listHabitats');
 }
@@ -748,6 +751,7 @@ export async function getHabitatById(projectId: string, habitatId: number): Prom
       privacy: String(r.privacy ?? ''),
       weeklyVisitors: Number(r.weekly_visitors ?? 0),
       weeklyContributions: Number(r.weekly_contributions ?? 0),
+      description: String(r.description ?? ''),
     };
   }, null, 'getHabitatById');
 }

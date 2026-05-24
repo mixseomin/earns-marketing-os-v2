@@ -622,6 +622,8 @@ export const habitats = pgTable(
     privacy: text('privacy').notNull().default(''),
     weeklyVisitors: integer('weekly_visitors').notNull().default(0),
     weeklyContributions: integer('weekly_contributions').notNull().default(0),
+    // migration 0063: mô tả community (paragraph từ Reddit "About community")
+    description: text('description').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

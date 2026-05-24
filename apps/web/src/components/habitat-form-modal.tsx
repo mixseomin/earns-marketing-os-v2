@@ -127,6 +127,8 @@ export function HabitatFormModal({
     privacy: (habitat?.privacy as HabitatInput['privacy']) ?? '',
     weeklyVisitors: habitat?.weeklyVisitors ?? 0,
     weeklyContributions: habitat?.weeklyContributions ?? 0,
+    // migration 0063
+    description: habitat?.description ?? '',
   });
   const setF = <K extends keyof HabitatInput>(k: K, v: HabitatInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -792,6 +794,17 @@ export function HabitatFormModal({
               </span>
             </div>
           )}
+
+          <div>
+            <label style={lbl} title="Mô tả community (paragraph). Ext scrape từ Reddit About panel. Editable manually.">
+              <span style={{ cursor: 'help' }}>Description</span>
+            </label>
+            <textarea value={form.description ?? ''}
+                      onChange={(e) => setF('description', e.target.value)}
+                      rows={2}
+                      style={{ ...fld, fontFamily: 'inherit', resize: 'vertical', minHeight: 36 }}
+                      placeholder="Auto-fill từ Reddit ext scrape, hoặc gõ manual…" />
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>

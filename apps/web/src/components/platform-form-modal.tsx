@@ -20,6 +20,7 @@ import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
 import { IconCommunity, FormatIcon } from './ui';
+import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
 import { TechnologyPicker, SignupFieldsBuilder } from './technology-picker';
@@ -473,6 +474,13 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                   ))}
                 </div>
               )}
+            </div>
+          )}
+          {/* LLM-discovered selectors cho ext scrape - chỉ hiện edit-mode (có
+              platform tồn tại) vì chưa thể có selectors khi đang create. */}
+          {!isCreate && platform && (
+            <div style={{ gridColumn: '1 / 3', marginTop: 8 }}>
+              <HabitatSelectorsSection platformKey={platform.key} editable={true} />
             </div>
           )}
         </div>

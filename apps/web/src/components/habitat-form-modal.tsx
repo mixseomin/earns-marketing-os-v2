@@ -27,6 +27,7 @@ import { platformKeysForHabitatKind, detectPlatformKeyFromUrl, defaultKindForPla
 import { TagsInput } from './tags-input';
 import { parseFormInput, suggestRulesUrl, type FormFieldSchema } from '@/lib/actions/ai-parse';
 import { extractDiscordInvite } from '@/lib/actions/discord-extract';
+import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { parseChannelsFromInput } from '@/lib/actions/parse-channels';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
@@ -1262,6 +1263,11 @@ export function HabitatFormModal({
                 <TagsInput value={form.forbiddenTopics ?? []} onChange={(v) => setF('forbiddenTopics', v)} placeholder="prediction guarantee, fake guru…" />
               </div>
             </div>
+            {/* Auto-detect selectors (LLM-discovered) — read-only inspect.
+                Edit full ở Platform modal (/platforms → click platform card). */}
+            {form.platformKey && (
+              <HabitatSelectorsSection platformKey={form.platformKey} editable={false} />
+            )}
           </div>{/* /col3 — voice + rules + channels + topics */}
           </div>{/* /3-col wrapper */}
 

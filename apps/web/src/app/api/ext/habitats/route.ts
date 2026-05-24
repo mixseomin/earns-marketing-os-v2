@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, habitats, platformAccounts, communityBriefs } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
+import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
+
+  const startedAt = Date.now();
+  const extMeta = extractExtMeta(req);
 
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 503 });
@@ -239,11 +243,33 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({
+  const response = {
     ok: true,
     id: habitatId,
     action,
     fields: Object.keys(patch).length,
     viewer: viewerUpdate,
+  };
+
+  // Log mọi POST → /ext-debug audit. Lưu giá trị các field key để biết
+  // ext đang gửi data đúng hay vẫn 0.
+  await logExtCall({
+    endpoint: 'habitats', method: 'POST',
+    extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,
+    payloadMeta: {
+      projectId: body.projectId, name: body.name,
+      platform_key: body.platform_key, kind: body.kind,
+      members: body.members, weekly_visitors: body.weekly_visitors,
+      weekly_contributions: body.weekly_contributions,
+      privacy: body.privacy, created_at_source: body.created_at_source,
+      has_description: !!body.description, has_icon: !!body.icon_url,
+      rules_count: body.rules?.length ?? 0,
+      hot_titles_count: body.hot_titles?.length ?? 0,
+      viewer_handle: body.viewer_handle, viewer_joined: body.viewer_joined,
+    },
+    responseMeta: response,
+    status: 200, durationMs: Date.now() - startedAt,
   });
+
+  return NextResponse.json(response);
 }

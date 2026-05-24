@@ -1,4 +1,7 @@
-import Link from 'next/link';
+import { RefreshGscBtn } from './refresh-gsc-btn';
+import { SeoSitesTable } from './seo-sites-table';
+import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
+import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
 
@@ -71,9 +74,10 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
 export async function SeoSitesPanel() {
   let payload: GscPayload | null = null;
   try {
-    const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600 } });
+    const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600, tags: ['gsc-json'] } });
     if (r.ok) payload = (await r.json()) as GscPayload;
   } catch { /* fall through */ }
+  const tsPayload = await loadGscTimeSeries();
 
   if (!payload) {
     return (
@@ -104,62 +108,31 @@ export async function SeoSitesPanel() {
           SEO Sites Overview
           <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// GSC live · {rows.length} sites · last sync {updated}</small>
         </h2>
+        <RefreshGscBtn />
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ ...head, textAlign: 'left' }}>Site</th>
-            <th style={head}>Impr 7d</th>
-            <th style={head}>Clicks 7d</th>
-            <th style={head}>CTR</th>
-            <th style={head}>Avg Pos</th>
-            <th style={head}>Pages</th>
-            <th style={head}>Sitemap URLs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const ctr = r.stats.impressions_7d ? (r.stats.clicks_7d / r.stats.impressions_7d * 100) : 0;
-            const meta = SITE_META[r.domain] || { emoji: '🌐' };
-            const SiteCell = meta.project
-              ? <Link href={`/p/${meta.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{meta.emoji} {r.domain}</Link>
-              : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{meta.emoji} {r.domain}</span>;
-            const gscUrl = `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`;
-            return (
-              <tr key={r.domain}>
-                <td style={{ ...cell, textAlign: 'left' }}>
-                  {SiteCell}
-                  <a
-                    href={gscUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`Open ${r.domain} in Google Search Console`}
-                    style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
-                  >
-                    GSC&nbsp;↗
-                  </a>
-                </td>
-                <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.impressions_7d > 0) }}>{r.stats.impressions_7d.toLocaleString()}</td>
-                <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.clicks_7d > 0) }}>{r.stats.clicks_7d.toLocaleString()}</td>
-                <td style={{ ...cell, textAlign: 'right', ...tone(ctr > 0) }}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
-                <td style={{ ...cell, textAlign: 'right', ...tone(r.stats.avg_position_7d > 0 && r.stats.avg_position_7d < 20) }}>{r.stats.avg_position_7d > 0 ? r.stats.avg_position_7d.toFixed(1) : '—'}</td>
-                <td style={{ ...cell, textAlign: 'right' }}>{r.stats.pages_with_impressions_7d}</td>
-                <td style={{ ...cell, textAlign: 'right' }}>{r.stats.sitemap_urls_submitted.toLocaleString()}</td>
-              </tr>
-            );
-          })}
-          <tr style={{ background: 'var(--bg-2)' }}>
-            <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>TOTAL ({rows.length})</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalImps.toLocaleString()}</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalClicks.toLocaleString()}</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalImps > 0 ? (totalClicks / totalImps * 100).toFixed(2) + '%' : '—'}</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{avgPos > 0 ? avgPos.toFixed(1) : '—'}</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalPages}</td>
-            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalSitemap.toLocaleString()}</td>
-          </tr>
-        </tbody>
-      </table>
+      <SeoSitesTable
+        rows={rows.map((r) => {
+          const meta = SITE_META[r.domain] || { emoji: '🌐' };
+          return {
+            domain: r.domain,
+            emoji: meta.emoji,
+            project: meta.project,
+            impressions_7d: r.stats.impressions_7d,
+            clicks_7d: r.stats.clicks_7d,
+            avg_position_7d: r.stats.avg_position_7d,
+            pages_with_impressions_7d: r.stats.pages_with_impressions_7d,
+            sitemap_urls_submitted: r.stats.sitemap_urls_submitted,
+          };
+        })}
+        timeseries={Object.fromEntries(
+          rows.map((r) => {
+            const series = tsPayload ? pickSiteSeries(tsPayload, r.domain) : null;
+            return [r.domain, series?.points || []] as [string, GscDailyPoint[]];
+          })
+        )}
+        totals={{ imps: totalImps, clicks: totalClicks, pages: totalPages, sitemap: totalSitemap, avgPos }}
+      />
     </div>
   );
 }

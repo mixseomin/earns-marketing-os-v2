@@ -23,7 +23,7 @@ type GscPayload = {
 
 async function loadGsc(): Promise<GscPayload | null> {
   try {
-    const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600 } });
+    const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600, tags: ['gsc-json'] } });
     if (!r.ok) return null;
     return (await r.json()) as GscPayload;
   } catch {

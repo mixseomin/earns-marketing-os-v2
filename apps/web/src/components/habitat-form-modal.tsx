@@ -738,29 +738,8 @@ export function HabitatFormModal({
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <div>
-              <label style={lbl}>Members</label>
-              <input type="number" min={0} value={form.members ?? 0} onChange={(e) => setF('members', Number(e.target.value))}
-                     style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
-            </div>
-            <div>
-              <label style={lbl} title="Weekly visitors - real traffic (vs subscribers cố định). 200k subs / 500 weekly visitors = dormant.">
-                <span style={{ cursor: 'help' }}>Weekly visit</span>
-              </label>
-              <input type="number" min={0} value={form.weeklyVisitors ?? 0} onChange={(e) => setF('weeklyVisitors', Number(e.target.value))}
-                     style={{ ...fld, fontFamily: 'var(--font-mono)' }} placeholder="2000" />
-            </div>
-            <div>
-              <label style={lbl} title="Weekly contributions - posts + comments/tuần. Density signal cho competition của bài seed.">
-                <span style={{ cursor: 'help' }}>Weekly contrib</span>
-              </label>
-              <input type="number" min={0} value={form.weeklyContributions ?? 0} onChange={(e) => setF('weeklyContributions', Number(e.target.value))}
-                     style={{ ...fld, fontFamily: 'var(--font-mono)' }} placeholder="280" />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {/* Health + Activity vẫn editable (user pet rating + free-text) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>
               <label style={lbl}>Activity</label>
               <input type="text" value={form.activity ?? ''} onChange={(e) => setF('activity', e.target.value)}
@@ -772,39 +751,82 @@ export function HabitatFormModal({
                 {HEALTH.map((h) => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
-            <div>
-              <label style={lbl} title="Public / Restricted (approved posters only) / Private (không seed được)">
-                <span style={{ cursor: 'help' }}>Privacy</span>
-              </label>
-              <select value={form.privacy ?? ''} onChange={(e) => setF('privacy', e.target.value as HabitatInput['privacy'])} style={fld}>
-                <option value="">—</option>
-                <option value="public">public</option>
-                <option value="restricted">restricted</option>
-                <option value="private">private</option>
-              </select>
-            </div>
           </div>
 
-          {form.createdAtSource && (
-            <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}
-                 title="Community created date - scrape từ Reddit sidebar. Sub mới (<6 tháng) khó leverage; sub cũ (>5 năm) thường strict rules.">
-              📅 Created: {new Date(form.createdAtSource as string).toISOString().slice(0, 10)}
-              <span style={{ color: 'var(--fg-4)', marginLeft: 4 }}>
-                ({Math.round((Date.now() - new Date(form.createdAtSource as string).getTime()) / (365 * 86400 * 1000) * 10) / 10}y old)
-              </span>
+          {/* 📊 Auto-scraped from ext — read-only display block.
+              User feedback: 'các fields kiểu này ko cần edit, chỉ cần show ra'. */}
+          {(form.members || form.weeklyVisitors || form.weeklyContributions
+            || form.privacy || form.createdAtSource || form.description) && (
+            <div title="Auto từ ext (MOS2 Crew). Cập nhật mỗi lần user mở page tương ứng. KHÔNG edit."
+                 style={{ border: '1px solid var(--line)', borderRadius: 5,
+                          padding: 8, background: 'var(--bg-1)', display: 'flex',
+                          flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                            color: 'var(--fg-3)', textTransform: 'uppercase',
+                            letterSpacing: '.06em', cursor: 'help' }}>
+                📊 Scraped from ext
+              </div>
+              {/* Stats row */}
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11 }}>
+                {form.members ? (
+                  <div>
+                    <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Members</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)' }}>
+                      {form.members.toLocaleString()}
+                    </div>
+                  </div>
+                ) : null}
+                {form.weeklyVisitors ? (
+                  <div title="Weekly visitors - real traffic. 200k subs / 500 visitors = dormant.">
+                    <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', cursor: 'help' }}>Weekly visit</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)' }}>
+                      {form.weeklyVisitors.toLocaleString()}
+                    </div>
+                  </div>
+                ) : null}
+                {form.weeklyContributions ? (
+                  <div title="Weekly contributions - posts + comments/tuần. Density signal.">
+                    <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', cursor: 'help' }}>Weekly contrib</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)' }}>
+                      {form.weeklyContributions.toLocaleString()}
+                    </div>
+                  </div>
+                ) : null}
+                {form.privacy ? (
+                  <div title="Public / Restricted (approved posters) / Private (không seed được)">
+                    <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', cursor: 'help' }}>Privacy</div>
+                    <div style={{ fontSize: 12, fontWeight: 700,
+                                  color: form.privacy === 'private' ? 'var(--bad)'
+                                       : form.privacy === 'restricted' ? 'var(--warn)' : 'var(--ok)',
+                                  fontFamily: 'var(--font-mono)',
+                                  textTransform: 'uppercase', paddingTop: 2 }}>
+                      {form.privacy}
+                    </div>
+                  </div>
+                ) : null}
+                {form.createdAtSource ? (
+                  <div title="Sub mới (<6 tháng) khó leverage; sub cũ (>5 năm) thường strict rules.">
+                    <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', cursor: 'help' }}>Created</div>
+                    <div style={{ fontSize: 12, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)', paddingTop: 2 }}>
+                      {new Date(form.createdAtSource as string).toISOString().slice(0, 10)}
+                      <span style={{ color: 'var(--fg-4)', marginLeft: 4 }}>
+                        ({Math.round((Date.now() - new Date(form.createdAtSource as string).getTime()) / (365 * 86400 * 1000) * 10) / 10}y)
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              {form.description ? (
+                <div style={{ borderTop: '1px dashed var(--line)', paddingTop: 6 }}>
+                  <div style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', marginBottom: 2 }}>Description</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.5,
+                                whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {form.description}
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
-
-          <div>
-            <label style={lbl} title="Mô tả community (paragraph). Ext scrape từ Reddit About panel. Editable manually.">
-              <span style={{ cursor: 'help' }}>Description</span>
-            </label>
-            <textarea value={form.description ?? ''}
-                      onChange={(e) => setF('description', e.target.value)}
-                      rows={2}
-                      style={{ ...fld, fontFamily: 'inherit', resize: 'vertical', minHeight: 36 }}
-                      placeholder="Auto-fill từ Reddit ext scrape, hoặc gõ manual…" />
-          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>

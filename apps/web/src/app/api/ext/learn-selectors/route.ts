@@ -126,11 +126,18 @@ REDDIT 2026 PATTERNS đã verify:
 - Privacy "Public"/"Private community" → span/li/text trong about panel cạnh icon globe/lock
 
 CẢNH BÁO 2 FIELDS NÀY HAY BỊ MISS — phải scope RỘNG HƠN shreddit-subreddit-about:
-- description: HEADING + paragraph text MÔ TẢ COMMUNITY. Có thể ở 3 chỗ:
-  (a) Inside shreddit-subreddit-about: <h2> hoặc <p> chứa "All Things Astrology Charts!" hoặc "A subreddit for sharing..."
-  (b) <shreddit-subreddit-header> tag (separate từ about)
-  (c) <p data-testid="subreddit-description">
-  → Selector ưu tiên: shreddit-subreddit-about p (first p > 30 chars). Fallback: shreddit-subreddit-header p.
+- description: paragraph mô tả SỞ TRƯỜNG community (vd "All Things Astrology Charts!" / "A subreddit for sharing natal charts...").
+  ⚠ CẤM TUYỆT ĐỐI nhầm với:
+    - Privacy hint: "Anyone can view, post, and comment to this community" (đó là privacy text, không phải description)
+    - Subscriber count tooltip: "2K members"
+    - Generic Reddit footer text
+  Description thật: thường là 1 đoạn 50-500 chars, mô tả CHỦ ĐỀ/PURPOSE sub.
+  Có thể ở:
+    (a) <h2> trong about + <p> kế bên chứa "All Things X!" → wrapper id="description" hoặc data-testid="subreddit-description"
+    (b) <shreddit-subreddit-header> tag (separate)
+    (c) <faceplate-screen-reader-content> mô tả for accessibility
+  → Selector ưu tiên: [data-testid='subreddit-description'], shreddit-subreddit-header p, shreddit-subreddit-about h2 + p.
+  → KHÔNG dùng 'shreddit-subreddit-about p:first-child' vì sẽ bắt privacy hint.
 - icon_url: subreddit icon image (NOT user avatar, NOT banner). Có thể ở 3 chỗ:
   (a) <shreddit-subreddit-icon> wrapping <img src="...">
   (b) <faceplate-img> trong header có src styles.redditmedia.com hoặc redditstatic

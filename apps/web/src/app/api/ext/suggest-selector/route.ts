@@ -66,14 +66,19 @@ RULES CHUNG (vi phạm = reject server-side):
 5. Ưu tiên TUYỆT ĐỐI: custom element tags (faceplate-*, shreddit-*), data-testid, slot, aria-label, semantic class names.
 6. Nếu intent yêu cầu MULTI element (vd "all rule titles") → selector phải match tất cả; nếu intent SINGLE → selector unique cho element đó.
 ${kind === 'css' ? '7. CẤM :has() pseudo (Safari <15.4). Class BEM phải có dấu chấm trước (.tag.class hoặc .class).' : '7. XPath dùng contains(@class, " name ") thay vì equality để khớp khi class có nhiều token. Tránh /text() chính xác (dễ vỡ); ưu tiên element matching.'}
+8. ⚠ ATTR SELECTION: Nhiều custom element Reddit/Faceplate lưu data dưới dạng HTML attribute thay vì textContent. Ví dụ:
+   - <shreddit-subreddit-header description="..." subscribers="239733" weekly-active-users="13287" subreddit-id="t5_...">
+   - <faceplate-number number="2300"> (số members nằm trong attr 'number', text chỉ là "2.3K")
+   - <time datetime="2017-08-14T..."> (date chuẩn nằm trong 'datetime', text là "Aug 14, 2017")
+   → Trả attr ĐÚNG nguồn gốc cho data sạch hơn parse text. Nếu picked element là custom element và có attribute khớp intent, ưu tiên dùng attr đó. Selector vẫn match element đó nhưng attr field trỏ tới attribute thay vì textContent. KHÔNG hardcode attr value vào selector.
 
 Output JSON shape:
 {
   "spec": {
     "css": "<${kind === 'css' ? 'css' : 'xpath'} expression>",
-    "attr": "textContent" | "src" | "datetime" | "<attr-name>",
+    "attr": "textContent" | "src" | "href" | "datetime" | "title" | "description" | "subscribers" | "<bất kỳ attr nào trên element>",
     "parse": "none" | "number" | "number-suffix" | "date" | "enum",
-    "notes": "<lý do chọn + selector này match được bao nhiêu element>"
+    "notes": "<lý do chọn selector + lý do chọn attr này thay vì textContent>"
   },
   "confidence": <0-100>,
   "expected_count": <số element selector khả năng match — 1 nếu unique, >1 nếu list>

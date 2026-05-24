@@ -96,7 +96,9 @@ export async function POST(req: Request) {
 
   const startedAt = Date.now();
   const extMeta = extractExtMeta(req);
-  const html = body.html.slice(0, 30_000);
+  // v1.4.16: ext gửi full body.innerHTML 100KB. Server giữ 100KB cho
+  // LLM (gpt-4.1-mini context 1M tokens, dư sức xử lý ~25k tokens HTML).
+  const html = body.html.slice(0, 100_000);
   const fieldsList = body.fields
     .map((f) => `- "${f}": ${getFieldHint(body.page_kind, f)}`)
     .join('\n');
@@ -107,26 +109,30 @@ export async function POST(req: Request) {
     ? `\nEngine detected: ${body.detected_engine}. Ưu tiên selectors generic engine (vd 'shreddit-*' cho Reddit, '.vbulletin-*' cho vBulletin).`
     : '';
 
-  const sysPrompt = `Bạn là CSS selector discovery agent cho ${body.platform_key} ${body.page_kind} page. Sinh CSS selectors STABLE từ HTML user paste (ưu tiên data-testid, faceplate-*, shreddit-*, semantic tags; tránh class hash random).${engineHint}
+  const sysPrompt = `Bạn là CSS selector discovery agent cho ${body.platform_key} ${body.page_kind} page. User gửi FULL document.body của page Reddit → bạn phải:
+  STEP 1: LOCATE panel "About community" trong HTML (Reddit có nhiều aside: Promotion/Right-rail/About — chỉ pick About).
+  STEP 2: Cho mỗi field trong list, sinh CSS selector STABLE trỏ trực tiếp tới element chứa data.
 
-Trả về JSON shape:
-{"selectors": {"members": {"css": "shreddit-subreddit-about faceplate-number[number]", "attr": "number", "parse": "number"}, ...}}
+Selector STABLE = ưu tiên: data-testid, aria-label, faceplate-*, shreddit-*, semantic tags. Tránh: class hash random (vd ".css-1abc23d"), nth-child, deep descendant.${engineHint}
 
-Field cần discover (chỉ trả những field tìm được trong HTML):
+Field cần discover:
 ${fieldsList}
 
-EXAMPLE Reddit subreddit-about page (2026):
-- Text "2K Members" thường trong <faceplate-number number="2000"> hoặc text node bên trong <shreddit-subreddit-about>
-- "Created Aug 14, 2017" thường có <time datetime="2017-08-14...">
-- "Public" / "Private community" trong span/text node của panel "About community"
-- Icon URL thường trong <img src="..."> trong shreddit-subreddit-icon hoặc img.h-* trong sidebar
+REDDIT 2026 PATTERNS đã verify:
+- About panel thường wrap trong <shreddit-subreddit-about> hoặc <aside aria-label="Community Details"> hoặc <faceplate-tracker source="community_widget">
+- "2K Members" → text trong <faceplate-number number="2000"> bên trong about panel
+- "Created Aug 14, 2017" → <time datetime="2017-08-14T...">
+- Privacy "Public"/"Private community" → span/li/text trong about panel cạnh icon globe/lock
+- Icon URL → <img src="..."> trong <shreddit-subreddit-icon> hoặc avatar-* trong about
 
-NGUYÊN TẮC BẮT BUỘC:
-1. Phải scan kỹ HTML và TRẢ về ÍT NHẤT 1 selector nếu HTML có chứa data community.
-2. Selectors cho attr=textContent thì có thể omit attr field.
-3. Cho number-suffix: ext tự parse "2K"→2000. Selector chỉ cần trỏ tới element chứa text.
-4. NEVER return {} hoặc {"selectors": {}} nếu HTML có thông tin — đó là fail. Thay vào trả selector best-guess + notes "low confidence".
-5. Nếu HTML KHÔNG có info gì cả (vd captcha page, login wall) → trả {"selectors": {}, "html_empty": true}.`;
+OUTPUT JSON shape:
+{"selectors": {"members": {"css": "<selector>", "attr": "textContent"|"src"|"datetime"|"number", "parse": "number-suffix"|"date"|"enum", "enum_values": [...], "notes": "..."}, ...}}
+
+RULES:
+1. NEVER return {} nếu HTML có About panel với data. Trả best-guess selector với notes "low confidence".
+2. Nếu HTML KHÔNG có About panel (vd captcha page, login wall, full body chỉ có header) → trả {"selectors": {}, "html_empty": true, "reason": "..."}.
+3. Selector phải work với document.querySelector. KHÔNG dùng jQuery/contains/has.
+4. Test trong đầu: selector này select element nào trong HTML user gửi? Nếu không chắc chắn → bỏ field.`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });

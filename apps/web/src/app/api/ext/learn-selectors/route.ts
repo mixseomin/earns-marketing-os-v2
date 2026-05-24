@@ -1,45 +1,24 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
-import { getDb, knowledgeItems } from '@mos2/db';
-import { and, eq } from 'drizzle-orm';
+import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-// LLM = SELECTOR DISCOVERY, không phải DATA EXTRACTION (user feedback).
-//
-// Flow:
-//   1. Ext POST sidebar HTML + missing fields (vd ['members', 'weekly_visitors'])
-//   2. Server gọi gpt-4.1-mini → trả về CSS selectors map cho từng field
-//   3. Lưu selectors vào knowledge_items (title='ext-habitat-selectors-{key}')
-//      qua existing endpoint /api/ext/platform-fields pattern
-//   4. Ext apply selectors local mỗi lần sau → 0 LLM call
-//   5. Khi Reddit redesign → ext query selectors → applied trả null →
-//      ext fallback POST HTML lại → update selectors
-//
-// Cost: ~$0.001 per Reddit redesign (vài tháng/lần), không phải per page.
+// LLM = SELECTOR DISCOVERY, không phải DATA EXTRACTION.
+// 3-tier inheritance (mig 0061): habitat > platform > engine.
 
 interface LearnReq {
-  platform_key: string;        // 'reddit'
-  page_kind: string;           // 'subreddit-about'
-  fields: string[];            // ['members', 'weekly_visitors', 'privacy', 'created_at']
-  html: string;                // raw sidebar HTML
-}
-
-interface LearnResp {
-  ok: boolean;
-  selectors?: Record<string, SelectorSpec>;
-  error?: string;
-  model?: string;
-}
-
-interface SelectorSpec {
-  css: string;                     // CSS selector
-  attr?: string;                   // attribute to extract ('textContent' default, 'src', 'datetime', 'number')
-  parse?: 'number' | 'date' | 'number-suffix' | 'enum';  // post-process hint
-  enum_values?: string[];          // for parse=enum
-  notes?: string;                  // why this selector
+  platform_key: string;
+  page_kind: string;
+  fields: string[];                       // ['members', 'weekly_visitors', ...]
+  html: string;
+  habitat_id?: number;                    // optional - nếu có sẽ check habitat scope
+  technology_key?: string;                // optional - engine fallback (vbulletin, xenforo)
+  detected_engine?: string;               // ext sniff engine markers (shreddit, discourse)
+  target_scope?: 'engine' | 'platform' | 'habitat';  // default 'platform'
+  target_key?: string;                    // override scope_key (vd habitat_id)
 }
 
 const FIELD_HINTS: Record<string, string> = {
@@ -52,9 +31,60 @@ const FIELD_HINTS: Record<string, string> = {
   icon_url: 'Subreddit icon image URL. attr=src.',
 };
 
-const SELECTOR_KEY = (platform: string, pageKind: string) =>
-  `ext-habitat-selectors-${platform}-${pageKind}`;
+// GET /api/ext/learn-selectors?platform_key=reddit&page_kind=subreddit-about
+//   &habitat_id=6&technology_key=shreddit (optional cho cascade)
+// → trả về resolved map + source-of-truth per field.
+export async function GET(req: Request) {
+  const err = checkAuth(req);
+  if (err) return err;
 
+  const { searchParams } = new URL(req.url);
+  const platformKey = searchParams.get('platform_key');
+  const pageKind = searchParams.get('page_kind');
+  const habitatIdRaw = searchParams.get('habitat_id');
+  const technologyKey = searchParams.get('technology_key');
+
+  if (!pageKind || (!platformKey && !habitatIdRaw && !technologyKey)) {
+    return NextResponse.json({
+      ok: false,
+      error: 'page_kind + at least one of platform_key/habitat_id/technology_key required',
+    }, { status: 400 });
+  }
+
+  // Nếu chỉ có habitat_id → resolve via lookup (auto derive platform+tech).
+  let resolved;
+  if (habitatIdRaw && !platformKey && !technologyKey) {
+    const r = await resolveSelectorsForHabitat(Number(habitatIdRaw), pageKind);
+    resolved = r.resolved;
+  } else {
+    resolved = await resolveSelectors({
+      habitatId: habitatIdRaw ? Number(habitatIdRaw) : null,
+      platformKey,
+      technologyKey,
+      pageKind,
+    });
+  }
+
+  // Back-compat: ext v1.4.13 expect shape { ok, selectors: {field: spec}, updated_at }.
+  // New shape thêm `sources: {field: {scope, key, source, updated_at}}`.
+  const selectors: SelectorMap = {};
+  const sources: Record<string, ResolvedField['source']> = {};
+  let mostRecent: string | null = null;
+  for (const [field, rf] of Object.entries(resolved)) {
+    selectors[field] = rf.spec;
+    sources[field] = rf.source;
+    if (!mostRecent || rf.source.updated_at > mostRecent) mostRecent = rf.source.updated_at;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    selectors: Object.keys(selectors).length > 0 ? selectors : null,
+    sources,
+    updated_at: mostRecent,
+  });
+}
+
+// POST: LLM discover selectors → lưu vào target_scope (default platform).
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
@@ -64,16 +94,23 @@ export async function POST(req: Request) {
 
   const body = (await req.json()) as LearnReq;
   if (!body.html || !body.platform_key || !body.page_kind || !body.fields?.length) {
-    return NextResponse.json({ ok: false, error: 'platform_key + page_kind + fields[] + html required' }, { status: 400 });
+    return NextResponse.json({
+      ok: false, error: 'platform_key + page_kind + fields[] + html required',
+    }, { status: 400 });
   }
 
   const html = body.html.slice(0, 30_000);
-
   const fieldsList = body.fields
     .map((f) => `- "${f}": ${FIELD_HINTS[f] ?? 'extract value'}`)
     .join('\n');
 
-  const sysPrompt = `Bạn là CSS selector discovery agent. Cho HTML của ${body.platform_key} ${body.page_kind} page, sinh CSS selectors STABLE (ưu tiên data-testid, faceplate-*, shreddit-*, semantic tags; tránh class hash random).
+  // Engine detection note injected vào prompt nếu có (giúp LLM ưu tiên
+  // selector chứa engine marker).
+  const engineHint = body.detected_engine
+    ? `\nEngine detected: ${body.detected_engine}. Ưu tiên selectors generic engine (vd 'shreddit-*' cho Reddit, '.vbulletin-*' cho vBulletin).`
+    : '';
+
+  const sysPrompt = `Bạn là CSS selector discovery agent. Cho HTML của ${body.platform_key} ${body.page_kind} page, sinh CSS selectors STABLE (ưu tiên data-testid, faceplate-*, shreddit-*, semantic tags; tránh class hash random).${engineHint}
 
 Trả về JSON CHỈ với shape:
 {
@@ -92,16 +129,15 @@ Fields cần tìm:
 ${fieldsList}
 
 QUAN TRỌNG:
-- Nếu KHÔNG tìm được field trong HTML → bỏ field đó khỏi selectors map (KHÔNG return null).
+- Nếu KHÔNG tìm được field → bỏ field khỏi map (KHÔNG return null).
 - CSS phải work với document.querySelector (no jQuery, no :contains).
-- Cho "number-suffix": ext sẽ tự parse "2K" → 2000 sau khi extract textContent.
-- Cho "enum" privacy: ext check textContent.toLowerCase() match enum_values[i].`;
+- Cho "number-suffix": ext sẽ tự parse "2K" → 2000.`;
 
   const ai = getOpenAI();
   if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
   const model = 'gpt-4.1-mini';
 
-  let selectors: Record<string, SelectorSpec> = {};
+  let selectors: SelectorMap = {};
   try {
     const completion = await ai.chat.completions.create({
       model,
@@ -115,74 +151,42 @@ QUAN TRỌNG:
     });
     const txt = completion.choices[0]?.message?.content?.trim() ?? '';
     const parsed = JSON.parse(txt);
-    selectors = parsed.selectors ?? parsed;  // accept both wrapped + unwrapped
+    selectors = parsed.selectors ?? parsed;
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message, model } satisfies LearnResp, { status: 502 });
+    return NextResponse.json({ ok: false, error: (e as Error).message, model }, { status: 502 });
   }
 
-  // Persist selectors vào knowledge_items (reuse pattern endpoint platform-fields).
-  // Title key = SELECTOR_KEY → unique per (platform, page_kind).
-  const db = getDb();
-  if (db) {
-    const title = SELECTOR_KEY(body.platform_key, body.page_kind);
-    const content = JSON.stringify(selectors, null, 2);
-    try {
-      const [existing] = await db
-        .select({ id: knowledgeItems.id })
-        .from(knowledgeItems)
-        .where(and(eq(knowledgeItems.title, title), eq(knowledgeItems.kind, 'template')))
-        .limit(1);
-      if (existing) {
-        await db.update(knowledgeItems)
-          .set({ content, updatedAt: new Date() })
-          .where(eq(knowledgeItems.id, existing.id));
-      } else {
-        await db.insert(knowledgeItems).values({
-          kind: 'template',
-          title,
-          content,
-          tags: ['ext', 'habitat-selectors', body.platform_key, body.page_kind],
-        });
-      }
-    } catch (e) {
-      console.warn('[learn-selectors] persist failed:', e);
-    }
+  // Default scope = platform (broadest). Ext có thể override gửi 'habitat'
+  // nếu muốn site-specific (chưa wire). Engine tier reserved cho future
+  // (cần technologyKey + LLM phải detect engine-generic selectors).
+  const targetScope = body.target_scope ?? 'platform';
+  const targetKey = body.target_key
+    ?? (targetScope === 'engine' ? (body.technology_key || '') :
+        targetScope === 'habitat' ? String(body.habitat_id || '') :
+        body.platform_key);
+
+  if (!targetKey) {
+    return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}`, selectors, model }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, selectors, model } satisfies LearnResp);
-}
-
-// GET /api/ext/learn-selectors?platform_key=reddit&page_kind=subreddit-about
-//   → return saved selectors (ext fetch trước, apply local, không cần LLM).
-export async function GET(req: Request) {
-  const err = checkAuth(req);
-  if (err) return err;
-
-  const { searchParams } = new URL(req.url);
-  const platformKey = searchParams.get('platform_key');
-  const pageKind = searchParams.get('page_kind');
-  if (!platformKey || !pageKind) {
-    return NextResponse.json({ ok: false, error: 'platform_key + page_kind required' }, { status: 400 });
-  }
-
-  const db = getDb();
-  if (!db) return NextResponse.json({ ok: true, selectors: null });
-
-  const title = SELECTOR_KEY(platformKey, pageKind);
-  const [row] = await db
-    .select({ content: knowledgeItems.content, updatedAt: knowledgeItems.updatedAt })
-    .from(knowledgeItems)
-    .where(and(eq(knowledgeItems.title, title), eq(knowledgeItems.kind, 'template')))
-    .limit(1);
-
-  if (!row) return NextResponse.json({ ok: true, selectors: null });
-
-  let selectors: Record<string, SelectorSpec> | null = null;
-  try { selectors = JSON.parse(row.content); } catch { selectors = null; }
+  const save = await setMap({
+    scopeKind: targetScope,
+    scopeKey: targetKey,
+    pageKind: body.page_kind,
+    selectors,
+    source: 'llm',
+  });
 
   return NextResponse.json({
     ok: true,
     selectors,
-    updated_at: row.updatedAt,
+    model,
+    saved_to: { scope: targetScope, key: targetKey, count: save.saved },
   });
+}
+
+// Local type alias to avoid leaking ResolvedField from action; we only
+// need the shape `source` object inline.
+interface ResolvedField {
+  source: { scope: string; key: string; source: string; updated_at: string };
 }

@@ -1265,8 +1265,12 @@ export function HabitatFormModal({
             </div>
             {/* Auto-detect selectors (LLM-discovered) — read-only inspect.
                 Edit full ở Platform modal (/platforms → click platform card). */}
-            {form.platformKey && (
-              <HabitatSelectorsSection platformKey={form.platformKey} editable={false} />
+            {form.platformKey && !isCreate && habitat && (
+              <HabitatSelectorsSection
+                habitatId={habitat.id}
+                platformKey={form.platformKey}
+                technologyKey={form.technologyKey ?? null}
+              />
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}
           </div>{/* /3-col wrapper */}

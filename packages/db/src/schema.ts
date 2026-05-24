@@ -849,6 +849,33 @@ export const knowledgeItems = pgTable(
   ],
 );
 
+// ── selector_overrides (mig 0061) ────────────────────────────────
+// 3-tier inheritance cho LLM-discovered CSS selectors. Ext MOS2 Crew
+// fetch resolved map (cascade habitat > platform > engine) khi scrape
+// habitat DOM. 1 row = 1 (scope, page_kind, field) triple — field-level
+// override không phải map-level.
+export const selectorOverrides = pgTable(
+  'selector_overrides',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    scopeKind: text('scope_kind').notNull(),    // 'engine' | 'platform' | 'habitat'
+    scopeKey: text('scope_key').notNull(),       // techKey | platformKey | habitatId::text
+    pageKind: text('page_kind').notNull(),       // 'subreddit-about' | 'forum-thread' ...
+    fieldName: text('field_name').notNull(),    // 'members' | 'description' ...
+    spec: jsonb('spec').notNull(),               // { css, attr?, parse?, enum_values?, notes? }
+    source: text('source').notNull().default('llm'),  // 'llm' | 'manual' | 'promoted'
+    confidence: integer('confidence').notNull().default(0),
+    lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('selector_overrides_uniq').on(t.tenantId, t.scopeKind, t.scopeKey, t.pageKind, t.fieldName),
+    index('selector_overrides_scope_idx').on(t.scopeKind, t.scopeKey, t.pageKind),
+  ],
+);
+
 // ── contacts (Resources/Contacts vault) ──────────────────────────
 export const contacts = pgTable(
   'contacts',
@@ -1386,4 +1413,4 @@ export const skillSnippets = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };

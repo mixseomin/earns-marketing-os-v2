@@ -1,149 +1,271 @@
 'use client';
 
-// HabitatSelectorsSection — UI để inspect + manage CSS selectors mà LLM
-// đã discover cho 1 platform. Selectors lưu trong knowledge_items qua
-// endpoint /api/ext/learn-selectors.
+// HabitatSelectorsSection — UI inspect + manage 3-tier selectors.
 //
 // Mode:
-//   - editable=false (habitat modal): read-only display + nút "Open in Platform"
-//     để jump qua platform modal để edit. Có nút "🔄 Force re-learn" gọi LLM lại.
-//   - editable=true (platform modal): textarea JSON full edit + Save.
+//   - inspect (habitat modal): show resolved map (cascade habitat>platform>engine)
+//     với badge scope per field. Click field → action override (xuống scope hẹp)
+//     hoặc promote (lên scope rộng).
+//   - editScope (platform/engine modal): list rows của 1 scope cụ thể, edit
+//     CSS/parse inline, delete.
 
 import { useState, useEffect } from 'react';
-import { fetchHabitatSelectors, saveHabitatSelectors, type SelectorMap } from '@/lib/actions/habitat-selectors';
+import {
+  resolveSelectorsForHabitat, resolveSelectors, listScope,
+  setOverride, clearOverride, promoteToScope,
+  type SelectorSpec, type ResolvedMap, type ScopeKind,
+} from '@/lib/actions/habitat-selectors';
 
 interface Props {
-  platformKey: string;
-  pageKind?: string;          // default 'subreddit-about' (Reddit) — sau extensible
-  editable?: boolean;
+  // Inspect mode: pass habitatId hoặc platformKey (+ optional technologyKey)
+  habitatId?: number | null;
+  platformKey?: string | null;
+  technologyKey?: string | null;
+  // Edit mode: pass scope + key (override inspect)
+  editScope?: ScopeKind;
+  editKey?: string;
+  pageKind?: string;
 }
 
-export function HabitatSelectorsSection({ platformKey, pageKind = 'subreddit-about', editable = false }: Props) {
-  const [selectors, setSelectors] = useState<SelectorMap | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
+  habitat: { label: 'site', color: 'var(--accent)' },
+  platform: { label: 'platform', color: 'var(--warn)' },
+  engine: { label: 'engine', color: 'var(--fg-3)' },
+};
+
+export function HabitatSelectorsSection({
+  habitatId, platformKey, technologyKey,
+  editScope, editKey, pageKind = 'subreddit-about',
+}: Props) {
+  const isEditMode = !!(editScope && editKey);
+  const [resolved, setResolved] = useState<ResolvedMap>({});
+  const [editRows, setEditRows] = useState<Array<{ field: string; spec: SelectorSpec; source: string; updatedAt: string }>>([]);
+  const [resolvedPlatform, setResolvedPlatform] = useState<string | null>(null);
+  const [resolvedTech, setResolvedTech] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editJson, setEditJson] = useState<string>('');
-  const [editError, setEditError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchHabitatSelectors(platformKey, pageKind)
-      .then((r) => {
-        if (cancelled) return;
-        setSelectors(r.selectors);
-        setUpdatedAt(r.updatedAt);
-        setEditJson(r.selectors ? JSON.stringify(r.selectors, null, 2) : '{}');
-        setLoading(false);
-      })
-      .catch(() => { if (!cancelled) setLoading(false); });
+    (async () => {
+      if (isEditMode && editScope && editKey) {
+        const rows = await listScope({ scopeKind: editScope, scopeKey: editKey, pageKind });
+        if (!cancelled) { setEditRows(rows); setLoading(false); }
+      } else if (habitatId != null) {
+        const r = await resolveSelectorsForHabitat(habitatId, pageKind);
+        if (!cancelled) {
+          setResolved(r.resolved);
+          setResolvedPlatform(r.platformKey);
+          setResolvedTech(r.technologyKey);
+          setLoading(false);
+        }
+      } else {
+        const r = await resolveSelectors({
+          platformKey: platformKey ?? null,
+          technologyKey: technologyKey ?? null,
+          pageKind,
+        });
+        if (!cancelled) {
+          setResolved(r);
+          setResolvedPlatform(platformKey ?? null);
+          setResolvedTech(technologyKey ?? null);
+          setLoading(false);
+        }
+      }
+    })();
     return () => { cancelled = true; };
-  }, [platformKey, pageKind, reload]);
+  }, [habitatId, platformKey, technologyKey, editScope, editKey, pageKind, reload, isEditMode]);
 
-  const handleSave = async () => {
-    setEditError(null);
-    let parsed: SelectorMap;
-    try { parsed = JSON.parse(editJson); }
-    catch (e) { setEditError(`JSON invalid: ${(e as Error).message}`); return; }
-    setSaving(true);
-    const res = await saveHabitatSelectors(platformKey, pageKind, parsed);
-    setSaving(false);
-    if (!res.ok) { setEditError(res.error || 'save failed'); return; }
-    setSelectors(parsed);
-    setReload((n) => n + 1);
+  const showMsg = (msg: string) => {
+    setActionMsg(msg);
+    setTimeout(() => setActionMsg(null), 4000);
   };
 
-  const selectorEntries = selectors ? Object.entries(selectors) : [];
+  // Override field xuống habitat scope (clone spec từ cascade → habitat tier)
+  const handleOverrideToHabitat = async (field: string, currentSpec: SelectorSpec) => {
+    if (habitatId == null) return;
+    const res = await setOverride({
+      scopeKind: 'habitat', scopeKey: String(habitatId),
+      pageKind, fieldName: field, spec: currentSpec, source: 'manual',
+    });
+    if (res.ok) { showMsg(`✓ Override "${field}" tới site scope`); setReload((n) => n + 1); }
+    else showMsg(`⚠ ${res.error}`);
+  };
+
+  // Promote field từ scope hiện tại → scope rộng hơn
+  const handlePromote = async (field: string, fromScope: ScopeKind, fromKey: string, toScope: ScopeKind, toKey: string) => {
+    const res = await promoteToScope({ fromScope, fromKey, toScope, toKey, pageKind, fieldName: field });
+    if (res.ok) { showMsg(`✓ Promoted "${field}" ${fromScope}→${toScope}`); setReload((n) => n + 1); }
+    else showMsg(`⚠ ${res.error}`);
+  };
+
+  // Clear override (revert tới scope cha trong cascade)
+  const handleClear = async (field: string, scope: ScopeKind, key: string) => {
+    const res = await clearOverride({ scopeKind: scope, scopeKey: key, pageKind, fieldName: field });
+    if (res.ok) { showMsg(`✓ Cleared "${field}" @ ${scope}`); setReload((n) => n + 1); }
+  };
+
+  // Edit cell value (CSS hoặc parse) trong edit mode
+  const handleEditCell = async (field: string, newSpec: SelectorSpec) => {
+    if (!isEditMode || !editScope || !editKey) return;
+    const res = await setOverride({
+      scopeKind: editScope, scopeKey: editKey,
+      pageKind, fieldName: field, spec: newSpec, source: 'manual',
+    });
+    if (res.ok) { showMsg(`✓ Saved "${field}"`); setReload((n) => n + 1); }
+    else showMsg(`⚠ ${res.error}`);
+  };
+
+  const headerTitle = isEditMode
+    ? `🔍 Selectors @ ${editScope}:${editKey}`
+    : '🔍 Auto-detect selectors (resolved cascade)';
+
+  const rows = isEditMode
+    ? editRows
+    : Object.entries(resolved).map(([field, rf]) => ({
+        field,
+        spec: rf.spec,
+        source: rf.source.source,
+        scope: rf.source.scope,
+        scopeKey: rf.source.key,
+        updatedAt: rf.source.updated_at,
+      }));
 
   return (
     <div style={{ border: '1px dashed var(--line-2)', borderRadius: 5, padding: 8,
                   background: 'var(--bg-1)', fontSize: 11 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-        <strong title="LLM-discovered CSS selectors cho platform này. Ext apply selectors khi scrape subreddit."
-                style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)',
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)',
                          textTransform: 'uppercase', letterSpacing: '.06em' }}>
-          🔍 Auto-detect selectors
+          {headerTitle}
         </strong>
         <span style={{ padding: '1px 5px', background: 'var(--bg-2)', borderRadius: 3,
                        fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-          {platformKey} · {pageKind}
+          {pageKind}
         </span>
+        {!isEditMode && resolvedPlatform && (
+          <span style={{ fontSize: 9, color: 'var(--fg-4)' }}>
+            cascade: site#{habitatId ?? '?'} → platform:{resolvedPlatform}
+            {resolvedTech ? ` → engine:${resolvedTech}` : ''}
+          </span>
+        )}
         <span style={{ flex: 1 }} />
-        {updatedAt && (
-          <span style={{ fontSize: 9, color: 'var(--fg-4)' }}
-                title={new Date(updatedAt).toISOString()}>
-            updated {new Date(updatedAt).toLocaleDateString()}
+        {actionMsg && (
+          <span style={{ fontSize: 10, color: actionMsg.startsWith('⚠') ? 'var(--bad)' : 'var(--ok)' }}>
+            {actionMsg}
           </span>
         )}
       </div>
 
       {loading ? (
         <div style={{ color: 'var(--fg-3)', padding: 4 }}>Loading…</div>
-      ) : !selectors || selectorEntries.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div style={{ color: 'var(--fg-3)', fontStyle: 'italic', padding: 4 }}>
-          Chưa có selectors. Mở 1 subreddit khi ext active → LLM auto-learn lần đầu (~$0.001).
+          {isEditMode
+            ? `Chưa có override ở scope này. Học từ scope hẹp hơn qua "Promote".`
+            : `Chưa có selectors. Mở 1 page khi ext active → LLM auto-learn (~$0.001/redesign).`}
         </div>
-      ) : editable ? (
-        <>
-          <textarea value={editJson} onChange={(e) => setEditJson(e.target.value)}
-                    spellCheck={false}
-                    style={{ width: '100%', minHeight: 220, padding: 8,
-                             fontFamily: 'var(--font-mono)', fontSize: 10.5,
-                             background: 'var(--bg-2)', color: 'var(--fg-1)',
-                             border: '1px solid var(--line)', borderRadius: 4,
-                             outline: 'none', resize: 'vertical' }} />
-          {editError && (
-            <div style={{ color: 'var(--bad)', fontSize: 10, marginTop: 4 }}>⚠ {editError}</div>
-          )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-            <button type="button" onClick={handleSave} disabled={saving}
-                    style={{ fontSize: 11, padding: '3px 10px',
-                             background: 'var(--accent)', color: 'var(--btn-primary-fg, #0d1117)',
-                             border: 'none', borderRadius: 3,
-                             cursor: saving ? 'wait' : 'pointer' }}>
-              {saving ? 'Saving…' : 'Save selectors'}
-            </button>
-            <button type="button" onClick={() => setEditJson(JSON.stringify(selectors, null, 2))}
-                    style={{ fontSize: 11, padding: '3px 10px', background: 'transparent',
-                             color: 'var(--fg-3)', border: '1px solid var(--line)',
-                             borderRadius: 3, cursor: 'pointer' }}>
-              Reset
-            </button>
-            <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>
-              Edit JSON nếu LLM sinh selector sai. Ext invalidate cache 1h.
-            </span>
-          </div>
-        </>
       ) : (
-        // Read-only table
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3,
-                      maxHeight: 200, overflowY: 'auto' }}>
-          {selectorEntries.map(([field, spec]) => (
-            <div key={field} style={{ display: 'grid',
-                                       gridTemplateColumns: '110px 1fr auto',
-                                       gap: 6, alignItems: 'baseline',
-                                       padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
-                             color: 'var(--fg-1)', fontWeight: 600 }}>
-                {field}
-              </span>
-              <code style={{ fontSize: 10, color: 'var(--fg-2)',
-                             overflow: 'hidden', textOverflow: 'ellipsis',
-                             whiteSpace: 'nowrap' }}
-                    title={spec.css}>
-                {spec.css}
-              </code>
-              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
-                             color: 'var(--fg-3)' }}>
-                {spec.parse ? `→ ${spec.parse}` : (spec.attr ? `@${spec.attr}` : '')}
-              </span>
-            </div>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2,
+                      maxHeight: 280, overflowY: 'auto' }}>
+          {rows.map((row) => {
+            const scope = ('scope' in row ? row.scope : editScope) as ScopeKind;
+            const scopeKey: string = ('scopeKey' in row ? row.scopeKey as string : editKey) ?? '';
+            const meta = SCOPE_META[scope];
+            return (
+              <div key={row.field} style={{ display: 'grid',
+                                             gridTemplateColumns: '110px 60px 1fr auto auto',
+                                             gap: 6, alignItems: 'center',
+                                             padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                               color: 'var(--fg-1)', fontWeight: 600 }}>
+                  {row.field}
+                </span>
+                <span title={`Source: ${row.source} @ ${scope}:${scopeKey}`}
+                      style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                               fontWeight: 700, borderRadius: 3, textAlign: 'center',
+                               background: meta.color + '22', color: meta.color,
+                               border: `1px solid ${meta.color}66` }}>
+                  {meta.label}
+                </span>
+                <code style={{ fontSize: 10, color: 'var(--fg-2)',
+                               overflow: 'hidden', textOverflow: 'ellipsis',
+                               whiteSpace: 'nowrap', cursor: 'help' }}
+                      title={`${row.spec.css}${row.spec.notes ? '\n\n' + row.spec.notes : ''}`}>
+                  {row.spec.css}
+                </code>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                  {row.spec.parse ? `→ ${row.spec.parse}` : (row.spec.attr ? `@${row.spec.attr}` : '')}
+                </span>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {isEditMode ? (
+                    // Edit mode: edit CSS + delete
+                    <>
+                      <button type="button"
+                              onClick={() => {
+                                const newCss = prompt(`Edit CSS for "${row.field}":`, row.spec.css);
+                                if (newCss != null && newCss !== row.spec.css) {
+                                  handleEditCell(row.field, { ...row.spec, css: newCss });
+                                }
+                              }}
+                              title="Edit CSS selector"
+                              style={btnSmall}>✎</button>
+                      <button type="button"
+                              onClick={() => {
+                                if (confirm(`Delete selector "${row.field}" at ${editScope}:${editKey}?`)) {
+                                  if (editScope && editKey) handleClear(row.field, editScope, editKey);
+                                }
+                              }}
+                              title="Delete (revert to cascade parent)"
+                              style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
+                    </>
+                  ) : (
+                    // Inspect mode: override down / promote up
+                    <>
+                      {habitatId != null && scope !== 'habitat' && (
+                        <button type="button"
+                                onClick={() => handleOverrideToHabitat(row.field, row.spec)}
+                                title={`Override "${row.field}" tới site scope (clone hiện tại)`}
+                                style={btnSmall}>⤓</button>
+                      )}
+                      {scope === 'habitat' && resolvedPlatform && (
+                        <button type="button"
+                                onClick={() => handlePromote(row.field, 'habitat', scopeKey, 'platform', resolvedPlatform)}
+                                title={`Promote site → platform:${resolvedPlatform}`}
+                                style={btnSmall}>⤴</button>
+                      )}
+                      {scope === 'platform' && resolvedTech && (
+                        <button type="button"
+                                onClick={() => handlePromote(row.field, 'platform', scopeKey, 'engine', resolvedTech)}
+                                title={`Promote platform → engine:${resolvedTech}`}
+                                style={btnSmall}>⤴</button>
+                      )}
+                      {scope === 'habitat' && (
+                        <button type="button"
+                                onClick={() => {
+                                  if (confirm(`Clear "${row.field}" @ site (revert to cascade parent)?`)) {
+                                    handleClear(row.field, scope, scopeKey);
+                                  }
+                                }}
+                                title="Clear site override (revert to platform/engine)"
+                                style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+
+const btnSmall: React.CSSProperties = {
+  background: 'transparent', border: '1px solid var(--line)', borderRadius: 3,
+  padding: '0 5px', fontSize: 10, color: 'var(--fg-2)', cursor: 'pointer',
+  lineHeight: 1.4,
+};

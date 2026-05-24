@@ -480,7 +480,10 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
               platform tồn tại) vì chưa thể có selectors khi đang create. */}
           {!isCreate && platform && (
             <div style={{ gridColumn: '1 / 3', marginTop: 8 }}>
-              <HabitatSelectorsSection platformKey={platform.key} editable={true} />
+              <HabitatSelectorsSection
+                editScope="platform"
+                editKey={platform.key}
+              />
             </div>
           )}
         </div>

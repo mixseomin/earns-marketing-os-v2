@@ -96,9 +96,10 @@ export async function POST(req: Request) {
 
   const startedAt = Date.now();
   const extMeta = extractExtMeta(req);
-  // v1.4.16: ext gửi full body.innerHTML 100KB. Server giữ 100KB cho
-  // LLM (gpt-4.1-mini context 1M tokens, dư sức xử lý ~25k tokens HTML).
-  const html = body.html.slice(0, 100_000);
+  // v1.4.17+: tăng 100KB → 200KB. Reddit page full ~500KB-1MB, 100KB
+  // miss description + icon_url section. 200KB cover header + sidebar.
+  // gpt-4.1-mini context 1M tokens, dư sức xử lý ~50k tokens HTML.
+  const html = body.html.slice(0, 200_000);
   const fieldsList = body.fields
     .map((f) => `- "${f}": ${getFieldHint(body.page_kind, f)}`)
     .join('\n');

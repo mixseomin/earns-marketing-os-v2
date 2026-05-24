@@ -123,7 +123,19 @@ REDDIT 2026 PATTERNS đã verify:
 - "2K Members" → text trong <faceplate-number number="2000"> bên trong about panel
 - "Created Aug 14, 2017" → <time datetime="2017-08-14T...">
 - Privacy "Public"/"Private community" → span/li/text trong about panel cạnh icon globe/lock
-- Icon URL → <img src="..."> trong <shreddit-subreddit-icon> hoặc avatar-* trong about
+
+CẢNH BÁO 2 FIELDS NÀY HAY BỊ MISS — phải scope RỘNG HƠN shreddit-subreddit-about:
+- description: HEADING + paragraph text MÔ TẢ COMMUNITY. Có thể ở 3 chỗ:
+  (a) Inside shreddit-subreddit-about: <h2> hoặc <p> chứa "All Things Astrology Charts!" hoặc "A subreddit for sharing..."
+  (b) <shreddit-subreddit-header> tag (separate từ about)
+  (c) <p data-testid="subreddit-description">
+  → Selector ưu tiên: shreddit-subreddit-about p (first p > 30 chars). Fallback: shreddit-subreddit-header p.
+- icon_url: subreddit icon image (NOT user avatar, NOT banner). Có thể ở 3 chỗ:
+  (a) <shreddit-subreddit-icon> wrapping <img src="...">
+  (b) <faceplate-img> trong header có src styles.redditmedia.com hoặc redditstatic
+  (c) <img alt*="r/<sub>"> trong header
+  → Selector ưu tiên: shreddit-subreddit-icon img. Fallback: img[alt*='r/' i][src*='redditmedia'].
+  → Attr LUÔN PHẢI là "src" (không phải textContent).
 
 OUTPUT JSON shape:
 {"selectors": {"members": {"css": "<selector>", "attr": "textContent"|"src"|"datetime"|"number", "parse": "number-suffix"|"date"|"enum", "enum_values": [...], "notes": "..."}, ...}}

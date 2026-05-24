@@ -15,6 +15,7 @@ import {
   setOverride, clearOverride, promoteToScope,
   type SelectorSpec, type ResolvedMap, type ScopeKind,
 } from '@/lib/actions/habitat-selectors';
+import { getFieldSchema } from '@/lib/habitat-field-schema';
 
 interface Props {
   // Inspect mode: pass habitatId hoặc platformKey (+ optional technologyKey)
@@ -161,107 +162,175 @@ export function HabitatSelectorsSection({
 
       {loading ? (
         <div style={{ color: 'var(--fg-3)', padding: 4 }}>Loading…</div>
-      ) : rows.length === 0 ? (
-        <div style={{ color: 'var(--fg-3)', fontStyle: 'italic', padding: 4 }}>
-          {isEditMode
-            ? `Chưa có override ở scope này. Học từ scope hẹp hơn qua "Promote".`
-            : `Chưa có selectors. Mở 1 page khi ext active → LLM auto-learn (~$0.001/redesign).`}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2,
-                      maxHeight: 280, overflowY: 'auto' }}>
-          {rows.map((row) => {
-            const scope = ('scope' in row ? row.scope : editScope) as ScopeKind;
-            const scopeKey: string = ('scopeKey' in row ? row.scopeKey as string : editKey) ?? '';
-            const meta = SCOPE_META[scope];
-            return (
-              <div key={row.field} style={{ display: 'grid',
-                                             gridTemplateColumns: '110px 60px 1fr auto auto',
-                                             gap: 6, alignItems: 'center',
-                                             padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
-                               color: 'var(--fg-1)', fontWeight: 600 }}>
-                  {row.field}
+      ) : (() => {
+        // Merge schema (expected fields) với rows hiện có. Field nào chưa
+        // có selector → render placeholder row màu xám với hint.
+        const schemaFields = getFieldSchema(pageKind);
+        const rowsByField = new Map(rows.map((r) => [r.field, r]));
+        const allFields = schemaFields.map((s) => ({
+          schema: s,
+          row: rowsByField.get(s.key) ?? null,
+        }));
+        // Cũng include row có field không trong schema (LLM tự thêm)
+        for (const r of rows) {
+          if (!schemaFields.find((s) => s.key === r.field)) {
+            allFields.push({ schema: { key: r.field, label: r.field, hint: '' }, row: r });
+          }
+        }
+        if (allFields.length === 0) {
+          return (
+            <div style={{ color: 'var(--fg-3)', fontStyle: 'italic', padding: 4 }}>
+              Chưa có field schema cho page_kind &quot;{pageKind}&quot;.
+              Edit @ lib/habitat-field-schema.ts để thêm field expected.
+            </div>
+          );
+        }
+        const populatedCount = allFields.filter((f) => f.row).length;
+        const missingCount = allFields.length - populatedCount;
+        return (
+          <>
+            <div style={{ fontSize: 9.5, color: 'var(--fg-3)', padding: '2px 4px',
+                          background: 'var(--bg-2)', borderRadius: 3, marginBottom: 3,
+                          display: 'flex', gap: 8 }}>
+              <span><strong style={{ color: 'var(--ok)' }}>{populatedCount}</strong> covered</span>
+              {missingCount > 0 && <span><strong style={{ color: 'var(--warn)' }}>{missingCount}</strong> missing</span>}
+              {missingCount > 0 && !isEditMode && (
+                <span style={{ flex: 1, textAlign: 'right', fontStyle: 'italic' }}>
+                  Mở 1 page tương ứng → ext auto LLM learn (~$0.001).
                 </span>
-                <span title={`Source: ${row.source} @ ${scope}:${scopeKey}`}
-                      style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                               fontWeight: 700, borderRadius: 3, textAlign: 'center',
-                               background: meta.color + '22', color: meta.color,
-                               border: `1px solid ${meta.color}66` }}>
-                  {meta.label}
-                </span>
-                <code style={{ fontSize: 10, color: 'var(--fg-2)',
-                               overflow: 'hidden', textOverflow: 'ellipsis',
-                               whiteSpace: 'nowrap', cursor: 'help' }}
-                      title={`${row.spec.css}${row.spec.notes ? '\n\n' + row.spec.notes : ''}`}>
-                  {row.spec.css}
-                </code>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-                  {row.spec.parse ? `→ ${row.spec.parse}` : (row.spec.attr ? `@${row.spec.attr}` : '')}
-                </span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {isEditMode ? (
-                    // Edit mode: edit CSS + delete
-                    <>
-                      <button type="button"
-                              onClick={() => {
-                                const newCss = prompt(`Edit CSS for "${row.field}":`, row.spec.css);
-                                if (newCss != null && newCss !== row.spec.css) {
-                                  handleEditCell(row.field, { ...row.spec, css: newCss });
-                                }
-                              }}
-                              title="Edit CSS selector"
-                              style={btnSmall}>✎</button>
-                      <button type="button"
-                              onClick={() => {
-                                if (confirm(`Delete selector "${row.field}" at ${editScope}:${editKey}?`)) {
-                                  if (editScope && editKey) handleClear(row.field, editScope, editKey);
-                                }
-                              }}
-                              title="Delete (revert to cascade parent)"
-                              style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
-                    </>
-                  ) : (
-                    // Inspect mode: override down / promote up
-                    <>
-                      {habitatId != null && scope !== 'habitat' && (
-                        <button type="button"
-                                onClick={() => handleOverrideToHabitat(row.field, row.spec)}
-                                title={`Override "${row.field}" tới site scope (clone hiện tại)`}
-                                style={btnSmall}>⤓</button>
-                      )}
-                      {scope === 'habitat' && resolvedPlatform && (
-                        <button type="button"
-                                onClick={() => handlePromote(row.field, 'habitat', scopeKey, 'platform', resolvedPlatform)}
-                                title={`Promote site → platform:${resolvedPlatform}`}
-                                style={btnSmall}>⤴</button>
-                      )}
-                      {scope === 'platform' && resolvedTech && (
-                        <button type="button"
-                                onClick={() => handlePromote(row.field, 'platform', scopeKey, 'engine', resolvedTech)}
-                                title={`Promote platform → engine:${resolvedTech}`}
-                                style={btnSmall}>⤴</button>
-                      )}
-                      {scope === 'habitat' && (
-                        <button type="button"
-                                onClick={() => {
-                                  if (confirm(`Clear "${row.field}" @ site (revert to cascade parent)?`)) {
-                                    handleClear(row.field, scope, scopeKey);
-                                  }
-                                }}
-                                title="Clear site override (revert to platform/engine)"
-                                style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2,
+                          maxHeight: 280, overflowY: 'auto' }}>
+              {allFields.map(({ schema, row }) => {
+                if (!row) {
+                  // Missing row placeholder
+                  return (
+                    <div key={schema.key} style={{ display: 'grid',
+                                                    gridTemplateColumns: '110px 60px 1fr auto auto',
+                                                    gap: 6, alignItems: 'center',
+                                                    padding: '3px 4px', borderTop: '1px solid var(--line)',
+                                                    opacity: 0.6 }}>
+                      <span title={schema.hint}
+                            style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                                     color: 'var(--fg-3)', fontWeight: 600, cursor: 'help' }}>
+                        {schema.key}
+                      </span>
+                      <span style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                     fontWeight: 700, borderRadius: 3, textAlign: 'center',
+                                     background: 'var(--bg-2)', color: 'var(--fg-4)',
+                                     border: '1px dashed var(--line)' }}>
+                        none
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
+                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title={schema.hint}>
+                        {schema.label}: {schema.hint || '(no hint)'}
+                      </span>
+                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
+                        {schema.parse ? `→ ${schema.parse}` : ''}
+                      </span>
+                      <span />
+                    </div>
+                  );
+                }
+                return renderResolvedRow(row, schema);
+              })}
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
+
+  // Render 1 row có selector resolved
+  function renderResolvedRow(row: typeof rows[number], schema: { key: string; label: string; hint: string }) {
+    const scope = ('scope' in row ? row.scope : editScope) as ScopeKind;
+    const scopeKey: string = ('scopeKey' in row ? row.scopeKey as string : editKey) ?? '';
+    const meta = SCOPE_META[scope];
+    return (
+      <div key={row.field} style={{ display: 'grid',
+                                     gridTemplateColumns: '110px 60px 1fr auto auto',
+                                     gap: 6, alignItems: 'center',
+                                     padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
+        <span title={schema.hint || row.field}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                       color: 'var(--fg-1)', fontWeight: 600, cursor: schema.hint ? 'help' : 'default' }}>
+          {row.field}
+        </span>
+        <span title={`Source: ${row.source} @ ${scope}:${scopeKey}`}
+              style={{ padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                       fontWeight: 700, borderRadius: 3, textAlign: 'center',
+                       background: meta.color + '22', color: meta.color,
+                       border: `1px solid ${meta.color}66` }}>
+          {meta.label}
+        </span>
+        <code style={{ fontSize: 10, color: 'var(--fg-2)',
+                       overflow: 'hidden', textOverflow: 'ellipsis',
+                       whiteSpace: 'nowrap', cursor: 'help' }}
+              title={`${row.spec.css}${row.spec.notes ? '\n\n' + row.spec.notes : ''}`}>
+          {row.spec.css}
+        </code>
+        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+          {row.spec.parse ? `→ ${row.spec.parse}` : (row.spec.attr ? `@${row.spec.attr}` : '')}
+        </span>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {isEditMode ? (
+            <>
+              <button type="button"
+                      onClick={() => {
+                        const newCss = prompt(`Edit CSS for "${row.field}":`, row.spec.css);
+                        if (newCss != null && newCss !== row.spec.css) {
+                          handleEditCell(row.field, { ...row.spec, css: newCss });
+                        }
+                      }}
+                      title="Edit CSS selector"
+                      style={btnSmall}>✎</button>
+              <button type="button"
+                      onClick={() => {
+                        if (confirm(`Delete selector "${row.field}" at ${editScope}:${editKey}?`)) {
+                          if (editScope && editKey) handleClear(row.field, editScope, editKey);
+                        }
+                      }}
+                      title="Delete (revert to cascade parent)"
+                      style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
+            </>
+          ) : (
+            <>
+              {habitatId != null && scope !== 'habitat' && (
+                <button type="button"
+                        onClick={() => handleOverrideToHabitat(row.field, row.spec)}
+                        title={`Override "${row.field}" tới site scope (clone hiện tại)`}
+                        style={btnSmall}>⤓</button>
+              )}
+              {scope === 'habitat' && resolvedPlatform && (
+                <button type="button"
+                        onClick={() => handlePromote(row.field, 'habitat', scopeKey, 'platform', resolvedPlatform)}
+                        title={`Promote site → platform:${resolvedPlatform}`}
+                        style={btnSmall}>⤴</button>
+              )}
+              {scope === 'platform' && resolvedTech && (
+                <button type="button"
+                        onClick={() => handlePromote(row.field, 'platform', scopeKey, 'engine', resolvedTech)}
+                        title={`Promote platform → engine:${resolvedTech}`}
+                        style={btnSmall}>⤴</button>
+              )}
+              {scope === 'habitat' && (
+                <button type="button"
+                        onClick={() => {
+                          if (confirm(`Clear "${row.field}" @ site (revert to cascade parent)?`)) {
+                            handleClear(row.field, scope, scopeKey);
+                          }
+                        }}
+                        title="Clear site override (revert to platform/engine)"
+                        style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 }
 
 const btnSmall: React.CSSProperties = {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
+import { getFieldHint } from '@/lib/habitat-field-schema';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -21,15 +22,8 @@ interface LearnReq {
   target_key?: string;                    // override scope_key (vd habitat_id)
 }
 
-const FIELD_HINTS: Record<string, string> = {
-  members: 'Tổng số subscribers/members ("2.3K Members" → 2300). parse=number-suffix.',
-  weekly_visitors: 'Weekly unique visitors ("2K Weekly visitors"). parse=number-suffix.',
-  weekly_contributions: 'Weekly posts+comments ("280 Weekly contributions"). parse=number-suffix.',
-  privacy: 'Community type: "public" | "restricted" | "private". parse=enum.',
-  created_at: 'Date community được tạo (vd "Created Aug 14, 2017" hoặc <time datetime>). parse=date.',
-  description: 'Mô tả community (paragraph). attr=textContent.',
-  icon_url: 'Subreddit icon image URL. attr=src.',
-};
+// FIELD_HINTS centralized ở @/lib/habitat-field-schema. Endpoint chỉ
+// dùng getFieldHint() bên dưới khi build LLM prompt.
 
 // GET /api/ext/learn-selectors?platform_key=reddit&page_kind=subreddit-about
 //   &habitat_id=6&technology_key=shreddit (optional cho cascade)
@@ -101,7 +95,7 @@ export async function POST(req: Request) {
 
   const html = body.html.slice(0, 30_000);
   const fieldsList = body.fields
-    .map((f) => `- "${f}": ${FIELD_HINTS[f] ?? 'extract value'}`)
+    .map((f) => `- "${f}": ${getFieldHint(body.page_kind, f)}`)
     .join('\n');
 
   // Engine detection note injected vào prompt nếu có (giúp LLM ưu tiên

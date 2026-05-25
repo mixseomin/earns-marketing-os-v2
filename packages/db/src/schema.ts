@@ -762,6 +762,10 @@ export const communityBriefs = pgTable(
     joinedAt: timestamp('joined_at', { withTimezone: true }),
     joinUrl: text('join_url'),       // invite link / join request URL
     joinNote: text('join_note'),     // free-text: 'mod requires intro post', 'shadowed', etc.
+    // migration 0065: scraped relationship metadata từ ext (key-value flat).
+    // Schema declared trong lib/brief-field-schema.ts; reuse selector_overrides
+    // với field_name prefix "brief." cho train flow.
+    scrapedMeta: jsonb('scraped_meta').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

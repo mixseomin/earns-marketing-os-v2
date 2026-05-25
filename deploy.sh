@@ -37,10 +37,41 @@ else
   echo "↺ Skip deps (no package changes)"
 fi
 
-# 4. Apply pending Drizzle migrations (idempotent — safe to run every deploy)
+# 4. Apply pending Drizzle migrations (idempotent — safe to run every deploy).
+# Drizzle migrator chỉ apply migrations có trong meta/_journal.json. Journal
+# stuck ở 0024 — mọi migration 0025+ phải tự apply qua file-based runner ở
+# step 4a (idempotent vì các .sql files dùng "IF NOT EXISTS" pattern).
 if [ -d "packages/db/migrations" ]; then
   npm run db:migrate
-  echo "✓ DB migrations applied"
+  echo "✓ DB migrations applied (drizzle journal)"
+fi
+
+# 4a. File-based migration runner — pick up mọi .sql file mới (0025+) mà
+# drizzle journal không track. Track đã apply qua bảng _file_migrations.
+if [ -n "${DATABASE_URL:-}" ] && [ -d "packages/db/migrations" ]; then
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "
+    CREATE TABLE IF NOT EXISTS _file_migrations (
+      filename text PRIMARY KEY,
+      applied_at timestamptz NOT NULL DEFAULT now()
+    );
+  " >/dev/null
+  for sql_file in packages/db/migrations/00[0-9][0-9]_*.sql; do
+    [ -f "$sql_file" ] || continue
+    fname=$(basename "$sql_file")
+    already=$(psql "$DATABASE_URL" -tAc "SELECT 1 FROM _file_migrations WHERE filename = '$fname' LIMIT 1")
+    if [ "$already" = "1" ]; then
+      continue
+    fi
+    echo "→ Applying $fname"
+    if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$sql_file"; then
+      psql "$DATABASE_URL" -c "INSERT INTO _file_migrations (filename) VALUES ('$fname') ON CONFLICT DO NOTHING;" >/dev/null
+      echo "  ✓ $fname applied + recorded"
+    else
+      echo "  ✗ $fname failed — abort deploy"
+      exit 1
+    fi
+  done
+  echo "✓ File-based migrations up-to-date"
 fi
 
 # 4b. Always run seed — spec-only by default (idempotent: modes + platforms +

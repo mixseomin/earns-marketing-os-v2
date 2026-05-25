@@ -26,6 +26,12 @@ export interface FieldSchemaEntry {
 export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
   'subreddit-about': [
     {
+      key: 'title',
+      label: 'Display title',
+      hint: 'Display name của community ("Astrology Memes"), khác r/slug từ URL.',
+      habitatKey: 'title',
+    },
+    {
       key: 'members',
       label: 'Members',
       hint: 'Tổng số subscribers/members ("2.3K Members" → 2300).',

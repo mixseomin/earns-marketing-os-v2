@@ -624,6 +624,10 @@ export const habitats = pgTable(
     weeklyContributions: integer('weekly_contributions').notNull().default(0),
     // migration 0063: mô tả community (paragraph từ Reddit "About community")
     description: text('description').notNull().default(''),
+    // migration 0064: display title — khác name (r/slug primary identifier),
+    // đây là tên hiển thị đầu sidebar ("Astrology Memes" vs "r/astrologymemes").
+    // Optional — fallback name nếu chưa scrape.
+    title: text('title').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

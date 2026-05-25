@@ -17,6 +17,7 @@ interface ExtHabitatPayload {
   icon_url?: string;
   members?: number | null;
   description?: string;
+  title?: string;  // display title — khác name (slug primary identifier)
   rules?: Array<{ priority: number; short_name: string; description: string }>;
   hot_titles?: string[];
   source_url?: string;
@@ -164,6 +165,7 @@ export async function POST(req: Request) {
     })(),
     createdAtSource: body.created_at_source ? new Date(body.created_at_source) : null,
     description: body.description ?? '',
+    title: body.title ?? '',
     importedFrom: 'mos2-crew-ext',
     lastSyncAt: new Date(),
     updatedAt: new Date(),
@@ -211,6 +213,7 @@ export async function POST(req: Request) {
         privacy: patch.privacy || sib.privacy,
         createdAtSource: patch.createdAtSource || sib.createdAtSource,
         description: patch.description || sib.description,
+        title: patch.title || sib.title,
         modStrictness: patch.modStrictness || sib.modStrictness,
         communityType: patch.communityType || sib.communityType,
         dominantTopics: (Array.isArray(patch.dominantTopics) && patch.dominantTopics.length > 0) ? patch.dominantTopics : sib.dominantTopics,

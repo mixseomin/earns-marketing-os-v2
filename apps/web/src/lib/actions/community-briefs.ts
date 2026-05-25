@@ -62,6 +62,8 @@ export interface BriefRow {
   joinedAt: string | null;
   joinUrl: string | null;
   joinNote: string | null;
+  // migration 0065: scraped relationship metadata (ext detect, lib/brief-field-schema.ts)
+  scrapedMeta: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -200,6 +202,7 @@ export async function listBriefsForAccount(accountId: number): Promise<BriefForA
     joinedAt: dateField(r.joined_at),
     joinUrl: nullTextField(r.join_url),
     joinNote: nullTextField(r.join_note),
+    scrapedMeta: (r.scraped_meta as Record<string, unknown>) ?? {},
     updatedAt: reqDateField(r.updated_at),
     habitatName: textField(r.habitat_name),
     habitatKind: textField(r.habitat_kind),
@@ -253,6 +256,7 @@ export async function listBriefsForHabitat(habitatId: number): Promise<BriefForH
     joinedAt: r.joined_at instanceof Date ? r.joined_at.toISOString() : (r.joined_at ? String(r.joined_at) : null),
     joinUrl: r.join_url ? String(r.join_url) : null,
     joinNote: r.join_note ? String(r.join_note) : null,
+    scrapedMeta: (r.scraped_meta as Record<string, unknown>) ?? {},
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
     accountHandle: r.account_handle ? String(r.account_handle) : null,
     accountEmail: r.account_email ? String(r.account_email) : null,
@@ -302,6 +306,7 @@ export async function getBriefRow(projectId: string, briefId: number): Promise<B
     joinedAt: r.joined_at instanceof Date ? r.joined_at.toISOString() : (r.joined_at ? String(r.joined_at) : null),
     joinUrl: r.join_url ? String(r.join_url) : null,
     joinNote: r.join_note ? String(r.join_note) : null,
+    scrapedMeta: (r.scraped_meta as Record<string, unknown>) ?? {},
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   };
 }
@@ -391,6 +396,7 @@ export async function getBriefForModal(
     joinedAt: r.joined_at instanceof Date ? r.joined_at.toISOString() : (r.joined_at ? String(r.joined_at) : null),
     joinUrl: r.join_url ? String(r.join_url) : null,
     joinNote: r.join_note ? String(r.join_note) : null,
+    scrapedMeta: (r.scraped_meta as Record<string, unknown>) ?? {},
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   };
   const handle = r.account_handle ? String(r.account_handle) : 'no-handle';

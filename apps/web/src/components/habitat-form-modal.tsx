@@ -28,6 +28,7 @@ import { TagsInput } from './tags-input';
 import { parseFormInput, suggestRulesUrl, type FormFieldSchema } from '@/lib/actions/ai-parse';
 import { extractDiscordInvite } from '@/lib/actions/discord-extract';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
+import { BriefSelectorsSection } from './brief-selectors-section';
 import { parseChannelsFromInput } from '@/lib/actions/parse-channels';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
@@ -1305,23 +1306,33 @@ export function HabitatFormModal({
             {/* Auto-detect selectors (LLM-discovered) — read-only inspect.
                 Edit full ở Platform modal (/platforms → click platform card). */}
             {form.platformKey && !isCreate && habitat && (
-              <HabitatSelectorsSection
-                habitatId={habitat.id}
-                platformKey={form.platformKey}
-                technologyKey={form.technologyKey ?? null}
-                habitat={habitat}
-                onRefreshHabitat={() => {
-                  // Loader prop > router.refresh: loader re-fetch habitat
-                  // row qua server action → setRow → re-render modal với
-                  // values mới scrape. router.refresh chỉ invalidate cache
-                  // page level — KHÔNG re-run loader useEffect.
-                  if (onRefreshHabitatRow) {
-                    onRefreshHabitatRow();
-                  } else {
-                    router.refresh();
-                  }
-                }}
-              />
+              <>
+                <HabitatSelectorsSection
+                  habitatId={habitat.id}
+                  platformKey={form.platformKey}
+                  technologyKey={form.technologyKey ?? null}
+                  habitat={habitat}
+                  onRefreshHabitat={() => {
+                    // Loader prop > router.refresh: loader re-fetch habitat
+                    // row qua server action → setRow → re-render modal với
+                    // values mới scrape. router.refresh chỉ invalidate cache
+                    // page level — KHÔNG re-run loader useEffect.
+                    if (onRefreshHabitatRow) {
+                      onRefreshHabitatRow();
+                    } else {
+                      router.refresh();
+                    }
+                  }}
+                />
+                <BriefSelectorsLoader
+                  habitatId={habitat.id}
+                  platformKey={form.platformKey}
+                  onRefresh={() => {
+                    if (onRefreshHabitatRow) onRefreshHabitatRow();
+                    else router.refresh();
+                  }}
+                />
+              </>
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}
           </div>{/* /3-col wrapper */}
@@ -2016,6 +2027,40 @@ function ChannelBulkParser({
       {error && <div style={{ fontSize: 10, color: 'var(--bad)' }}>⚠ {error}</div>}
       {notes && <div style={{ fontSize: 10, color: 'var(--ok)' }}>{notes}</div>}
     </div>
+  );
+}
+
+// BriefSelectorsLoader — wrap BriefSelectorsSection với data fetch.
+// Fetch briefs cùng pattern HabitatBriefsSection nhưng nhẹ hơn — chỉ
+// cần scrapedMeta + joinStatus + accountHandle.
+function BriefSelectorsLoader({ habitatId, platformKey, onRefresh }: {
+  habitatId: number;
+  platformKey: string | null;
+  onRefresh: () => void;
+}) {
+  const [briefs, setBriefs] = useState<Array<{
+    id: number; accountId: number; accountHandle: string | null;
+    joinStatus: string; scrapedMeta: Record<string, unknown>;
+  }>>([]);
+  const [reloadTick, setReloadTick] = useState(0);
+  useEffect(() => {
+    let cancel = false;
+    listBriefsForHabitat(habitatId).then((rows) => {
+      if (cancel) return;
+      setBriefs(rows.map((b) => ({
+        id: b.id, accountId: b.accountId, accountHandle: b.accountHandle,
+        joinStatus: b.joinStatus, scrapedMeta: b.scrapedMeta,
+      })));
+    });
+    return () => { cancel = true; };
+  }, [habitatId, reloadTick]);
+  return (
+    <BriefSelectorsSection
+      habitatId={habitatId}
+      platformKey={platformKey}
+      briefs={briefs}
+      onRefresh={() => { setReloadTick((n) => n + 1); onRefresh(); }}
+    />
   );
 }
 

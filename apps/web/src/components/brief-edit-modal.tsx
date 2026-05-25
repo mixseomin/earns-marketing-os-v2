@@ -16,6 +16,7 @@ import {
 import type { HabitatRow } from '@/lib/data';
 import type { HabitatJoinContext } from './join-status-banner';
 import { type JoinStatus } from '@/lib/join-status';
+import { BriefSelectorsSection } from './brief-selectors-section';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 import { fmtAgo } from '@/lib/time-format';
 import { JoinStatusBanner } from './join-status-banner';
@@ -173,7 +174,7 @@ export function BriefEditModal({
   // ── Phase plan state ────────────────────────────────────────────
   // currentPhase + phasePlan come from DB. activeTab decides which
   // editor pane is visible.
-  type TabKey = 'overview' | Phase | 'history';
+  type TabKey = 'overview' | Phase | 'history' | 'detect';
   const [activeTab, setActiveTab] = useState<TabKey>(
     existing && initialTab ? initialTab : 'overview');
   const [currentPhase, setCurrentPhase] = useState<Phase>(existing?.currentPhase ?? 'warm-up');
@@ -591,8 +592,8 @@ export function BriefEditModal({
             phaseHistoryCount={phaseHistory.length}
             onChange={(t) => {
               setActiveTab(t);
-              // đổi tab → URL bám phase (xoá card focus); overview/history → xoá hết
-              if (t === 'overview' || t === 'history') onFocusChange?.('', undefined);
+              // đổi tab → URL bám phase (xoá card focus); overview/history/detect → xoá hết
+              if (t === 'overview' || t === 'history' || t === 'detect') onFocusChange?.('', undefined);
               else onFocusChange?.(t, undefined);
             }}
             isJoined={isReady}
@@ -629,8 +630,8 @@ export function BriefEditModal({
             </div>
           )}
 
-          {/* Phase-specific editor (replaces the flat form when tab !== overview/history) */}
-          {existing && activeTab !== 'overview' && activeTab !== 'history' && (
+          {/* Phase-specific editor (replaces the flat form when tab !== overview/history/detect) */}
+          {existing && activeTab !== 'overview' && activeTab !== 'history' && activeTab !== 'detect' && (
             <PhaseEntryEditor
               projectId={projectId}
               briefId={existing.id}
@@ -691,6 +692,26 @@ export function BriefEditModal({
           {/* History tab */}
           {existing && activeTab === 'history' && (
             <PhaseHistoryView history={phaseHistory} currentPhase={currentPhase} />
+          )}
+
+          {/* Auto-detect tab: brief fields scraped từ ext (join_status,
+              karma_in_sub, member_role, last_visited_at). Render gọn 1
+              section, focusAccountId để chỉ show value của brief hiện
+              tại (không phải tất cả briefs cùng habitat). */}
+          {existing && activeTab === 'detect' && platformKey && (
+            <BriefSelectorsSection
+              habitatId={habitatId}
+              platformKey={platformKey}
+              briefs={[{
+                id: existing.id,
+                accountId,
+                accountHandle: accountLabel.replace(/^@/, ''),
+                joinStatus,
+                scrapedMeta: (existing as { scrapedMeta?: Record<string, unknown> }).scrapedMeta ?? {},
+              }]}
+              focusAccountId={accountId}
+              onRefresh={() => router.refresh()}
+            />
           )}
 
           {/* Overview tab (or new brief, no tabs yet) keeps the legacy flat form */}
@@ -1370,17 +1391,17 @@ function PhaseTabStrip({
   activeTab, currentPhase, phasePlan, phaseCounts, phaseHistoryCount, onChange,
   isJoined = true,
 }: {
-  activeTab: 'overview' | Phase | 'history';
+  activeTab: 'overview' | Phase | 'history' | 'detect';
   currentPhase: Phase;
   phasePlan: PhaseEntry[];
   phaseCounts?: Record<string, number>;
   phaseHistoryCount: number;
-  onChange: (tab: 'overview' | Phase | 'history') => void;
+  onChange: (tab: 'overview' | Phase | 'history' | 'detect') => void;
   // 0057 GATE: phase bridge/seed/direct chỉ có nghĩa khi joined. Dim tab.
   isJoined?: boolean;
 }) {
   const tabBtn = (
-    key: 'overview' | Phase | 'history', label: string, color: string,
+    key: 'overview' | Phase | 'history' | 'detect', label: string, color: string,
     badge?: { text: string; tone: 'ok' | 'neutral'; tip: string },
   ) => {
     const active = activeTab === key;
@@ -1445,6 +1466,7 @@ function PhaseTabStrip({
       {tabBtn('history', 'History',  'var(--fg-3)', phaseHistoryCount > 0
         ? { text: String(phaseHistoryCount), tone: 'neutral', tip: `${phaseHistoryCount} lần chuyển phase` }
         : undefined)}
+      {tabBtn('detect', '🔍 Detect', 'var(--accent)')}
     </div>
   );
 }

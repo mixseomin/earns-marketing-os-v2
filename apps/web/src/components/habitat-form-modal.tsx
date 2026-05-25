@@ -1305,6 +1305,7 @@ export function HabitatFormModal({
                 habitatId={habitat.id}
                 platformKey={form.platformKey}
                 technologyKey={form.technologyKey ?? null}
+                habitat={habitat}
               />
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}

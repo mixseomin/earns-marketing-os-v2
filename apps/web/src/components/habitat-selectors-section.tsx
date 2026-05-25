@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  resolveSelectorsForHabitat, resolveSelectors, listScope, listFieldSamples,
+  resolveSelectorsForHabitat, resolveSelectors, listScope,
   setOverride, clearOverride, promoteToScope,
   type SelectorSpec, type ResolvedMap, type ScopeKind,
 } from '@/lib/actions/habitat-selectors';
@@ -22,11 +22,34 @@ interface Props {
   habitatId?: number | null;
   platformKey?: string | null;
   technologyKey?: string | null;
+  // Habitat object hiện tại — dùng để hiển thị crawled value của CHÍNH
+  // habitat này per row (vd title của r/astrologymemes là "Astrology Memes").
+  // Optional: edit mode không cần. Accept bất kỳ shape có camelCase props
+  // (HabitatRow trong app, các API consumers truyền record dynamic).
+  habitat?: unknown;
   // Edit mode: pass scope + key (override inspect)
   editScope?: ScopeKind;
   editKey?: string;
   pageKind?: string;
 }
+
+// Map field key (selector_overrides.field_name) → camelCase property
+// trên habitat object. Chỉ field nào có column thật mới có entry.
+const FIELD_TO_HABITAT_PROP: Record<string, string> = {
+  title: 'title',
+  members: 'members',
+  weekly_visitors: 'weeklyVisitors',
+  weekly_contributions: 'weeklyContributions',
+  privacy: 'privacy',
+  created_at: 'createdAtSource',
+  description: 'description',
+  icon_url: 'iconUrl',
+  language: 'language',
+  status: 'status',
+  community_type: 'communityType',
+  url: 'url',
+  name: 'name',
+};
 
 const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
   habitat: { label: 'site', color: 'var(--accent)' },
@@ -35,9 +58,22 @@ const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
 };
 
 export function HabitatSelectorsSection({
-  habitatId, platformKey, technologyKey,
+  habitatId, platformKey, technologyKey, habitat,
   editScope, editKey, pageKind = 'subreddit-about',
 }: Props) {
+  // Resolve value của field trên habitat hiện tại — null nếu không có
+  // column tương ứng hoặc value rỗng.
+  const getHabitatValue = (fieldKey: string): string | null => {
+    if (!habitat) return null;
+    const prop = FIELD_TO_HABITAT_PROP[fieldKey];
+    if (!prop) return null;
+    const v = (habitat as Record<string, unknown>)[prop];
+    if (v == null) return null;
+    if (v instanceof Date) return v.toISOString();
+    const s = String(v).trim();
+    if (!s || s === '0') return null;
+    return s;
+  };
   const isEditMode = !!(editScope && editKey);
   const [resolved, setResolved] = useState<ResolvedMap>({});
   const [editRows, setEditRows] = useState<Array<{ field: string; spec: SelectorSpec; source: string; updatedAt: string }>>([]);
@@ -46,9 +82,6 @@ export function HabitatSelectorsSection({
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
-  // Sample values per field từ habitats khác — hover row để xem dữ liệu
-  // thực đã crawled. Lazy fetch khi component mount + có pageKind.
-  const [fieldSamples, setFieldSamples] = useState<Record<string, Array<{ value: string; habitat: string }>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -81,22 +114,6 @@ export function HabitatSelectorsSection({
     })();
     return () => { cancelled = true; };
   }, [habitatId, platformKey, technologyKey, editScope, editKey, pageKind, reload, isEditMode]);
-
-  // Fetch sample values từ habitats khác cùng platform — chạy sau khi
-  // biết resolvedPlatform (nếu inspect mode) hoặc platformKey (edit mode).
-  useEffect(() => {
-    let cancelled = false;
-    const pf = resolvedPlatform || platformKey || null;
-    const schemaKeys = getFieldSchema(pageKind).map((s) => s.key);
-    if (schemaKeys.length === 0) return;
-    (async () => {
-      const samples = await listFieldSamples({
-        pageKind, platformKey: pf, fields: schemaKeys,
-      });
-      if (!cancelled) setFieldSamples(samples);
-    })();
-    return () => { cancelled = true; };
-  }, [resolvedPlatform, platformKey, pageKind, reload]);
 
   const showMsg = (msg: string) => {
     setActionMsg(msg);
@@ -224,12 +241,13 @@ export function HabitatSelectorsSection({
               {allFields.map(({ schema, row }) => {
                 if (!row) {
                   // Missing row placeholder
+                  const habVal = getHabitatValue(schema.key);
                   return (
                     <div key={schema.key} style={{ display: 'grid',
                                                     gridTemplateColumns: '110px 60px 1fr auto auto',
                                                     gap: 6, alignItems: 'center',
                                                     padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-                      <span title={buildFieldTooltip(schema.key, schema, fieldSamples[schema.key] || [])}
+                      <span title={`${schema.label}\n${schema.hint}`}
                             style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
                                      color: 'var(--fg-1)', fontWeight: 600, cursor: 'help' }}>
                         {schema.key}
@@ -241,11 +259,22 @@ export function HabitatSelectorsSection({
                                      border: '1px dashed var(--warn)' }}>
                         none
                       </span>
+                      {/* Value column: ưu tiên hiện crawled value của habitat
+                          hiện tại (nếu DB có) — kể cả khi selector chưa có,
+                          value có thể đã được điền tay bởi user trên modal. */}
                       <span style={{ fontSize: 10.5, color: 'var(--fg-2)',
                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title={schema.hint}>
-                        <strong style={{ color: 'var(--fg-1)' }}>{schema.label}</strong>
-                        <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>{schema.hint}</span>
+                            title={habVal ?? schema.hint}>
+                        {habVal ? (
+                          <span style={{ color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}>
+                            {habVal}
+                          </span>
+                        ) : (
+                          <>
+                            <strong style={{ color: 'var(--fg-1)' }}>{schema.label}</strong>
+                            <span style={{ color: 'var(--fg-3)', marginLeft: 6 }}>{schema.hint}</span>
+                          </>
+                        )}
                       </span>
                       <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                         {schema.parse ? `→ ${schema.parse}` : ''}
@@ -273,7 +302,7 @@ export function HabitatSelectorsSection({
                                      gridTemplateColumns: '110px 60px 1fr auto auto',
                                      gap: 6, alignItems: 'center',
                                      padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-        <span title={buildFieldTooltip(row.field, schema, fieldSamples[row.field] || [])}
+        <span title={`${schema.label}\n${schema.hint}`}
               style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
                        color: 'var(--fg-1)', fontWeight: 600, cursor: 'help' }}>
           {row.field}
@@ -285,12 +314,32 @@ export function HabitatSelectorsSection({
                        border: `1px solid ${meta.color}66` }}>
           {meta.label}
         </span>
-        <code style={{ fontSize: 10, color: 'var(--fg-2)',
-                       overflow: 'hidden', textOverflow: 'ellipsis',
-                       whiteSpace: 'nowrap', cursor: 'help' }}
-              title={buildRowTooltip(row, fieldSamples[row.field] || [])}>
-          {row.spec.css}
-        </code>
+        {/* Value column: ưu tiên hiển thị crawled value của habitat hiện
+            tại (nếu DB có) — show CSS selector trong tooltip. Nếu chưa
+            có value → fallback CSS inline để admin verify selector. */}
+        {(() => {
+          const habVal = getHabitatValue(row.field);
+          const cssTip = `Selector: ${row.spec.css}${row.spec.notes ? '\n\n' + row.spec.notes : ''}`;
+          if (habVal) {
+            return (
+              <span style={{ fontSize: 10.5, color: 'var(--ok)',
+                             fontFamily: 'var(--font-mono)',
+                             overflow: 'hidden', textOverflow: 'ellipsis',
+                             whiteSpace: 'nowrap', cursor: 'help' }}
+                    title={`${habVal}\n\n${cssTip}`}>
+                {habVal}
+              </span>
+            );
+          }
+          return (
+            <code style={{ fontSize: 10, color: 'var(--fg-3)',
+                           overflow: 'hidden', textOverflow: 'ellipsis',
+                           whiteSpace: 'nowrap', cursor: 'help', fontStyle: 'italic' }}
+                  title={`(habitat chưa có value cho field "${row.field}")\n\n${cssTip}`}>
+              {row.spec.css}
+            </code>
+          );
+        })()}
         <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
           {row.spec.parse ? `→ ${row.spec.parse}` : (row.spec.attr ? `@${row.spec.attr}` : '')}
         </span>
@@ -359,38 +408,3 @@ const btnSmall: React.CSSProperties = {
   lineHeight: 1.4,
 };
 
-// Tooltip builders — hiển thị CSS + notes + sample values từ habitats khác.
-function buildRowTooltip(
-  row: { spec: SelectorSpec; field: string },
-  samples: Array<{ value: string; habitat: string }>,
-): string {
-  const lines = [row.spec.css];
-  if (row.spec.notes) { lines.push('', row.spec.notes); }
-  if (samples.length > 0) {
-    lines.push('', `── Crawled values (${samples.length}):`);
-    for (const s of samples) {
-      const v = s.value.length > 80 ? s.value.slice(0, 80) + '…' : s.value;
-      lines.push(`  • ${s.habitat}: ${v}`);
-    }
-  }
-  return lines.join('\n');
-}
-
-function buildFieldTooltip(
-  field: string,
-  schema: { hint: string; label: string },
-  samples: Array<{ value: string; habitat: string }>,
-): string {
-  const lines = [`${schema.label || field}`];
-  if (schema.hint) lines.push(schema.hint);
-  if (samples.length > 0) {
-    lines.push('', `Crawled values (${samples.length}):`);
-    for (const s of samples) {
-      const v = s.value.length > 80 ? s.value.slice(0, 80) + '…' : s.value;
-      lines.push(`  • ${s.habitat}: ${v}`);
-    }
-  } else {
-    lines.push('', '(chưa có habitat nào có giá trị cho field này)');
-  }
-  return lines.join('\n');
-}

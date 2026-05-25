@@ -4,6 +4,7 @@ import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema } from '@/lib/habitat-field-schema';
+import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
 import { validateSelector } from '@/lib/selector-validate';
 
 export const dynamic = 'force-dynamic';
@@ -56,8 +57,12 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
-  // Field hint từ schema (helps LLM verify semantic match)
-  const schema = getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
+  // Field hint từ schema (helps LLM verify semantic match). Field có
+  // prefix "brief.<key>" → lookup brief-field-schema; ngược lại habitat.
+  const briefKey = parseBriefFieldName(body.field_name);
+  const schema = briefKey
+    ? getBriefFieldSchema(body.page_kind).find((f) => f.key === briefKey)
+    : getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
   const fieldHint = schema?.hint ?? 'extract value';
   const parseHint = schema?.parse;
 

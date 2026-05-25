@@ -206,6 +206,26 @@ export function BriefEditModal({
     }
   }, [joinStatus, existing]);
 
+  // Auto-refresh khi ext POST brief mới (background relay window.postMessage).
+  // Match theo briefId hoặc (accountId+habitatId). router.refresh() invalidate
+  // page cache → parent loader re-fetch existing brief với scrapedMeta mới.
+  useEffect(() => {
+    if (!existing) return;
+    const handler = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const data = e.data as { type?: string; briefId?: number; accountId?: number; habitatId?: number } | undefined;
+      if (data?.type !== 'mos2:brief-updated') return;
+      // Match brief đang mở
+      if (data.briefId === existing.id
+          || (data.accountId === accountId && data.habitatId === habitatId)) {
+        console.log('[BriefModal] auto-refresh from ext brief-updated', data);
+        router.refresh();
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [existing, accountId, habitatId, router]);
+
   // 2-layer readiness: account (tầng 1) + join (tầng 2). Pass xuống children
   // qua isReady + notReadyReason để banner/button có thông điệp đúng layer.
   // notReadyReason có 3 tier (xem DispatchPostFlow):

@@ -8,6 +8,8 @@
 //
 // Khi thêm field mới, edit cả 3 nơi.
 
+import { BRIEF_FIELD_SCHEMAS } from './brief-field-schema';
+
 export interface FieldSchemaEntry {
   /** Field name khớp với spec key trong selector_overrides table. */
   key: string;
@@ -82,5 +84,11 @@ export function getFieldSchema(pageKind: string): FieldSchemaEntry[] {
 }
 
 export function getFieldHint(pageKind: string, field: string): string {
+  // Brief fields prefixed with "brief.<key>" → lookup brief schema.
+  if (field.startsWith('brief.')) {
+    const briefKey = field.slice('brief.'.length);
+    const entry = BRIEF_FIELD_SCHEMAS[pageKind]?.find((f) => f.key === briefKey);
+    if (entry) return `[BRIEF/viewer-relationship] ${entry.hint}`;
+  }
   return FIELD_SCHEMAS[pageKind]?.find((f) => f.key === field)?.hint ?? 'extract value';
 }

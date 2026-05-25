@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema } from '@/lib/habitat-field-schema';
+import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
 import { validateSelector } from '@/lib/selector-validate';
 
 export const dynamic = 'force-dynamic';
@@ -70,9 +71,12 @@ export async function POST(req: Request) {
     }, { status: 422 });
   }
 
-  // Infer attr + parse từ schema nếu user không truyền (ext auto-fill từ
-  // hint khi mở manual UI, nhưng fallback ở server cho an toàn).
-  const schema = getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
+  // Infer attr + parse từ schema nếu user không truyền. Brief fields
+  // (prefix "brief.") lookup brief schema thay vì habitat.
+  const briefKey = parseBriefFieldName(body.field_name);
+  const schema = briefKey
+    ? getBriefFieldSchema(body.page_kind).find((f) => f.key === briefKey)
+    : getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
   const parse = body.parse ?? schema?.parse ?? 'none';
   // icon_url default attr=src; created_at default attr=datetime; còn lại textContent.
   let attr = body.attr;

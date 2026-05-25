@@ -65,38 +65,54 @@ export function BriefSelectorsSection({
 
   const fieldRows: FieldRowSpec[] = schema.map((f) => {
     const rs = resolved[f.key];
-    // Gom values per brief
-    const values: Array<{ value: string; handle: string }> = [];
+    // Gom values per brief — track source để hiện rõ value đến từ
+    // scrapedMeta (ext scrape gần đây) vs legacy column joinStatus
+    // (set tay / migration cũ, chưa được ext xác nhận).
+    const values: Array<{ value: string; handle: string; source: 'scraped' | 'legacy' }> = [];
     for (const b of relevantBriefs) {
       let v: unknown;
+      let source: 'scraped' | 'legacy' = 'scraped';
       if (f.key === 'join_status') {
-        v = (b.scrapedMeta && b.scrapedMeta[f.key]) ?? b.joinStatus;
+        const scraped = b.scrapedMeta?.[f.key];
+        if (scraped != null && scraped !== '') {
+          v = scraped;
+        } else {
+          v = b.joinStatus;
+          source = 'legacy';
+        }
       } else {
         v = b.scrapedMeta?.[f.key];
       }
       if (v != null && v !== '') {
-        values.push({ value: String(v), handle: b.accountHandle || `acc#${b.accountId}` });
+        values.push({ value: String(v), handle: b.accountHandle || `acc#${b.accountId}`, source });
       }
     }
-    // Render value tuỳ context
+    // Render value tuỳ context. Legacy value (chưa có scraped_meta) →
+    // dim grey + italic + tooltip giải thích, KHÔNG xanh authoritative.
     let valueNode: FieldRowSpec['value'] = null;
     let valueTooltip: string | undefined;
+    const allLegacy = values.length > 0 && values.every((v) => v.source === 'legacy');
     if (values.length === 1) {
-      // 1 value (focus mode hoặc chỉ 1 brief) → render gọn xanh
+      const v0 = values[0]!;
+      const color = v0.source === 'legacy' ? 'var(--fg-3)' : 'var(--ok)';
+      const fontStyle = v0.source === 'legacy' ? 'italic' : 'normal';
       valueNode = (
-        <span style={{ color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}>
-          {values[0]!.value}
+        <span style={{ color, fontFamily: 'var(--font-mono)', fontStyle }}>
+          {v0.value}{v0.source === 'legacy' ? ' (legacy)' : ''}
         </span>
       );
-      valueTooltip = `${values[0]!.handle}: ${values[0]!.value}`;
+      valueTooltip = v0.source === 'legacy'
+        ? `${v0.handle}: ${v0.value}\n\n⚠ Value từ DB column legacy (joinStatus), CHƯA có ext POST /api/ext/briefs.\nF5 reddit page logged in → ext scrape + flip value chính xác.`
+        : `${v0.handle}: ${v0.value}`;
     } else if (values.length > 1) {
-      // Multi brief → render compact với tooltip full
       valueNode = (
-        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-2)' }}>
-          {values.map((v) => `${v.handle}=${v.value}`).join(' · ')}
+        <span style={{ fontFamily: 'var(--font-mono)', color: allLegacy ? 'var(--fg-3)' : 'var(--fg-2)', fontStyle: allLegacy ? 'italic' : 'normal' }}>
+          {values.map((v) => `${v.handle}=${v.value}${v.source === 'legacy' ? '*' : ''}`).join(' · ')}
         </span>
       );
-      valueTooltip = values.map((v) => `${v.handle}: ${v.value}`).join('\n');
+      valueTooltip = values.map((v) =>
+        `${v.handle}: ${v.value}${v.source === 'legacy' ? ' (legacy, chưa ext scrape)' : ''}`
+      ).join('\n');
     }
     return {
       key: f.key,

@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  resolveSelectorsForHabitat, resolveSelectors, listScope,
+  resolveSelectorsForHabitat, resolveSelectors, listScope, listFieldSamples,
   setOverride, clearOverride, promoteToScope,
   type SelectorSpec, type ResolvedMap, type ScopeKind,
 } from '@/lib/actions/habitat-selectors';
@@ -46,6 +46,9 @@ export function HabitatSelectorsSection({
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  // Sample values per field từ habitats khác — hover row để xem dữ liệu
+  // thực đã crawled. Lazy fetch khi component mount + có pageKind.
+  const [fieldSamples, setFieldSamples] = useState<Record<string, Array<{ value: string; habitat: string }>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,22 @@ export function HabitatSelectorsSection({
     })();
     return () => { cancelled = true; };
   }, [habitatId, platformKey, technologyKey, editScope, editKey, pageKind, reload, isEditMode]);
+
+  // Fetch sample values từ habitats khác cùng platform — chạy sau khi
+  // biết resolvedPlatform (nếu inspect mode) hoặc platformKey (edit mode).
+  useEffect(() => {
+    let cancelled = false;
+    const pf = resolvedPlatform || platformKey || null;
+    const schemaKeys = getFieldSchema(pageKind).map((s) => s.key);
+    if (schemaKeys.length === 0) return;
+    (async () => {
+      const samples = await listFieldSamples({
+        pageKind, platformKey: pf, fields: schemaKeys,
+      });
+      if (!cancelled) setFieldSamples(samples);
+    })();
+    return () => { cancelled = true; };
+  }, [resolvedPlatform, platformKey, pageKind, reload]);
 
   const showMsg = (msg: string) => {
     setActionMsg(msg);
@@ -210,7 +229,7 @@ export function HabitatSelectorsSection({
                                                     gridTemplateColumns: '110px 60px 1fr auto auto',
                                                     gap: 6, alignItems: 'center',
                                                     padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-                      <span title={schema.hint}
+                      <span title={buildFieldTooltip(schema.key, schema, fieldSamples[schema.key] || [])}
                             style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
                                      color: 'var(--fg-1)', fontWeight: 600, cursor: 'help' }}>
                         {schema.key}
@@ -254,9 +273,9 @@ export function HabitatSelectorsSection({
                                      gridTemplateColumns: '110px 60px 1fr auto auto',
                                      gap: 6, alignItems: 'center',
                                      padding: '3px 4px', borderTop: '1px solid var(--line)' }}>
-        <span title={schema.hint || row.field}
+        <span title={buildFieldTooltip(row.field, schema, fieldSamples[row.field] || [])}
               style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
-                       color: 'var(--fg-1)', fontWeight: 600, cursor: schema.hint ? 'help' : 'default' }}>
+                       color: 'var(--fg-1)', fontWeight: 600, cursor: 'help' }}>
           {row.field}
         </span>
         <span title={`Source: ${row.source} @ ${scope}:${scopeKey}`}
@@ -269,7 +288,7 @@ export function HabitatSelectorsSection({
         <code style={{ fontSize: 10, color: 'var(--fg-2)',
                        overflow: 'hidden', textOverflow: 'ellipsis',
                        whiteSpace: 'nowrap', cursor: 'help' }}
-              title={`${row.spec.css}${row.spec.notes ? '\n\n' + row.spec.notes : ''}`}>
+              title={buildRowTooltip(row, fieldSamples[row.field] || [])}>
           {row.spec.css}
         </code>
         <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
@@ -339,3 +358,39 @@ const btnSmall: React.CSSProperties = {
   padding: '0 5px', fontSize: 10, color: 'var(--fg-2)', cursor: 'pointer',
   lineHeight: 1.4,
 };
+
+// Tooltip builders — hiển thị CSS + notes + sample values từ habitats khác.
+function buildRowTooltip(
+  row: { spec: SelectorSpec; field: string },
+  samples: Array<{ value: string; habitat: string }>,
+): string {
+  const lines = [row.spec.css];
+  if (row.spec.notes) { lines.push('', row.spec.notes); }
+  if (samples.length > 0) {
+    lines.push('', `── Crawled values (${samples.length}):`);
+    for (const s of samples) {
+      const v = s.value.length > 80 ? s.value.slice(0, 80) + '…' : s.value;
+      lines.push(`  • ${s.habitat}: ${v}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function buildFieldTooltip(
+  field: string,
+  schema: { hint: string; label: string },
+  samples: Array<{ value: string; habitat: string }>,
+): string {
+  const lines = [`${schema.label || field}`];
+  if (schema.hint) lines.push(schema.hint);
+  if (samples.length > 0) {
+    lines.push('', `Crawled values (${samples.length}):`);
+    for (const s of samples) {
+      const v = s.value.length > 80 ? s.value.slice(0, 80) + '…' : s.value;
+      lines.push(`  • ${s.habitat}: ${v}`);
+    }
+  } else {
+    lines.push('', '(chưa có habitat nào có giá trị cho field này)');
+  }
+  return lines.join('\n');
+}

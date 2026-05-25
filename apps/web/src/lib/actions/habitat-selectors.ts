@@ -280,3 +280,68 @@ export async function listScope(opts: {
     updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : String(r.updatedAt),
   }));
 }
+
+// listFieldSamples — đọc giá trị thực tế đã scrape từ habitats khác cho
+// từng field, dùng làm hover preview trong HabitatSelectorsSection để
+// admin biết selector này đang trả data gì ở các habitat thật.
+// Trả 4 unique non-empty values gần nhất per field + tên habitat nguồn.
+const FIELD_TO_HABITAT_COL: Record<string, string> = {
+  title: 'title',
+  members: 'members',
+  weekly_visitors: 'weekly_visitors',
+  weekly_contributions: 'weekly_contributions',
+  privacy: 'privacy',
+  created_at: 'created_at_source',
+  description: 'description',
+  icon_url: 'icon_url',
+  language: 'language',
+  status: 'status',
+  community_type: 'community_type',
+  url: 'url',
+  name: 'name',
+};
+
+export async function listFieldSamples(opts: {
+  pageKind: string;
+  platformKey?: string | null;
+  fields: string[];
+}): Promise<Record<string, Array<{ value: string; habitat: string }>>> {
+  const db = getDb();
+  if (!db) return {};
+  const out: Record<string, Array<{ value: string; habitat: string }>> = {};
+  for (const f of opts.fields) {
+    const col = FIELD_TO_HABITAT_COL[f];
+    if (!col) { out[f] = []; continue; }
+    try {
+      const platformFilter = opts.platformKey
+        ? sql`AND platform_key = ${opts.platformKey}`
+        : sql``;
+      const rs = await db.execute(sql`
+        SELECT ${sql.raw(col)}::text AS value, name AS habitat
+        FROM habitats
+        WHERE tenant_id = ${TENANT}
+          AND ${sql.raw(col)} IS NOT NULL
+          AND ${sql.raw(col)}::text <> ''
+          AND ${sql.raw(col)}::text <> '0'
+          ${platformFilter}
+        ORDER BY last_sync_at DESC NULLS LAST
+        LIMIT 12
+      `);
+      const rows = rs as unknown as Array<{ value: string; habitat: string }>;
+      const seen = new Set<string>();
+      const uniq: Array<{ value: string; habitat: string }> = [];
+      for (const r of rows) {
+        const v = (r.value ?? '').toString().trim();
+        if (!v || seen.has(v)) continue;
+        seen.add(v);
+        uniq.push({ value: v, habitat: r.habitat });
+        if (uniq.length >= 4) break;
+      }
+      out[f] = uniq;
+    } catch (e) {
+      console.warn('[listFieldSamples]', f, (e as Error).message);
+      out[f] = [];
+    }
+  }
+  return out;
+}

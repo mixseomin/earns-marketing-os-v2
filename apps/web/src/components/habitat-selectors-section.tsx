@@ -27,6 +27,10 @@ interface Props {
   // Optional: edit mode không cần. Accept bất kỳ shape có camelCase props
   // (HabitatRow trong app, các API consumers truyền record dynamic).
   habitat?: unknown;
+  // Callback để refresh habitat data từ DB (vd router.refresh trong parent
+  // modal). Khi gọi sẽ re-fetch habitat row → re-render section với value
+  // mới scrape từ ext.
+  onRefreshHabitat?: () => void | Promise<void>;
   // Edit mode: pass scope + key (override inspect)
   editScope?: ScopeKind;
   editKey?: string;
@@ -58,9 +62,10 @@ const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
 };
 
 export function HabitatSelectorsSection({
-  habitatId, platformKey, technologyKey, habitat,
+  habitatId, platformKey, technologyKey, habitat, onRefreshHabitat,
   editScope, editKey, pageKind = 'subreddit-about',
 }: Props) {
+  const [refreshing, setRefreshing] = useState(false);
   // Resolve value của field trên habitat hiện tại — null nếu không có
   // column tương ứng hoặc value rỗng.
   const getHabitatValue = (fieldKey: string): string | null => {
@@ -118,6 +123,19 @@ export function HabitatSelectorsSection({
   const showMsg = (msg: string) => {
     setActionMsg(msg);
     setTimeout(() => setActionMsg(null), 4000);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await onRefreshHabitat?.();
+      setReload((n) => n + 1);  // re-fetch selectors cascade
+      showMsg('✓ Đã refresh');
+    } catch (e) {
+      showMsg(`⚠ ${(e as Error).message}`);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Override field xuống habitat scope (clone spec từ cascade → habitat tier)
@@ -194,6 +212,17 @@ export function HabitatSelectorsSection({
             {actionMsg}
           </span>
         )}
+        <button type="button"
+                onClick={handleRefresh}
+                disabled={refreshing || loading}
+                title="Refresh: re-fetch selectors cascade + habitat values từ DB"
+                style={{ background: 'transparent', border: '1px solid var(--line)',
+                         borderRadius: 3, padding: '1px 7px', fontSize: 10,
+                         color: refreshing ? 'var(--fg-4)' : 'var(--fg-2)',
+                         cursor: refreshing ? 'wait' : 'pointer',
+                         fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>
+          {refreshing ? '⏳' : '↻'} refresh
+        </button>
       </div>
 
       {loading ? (

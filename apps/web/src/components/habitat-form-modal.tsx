@@ -1306,6 +1306,7 @@ export function HabitatFormModal({
                 platformKey={form.platformKey}
                 technologyKey={form.technologyKey ?? null}
                 habitat={habitat}
+                onRefreshHabitat={() => router.refresh()}
               />
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}

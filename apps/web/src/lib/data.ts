@@ -636,6 +636,103 @@ export async function listTribes(projectId: string): Promise<TribeRow[]> {
   }, [], 'listTribes');
 }
 
+// Shared habitat mapper — single source of truth cho mọi reader trả về
+// HabitatRow. Khi thêm column mới vào habitats:
+//   1. Migration .sql (ADD COLUMN IF NOT EXISTS)
+//   2. schema.ts pgTable column
+//   3. HabitatRow interface (TS shape)
+//   4. mapHabitat (1 dòng `field: r.foo ?? default`)
+// → Cả listHabitats + getHabitatById tự kế thừa, không phải sửa 2 chỗ.
+//
+// 2 nguồn row khác shape:
+//   - Drizzle select() trả camelCase (r.iconUrl, r.createdAtSource)
+//   - Raw db.execute SQL trả snake_case (r.icon_url, r.created_at_source)
+// Helper accept cả 2 qua hàm getProp() probe key.
+function mapHabitat(
+  raw: Record<string, unknown>,
+  tribeIds: number[] = [],
+): Omit<HabitatRow, 'tribeIds'> & { tribeIds: number[] } {
+  const get = <T = unknown>(camel: string, snake: string): T | undefined => {
+    if (raw[camel] !== undefined) return raw[camel] as T;
+    return raw[snake] as T | undefined;
+  };
+  const str = (camel: string, snake: string, fallback = ''): string => {
+    const v = get(camel, snake);
+    if (v == null) return fallback;
+    return String(v);
+  };
+  const num = (camel: string, snake: string, fallback = 0): number => {
+    const v = get(camel, snake);
+    if (v == null || v === '') return fallback;
+    return typeof v === 'number' ? v : Number(v);
+  };
+  const dateOrNull = (camel: string, snake: string): Date | null => {
+    const v = get(camel, snake);
+    if (v == null) return null;
+    return v instanceof Date ? v : new Date(String(v));
+  };
+  const strOrNull = (camel: string, snake: string): string | null => {
+    const v = get(camel, snake);
+    if (v == null || v === '') return null;
+    return String(v);
+  };
+  const arr = <T>(camel: string, snake: string): T[] => {
+    const v = get(camel, snake);
+    return Array.isArray(v) ? (v as T[]) : [];
+  };
+  const arrOrNull = <T>(camel: string, snake: string): T[] | null => {
+    const v = get(camel, snake);
+    if (v == null) return null;
+    return Array.isArray(v) ? (v as T[]) : null;
+  };
+  const tribeId = (() => {
+    const v = get('tribeId', 'tribe_id');
+    return v == null ? null : Number(v);
+  })();
+  return {
+    id: Number(get('id', 'id')),
+    tribeId,
+    tribeIds: tribeIds.length ? tribeIds : (tribeId != null ? [tribeId] : []),
+    projectId: str('projectId', 'project_id'),
+    kind: str('kind', 'kind'),
+    name: str('name', 'name'),
+    url: strOrNull('url', 'url'),
+    platformKey: strOrNull('platformKey', 'platform_key'),
+    technologyKey: strOrNull('technologyKey', 'technology_key'),
+    iconUrl: strOrNull('iconUrl', 'icon_url'),
+    members: num('members', 'members'),
+    activity: str('activity', 'activity'),
+    scrapeFrequency: str('scrapeFrequency', 'scrape_frequency'),
+    lastSyncAt: dateOrNull('lastSyncAt', 'last_sync_at'),
+    health: str('health', 'health'),
+    importedFrom: strOrNull('importedFrom', 'imported_from'),
+    language: str('language', 'language'),
+    communityType: str('communityType', 'community_type'),
+    status: str('status', 'status', 'target'),
+    modStrictness: str('modStrictness', 'mod_strictness'),
+    postingRules: str('postingRules', 'posting_rules'),
+    postingRulesUrl: str('postingRulesUrl', 'posting_rules_url'),
+    minAccountAgeDays: num('minAccountAgeDays', 'min_account_age_days'),
+    minKarma: num('minKarma', 'min_karma'),
+    minPosts: num('minPosts', 'min_posts'),
+    linksAllowedAfter: str('linksAllowedAfter', 'links_allowed_after'),
+    dominantTopics: arr<string>('dominantTopics', 'dominant_topics'),
+    forbiddenTopics: arr<string>('forbiddenTopics', 'forbidden_topics'),
+    bestPostTimes: str('bestPostTimes', 'best_post_times'),
+    allowedFormatsOverride: arrOrNull<string>('allowedFormatsOverride', 'allowed_formats_override'),
+    voiceProfile: str('voiceProfile', 'voice_profile', 'regular'),
+    voiceNotes: str('voiceNotes', 'voice_notes'),
+    fewShotExamples: (get('fewShotExamples', 'few_shot_examples') as HabitatRow['fewShotExamples']) ?? null,
+    visualStyleDescriptor: strOrNull('visualStyleDescriptor', 'visual_style_descriptor'),
+    createdAtSource: dateOrNull('createdAtSource', 'created_at_source'),
+    privacy: str('privacy', 'privacy'),
+    weeklyVisitors: num('weeklyVisitors', 'weekly_visitors'),
+    weeklyContributions: num('weeklyContributions', 'weekly_contributions'),
+    description: str('description', 'description'),
+    title: str('title', 'title'),
+  };
+}
+
 export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
   return tryDb(async () => {
     const rows = await listHabitatsByProject(projectId);
@@ -658,41 +755,10 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
         tribeIdsByHab.set(hid, arr);
       }
     }
-    return (rows ?? []).map((r) => ({
-      id: r.id, tribeId: r.tribeId,
-      tribeIds: tribeIdsByHab.get(r.id) ?? (r.tribeId != null ? [r.tribeId] : []),
-      projectId: r.projectId, kind: r.kind,
-      name: r.name, url: r.url, platformKey: r.platformKey ?? null,
-      technologyKey: r.technologyKey ?? null,
-      iconUrl: r.iconUrl ?? null,
-      members: r.members, activity: r.activity,
-      scrapeFrequency: r.scrapeFrequency, lastSyncAt: r.lastSyncAt,
-      health: r.health, importedFrom: r.importedFrom,
-      language: r.language ?? '',
-      communityType: r.communityType ?? '',
-      status: r.status ?? 'target',
-      modStrictness: r.modStrictness ?? '',
-      postingRules: r.postingRules ?? '',
-      postingRulesUrl: r.postingRulesUrl ?? '',
-      minAccountAgeDays: r.minAccountAgeDays ?? 0,
-      minKarma: r.minKarma ?? 0,
-      minPosts: r.minPosts ?? 0,
-      linksAllowedAfter: r.linksAllowedAfter ?? '',
-      dominantTopics: (r.dominantTopics as string[]) ?? [],
-      forbiddenTopics: (r.forbiddenTopics as string[]) ?? [],
-      bestPostTimes: r.bestPostTimes ?? '',
-      allowedFormatsOverride: (r.allowedFormatsOverride as string[] | null) ?? null,
-      voiceProfile: r.voiceProfile ?? 'regular',
-      voiceNotes: r.voiceNotes ?? '',
-      fewShotExamples: (r.fewShotExamples as HabitatRow['fewShotExamples']) ?? null,
-      visualStyleDescriptor: r.visualStyleDescriptor ?? null,
-      createdAtSource: r.createdAtSource ?? null,
-      privacy: r.privacy ?? '',
-      weeklyVisitors: r.weeklyVisitors ?? 0,
-      weeklyContributions: r.weeklyContributions ?? 0,
-      description: r.description ?? '',
-      title: (r as { title?: string }).title ?? '',
-    }));
+    return (rows ?? []).map((r) => mapHabitat(
+      r as unknown as Record<string, unknown>,
+      tribeIdsByHab.get(r.id) ?? [],
+    ));
   }, [], 'listHabitats');
 }
 
@@ -718,45 +784,7 @@ export async function getHabitatById(projectId: string, habitatId: number): Prom
       ORDER BY is_primary DESC, tribe_id ASC
     `);
     const tribeIds = (link as unknown as Array<{ tribe_id: number }>).map((x) => Number(x.tribe_id));
-    const primaryTribe = r.tribe_id != null ? Number(r.tribe_id) : null;
-    return {
-      id: Number(r.id), tribeId: primaryTribe,
-      tribeIds: tribeIds.length ? tribeIds : (primaryTribe != null ? [primaryTribe] : []),
-      projectId: String(r.project_id), kind: String(r.kind ?? ''),
-      name: String(r.name ?? ''), url: r.url ? String(r.url) : null,
-      platformKey: r.platform_key ? String(r.platform_key) : null,
-      technologyKey: r.technology_key ? String(r.technology_key) : null,
-      iconUrl: r.icon_url ? String(r.icon_url) : null,
-      members: Number(r.members ?? 0), activity: String(r.activity ?? ''),
-      scrapeFrequency: String(r.scrape_frequency ?? ''),
-      lastSyncAt: r.last_sync_at ? new Date(String(r.last_sync_at)) : null,
-      health: String(r.health ?? ''),
-      importedFrom: r.imported_from ? String(r.imported_from) : null,
-      language: String(r.language ?? ''),
-      communityType: String(r.community_type ?? ''),
-      status: String(r.status ?? 'target'),
-      modStrictness: String(r.mod_strictness ?? ''),
-      postingRules: String(r.posting_rules ?? ''),
-      postingRulesUrl: String(r.posting_rules_url ?? ''),
-      minAccountAgeDays: Number(r.min_account_age_days ?? 0),
-      minKarma: Number(r.min_karma ?? 0),
-      minPosts: Number(r.min_posts ?? 0),
-      linksAllowedAfter: String(r.links_allowed_after ?? ''),
-      dominantTopics: (r.dominant_topics as string[]) ?? [],
-      forbiddenTopics: (r.forbidden_topics as string[]) ?? [],
-      bestPostTimes: String(r.best_post_times ?? ''),
-      allowedFormatsOverride: (r.allowed_formats_override as string[] | null) ?? null,
-      voiceProfile: String(r.voice_profile ?? 'regular'),
-      voiceNotes: String(r.voice_notes ?? ''),
-      fewShotExamples: (r.few_shot_examples as HabitatRow['fewShotExamples']) ?? null,
-      visualStyleDescriptor: r.visual_style_descriptor ? String(r.visual_style_descriptor) : null,
-      createdAtSource: r.created_at_source ? new Date(String(r.created_at_source)) : null,
-      privacy: String(r.privacy ?? ''),
-      weeklyVisitors: Number(r.weekly_visitors ?? 0),
-      weeklyContributions: Number(r.weekly_contributions ?? 0),
-      description: String(r.description ?? ''),
-      title: r.title ? String(r.title) : '',
-    };
+    return mapHabitat(r, tribeIds);
   }, null, 'getHabitatById');
 }
 

@@ -88,6 +88,14 @@ RULES (vi phạm = LLM fail, selector sẽ bị reject server-side):
 8. CẤM :has() pseudo-class (Safari < 15.4 không support).
 9. ⚠ Class selector LUÔN có dấu chấm "." trước: ".shreddit-subreddit-icon__icon" KHÔNG phải "shreddit-subreddit-icon__icon" (cái sau là tên tag custom element, không tồn tại). Nếu element có class BEM-style → tag.class hoặc .class.
 10. Verify trong đầu: viết selector → mentally run document.querySelector → có match đúng element user tag không? Nếu không chắc, chọn parent + class.
+11. ⚠ SHADOW DOM PRIORITY: Reddit dùng <shreddit-*> custom elements với shadow DOM. Element user click có thể NẰM TRONG shadow root (parent_html sẽ thấy <shreddit-subreddit-header>...</shreddit-subreddit-header> wrapping). Nếu parent có shadow host (vd <shreddit-subreddit-header>) MÀ host đó có HTML attribute trùng nghĩa field:
+    - <shreddit-subreddit-header description="..."> → field=description → ƯU TIÊN tuyệt đối selector="shreddit-subreddit-header" + attr="description". Không cần pierce shadow (closed shadow JS không reach được).
+    - <shreddit-subreddit-header subscribers="239733"> → field=members → selector="shreddit-subreddit-header" + attr="subscribers" parse="number".
+    - <shreddit-subreddit-header weekly-active-users="13287"> → field=weekly_visitors → attr="weekly-active-users" parse="number".
+    - <shreddit-subreddit-header subreddit-name-prefixed="r/X"> → field=name → attr="subreddit-name-prefixed".
+    - <faceplate-number number="N"> → attr="number" parse="number" (số gốc, không phải text "2.3K").
+    - <time datetime="2017-08-04T17:00:00.000Z"> → field=created_at → attr="datetime" parse="date".
+    → Selector ngoài shadow + attr clean data > selector pierce shadow + textContent kèm i18n markers/emoji.
 
 Output JSON shape:
 {

@@ -66,11 +66,11 @@ RULES CHUNG (vi phạm = reject server-side):
 5. Ưu tiên TUYỆT ĐỐI: custom element tags (faceplate-*, shreddit-*), data-testid, slot, aria-label, semantic class names.
 6. Nếu intent yêu cầu MULTI element (vd "all rule titles") → selector phải match tất cả; nếu intent SINGLE → selector unique cho element đó.
 ${kind === 'css' ? '7. CẤM :has() pseudo (Safari <15.4). Class BEM phải có dấu chấm trước (.tag.class hoặc .class).' : '7. XPath dùng contains(@class, " name ") thay vì equality để khớp khi class có nhiều token. Tránh /text() chính xác (dễ vỡ); ưu tiên element matching.'}
-8. ⚠ ATTR SELECTION: Nhiều custom element Reddit/Faceplate lưu data dưới dạng HTML attribute thay vì textContent. Ví dụ:
-   - <shreddit-subreddit-header description="..." subscribers="239733" weekly-active-users="13287" subreddit-id="t5_...">
-   - <faceplate-number number="2300"> (số members nằm trong attr 'number', text chỉ là "2.3K")
-   - <time datetime="2017-08-14T..."> (date chuẩn nằm trong 'datetime', text là "Aug 14, 2017")
-   → Trả attr ĐÚNG nguồn gốc cho data sạch hơn parse text. Nếu picked element là custom element và có attribute khớp intent, ưu tiên dùng attr đó. Selector vẫn match element đó nhưng attr field trỏ tới attribute thay vì textContent. KHÔNG hardcode attr value vào selector.
+8. ⚠ ATTR SELECTION (CRITICAL — shadow DOM workaround): Nhiều custom element Reddit/Faceplate lưu data dưới dạng HTML attribute thay vì textContent. Khi element user pick nằm TRONG shadow root của 1 shadow host (vd <shreddit-subreddit-header>), JS không pierce được closed shadow → selector pierce shadow có thể miss. ƯU TIÊN selector trỏ tới shadow host + lấy attr trên đó:
+   - <shreddit-subreddit-header description="..." subscribers="239733" weekly-active-users="13287" subreddit-id="t5_..."> → field=description → selector="shreddit-subreddit-header" + attr="description"; field=members → attr="subscribers" parse=number; field=weekly_visitors → attr="weekly-active-users" parse=number.
+   - <faceplate-number number="2300"> → attr="number" parse=number (số gốc, không phải text "2.3K").
+   - <time datetime="2017-08-14T..."> → attr="datetime" parse=date (date chuẩn, không phải text "Aug 14, 2017").
+   → Selector ngoài shadow + attr clean data ƯU TIÊN HƠN selector pierce shadow + textContent. KHÔNG hardcode attr value vào selector (vd CẤM [description="..."]).
 
 Output JSON shape:
 {

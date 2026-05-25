@@ -1585,14 +1585,19 @@ function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, 
 }) {
   const [row, setRow] = useState<HabitatRow | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [refetchTick, setRefetchTick] = useState(0);
   useEffect(() => {
     let cancel = false;
-    setState('loading');
+    if (refetchTick === 0) setState('loading');  // first load
     getHabitatRowAction(projectId, habitatId)
       .then((r) => { if (cancel) return; if (r) { setRow(r); setState('ready'); } else setState('error'); })
       .catch(() => { if (!cancel) setState('error'); });
     return () => { cancel = true; };
-  }, [projectId, habitatId]);
+  }, [projectId, habitatId, refetchTick]);
+  // Refresh callback exposed cho child (HabitatSelectorsSection "↻ refresh"
+  // button) — re-fetch habitat row + bump tick để section re-render với
+  // value mới scrape từ ext.
+  const refreshRow = () => setRefetchTick((n) => n + 1);
 
   if (state === 'loading') {
     return (
@@ -1623,6 +1628,7 @@ function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, 
       onClose={onClose}
       onOpenAccount={onOpenAccount}
       onOpenBrief={onOpenBrief}
+      onRefreshHabitatRow={refreshRow}
     />
   );
 }

@@ -45,7 +45,7 @@ const LANGUAGES = ['', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'pt', 'fr', 'de', 'mu
 
 export function HabitatFormModal({
   projectId, habitat, tribes, platforms, presetTribeId, onClose, onCreated,
-  onOpenAccount, onOpenBrief,
+  onOpenAccount, onOpenBrief, onRefreshHabitatRow,
 }: {
   projectId: string;
   habitat: HabitatRow | null;     // null = create
@@ -58,6 +58,10 @@ export function HabitatFormModal({
   onOpenAccount?: (accountId: number) => void;
   /** Click favicon/row → mở Brief modal */
   onOpenBrief?: (briefId: number) => void;
+  /** ↻ refresh button trong HabitatSelectorsSection — re-fetch habitat row
+   *  + cascade selectors. Loader bên ngoài (HabitatModalLoader) bump tick
+   *  để useEffect chạy lại. */
+  onRefreshHabitatRow?: () => void;
 }) {
   const router = useRouter();
   const isCreate = !habitat;
@@ -1306,7 +1310,17 @@ export function HabitatFormModal({
                 platformKey={form.platformKey}
                 technologyKey={form.technologyKey ?? null}
                 habitat={habitat}
-                onRefreshHabitat={() => router.refresh()}
+                onRefreshHabitat={() => {
+                  // Loader prop > router.refresh: loader re-fetch habitat
+                  // row qua server action → setRow → re-render modal với
+                  // values mới scrape. router.refresh chỉ invalidate cache
+                  // page level — KHÔNG re-run loader useEffect.
+                  if (onRefreshHabitatRow) {
+                    onRefreshHabitatRow();
+                  } else {
+                    router.refresh();
+                  }
+                }}
               />
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}

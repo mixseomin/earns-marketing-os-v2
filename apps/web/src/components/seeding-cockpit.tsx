@@ -1504,7 +1504,7 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
       phaseCounts={phaseCounts}
       phaseTypeCounts={phaseTypeCounts}
       existing={row}
-      initialTab={focus?.phase ? (focus.phase as Phase) : undefined}
+      initialTab={focus?.phase ? (focus.phase as 'overview' | Phase | 'history' | 'detect') : undefined}
       focusCardId={focus?.cardId}
       postsReloadKey={externalReloadKey}
       onFocusChange={onFocusChange}

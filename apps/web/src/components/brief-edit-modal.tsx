@@ -89,7 +89,7 @@ export interface BriefEditModalProps {
   existing: BriefRow | null;
   onClose: () => void;
   // Deep-link: mở thẳng tab phase + bung 1 bài cụ thể (từ pipeline view)
-  initialTab?: 'overview' | Phase | 'history';
+  initialTab?: 'overview' | Phase | 'history' | 'detect';
   focusCardId?: number;
   // Báo lên parent mỗi khi user đổi tab phase / mở-đóng 1 bài → ghi URL
   // (F5 mở lại ĐÚNG bài đang xem, không snap về deep-link cũ).
@@ -612,8 +612,9 @@ export function BriefEditModal({
             phaseHistoryCount={phaseHistory.length}
             onChange={(t) => {
               setActiveTab(t);
-              // đổi tab → URL bám phase (xoá card focus); overview/history/detect → xoá hết
-              if (t === 'overview' || t === 'history' || t === 'detect') onFocusChange?.('', undefined);
+              // URL phản chiếu tab: overview (default) → xoá param; phase
+              // / history / detect → set bfp=<tab> (luôn xoá bfc card focus).
+              if (t === 'overview') onFocusChange?.('', undefined);
               else onFocusChange?.(t, undefined);
             }}
             isJoined={isReady}

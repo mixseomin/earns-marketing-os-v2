@@ -2165,8 +2165,9 @@ function HabitatBriefsSection({
                 <div style={{ minWidth: 0, cursor: onOpenBrief ? 'pointer' : 'default' }}
                      onClick={onOpenBrief ? handleBriefClick : undefined}
                      title={onOpenBrief ? 'Click để mở Brief modal' : ''}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2, flexWrap: 'wrap' }}>
-                    {/* @handle → click mở Account modal */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 1, minWidth: 0 }}>
+                    {/* @handle → click mở Account modal. Cho phép truncate
+                        khi quá dài; pills bên cạnh không wrap. */}
                     <button type="button" onClick={handleAccountClick}
                             disabled={!onOpenAccount || !b.accountHandle}
                             title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
@@ -2176,48 +2177,52 @@ function HabitatBriefsSection({
                                      textDecoration: 'underline', textDecorationStyle: 'dotted',
                                      textDecorationColor: 'var(--fg-4)', textUnderlineOffset: 3,
                                      fontFamily: 'var(--font-mono)',
-                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                     minWidth: 0, flexShrink: 1 }}>
                       @{b.accountHandle ?? 'no-handle'}
                     </button>
-                    <span title={b.platformLabel}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                   fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                                   color: 'var(--fg-3)', border: '1px solid var(--line)' }}>
-                      {b.platformKey && (
-                        <img src={`https://cdn.simpleicons.org/${b.platformKey}/9ca3af`}
-                             alt="" width={9} height={9} style={{ opacity: 0.9 }} />
-                      )}
-                      {b.platformLabel}
-                    </span>
-                    {/* Account status — chỉ hiện khi ≠ active (giảm noise) */}
+                    {/* Platform pill bỏ — đã có overlay icon trên avatar
+                        (memory rule "no duplicate platform identifier"). */}
+                    {/* Account status — chỉ hiện khi ≠ active */}
                     {b.accountStatus !== 'active' && (
-                      <span title={`Account status (tầng 1 — global): ${acctMeta.label}`}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                     padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                      <span title={`Account status: ${acctMeta.label}`}
+                            style={{ display: 'inline-flex', alignItems: 'center',
+                                     padding: '0 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
                                      fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
                                      background: acctMeta.color + '22', color: acctMeta.color,
-                                     border: `1px solid ${acctMeta.color}66` }}>
-                        {acctMeta.icon} {acctMeta.label}
+                                     border: `1px solid ${acctMeta.color}66`, flexShrink: 0 }}>
+                        {acctMeta.icon}
                       </span>
                     )}
-                    {/* Join status chip — tầng 2 */}
-                    <span title={`Join status (tầng 2 — membership per-habitat): ${joinLabel}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                   fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                                   background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
-                                   color: joinColor,
-                                   border: `1px solid ${joinColor}66` }}>
-                      {joinIcon} {joinLabel}
-                    </span>
-                    {/* Phase chip — tầng 3 */}
-                    <span title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`}
+                    {/* Join status — icon only nếu joined (giảm noise vì đó
+                        là default desired state), full label khi chưa join. */}
+                    {b.joinStatus === 'joined' ? (
+                      <span title={`Join: ${joinLabel}`}
+                            style={{ display: 'inline-flex', alignItems: 'center',
+                                     padding: '0 4px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                     fontWeight: 700, borderRadius: 3,
+                                     background: joinColor + '1a', color: joinColor,
+                                     border: `1px solid ${joinColor}66`, flexShrink: 0 }}>
+                        {joinIcon}
+                      </span>
+                    ) : (
+                      <span title={`Join: ${joinLabel}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                     padding: '0 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                     fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                     background: joinColor + '22', color: joinColor,
+                                     border: `1px solid ${joinColor}66`, flexShrink: 0 }}>
+                        {joinIcon} {joinLabel}
+                      </span>
+                    )}
+                    {/* Phase chip — luôn show (info value cao: warm-up/value/bridge/seed/direct/cooldown/paused
+                        là tín hiệu strategy step cho mỗi account). */}
+                    <span title={`Phase: ${phaseLabel}`}
                           style={{ display: 'inline-flex', alignItems: 'center',
-                                   padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                   padding: '0 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
                                    fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
                                    background: phaseColor + '22', color: phaseColor,
-                                   border: `1px solid ${phaseColor}66` }}>
+                                   border: `1px solid ${phaseColor}66`, flexShrink: 0 }}>
                       {phaseLabel}
                     </span>
                   </div>
@@ -2225,10 +2230,12 @@ function HabitatBriefsSection({
                     {b.approachMd ? b.approachMd.split('\n')[0] : <em style={{ color: 'var(--fg-4)' }}>chưa viết approach</em>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {b.cadence && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title="Cadence">⏱ {b.cadence}</span>}
-                  {b.tone && <span style={{ fontSize: 10, color: 'var(--fg-3)' }} title={`Tone: ${b.tone}`}>🎵</span>}
-                  {b.templates.length > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }} title={`${b.templates.length} templates`}>📝 {b.templates.length}</span>}
+                {/* Cadence/tone/templates: icon-only, tooltip giữ chi tiết.
+                    Ẩn hết nếu cả 3 đều null/empty (rất nhiều row sẽ sạch). */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  {b.cadence && <span style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'help' }} title={`Cadence: ${b.cadence}`}>⏱</span>}
+                  {b.tone && <span style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'help' }} title={`Tone: ${b.tone}`}>🎵</span>}
+                  {b.templates.length > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', cursor: 'help' }} title={`${b.templates.length} templates`}>📝{b.templates.length}</span>}
                 </div>
               </div>
             );

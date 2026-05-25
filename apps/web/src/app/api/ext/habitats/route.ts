@@ -50,12 +50,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'platform_key + name required' }, { status: 400 });
   }
 
+  // Reddit URL path đôi khi lowercase đôi khi capital — DB có thể lưu
+  // 'r/Astrologia' nhưng ext gửi 'r/astrologia'. Lookup case-insensitive
+  // để không tạo duplicate habitat record.
   const [row] = await db
     .select({ id: habitats.id, name: habitats.name, projectId: habitats.projectId })
     .from(habitats)
     .where(and(
       eq(habitats.platformKey, platformKey),
-      eq(habitats.name, name),
+      sql`LOWER(${habitats.name}) = LOWER(${name})`,
       ...(projectId ? [eq(habitats.projectId, projectId)] : []),
     ))
     .limit(1);
@@ -128,14 +131,16 @@ export async function POST(req: Request) {
     ? `${body.url.replace(/\/$/, '')}/about/rules`
     : '';
 
-  // Upsert: check existing by (project_id, platform_key, name)
+  // Upsert: check existing by (project_id, platform_key, LOWER(name)) —
+  // case-insensitive để 'r/Astrologia' === 'r/astrologia' (Reddit URL
+  // path tự động lowercase, DB có thể lưu cap khác).
   const existing = await db
     .select({ id: habitats.id })
     .from(habitats)
     .where(and(
       eq(habitats.projectId, body.projectId),
       eq(habitats.platformKey, body.platform_key),
-      eq(habitats.name, body.name),
+      sql`LOWER(${habitats.name}) = LOWER(${body.name})`,
     ))
     .limit(1);
 
@@ -190,7 +195,7 @@ export async function POST(req: Request) {
       .where(and(
         eq(habitats.tenantId, 'self'),
         eq(habitats.platformKey, body.platform_key),
-        eq(habitats.name, body.name),
+        sql`LOWER(${habitats.name}) = LOWER(${body.name})`,
       ))
       .orderBy(sql`${habitats.lastSyncAt} DESC NULLS LAST`)
       .limit(1);

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, communityBriefs, platformAccounts, habitats } from '@mos2/db';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getBriefFieldSchema } from '@/lib/brief-field-schema';
 
@@ -75,13 +75,15 @@ export async function POST(req: Request) {
   }
   const accountId = acct[0]!.id;
 
-  // 2. Lookup habitat (tìm bất kỳ habitat trong tenant; ưu tiên project nếu có)
+  // 2. Lookup habitat (tìm bất kỳ habitat trong tenant; ưu tiên project nếu có).
+  // Case-insensitive match — Reddit lưu 'r/Astrologia' nhưng ext gửi
+  // 'r/astrologia' (URL path lowercase) → bypass match nếu eq strict.
   const habitatQuery = db.select({ id: habitats.id, projectId: habitats.projectId })
     .from(habitats)
     .where(and(
       eq(habitats.tenantId, 'self'),
       eq(habitats.platformKey, body.platform_key),
-      eq(habitats.name, body.habitat_name),
+      sql`LOWER(${habitats.name}) = LOWER(${body.habitat_name})`,
     ))
     .limit(5);
   const habs = await habitatQuery;

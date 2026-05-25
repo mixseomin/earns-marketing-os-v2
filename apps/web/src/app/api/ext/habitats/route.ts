@@ -170,23 +170,84 @@ export async function POST(req: Request) {
   };
 
   let habitatId: number;
-  let action: 'created' | 'updated';
+  let action: 'created' | 'updated' | 'cloned';
   if (existing.length > 0) {
     habitatId = existing[0]!.id;
     action = 'updated';
     await db.update(habitats).set(patch).where(eq(habitats.id, habitatId));
   } else {
-    const inserted = await db.insert(habitats).values({
-      tenantId: 'self',
-      projectId: body.projectId,
-      kind: body.kind || 'subreddit',
-      name: body.name,
-      url: body.url,
-      platformKey: body.platform_key,
-      ...patch,
-    }).returning({ id: habitats.id });
-    habitatId = inserted[0]!.id;
-    action = 'created';
+    // Habitat chưa có trong project hiện tại — check xem cùng platform+name
+    // có tồn tại ở project KHÁC không. Nếu có, clone data fields project-agnostic
+    // (members/description/rules/privacy/weekly stats/topics/links/min-gates...)
+    // để project mới không phải re-scrape từ đầu. Project-specific fields
+    // (tribeId/status/voiceProfile/voiceNotes/fewShotExamples/visualStyleDescriptor)
+    // giữ default — user customize trong project mới.
+    const sibling = await db
+      .select()
+      .from(habitats)
+      .where(and(
+        eq(habitats.tenantId, 'self'),
+        eq(habitats.platformKey, body.platform_key),
+        eq(habitats.name, body.name),
+      ))
+      .orderBy(sql`${habitats.lastSyncAt} DESC NULLS LAST`)
+      .limit(1);
+
+    if (sibling.length > 0) {
+      // Clone fields project-agnostic từ sibling (data từ platform, không
+      // phụ thuộc project). patch (từ body) sẽ ghi đè nếu ext gửi value
+      // mới — sibling chỉ là fallback cho field ext miss.
+      const sib = sibling[0]!;
+      const inheritedFromSibling = {
+        members: patch.members || sib.members,
+        iconUrl: patch.iconUrl || sib.iconUrl,
+        postingRules: patch.postingRules || sib.postingRules,
+        postingRulesUrl: patch.postingRulesUrl || sib.postingRulesUrl,
+        minAccountAgeDays: patch.minAccountAgeDays || sib.minAccountAgeDays,
+        minKarma: patch.minKarma || sib.minKarma,
+        minPosts: patch.minPosts || sib.minPosts,
+        weeklyVisitors: patch.weeklyVisitors || sib.weeklyVisitors,
+        weeklyContributions: patch.weeklyContributions || sib.weeklyContributions,
+        privacy: patch.privacy || sib.privacy,
+        createdAtSource: patch.createdAtSource || sib.createdAtSource,
+        description: patch.description || sib.description,
+        modStrictness: patch.modStrictness || sib.modStrictness,
+        communityType: patch.communityType || sib.communityType,
+        dominantTopics: (Array.isArray(patch.dominantTopics) && patch.dominantTopics.length > 0) ? patch.dominantTopics : sib.dominantTopics,
+        // Project-agnostic Reddit metadata
+        language: sib.language,
+        linksAllowedAfter: sib.linksAllowedAfter,
+        forbiddenTopics: sib.forbiddenTopics,
+        bestPostTimes: sib.bestPostTimes,
+        technologyKey: sib.technologyKey,
+        allowedFormatsOverride: sib.allowedFormatsOverride,
+      };
+      const inserted = await db.insert(habitats).values({
+        tenantId: 'self',
+        projectId: body.projectId,
+        kind: sib.kind,                    // giữ nguyên kind đã từng detect
+        name: body.name,
+        url: body.url ?? sib.url,
+        platformKey: body.platform_key,
+        ...patch,
+        ...inheritedFromSibling,
+        importedFrom: `mos2-crew-ext:cloned-from-habitat:${sib.id}`,
+      }).returning({ id: habitats.id });
+      habitatId = inserted[0]!.id;
+      action = 'cloned';
+    } else {
+      const inserted = await db.insert(habitats).values({
+        tenantId: 'self',
+        projectId: body.projectId,
+        kind: body.kind || 'subreddit',
+        name: body.name,
+        url: body.url,
+        platformKey: body.platform_key,
+        ...patch,
+      }).returning({ id: habitats.id });
+      habitatId = inserted[0]!.id;
+      action = 'created';
+    }
   }
 
   // ── v1.4.9: viewer membership upsert ──────────────────────────

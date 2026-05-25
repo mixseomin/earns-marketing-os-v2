@@ -617,6 +617,8 @@ export interface HabitatRow {
   weeklyContributions: number;
   // migration 0063: description paragraph
   description: string;
+  // migration 0064: display title (khác name/slug)
+  title: string;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -689,6 +691,7 @@ export async function listHabitats(projectId: string): Promise<HabitatRow[]> {
       weeklyVisitors: r.weeklyVisitors ?? 0,
       weeklyContributions: r.weeklyContributions ?? 0,
       description: r.description ?? '',
+      title: (r as { title?: string }).title ?? '',
     }));
   }, [], 'listHabitats');
 }
@@ -752,6 +755,7 @@ export async function getHabitatById(projectId: string, habitatId: number): Prom
       weeklyVisitors: Number(r.weekly_visitors ?? 0),
       weeklyContributions: Number(r.weekly_contributions ?? 0),
       description: String(r.description ?? ''),
+      title: r.title ? String(r.title) : '',
     };
   }, null, 'getHabitatById');
 }

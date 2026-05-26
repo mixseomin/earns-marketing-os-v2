@@ -105,6 +105,113 @@ function useModelPref(key: string, def: string, validIds?: Set<string>): [string
   return [val, setVal];
 }
 
+// Split markdown body thành paragraphs (giữ bullet/heading nguyên dạng).
+// Mỗi paragraph = 1 cell preview. Bỏ heading "##" vì FormatPreview default
+// cũng strip (xem format-preview.tsx text case).
+function splitParagraphs(body: string): string[] {
+  if (!body) return [];
+  // Filter heading lines, split by blank-line (paragraph) hoặc bullet boundary.
+  const lines = body.split('\n').filter((l) => !/^#{1,3}\s+/.test(l.trim()));
+  const paragraphs: string[] = [];
+  let buf: string[] = [];
+  const flush = () => {
+    const joined = buf.join('\n').trim();
+    if (joined) paragraphs.push(joined);
+    buf = [];
+  };
+  for (const ln of lines) {
+    const trimmed = ln.trim();
+    // Blank line → end paragraph
+    if (!trimmed) { flush(); continue; }
+    // Bullet line ("- ", "* ", "1. ") → mỗi bullet 1 paragraph riêng để
+    // bullets target/review align từng cặp.
+    if (/^([-*•]|\d+[.)])\s/.test(trimmed)) {
+      flush();
+      paragraphs.push(trimmed);
+      continue;
+    }
+    buf.push(ln);
+  }
+  flush();
+  return paragraphs;
+}
+
+// Bilingual aligned preview — interleave target/review theo từng paragraph.
+// Render 1 card layout (head, image nếu có, title row, sau đó N rows
+// paragraph với 2 cột target | review align cùng baseline).
+function BilingualAlignedPreview({
+  targetLang, titleTarget, titleReview, bodyTarget, bodyReview, mediaUrl,
+}: {
+  targetLang: string;
+  titleTarget: string;
+  titleReview: string;
+  bodyTarget: string;
+  bodyReview: string;
+  mediaUrl?: string | null;
+}) {
+  const paragraphsT = splitParagraphs(bodyTarget);
+  const paragraphsR = splitParagraphs(bodyReview);
+  // Pair-zip — max length của 2 bên (nếu lệch số paragraph thì hiển thị
+  // empty cho phía thiếu, user thấy ngay mismatch).
+  const maxLen = Math.max(paragraphsT.length, paragraphsR.length);
+  const rows = Array.from({ length: maxLen }, (_, i) => ({
+    target: paragraphsT[i] ?? '',
+    review: paragraphsR[i] ?? '',
+  }));
+  const cleanT = titleTarget.replace(/^\[[^\]]*\]\s*/, '');
+  const cleanR = titleReview.replace(/^\[[^\]]*\]\s*/, '');
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
+                    background: 'var(--bg-3)', borderBottom: '1px solid var(--line)',
+                    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                    textTransform: 'uppercase', letterSpacing: '.06em' }}>
+        👁 Xem trước · BILINGUAL
+        <span style={{ textTransform: 'none', color: 'var(--fg-4)' }}>
+          (target | review align từng đoạn — so sánh trực tiếp)
+        </span>
+      </div>
+      {/* Column header */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '6px 10px',
+                    borderBottom: '1px solid var(--line)', fontSize: 9, fontFamily: 'var(--font-mono)',
+                    fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+        <span style={{ color: 'var(--ok)' }}>🌐 {targetLang.toUpperCase()} (đăng thật)</span>
+        <span style={{ color: 'var(--fg-3)' }}>🇻🇳 VN (review)</span>
+      </div>
+      {/* Optional media — span 2 cột (chung 1 ảnh cho cả 2 ngôn ngữ) */}
+      {mediaUrl && (
+        <div style={{ borderBottom: '1px solid var(--line)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mediaUrl} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
+      {/* Title row aligned */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '8px 10px 4px',
+                    borderBottom: '1px dashed var(--line)' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>{cleanT || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)' }}>{cleanR || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}</div>
+      </div>
+      {/* Body rows — mỗi paragraph 2 cột song hành */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {rows.length === 0 && (
+          <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic', textAlign: 'center' }}>
+            Chưa có nội dung. Bấm ✨ Sinh draft đầy đủ để AI viết.
+          </div>
+        )}
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+                                padding: '6px 10px', borderTop: i > 0 ? '1px dotted var(--line)' : 'none',
+                                fontSize: 12, color: 'var(--fg-1)', whiteSpace: 'pre-wrap',
+                                lineHeight: 1.55 }}>
+            <div>{r.target || <em style={{ color: 'var(--fg-4)' }}>(thiếu paragraph)</em>}</div>
+            <div style={{ color: 'var(--fg-2)' }}>{r.review || <em style={{ color: 'var(--fg-4)' }}>(thiếu paragraph)</em>}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Render chip select for model picker — hiển thị label + price + reasoning flag.
 // Option label = "GPT-5 mini · $0.25↓/$2.00↑/M 🧠" (per 1M tokens) hoặc "$0.053/ảnh".
 function ModelPickerChip({
@@ -3350,38 +3457,17 @@ function PostRow({
 
       {expanded && (
         <div style={{ padding: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Preview: bilingual → 2 cột side-by-side (target | review).
-              Target ưu tiên cột trái (đăng thật, lớn hơn nếu cần). Khi
-              target=vi (single lang) → 1 preview. */}
+          {/* Preview: bilingual → interleaved theo từng paragraph (mỗi
+              dòng/bullet 2 cột song song target | review để đối chiếu trực
+              tiếp). 2 FormatPreview riêng biệt sẽ lệch theo line break.
+              Khi target=vi (single lang) → 1 preview FormatPreview. */}
           {isBilingual ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-                            textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                👁 Xem trước (2 bản — so sánh trực tiếp)
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                color: 'var(--ok)', marginBottom: 3, display: 'inline-flex',
-                                alignItems: 'center', gap: 4 }}
-                       title={`Bản ${post.targetLang.toUpperCase()} — community sẽ thấy bản này khi paste`}>
-                    🌐 {post.targetLang.toUpperCase()} (đăng thật)
-                  </div>
-                  <FormatPreview contentType={post.contentType} title={title}
-                                 body={bodyTarget || post.body} mediaUrl={post.mediaUrl} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                color: 'var(--fg-3)', marginBottom: 3, display: 'inline-flex',
-                                alignItems: 'center', gap: 4 }}
-                       title="Bản tiếng Việt — chỉ để bạn review, KHÔNG paste lên community">
-                    🇻🇳 VN (review)
-                  </div>
-                  <FormatPreview contentType={post.contentType} title={titleReview}
-                                 body={bodyReview || post.body} mediaUrl={post.mediaUrl} />
-                </div>
-              </div>
-            </div>
+            <BilingualAlignedPreview
+              targetLang={post.targetLang}
+              titleTarget={title} titleReview={titleReview}
+              bodyTarget={bodyTarget || post.body}
+              bodyReview={bodyReview || post.body}
+              mediaUrl={post.mediaUrl} />
           ) : (
             <FormatPreview contentType={post.contentType} title={title}
                            body={bodyTarget || bodyReview || post.body}

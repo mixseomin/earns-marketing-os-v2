@@ -465,6 +465,9 @@ export function BriefEditModal({
 
   // Toast inline "đã thay N fields" sau khi click Thay tất cả; auto fade 2s.
   const [replaceAllToast, setReplaceAllToast] = useState<string | null>(null);
+  // Bump mỗi lần "Thay tất cả" để SuggestionInline auto-collapse cards
+  // (field giờ đã có data, suggestion nên thu gọn để giảm chiều cao modal).
+  const [replaceAllSeq, setReplaceAllSeq] = useState(0);
 
   // Replace ALL 6 fields cùng lúc với active suggestLang. Field nào suggestion
   // trống → skip (giữ current value). Đếm số field đã thay để show feedback.
@@ -485,6 +488,7 @@ export function BriefEditModal({
       ? `✓ Đã thay ${replaced}/6 field (${labelStr})`
       : `⚠ Không có field nào cần thay (suggestion ${labelStr} trùng/trống)`);
     setTimeout(() => setReplaceAllToast(null), 2500);
+    if (replaced > 0) setReplaceAllSeq((n) => n + 1);
   };
 
   const fld: React.CSSProperties = {
@@ -857,20 +861,21 @@ export function BriefEditModal({
           {(activeTab === 'overview' || !existing) && (
           <>
           {/* Intro "Sau khi tạo brief..." gỡ — UX tab strip đã rõ rồi. */}
-          {/* ── Roadmap chiến lược 5 phase — tóm tắt mix + cadence + goal/phase
-                Click 1 phase → switch sang tab đó để sửa chi tiết. ── */}
+          {/* ── Roadmap chiến lược 5 phase — collapse mặc định, PhaseTabStrip
+                ở trên đã đủ trực quan; chi tiết roadmap chỉ cần khi user
+                muốn xem mix/goal per phase. ── */}
           {existing && phasePlan.length > 0 && (
-            <div style={{ padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <details style={{ padding: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <summary style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', listStyle: 'none' }}>
                 <span title="Roadmap 5 phase + mix định dạng + tần suất + mục tiêu — click 1 phase để mở chi tiết và sửa."
-                      style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
+                      style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   🗺 Chiến lược 5 phase
                 </span>
                 <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>
-                  click 1 phase để mở sửa
+                  · click mở chi tiết · {phasePlan.length}/{PLANNED_PHASES.length} phase đã set
                 </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              </summary>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
                 {PLANNED_PHASES.map((p) => {
                   const entry = phasePlan.find((e) => e.phase === p);
                   const have = phaseCounts?.[p] ?? 0;
@@ -966,7 +971,7 @@ export function BriefEditModal({
                   );
                 })}
               </div>
-            </div>
+            </details>
           )}
           {/* Content Pillar default cho brief — mọi card mới inherit pillar
               này. Per-card có thể override qua chip 📚 trong card header. */}
@@ -991,26 +996,37 @@ export function BriefEditModal({
               onPostsChanged={onPostsChanged}
             />
           )}
-          <AIFormParser
-            context={`Tạo phương án tiếp cận cho persona "${accountLabel}" khi engage trong "${habitatLabel}". Dựa vào community rules / brand voice / competitor posts. Trả về JSON đúng schema. approachMd nên là markdown 4-8 dòng (NƠI/KHI engage). narrativeMd là 5-10 dòng markdown mô tả CÁCH kể chuyện (Vòng cung / Giọng / Hook mở bài / Kết / Tránh). doMd/dontMd dùng bullet list "- ".`}
-            schema={[
-              { key: 'approachMd',  label: 'Phương án tiếp cận (markdown)', type: 'string', description: 'Tổng quan chiến thuật 4-8 dòng - NƠI/KHI engage' },
-              { key: 'narrativeMd', label: 'Cách kể chuyện (markdown)',     type: 'string', description: 'Vòng cung story / Giọng / Hook mở bài / Kết / Tránh - CÁCH viết' },
-              { key: 'cadence',     label: 'Tần suất',                      type: 'string', description: 'vd: "3 replies/day", "1 post/week"' },
-              { key: 'tone',        label: 'Giọng',                         type: 'string', description: 'vd: "helpful expert, mystical, casual VN"' },
-              { key: 'doMd',        label: 'NÊN (markdown bullets)',        type: 'string' },
-              { key: 'dontMd',      label: 'KHÔNG (markdown bullets)',      type: 'string' },
-            ]}
-            currentValues={{ approachMd, narrativeMd, cadence, tone, doMd, dontMd }}
-            onApply={(v) => {
-              if (v.approachMd != null) setApproachMd(String(v.approachMd));
-              if (v.narrativeMd != null) setNarrativeMd(String(v.narrativeMd));
-              if (v.cadence != null) setCadence(String(v.cadence));
-              if (v.tone != null) setTone(String(v.tone));
-              if (v.doMd != null) setDoMd(String(v.doMd));
-              if (v.dontMd != null) setDontMd(String(v.dontMd));
-            }}
-          />
+          {/* AIFormParser — collapse mặc định. Paste HTML/transcript khi muốn,
+              dùng nhanh thì AI Suggest banner đã đủ. */}
+          <details>
+            <summary style={{ cursor: 'pointer', listStyle: 'none', fontSize: 10,
+                              fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                              padding: '4px 0', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              📋 Paste form (HTML / transcript / image) ▸
+            </summary>
+            <div style={{ marginTop: 6 }}>
+              <AIFormParser
+                context={`Tạo phương án tiếp cận cho persona "${accountLabel}" khi engage trong "${habitatLabel}". Dựa vào community rules / brand voice / competitor posts. Trả về JSON đúng schema. approachMd nên là markdown 4-8 dòng (NƠI/KHI engage). narrativeMd là 5-10 dòng markdown mô tả CÁCH kể chuyện (Vòng cung / Giọng / Hook mở bài / Kết / Tránh). doMd/dontMd dùng bullet list "- ".`}
+                schema={[
+                  { key: 'approachMd',  label: 'Phương án tiếp cận (markdown)', type: 'string', description: 'Tổng quan chiến thuật 4-8 dòng - NƠI/KHI engage' },
+                  { key: 'narrativeMd', label: 'Cách kể chuyện (markdown)',     type: 'string', description: 'Vòng cung story / Giọng / Hook mở bài / Kết / Tránh - CÁCH viết' },
+                  { key: 'cadence',     label: 'Tần suất',                      type: 'string', description: 'vd: "3 replies/day", "1 post/week"' },
+                  { key: 'tone',        label: 'Giọng',                         type: 'string', description: 'vd: "helpful expert, mystical, casual VN"' },
+                  { key: 'doMd',        label: 'NÊN (markdown bullets)',        type: 'string' },
+                  { key: 'dontMd',      label: 'KHÔNG (markdown bullets)',      type: 'string' },
+                ]}
+                currentValues={{ approachMd, narrativeMd, cadence, tone, doMd, dontMd }}
+                onApply={(v) => {
+                  if (v.approachMd != null) setApproachMd(String(v.approachMd));
+                  if (v.narrativeMd != null) setNarrativeMd(String(v.narrativeMd));
+                  if (v.cadence != null) setCadence(String(v.cadence));
+                  if (v.tone != null) setTone(String(v.tone));
+                  if (v.doMd != null) setDoMd(String(v.doMd));
+                  if (v.dontMd != null) setDontMd(String(v.dontMd));
+                }}
+              />
+            </div>
+          </details>
 
           {/* ── AI auto-suggest from context (compact 1 dòng) ── */}
           <div style={{
@@ -1153,7 +1169,7 @@ export function BriefEditModal({
               style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
               placeholder={'**Vòng cung**: hook → context → insight → mời tham gia\n**Giọng**: scholar warm-story-driven\n**Hook mở bài**: "Tôi đọc 50 chart tháng trước và nhận thấy..."\n**Kết**: câu hỏi mời chia sẻ câu chuyện'}
             />
-            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="narrativeMd" current={narrativeMd}
+            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="narrativeMd" current={narrativeMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('narrativeMd')} regenerating={regenField === 'narrativeMd'} />
           </div>
@@ -1169,7 +1185,7 @@ export function BriefEditModal({
               style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
               placeholder="vd: Tham gia trả lời chart-reading. Reply dài 5-8 dòng, dẫn nguồn từ Astrolas. Soft-mention link app cuối reply nếu user hỏi sâu thêm."
             />
-            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="approachMd" current={approachMd}
+            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="approachMd" current={approachMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('approachMd')} regenerating={regenField === 'approachMd'} />
           </div>
@@ -1182,7 +1198,7 @@ export function BriefEditModal({
                           onApply={(v) => setCadence(v)} />
               <input type="text" value={cadence} onChange={(e) => setCadence(e.target.value)}
                      style={fld} placeholder="3 replies/day" />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="cadence" current={cadence}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="cadence" current={cadence}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('cadence')} regenerating={regenField === 'cadence'} />
             </div>
@@ -1192,7 +1208,7 @@ export function BriefEditModal({
                           onApply={(v) => setTone(v)} />
               <input type="text" value={tone} onChange={(e) => setTone(e.target.value)}
                      style={fld} placeholder="helpful expert, mystical" />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="tone" current={tone}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="tone" current={tone}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('tone')} regenerating={regenField === 'tone'} />
             </div>
@@ -1206,7 +1222,7 @@ export function BriefEditModal({
               <textarea value={doMd} onChange={(e) => setDoMd(e.target.value)} rows={5}
                         style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
                         placeholder={'- Cite chart house + aspect\n- Acknowledge OP\'s feeling\n- Offer 1 actionable insight'} />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="doMd" current={doMd}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="doMd" current={doMd}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('doMd')} regenerating={regenField === 'doMd'} />
             </div>
@@ -1217,7 +1233,7 @@ export function BriefEditModal({
               <textarea value={dontMd} onChange={(e) => setDontMd(e.target.value)} rows={5}
                         style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
                         placeholder={'- Drop link in first sentence\n- Sound salesy\n- Ignore mod rules about astrology accuracy claims'} />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="dontMd" current={dontMd}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="dontMd" current={dontMd}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('dontMd')} regenerating={regenField === 'dontMd'} />
             </div>
@@ -1356,7 +1372,7 @@ function FieldLabel({
 // ──────────────────────────────────────────────────────────────────
 function SuggestionInline({
   suggestion, defaultLang, field, current, setterFor, currentFor,
-  onRegenerate, regenerating, viSlotLabel = 'VI',
+  onRegenerate, regenerating, viSlotLabel = 'VI', collapseSignal = 0,
 }: {
   suggestion: BriefSuggestion | null;
   defaultLang: 'en' | 'vi';
@@ -1368,6 +1384,8 @@ function SuggestionInline({
   regenerating?: boolean;
   /** Override hiển thị slot "vi" khi community nói language khác (es/fr/...) */
   viSlotLabel?: string;
+  /** Bump để force collapse card (vd sau Replace All ở banner). */
+  collapseSignal?: number;
 }) {
   const labelFor = (l: 'en' | 'vi') => l === 'vi' ? viSlotLabel : 'EN';
   // Auto-collapse khi field đã có nội dung - user không cần thấy suggestion
@@ -1379,6 +1397,13 @@ function SuggestionInline({
   // Modal-level default switch propagates to all cards (per-card override
   // still allowed — user just clicks the card's own toggle after).
   useEffect(() => { setActiveLang(defaultLang); }, [defaultLang]);
+
+  // Parent ra signal collapse (vd sau Replace All ở header) → tự thu gọn.
+  // Skip lần đầu (collapseSignal === 0) để không override initial open state.
+  useEffect(() => {
+    if (collapseSignal > 0) setOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapseSignal]);
 
   const sugVi = suggestion?.vi?.[field]?.trim() ?? '';
   const sugEn = suggestion?.en?.[field]?.trim() ?? '';

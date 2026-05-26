@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     maxLength?: number;
     topicsHint?: string[];
     llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — Astrolas tự validate
+    customPrompt?: string;  // Operator instruction kèm theo brief context
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -124,6 +125,7 @@ export async function POST(req: Request) {
   // Astrolas Reasoning Engine có context đầy đủ. Tránh để Astrolas trả answer
   // generic mà không apply brief.
   // Format: original question + operator hint section (clearly separated).
+  const customPromptClean = (body.customPrompt ?? '').trim().slice(0, 1500);
   const questionBodyEnriched = [
     body.parentBody,
     '',
@@ -137,6 +139,7 @@ export async function POST(req: Request) {
     ctx.do_md ? `DO:\n${String(ctx.do_md).slice(0, 500)}` : null,
     ctx.dont_md ? `DON'T:\n${String(ctx.dont_md).slice(0, 500)}` : null,
     forbiddenTopics.length > 0 ? `FORBIDDEN TOPICS: ${forbiddenTopics.join(', ')}` : null,
+    customPromptClean ? `\n[OPERATOR INSTRUCTION — ưu tiên cao, áp dụng cho answer này]\n${customPromptClean}` : null,
   ].filter(Boolean).join('\n');
 
   const astrolasPayload = {
@@ -237,6 +240,7 @@ export async function POST(req: Request) {
       currentPhase: phase,
       briefTone: tonePart,
       topicsSent: topics,
+      customPromptApplied: customPromptClean ? customPromptClean.slice(0, 200) : null,
     },
   });
 }

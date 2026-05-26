@@ -25,10 +25,12 @@ interface SaveReq {
   habitat_id?: number;
   technology_key?: string;
   // User-defined post-extract transform — chạy trên raw value trước parse.
-  // transform_regex: /pattern/flags hoặc plain pattern (default 'i' flag).
-  // transform_replace: nếu set → replace; nếu trống → return first capture group.
+  // 2 modes:
+  //   - single: transform_regex (+ optional transform_replace)
+  //   - chain: transform_chain = [{rx, rp}, ...] apply tuần tự
   transform_regex?: string;
   transform_replace?: string;
+  transform_chain?: Array<{ rx: string; rp?: string }>;
 }
 
 // Minimal XPath validation — chỉ check non-empty + reject ID t5_xxx
@@ -93,10 +95,14 @@ export async function POST(req: Request) {
 
   const spec: Record<string, unknown> = { css: body.css, attr, parse, kind };
   if (schema?.enumValues && parse === 'enum') spec.enum_values = schema.enumValues;
-  // Persist user transform — sẽ được ext/cascade consumer apply trên raw
-  // value sau extract, trước parse logic.
-  if (body.transform_regex) spec.transform_regex = body.transform_regex;
-  if (body.transform_replace != null) spec.transform_replace = body.transform_replace;
+  // Persist user transform — chain ưu tiên nếu có (multi-step), fallback
+  // single regex/replace. Consumer (applySelector) handle cả 2 modes.
+  if (Array.isArray(body.transform_chain) && body.transform_chain.length > 0) {
+    spec.transform_chain = body.transform_chain;
+  } else {
+    if (body.transform_regex) spec.transform_regex = body.transform_regex;
+    if (body.transform_replace != null) spec.transform_replace = body.transform_replace;
+  }
 
   const targetScope = body.target_scope ?? 'platform';
   const targetKey = body.target_key

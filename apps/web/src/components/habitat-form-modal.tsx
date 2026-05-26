@@ -35,7 +35,6 @@ import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { listTechnologies, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker } from './technology-picker';
-import { getLangMeta, langTooltip } from '@/lib/lang-meta';
 import { LangChip } from './lang-chip';
 
 const KINDS = ['subreddit', 'fb-group', 'discord', 'forum', 'hashtag', 'slack', 'telegram', 'youtube', 'other'] as const;
@@ -946,13 +945,8 @@ export function HabitatFormModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div>
                 <label style={lbl} title="Ngôn ngữ chính của community. AI brief + posts sẽ generate bằng ngôn ngữ này.">Language</label>
-                <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)} style={fld}
-                        title={langTooltip(form.language)}>
-                  {LANGUAGES.map((l) => {
-                    const m = getLangMeta(l);
-                    return <option key={l} value={l}>{m.flag} {m.label}{l ? ` (${l})` : ''}</option>;
-                  })}
-                </select>
+                <LangChip mode="select" code={form.language} langs={LANGUAGES}
+                          onChange={(v) => setF('language', v)} />
               </div>
               <div>
                 <label style={lbl}>Type</label>

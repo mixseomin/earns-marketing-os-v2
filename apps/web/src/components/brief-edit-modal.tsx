@@ -1212,13 +1212,8 @@ export function BriefEditModal({
               AI ({viSlotLabel === 'VI' ? 'EN+VI' : `EN+${viSlotLabel}`})
             </span>
             {localeMeta && (
-              <span title={`Community nói ${localeMeta.fullLabel} — slot "VI" auto-fill bằng ${localeMeta.label} thay vì Tiếng Việt.`}
-                    style={{ padding: '2px 7px', fontSize: 10, fontWeight: 700,
-                             background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help',
-                             display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12, lineHeight: 1 }}>{localeMeta.flag}</span>
-                {localeMeta.label}
-              </span>
+              <LangChip mode="static" code={habitatLang} size="sm"
+                        title={`Community nói ${localeMeta.fullLabel} — slot "VI" auto-fill bằng ${localeMeta.label} thay vì Tiếng Việt.`} />
             )}
             {suggestionAt && (
               <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
@@ -3328,45 +3323,24 @@ function PostRow({
             </span>
           );
         })()}
-        {/* Target lang chip — flag + label, click select đổi. Hiển thị warn
-            khi mismatch với habitat.language (vd habitat=es nhưng card=en). */}
+        {/* Target lang chip — dùng <LangChip> chung; variant='warn' khi card.lang
+            ≠ habitat.lang để cảnh báo mismatch trực quan. */}
         {(() => {
           const habitatLang = bundle?.habitatLanguage ?? '';
           const cardLang = post.targetLang;
-          const mismatch = habitatLang && habitatLang !== cardLang;
+          const mismatch = !!(habitatLang && habitatLang !== cardLang);
           const cardMeta = getLangMeta(cardLang);
           const habMeta = mismatch ? getLangMeta(habitatLang) : null;
           const titleAttr = mismatch
             ? `⚠ Mismatch — Card đang ${cardMeta.flag} ${cardMeta.label} nhưng habitat ${habMeta?.flag} ${habMeta?.label}.\nClick để đổi sang ${habMeta?.label}.`
             : `Ngôn ngữ card: ${cardMeta.flag} ${cardMeta.fullLabel}\nClick để đổi.`;
           return (
-            <span style={{ position: 'relative', display: 'inline-flex' }}>
-              <select value={cardLang}
-                      onChange={(e) => persist({ targetLang: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
+            <LangChip mode="select"
+                      code={cardLang} size="sm"
                       title={titleAttr}
-                      style={{
-                        appearance: 'none', WebkitAppearance: 'none',
-                        padding: '1px 14px 1px 22px', fontSize: 10, fontWeight: 700,
-                        background: mismatch ? 'rgba(251,191,36,.15)' : 'rgba(74,222,128,.1)',
-                        color: mismatch ? 'var(--warn)' : 'var(--ok)',
-                        border: `1px solid ${mismatch ? 'rgba(251,191,36,.5)' : 'rgba(74,222,128,.35)'}`,
-                        borderRadius: 3, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                        minWidth: 70,
-                      }}>
-                {['en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru'].map((l) => {
-                  const m = getLangMeta(l);
-                  return <option key={l} value={l}>{m.flag} {l.toUpperCase()}</option>;
-                })}
-              </select>
-              <span style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)',
-                             fontSize: 11, lineHeight: 1, pointerEvents: 'none' }}>
-                {cardMeta.flag}
-              </span>
-              <span style={{ position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
-                             fontSize: 7, color: mismatch ? 'var(--warn)' : 'var(--ok)',
-                             pointerEvents: 'none' }}>▾</span>
-            </span>
+                      variant={mismatch ? 'warn' : 'ok'}
+                      langs={['en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru']}
+                      onChange={(v) => persist({ targetLang: v })} />
           );
         })()}
         {/* Dispatch + col info */}

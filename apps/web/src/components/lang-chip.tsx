@@ -28,8 +28,9 @@ interface BaseProps {
   /** Variant màu nền:
    *  - 'ok' (default): empty=warn vàng, có code=ok xanh
    *  - 'neutral': bg-2 mọi case (cho header tối)
-   *  - 'accent': accent-soft (cho action context) */
-  variant?: 'ok' | 'neutral' | 'accent';
+   *  - 'accent': accent-soft (cho action context)
+   *  - 'warn': warn vàng (cho mismatch/cảnh báo, vd card.lang ≠ habitat.lang) */
+  variant?: 'ok' | 'neutral' | 'accent' | 'warn';
 }
 
 interface StaticProps extends BaseProps { mode: 'static'; }
@@ -71,6 +72,10 @@ export function LangChip(props: LangChipProps) {
     if (variant === 'accent') return {
       bg: 'var(--accent-soft)', fg: 'var(--accent)', border: 'var(--accent-line)',
       codeBg: 'var(--bg-1)',
+    };
+    if (variant === 'warn') return {
+      bg: 'rgba(251,191,36,.15)', fg: 'var(--warn)', border: 'rgba(251,191,36,.5)',
+      codeBg: 'rgba(251,191,36,.2)',
     };
     // 'ok' default
     return isSet
@@ -127,6 +132,7 @@ export function LangChip(props: LangChipProps) {
       </span>
       <select value={code ?? ''}
               onChange={(e) => props.onChange(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
               disabled={props.disabled}
               title={tooltip}
               style={{
@@ -137,7 +143,7 @@ export function LangChip(props: LangChipProps) {
                 background: bg, color: 'transparent',
                 border: `1px solid ${border}`, borderRadius: 4,
                 cursor: props.disabled ? 'wait' : 'pointer',
-                minWidth: 150,
+                minWidth: size === 'sm' ? 90 : 150,
               }}>
         {props.langs.map((l) => {
           const opt = getLangMeta(l);

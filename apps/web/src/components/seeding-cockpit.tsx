@@ -35,6 +35,7 @@ import { BriefPipelineModal } from './brief-pipeline-modal';
 // STATUS_META + ACCT_STATUS_META đã centralize trong @/lib/status-meta để
 // đồng bộ với accounts-vault + brief-edit-modal. Adapter giữ shape cũ.
 import { SEEDING_STATUS_META, ACCOUNT_STATUS_META } from '@/lib/status-meta';
+import { LangChip } from './lang-chip';
 const STATUS_META: Record<SeedingStatus, { label: string; color: string }> =
   Object.fromEntries(
     (Object.entries(SEEDING_STATUS_META) as Array<[SeedingStatus, typeof SEEDING_STATUS_META[SeedingStatus]]>)
@@ -555,14 +556,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             {(() => {
               const isMix = !it.laneType || it.laneType === 'mix';
               const effLang = it.laneLang || it.habitatLang;
+              const inheritFromHabitat = !it.laneLang;
+              const langTitle = it.laneLang
+                ? `Lane đăng bằng ${it.laneLang.toUpperCase()} (override)`
+                : `Kế thừa ngôn ngữ habitat: ${it.habitatLang.toUpperCase()} (*)`;
               const langChip = (
-                <span title={it.laneLang
-                        ? `Lane đăng bằng ${it.laneLang.toUpperCase()} (override)`
-                        : `Kế thừa ngôn ngữ habitat: ${it.habitatLang.toUpperCase()}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 2,
-                               color: it.laneLang ? 'var(--accent)' : 'var(--fg-4)' }}>
-                  <IconGlobe size={11} /> {effLang.toUpperCase()}{!it.laneLang && '*'}
-                </span>
+                <LangChip mode="static" code={effLang} size="sm" title={langTitle}
+                          variant={inheritFromHabitat ? 'neutral' : 'accent'} />
               );
               if (!isMix) {
                 const fm = formatMeta(it.laneType);

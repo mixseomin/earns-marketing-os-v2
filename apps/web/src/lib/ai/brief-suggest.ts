@@ -7,8 +7,10 @@
 // to copy/replace manually.
 
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from './openai';
-import { getDb, platformAccounts, platforms, habitats, tribes, habitatTribes, projects } from '@mos2/db';
-import { eq } from 'drizzle-orm';
+import { getDb, platformAccounts, platforms, habitats, tribes, habitatTribes, projects, communityBriefs } from '@mos2/db';
+import { and, eq } from 'drizzle-orm';
+import { getFieldSchema } from '../habitat-field-schema';
+import { getBriefFieldSchema } from '../brief-field-schema';
 
 export interface BriefSuggestionLang {
   approachMd: string;
@@ -123,6 +125,9 @@ function buildUserPrompt(args: {
   habitatDominantTopics: string[];
   habitatForbiddenTopics: string[];
   habitatBestPostTimes: string;
+  habitatScrapedMeta: Record<string, unknown>;
+  briefScrapedMeta: Record<string, unknown>;
+  pageKind: string;
   tribeName: string | null;
   tribeDesc: string | null;
   tribePsychographic: string | null;
@@ -137,6 +142,26 @@ function buildUserPrompt(args: {
   regenEmptyOnly?: boolean;
 }): string {
   const filled = (k: keyof BriefSuggestRequest['current']) => args.current[k]?.trim() ? '(FILLED — propose REFINEMENT)' : '(EMPTY — fill)';
+  // Render scraped_meta with friendly labels từ schema; bỏ qua các key
+  // đã có trong column hardcoded của habitat (để tránh duplicate).
+  const habitatBuiltinKeys = new Set(getFieldSchema(args.pageKind).map((f) => f.key));
+  const habitatExtraLines: string[] = [];
+  for (const [k, v] of Object.entries(args.habitatScrapedMeta)) {
+    if (habitatBuiltinKeys.has(k)) continue;
+    if (v == null || v === '') continue;
+    const labelEntry = getFieldSchema(args.pageKind).find((f) => f.key === k);
+    const label = labelEntry?.label ?? k;
+    habitatExtraLines.push(`  ${label} (${k}): ${typeof v === 'string' ? v : JSON.stringify(v)}`);
+  }
+  const briefSchema = getBriefFieldSchema(args.pageKind);
+  const briefExtraLines: string[] = [];
+  for (const [k, v] of Object.entries(args.briefScrapedMeta)) {
+    if (v == null || v === '') continue;
+    if (k === 'join_status') continue; // đã có ở section RELATIONSHIP riêng
+    const labelEntry = briefSchema.find((f) => f.key === k);
+    const label = labelEntry?.label ?? k;
+    briefExtraLines.push(`  ${label} (${k}): ${typeof v === 'string' ? v : JSON.stringify(v)}`);
+  }
   return [
     `PROJECT: ${args.projectName}`,
     args.projectOneLiner ? `ONE-LINER: ${args.projectOneLiner}` : null,
@@ -171,6 +196,12 @@ function buildUserPrompt(args: {
     args.tribePsychographic ? `  tribe psychographic: ${args.tribePsychographic}` : null,
     args.tribeLexicon.length > 0 ? `  tribe lexicon (use these words): ${args.tribeLexicon.join(', ')}` : null,
     args.tribeAvoid.length > 0 ? `  tribe avoid (do NOT say): ${args.tribeAvoid.join(', ')}` : null,
+    habitatExtraLines.length > 0 ? '' : null,
+    habitatExtraLines.length > 0 ? `HABITAT EXTRA SIGNALS (scraped custom fields — use as hints về văn hoá / external presence / mod culture):` : null,
+    habitatExtraLines.length > 0 ? habitatExtraLines.join('\n') : null,
+    briefExtraLines.length > 0 ? '' : null,
+    briefExtraLines.length > 0 ? `VIEWER ↔ HABITAT RELATIONSHIP (scraped membership signals — use to gauge how warmed up the persona is):` : null,
+    briefExtraLines.length > 0 ? briefExtraLines.join('\n') : null,
     '',
     `CURRENT BRIEF STATE:`,
     `  approachMd  ${filled('approachMd')}: ${args.current.approachMd || '(empty)'}`,
@@ -244,6 +275,18 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
   const projRows = await db.select().from(projects).where(eq(projects.id, habitat.projectId)).limit(1);
   const proj = projRows[0];
 
+  // Brief scraped_meta (relationship: join_status, member_role, karma_in_sub, ...)
+  const briefRows = await db
+    .select({ scrapedMeta: communityBriefs.scrapedMeta })
+    .from(communityBriefs)
+    .where(and(eq(communityBriefs.accountId, req.accountId), eq(communityBriefs.habitatId, req.habitatId)))
+    .limit(1);
+  const briefScrapedMeta = (briefRows[0]?.scrapedMeta as Record<string, unknown>) ?? {};
+
+  // page_kind dùng để map label cho scraped_meta. Hiện cứng subreddit-about;
+  // tương lai derive từ platformKey + habitat.kind.
+  const pageKind = 'subreddit-about';
+
   const userPrompt = buildUserPrompt({
     accountHandle: acc.handle,
     accountStatus: acc.status,
@@ -267,6 +310,9 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
     habitatDominantTopics: (habitat.dominantTopics as string[]) ?? [],
     habitatForbiddenTopics: (habitat.forbiddenTopics as string[]) ?? [],
     habitatBestPostTimes: habitat.bestPostTimes ?? '',
+    habitatScrapedMeta: (habitat.scrapedMeta as Record<string, unknown>) ?? {},
+    briefScrapedMeta,
+    pageKind,
     tribeName: tribeNameAgg,
     tribeDesc: primaryTribe?.descText ?? null,
     tribePsychographic: primaryTribe?.psychographic ?? null,

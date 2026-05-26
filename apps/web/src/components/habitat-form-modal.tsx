@@ -35,6 +35,7 @@ import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { listTechnologies, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker } from './technology-picker';
+import { getLangMeta, langTooltip } from '@/lib/lang-meta';
 
 const KINDS = ['subreddit', 'fb-group', 'discord', 'forum', 'hashtag', 'slack', 'telegram', 'youtube', 'other'] as const;
 const SCRAPE = ['manual', 'live', 'weekly', 'comments'] as const;
@@ -42,7 +43,7 @@ const HEALTH = ['ok', 'warn', 'bad'] as const;
 const STATUS_OPTS = ['target', 'engaged', 'saturated', 'banned', 'dormant', 'defunct'] as const;
 const STRICTNESS = ['', 'low', 'medium', 'high'] as const;
 const COMMUNITY_TYPES = ['', 'discussion', 'news', 'q-a', 'portfolio', 'sharing', 'other'] as const;
-const LANGUAGES = ['', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'pt', 'fr', 'de', 'multi'] as const;
+const LANGUAGES = ['', 'en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru', 'multi'] as const;
 
 export function HabitatFormModal({
   projectId, habitat, tribes, platforms, presetTribeId, onClose, onCreated,
@@ -478,33 +479,39 @@ export function HabitatFormModal({
                             background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
                             textDecoration: 'none' }}>↗</a>
               )}
-              {/* 🌐 Language inline editor — always visible ở header để xem +
-                  đổi nhanh, không cần scroll xuống Outreach meta. Click select
-                  ngay. Empty = "?" warn vàng. */}
-              {!isCreate && (
-                <span style={{ position: 'relative', display: 'inline-flex' }}>
-                  <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)}
-                          title={form.language
-                            ? `Community language: ${form.language.toUpperCase()}. AI brief + posts sẽ dùng ngôn ngữ này.`
-                            : 'Chưa biết community nói ngôn ngữ gì → AI sẽ auto-detect heuristic. Set explicit để chắc chắn.'}
-                          style={{
-                            appearance: 'none', WebkitAppearance: 'none',
-                            padding: '2px 18px 2px 7px', fontSize: 10, fontWeight: 700,
-                            fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.04em',
-                            background: form.language ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
-                            color: form.language ? 'var(--ok)' : 'var(--warn)',
-                            border: `1px solid ${form.language ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
-                            borderRadius: 4, cursor: 'pointer', minWidth: 60,
-                          }}>
-                    {LANGUAGES.map((l) => (
-                      <option key={l} value={l}>🌐 {l ? l.toUpperCase() : '?'}</option>
-                    ))}
-                  </select>
-                  <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
-                                 fontSize: 8, color: form.language ? 'var(--ok)' : 'var(--warn)',
-                                 pointerEvents: 'none' }}>▾</span>
-                </span>
-              )}
+              {/* Language inline editor — flag + label, always visible ở header.
+                  Click select đổi nhanh, không cần scroll xuống Outreach meta. */}
+              {!isCreate && (() => {
+                const meta = getLangMeta(form.language);
+                const isSet = !!form.language;
+                return (
+                  <span style={{ position: 'relative', display: 'inline-flex' }}>
+                    <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)',
+                                   fontSize: 13, lineHeight: 1, pointerEvents: 'none', zIndex: 1 }}>
+                      {meta.flag}
+                    </span>
+                    <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)}
+                            title={langTooltip(form.language)}
+                            style={{
+                              appearance: 'none', WebkitAppearance: 'none',
+                              padding: '3px 18px 3px 28px', fontSize: 11, fontWeight: 700,
+                              fontFamily: 'var(--font-sans)', letterSpacing: '.01em',
+                              background: isSet ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
+                              color: isSet ? 'var(--ok)' : 'var(--warn)',
+                              border: `1px solid ${isSet ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
+                              borderRadius: 4, cursor: 'pointer', minWidth: 110,
+                            }}>
+                      {LANGUAGES.map((l) => {
+                        const m = getLangMeta(l);
+                        return <option key={l} value={l}>{m.flag} {m.label}</option>;
+                      })}
+                    </select>
+                    <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',
+                                   fontSize: 8, color: isSet ? 'var(--ok)' : 'var(--warn)',
+                                   pointerEvents: 'none' }}>▾</span>
+                  </span>
+                );
+              })()}
             </h2>
           </div>
           <button className="btn ghost" onClick={onClose}>✕</button>
@@ -963,9 +970,13 @@ export function HabitatFormModal({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div>
-                <label style={lbl}>Language</label>
-                <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)} style={fld}>
-                  {LANGUAGES.map((l) => <option key={l} value={l}>{l || '—'}</option>)}
+                <label style={lbl} title="Ngôn ngữ chính của community. AI brief + posts sẽ generate bằng ngôn ngữ này.">Language</label>
+                <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)} style={fld}
+                        title={langTooltip(form.language)}>
+                  {LANGUAGES.map((l) => {
+                    const m = getLangMeta(l);
+                    return <option key={l} value={l}>{m.flag} {m.label}{l ? ` (${l})` : ''}</option>;
+                  })}
                 </select>
               </div>
               <div>

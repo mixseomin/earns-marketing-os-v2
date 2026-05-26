@@ -55,6 +55,7 @@ import { generatePostImage, generatePostImageVariants, generatePostImageSequence
          setCardMedia, listProjectMedia, type ProjectMediaItem } from '@/lib/actions/post-media';
 import { Spinner } from './ui';
 import ReactMarkdown from 'react-markdown';
+import { getLangMeta, langTooltip } from '@/lib/lang-meta';
 
 type SuggestableField = 'approachMd' | 'narrativeMd' | 'cadence' | 'tone' | 'doMd' | 'dontMd';
 
@@ -675,25 +676,27 @@ export function BriefEditModal({
                   compact
                 />
               )}
-              {/* 🌐 Language chip — community speak language gì. Click → mở
-                  habitat modal để sửa nếu detect sai. Empty = "?" warn user
-                  rằng AI chưa biết community nói ngôn ngữ gì. */}
-              {habitatRow && (
-                <button type="button"
-                        onClick={() => onOpenHabitat?.(habitatId)}
-                        title={habitatRow.language
-                          ? `Community language: ${habitatRow.language.toUpperCase()}.\nAI sẽ tạo brief + posts bằng ngôn ngữ này.\nClick để sửa trong habitat modal.`
-                          : `Chưa biết community nói ngôn ngữ gì → AI có thể auto-detect từ description/rules, nhưng tốt nhất set explicit.\nClick mở habitat modal để gán language.`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                 padding: '2px 7px', fontSize: 10, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, borderRadius: 4, cursor: onOpenHabitat ? 'pointer' : 'help',
-                                 background: habitatRow.language ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
-                                 color: habitatRow.language ? 'var(--ok)' : 'var(--warn)',
-                                 border: `1px solid ${habitatRow.language ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
-                                 textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  🌐 {habitatRow.language || '?'}
-                </button>
-              )}
+              {/* Language chip — flag + label. Click → mở habitat modal sửa.
+                  Empty = ❓ warn user rằng AI chưa biết community nói ngôn ngữ gì. */}
+              {habitatRow && (() => {
+                const m = getLangMeta(habitatRow.language);
+                const isSet = !!habitatRow.language;
+                return (
+                  <button type="button"
+                          onClick={() => onOpenHabitat?.(habitatId)}
+                          title={langTooltip(habitatRow.language)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+                                   padding: '2px 8px', fontSize: 10.5,
+                                   fontWeight: 700, borderRadius: 4, cursor: onOpenHabitat ? 'pointer' : 'help',
+                                   background: isSet ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
+                                   color: isSet ? 'var(--ok)' : 'var(--warn)',
+                                   border: `1px solid ${isSet ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
+                                   letterSpacing: '.02em' }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{m.flag}</span>
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })()}
             </span>
           }
           subtitle={existing ? (
@@ -1097,13 +1100,18 @@ export function BriefEditModal({
             <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 11.5 }}>
               AI ({viSlotLabel === 'VI' ? 'EN+VI' : `EN+${viSlotLabel}`})
             </span>
-            {localeLabel && (
-              <span title={`Community nói ${localeLabel} — slot "VI" auto-fill bằng ${localeLabel}.`}
-                    style={{ padding: '1px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                             background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help' }}>
-                🌐 LOCALE
-              </span>
-            )}
+            {localeLabel && (() => {
+              const m = getLangMeta((localeCode ?? '').toLowerCase());
+              return (
+                <span title={`Community nói ${m.fullLabel} — slot "VI" auto-fill bằng ${m.label} thay vì Tiếng Việt.`}
+                      style={{ padding: '2px 7px', fontSize: 10, fontWeight: 700,
+                               background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help',
+                               display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 12, lineHeight: 1 }}>{m.flag}</span>
+                  {m.label}
+                </span>
+              );
+            })()}
             {suggestionAt && (
               <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                 · {fmtAgo(suggestionAt)}

@@ -29,24 +29,25 @@ export interface ModelOption {
 // TEXT models — verified 2026-05-26 via OpenAI /v1/models.
 // Pricing: openai.com/api/pricing (cached 2026-05-26). Sort theo giá tăng dần.
 //
-// Lưu ý:
-// - o1-pro / gpt-5-pro: chỉ qua Responses API (chưa support chat.completions),
-//   KHÔNG list ở đây để tránh runtime error.
-// - gpt-5.2/5.3: mới ra Q4 2025 / Q4 2026.
-// - gpt-5-codex: code-specific, không phù hợp marketing copy.
+// LƯU Ý chọn lọc (đã thử & loại):
+// - GPT-4.1 nano + GPT-5 nano: nano size không reliable cho bilingual (test
+//   cho thấy trả tiếng Việt vào CẢ slot target, lừa JSON schema). Loại.
+// - o1-pro / gpt-5-pro: chỉ qua Responses API (chưa support chat.completions).
+// - gpt-5.2/5.3: chưa stable production. Bỏ.
+// - gpt-5-codex / 5.1-codex: code-specific, không phù hợp marketing copy.
+//
+// Tất cả models dưới đây ĐỀU OK cho bilingual + JSON output structured.
 export const TEXT_MODELS: ModelOption[] = [
-  { id: 'gpt-4.1-nano',  label: 'GPT-4.1 nano',  hint: 'Rẻ nhất. Draft đơn giản, batch volume.',           cost: 'cheap',   inPrice: 0.10, outPrice: 0.40,  pricedAt: '2026-05-26' },
-  { id: 'gpt-5-nano',    label: 'GPT-5 nano',    hint: 'GPT-5 family rẻ nhất. Nhanh + chất tốt hơn 4.1.',   cost: 'cheap',   inPrice: 0.05, outPrice: 0.40,  pricedAt: '2026-05-26' },
-  { id: 'gpt-4o-mini',   label: 'GPT-4o mini',   hint: 'Cũ nhưng quen. Stable, doc nhiều.',                cost: 'cheap',   inPrice: 0.15, outPrice: 0.60,  pricedAt: '2026-05-26' },
-  { id: 'gpt-4.1-mini',  label: 'GPT-4.1 mini',  hint: 'Cân bằng giá/chất. Hơn 4o-mini.',                  cost: 'cheap',   inPrice: 0.40, outPrice: 1.60,  pricedAt: '2026-05-26' },
-  { id: 'o4-mini',       label: 'o4-mini',       hint: 'Reasoning rẻ thế hệ mới. DEFAULT cho draft.',      cost: 'mid',     inPrice: 1.10, outPrice: 4.40,  pricedAt: '2026-05-26', reasoning: true },
-  { id: 'gpt-5-mini',    label: 'GPT-5 mini',    hint: 'GPT-5 mid-tier. Thay o3-mini cho task khó.',       cost: 'mid',     inPrice: 0.25, outPrice: 2.00,  pricedAt: '2026-05-26', reasoning: true },
-  { id: 'o3-mini',       label: 'o3-mini',       hint: 'Reasoning generation cũ, vẫn dùng được.',          cost: 'mid',     inPrice: 1.10, outPrice: 4.40,  pricedAt: '2026-05-26', reasoning: true },
-  { id: 'gpt-4o',        label: 'GPT-4o',        hint: 'Multimodal classic. Quality > speed.',             cost: 'mid',     inPrice: 2.50, outPrice: 10.00, pricedAt: '2026-05-26' },
-  { id: 'gpt-4.1',       label: 'GPT-4.1',       hint: 'Flagship cũ. Long context (1M tokens).',           cost: 'premium', inPrice: 2.00, outPrice: 8.00,  pricedAt: '2026-05-26' },
-  { id: 'gpt-5',         label: 'GPT-5',         hint: 'Frontier general. Đắt nhưng chất nhất.',           cost: 'premium', inPrice: 1.25, outPrice: 10.00, pricedAt: '2026-05-26' },
-  { id: 'gpt-5.1',       label: 'GPT-5.1',       hint: 'Bản refresh GPT-5 (2025-11). Nhanh hơn.',          cost: 'premium', inPrice: 1.25, outPrice: 10.00, pricedAt: '2026-05-26' },
-  { id: 'o3',            label: 'o3',            hint: 'Reasoning premium. Bài critical/long-form.',       cost: 'premium', inPrice: 2.00, outPrice: 8.00,  pricedAt: '2026-05-26', reasoning: true },
+  { id: 'gpt-4o-mini',   label: 'GPT-4o mini',   hint: 'Cũ nhưng quen. Stable, doc nhiều, OK draft đơn giản.', cost: 'cheap',   inPrice: 0.15, outPrice: 0.60,  pricedAt: '2026-05-26' },
+  { id: 'gpt-5-mini',    label: 'GPT-5 mini',    hint: 'GPT-5 mid-tier rẻ. Reasoning + bilingual OK.',         cost: 'cheap',   inPrice: 0.25, outPrice: 2.00,  pricedAt: '2026-05-26', reasoning: true },
+  { id: 'gpt-4.1-mini',  label: 'GPT-4.1 mini',  hint: 'Cân bằng giá/chất, instruction-following tốt.',        cost: 'cheap',   inPrice: 0.40, outPrice: 1.60,  pricedAt: '2026-05-26' },
+  { id: 'o4-mini',       label: 'o4-mini',       hint: 'Reasoning rẻ thế hệ mới. DEFAULT cho draft.',          cost: 'mid',     inPrice: 1.10, outPrice: 4.40,  pricedAt: '2026-05-26', reasoning: true },
+  { id: 'o3-mini',       label: 'o3-mini',       hint: 'Reasoning generation cũ, vẫn ổn.',                     cost: 'mid',     inPrice: 1.10, outPrice: 4.40,  pricedAt: '2026-05-26', reasoning: true },
+  { id: 'gpt-4o',        label: 'GPT-4o',        hint: 'Multimodal classic. Quality > speed.',                 cost: 'mid',     inPrice: 2.50, outPrice: 10.00, pricedAt: '2026-05-26' },
+  { id: 'gpt-5',         label: 'GPT-5',         hint: 'Frontier general. Bilingual + complex rules tốt nhất.', cost: 'premium', inPrice: 1.25, outPrice: 10.00, pricedAt: '2026-05-26' },
+  { id: 'gpt-5.1',       label: 'GPT-5.1',       hint: 'Bản refresh GPT-5 (2025-11). Nhanh hơn.',               cost: 'premium', inPrice: 1.25, outPrice: 10.00, pricedAt: '2026-05-26' },
+  { id: 'gpt-4.1',       label: 'GPT-4.1',       hint: 'Flagship cũ. Long context (1M tokens).',                cost: 'premium', inPrice: 2.00, outPrice: 8.00,  pricedAt: '2026-05-26' },
+  { id: 'o3',            label: 'o3',            hint: 'Reasoning premium. Bài critical/long-form.',            cost: 'premium', inPrice: 2.00, outPrice: 8.00,  pricedAt: '2026-05-26', reasoning: true },
 ];
 
 // IMAGE models — verified 2026-05-26. gpt-image-2 (flagship 2026-04),

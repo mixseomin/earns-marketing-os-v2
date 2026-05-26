@@ -357,27 +357,63 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     `TASK: Viết 1 post hoàn chỉnh cho cộng đồng này.`,
     `Ngôn ngữ target (đăng thật): ${ctx.targetLang}`,
     ctx.isBilingual
-      ? `Trả lời JSON với 2 phiên bản:
-  - bodyReview: TIẾNG VIỆT 100% có dấu, để operator review/duyệt nhanh.
-    ⚠ TUYỆT ĐỐI không code-switching English giữa câu. KHÔNG dùng tribe lexicon
-    nếu lexicon đó là English ("Its giving X", "be like", "big X energy", "Y vibes",
-    "X coded", etc.) — dịch ngược về tiếng Việt tự nhiên thay vì giữ nguyên slang.
-    Tribe lexicon ở trên ÁP DỤNG CHO bodyTarget, KHÔNG cho bodyReview.
-    Riêng tên riêng (handle account, brand name, sub name) giữ nguyên — không dịch.
-  - bodyTarget: ngôn ngữ ${ctx.targetLang} NATIVE, sẵn sàng paste lên ${ctx.habitatName}.
-    Dùng tribe lexicon + idiom + register chuẩn của native speaker ngôn ngữ ${ctx.targetLang}.
-    KHÔNG code-switching ngôn ngữ khác trừ technical terms quen thuộc của community.
-Cả 2 phải tải CÙNG arc/hook/CTA — khác nhau chỉ về ngôn ngữ + idiom.`
-      : `Trả lời JSON 1 phiên bản tiếng Việt (vì community = vi):
-  - bodyReview: bản tiếng Việt 100% có dấu (chính). KHÔNG code-switching English.
-  - bodyTarget: giữ giống bodyReview`,
+      ? `⚠⚠⚠ BILINGUAL OUTPUT REQUIRED — ĐỌC KỸ ⚠⚠⚠
+
+JSON output PHẢI có 2 versions với 2 NGÔN NGỮ KHÁC NHAU:
+
+═══════════════════════════════════════════════════════════
+"bodyReview" + "titleReview" → **VIETNAMESE** (tiếng Việt có dấu)
+"bodyTarget" + "titleTarget" → **${ctx.targetLang.toUpperCase()}** (native ${ctx.targetLang})
+═══════════════════════════════════════════════════════════
+
+VÍ DỤ MINH HOẠ (target=${ctx.targetLang}):
+${ctx.targetLang === 'es' ? `{
+  "titleReview": "Bí mật của cung Bọ Cạp ban đêm",
+  "titleTarget": "El secreto de Escorpio bajo la luna",
+  "bodyReview": "Bài viết VN: Nhiều người nghĩ cung Bọ Cạp khó hiểu...",
+  "bodyTarget": "Mucha gente piensa que Escorpio es difícil de entender..."
+}` : ctx.targetLang === 'fr' ? `{
+  "titleReview": "Le secret du Scorpion la nuit",
+  "titleTarget": "Le secret du Scorpion sous la lune",
+  "bodyReview": "Bài viết VN: ...",
+  "bodyTarget": "Beaucoup de gens pensent que le Scorpion..."
+}` : `{
+  "titleReview": "Tiêu đề tiếng Việt",
+  "titleTarget": "Title in ${ctx.targetLang}",
+  "bodyReview": "Body tiếng Việt...",
+  "bodyTarget": "Body in ${ctx.targetLang}..."
+}`}
+
+QUAN TRỌNG:
+- "bodyReview" và "titleReview" PHẢI là tiếng Việt — operator người Việt review.
+  KHÔNG code-switching English ("Its giving X", "be like", "big X energy", "vibes")
+  — dịch về tiếng Việt tự nhiên.
+- "bodyTarget" và "titleTarget" PHẢI là ${ctx.targetLang.toUpperCase()} native — sẽ paste
+  lên ${ctx.habitatName} cho community ${ctx.targetLang}-speaker đọc.
+  KHÔNG được trả tiếng Việt trong slot target — community sẽ KHÔNG hiểu.
+- Tên riêng (handle, brand, sub name) giữ nguyên cả 2 phía.
+- Cả 2 versions tải CÙNG arc / CÙNG hook / CÙNG CTA — chỉ khác ngôn ngữ.
+
+NẾU MODEL THẤY MÌNH SẮP TRẢ tiếng Việt vào "bodyTarget" → STOP, dịch sang ${ctx.targetLang} trước.
+NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STOP, dịch sang tiếng Việt trước.`
+      : `Target community nói tiếng Việt → 1 phiên bản tiếng Việt thuần:
+  - bodyReview + titleReview: tiếng Việt 100% có dấu, KHÔNG code-switching English
+  - bodyTarget + titleTarget: COPY chính xác từ bodyReview / titleReview`,
     '',
-    `Output STRICT JSON:`,
+    `Output STRICT JSON (4 fields language MUST be different):`,
     `{`,
-    `  "titleReview":  "...",  // tiêu đề tiếng Việt`,
-    `  "titleTarget":  "...",  // tiêu đề ngôn ngữ target (= titleReview nếu target=vi)`,
-    `  "bodyReview":   "...",  // body markdown tiếng Việt`,
-    `  "bodyTarget":   "...",  // body markdown ngôn ngữ target`,
+    ctx.isBilingual
+      ? `  "titleReview":  "...",  // 🇻🇳 TIẾNG VIỆT - tiêu đề cho operator review`
+      : `  "titleReview":  "...",  // tiêu đề tiếng Việt`,
+    ctx.isBilingual
+      ? `  "titleTarget":  "...",  // 🌐 ${ctx.targetLang.toUpperCase()} - tiêu đề native ${ctx.targetLang}, sẵn sàng paste`
+      : `  "titleTarget":  "...",  // copy = titleReview`,
+    ctx.isBilingual
+      ? `  "bodyReview":   "...",  // 🇻🇳 TIẾNG VIỆT - body markdown để review`
+      : `  "bodyReview":   "...",  // body markdown tiếng Việt`,
+    ctx.isBilingual
+      ? `  "bodyTarget":   "...",  // 🌐 ${ctx.targetLang.toUpperCase()} - body markdown native, đăng thật`
+      : `  "bodyTarget":   "...",  // copy = bodyReview`,
     `  "hookUsed":     "...",  // hook nào đã chọn (1 dòng)`,
     `  "rationale":    "..."   // 2-3 câu giải thích vì sao approach này fit phase + community`,
     `}`,

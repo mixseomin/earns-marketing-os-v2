@@ -5,7 +5,7 @@
 // the Tribes/Habitats page (per-habitat view, listing all accounts engaging
 // here). Same shared editor.
 
-import { useState, useTransition, useEffect, useRef, type CSSProperties } from 'react';
+import { useState, useTransition, useEffect, useRef, useMemo, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   upsertBrief, deleteBrief, saveBriefSuggestion,
@@ -82,16 +82,22 @@ function normalizeMarkdown(s: string): string {
 
 // Hook localStorage-backed model preference. SSR-safe (default trên server).
 // Bug useLocal SSR clobber từng gặp — gate write trong useEffect sau hydrate.
-function useModelPref(key: string, def: string): [string, (v: string) => void] {
+// validIds: nếu pass → stored value không nằm trong set sẽ bị reset về default
+// (vd model bị loại khỏi danh sách như nano).
+function useModelPref(key: string, def: string, validIds?: Set<string>): [string, (v: string) => void] {
   const [val, setVal] = useState<string>(def);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
     try {
       const stored = window.localStorage.getItem(key);
-      if (stored) setVal(stored);
+      if (stored && (!validIds || validIds.has(stored))) setVal(stored);
+      else if (stored && validIds && !validIds.has(stored)) {
+        // Stored value không còn hợp lệ (model bị loại) → reset về default
+        window.localStorage.setItem(key, def);
+      }
     } catch { /* SSR or private mode */ }
-  }, [key]);
+  }, [key, def, validIds]);
   useEffect(() => {
     if (!hydrated) return;
     try { window.localStorage.setItem(key, val); } catch { /* ignore */ }
@@ -2885,8 +2891,12 @@ function PostRow({
   const [sequence, setSequence] = useState<Array<{ assetId: number; url: string; beat: string }> | null>(null);
   // Model preferences — remembered across cards/sessions trong localStorage.
   // Default: o4-mini cho text (reasoning generation mới), gpt-image-2-medium cho ảnh.
-  const [textModelId, setTextModelId] = useModelPref('mos2.draft.textModel', 'o4-mini');
-  const [imageModelId, setImageModelId] = useModelPref('mos2.draft.imageModel', 'gpt-image-2-medium');
+  // validIds: nếu user có stored model không còn trong catalog (vd nano đã loại)
+  // → tự reset về default thay vì kẹt với ID lỗi.
+  const validTextIds = useMemo(() => new Set(TEXT_MODELS.map((m) => m.id)), []);
+  const validImageIds = useMemo(() => new Set(IMAGE_MODELS.map((m) => m.id)), []);
+  const [textModelId, setTextModelId] = useModelPref('mos2.draft.textModel', 'o4-mini', validTextIds);
+  const [imageModelId, setImageModelId] = useModelPref('mos2.draft.imageModel', 'gpt-image-2-medium', validImageIds);
   const genImg = () => {
     setMediaErr(null); setMediaBusy('gen');
     startTransition(async () => {

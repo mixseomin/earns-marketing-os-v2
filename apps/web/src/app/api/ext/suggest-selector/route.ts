@@ -74,7 +74,13 @@ RULES CHUNG (vi phạm = reject server-side):
 4. CẤM class hash random (.css-1abc23d) hoặc utility class chỉ visual (.mt-sm, .px-md có thể OK nếu kết hợp với semantic class).
 5. Ưu tiên TUYỆT ĐỐI: custom element tags (faceplate-*, shreddit-*), data-testid, slot, aria-label, semantic class names.
 6. Nếu intent yêu cầu MULTI element (vd "all rule titles") → selector phải match tất cả; nếu intent SINGLE → selector unique cho element đó.
-${kind === 'css' ? '7. CẤM :has() pseudo (Safari <15.4). Class BEM phải có dấu chấm trước (.tag.class hoặc .class).' : '7. XPath dùng contains(@class, " name ") thay vì equality để khớp khi class có nhiều token. Tránh /text() chính xác (dễ vỡ); ưu tiên element matching.'}
+${kind === 'css' ? '7. Class BEM phải có dấu chấm trước (.tag.class hoặc .class). :has() OK (Chrome-only runtime).' : `7. XPath patterns ƯU TIÊN cho semantic anchoring:
+   - contains(@class, " name ") thay vì equality để khớp khi class multi-token.
+   - Anchor block qua heading text: //div[contains(@class,"px-md")][.//h2[contains(.,"Links")]]//a
+   - Anchor qua aria-label: //*[@aria-label="Community details"]//...
+   - normalize-space() khi match text có thừa whitespace.
+   - Tránh absolute path /html/body/div[3] (fragile).
+   - Tránh text() equality cứng; dùng contains(., "X") hoặc normalize-space()="X".`}
 8. ⚠ ATTR SELECTION (CRITICAL — shadow DOM workaround): Nhiều custom element Reddit/Faceplate lưu data dưới dạng HTML attribute thay vì textContent. Khi element user pick nằm TRONG shadow root của 1 shadow host (vd <shreddit-subreddit-header>), JS không pierce được closed shadow → selector pierce shadow có thể miss. ƯU TIÊN selector trỏ tới shadow host + lấy attr trên đó:
    - <shreddit-subreddit-header description="..." subscribers="239733" weekly-active-users="13287" subreddit-id="t5_..."> → field=description → selector="shreddit-subreddit-header" + attr="description"; field=members → attr="subscribers" parse=number; field=weekly_visitors → attr="weekly-active-users" parse=number.
    - <faceplate-number number="2300"> → attr="number" parse=number (số gốc, không phải text "2.3K").

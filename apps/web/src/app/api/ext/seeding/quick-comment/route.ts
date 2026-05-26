@@ -81,10 +81,20 @@ export async function POST(req: Request) {
 
   // 3. AI gen draft — user chọn model qua side panel popover.
   // Default gpt-4.1-mini (cân bằng giá/chất); customPrompt nhúng vào prompt.
+  const genStart = Date.now();
   const draft = await generateFullDraft(cardId, {
     modelId: body.modelId || 'gpt-4.1-mini',
     customInstruction: body.customPrompt,
   });
+  const genDurationMs = Date.now() - genStart;
+
+  // Save meta cho draft AI generic (không có cost từ OpenAI response).
+  await db.update(cards).set({
+    answerSource: 'ai',
+    genModelUsed: body.modelId || 'gpt-4.1-mini',
+    genDurationMs,
+    updatedAt: new Date(),
+  }).where(eq(cards.id, cardId));
 
   // 4. Read final card + context AI đã dùng (transparency cho user side panel)
   const finalRows = await db.execute(sql`

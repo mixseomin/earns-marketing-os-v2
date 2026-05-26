@@ -13,6 +13,7 @@ import {
   pgTable,
   text,
   integer,
+  decimal,
   smallint,
   boolean,
   jsonb,
@@ -229,6 +230,14 @@ export const cards = pgTable(
     // 0070: track nguồn body_target. 'astrolas' = từ Astrolas QA API (có sources[]).
     answerSource: text('answer_source'),
     answerSources: jsonb('answer_sources').notNull().default([]),
+    // 0072: gen meta — cost/duration/model/confidence cho draft history UI
+    genCostUsd: decimal('gen_cost_usd', { precision: 8, scale: 5 }),
+    genDurationMs: integer('gen_duration_ms'),
+    genModelUsed: text('gen_model_used'),
+    genConfidence: decimal('gen_confidence', { precision: 3, scale: 2 }),
+    genToolsCalled: jsonb('gen_tools_called').notNull().default([]),
+    genWarnings: jsonb('gen_warnings').notNull().default([]),
+    genLogId: text('gen_log_id'),
     // 0055: content-type-aware seeding. content_type = text|image|video|
     // link|thread|poll|carousel|story|doc (xem lib/content-formats.ts).
     // media_asset_id = link tuỳ chọn tới media_assets (ảnh/video kèm bài).

@@ -197,12 +197,19 @@ export async function POST(req: Request) {
     }, { status: 200 });
   }
 
-  // 5. Save answer + sources vào card
+  // 5. Save answer + sources + meta vào card
   await db.update(cards).set({
     bodyTarget: data.answer_md,
     bodyReview: '',         // Astrolas trả 1 language; nếu cần VN review, dịch sau
     answerSource: 'astrolas',
     answerSources: data.sources ?? [],
+    genCostUsd: data.cost_estimate_usd != null ? String(data.cost_estimate_usd) : null,
+    genDurationMs: data.duration_ms ?? null,
+    genModelUsed: data.voice_signals?.model_used ?? 'astrolas',
+    genConfidence: data.voice_signals?.confidence != null ? String(data.voice_signals.confidence) : null,
+    genToolsCalled: data.voice_signals?.tools_called ?? [],
+    genWarnings: data.voice_signals?.warnings ?? [],
+    genLogId: data.log_id ?? null,
     updatedAt: new Date(),
   }).where(eq(cards.id, cardId));
 

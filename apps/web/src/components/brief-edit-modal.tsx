@@ -731,7 +731,13 @@ export function BriefEditModal({
                 scrapedMeta: (existing as { scrapedMeta?: Record<string, unknown> }).scrapedMeta ?? {},
               }]}
               focusAccountId={accountId}
-              onRefresh={() => router.refresh()}
+              onRefresh={() => {
+                // router.refresh = soft RSC fetch, KHÔNG invalidate
+                // BriefModalLoader internal cache (45s dedup). Phải bump
+                // onPostsChanged để parent invalidateBriefModal + fetch lại.
+                if (onPostsChanged) onPostsChanged();
+                else router.refresh();
+              }}
             />
           )}
 

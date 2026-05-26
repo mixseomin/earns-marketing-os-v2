@@ -53,6 +53,8 @@ const FIELD_TO_HABITAT_PROP: Record<string, string> = {
   community_type: 'communityType',
   url: 'url',
   name: 'name',
+  rules: 'postingRules',
+  posting_rules: 'postingRules',
 };
 
 const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {

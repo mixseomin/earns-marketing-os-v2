@@ -75,6 +75,12 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
       label: 'Icon URL',
       hint: 'Subreddit icon image URL.',
     },
+    {
+      key: 'rules',
+      label: 'Rules',
+      hint: 'Posting rules list (markdown bullets). Scrape headings từ sidebar accordion.',
+      habitatKey: 'postingRules',
+    },
   ],
   // Future: subreddit-rules, fb-group-about, discord-server-about ...
 };

@@ -276,7 +276,7 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
   };
 }
 
-function buildDraftPrompt(ctx: PostContext, hookChoice: string | null): string {
+function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string): string {
   // Voice block (per-profile prompt với length/emoji/hook/forbidden rules).
   // Resolution: channel override > pillar > habitat > 'regular'. Notes gộp
   // habitat + pillar nếu cả 2 có để AI nhận đủ context.
@@ -411,6 +411,11 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     '',
     fewShotBlock || null,                // FEW-SHOT EXAMPLES block (optional)
     fewShotBlock ? '' : null,
+    // Custom instruction từ operator (vd ext side panel input "🎙 Custom prompt").
+    // Priority cao — override default tone/length/style cho lần generate này.
+    customInstruction?.trim()
+      ? `\n═══════════════════════════════════════════════════════════\n🎙 OPERATOR CUSTOM INSTRUCTION (HIGH PRIORITY — apply on top of everything above):\n  ${customInstruction.trim()}\n═══════════════════════════════════════════════════════════\n`
+      : null,
     `TASK: Viết 1 post hoàn chỉnh cho cộng đồng này.`,
     `Ngôn ngữ target (đăng thật): ${ctx.targetLang}`,
     ctx.isBilingual
@@ -532,7 +537,7 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
 // ── generateFullDraft (reasoning) ──────────────────────────────────
 
 export async function generateFullDraft(
-  cardId: number, opts?: { hookChoice?: string; modelId?: string },
+  cardId: number, opts?: { hookChoice?: string; modelId?: string; customInstruction?: string },
 ): Promise<{
   ok: boolean; saved?: boolean; rationale?: string; error?: string;
   // Trả nguyên data đã lưu — client setState local thay vì revalidate page.
@@ -544,7 +549,7 @@ export async function generateFullDraft(
     if ('error' in ctxOrErr) return { ok: false, error: ctxOrErr.error };
     const ctx = ctxOrErr;
 
-    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null);
+    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction);
 
     // Model resolution: user override (whitelist) > REASONING_MODEL default.
     const chosenModel = opts?.modelId && isValidTextModel(opts.modelId)

@@ -55,7 +55,8 @@ import { generatePostImage, generatePostImageVariants, generatePostImageSequence
          setCardMedia, listProjectMedia, type ProjectMediaItem } from '@/lib/actions/post-media';
 import { Spinner } from './ui';
 import ReactMarkdown from 'react-markdown';
-import { getLangMeta, langTooltip } from '@/lib/lang-meta';
+import { getLangMeta } from '@/lib/lang-meta';
+import { LangChip } from './lang-chip';
 import { TEXT_MODELS, IMAGE_MODELS } from '@/lib/ai/model-options';
 import { AIRunButton } from './ai-run-button';
 
@@ -815,36 +816,12 @@ export function BriefEditModal({
                   compact
                 />
               )}
-              {/* Language chip — flag + label. Click → mở habitat modal sửa.
-                  Empty = ❓ warn user rằng AI chưa biết community nói ngôn ngữ gì. */}
-              {habitatRow && (() => {
-                const m = getLangMeta(habitatRow.language);
-                const isSet = !!habitatRow.language;
-                const code = (habitatRow.language || '').toUpperCase();
-                return (
-                  <button type="button"
-                          onClick={() => onOpenHabitat?.(habitatId)}
-                          title={langTooltip(habitatRow.language)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                                   padding: '2px 8px', fontSize: 10.5,
-                                   fontWeight: 700, borderRadius: 4, cursor: onOpenHabitat ? 'pointer' : 'help',
-                                   background: isSet ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
-                                   color: isSet ? 'var(--ok)' : 'var(--warn)',
-                                   border: `1px solid ${isSet ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
-                                   letterSpacing: '.02em' }}>
-                    <span style={{ fontSize: 13, lineHeight: 1 }}>{m.flag}</span>
-                    {isSet && (
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
-                                     padding: '0 4px', borderRadius: 2,
-                                     background: 'rgba(74,222,128,.2)',
-                                     letterSpacing: '.04em' }}>
-                        {code}
-                      </span>
-                    )}
-                    <span style={{ fontWeight: 600 }}>{m.label}</span>
-                  </button>
-                );
-              })()}
+              {/* Language chip — click mở habitat modal sửa. Dùng <LangChip>
+                  để mọi nơi cùng style; sửa 1 chỗ → mọi nơi cập nhật. */}
+              {habitatRow && onOpenHabitat && (
+                <LangChip mode="button" code={habitatRow.language} size="sm"
+                          onClick={() => onOpenHabitat(habitatId)} />
+              )}
             </span>
           }
           subtitle={existing ? (

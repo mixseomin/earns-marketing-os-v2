@@ -180,15 +180,30 @@ export function BriefEditModal({
   const [currentPhase, setCurrentPhase] = useState<Phase>(existing?.currentPhase ?? 'warm-up');
   const [phasePlan, setPhasePlan] = useState<PhaseEntry[]>(existing?.phasePlan ?? []);
   const phaseHistory = existing?.phaseHistory ?? [];
+  // Sync khi parent re-fetch — currentPhase + phasePlan là server state
+  // (advance phase qua action, plan sinh từ AI suggest → server update).
+  useEffect(() => {
+    if (existing?.currentPhase && existing.currentPhase !== currentPhase) {
+      setCurrentPhase(existing.currentPhase);
+    }
+    if (existing?.phasePlan) {
+      setPhasePlan(existing.phasePlan);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.currentPhase, existing?.phasePlan]);
 
   // 0057 Join membership state — TÁCH HẲN khỏi phase. Phase warm-up chỉ active
   // khi joinStatus='joined'. Hiển thị banner phía trên phase tabs nếu chưa join.
   const [joinStatus, setJoinStatusState] = useState<JoinStatus>(existing?.joinStatus ?? 'not_joined');
   const [joinUrl, setJoinUrl] = useState<string>(existing?.joinUrl ?? '');
   const [joinNote, setJoinNote] = useState<string>(existing?.joinNote ?? '');
-  // Re-sync khi parent fetch lại existing (sau ↻ refresh / postMessage update).
-  // useState chỉ init 1 lần → giữ value cũ khi prop đổi → modal stale dù DB
-  // đã đúng. F5 fix vì component remount.
+  // Re-sync MỌI system state (server-managed) khi parent fetch lại existing
+  // (↻ refresh / ext postMessage update). useState chỉ init 1 lần → giữ
+  // value cũ khi prop đổi → modal stale. F5 fix vì component remount.
+  //
+  // CHỈ sync system state (server set, ext POST update). KHÔNG sync
+  // editable fields (approachMd/cadence/tone/doMd/dontMd/narrativeMd/
+  // templates) — user đang gõ, sync sẽ ghi đè input.
   useEffect(() => {
     if (existing?.joinStatus && existing.joinStatus !== joinStatus) {
       setJoinStatusState(existing.joinStatus);
@@ -312,6 +327,12 @@ export function BriefEditModal({
     (existing?.aiSuggestion as BriefSuggestion | null) ?? null,
   );
   const [suggestionAt, setSuggestionAt]   = useState<string | null>(existing?.aiSuggestionAt ?? null);
+  // Sync khi parent re-fetch (server set aiSuggestion sau LLM generate).
+  useEffect(() => {
+    setSuggestion((existing?.aiSuggestion as BriefSuggestion | null) ?? null);
+    setSuggestionAt(existing?.aiSuggestionAt ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.aiSuggestion, existing?.aiSuggestionAt]);
   const [suggestBusy, setSuggestBusy]     = useState(false);
   const [suggestError, setSuggestError]   = useState<string | null>(null);
   // Default UI language preference for actions (Replace/Append).

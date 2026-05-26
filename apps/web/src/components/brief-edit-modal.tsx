@@ -108,6 +108,8 @@ function useModelPref(key: string, def: string, validIds?: Set<string>): [string
 // Split markdown body thành paragraphs (giữ bullet/heading nguyên dạng).
 // Mỗi paragraph = 1 cell preview. Bỏ heading "##" vì FormatPreview default
 // cũng strip (xem format-preview.tsx text case).
+// MAX_SENT_PER_PARA: paragraph dài hơn N câu → split tiếp theo "." để row
+// đỡ dày (cân đối với bullet bên kia có thể đã split nhỏ).
 function splitParagraphs(body: string): string[] {
   if (!body) return [];
   // Filter heading lines, split by blank-line (paragraph) hoặc bullet boundary.
@@ -133,7 +135,28 @@ function splitParagraphs(body: string): string[] {
     buf.push(ln);
   }
   flush();
-  return paragraphs;
+  // Post-process: paragraph quá dài (>2 câu hoặc >200 ký tự) → split theo
+  // câu để cân đối với bullets bên kia.
+  const refined: string[] = [];
+  for (const p of paragraphs) {
+    // KHÔNG split bullet (đã là item rời)
+    if (/^([-*•]|\d+[.)])\s/.test(p.trim())) {
+      refined.push(p);
+      continue;
+    }
+    if (p.length < 200) {
+      refined.push(p);
+      continue;
+    }
+    // Split theo dấu kết câu (. ! ?). Giữ dấu vào câu trước.
+    const sentences = p.match(/[^.!?]+[.!?]+/g) ?? [p];
+    // Gom 2 câu / paragraph để không quá vụn.
+    for (let i = 0; i < sentences.length; i += 2) {
+      const chunk = sentences.slice(i, i + 2).join(' ').trim();
+      if (chunk) refined.push(chunk);
+    }
+  }
+  return refined;
 }
 
 // Bilingual aligned preview — interleave target/review theo từng paragraph.
@@ -186,10 +209,16 @@ function BilingualAlignedPreview({
         </div>
       )}
       {/* Title row aligned */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '8px 10px 4px',
-                    borderBottom: '1px dashed var(--line)' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>{cleanT || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)' }}>{cleanR || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
+                    padding: '12px 12px 10px',
+                    borderBottom: '1px solid var(--line)',
+                    background: 'var(--bg-2)' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-0)', lineHeight: 1.4 }}>
+          {cleanT || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.4 }}>
+          {cleanR || <em style={{ color: 'var(--fg-4)' }}>(chưa có tiêu đề)</em>}
+        </div>
       </div>
       {/* Body rows — mỗi paragraph 2 cột song hành */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -199,12 +228,14 @@ function BilingualAlignedPreview({
           </div>
         )}
         {rows.map((r, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
-                                padding: '6px 10px', borderTop: i > 0 ? '1px dotted var(--line)' : 'none',
-                                fontSize: 12, color: 'var(--fg-1)', whiteSpace: 'pre-wrap',
-                                lineHeight: 1.55 }}>
-            <div>{r.target || <em style={{ color: 'var(--fg-4)' }}>(thiếu paragraph)</em>}</div>
-            <div style={{ color: 'var(--fg-2)' }}>{r.review || <em style={{ color: 'var(--fg-4)' }}>(thiếu paragraph)</em>}</div>
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
+                                padding: '10px 12px',
+                                borderTop: i > 0 ? '1px dashed var(--line)' : 'none',
+                                background: i % 2 === 0 ? 'transparent' : 'var(--bg-1)',
+                                fontSize: 12.5, color: 'var(--fg-1)', whiteSpace: 'pre-wrap',
+                                lineHeight: 1.65, wordBreak: 'break-word' }}>
+            <div>{r.target || <em style={{ color: 'var(--fg-4)' }}>(thiếu đoạn)</em>}</div>
+            <div style={{ color: 'var(--fg-2)' }}>{r.review || <em style={{ color: 'var(--fg-4)' }}>(thiếu đoạn)</em>}</div>
           </div>
         ))}
       </div>

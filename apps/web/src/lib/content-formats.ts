@@ -181,16 +181,19 @@ const DEFAULT_PROFILE: FormatProfile = {
 };
 
 // Một số platform-key lệch khỏi category của nó.
+// INTERACTION_FORMATS spread vào tất cả entries — comment/reply available
+// cho mọi platform (mix giữ nguyên vì interactions trigger riêng,
+// không qua auto-mix-gen).
 const PROFILE_BY_KEY: Record<string, FormatProfile> = {
-  youtube:   { formats: ['video', 'image', 'text'], mix: { video: 7, image: 1, text: 1 } },
-  tiktok:    { formats: ['video', 'story'], mix: { video: 8, story: 2 } },
-  instagram: { formats: ['image', 'carousel', 'story', 'video'], mix: { image: 4, carousel: 2, story: 2, video: 2 } },
-  pinterest: { formats: ['image', 'carousel'], mix: { image: 6, carousel: 2 } },
-  reddit:    { formats: ['text', 'link', 'image', 'poll'], mix: { text: 5, link: 2, image: 2, poll: 1 } },
-  twitter:   { formats: ['text', 'image', 'thread', 'video', 'poll'], mix: { text: 4, image: 3, thread: 2, video: 1, poll: 1 } },
-  x:         { formats: ['text', 'image', 'thread', 'video', 'poll'], mix: { text: 4, image: 3, thread: 2, video: 1, poll: 1 } },
-  discord:   { formats: ['text', 'image', 'link'], mix: { text: 5, image: 2, link: 1 } },
-  telegram:  { formats: ['text', 'image', 'link', 'poll'], mix: { text: 4, image: 2, link: 2, poll: 1 } },
+  youtube:   { formats: ['video', 'image', 'text', ...INTERACTION_FORMATS], mix: { video: 7, image: 1, text: 1 } },
+  tiktok:    { formats: ['video', 'story', ...INTERACTION_FORMATS], mix: { video: 8, story: 2 } },
+  instagram: { formats: ['image', 'carousel', 'story', 'video', ...INTERACTION_FORMATS], mix: { image: 4, carousel: 2, story: 2, video: 2 } },
+  pinterest: { formats: ['image', 'carousel', ...INTERACTION_FORMATS], mix: { image: 6, carousel: 2 } },
+  reddit:    { formats: ['text', 'link', 'image', 'poll', ...INTERACTION_FORMATS], mix: { text: 5, link: 2, image: 2, poll: 1 } },
+  twitter:   { formats: ['text', 'image', 'thread', 'video', 'poll', ...INTERACTION_FORMATS], mix: { text: 4, image: 3, thread: 2, video: 1, poll: 1 } },
+  x:         { formats: ['text', 'image', 'thread', 'video', 'poll', ...INTERACTION_FORMATS], mix: { text: 4, image: 3, thread: 2, video: 1, poll: 1 } },
+  discord:   { formats: ['text', 'image', 'link', ...INTERACTION_FORMATS], mix: { text: 5, image: 2, link: 1 } },
+  telegram:  { formats: ['text', 'image', 'link', 'poll', ...INTERACTION_FORMATS], mix: { text: 4, image: 2, link: 2, poll: 1 } },
 };
 
 export function formatProfile(platformKey?: string | null, category?: string | null): FormatProfile {

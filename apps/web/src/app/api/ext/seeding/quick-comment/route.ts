@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     parentTitle?: string;
     parentBody?: string;
     parentAuthor?: string;
+    modelId?: string;
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -77,8 +78,9 @@ export async function POST(req: Request) {
     parentAuthor: body.parentAuthor ?? null,
   });
 
-  // 3. AI gen draft (gpt-4o-mini cheap default)
-  const draft = await generateFullDraft(cardId, { modelId: 'gpt-4o-mini' });
+  // 3. AI gen draft — user chọn model qua side panel popover.
+  // Default o4-mini (reasoning rẻ thế hệ mới); fallback gpt-4o-mini nếu không pass.
+  const draft = await generateFullDraft(cardId, { modelId: body.modelId || 'o4-mini' });
 
   // 4. Read final card
   const finalRows = await db.execute(sql`

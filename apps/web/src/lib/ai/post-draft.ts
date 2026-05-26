@@ -394,6 +394,25 @@ QUAN TRỌNG:
 - Tên riêng (handle, brand, sub name) giữ nguyên cả 2 phía.
 - Cả 2 versions tải CÙNG arc / CÙNG hook / CÙNG CTA — chỉ khác ngôn ngữ.
 
+═══════════════════════════════════════════════════════════
+PARAGRAPH STRUCTURE (CRITICAL — UI hiển thị 2 cột song hành):
+
+"bodyReview" và "bodyTarget" PHẢI có CÙNG SỐ paragraph, CÙNG THỨ TỰ.
+Tách paragraph bằng blank line (\\n\\n) hoặc bullet ("- "/"* "/"1. ").
+
+Vd: nếu bodyTarget có 5 đoạn:
+  Đoạn 1 → idea A
+  Đoạn 2 → idea B
+  Đoạn 3 → idea C
+  Đoạn 4 → idea D
+  Đoạn 5 → CTA
+
+→ bodyReview PHẢI có ĐÚNG 5 đoạn, đoạn i = bản dịch tiếng Việt của đoạn i target.
+KHÔNG được gộp 2 đoạn target thành 1 đoạn review hoặc tách 1 đoạn target thành 2 đoạn review.
+
+Bullet list: số bullet PHẢI bằng nhau (vd target có 3 bullet → review cũng 3 bullet).
+═══════════════════════════════════════════════════════════
+
 NẾU MODEL THẤY MÌNH SẮP TRẢ tiếng Việt vào "bodyTarget" → STOP, dịch sang ${ctx.targetLang} trước.
 NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STOP, dịch sang tiếng Việt trước.`
       : `Target community nói tiếng Việt → 1 phiên bản tiếng Việt thuần:

@@ -82,14 +82,15 @@ function normalizeMarkdown(s: string): string {
   return out.trim();
 }
 
-// Split markdown body thành paragraphs (giữ bullet/heading nguyên dạng).
-// Mỗi paragraph = 1 cell preview. Bỏ heading "##" vì FormatPreview default
-// cũng strip (xem format-preview.tsx text case).
-// MAX_SENT_PER_PARA: paragraph dài hơn N câu → split tiếp theo "." để row
-// đỡ dày (cân đối với bullet bên kia có thể đã split nhỏ).
+// Split markdown body thành paragraphs theo blank-line boundary + bullet
+// boundary. KHÔNG split theo câu (gây mất 1-1 mapping giữa target/review
+// khi 2 bên cấu trúc câu lệch).
+//
+// Quy ước với AI: bodyReview + bodyTarget phải có CÙNG SỐ paragraph cùng
+// thứ tự (prompt directive). Nếu lệch → align sai → caller fallback
+// hiển thị raw body không split (xem BilingualAlignedPreview).
 function splitParagraphs(body: string): string[] {
   if (!body) return [];
-  // Filter heading lines, split by blank-line (paragraph) hoặc bullet boundary.
   const lines = body.split('\n').filter((l) => !/^#{1,3}\s+/.test(l.trim()));
   const paragraphs: string[] = [];
   let buf: string[] = [];
@@ -100,10 +101,9 @@ function splitParagraphs(body: string): string[] {
   };
   for (const ln of lines) {
     const trimmed = ln.trim();
-    // Blank line → end paragraph
     if (!trimmed) { flush(); continue; }
-    // Bullet line ("- ", "* ", "1. ") → mỗi bullet 1 paragraph riêng để
-    // bullets target/review align từng cặp.
+    // Bullet ("- ", "* ", "1. ") → mỗi bullet 1 paragraph (để bullets target
+    // ↔ review align từng cặp).
     if (/^([-*•]|\d+[.)])\s/.test(trimmed)) {
       flush();
       paragraphs.push(trimmed);
@@ -112,28 +112,7 @@ function splitParagraphs(body: string): string[] {
     buf.push(ln);
   }
   flush();
-  // Post-process: paragraph quá dài (>2 câu hoặc >200 ký tự) → split theo
-  // câu để cân đối với bullets bên kia.
-  const refined: string[] = [];
-  for (const p of paragraphs) {
-    // KHÔNG split bullet (đã là item rời)
-    if (/^([-*•]|\d+[.)])\s/.test(p.trim())) {
-      refined.push(p);
-      continue;
-    }
-    if (p.length < 200) {
-      refined.push(p);
-      continue;
-    }
-    // Split theo dấu kết câu (. ! ?). Giữ dấu vào câu trước.
-    const sentences = p.match(/[^.!?]+[.!?]+/g) ?? [p];
-    // Gom 2 câu / paragraph để không quá vụn.
-    for (let i = 0; i < sentences.length; i += 2) {
-      const chunk = sentences.slice(i, i + 2).join(' ').trim();
-      if (chunk) refined.push(chunk);
-    }
-  }
-  return refined;
+  return paragraphs;
 }
 
 // Bilingual aligned preview — interleave target/review theo từng paragraph.
@@ -151,13 +130,18 @@ function BilingualAlignedPreview({
 }) {
   const paragraphsT = splitParagraphs(bodyTarget);
   const paragraphsR = splitParagraphs(bodyReview);
-  // Pair-zip — max length của 2 bên (nếu lệch số paragraph thì hiển thị
-  // empty cho phía thiếu, user thấy ngay mismatch).
-  const maxLen = Math.max(paragraphsT.length, paragraphsR.length);
-  const rows = Array.from({ length: maxLen }, (_, i) => ({
-    target: paragraphsT[i] ?? '',
-    review: paragraphsR[i] ?? '',
-  }));
+  // Mismatch detect: nếu 2 bên LỆCH số paragraph → align từng-đoạn SAI (đoạn
+  // 3 ES không tương ứng đoạn 3 VN). Fallback: hiển thị mỗi bên full body
+  // raw trong 1 cell duy nhất → user thấy được nội dung đúng, nhưng KHÔNG
+  // pretend là 1-1 mapping.
+  const mismatch = paragraphsT.length !== paragraphsR.length
+    && paragraphsT.length > 0 && paragraphsR.length > 0;
+  const rows = mismatch
+    ? [{ target: paragraphsT.join('\n\n'), review: paragraphsR.join('\n\n') }]
+    : Array.from({ length: Math.max(paragraphsT.length, paragraphsR.length) }, (_, i) => ({
+        target: paragraphsT[i] ?? '',
+        review: paragraphsR[i] ?? '',
+      }));
   const cleanT = titleTarget.replace(/^\[[^\]]*\]\s*/, '');
   const cleanR = titleReview.replace(/^\[[^\]]*\]\s*/, '');
   return (
@@ -168,7 +152,9 @@ function BilingualAlignedPreview({
                     textTransform: 'uppercase', letterSpacing: '.06em' }}>
         👁 Xem trước · BILINGUAL
         <span style={{ textTransform: 'none', color: 'var(--fg-4)' }}>
-          (target | review align từng đoạn — so sánh trực tiếp)
+          {mismatch
+            ? `(⚠ 2 bản lệch số đoạn: ${paragraphsT.length} vs ${paragraphsR.length} — không thể align 1-1, hiển thị full body. Regen draft để AI gen đúng cấu trúc.)`
+            : '(target | review align từng đoạn — so sánh trực tiếp)'}
         </span>
       </div>
       {/* Column header */}

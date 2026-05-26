@@ -61,6 +61,23 @@ type SuggestableField = 'approachMd' | 'narrativeMd' | 'cadence' | 'tone' | 'doM
 // Field nào là markdown (cần preview formatted). cadence/tone là 1-line text → không cần.
 const MARKDOWN_FIELDS = new Set<SuggestableField>(['approachMd', 'narrativeMd', 'doMd', 'dontMd']);
 
+// AI thỉnh thoảng trả markdown nén 1 dòng: "- A - B - C **Arc** ... **Voice** ...".
+// Normalize: break trước mỗi bullet "- " và mỗi label "**Xxx**:" (narrative arc
+// pattern). Cũng split " · " thành newline (separator AI hay dùng).
+function normalizeMarkdown(s: string): string {
+  if (!s) return s;
+  let out = s.replace(/\r\n/g, '\n');
+  // " - " ở giữa dòng (không phải đầu) → "\n- "
+  out = out.replace(/([^\n])\s+-\s+(?=\S)/g, '$1\n- ');
+  // Label bold "**Xxx**" hoặc "**Xxx**:" giữa câu → xuống dòng trước nó
+  out = out.replace(/([^\n])\s+(\*\*[^*\n]{2,40}\*\*[:：])/g, '$1\n\n$2');
+  // Separator " · " → newline
+  out = out.replace(/\s+·\s+/g, '\n');
+  // Collapse 3+ blank lines → 2
+  out = out.replace(/\n{3,}/g, '\n\n');
+  return out.trim();
+}
+
 // Account status meta — dùng registry chung trong @/lib/status-meta. Pre-2026-05-22
 // đã có 1 map riêng ở đây + 1 ở accounts-vault + 1 ở seeding-cockpit → drift; giờ centralize.
 import { accountStatusMeta } from '@/lib/status-meta';
@@ -361,6 +378,8 @@ export function BriefEditModal({
   // "skip emojis", "focus on indie devs". Persisted only in this modal
   // session — not saved to DB.
   const [extraInstruction, setExtraInstruction] = useState<string>('');
+  // Custom prompt collapsible — mặc định ẩn để bố cục gọn; click chip 🎙 mở.
+  const [showExtraInput, setShowExtraInput] = useState(false);
 
   // Per-field "đang regen" state - khi user click ↻ trên 1 SuggestionInline.
   // Field nào đang regen thì show spinner trên card đó, các card khác giữ
@@ -714,7 +733,7 @@ export function BriefEditModal({
           />
         )}
 
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14 }}>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
 
           {/* Habitat thiếu URL → cảnh báo + CTA sửa habitat. Không có URL thì
               không đăng được, không gen ảnh đúng context, không markPosted. */}
@@ -837,11 +856,7 @@ export function BriefEditModal({
           {/* Overview tab (or new brief, no tabs yet) keeps the legacy flat form */}
           {(activeTab === 'overview' || !existing) && (
           <>
-          {!existing && (
-            <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)', borderRadius: 5, border: '1px dashed var(--line)' }}>
-              Sau khi tạo brief, các tab phase (Warm-up / Value / Bridge / Seed / Direct) sẽ xuất hiện với chiến lược chi tiết theo từng thời điểm.
-            </div>
-          )}
+          {/* Intro "Sau khi tạo brief..." gỡ — UX tab strip đã rõ rồi. */}
           {/* ── Roadmap chiến lược 5 phase — tóm tắt mix + cadence + goal/phase
                 Click 1 phase → switch sang tab đó để sửa chi tiết. ── */}
           {existing && phasePlan.length > 0 && (
@@ -997,33 +1012,30 @@ export function BriefEditModal({
             }}
           />
 
-          {/* ── AI auto-suggest from context ────────────────── */}
+          {/* ── AI auto-suggest from context (compact 1 dòng) ── */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
             background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
             borderRadius: 6, fontSize: 11.5, flexWrap: 'wrap',
           }}>
-            <span style={{ fontSize: 14 }}>✨</span>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ color: 'var(--fg-0)', fontWeight: 600 }}>
-                AI đề xuất phương án (EN + {viSlotLabel})
-                {localeLabel && (
-                  <span title={`Community ngôn ngữ: ${localeLabel} — slot "VI" được auto-fill bằng ${localeLabel} thay vì tiếng Việt.`}
-                        style={{ marginLeft: 6, padding: '1px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                 background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help' }}>
-                    🌐 LOCALE
-                  </span>
-                )}
-                {suggestionAt && (
-                  <span style={{ marginLeft: 8, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontWeight: 400 }}>
-                    · cached {fmtAgo(suggestionAt)}
-                  </span>
-                )}
-              </div>
-              <div style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>
-                Đọc account + habitat + nội dung hiện có → đề xuất song ngữ. Lưu lại để F5 không mất. Không ghi đè input — chủ động Replace/Append.
-              </div>
-            </div>
+            <span title="AI đọc account + habitat + nội dung hiện có → đề xuất song ngữ. Lưu cache để F5 không mất. Không ghi đè input — chủ động Replace/Append/Thay tất cả."
+                  style={{ fontSize: 14, cursor: 'help' }}>✨</span>
+            <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 11.5 }}>
+              AI ({viSlotLabel === 'VI' ? 'EN+VI' : `EN+${viSlotLabel}`})
+            </span>
+            {localeLabel && (
+              <span title={`Community nói ${localeLabel} — slot "VI" auto-fill bằng ${localeLabel}.`}
+                    style={{ padding: '1px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                             background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help' }}>
+                🌐 LOCALE
+              </span>
+            )}
+            {suggestionAt && (
+              <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                · {fmtAgo(suggestionAt)}
+              </span>
+            )}
+            <span style={{ flex: 1 }} />
             {suggestion && (
               <div style={{ display: 'inline-flex', gap: 2, padding: 2, background: 'var(--bg-1)', border: '1px solid var(--accent-line)', borderRadius: 5 }}>
                 {(['vi', 'en'] as const).map((l) => (
@@ -1066,6 +1078,15 @@ export function BriefEditModal({
                 ⇄ Thay tất cả ({langLabel(suggestLang)})
               </button>
             )}
+            <button type="button"
+                    onClick={() => setShowExtraInput((v) => !v)}
+                    title={extraInstruction ? `Có custom prompt: "${extraInstruction}". Click để sửa.` : 'Thêm custom prompt riêng cho lần regen này (vd: "more aggressive", "tránh emoji")'}
+                    style={{ fontSize: 10, padding: '3px 8px', background: extraInstruction ? 'var(--accent)' : 'transparent',
+                             color: extraInstruction ? '#fff' : 'var(--accent)',
+                             border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer',
+                             fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+              🎙 {extraInstruction ? 'instr ✓' : 'instr'}
+            </button>
             {replaceAllToast && (
               <span style={{ fontSize: 11, color: replaceAllToast.startsWith('✓') ? 'var(--ok)' : 'var(--warn)',
                              fontFamily: 'var(--font-mono)' }}>
@@ -1073,40 +1094,49 @@ export function BriefEditModal({
               </span>
             )}
           </div>
-          {/* Optional custom instruction — appended to LLM prompt as high-priority. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', flexShrink: 0 }}>🎙 Custom prompt</span>
-            <input
-              type="text"
-              value={extraInstruction}
-              onChange={(e) => setExtraInstruction(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !suggestBusy) handleGenerateSuggestion(); }}
-              placeholder='Optional: "more aggressive", "tránh emoji", "focus indie devs", "kèm meme tham khảo"…'
-              autoComplete="off" data-1p-ignore data-lpignore="true" name="extra-instr"
-              style={{
-                flex: 1, padding: '5px 8px', fontSize: 11,
-                background: 'var(--bg-2)', color: 'var(--fg-0)',
-                border: '1px solid var(--line)', borderRadius: 4, outline: 'none',
-                fontFamily: 'var(--font-sans)',
-              }}
-            />
-            {extraInstruction && (
-              <button type="button" onClick={() => setExtraInstruction('')}
-                      title="Clear custom prompt"
-                      style={{ fontSize: 10, padding: '3px 7px', background: 'transparent', color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
-                ✕
-              </button>
-            )}
-          </div>
+          {/* Custom instruction — collapsible, mặc định ẩn. Click chip 🎙 ở banner trên để mở. */}
+          {showExtraInput && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="text"
+                value={extraInstruction}
+                autoFocus
+                onChange={(e) => setExtraInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !suggestBusy) handleGenerateSuggestion(); }}
+                placeholder='Custom prompt: "more aggressive", "tránh emoji", "focus indie devs"…'
+                autoComplete="off" data-1p-ignore data-lpignore="true" name="extra-instr"
+                style={{
+                  flex: 1, padding: '5px 8px', fontSize: 11,
+                  background: 'var(--bg-2)', color: 'var(--fg-0)',
+                  border: '1px solid var(--accent-line)', borderRadius: 4, outline: 'none',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              />
+              {extraInstruction && (
+                <button type="button" onClick={() => setExtraInstruction('')}
+                        title="Clear custom prompt"
+                        style={{ fontSize: 10, padding: '3px 7px', background: 'transparent', color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
           {suggestError && (
             <div style={{ padding: 6, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 11, borderRadius: 5 }}>
               ⚠ {suggestError}
             </div>
           )}
           {suggestion?.[suggestLang]?.rationale && (
-            <div style={{ fontSize: 11, color: 'var(--fg-2)', padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 5, borderLeft: '3px solid var(--accent)' }}>
-              <strong style={{ color: 'var(--accent)' }}>Why ({suggestLang.toUpperCase()}):</strong> {suggestion[suggestLang].rationale}
-            </div>
+            <details style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              <summary style={{ cursor: 'pointer', color: 'var(--accent)', fontFamily: 'var(--font-mono)',
+                                fontSize: 10, padding: '2px 0', listStyle: 'none' }}>
+                ▸ Vì sao AI đề xuất thế này? ({langLabel(suggestLang)})
+              </summary>
+              <div style={{ marginTop: 4, padding: '6px 8px', background: 'var(--bg-2)',
+                            borderRadius: 5, borderLeft: '3px solid var(--accent)' }}>
+                {suggestion[suggestLang].rationale}
+              </div>
+            </details>
           )}
 
           <div className="modal-cols cols-2">
@@ -1126,9 +1156,6 @@ export function BriefEditModal({
             <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="narrativeMd" current={narrativeMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('narrativeMd')} regenerating={regenField === 'narrativeMd'} />
-            <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-              khác với Phương án tiếp cận (NƠI/KHI engage) — kể chuyện là CÁCH viết cho mỗi post
-            </div>
           </div>
 
           <div>
@@ -1362,10 +1389,9 @@ function SuggestionInline({
   const setter = setterFor(field);
   const curr = currentFor(field);
 
-  // Markdown fields → hiển thị nút 👁 để hover xem rendered preview
-  // (markdown bullets / bold / arc headers nhiều dòng — đọc raw mệt).
+  // Markdown fields → render inline với ReactMarkdown thay vì pre raw,
+  // markdown bullets / bold / arc headers xuống dòng + format đẹp.
   const isMarkdownField = MARKDOWN_FIELDS.has(field);
-  const [showPreview, setShowPreview] = useState(false);
 
   const handleCopy = () => { void copy(sug); };
   // Replace -> setter + auto-collapse (field giờ đã có data, suggestion thu gọn lại)
@@ -1392,7 +1418,7 @@ function SuggestionInline({
     <div style={{
       marginTop: 4, fontSize: 11.5, lineHeight: 1.5,
       background: 'var(--accent-soft)', border: '1px dashed var(--accent-line)',
-      borderRadius: 5, position: 'relative',
+      borderRadius: 5, overflow: 'hidden',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
@@ -1435,18 +1461,6 @@ function SuggestionInline({
                     style={btnStyle('transparent', 'var(--accent)', 'var(--accent-line)')}>
               {copied ? '✓ Đã copy' : '📋 Copy'}
             </button>
-            {isMarkdownField && (
-              <button type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      onMouseEnter={() => setShowPreview(true)}
-                      onMouseLeave={() => setShowPreview(false)}
-                      onFocus={() => setShowPreview(true)}
-                      onBlur={() => setShowPreview(false)}
-                      title="Hover để xem markdown đã render (bullets / bold / heading)"
-                      style={btnStyle('transparent', 'var(--accent)', 'var(--accent-line)')}>
-                👁 Preview
-              </button>
-            )}
           </>
         )}
         {onRegenerate && (
@@ -1460,34 +1474,30 @@ function SuggestionInline({
         <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
       </div>
       {sug && (
-        <pre style={{
-          margin: 0, padding: '6px 10px',
-          fontFamily: 'var(--font-mono)', fontSize: 11.5, lineHeight: 1.5,
-          color: 'var(--fg-1)', background: 'var(--bg-1)',
-          borderTop: '1px dashed var(--accent-line)',
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          opacity: regenerating ? 0.5 : 1,
-          borderBottomLeftRadius: 5, borderBottomRightRadius: 5,
-        }}>{sug}</pre>
-      )}
-      {/* Floating markdown preview — hover nút 👁 Preview để xem bullet/bold/heading rendered.
-          Position: ngay dưới card, full width, z-index cao để đè input bên dưới. */}
-      {isMarkdownField && showPreview && sug && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1500,
-          marginTop: 4, padding: '10px 14px',
-          background: 'var(--bg-1)', border: '1px solid var(--accent-line)',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: 6, boxShadow: '0 6px 24px rgba(0,0,0,.45)',
-          fontSize: 12, lineHeight: 1.55, color: 'var(--fg-0)',
-          maxHeight: 360, overflowY: 'auto',
-        }} className="md-preview">
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
-                        textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
-            👁 Markdown preview ({labelFor(activeLang)})
+        isMarkdownField ? (
+          // Markdown field → render đẹp với ReactMarkdown thay vì <pre> raw.
+          // Bullet/bold/heading hiện đúng format, không phải nhồi 1 cục mono.
+          <div style={{
+            padding: '8px 12px',
+            fontSize: 12, lineHeight: 1.6,
+            color: 'var(--fg-1)', background: 'var(--bg-1)',
+            borderTop: '1px dashed var(--accent-line)',
+            opacity: regenerating ? 0.5 : 1,
+            borderBottomLeftRadius: 5, borderBottomRightRadius: 5,
+          }} className="md-preview">
+            <ReactMarkdown>{normalizeMarkdown(sug)}</ReactMarkdown>
           </div>
-          <ReactMarkdown>{sug}</ReactMarkdown>
-        </div>
+        ) : (
+          <pre style={{
+            margin: 0, padding: '6px 10px',
+            fontFamily: 'var(--font-mono)', fontSize: 11.5, lineHeight: 1.5,
+            color: 'var(--fg-1)', background: 'var(--bg-1)',
+            borderTop: '1px dashed var(--accent-line)',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            opacity: regenerating ? 0.5 : 1,
+            borderBottomLeftRadius: 5, borderBottomRightRadius: 5,
+          }}>{sug}</pre>
+        )
       )}
     </div>
   );

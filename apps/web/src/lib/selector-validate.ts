@@ -20,9 +20,10 @@ const FORBIDDEN_PATTERNS: Array<{ regex: RegExp; reason: string }> = [
   // Không cần Safari compat. Rule cũ removed 2026-05-26.
   // Class hash random Reddit-style (.css-1abc23d)
   { regex: /\.css-[a-z0-9]{5,}/i, reason: 'Class hash random (CSS-in-JS hash, đổi mọi build)' },
-  // Deep > direct-child chains (>3 levels)
-  // Match "x > y > z > w" (4 elements separated by >)
-  { regex: />[^>]+>[^>]+>[^>]+>/i, reason: 'Direct-child chain >3 levels deep (fragile)' },
+  // Deep > direct-child chains (>6 levels — fragile khi DOM re-nest)
+  // Modern apps thường 4-5 levels (Reddit aside > div > div.md > p > a),
+  // nên raise threshold lên 6+ direct-child operators.
+  { regex: />[^>]+>[^>]+>[^>]+>[^>]+>[^>]+>[^>]+>/i, reason: 'Direct-child chain >6 levels deep (fragile)' },
   // Class BEM (__elem) thiếu dấu chấm trước — không phải custom tag.
   // Match standalone "something__something" mà KHÔNG có "." hoặc "-" custom-element-like ngay trước.
   // Cụ thể: matches "shreddit-subreddit-icon__icon" nếu KHÔNG có "." trước.

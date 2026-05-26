@@ -15,8 +15,9 @@ const FORBIDDEN_PATTERNS: Array<{ regex: RegExp; reason: string }> = [
   { regex: /styles\.redditmedia\.com\/t5_/i, reason: 'Reddit CDN path chứa sub ID' },
   // nth-of-type, nth-child (re-render fragile)
   { regex: /:nth-(?:of-type|child)\b/i, reason: 'nth-of-type / nth-child fragile khi DOM re-order' },
-  // :has() pseudo (Safari < 15.4)
-  { regex: /:has\(/i, reason: ':has() pseudo không support trên Safari < 15.4' },
+  // :has() PASS: Chrome 105+ support OK. MOS2 Crew ext chạy Chrome,
+  // dashboard server-side scraping (puppeteer/playwright) cũng Chromium.
+  // Không cần Safari compat. Rule cũ removed 2026-05-26.
   // Class hash random Reddit-style (.css-1abc23d)
   { regex: /\.css-[a-z0-9]{5,}/i, reason: 'Class hash random (CSS-in-JS hash, đổi mọi build)' },
   // Deep > direct-child chains (>3 levels)

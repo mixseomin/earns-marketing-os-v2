@@ -820,11 +820,12 @@ export function BriefEditModal({
               {habitatRow && (() => {
                 const m = getLangMeta(habitatRow.language);
                 const isSet = !!habitatRow.language;
+                const code = (habitatRow.language || '').toUpperCase();
                 return (
                   <button type="button"
                           onClick={() => onOpenHabitat?.(habitatId)}
                           title={langTooltip(habitatRow.language)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
                                    padding: '2px 8px', fontSize: 10.5,
                                    fontWeight: 700, borderRadius: 4, cursor: onOpenHabitat ? 'pointer' : 'help',
                                    background: isSet ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
@@ -832,7 +833,15 @@ export function BriefEditModal({
                                    border: `1px solid ${isSet ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
                                    letterSpacing: '.02em' }}>
                     <span style={{ fontSize: 13, lineHeight: 1 }}>{m.flag}</span>
-                    <span>{m.label}</span>
+                    {isSet && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                                     padding: '0 4px', borderRadius: 2,
+                                     background: 'rgba(74,222,128,.2)',
+                                     letterSpacing: '.04em' }}>
+                        {code}
+                      </span>
+                    )}
+                    <span style={{ fontWeight: 600 }}>{m.label}</span>
                   </button>
                 );
               })()}

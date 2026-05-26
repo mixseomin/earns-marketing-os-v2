@@ -503,7 +503,7 @@ export function HabitatFormModal({
                             }}>
                       {LANGUAGES.map((l) => {
                         const m = getLangMeta(l);
-                        return <option key={l} value={l}>{m.flag} {m.label}</option>;
+                        return <option key={l} value={l}>{m.flag} {l ? `${l.toUpperCase()} · ` : ''}{m.label}</option>;
                       })}
                     </select>
                     <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',

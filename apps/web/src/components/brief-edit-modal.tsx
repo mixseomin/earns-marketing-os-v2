@@ -240,8 +240,16 @@ export function BriefEditModal({
   const joinedAt = existing?.joinedAt ?? null;
   // Ref + scroll handler để chip ở header click → scroll banner ở body
   // vào viewport (banner có chi tiết + edit button).
+  // Membership popover — mở khi user click JoinChip ở header.
+  const [showJoinPopover, setShowJoinPopover] = useState(false);
+  const openJoinPopover = () => setShowJoinPopover(true);
+
+  // Legacy ref + scroll-helper giữ lại cho deep-link & onRequestFix flow
+  // (vẫn có cards trong phase tabs trigger focusJoinBanner). Giờ thay vì scroll
+  // banner → mở popover trực tiếp.
   const joinBannerRef = useRef<HTMLDivElement | null>(null);
   const focusJoinBanner = () => {
+    openJoinPopover();
     joinBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     joinBannerRef.current?.animate(
       [{ background: 'rgba(251,191,36,.25)' }, { background: 'transparent' }],
@@ -609,6 +617,13 @@ export function BriefEditModal({
                 onClick={onOpenAccount ? () => onOpenAccount(accountId) : undefined}
               />
               <span style={{ color: 'var(--fg-4)' }}>×</span>
+              {/* Join chip — tầng 2 (per-habitat membership). CHỈ render khi
+                  account ready (tầng 1). Đặt GIỮA account × habitat để cụm
+                  "WHO is in WHERE" đọc tuần tự: account-status × join-status × habitat. */}
+              {existing && isAccountReady(accountStatus) && (
+                <JoinChip joinStatus={joinStatus} joinedAt={joinedAt}
+                          onClick={openJoinPopover} />
+              )}
               {/* Habitat chip — click mở HabitatFormModal (sửa url / kind /
                   platform / mod rules / members / posting rules / topics). */}
               {onOpenHabitat ? (
@@ -649,13 +664,35 @@ export function BriefEditModal({
                   ↗
                 </a>
               )}
-              {/* Join chip — tầng 2 (per-habitat membership). CHỈ render khi
-                  account ready (tầng 1). Account !ready → AccountReadinessChip
-                  đã loud rồi, JoinChip thêm vào sẽ nhiễu vì join phụ thuộc
-                  account tồn tại. */}
-              {existing && isAccountReady(accountStatus) && (
-                <JoinChip joinStatus={joinStatus} joinedAt={joinedAt}
-                          onClick={focusJoinBanner} />
+              {/* 📚 Trụ cột mặc định — ở header thay vì body Overview, dùng compact
+                  chip để mọi tab phase đều thấy + đổi nhanh. */}
+              {existing && (
+                <BriefPillarPicker
+                  projectId={projectId}
+                  briefId={existing.id}
+                  initialPillarId={existing.primaryPillarId}
+                  onChanged={() => onPostsChanged?.()}
+                  compact
+                />
+              )}
+              {/* 🌐 Language chip — community speak language gì. Click → mở
+                  habitat modal để sửa nếu detect sai. Empty = "?" warn user
+                  rằng AI chưa biết community nói ngôn ngữ gì. */}
+              {habitatRow && (
+                <button type="button"
+                        onClick={() => onOpenHabitat?.(habitatId)}
+                        title={habitatRow.language
+                          ? `Community language: ${habitatRow.language.toUpperCase()}.\nAI sẽ tạo brief + posts bằng ngôn ngữ này.\nClick để sửa trong habitat modal.`
+                          : `Chưa biết community nói ngôn ngữ gì → AI có thể auto-detect từ description/rules, nhưng tốt nhất set explicit.\nClick mở habitat modal để gán language.`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                                 padding: '2px 7px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 4, cursor: onOpenHabitat ? 'pointer' : 'help',
+                                 background: habitatRow.language ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
+                                 color: habitatRow.language ? 'var(--ok)' : 'var(--warn)',
+                                 border: `1px solid ${habitatRow.language ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
+                                 textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  🌐 {habitatRow.language || '?'}
+                </button>
               )}
             </span>
           }
@@ -708,9 +745,14 @@ export function BriefEditModal({
           onClose={onClose}
         />
 
+        {/* Membership popover — mở khi click JoinChip ở header. KHÔNG render
+            banner inline nữa (thông tin đã có trong JoinChip + alert thừa). */}
         {existing && (
           <div ref={joinBannerRef}>
             <JoinStatusBanner
+              mode="popover-only"
+              open={showJoinPopover}
+              onCloseRequest={() => setShowJoinPopover(false)}
               projectId={projectId}
               briefId={existing.id}
               habitatLabel={habitatLabel}
@@ -996,16 +1038,9 @@ export function BriefEditModal({
               </div>
             </details>
           )}
-          {/* Content Pillar default cho brief — mọi card mới inherit pillar
-              này. Per-card có thể override qua chip 📚 trong card header. */}
-          {existing && (
-            <BriefPillarPicker
-              projectId={projectId}
-              briefId={existing.id}
-              initialPillarId={existing.primaryPillarId}
-              onChanged={() => onPostsChanged?.()}
-            />
-          )}
+          {/* Trụ cột nội dung đã chuyển lên header (compact chip) để hiển thị ở
+              MỌI tab phase — pillar trước đây ẩn dưới tab Overview, user vào tab
+              Warm-up/Value/Seed không thấy nên không nhớ đổi. */}
           {/* Channel coverage matrix — chỉ Discord/Slack/Telegram. Click ô
               trống → tạo 1 bài cho (channel × phase) tương ứng, auto-gắn
               channel + voice. Giúp cover tất cả surface trong server. */}
@@ -1940,12 +1975,15 @@ function PhaseEntryEditor({
 // tạo trong brief tự inherit pillar này (per-card có thể override).
 // ──────────────────────────────────────────────────────────────────
 function BriefPillarPicker({
-  projectId, briefId, initialPillarId, onChanged,
+  projectId, briefId, initialPillarId, onChanged, compact = false,
 }: {
   projectId: string;
   briefId: number;
   initialPillarId: number | null;
   onChanged?: () => void;
+  /** compact=true → chip mini cho header (1 dòng, no label, no description).
+      Dùng khi đặt cùng cụm chip account×join×habitat ở title row. */
+  compact?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [pillars, setPillars] = useState<Array<{ id: number; name: string; tagline: string; voiceIcon: string; voiceLabel: string }> | null>(null);
@@ -1980,6 +2018,42 @@ function BriefPillarPicker({
       onChanged?.();
     });
   };
+
+  // Compact chip cho header — 1 dòng inline với account/join/habitat chips.
+  if (compact) {
+    const label = current ? `📚 ${current.name}` : '📚 + Trụ cột';
+    const titleAttr = current
+      ? `Trụ cột mặc định: ${current.name}${current.tagline ? ` — ${current.tagline}` : ''}\n${current.voiceIcon} ${current.voiceLabel}\nMọi bài mới trong brief inherit trụ cột này.\nClick để đổi.`
+      : 'Chưa gắn trụ cột mặc định. Click để chọn.';
+    return (
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <select value={currentId ?? ''}
+                onChange={(e) => pick(e.target.value ? Number(e.target.value) : null)}
+                disabled={busy}
+                title={titleAttr}
+                style={{
+                  appearance: 'none', WebkitAppearance: 'none',
+                  padding: '2px 18px 2px 8px', fontSize: 11, fontWeight: 700,
+                  background: current ? 'rgba(157,108,255,0.12)' : 'transparent',
+                  color: current ? 'var(--neon-violet)' : 'var(--fg-3)',
+                  border: `1px solid ${current ? 'rgba(157,108,255,0.5)' : 'var(--line)'}`,
+                  borderRadius: 5, cursor: busy ? 'wait' : 'pointer',
+                  fontFamily: 'var(--font-sans)', minWidth: 140, maxWidth: 220,
+                  textOverflow: 'ellipsis', overflow: 'hidden',
+                }}>
+          <option value="">(không gắn trụ cột)</option>
+          {pillars.map((p) => (
+            <option key={p.id} value={p.id}>📚 {p.name}</option>
+          ))}
+        </select>
+        <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',
+                       fontSize: 8, color: current ? 'var(--neon-violet)' : 'var(--fg-3)',
+                       pointerEvents: 'none' }}>▾</span>
+        {/* Hidden label for accessibility — select content shows actual label */}
+        <span aria-hidden style={{ display: 'none' }}>{label}</span>
+      </span>
+    );
+  }
 
   return (
     <div style={{ padding: 10, background: 'rgba(157,108,255,0.05)',

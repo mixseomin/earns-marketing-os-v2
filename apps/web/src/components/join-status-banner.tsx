@@ -71,6 +71,15 @@ export interface JoinStatusBannerProps {
       Optional vì có thể context view-only. */
   onOpenHabitat?: () => void;
   onChange: (next: JoinStatus, payload?: { joinUrl?: string | null; joinNote?: string | null }) => void;
+  /** Chế độ render:
+      - 'banner' (default): render banner inline + popover khi click sửa.
+      - 'popover-only': KHÔNG render banner, chỉ render popover (controlled bởi `open`).
+        Dùng khi caller đã có chip riêng (vd JoinChip trong header) trigger edit. */
+  mode?: 'banner' | 'popover-only';
+  /** Khi mode='popover-only': true = show popover, false = ẩn. */
+  open?: boolean;
+  /** Khi mode='popover-only': gọi khi user close popover. */
+  onCloseRequest?: () => void;
 }
 
 export const JoinStatusBanner = memo(JoinStatusBannerImpl);
@@ -80,12 +89,45 @@ function JoinStatusBannerImpl({
   projectId, briefId, habitatLabel, habitatUrl,
   joinStatus, joinedAt, joinUrl, joinNote,
   habitatInfo, accountInfo, onOpenHabitat, onChange,
+  mode = 'banner', open: openProp, onCloseRequest,
 }: JoinStatusBannerProps) {
   const [editing, setEditing] = useState(false);
   const [, startTrans] = useTransition();
   const [editUrl, setEditUrl] = useState(joinUrl);
   const [editNote, setEditNote] = useState(joinNote);
   const [busy, setBusy] = useState(false);
+
+  // mode='popover-only' → render popover khi open=true; KHÔNG render banner.
+  if (mode === 'popover-only') {
+    if (!openProp) return null;
+    return (
+      <JoinStatusEditPopover
+        current={joinStatus} url={editUrl} note={editNote} busy={busy}
+        onSet={(next) => {
+          setBusy(true);
+          startTrans(async () => {
+            const res = await setBriefJoinStatus(projectId, briefId, {
+              joinStatus: next,
+              joinUrl: editUrl.trim() || null,
+              joinNote: editNote.trim() || null,
+            });
+            setBusy(false);
+            if (res.ok) {
+              onChange(next, { joinUrl: editUrl.trim() || null, joinNote: editNote.trim() || null });
+              onCloseRequest?.();
+            }
+          });
+        }}
+        onClose={() => onCloseRequest?.()}
+        onUrlChange={setEditUrl} onNoteChange={setEditNote}
+        habitatUrl={habitatUrl}
+        habitatInfo={habitatInfo ?? null}
+        accountInfo={accountInfo ?? null}
+        habitatLabel={habitatLabel}
+        onOpenHabitat={onOpenHabitat}
+      />
+    );
+  }
 
   const color = JOIN_STATUS_COLOR[joinStatus];
   const icon = JOIN_STATUS_ICON[joinStatus];

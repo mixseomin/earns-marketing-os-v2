@@ -24,6 +24,7 @@ interface Props {
   briefs: BriefRow[];
   pageKind?: string;
   onRefresh?: () => void;
+  refreshing?: boolean;
   /** Khi render trong brief-edit-modal cho 1 brief đơn, pass accountId
    *  để chỉ show value của account đó (không phải tất cả briefs habitat). */
   focusAccountId?: number;
@@ -31,7 +32,7 @@ interface Props {
 
 export function BriefSelectorsSection({
   habitatId, platformKey, briefs, pageKind = 'subreddit-about',
-  onRefresh, focusAccountId,
+  onRefresh, refreshing, focusAccountId,
 }: Props) {
   const [resolved, setResolved] = useState<Record<string, { spec: SelectorSpec; scope: ScopeKind }>>({});
   const [loading, setLoading] = useState(true);
@@ -138,6 +139,7 @@ export function BriefSelectorsSection({
       fields={fieldRows}
       loading={loading}
       onRefresh={onRefresh}
+      refreshing={refreshing}
       emptyMessage="Chưa có account nào engage habitat — không có brief để inspect."
       noneTooltip="Chưa có selector trained — ext dùng fallback heuristic (vd join_status từ button text)"
     />

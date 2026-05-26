@@ -121,6 +121,7 @@ export function BriefEditModal({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectRefreshing, setDetectRefreshing] = useState(false);
 
   const [approachMd, setApproachMd] = useState(existing?.approachMd ?? '');
   const [cadence,    setCadence]    = useState(existing?.cadence ?? '');
@@ -731,7 +732,18 @@ export function BriefEditModal({
                 scrapedMeta: (existing as { scrapedMeta?: Record<string, unknown> }).scrapedMeta ?? {},
               }]}
               focusAccountId={accountId}
-              onRefresh={() => router.refresh()}
+              refreshing={detectRefreshing}
+              onRefresh={async () => {
+                setDetectRefreshing(true);
+                try {
+                  router.refresh();
+                  // router.refresh không return Promise — wait nhẹ để
+                  // re-fetch + re-render visible cho user.
+                  await new Promise((r) => setTimeout(r, 800));
+                } finally {
+                  setDetectRefreshing(false);
+                }
+              }}
             />
           )}
 

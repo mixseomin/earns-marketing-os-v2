@@ -18,6 +18,8 @@ interface AnchorEntry {
   attrs: Record<string, string>;
   signal: string;
   depth: number;
+  /** Heading text gần ancestor (vd "Links", "Rules") — anchor text */
+  headingText?: string;
 }
 interface SuggestReq {
   platform_key: string;
@@ -107,7 +109,12 @@ Output JSON shape:
         const attrPairs = Object.entries(a.attrs || {})
           .map(([k, v]) => `${k}="${String(v).slice(0, 60)}"`)
           .join(' ');
-        return `${indent}└─ <${a.tag}${attrPairs ? ' ' + attrPairs : ''}>  // ${a.signal}`;
+        // Heading text qua hint comment (KHÔNG nhét vào attr — LLM sẽ tưởng
+        // là attribute thật và gen //div[@_heading='Links'] vô nghĩa).
+        const headingHint = a.headingText
+          ? `  /* nearby heading text: "${a.headingText}" — XPath: ${a.tag}[.//h2[contains(.,"${a.headingText}")]] */`
+          : '';
+        return `${indent}└─ <${a.tag}${attrPairs ? ' ' + attrPairs : ''}>  // ${a.signal}${headingHint}`;
       }).join('\n')
     : '';
 

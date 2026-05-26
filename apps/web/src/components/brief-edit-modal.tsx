@@ -3749,18 +3749,10 @@ function PostRow({
             <CritiquePanel critique={critique} onClose={() => setCritique(null)} />
           )}
 
-          {/* Title — 2 cột nếu bilingual (VN review + target đăng thật) */}
+          {/* Title — 2 cột nếu bilingual. Thứ tự target(đăng thật) | review(VN)
+              đồng nhất với BilingualAlignedPreview phía trên (ES trái / VN phải). */}
           {isBilingual ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div>
-                <label style={labelStyle} title="Tiêu đề tiếng Việt — để bạn review nhanh.">
-                  🇻🇳 Tiêu đề VN (review)
-                </label>
-                <input type="text" value={titleReview}
-                       onChange={(e) => setTitleReview(e.target.value)}
-                       onBlur={() => titleReview !== post.titleReview && persist({ titleReview })}
-                       style={fld} placeholder="Tiêu đề tiếng Việt để review nhanh" />
-              </div>
               <div>
                 <label style={labelStyle} title={`Tiêu đề ${post.targetLang.toUpperCase()} — sẽ paste lên community.`}>
                   🌐 Tiêu đề {post.targetLang.toUpperCase()} (đăng thật)
@@ -3769,6 +3761,15 @@ function PostRow({
                        onChange={(e) => setTitle(e.target.value)}
                        onBlur={() => title !== post.title && persist({ title })}
                        style={fld} placeholder={`Tiêu đề ngôn ngữ ${post.targetLang}`} />
+              </div>
+              <div>
+                <label style={labelStyle} title="Tiêu đề tiếng Việt — để bạn review nhanh.">
+                  🇻🇳 Tiêu đề VN (review)
+                </label>
+                <input type="text" value={titleReview}
+                       onChange={(e) => setTitleReview(e.target.value)}
+                       onBlur={() => titleReview !== post.titleReview && persist({ titleReview })}
+                       style={fld} placeholder="Tiêu đề tiếng Việt để review nhanh" />
               </div>
             </div>
           ) : (
@@ -3781,19 +3782,10 @@ function PostRow({
             </div>
           )}
 
-          {/* Body editors - 2 cột nếu bilingual, 1 cột nếu target=vi */}
+          {/* Body editors - 2 cột nếu bilingual, target trái (đăng thật, primary)
+              | review phải (VN). Khớp thứ tự với title row + preview phía trên. */}
           {isBilingual ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div>
-                <label style={labelStyle} title="Bản tiếng Việt — để bạn đọc duyệt nhanh trước khi đăng.">
-                  🇻🇳 Bản VN (review)
-                </label>
-                <textarea value={bodyReview}
-                          onChange={(e) => setBodyReview(e.target.value)}
-                          onBlur={() => bodyReview !== post.bodyReview && persist({ bodyReview })}
-                          placeholder={bodyPh}
-                          rows={16} style={taFld} />
-              </div>
               <div>
                 <label style={labelStyle} title={`Bản ${post.targetLang.toUpperCase()} — sẽ paste lên community.`}>
                   🌐 Bản {post.targetLang.toUpperCase()} (đăng thật)
@@ -3804,6 +3796,16 @@ function PostRow({
                           placeholder={isVisualType
                             ? `Empty is fine. Click ✨ Sinh draft for an AI caption, or type a short caption (1-2 lines). The image is the main asset.`
                             : `Empty. Click ✨ Sinh draft đầy đủ — AI writes the real ${post.targetLang.toUpperCase()} post here.`}
+                          rows={16} style={taFld} />
+              </div>
+              <div>
+                <label style={labelStyle} title="Bản tiếng Việt — để bạn đọc duyệt nhanh trước khi đăng.">
+                  🇻🇳 Bản VN (review)
+                </label>
+                <textarea value={bodyReview}
+                          onChange={(e) => setBodyReview(e.target.value)}
+                          onBlur={() => bodyReview !== post.bodyReview && persist({ bodyReview })}
+                          placeholder={bodyPh}
                           rows={16} style={taFld} />
               </div>
             </div>

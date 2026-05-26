@@ -86,11 +86,22 @@ export async function POST(req: Request) {
     customInstruction: body.customPrompt,
   });
 
-  // 4. Read final card
+  // 4. Read final card + context AI đã dùng (transparency cho user side panel)
   const finalRows = await db.execute(sql`
-    SELECT body_target, body_review, title, target_lang FROM cards WHERE id = ${cardId}
+    SELECT
+      c.body_target, c.body_review, c.title, c.target_lang,
+      b.tone AS brief_tone, b.current_phase,
+      h.voice_profile AS habitat_voice, h.language AS habitat_lang,
+      pa.handle AS account_handle, pa.persona
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    WHERE c.id = ${cardId}
+    LIMIT 1
   `);
   const f = (finalRows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  const persona = (f.persona as Record<string, unknown> | null) ?? {};
 
   return NextResponse.json({
     ok: true,
@@ -100,6 +111,19 @@ export async function POST(req: Request) {
     bodyReview: f.body_review ?? draft.bodyReview ?? '',
     title: f.title ?? draft.title ?? '',
     targetLang: f.target_lang ?? 'en',
+    // Context summary — ext side panel hiển thị "AI đã dùng:" chip
+    contextUsed: {
+      accountHandle: f.account_handle ? String(f.account_handle) : null,
+      personaName: persona.name_first
+        ? String(persona.name_first) + (persona.name_last ? ' ' + String(persona.name_last) : '')
+        : null,
+      personaVoiceSummary: persona.voice_summary ? String(persona.voice_summary) : null,
+      personaNarrativeStyle: persona.narrative_style ? String(persona.narrative_style) : null,
+      habitatVoice: String(f.habitat_voice ?? 'regular'),
+      habitatLanguage: String(f.habitat_lang ?? ''),
+      currentPhase: String(f.current_phase ?? ''),
+      briefTone: String(f.brief_tone ?? ''),
+    },
     draftOk: draft.ok,
     draftError: draft.error,
   });

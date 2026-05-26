@@ -26,6 +26,9 @@ export interface BriefRowContextBundle {
   habitatName: string;
   habitatVoiceNotes: string;
   habitatHasVisualStyle: boolean;
+  /** Habitat.language (es/fr/vi/...) — UI per-card hiển thị chip mismatch
+      khi card.target_lang khác giá trị này. */
+  habitatLanguage: string;
   tribeLexiconCount: number;
   tribeAvoidCount: number;
 }
@@ -39,6 +42,7 @@ export async function getBriefRowContextBundle(
   const briefRows = await db.execute(sql`
     SELECT b.habitat_id, b.primary_pillar_id,
            h.name AS habitat_name,
+           h.language AS habitat_language,
            h.voice_notes AS habitat_voice_notes,
            h.visual_style_descriptor IS NOT NULL AS has_visual_style
       FROM community_briefs b
@@ -76,6 +80,7 @@ export async function getBriefRowContextBundle(
     briefPrimaryPillarId: br.primary_pillar_id != null ? Number(br.primary_pillar_id) : null,
     habitatId,
     habitatName: String(br.habitat_name ?? ''),
+    habitatLanguage: String(br.habitat_language ?? ''),
     habitatVoiceNotes: String(br.habitat_voice_notes ?? ''),
     habitatHasVisualStyle: !!br.has_visual_style,
     tribeLexiconCount: Math.min(lexSet.size, 40),

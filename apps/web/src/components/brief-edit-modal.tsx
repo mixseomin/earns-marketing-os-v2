@@ -357,21 +357,18 @@ export function BriefEditModal({
     (existing?.aiSuggestion as BriefSuggestion | null) ?? null,
   );
   const [suggestionAt, setSuggestionAt]   = useState<string | null>(existing?.aiSuggestionAt ?? null);
-  // Khi community nói non-en/non-vi language (vd r/Astrologia = es), AI ghi
-  // Spanish vào slot "vi" → UI label "VI" cần đổi thành "ES" để user khỏi nhầm.
-  // localeLabel = "Spanish (Español)" → derive code 2 chữ + full text cho tooltip.
-  const [localeLabel, setLocaleLabel] = useState<string | null>(null);
-  // Code 2 chữ derived từ localeLabel ("Spanish (...)" → "ES").
-  const localeCode = localeLabel ? (
-    /^Spanish/i.test(localeLabel)    ? 'ES' :
-    /^French/i.test(localeLabel)     ? 'FR' :
-    /^German/i.test(localeLabel)     ? 'DE' :
-    /^Portuguese/i.test(localeLabel) ? 'PT' :
-    /^Italian/i.test(localeLabel)    ? 'IT' :
-    'LOCAL'
-  ) : null;
-  // Hiển thị thay "VI" khi có locale override. Còn lại VI giữ nguyên.
-  const viSlotLabel = localeCode ?? 'VI';
+  // Habitat language → derive UI label cho slot "vi" suggestion.
+  // Source of truth: habitatRow.language (load ngay khi modal mở). Trước đây
+  // dùng res.localeLabel chỉ có sau khi user click Generate → label sai trước.
+  // Giờ proactive: r/Astrologia (es) → "VI" slot label = "Español" + flag NGAY.
+  const habitatLang = (habitatRow?.language ?? '').toLowerCase().trim();
+  const isLocaleOverride = habitatLang && habitatLang !== 'en' && habitatLang !== 'vi' && habitatLang !== 'multi';
+  const localeMeta = isLocaleOverride ? getLangMeta(habitatLang) : null;
+  // Server cũng trả localeLabel khi generate — chỉ giữ để verify; UI ưu tiên habitatLang.
+  const [, setLocaleLabel] = useState<string | null>(null);
+  const localeLabel = localeMeta?.fullLabel ?? null;
+  // Hiển thị thay "VI" khi có locale override (vd "ES" / "FR").
+  const viSlotLabel = localeMeta ? habitatLang.toUpperCase() : 'VI';
   const langLabel = (l: 'en' | 'vi') => l === 'vi' ? viSlotLabel : 'EN';
   // Sync khi parent re-fetch (server set aiSuggestion sau LLM generate).
   useEffect(() => {
@@ -382,6 +379,8 @@ export function BriefEditModal({
   const [suggestBusy, setSuggestBusy]     = useState(false);
   const [suggestError, setSuggestError]   = useState<string | null>(null);
   // Default UI language preference for actions (Replace/Append).
+  // 'vi' slot mặc định — KHI có locale override (es/fr/...) thì 'vi' slot
+  // chứa local language → user muốn xem cái này trước (sát ngữ community).
   const [suggestLang, setSuggestLang]     = useState<'en' | 'vi'>('vi');
   // Free-form extra instruction for the LLM, e.g. "more aggressive tone",
   // "skip emojis", "focus on indie devs". Persisted only in this modal
@@ -1100,18 +1099,15 @@ export function BriefEditModal({
             <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 11.5 }}>
               AI ({viSlotLabel === 'VI' ? 'EN+VI' : `EN+${viSlotLabel}`})
             </span>
-            {localeLabel && (() => {
-              const m = getLangMeta((localeCode ?? '').toLowerCase());
-              return (
-                <span title={`Community nói ${m.fullLabel} — slot "VI" auto-fill bằng ${m.label} thay vì Tiếng Việt.`}
-                      style={{ padding: '2px 7px', fontSize: 10, fontWeight: 700,
-                               background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help',
-                               display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 12, lineHeight: 1 }}>{m.flag}</span>
-                  {m.label}
-                </span>
-              );
-            })()}
+            {localeMeta && (
+              <span title={`Community nói ${localeMeta.fullLabel} — slot "VI" auto-fill bằng ${localeMeta.label} thay vì Tiếng Việt.`}
+                    style={{ padding: '2px 7px', fontSize: 10, fontWeight: 700,
+                             background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help',
+                             display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 12, lineHeight: 1 }}>{localeMeta.flag}</span>
+                {localeMeta.label}
+              </span>
+            )}
             {suggestionAt && (
               <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                 · {fmtAgo(suggestionAt)}
@@ -2976,7 +2972,7 @@ function PostRow({
     setCol(post.col);
   }, [post.title, post.bodyReview, post.bodyTarget, post.col]);
 
-  const persist = (patch: { title?: string; bodyReview?: string; bodyTarget?: string; col?: string }) => {
+  const persist = (patch: { title?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string }) => {
     setSaving(true);
     // Optimistic local — không onChange (refetch list) cũng không router.refresh.
     // Patch chỉ chứa fields đã đổi → áp dụng trực tiếp lên posts state.
@@ -3215,17 +3211,56 @@ function PostRow({
             </span>
           );
         })()}
-        {/* Gộp lang + col + dispatch vào 1 icon nhỏ với tooltip multi-line.
-            Chỉ hiện ▾/▸ — các info phụ vào tooltip. */}
+        {/* Target lang chip — flag + label, click select đổi. Hiển thị warn
+            khi mismatch với habitat.language (vd habitat=es nhưng card=en). */}
+        {(() => {
+          const habitatLang = bundle?.habitatLanguage ?? '';
+          const cardLang = post.targetLang;
+          const mismatch = habitatLang && habitatLang !== cardLang;
+          const cardMeta = getLangMeta(cardLang);
+          const habMeta = mismatch ? getLangMeta(habitatLang) : null;
+          const titleAttr = mismatch
+            ? `⚠ Mismatch — Card đang ${cardMeta.flag} ${cardMeta.label} nhưng habitat ${habMeta?.flag} ${habMeta?.label}.\nClick để đổi sang ${habMeta?.label}.`
+            : `Ngôn ngữ card: ${cardMeta.flag} ${cardMeta.fullLabel}\nClick để đổi.`;
+          return (
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <select value={cardLang}
+                      onChange={(e) => persist({ targetLang: e.target.value })}
+                      onClick={(e) => e.stopPropagation()}
+                      title={titleAttr}
+                      style={{
+                        appearance: 'none', WebkitAppearance: 'none',
+                        padding: '1px 14px 1px 22px', fontSize: 10, fontWeight: 700,
+                        background: mismatch ? 'rgba(251,191,36,.15)' : 'rgba(74,222,128,.1)',
+                        color: mismatch ? 'var(--warn)' : 'var(--ok)',
+                        border: `1px solid ${mismatch ? 'rgba(251,191,36,.5)' : 'rgba(74,222,128,.35)'}`,
+                        borderRadius: 3, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                        minWidth: 70,
+                      }}>
+                {['en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru'].map((l) => {
+                  const m = getLangMeta(l);
+                  return <option key={l} value={l}>{m.flag} {l.toUpperCase()}</option>;
+                })}
+              </select>
+              <span style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)',
+                             fontSize: 11, lineHeight: 1, pointerEvents: 'none' }}>
+                {cardMeta.flag}
+              </span>
+              <span style={{ position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
+                             fontSize: 7, color: mismatch ? 'var(--warn)' : 'var(--ok)',
+                             pointerEvents: 'none' }}>▾</span>
+            </span>
+          );
+        })()}
+        {/* Dispatch + col info */}
         <span title={[
-                `Ngôn ngữ: ${isBilingual ? `vi → ${post.targetLang}` : post.targetLang}`,
                 `Cột board: ${COL_LABEL[col] ?? col}`,
                 post.dispatchReady ? '🚀 Đã dispatch-ready' : null,
                 `Card: ${post.cardRef}`,
               ].filter(Boolean).join(' · ')}
               style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
                        padding: '0 4px', cursor: 'help' }}>
-          {isBilingual ? '🌐' : ''}{post.dispatchReady ? '🚀' : ''}
+          {post.dispatchReady ? '🚀' : ''}
         </span>
         <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
           {expanded ? '▾' : '▸'}

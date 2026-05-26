@@ -255,6 +255,7 @@ RULES:
       html_empty: htmlEmpty,
       raw_llm: rawLlmResponse.slice(0, 500),
       saved: save.saved,
+      skipped: save.skipped,  // skipped vì spec đã có source='manual'
       model,
     },
     status: 200, durationMs: Date.now() - startedAt,
@@ -265,7 +266,7 @@ RULES:
     selectors: validSelectors,
     rejected,
     model,
-    saved_to: { scope: targetScope, key: targetKey, count: save.saved },
+    saved_to: { scope: targetScope, key: targetKey, count: save.saved, skipped_manual: save.skipped },
   });
 }
 

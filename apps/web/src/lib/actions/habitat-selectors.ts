@@ -158,34 +158,50 @@ export async function setOverride(opts: {
 }
 
 // setMap: upsert multiple fields cùng scope (bulk save từ UI edit JSON).
+// PROTECT: LLM source KHÔNG ghi đè spec đã có source='manual'.
+// User-trained selector luôn thắng — LLM chỉ fill field CHƯA có hoặc
+// field đã có source='llm' (trước đó tự gen). Để override manual,
+// caller phải truyền source='manual' (qua save-selector flow).
 export async function setMap(opts: {
   scopeKind: ScopeKind;
   scopeKey: string;
   pageKind: string;
   selectors: SelectorMap;
   source?: 'llm' | 'manual' | 'promoted';
-}): Promise<{ ok: boolean; saved: number; error?: string }> {
+}): Promise<{ ok: boolean; saved: number; skipped: number; error?: string }> {
   const db = getDb();
-  if (!db) return { ok: false, saved: 0, error: 'DB unavailable' };
+  if (!db) return { ok: false, saved: 0, skipped: 0, error: 'DB unavailable' };
+  const source = opts.source ?? 'llm';
   let saved = 0;
+  let skipped = 0;
   try {
     for (const [field, spec] of Object.entries(opts.selectors)) {
       if (!spec?.css) continue;
-      await db.execute(sql`
+      // Skip nếu LLM cố ghi đè spec đã có source='manual'.
+      // ON CONFLICT WHERE clause: chỉ update khi current source != 'manual'
+      // OR new source IS 'manual' (manual luôn được set).
+      const res = await db.execute(sql`
         INSERT INTO selector_overrides
           (tenant_id, scope_kind, scope_key, page_kind, field_name, spec, source, updated_at)
         VALUES (${TENANT}, ${opts.scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
                 ${field}, ${JSON.stringify(spec)}::jsonb,
-                ${opts.source ?? 'llm'}, NOW())
+                ${source}, NOW())
         ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
         DO UPDATE SET spec = EXCLUDED.spec, source = EXCLUDED.source, updated_at = NOW()
+        WHERE selector_overrides.source != 'manual' OR EXCLUDED.source = 'manual'
+        RETURNING field_name
       `);
-      saved++;
+      // pg returns rowCount on the result; nếu rowCount = 0 nghĩa là
+      // ON CONFLICT WHERE filter chặn (đã có manual) → skipped.
+      // Drizzle/pg shape: res.rowCount hoặc res.rows.length tùy driver.
+      const updated = (res as { rowCount?: number; rows?: unknown[] }).rowCount
+        ?? (res as { rows?: unknown[] }).rows?.length ?? 0;
+      if (updated > 0) saved++; else skipped++;
     }
     revalidatePath('/platforms');
-    return { ok: true, saved };
+    return { ok: true, saved, skipped };
   } catch (e) {
-    return { ok: false, saved, error: (e as Error).message };
+    return { ok: false, saved, skipped, error: (e as Error).message };
   }
 }
 

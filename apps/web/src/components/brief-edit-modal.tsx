@@ -44,6 +44,7 @@ import {
 } from '@/lib/ai/post-draft';
 // markCardSeeded sử dụng qua confirmCardPosted trong DispatchPostFlow
 import { suggestBrief, type BriefSuggestion, type BriefSuggestionLang } from '@/lib/ai/brief-suggest';
+import { parseParentContext } from '@/lib/ai/parent-parser';
 import { AIFormParser } from './ai-form-parser';
 import { VoiceContextPill } from './voice-context-pill';
 import { ChannelPickerChip } from './channel-picker-chip';
@@ -2908,6 +2909,13 @@ function PostRow({
   const [bodyReview, setBodyReview] = useState(post.bodyReview);
   const [bodyTarget, setBodyTarget] = useState(post.bodyTarget);
   const [parentUrl, setParentUrl] = useState(post.parentUrl ?? '');
+  const [parentTitle, setParentTitle] = useState(post.parentTitle ?? '');
+  const [parentBody, setParentBody] = useState(post.parentBody ?? '');
+  const [parentAuthor, setParentAuthor] = useState(post.parentAuthor ?? '');
+  // Raw paste textarea — user paste full page copy, AI parse extract fields.
+  const [parentPaste, setParentPaste] = useState('');
+  const [parentParseBusy, setParentParseBusy] = useState(false);
+  const [parentParseErr, setParentParseErr] = useState<string | null>(null);
   const [col, setCol] = useState(post.col);
   const [confirmDel, setConfirmDel] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3073,10 +3081,22 @@ function PostRow({
     setBodyReview(post.bodyReview);
     setBodyTarget(post.bodyTarget);
     setParentUrl(post.parentUrl ?? '');
+    setParentTitle(post.parentTitle ?? '');
+    setParentBody(post.parentBody ?? '');
+    setParentAuthor(post.parentAuthor ?? '');
     setCol(post.col);
-  }, [post.title, post.titleReview, post.bodyReview, post.bodyTarget, post.parentUrl, post.col]);
+  }, [post.title, post.titleReview, post.bodyReview, post.bodyTarget, post.parentUrl, post.parentTitle, post.parentBody, post.parentAuthor, post.col]);
 
-  const persist = (patch: { title?: string; titleReview?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string; parentUrl?: string | null }) => {
+  const persist = (patch: {
+    title?: string; titleReview?: string;
+    bodyReview?: string; bodyTarget?: string;
+    col?: string; targetLang?: string;
+    parentUrl?: string | null;
+    parentTitle?: string | null;
+    parentBody?: string | null;
+    parentAuthor?: string | null;
+    parentSnippets?: Array<{ author?: string; text: string }>;
+  }) => {
     setSaving(true);
     // Optimistic local — không onChange (refetch list) cũng không router.refresh.
     // Patch chỉ chứa fields đã đổi → áp dụng trực tiếp lên posts state.
@@ -3649,42 +3669,133 @@ function PostRow({
             <CritiquePanel critique={critique} onClose={() => setCritique(null)} />
           )}
 
-          {/* Parent URL — yêu cầu cho comment/reply: thread/post gốc để AI
-              có context discussion + operator biết click đâu paste reply.
-              Skip cho standalone post (text/image/...). */}
-          {isInteractionType(post.contentType) && (
-            <div style={{ padding: '8px 12px', background: 'rgba(6,182,212,.08)',
-                          border: '1px solid rgba(6,182,212,.45)',
-                          borderLeft: '3px solid #06b6d4',
-                          borderRadius: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6,
-                              fontSize: 10, fontFamily: 'var(--font-mono)', color: '#06b6d4',
-                              textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>
-                🔗 Parent URL
-                <span style={{ color: 'var(--fg-3)', fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>
-                  ({formatMeta(post.contentType).label} cần link thread/post gốc để paste reply vào)
-                </span>
-                {!parentUrl.trim() && (
-                  <span style={{ marginLeft: 'auto', padding: '0 5px', fontSize: 9,
-                                 background: 'var(--warn)', color: '#0d1117', borderRadius: 2,
-                                 fontWeight: 700, letterSpacing: '.04em' }}>
-                    BẮT BUỘC
+          {/* Parent context panel — comment/reply cần URL + nội dung thread/post
+              gốc để AI generate reply có context. UX:
+                1. User paste URL.
+                2. User paste raw copy từ page → ✨ AI parse extract title/body/author.
+                3. User edit nếu cần.
+                4. Save = persist parent_* fields. */}
+          {isInteractionType(post.contentType) && (() => {
+            const isComplete = parentUrl.trim() && parentTitle.trim() && parentBody.trim();
+            const handleParse = async () => {
+              if (!parentPaste.trim()) { setParentParseErr('Paste content vào textarea trước'); return; }
+              setParentParseBusy(true); setParentParseErr(null);
+              try {
+                const res = await parseParentContext(parentPaste);
+                if (!res.ok || !res.data) { setParentParseErr(res.error ?? 'Parse failed'); return; }
+                setParentTitle(res.data.title);
+                setParentBody(res.data.body);
+                setParentAuthor(res.data.author);
+                persist({
+                  parentTitle: res.data.title || null,
+                  parentBody: res.data.body || null,
+                  parentAuthor: res.data.author || null,
+                  parentSnippets: res.data.snippets,
+                });
+                setParentPaste('');
+              } catch (e) {
+                setParentParseErr((e as Error).message);
+              } finally {
+                setParentParseBusy(false);
+              }
+            };
+            return (
+              <div style={{ padding: '10px 12px', background: 'rgba(6,182,212,.08)',
+                            border: '1px solid rgba(6,182,212,.45)',
+                            borderLeft: '3px solid #06b6d4',
+                            borderRadius: 5, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6,
+                                fontSize: 10, fontFamily: 'var(--font-mono)', color: '#06b6d4',
+                                textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>
+                  💬 Parent context ({formatMeta(post.contentType).label})
+                  <span style={{ color: 'var(--fg-3)', fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>
+                    AI cần nội dung thread/post gốc để gen reply đúng context
                   </span>
-                )}
-              </label>
-              <input type="url" value={parentUrl}
-                     onChange={(e) => setParentUrl(e.target.value)}
-                     onBlur={() => (parentUrl || null) !== post.parentUrl && persist({ parentUrl: parentUrl.trim() || null })}
-                     placeholder="https://reddit.com/r/Astrologia/comments/xxx/thread-title/"
-                     style={{ ...fld, fontSize: 12, fontFamily: 'var(--font-mono)' }} />
-              {parentUrl.trim() && (
-                <a href={parentUrl} target="_blank" rel="noopener noreferrer"
-                   style={{ fontSize: 10.5, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                  ↗ Mở thread/post gốc
-                </a>
-              )}
-            </div>
-          )}
+                  <span style={{ marginLeft: 'auto', padding: '0 5px', fontSize: 9,
+                                 background: isComplete ? 'var(--ok)' : 'var(--warn)',
+                                 color: '#0d1117', borderRadius: 2, fontWeight: 700, letterSpacing: '.04em' }}>
+                    {isComplete ? '✓ ĐỦ' : 'THIẾU'}
+                  </span>
+                </div>
+
+                {/* Row 1: URL */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', minWidth: 80 }}>🔗 URL</span>
+                  <input type="url" value={parentUrl}
+                         onChange={(e) => setParentUrl(e.target.value)}
+                         onBlur={() => (parentUrl || null) !== post.parentUrl && persist({ parentUrl: parentUrl.trim() || null })}
+                         placeholder="https://reddit.com/r/.../comments/xxx/thread/"
+                         style={{ ...fld, flex: 1, fontSize: 11.5, fontFamily: 'var(--font-mono)' }} />
+                  {parentUrl.trim() && (
+                    <a href={parentUrl} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>↗</a>
+                  )}
+                </div>
+
+                {/* Row 2: Author + Title */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', minWidth: 80 }}>👤 Author</span>
+                  <input type="text" value={parentAuthor}
+                         onChange={(e) => setParentAuthor(e.target.value)}
+                         onBlur={() => (parentAuthor || null) !== post.parentAuthor && persist({ parentAuthor: parentAuthor.trim() || null })}
+                         placeholder="u/SomeUser hoặc @handle"
+                         style={{ ...fld, width: 200, fontSize: 11.5 }} />
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>📌 Title</span>
+                  <input type="text" value={parentTitle}
+                         onChange={(e) => setParentTitle(e.target.value)}
+                         onBlur={() => (parentTitle || null) !== post.parentTitle && persist({ parentTitle: parentTitle.trim() || null })}
+                         placeholder="Tiêu đề thread/post gốc"
+                         style={{ ...fld, flex: 1, fontSize: 11.5 }} />
+                </div>
+
+                {/* Row 3: Body — nội dung gốc */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                    📝 Body (nội dung thread/post gốc — AI sẽ đọc để reply đúng câu hỏi)
+                  </span>
+                  <textarea value={parentBody}
+                            onChange={(e) => setParentBody(e.target.value)}
+                            onBlur={() => (parentBody || null) !== post.parentBody && persist({ parentBody: parentBody.trim() || null })}
+                            placeholder="Paste body / nội dung chính của thread/post (markdown OK). Vd: câu hỏi của OP, post mô tả, etc."
+                            rows={parentBody.length > 400 ? 8 : 4}
+                            style={{ ...fld, fontSize: 11.5, fontFamily: 'var(--font-mono)', resize: 'vertical' }} />
+                </div>
+
+                {/* Quick AI parse: paste raw → extract */}
+                <details>
+                  <summary style={{ cursor: 'pointer', fontSize: 10, fontFamily: 'var(--font-mono)',
+                                    color: '#06b6d4', listStyle: 'none', padding: '2px 0' }}>
+                    ✨ Paste raw HTML/text → AI extract (mở để paste full page copy)
+                  </summary>
+                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <textarea value={parentPaste}
+                              onChange={(e) => setParentPaste(e.target.value)}
+                              placeholder="Paste full thread page copy (Ctrl+A, Ctrl+C trên Reddit/FB) hoặc HTML — AI sẽ extract title/body/author/snippets tự động."
+                              rows={5}
+                              style={{ ...fld, fontSize: 10.5, fontFamily: 'var(--font-mono)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button type="button" onClick={handleParse}
+                              disabled={parentParseBusy || !parentPaste.trim()}
+                              style={{ fontSize: 10, padding: '4px 10px', fontWeight: 700,
+                                       background: parentPaste.trim() ? '#06b6d4' : 'var(--bg-3)',
+                                       color: parentPaste.trim() ? '#0d1117' : 'var(--fg-3)',
+                                       border: 'none', borderRadius: 4,
+                                       cursor: parentPaste.trim() ? 'pointer' : 'not-allowed' }}>
+                        {parentParseBusy ? <><Spinner size="xs" /> AI parse…</> : '✨ AI parse'}
+                      </button>
+                      {parentParseErr && (
+                        <span style={{ fontSize: 10, color: 'var(--bad)' }}>⚠ {parentParseErr}</span>
+                      )}
+                      <span style={{ flex: 1 }} />
+                      <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+                        ≈ $0.001/parse · gpt-4o-mini
+                      </span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            );
+          })()}
 
           {/* Title — 2 cột nếu bilingual. Thứ tự target(đăng thật) | review(VN)
               đồng nhất với BilingualAlignedPreview phía trên (ES trái / VN phải). */}

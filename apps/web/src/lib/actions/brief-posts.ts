@@ -29,7 +29,11 @@ export interface BriefPost {
   bodyReview: string;        // luôn vi-VN
   bodyTarget: string;        // theo target_lang
   targetLang: string;        // en|fr|vi|zh|ko|ja - auto từ habitat.language
-  parentUrl: string | null;  // URL thread/post gốc (comment/reply only)
+  parentUrl: string | null;     // URL thread/post gốc (comment/reply only)
+  parentTitle: string | null;   // Title của parent
+  parentBody: string | null;    // Body của parent (AI nạp prompt)
+  parentAuthor: string | null;  // Handle author của parent
+  parentSnippets: Array<{ author?: string; text: string }>; // top comments
   contentType: string;       // text|image|video|link|thread|poll|carousel|story|doc
   mediaAssetId: number | null;
   mediaUrl: string | null;   // ảnh/video thật kèm bài (preview render)
@@ -70,7 +74,8 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   // giảm số round-trip là tối ưu lớn nhất ở tầng này.
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.title_review, c.body, c.body_review, c.body_target,
-           c.target_lang, c.parent_url, c.content_type, c.media_asset_id, c.channel_id,
+           c.target_lang, c.parent_url, c.parent_title, c.parent_body, c.parent_author, c.parent_snippets,
+           c.content_type, c.media_asset_id, c.channel_id,
            c.pillar_id, c.content_kind, c.col, c.level,
            c.urgent, c.tags, c.brief_id, c.brief_phase, c.agent_kind,
            c.dispatch_ready, c.post_url, c.posted_at, c.post_screenshot_url, c.post_note,
@@ -103,7 +108,9 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   type Row = {
     id: number; card_ref: string; title: string | null; title_review: string | null;
     body: string | null; body_review: string | null; body_target: string | null;
-    target_lang: string | null; parent_url: string | null; content_type: string | null;
+    target_lang: string | null; parent_url: string | null; parent_title: string | null;
+    parent_body: string | null; parent_author: string | null; parent_snippets: unknown;
+    content_type: string | null;
     media_asset_id: number | null; channel_id: number | null;
     pillar_id: number | null; content_kind: string | null;
     col: string; level: number;
@@ -130,6 +137,10 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     bodyTarget: r.body_target ?? '',
     targetLang: r.target_lang ?? 'en',
     parentUrl: r.parent_url ?? null,
+    parentTitle: r.parent_title ?? null,
+    parentBody: r.parent_body ?? null,
+    parentAuthor: r.parent_author ?? null,
+    parentSnippets: Array.isArray(r.parent_snippets) ? r.parent_snippets as Array<{ author?: string; text: string }> : [],
     contentType: r.content_type ?? 'text',
     // Cast Number cho bigint fields (pg-driver default trả string).
     mediaAssetId: r.media_asset_id != null ? Number(r.media_asset_id) : null,
@@ -330,6 +341,10 @@ export async function updatePost(
     title?: string; titleReview?: string; body?: string;
     bodyReview?: string; bodyTarget?: string; targetLang?: string;
     parentUrl?: string | null;
+    parentTitle?: string | null;
+    parentBody?: string | null;
+    parentAuthor?: string | null;
+    parentSnippets?: Array<{ author?: string; text: string }>;
     contentType?: string;
     channelId?: number | null;
     col?: string; urgent?: boolean; dispatchReady?: boolean;
@@ -347,6 +362,10 @@ export async function updatePost(
       ...(patch.bodyTarget != null ? { bodyTarget: patch.bodyTarget } : {}),
       ...(patch.targetLang != null ? { targetLang: patch.targetLang } : {}),
       ...(patch.parentUrl !== undefined ? { parentUrl: patch.parentUrl } : {}),
+      ...(patch.parentTitle !== undefined ? { parentTitle: patch.parentTitle } : {}),
+      ...(patch.parentBody !== undefined ? { parentBody: patch.parentBody } : {}),
+      ...(patch.parentAuthor !== undefined ? { parentAuthor: patch.parentAuthor } : {}),
+      ...(patch.parentSnippets !== undefined ? { parentSnippets: patch.parentSnippets } : {}),
       ...(ct != null ? { contentType: ct } : {}),
       ...(patch.channelId !== undefined ? { channelId: patch.channelId } : {}),
       ...(patch.col != null ? { col: patch.col } : {}),

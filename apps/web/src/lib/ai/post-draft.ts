@@ -93,10 +93,14 @@ interface PostContext {
   cardTitle: string;
   cardBodyReview: string;
   cardBodyTarget: string;
-  // Interaction context (comment/reply): content_type + parent_url để AI
-  // gen reply phù hợp thay vì standalone post.
+  // Interaction context (comment/reply): content_type + parent_url + nội dung
+  // thread/post gốc để AI gen reply CÓ context thay vì reply chung chung.
   contentType: string;
   parentUrl: string | null;
+  parentTitle: string | null;
+  parentBody: string | null;
+  parentAuthor: string | null;
+  parentSnippets: Array<{ author?: string; text: string }>;
   // RESOLVED voice profile (channel override ?? habitat ?? 'regular')
   effectiveVoiceProfile: VoiceProfile;
 }
@@ -109,7 +113,7 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     SELECT
       c.id AS card_id, c.project_id, c.title, c.body_review, c.body_target,
       c.target_lang, c.brief_id, c.brief_phase, c.channel_id,
-      c.content_type, c.parent_url,
+      c.content_type, c.parent_url, c.parent_title, c.parent_body, c.parent_author, c.parent_snippets,
       c.pillar_id AS card_pillar_id,
       b.approach_md, b.narrative_md, b.tone, b.do_md, b.dont_md, b.phase_plan,
       b.primary_pillar_id AS brief_primary_pillar_id,
@@ -262,6 +266,12 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     cardBodyTarget: String(r.body_target ?? ''),
     contentType: String(r.content_type ?? 'text'),
     parentUrl: r.parent_url ? String(r.parent_url) : null,
+    parentTitle: r.parent_title ? String(r.parent_title) : null,
+    parentBody: r.parent_body ? String(r.parent_body) : null,
+    parentAuthor: r.parent_author ? String(r.parent_author) : null,
+    parentSnippets: Array.isArray(r.parent_snippets)
+      ? (r.parent_snippets as Array<{ author?: string; text: string }>)
+      : [],
     effectiveVoiceProfile,
   };
 }
@@ -314,8 +324,20 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null): string {
     (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentUrl
       ? `Parent URL (thread/post gốc): ${ctx.parentUrl}`
       : null,
-    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentUrl
-      ? `⚠ Parent URL chưa được set — gen reply chung chung, KHÔNG bám vào discussion cụ thể.`
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentAuthor
+      ? `Parent author (người user reply tới): ${ctx.parentAuthor}`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentTitle
+      ? `Parent title:\n  "${ctx.parentTitle}"`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentBody
+      ? `Parent body (đọc kỹ để biết câu hỏi/topic gốc, REPLY của bạn PHẢI bám vào đây):\n${ctx.parentBody.slice(0, 3000).split('\n').map((l) => `  > ${l}`).join('\n')}`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentSnippets.length > 0
+      ? `Top comments / quotes (context discussion):\n${ctx.parentSnippets.slice(0, 3).map((s) => `  • ${s.author ? `[${s.author}] ` : ''}${s.text.slice(0, 300)}`).join('\n')}`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody
+      ? `⚠ Parent body chưa được set — gen reply chung chung dựa vào hint từ title (nếu có) + brief. KHÔNG bám sâu được vì không có nội dung gốc.`
       : null,
     (ctx.contentType === 'comment' || ctx.contentType === 'reply')
       ? `Quy tắc reply:

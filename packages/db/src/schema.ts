@@ -220,6 +220,12 @@ export const cards = pgTable(
     // 0068: URL thread/post gốc cho comment/reply (interaction types).
     // NULL = standalone post. AI prompt nạp parent context khi present.
     parentUrl: text('parent_url'),
+    // 0069: parent thread/post content cho AI gen reply có context.
+    // 4 fields nullable, chỉ dùng khi content_type IN ('comment','reply').
+    parentTitle: text('parent_title'),
+    parentBody: text('parent_body'),
+    parentAuthor: text('parent_author'),
+    parentSnippets: jsonb('parent_snippets').notNull().default([]),
     // 0055: content-type-aware seeding. content_type = text|image|video|
     // link|thread|poll|carousel|story|doc (xem lib/content-formats.ts).
     // media_asset_id = link tuỳ chọn tới media_assets (ảnh/video kèm bài).

@@ -2875,6 +2875,9 @@ function PostRow({
   const [, startTransition] = useTransition();
   const [title, setTitle] = useState(post.title);
   const [titleReview, setTitleReview] = useState(post.titleReview || post.title);
+  // Preview language toggle — default 'target' vì preview = xem trước bài đăng thật.
+  // 'review' khi user muốn xem nội dung VN look thế nào trong layout.
+  const [previewMode, setPreviewMode] = useState<'target' | 'review'>('target');
   const [bodyReview, setBodyReview] = useState(post.bodyReview);
   const [bodyTarget, setBodyTarget] = useState(post.bodyTarget);
   const [col, setCol] = useState(post.col);
@@ -3350,9 +3353,47 @@ function PostRow({
 
       {expanded && (
         <div style={{ padding: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <FormatPreview contentType={post.contentType} title={title}
-                         body={bodyReview || bodyTarget || post.body}
-                         mediaUrl={post.mediaUrl} />
+          {/* Preview phản ánh BẢN ĐĂNG THẬT (target language) — đúng cái community
+              sẽ thấy. Khi target=vi thì target == review, không cần toggle. */}
+          {isBilingual ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10,
+                            fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                            textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                <span>👁 Xem trước</span>
+                <div style={{ display: 'inline-flex', gap: 2, padding: 2, background: 'var(--bg-2)',
+                              border: '1px solid var(--line)', borderRadius: 4 }}>
+                  {(['target', 'review'] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setPreviewMode(m)}
+                            title={m === 'target'
+                              ? `Bản đăng thật (${post.targetLang.toUpperCase()}) — đúng cái community sẽ thấy`
+                              : 'Bản tiếng Việt — chỉ để bạn review'}
+                            style={{
+                              padding: '1px 6px', fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                              background: previewMode === m ? 'var(--accent)' : 'transparent',
+                              color: previewMode === m ? '#fff' : 'var(--fg-3)',
+                              border: 'none', borderRadius: 2, cursor: 'pointer',
+                            }}>
+                      {m === 'target' ? `🌐 ${post.targetLang.toUpperCase()}` : '🇻🇳 VN'}
+                    </button>
+                  ))}
+                </div>
+                <span style={{ color: 'var(--fg-4)', fontSize: 9 }}>
+                  · {previewMode === 'target' ? 'community sẽ thấy bản này' : 'chỉ bạn review, không paste'}
+                </span>
+              </div>
+              <FormatPreview contentType={post.contentType}
+                             title={previewMode === 'target' ? title : titleReview}
+                             body={previewMode === 'target'
+                               ? (bodyTarget || bodyReview || post.body)
+                               : (bodyReview || bodyTarget || post.body)}
+                             mediaUrl={post.mediaUrl} />
+            </div>
+          ) : (
+            <FormatPreview contentType={post.contentType} title={title}
+                           body={bodyTarget || bodyReview || post.body}
+                           mediaUrl={post.mediaUrl} />
+          )}
 
           {/* Media thật kèm bài */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',

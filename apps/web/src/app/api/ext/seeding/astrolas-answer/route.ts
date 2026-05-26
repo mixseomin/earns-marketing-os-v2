@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     parentAuthor?: string;
     maxLength?: number;
     topicsHint?: string[];
+    llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — Astrolas tự validate
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -148,6 +149,9 @@ export async function POST(req: Request) {
     max_length: body.maxLength ?? 2000,
     topics_hint: topics,
     request_id: `mos2-card-${cardId}`,
+    // Optional Astrolas llm_config override (Claude Opus / Sonnet / Haiku /
+    // OpenAI mini variants). null/missing → Astrolas skill default.
+    ...(body.llmConfig ? { llm_config: body.llmConfig } : {}),
   };
 
   // 4. Call Astrolas

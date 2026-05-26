@@ -54,8 +54,12 @@ import { FormatPreview } from './format-preview';
 import { generatePostImage, generatePostImageVariants, generatePostImageSequence,
          setCardMedia, listProjectMedia, type ProjectMediaItem } from '@/lib/actions/post-media';
 import { Spinner } from './ui';
+import ReactMarkdown from 'react-markdown';
 
 type SuggestableField = 'approachMd' | 'narrativeMd' | 'cadence' | 'tone' | 'doMd' | 'dontMd';
+
+// Field nào là markdown (cần preview formatted). cadence/tone là 1-line text → không cần.
+const MARKDOWN_FIELDS = new Set<SuggestableField>(['approachMd', 'narrativeMd', 'doMd', 'dontMd']);
 
 // Account status meta — dùng registry chung trong @/lib/status-meta. Pre-2026-05-22
 // đã có 1 map riêng ở đây + 1 ở accounts-vault + 1 ở seeding-cockpit → drift; giờ centralize.
@@ -327,6 +331,22 @@ export function BriefEditModal({
     (existing?.aiSuggestion as BriefSuggestion | null) ?? null,
   );
   const [suggestionAt, setSuggestionAt]   = useState<string | null>(existing?.aiSuggestionAt ?? null);
+  // Khi community nói non-en/non-vi language (vd r/Astrologia = es), AI ghi
+  // Spanish vào slot "vi" → UI label "VI" cần đổi thành "ES" để user khỏi nhầm.
+  // localeLabel = "Spanish (Español)" → derive code 2 chữ + full text cho tooltip.
+  const [localeLabel, setLocaleLabel] = useState<string | null>(null);
+  // Code 2 chữ derived từ localeLabel ("Spanish (...)" → "ES").
+  const localeCode = localeLabel ? (
+    /^Spanish/i.test(localeLabel)    ? 'ES' :
+    /^French/i.test(localeLabel)     ? 'FR' :
+    /^German/i.test(localeLabel)     ? 'DE' :
+    /^Portuguese/i.test(localeLabel) ? 'PT' :
+    /^Italian/i.test(localeLabel)    ? 'IT' :
+    'LOCAL'
+  ) : null;
+  // Hiển thị thay "VI" khi có locale override. Còn lại VI giữ nguyên.
+  const viSlotLabel = localeCode ?? 'VI';
+  const langLabel = (l: 'en' | 'vi') => l === 'vi' ? viSlotLabel : 'EN';
   // Sync khi parent re-fetch (server set aiSuggestion sau LLM generate).
   useEffect(() => {
     setSuggestion((existing?.aiSuggestion as BriefSuggestion | null) ?? null);
@@ -403,6 +423,7 @@ export function BriefEditModal({
       }
       setSuggestion(merged);
       setSuggestionAt(new Date().toISOString());
+      setLocaleLabel(res.localeLabel ?? null);
     });
   };
 
@@ -421,6 +442,30 @@ export function BriefEditModal({
     if (k === 'tone')        return tone;
     if (k === 'doMd')        return doMd;
     return dontMd;
+  };
+
+  // Toast inline "đã thay N fields" sau khi click Thay tất cả; auto fade 2s.
+  const [replaceAllToast, setReplaceAllToast] = useState<string | null>(null);
+
+  // Replace ALL 6 fields cùng lúc với active suggestLang. Field nào suggestion
+  // trống → skip (giữ current value). Đếm số field đã thay để show feedback.
+  const handleReplaceAll = (): void => {
+    if (!suggestion) return;
+    const lang = suggestLang;
+    const FIELDS: SuggestableField[] = ['approachMd', 'narrativeMd', 'cadence', 'tone', 'doMd', 'dontMd'];
+    let replaced = 0;
+    for (const f of FIELDS) {
+      const sug = suggestion[lang]?.[f]?.trim() ?? '';
+      if (!sug) continue;
+      if (sug === currentFor(f).trim()) continue;
+      setterFor(f)(sug);
+      replaced += 1;
+    }
+    const labelStr = lang === 'vi' ? viSlotLabel : 'EN';
+    setReplaceAllToast(replaced > 0
+      ? `✓ Đã thay ${replaced}/6 field (${labelStr})`
+      : `⚠ Không có field nào cần thay (suggestion ${labelStr} trùng/trống)`);
+    setTimeout(() => setReplaceAllToast(null), 2500);
   };
 
   const fld: React.CSSProperties = {
@@ -961,7 +1006,14 @@ export function BriefEditModal({
             <span style={{ fontSize: 14 }}>✨</span>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ color: 'var(--fg-0)', fontWeight: 600 }}>
-                AI đề xuất phương án (en + vi)
+                AI đề xuất phương án (EN + {viSlotLabel})
+                {localeLabel && (
+                  <span title={`Community ngôn ngữ: ${localeLabel} — slot "VI" được auto-fill bằng ${localeLabel} thay vì tiếng Việt.`}
+                        style={{ marginLeft: 6, padding: '1px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                                 background: 'var(--warn)', color: '#0d1117', borderRadius: 3, cursor: 'help' }}>
+                    🌐 LOCALE
+                  </span>
+                )}
                 {suggestionAt && (
                   <span style={{ marginLeft: 8, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontWeight: 400 }}>
                     · cached {fmtAgo(suggestionAt)}
@@ -976,14 +1028,14 @@ export function BriefEditModal({
               <div style={{ display: 'inline-flex', gap: 2, padding: 2, background: 'var(--bg-1)', border: '1px solid var(--accent-line)', borderRadius: 5 }}>
                 {(['vi', 'en'] as const).map((l) => (
                   <button key={l} type="button" onClick={() => setSuggestLang(l)}
-                          title={`Default lang for Replace/Append actions (${l.toUpperCase()})`}
+                          title={`Default lang for Replace/Append actions (${langLabel(l)})${l === 'vi' && localeLabel ? ` — community ${localeLabel}` : ''}`}
                           style={{
                             padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
                             background: suggestLang === l ? 'var(--accent)' : 'transparent',
                             color: suggestLang === l ? '#fff' : 'var(--accent)',
                             border: 'none', borderRadius: 3, cursor: 'pointer',
                           }}>
-                    {l.toUpperCase()}
+                    {langLabel(l)}
                   </button>
                 ))}
               </div>
@@ -1006,6 +1058,20 @@ export function BriefEditModal({
                 ? <><Spinner size="xs" /> Đang generate</>
                 : suggestion ? '↻ Regen tất cả' : '✨ Generate'}
             </button>
+            {suggestion && (
+              <button type="button"
+                      onClick={handleReplaceAll}
+                      className="btn" style={{ fontSize: 11, padding: '4px 10px' }}
+                      title={`Thay TẤT CẢ 6 field bằng suggestion ${langLabel(suggestLang)}. Field nào suggestion trùng/trống sẽ giữ nguyên.`}>
+                ⇄ Thay tất cả ({langLabel(suggestLang)})
+              </button>
+            )}
+            {replaceAllToast && (
+              <span style={{ fontSize: 11, color: replaceAllToast.startsWith('✓') ? 'var(--ok)' : 'var(--warn)',
+                             fontFamily: 'var(--font-mono)' }}>
+                {replaceAllToast}
+              </span>
+            )}
           </div>
           {/* Optional custom instruction — appended to LLM prompt as high-priority. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1057,7 +1123,7 @@ export function BriefEditModal({
               style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
               placeholder={'**Vòng cung**: hook → context → insight → mời tham gia\n**Giọng**: scholar warm-story-driven\n**Hook mở bài**: "Tôi đọc 50 chart tháng trước và nhận thấy..."\n**Kết**: câu hỏi mời chia sẻ câu chuyện'}
             />
-            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="narrativeMd" current={narrativeMd}
+            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="narrativeMd" current={narrativeMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('narrativeMd')} regenerating={regenField === 'narrativeMd'} />
             <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
@@ -1076,7 +1142,7 @@ export function BriefEditModal({
               style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
               placeholder="vd: Tham gia trả lời chart-reading. Reply dài 5-8 dòng, dẫn nguồn từ Astrolas. Soft-mention link app cuối reply nếu user hỏi sâu thêm."
             />
-            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="approachMd" current={approachMd}
+            <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="approachMd" current={approachMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('approachMd')} regenerating={regenField === 'approachMd'} />
           </div>
@@ -1089,7 +1155,7 @@ export function BriefEditModal({
                           onApply={(v) => setCadence(v)} />
               <input type="text" value={cadence} onChange={(e) => setCadence(e.target.value)}
                      style={fld} placeholder="3 replies/day" />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="cadence" current={cadence}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="cadence" current={cadence}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('cadence')} regenerating={regenField === 'cadence'} />
             </div>
@@ -1099,7 +1165,7 @@ export function BriefEditModal({
                           onApply={(v) => setTone(v)} />
               <input type="text" value={tone} onChange={(e) => setTone(e.target.value)}
                      style={fld} placeholder="helpful expert, mystical" />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="tone" current={tone}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="tone" current={tone}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('tone')} regenerating={regenField === 'tone'} />
             </div>
@@ -1113,7 +1179,7 @@ export function BriefEditModal({
               <textarea value={doMd} onChange={(e) => setDoMd(e.target.value)} rows={5}
                         style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
                         placeholder={'- Cite chart house + aspect\n- Acknowledge OP\'s feeling\n- Offer 1 actionable insight'} />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="doMd" current={doMd}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="doMd" current={doMd}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('doMd')} regenerating={regenField === 'doMd'} />
             </div>
@@ -1124,7 +1190,7 @@ export function BriefEditModal({
               <textarea value={dontMd} onChange={(e) => setDontMd(e.target.value)} rows={5}
                         style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 12, resize: 'vertical' }}
                         placeholder={'- Drop link in first sentence\n- Sound salesy\n- Ignore mod rules about astrology accuracy claims'} />
-              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} field="dontMd" current={dontMd}
+              <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} field="dontMd" current={dontMd}
                                 setterFor={setterFor} currentFor={currentFor}
                                 onRegenerate={() => handleGenerateSuggestion('dontMd')} regenerating={regenField === 'dontMd'} />
             </div>
@@ -1263,7 +1329,7 @@ function FieldLabel({
 // ──────────────────────────────────────────────────────────────────
 function SuggestionInline({
   suggestion, defaultLang, field, current, setterFor, currentFor,
-  onRegenerate, regenerating,
+  onRegenerate, regenerating, viSlotLabel = 'VI',
 }: {
   suggestion: BriefSuggestion | null;
   defaultLang: 'en' | 'vi';
@@ -1273,7 +1339,10 @@ function SuggestionInline({
   currentFor: (k: SuggestableField) => string;
   onRegenerate?: () => void;
   regenerating?: boolean;
+  /** Override hiển thị slot "vi" khi community nói language khác (es/fr/...) */
+  viSlotLabel?: string;
 }) {
+  const labelFor = (l: 'en' | 'vi') => l === 'vi' ? viSlotLabel : 'EN';
   // Auto-collapse khi field đã có nội dung - user không cần thấy suggestion
   // ngay; vẫn click để mở. Field rỗng → mở sẵn (user đang cần inspiration).
   const [open, setOpen] = useState(() => current.trim().length === 0);
@@ -1293,6 +1362,11 @@ function SuggestionInline({
   const setter = setterFor(field);
   const curr = currentFor(field);
 
+  // Markdown fields → hiển thị nút 👁 để hover xem rendered preview
+  // (markdown bullets / bold / arc headers nhiều dòng — đọc raw mệt).
+  const isMarkdownField = MARKDOWN_FIELDS.has(field);
+  const [showPreview, setShowPreview] = useState(false);
+
   const handleCopy = () => { void copy(sug); };
   // Replace -> setter + auto-collapse (field giờ đã có data, suggestion thu gọn lại)
   const handleReplace = () => { setter(sug); setOpen(false); };
@@ -1309,7 +1383,7 @@ function SuggestionInline({
                 background: 'transparent', border: '1px dashed var(--accent-line)',
                 borderRadius: 3, display: 'inline-flex', alignItems: 'center', gap: 4, opacity: 0.75,
               }}>
-        ✨ AI suggestion ({activeLang.toUpperCase()}) ▸
+        ✨ AI suggestion ({labelFor(activeLang)}) ▸
       </button>
     );
   }
@@ -1318,7 +1392,7 @@ function SuggestionInline({
     <div style={{
       marginTop: 4, fontSize: 11.5, lineHeight: 1.5,
       background: 'var(--accent-soft)', border: '1px dashed var(--accent-line)',
-      borderRadius: 5, overflow: 'hidden',
+      borderRadius: 5, position: 'relative',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
@@ -1337,13 +1411,13 @@ function SuggestionInline({
               <button key={l} type="button"
                       onClick={() => !dis && setActiveLang(l)}
                       disabled={dis}
-                      title={dis ? `(${l.toUpperCase()} chưa có)` : `Switch card to ${l.toUpperCase()}`}
+                      title={dis ? `(${labelFor(l)} chưa có)` : `Switch card to ${labelFor(l)}`}
                       style={{
                         padding: '1px 6px', fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)',
                         background: activeLang === l ? 'var(--accent)' : 'transparent',
                         color: activeLang === l ? '#fff' : (dis ? 'var(--fg-4)' : 'var(--accent)'),
                         border: 'none', borderRadius: 2, cursor: dis ? 'not-allowed' : 'pointer',
-                      }}>{l.toUpperCase()}</button>
+                      }}>{labelFor(l)}</button>
             );
           })}
         </div>
@@ -1351,16 +1425,28 @@ function SuggestionInline({
         {sug && (
           <>
             <button type="button" onClick={(e) => { e.stopPropagation(); handleReplace(); }}
-                    title={`Thay input bằng suggestion ${activeLang.toUpperCase()} (sẽ tự thu gọn sau)`}
+                    title={`Thay input bằng suggestion ${labelFor(activeLang)} (sẽ tự thu gọn sau)`}
                     style={btnStyle('var(--accent)', '#fff')}>↻ Thay</button>
             <button type="button" onClick={(e) => { e.stopPropagation(); handleAppend(); }}
-                    title={`Nối thêm suggestion ${activeLang.toUpperCase()} vào sau nội dung hiện có`}
+                    title={`Nối thêm suggestion ${labelFor(activeLang)} vào sau nội dung hiện có`}
                     style={btnStyle('transparent', 'var(--accent)', 'var(--accent-line)')}>+ Nối</button>
             <button type="button" onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-                    title={`Copy suggestion ${activeLang.toUpperCase()} vào clipboard`}
+                    title={`Copy suggestion ${labelFor(activeLang)} vào clipboard`}
                     style={btnStyle('transparent', 'var(--accent)', 'var(--accent-line)')}>
               {copied ? '✓ Đã copy' : '📋 Copy'}
             </button>
+            {isMarkdownField && (
+              <button type="button"
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseEnter={() => setShowPreview(true)}
+                      onMouseLeave={() => setShowPreview(false)}
+                      onFocus={() => setShowPreview(true)}
+                      onBlur={() => setShowPreview(false)}
+                      title="Hover để xem markdown đã render (bullets / bold / heading)"
+                      style={btnStyle('transparent', 'var(--accent)', 'var(--accent-line)')}>
+                👁 Preview
+              </button>
+            )}
           </>
         )}
         {onRegenerate && (
@@ -1381,7 +1467,27 @@ function SuggestionInline({
           borderTop: '1px dashed var(--accent-line)',
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           opacity: regenerating ? 0.5 : 1,
+          borderBottomLeftRadius: 5, borderBottomRightRadius: 5,
         }}>{sug}</pre>
+      )}
+      {/* Floating markdown preview — hover nút 👁 Preview để xem bullet/bold/heading rendered.
+          Position: ngay dưới card, full width, z-index cao để đè input bên dưới. */}
+      {isMarkdownField && showPreview && sug && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1500,
+          marginTop: 4, padding: '10px 14px',
+          background: 'var(--bg-1)', border: '1px solid var(--accent-line)',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: 6, boxShadow: '0 6px 24px rgba(0,0,0,.45)',
+          fontSize: 12, lineHeight: 1.55, color: 'var(--fg-0)',
+          maxHeight: 360, overflowY: 'auto',
+        }} className="md-preview">
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
+                        textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+            👁 Markdown preview ({labelFor(activeLang)})
+          </div>
+          <ReactMarkdown>{sug}</ReactMarkdown>
+        </div>
       )}
     </div>
   );

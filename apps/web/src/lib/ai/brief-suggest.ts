@@ -11,6 +11,7 @@ import { getDb, platformAccounts, platforms, habitats, tribes, habitatTribes, pr
 import { and, eq } from 'drizzle-orm';
 import { getFieldSchema } from '../habitat-field-schema';
 import { getBriefFieldSchema } from '../brief-field-schema';
+import { detectLang, LANG_LABEL, type Lang } from '../lang-detect';
 
 export interface BriefSuggestionLang {
   approachMd: string;
@@ -92,8 +93,11 @@ NARRATIVE FIELD GUIDANCE (narrativeMd):
 - Reference specific persona traits if account context provides them.
 
 RULES:
-- Both versions express the SAME strategy — vi is not a literal word-for-word translation
-  but a natural Vietnamese rendering with native idioms / register / flow.
+- Both versions express the SAME strategy — second slot is not a literal word-for-word translation
+  but a natural rendering with native idioms / register / flow.
+- The "vi" JSON key normally holds Vietnamese. HOWEVER, if a LOCALE OVERRIDE directive appears
+  in the user message, the "vi" key MUST hold the specified locale (Spanish / French / etc.)
+  instead of Vietnamese. Keep the JSON key name "vi" — change only the language of values.
 - Be SPECIFIC to the platform, the community subject, and the persona/handle. Generic advice = useless.
 - Respect community rules and self-promotion conventions of the platform. Reddit ≠ FB ≠ Discord.
 - If a field is already filled by the user, propose an ALTERNATIVE / refinement, NOT a copy.
@@ -128,6 +132,8 @@ function buildUserPrompt(args: {
   habitatScrapedMeta: Record<string, unknown>;
   briefScrapedMeta: Record<string, unknown>;
   pageKind: string;
+  detectedLang: Lang;
+  detectedLangSource: 'db' | 'auto' | 'none';
   tribeName: string | null;
   tribeDesc: string | null;
   tribePsychographic: string | null;
@@ -179,7 +185,8 @@ function buildUserPrompt(args: {
     args.habitatUrl ? `  url: ${args.habitatUrl}` : null,
     args.habitatMembers > 0 ? `  members: ${args.habitatMembers.toLocaleString()}` : null,
     args.habitatActivity ? `  activity: ${args.habitatActivity}` : null,
-    args.habitatLanguage ? `  language: ${args.habitatLanguage}` : null,
+    args.habitatLanguage ? `  language (declared): ${args.habitatLanguage}` : null,
+    (args.detectedLang !== 'unknown' && args.detectedLang !== 'en') ? `  language (${args.detectedLangSource === 'db' ? 'from DB' : 'auto-detected from rules/description'}): ${LANG_LABEL[args.detectedLang]}` : null,
     args.habitatCommunityType ? `  type: ${args.habitatCommunityType}` : null,
     args.habitatModStrictness ? `  mod strictness: ${args.habitatModStrictness}` : null,
     args.habitatBestPostTimes ? `  best post times: ${args.habitatBestPostTimes}` : null,
@@ -223,11 +230,26 @@ function buildUserPrompt(args: {
     args.regenEmptyOnly ? `  For each field marked "(FILLED — propose REFINEMENT)" above: return EMPTY STRING "" for that key in BOTH en and vi.` : null,
     args.regenEmptyOnly ? `  This applies to fields: approachMd, narrativeMd, cadence, tone, doMd, dontMd. Always include "rationale".` : null,
     '',
+    // Locale override: community speaks non-en/non-vi language → second slot
+    // phải là local language thay vì Vietnamese, vì community sẽ đọc + reply
+    // bằng local. Operator vẫn đọc en để hiểu strategy.
+    (args.detectedLang !== 'unknown' && args.detectedLang !== 'en' && args.detectedLang !== 'vi')
+      ? `LOCALE OVERRIDE (CRITICAL): This community speaks ${LANG_LABEL[args.detectedLang]}, NOT English or Vietnamese.\n  Keep "en" field as English (operator reads it).\n  BUT replace "vi" field content with ${LANG_LABEL[args.detectedLang]} (native diacritics + idioms). DO NOT output Vietnamese — output ${LANG_LABEL[args.detectedLang]} in the vi slot.\n  Keep JSON key name "vi" (don't rename), only change the LANGUAGE of its values.\n  Hook examples, tone, narrative voice — all must be authentic ${LANG_LABEL[args.detectedLang]} natives would actually post in this community.`
+      : null,
+    '',
     'Generate the JSON response now.',
   ].filter(Boolean).join('\n');
 }
 
-export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: boolean; suggestion?: BriefSuggestion; error?: string }> {
+export async function suggestBrief(req: BriefSuggestRequest): Promise<{
+  ok: boolean;
+  suggestion?: BriefSuggestion;
+  error?: string;
+  // Khi habitat community nói non-en/non-vi language, slot "vi" thực ra
+  // chứa local language → client hiển thị label đúng (vd "ES" thay vì "VI").
+  localeLang?: Lang;
+  localeLabel?: string;
+}> {
   if (!aiEnabled()) return { ok: false, error: 'OpenAI key not configured (OPENAI_API_KEY).' };
   const openai = getOpenAI();
   if (!openai) return { ok: false, error: 'OpenAI client unavailable' };
@@ -287,6 +309,31 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
   // tương lai derive từ platformKey + habitat.kind.
   const pageKind = 'subreddit-about';
 
+  // Language detection — ưu tiên habitat.language nếu set; fallback heuristic
+  // detect từ description + postingRules + title (đủ context vì rules thường
+  // dài 200-500 chars). Community Spanish/French/... cần brief đúng locale.
+  // Khi field "language" trong DB là một chuỗi như "es" → tin tưởng DB.
+  type LangSource = 'db' | 'auto' | 'none';
+  let detectedLang: Lang = 'unknown';
+  let detectedLangSource: LangSource = 'none';
+  const dbLang = (habitat.language ?? '').trim().toLowerCase();
+  const KNOWN: Lang[] = ['en', 'vi', 'es', 'fr', 'de', 'pt', 'it'];
+  if ((KNOWN as string[]).includes(dbLang)) {
+    detectedLang = dbLang as Lang;
+    detectedLangSource = 'db';
+  } else {
+    const corpus = [
+      habitat.title ?? '',
+      habitat.description ?? '',
+      habitat.postingRules ?? '',
+    ].filter(Boolean).join('\n');
+    const auto = detectLang(corpus);
+    if (auto !== 'unknown') {
+      detectedLang = auto;
+      detectedLangSource = 'auto';
+    }
+  }
+
   const userPrompt = buildUserPrompt({
     accountHandle: acc.handle,
     accountStatus: acc.status,
@@ -313,6 +360,8 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
     habitatScrapedMeta: (habitat.scrapedMeta as Record<string, unknown>) ?? {},
     briefScrapedMeta,
     pageKind,
+    detectedLang,
+    detectedLangSource,
     tribeName: tribeNameAgg,
     tribeDesc: primaryTribe?.descText ?? null,
     tribePsychographic: primaryTribe?.psychographic ?? null,
@@ -351,7 +400,15 @@ export async function suggestBrief(req: BriefSuggestRequest): Promise<{ ok: bool
         rationale:   String(o.rationale ?? ''),
       };
     };
-    return { ok: true, suggestion: { en: pick('en'), vi: pick('vi') } };
+    // Khi locale override fired (community != en/vi), slot "vi" chứa local
+    // language → trả về cho client để label tab/badge đúng (vd "ES" thay vì "VI").
+    const localeOverride = detectedLang !== 'unknown' && detectedLang !== 'en' && detectedLang !== 'vi';
+    return {
+      ok: true,
+      suggestion: { en: pick('en'), vi: pick('vi') },
+      localeLang: localeOverride ? detectedLang : undefined,
+      localeLabel: localeOverride ? LANG_LABEL[detectedLang] : undefined,
+    };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

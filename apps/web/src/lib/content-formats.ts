@@ -5,6 +5,8 @@
 //
 // Dùng được cả ở server actions lẫn client (chỉ là const + pure fn).
 
+import { getSupportedTypes } from './platform-rules';
+
 export interface ContentFormat {
   key: string;
   label: string;   // hiển thị (tiếng Việt cho UI nội bộ)
@@ -145,31 +147,36 @@ export function computeMixAchievement(
 // messaging/marketplace/newsletter/design/other.
 interface FormatProfile { formats: string[]; mix: Record<string, number> }
 
+// 'comment' + 'reply' (interactions) áp dụng MỌI category — append vào
+// formats list (không vào mix vì interactions trigger riêng, không qua mix
+// auto-generation).
+const INTERACTION_FORMATS = ['comment', 'reply'];
+
 const PROFILE_BY_CATEGORY: Record<string, FormatProfile> = {
-  social:      { formats: ['text', 'image', 'video', 'link', 'thread', 'poll', 'carousel', 'story'],
+  social:      { formats: ['text', 'image', 'video', 'link', 'thread', 'poll', 'carousel', 'story', ...INTERACTION_FORMATS],
                  mix: { image: 4, text: 3, video: 2, link: 1, poll: 1 } },
-  community:   { formats: ['text', 'image', 'link', 'poll', 'thread'],
+  community:   { formats: ['text', 'image', 'link', 'poll', 'thread', ...INTERACTION_FORMATS],
                  mix: { text: 5, image: 2, link: 2, poll: 1 } },
-  video:       { formats: ['video', 'image', 'text'],
+  video:       { formats: ['video', 'image', 'text', ...INTERACTION_FORMATS],
                  mix: { video: 6, image: 2, text: 1 } },
-  messaging:   { formats: ['text', 'image', 'link', 'poll'],
+  messaging:   { formats: ['text', 'image', 'link', 'poll', ...INTERACTION_FORMATS],
                  mix: { text: 4, image: 2, link: 2 } },
-  blog:        { formats: ['doc', 'link', 'text'],
+  blog:        { formats: ['doc', 'link', 'text', ...INTERACTION_FORMATS],
                  mix: { doc: 4, link: 2, text: 1 } },
-  newsletter:  { formats: ['doc', 'link', 'text'],
+  newsletter:  { formats: ['doc', 'link', 'text', ...INTERACTION_FORMATS],
                  mix: { doc: 5, link: 2 } },
-  launch:      { formats: ['text', 'image', 'link', 'video'],
+  launch:      { formats: ['text', 'image', 'link', 'video', ...INTERACTION_FORMATS],
                  mix: { text: 3, image: 2, link: 2, video: 1 } },
-  design:      { formats: ['image', 'carousel', 'video', 'text'],
+  design:      { formats: ['image', 'carousel', 'video', 'text', ...INTERACTION_FORMATS],
                  mix: { image: 4, carousel: 2, video: 2, text: 1 } },
-  marketplace: { formats: ['text', 'image', 'link'],
+  marketplace: { formats: ['text', 'image', 'link', ...INTERACTION_FORMATS],
                  mix: { image: 3, text: 2, link: 1 } },
-  tech:        { formats: ['text', 'link', 'image', 'doc'],
+  tech:        { formats: ['text', 'link', 'image', 'doc', ...INTERACTION_FORMATS],
                  mix: { text: 4, link: 2, image: 1, doc: 1 } },
 };
 
 const DEFAULT_PROFILE: FormatProfile = {
-  formats: ['text', 'image', 'link'],
+  formats: ['text', 'image', 'link', ...INTERACTION_FORMATS],
   mix: { text: 3, image: 2, link: 1 },
 };
 
@@ -213,7 +220,11 @@ export function allowedFormats(
   else if (platformOverride && platformOverride.length > 0) keys = platformOverride;
   else keys = formatProfile(platformKey, category).formats;
   const set = new Set(keys);
-  return CONTENT_FORMATS.filter((f) => set.has(f.key));
+  // Platform-rules là source of truth thứ cuối — chỉ giữ types mà platform
+  // THỰC SỰ support (vd 'story' chỉ FB/IG, không phải Reddit; comment/reply
+  // luôn available cho mọi platform).
+  const supported = new Set(getSupportedTypes(platformKey));
+  return CONTENT_FORMATS.filter((f) => set.has(f.key) && supported.has(f.key));
 }
 
 // Mix hiệu lực — resolve order: PhaseEntry override → platforms.format_mix

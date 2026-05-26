@@ -31,6 +31,7 @@ import {
   PHASE_LABEL, PHASE_COLOR, PHASE_DESCRIPTION,
 } from '@/lib/phase-plan';
 import { CONTENT_FORMATS, formatMeta, allowedFormats, formatColors, postCompleteness, effectiveMix, computeMixAchievement, isInteractionType } from '@/lib/content-formats';
+import { getContentRules, validateContent } from '@/lib/platform-rules';
 import { FormatIcon, IconSliders, IconChevron, ModalHeader, InfoHint, SiteFavicon } from './ui';
 import {
   listPostsForBriefPhase, createPostForBriefPhase, createPlaceholdersForBriefPhase,
@@ -3717,6 +3718,68 @@ function PostRow({
                      style={fld} />
             </div>
           )}
+
+          {/* Platform requirements banner — char limit + media required + hints
+              theo (platform, content_type). User biết cần viết bao nhiêu, gần
+              limit chưa, có cần media không. */}
+          {(() => {
+            const r = getContentRules(platformKey, post.contentType);
+            const v = validateContent(platformKey, post.contentType, title, bodyTarget, !!post.mediaAssetId);
+            return (
+              <div style={{ padding: '6px 10px', background: 'var(--bg-2)',
+                            border: '1px solid var(--line)', borderRadius: 5,
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            flexWrap: 'wrap', fontSize: 10.5 }}>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                               textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>
+                  📐 Platform rules
+                </span>
+                {r.titleMax > 0 && (() => {
+                  const len = title.trim().length;
+                  const over = len > r.titleMax;
+                  const near = !over && r.titleMax > 0 && len > r.titleMax * 0.85;
+                  return (
+                    <span style={{ fontFamily: 'var(--font-mono)',
+                                   color: over ? 'var(--bad)' : near ? 'var(--warn)' : 'var(--fg-3)' }}
+                          title={`Title: ${r.titleMin}-${r.titleMax} chars`}>
+                      Title {len}/{r.titleMax}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  const len = bodyTarget.trim().length;
+                  const over = len > r.bodyMax;
+                  const near = !over && r.bodyMax > 0 && len > r.bodyMax * 0.85;
+                  const under = r.bodyMin > 0 && len < r.bodyMin;
+                  return (
+                    <span style={{ fontFamily: 'var(--font-mono)',
+                                   color: over || under ? 'var(--bad)' : near ? 'var(--warn)' : 'var(--ok)' }}
+                          title={`Body: ${r.bodyMin}-${r.bodyMax} chars`}>
+                      Body {len}/{r.bodyMax}
+                    </span>
+                  );
+                })()}
+                {r.mediaRequired && (
+                  <span style={{ fontFamily: 'var(--font-mono)',
+                                 color: post.mediaAssetId ? 'var(--ok)' : 'var(--bad)' }}
+                        title="Loại bài này YÊU CẦU media (ảnh/video) attached">
+                    📎 {post.mediaAssetId ? 'có media' : 'thiếu media'}
+                  </span>
+                )}
+                <span style={{ flex: 1, fontSize: 10.5, color: 'var(--fg-3)' }}>
+                  · {r.hint}
+                </span>
+                {v.errors.length > 0 && (
+                  <span style={{ padding: '1px 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 background: 'rgba(248,113,113,.15)', color: 'var(--bad)',
+                                 border: '1px solid rgba(248,113,113,.4)', borderRadius: 3, fontWeight: 700 }}
+                        title={v.errors.join('\n')}>
+                    ⚠ {v.errors.length} lỗi
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Body editors - 2 cột nếu bilingual, target trái (đăng thật, primary)
               | review phải (VN). Khớp thứ tự với title row + preview phía trên. */}

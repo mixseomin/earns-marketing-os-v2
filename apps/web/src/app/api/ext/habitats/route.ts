@@ -294,10 +294,17 @@ export async function POST(req: Request) {
         ))
         .limit(1);
 
+      // CHỈ /api/ext/briefs được update joinStatus — endpoint dedicated
+      // dùng scraped_meta.join_status (text-pattern match chính xác Join/
+      // Joined/Leave). /api/ext/habitats KHÔNG ghi đè brief joinStatus
+      // — vì body.viewer_joined đến từ heuristic attr 'joined' trên
+      // <shreddit-join-button> có thể delay khi Reddit re-render → race.
+      //
+      // /api/ext/habitats chỉ AUTO-CREATE brief minimal nếu chưa có
+      // (relationship account↔habitat lần đầu) — KHÔNG update existing.
       if (acct.length > 0) {
         const accountId = acct[0]!.id;
-        const newJoinStatus = body.viewer_joined ? 'joined' : 'not_joined';
-        const existingBrief = await db.select({ id: communityBriefs.id, joinStatus: communityBriefs.joinStatus })
+        const existingBrief = await db.select({ id: communityBriefs.id })
           .from(communityBriefs)
           .where(and(
             eq(communityBriefs.accountId, accountId),
@@ -306,22 +313,12 @@ export async function POST(req: Request) {
           .limit(1);
 
         if (existingBrief.length > 0) {
-          const cur = existingBrief[0]!;
-          if (cur.joinStatus !== newJoinStatus) {
-            await db.update(communityBriefs)
-              .set({
-                joinStatus: newJoinStatus,
-                joinedAt: body.viewer_joined ? sql`COALESCE(${communityBriefs.joinedAt}, NOW())` : null,
-                updatedAt: new Date(),
-              })
-              .where(eq(communityBriefs.id, cur.id));
-            viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'updated' };
-          } else {
-            viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'unchanged' };
-          }
+          viewerUpdate = { handle: cleanHandle, joined: body.viewer_joined, briefAction: 'exists-keep' };
         } else {
-          // Tạo brief mới với joinStatus = detected. Chỉ upsert minimal —
-          // approach/cadence/tone user fill sau trong modal.
+          // Auto-create brief minimal (chưa có brief cho cặp account-habitat
+          // này). joinStatus default từ heuristic (sẽ được /api/ext/briefs
+          // sync chính xác sau khi ext scrape join_status authoritative).
+          const newJoinStatus = body.viewer_joined ? 'joined' : 'not_joined';
           await db.insert(communityBriefs).values({
             tenantId: 'self',
             projectId: body.projectId,

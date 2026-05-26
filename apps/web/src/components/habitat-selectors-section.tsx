@@ -68,13 +68,22 @@ export function HabitatSelectorsSection({
   editScope, editKey, pageKind = 'subreddit-about',
 }: Props) {
   const [refreshing, setRefreshing] = useState(false);
-  // Resolve value của field trên habitat hiện tại — null nếu không có
-  // column tương ứng hoặc value rỗng.
+  // Resolve value của field trên habitat hiện tại.
+  // Lookup order:
+  //   1. FIELD_TO_HABITAT_PROP map (typed column như iconUrl, members…)
+  //   2. habitat.scrapedMeta[fieldKey] (custom fields jsonb — migration 0066)
+  // → mọi field user thêm qua ext "+ New custom" tự động bind không cần
+  // sửa FIELD_TO_HABITAT_PROP.
   const getHabitatValue = (fieldKey: string): string | null => {
     if (!habitat) return null;
+    const hab = habitat as Record<string, unknown>;
     const prop = FIELD_TO_HABITAT_PROP[fieldKey];
-    if (!prop) return null;
-    const v = (habitat as Record<string, unknown>)[prop];
+    let v: unknown = prop ? hab[prop] : undefined;
+    // Fallback scraped_meta cho custom fields
+    if (v == null) {
+      const meta = hab.scrapedMeta as Record<string, unknown> | undefined;
+      if (meta && typeof meta === 'object') v = meta[fieldKey];
+    }
     if (v == null) return null;
     if (v instanceof Date) return v.toISOString();
     const s = String(v).trim();

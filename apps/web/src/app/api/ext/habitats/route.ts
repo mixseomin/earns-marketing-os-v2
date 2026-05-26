@@ -31,6 +31,10 @@ interface ExtHabitatPayload {
   // cho account đang login trên Reddit ↔ habitat này).
   viewer_handle?: string | null;       // 'Lithervard' (no u/ prefix)
   viewer_joined?: boolean | null;      // true | false | null (chưa detect)
+  // migration 0066: generic kv cho mọi custom field user thêm qua ext
+  // ("+ New custom field" → field_name → value extract qua selector).
+  // Server merge với existing scraped_meta, không replace toàn bộ.
+  scraped_meta?: Record<string, unknown>;
 }
 
 // GET /api/ext/habitats?platform_key=reddit&name=r%2Fastrology → duplicate check
@@ -172,6 +176,7 @@ export async function POST(req: Request) {
     description: body.description ?? '',
     title: body.title ?? '',
     importedFrom: 'mos2-crew-ext',
+    // scrapedMeta merge xử lý SAU khi load existing row — không set ở đây
     lastSyncAt: new Date(),
     updatedAt: new Date(),
   };
@@ -181,7 +186,19 @@ export async function POST(req: Request) {
   if (existing.length > 0) {
     habitatId = existing[0]!.id;
     action = 'updated';
-    await db.update(habitats).set(patch).where(eq(habitats.id, habitatId));
+    // Merge scraped_meta với row hiện tại (KHÔNG replace — giữ field
+    // user đã scrape lần trước, chỉ thêm/update keys mới từ payload).
+    const finalPatch: Record<string, unknown> = { ...patch };
+    if (body.scraped_meta && typeof body.scraped_meta === 'object') {
+      const cur = await db
+        .select({ scrapedMeta: habitats.scrapedMeta })
+        .from(habitats)
+        .where(eq(habitats.id, habitatId))
+        .limit(1);
+      const curMeta = (cur[0]?.scrapedMeta as Record<string, unknown>) || {};
+      finalPatch.scrapedMeta = { ...curMeta, ...body.scraped_meta };
+    }
+    await db.update(habitats).set(finalPatch).where(eq(habitats.id, habitatId));
   } else {
     // Habitat chưa có trong project hiện tại — check xem cùng platform+name
     // có tồn tại ở project KHÁC không. Nếu có, clone data fields project-agnostic
@@ -252,6 +269,7 @@ export async function POST(req: Request) {
         url: body.url,
         platformKey: body.platform_key,
         ...patch,
+        scrapedMeta: body.scraped_meta || {},
       }).returning({ id: habitats.id });
       habitatId = inserted[0]!.id;
       action = 'created';

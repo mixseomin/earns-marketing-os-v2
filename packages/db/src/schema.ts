@@ -628,6 +628,11 @@ export const habitats = pgTable(
     // đây là tên hiển thị đầu sidebar ("Astrology Memes" vs "r/astrologymemes").
     // Optional — fallback name nếu chưa scrape.
     title: text('title').notNull().default(''),
+    // migration 0066: generic kv storage cho mọi custom field user
+    // thêm qua MOS2 Crew ext (official_website, discord_invite, twitter,
+    // telegram, etc.) — tránh ALTER TABLE mỗi field mới.
+    // Ext POST /api/ext/habitats với scraped_meta object, server merge.
+    scrapedMeta: jsonb('scraped_meta').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

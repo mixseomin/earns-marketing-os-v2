@@ -56,6 +56,7 @@ import { generatePostImage, generatePostImageVariants, generatePostImageSequence
 import { Spinner } from './ui';
 import ReactMarkdown from 'react-markdown';
 import { getLangMeta, langTooltip } from '@/lib/lang-meta';
+import { TEXT_MODELS, IMAGE_MODELS, costBadge, type ModelOption } from '@/lib/ai/model-options';
 
 type SuggestableField = 'approachMd' | 'narrativeMd' | 'cadence' | 'tone' | 'doMd' | 'dontMd';
 
@@ -77,6 +78,59 @@ function normalizeMarkdown(s: string): string {
   // Collapse 3+ blank lines → 2
   out = out.replace(/\n{3,}/g, '\n\n');
   return out.trim();
+}
+
+// Hook localStorage-backed model preference. SSR-safe (default trên server).
+// Bug useLocal SSR clobber từng gặp — gate write trong useEffect sau hydrate.
+function useModelPref(key: string, def: string): [string, (v: string) => void] {
+  const [val, setVal] = useState<string>(def);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+    try {
+      const stored = window.localStorage.getItem(key);
+      if (stored) setVal(stored);
+    } catch { /* SSR or private mode */ }
+  }, [key]);
+  useEffect(() => {
+    if (!hydrated) return;
+    try { window.localStorage.setItem(key, val); } catch { /* ignore */ }
+  }, [key, val, hydrated]);
+  return [val, setVal];
+}
+
+// Render chip select for model picker — flag-style cho compact header.
+function ModelPickerChip({
+  value, onChange, options, kind,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  options: ModelOption[];
+  kind: 'text' | 'image';
+}) {
+  const cur = options.find((m) => m.id === value) ?? options[0]!;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex' }}>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+              title={`AI model cho ${kind === 'text' ? 'sinh draft text' : 'sinh ảnh'}: ${cur.label} — ${cur.hint}`}
+              style={{
+                appearance: 'none', WebkitAppearance: 'none',
+                padding: '2px 16px 2px 7px', fontSize: 10, fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                background: 'var(--bg-2)', color: 'var(--fg-2)',
+                border: '1px solid var(--line)', borderRadius: 3,
+                cursor: 'pointer', minWidth: 100,
+              }}>
+        {options.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.label} {costBadge(m.cost)}{m.reasoning ? ' 🧠' : ''}
+          </option>
+        ))}
+      </select>
+      <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                     fontSize: 8, color: 'var(--fg-3)', pointerEvents: 'none' }}>▾</span>
+    </span>
+  );
 }
 
 // Account status meta — dùng registry chung trong @/lib/status-meta. Pre-2026-05-22
@@ -2819,10 +2873,14 @@ function PostRow({
   const [variants, setVariants] = useState<Array<{ assetId: number; url: string }> | null>(null);
   // Sequence preview: carousel/thread cần multi-image, list từng beat
   const [sequence, setSequence] = useState<Array<{ assetId: number; url: string; beat: string }> | null>(null);
+  // Model preferences — remembered across cards/sessions trong localStorage.
+  // Default: o3-mini cho text (rẻ reasoning), gpt-image-2-medium cho ảnh.
+  const [textModelId, setTextModelId] = useModelPref('mos2.draft.textModel', 'o3-mini');
+  const [imageModelId, setImageModelId] = useModelPref('mos2.draft.imageModel', 'gpt-image-2-medium');
   const genImg = () => {
     setMediaErr(null); setMediaBusy('gen');
     startTransition(async () => {
-      const r = await generatePostImage(projectId, post.id);
+      const r = await generatePostImage(projectId, post.id, { modelId: imageModelId });
       setMediaBusy(null);
       if (!r.ok) { setMediaErr(r.error ?? 'Lỗi sinh ảnh'); return; }
       // Cập nhật local NGAY — không refresh, không refetch list.
@@ -3004,7 +3062,7 @@ function PostRow({
     setAiError(null);
     setDraftRationale(null);
     startTransition(async () => {
-      const res = await generateFullDraft(post.id);
+      const res = await generateFullDraft(post.id, { modelId: textModelId });
       setDraftBusy(false);
       if (!res.ok) { setAiError(res.error ?? 'Generate failed'); return; }
       if (res.rationale) setDraftRationale(res.rationale);
@@ -3284,12 +3342,13 @@ function PostRow({
               : <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>chưa có ảnh thật</span>}
             <span style={{ flex: 1 }} />
             <button type="button" className="btn primary" disabled={!!mediaBusy} onClick={genImg}
-                    title="AI sinh 1 ảnh (gpt-image-2 chất lượng medium) theo brief + giọng điệu + phong cách của habitat. Tự gắn vào bài. ≈ $0.05/ảnh."
+                    title={`AI sinh 1 ảnh theo brief + giọng điệu + phong cách của habitat. Tự gắn vào bài. Model hiện tại: ${imageModelId}. Click chip bên cạnh để đổi.`}
                     style={{ fontSize: 11, padding: '4px 9px' }}>
               {mediaBusy === 'gen'
                 ? <><Spinner size="xs" /> Đang sinh</>
-                : <>✨ Sinh ảnh <span style={{ opacity: 0.7, fontWeight: 400 }}>≈ $0.05</span></>}
+                : <>✨ Sinh ảnh</>}
             </button>
+            <ModelPickerChip value={imageModelId} onChange={setImageModelId} options={IMAGE_MODELS} kind="image" />
             <button type="button" className="btn" disabled={!!mediaBusy} onClick={genVariants}
                     title="Sinh 3 phương án song song (3 góc/bố cục khác nhau, cùng giọng/phong cách). Chọn 1 → các ảnh còn lại vẫn lưu thư viện. ≈ $0.16."
                     style={{ fontSize: 11, padding: '4px 9px' }}>
@@ -3476,10 +3535,11 @@ function PostRow({
               preloadedCtx={bundle ? buildPreloadedVoiceCtx(post, bundle) : null}
             />
             <button type="button" className="btn primary" onClick={handleGenerate} disabled={draftBusy}
-                    title="Dùng reasoning model (o3-mini) viết full draft cả 2 ngôn ngữ từ context phase + persona + community rules + voice profile + few-shot examples. ~3-5s. ≈ $0.01/lần."
+                    title={`AI viết full draft cả 2 ngôn ngữ từ context phase + persona + community rules + voice profile + few-shot examples. Model hiện tại: ${textModelId}. Click chip bên cạnh để đổi.`}
                     style={{ fontSize: 10, padding: '4px 10px' }}>
-              {draftBusy ? <><Spinner size="xs" /> Đang sinh draft</> : <>✨ Sinh draft đầy đủ <span style={{ opacity: 0.7 }}>≈ $0.01</span></>}
+              {draftBusy ? <><Spinner size="xs" /> Đang sinh draft</> : <>✨ Sinh draft đầy đủ</>}
             </button>
+            <ModelPickerChip value={textModelId} onChange={setTextModelId} options={TEXT_MODELS} kind="text" />
             <button type="button" className="btn" onClick={handleCritique} disabled={critiqueBusy}
                     title="Reasoning model review bản nháp: dự đoán mod có remove không, list risks + suggest fix. Chi phí ước lượng ≈ $0.005 / lần."
                     style={{ fontSize: 10, padding: '4px 10px' }}>

@@ -195,9 +195,22 @@ async function persistImage(
   return { assetId, url: storeUrl };
 }
 
+// Map UI model id → OpenAI API model + quality. modelId format gọn ("gpt-image-2-medium")
+// trong UI, ở đây tách thành { model, quality }. FLUX → external, không support ở đây
+// (placeholder cho future external image API integration).
+function resolveImageModel(modelId?: string): { model: string; quality: 'low' | 'medium' | 'high' } {
+  switch (modelId) {
+    case 'gpt-image-2-low':    return { model: 'gpt-image-2', quality: 'low' };
+    case 'gpt-image-2-high':   return { model: 'gpt-image-2', quality: 'high' };
+    case 'gpt-image-2-medium': return { model: 'gpt-image-2', quality: 'medium' };
+    case 'flux-schnell':       return { model: 'gpt-image-2', quality: 'low' }; // fallback
+    default:                   return { model: 'gpt-image-2', quality: 'medium' };
+  }
+}
+
 // Sinh 1 ảnh — set làm media chính của card. Behavior cũ, vẫn dùng cho text/image post.
 export async function generatePostImage(
-  projectId: string, cardId: number,
+  projectId: string, cardId: number, opts?: { modelId?: string },
 ): Promise<{ ok: boolean; assetId?: number; url?: string; error?: string }> {
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
   const ctxOrErr = await loadImageContext(projectId, cardId);
@@ -205,13 +218,12 @@ export async function generatePostImage(
   const ctx = ctxOrErr;
   const { size } = aspectAndSize(ctx.contentType);
   const prompt = buildImagePrompt(ctx);
+  const { model, quality } = resolveImageModel(opts?.modelId);
   try {
     const client = getOpenAI()!;
-    const res = await client.images.generate({
-      model: 'gpt-image-2', prompt, size, quality: 'medium', n: 1,
-    });
+    const res = await client.images.generate({ model, prompt, size, quality, n: 1 });
     const b64 = res.data?.[0]?.b64_json;
-    if (!b64) return { ok: false, error: 'gpt-image-2 không trả ảnh' };
+    if (!b64) return { ok: false, error: `${model} không trả ảnh` };
     const buf = Buffer.from(b64, 'base64');
     const [w, h] = size.split('x').map(Number) as [number, number];
     const saved = await persistImage(ctx, buf, b64, { w, h }, prompt, true, 'v1');

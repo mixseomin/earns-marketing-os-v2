@@ -11,6 +11,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
+import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
@@ -324,11 +325,12 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     ctx.phaseDontMd || ctx.briefDontMd || '(chưa có)',
     '',
     // TRIBE LEXICON — native vocabulary + outsider tells. Aggregate từ all
-    // habitat_tribes của habitat. Quan trọng hơn brief NÊN/KHÔNG vì là từ
-    // điển thực tế: dùng đúng từ → blend in; dùng sai 1 từ → bị tag outsider.
-    ctx.tribeLexicon.length > 0 ? `# TRIBE LEXICON — NATIVE VOCABULARY (PREFER these phrases)` : null,
+    // habitat_tribes của habitat. ⚠ SCOPE: chỉ apply cho bodyTarget (ngôn
+    // ngữ thực tế cộng đồng) — bodyReview là VN cho operator review nên
+    // KHÔNG dùng English lexicon (tránh code-switching nhìn chối).
+    ctx.tribeLexicon.length > 0 ? `# TRIBE LEXICON — NATIVE VOCABULARY (PREFER these phrases trong bodyTarget; KHÔNG dùng trong bodyReview)` : null,
     ctx.tribeLexicon.length > 0 ? ctx.tribeLexicon.map((w) => `  - ${w}`).join('\n') : null,
-    ctx.tribeAvoid.length > 0 ? `\n# TRIBE AVOID — OUTSIDER TELLS (these instantly mark you as not-from-here, NEVER use):` : null,
+    ctx.tribeAvoid.length > 0 ? `\n# TRIBE AVOID — OUTSIDER TELLS (NEVER use ở cả bodyReview lẫn bodyTarget):` : null,
     ctx.tribeAvoid.length > 0 ? ctx.tribeAvoid.map((w) => `  - ${w}`).join('\n') : null,
     ctx.tribePsychographic.length > 0 ? `\nTribe psychographic context: ${ctx.tribePsychographic.join(' | ')}` : null,
     '',
@@ -356,11 +358,18 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     `Ngôn ngữ target (đăng thật): ${ctx.targetLang}`,
     ctx.isBilingual
       ? `Trả lời JSON với 2 phiên bản:
-  - bodyReview: tiếng Việt có dấu, để operator review/duyệt nhanh
-  - bodyTarget: ngôn ngữ ${ctx.targetLang}, sẵn sàng paste lên ${ctx.habitatName}
-Cả 2 phải tải CÙNG nội dung (cùng arc, cùng hook, cùng CTA), khác nhau chỉ về ngôn ngữ + idiom.`
+  - bodyReview: TIẾNG VIỆT 100% có dấu, để operator review/duyệt nhanh.
+    ⚠ TUYỆT ĐỐI không code-switching English giữa câu. KHÔNG dùng tribe lexicon
+    nếu lexicon đó là English ("Its giving X", "be like", "big X energy", "Y vibes",
+    "X coded", etc.) — dịch ngược về tiếng Việt tự nhiên thay vì giữ nguyên slang.
+    Tribe lexicon ở trên ÁP DỤNG CHO bodyTarget, KHÔNG cho bodyReview.
+    Riêng tên riêng (handle account, brand name, sub name) giữ nguyên — không dịch.
+  - bodyTarget: ngôn ngữ ${ctx.targetLang} NATIVE, sẵn sàng paste lên ${ctx.habitatName}.
+    Dùng tribe lexicon + idiom + register chuẩn của native speaker ngôn ngữ ${ctx.targetLang}.
+    KHÔNG code-switching ngôn ngữ khác trừ technical terms quen thuộc của community.
+Cả 2 phải tải CÙNG arc/hook/CTA — khác nhau chỉ về ngôn ngữ + idiom.`
       : `Trả lời JSON 1 phiên bản tiếng Việt (vì community = vi):
-  - bodyReview: bản tiếng Việt (chính)
+  - bodyReview: bản tiếng Việt 100% có dấu (chính). KHÔNG code-switching English.
   - bodyTarget: giữ giống bodyReview`,
     '',
     `Output STRICT JSON:`,
@@ -411,7 +420,7 @@ Cả 2 phải tải CÙNG nội dung (cùng arc, cùng hook, cùng CTA), khác n
 // ── generateFullDraft (reasoning) ──────────────────────────────────
 
 export async function generateFullDraft(
-  cardId: number, opts?: { hookChoice?: string },
+  cardId: number, opts?: { hookChoice?: string; modelId?: string },
 ): Promise<{
   ok: boolean; saved?: boolean; rationale?: string; error?: string;
   // Trả nguyên data đã lưu — client setState local thay vì revalidate page.
@@ -425,8 +434,13 @@ export async function generateFullDraft(
 
     const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null);
 
+    // Model resolution: user override (whitelist) > REASONING_MODEL default.
+    const chosenModel = opts?.modelId && isValidTextModel(opts.modelId)
+      ? opts.modelId
+      : REASONING_MODEL;
+
     const completion = await client.chat.completions.create({
-      model: REASONING_MODEL,
+      model: chosenModel,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'user', content: `Bạn là community-marketing copywriter senior. ${userPrompt}` },

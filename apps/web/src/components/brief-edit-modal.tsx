@@ -501,7 +501,10 @@ export function BriefEditModal({
     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
   };
 
-  const handleSave = () => {
+  // Toast inline "✓ Đã lưu" sau khi save keepOpen=true (không close modal).
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  const handleSave = (opts?: { keepOpen?: boolean }) => {
     setBusy(true);
     setError(null);
     startTransition(async () => {
@@ -510,10 +513,30 @@ export function BriefEditModal({
       });
       setBusy(false);
       if (!res.ok) { setError(res.error || 'Save failed'); return; }
-      router.refresh();
+      // Notify parent để re-fetch brief data (sau persist).
+      if (onPostsChanged) onPostsChanged();
+      else router.refresh();
+      if (opts?.keepOpen) {
+        setSaveToast(`✓ Đã lưu lúc ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+        setTimeout(() => setSaveToast(null), 2500);
+        return;
+      }
       onClose();
     });
   };
+
+  // Ctrl/⌘+S = save & keep open. Convention quen từ editor (VSCode, Google Docs).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isSave = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's';
+      if (!isSave) return;
+      e.preventDefault();
+      if (!busy && existing) handleSave({ keepOpen: true });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, existing, approachMd, narrativeMd, cadence, tone, doMd, dontMd, templates]);
 
   const handleDelete = () => {
     if (!existing) return;
@@ -1254,7 +1277,15 @@ export function BriefEditModal({
           <div className="meta">
             {existing ? `Đang sửa #${existing.id}` : 'Brief mới'}
           </div>
-          <div className="modal-foot-actions">
+          <div className="modal-foot-actions" style={{ alignItems: 'center' }}>
+            {saveToast && (
+              <span style={{ marginRight: 8, padding: '4px 10px', background: 'var(--ok)',
+                             color: '#0d1117', borderRadius: 4, fontSize: 10.5,
+                             fontFamily: 'var(--font-mono)', fontWeight: 700,
+                             boxShadow: '0 2px 8px rgba(74,222,128,.3)' }}>
+                {saveToast}
+              </span>
+            )}
             {existing && (
               <button className="btn danger" onClick={handleDelete} disabled={busy}
                       style={confirmDelete ? { animation: 'pulseDanger 1s ease-in-out infinite' } : undefined}>
@@ -1262,8 +1293,15 @@ export function BriefEditModal({
               </button>
             )}
             <button className="btn ghost" onClick={onClose} disabled={busy}>Hủy</button>
-            <button className="btn primary" onClick={handleSave} disabled={busy}>
-              {busy ? <><Spinner size="xs" /> Đang lưu</> : (existing ? 'Lưu' : 'Tạo brief')}
+            {existing && (
+              <button className="btn" onClick={() => handleSave({ keepOpen: true })} disabled={busy}
+                      title="Lưu nhưng giữ modal mở (tiếp tục chỉnh sửa thêm). Phím tắt: Ctrl+S / ⌘S">
+                {busy ? <><Spinner size="xs" /> Đang lưu</> : '💾 Lưu, giữ mở'}
+              </button>
+            )}
+            <button className="btn primary" onClick={() => handleSave()} disabled={busy}
+                    title={existing ? 'Lưu + đóng modal' : 'Tạo brief + đóng modal'}>
+              {busy ? <><Spinner size="xs" /> Đang lưu</> : (existing ? 'Lưu & đóng' : 'Tạo brief')}
             </button>
           </div>
         </div>

@@ -363,6 +363,8 @@ export async function POST(req: Request) {
       rules_count: body.rules?.length ?? 0,
       hot_titles_count: body.hot_titles?.length ?? 0,
       viewer_handle: body.viewer_handle, viewer_joined: body.viewer_joined,
+      scraped_meta_keys: body.scraped_meta ? Object.keys(body.scraped_meta) : [],
+      scraped_meta: body.scraped_meta || null,
     },
     responseMeta: response,
     status: 200, durationMs: Date.now() - startedAt,

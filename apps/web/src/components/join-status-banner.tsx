@@ -22,6 +22,17 @@ import { TextField, TextAreaField } from './ui';
 // members (cảnh giác community nhỏ), modStrictness + rules (cần intro post
 // trước không?), min karma/age (account đủ điều kiện chưa?), dominant/
 // forbidden topics (post gì vào để được approve).
+// Account context — user cần biết ĐANG join community NÀY cho ACCOUNT NÀO.
+// Bắt buộc cho modal multi-account: 1 habitat có 3 briefs (3 accounts) → mở
+// nhầm modal cũng phải biết account nào đang được sửa state.
+export interface AccountJoinContext {
+  handle: string | null;          // @oritapp (no '@' prefix)
+  platformLabel: string;          // "Reddit" / "Discord" / ...
+  status: string;                 // active|banned|cooling|...
+  blockReason?: string | null;    // lý do nếu banned
+  avatarUrl?: string | null;      // ảnh đại diện account
+}
+
 export interface HabitatJoinContext {
   name: string;
   kind: string;                 // discord-server, subreddit, fb-group, ...
@@ -53,6 +64,9 @@ export interface JoinStatusBannerProps {
   /** Habitat context cho popover edit — nếu không pass, popover chỉ có form
       cơ bản (URL + note). Pass vào để show "yêu cầu join" + "cấm/khuyến khích". */
   habitatInfo?: HabitatJoinContext | null;
+  /** Account context — render ở popover header để user biết ĐANG sửa membership
+      cho account NÀO (cần khi 1 habitat có nhiều briefs từ nhiều accounts). */
+  accountInfo?: AccountJoinContext | null;
   /** Click "Mở chi tiết habitat" trong popover → mở HabitatFormModal sửa rules.
       Optional vì có thể context view-only. */
   onOpenHabitat?: () => void;
@@ -65,7 +79,7 @@ JoinStatusBanner.displayName = 'JoinStatusBanner';
 function JoinStatusBannerImpl({
   projectId, briefId, habitatLabel, habitatUrl,
   joinStatus, joinedAt, joinUrl, joinNote,
-  habitatInfo, onOpenHabitat, onChange,
+  habitatInfo, accountInfo, onOpenHabitat, onChange,
 }: JoinStatusBannerProps) {
   const [editing, setEditing] = useState(false);
   const [, startTrans] = useTransition();
@@ -127,6 +141,7 @@ function JoinStatusBannerImpl({
             onUrlChange={setEditUrl} onNoteChange={setEditNote}
             habitatUrl={habitatUrl}
             habitatInfo={habitatInfo ?? null}
+            accountInfo={accountInfo ?? null}
             habitatLabel={habitatLabel}
             onOpenHabitat={onOpenHabitat}
           />
@@ -237,6 +252,7 @@ function JoinStatusBannerImpl({
           onUrlChange={setEditUrl} onNoteChange={setEditNote}
           habitatUrl={habitatUrl}
           habitatInfo={habitatInfo ?? null}
+          accountInfo={accountInfo ?? null}
           habitatLabel={habitatLabel}
           onOpenHabitat={onOpenHabitat}
         />
@@ -255,11 +271,12 @@ function joinBtnStyle(color: string): CSSProperties {
 
 function JoinStatusEditPopover({
   current, url, note, busy, onSet, onClose, onUrlChange, onNoteChange,
-  habitatUrl, habitatInfo, habitatLabel, onOpenHabitat,
+  habitatUrl, habitatInfo, accountInfo, habitatLabel, onOpenHabitat,
 }: {
   current: JoinStatus; url: string; note: string; busy: boolean;
   habitatUrl: string | null;
   habitatInfo: HabitatJoinContext | null;
+  accountInfo: AccountJoinContext | null;
   habitatLabel: string;
   onOpenHabitat?: () => void;
   onSet: (next: JoinStatus) => void;
@@ -268,6 +285,7 @@ function JoinStatusEditPopover({
   onNoteChange: (v: string) => void;
 }) {
   const h = habitatInfo;
+  const a = accountInfo;
   return (
     <div className="modal-backdrop" style={{ zIndex: 2100 }}
          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -288,6 +306,11 @@ function JoinStatusEditPopover({
         {/* Body — scrollable */}
         <div style={{ overflowY: 'auto', flex: 1, padding: 16,
                       display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Account context — show "đang sửa membership cho account nào".
+              QUAN TRỌNG: 1 habitat thường có nhiều briefs (mỗi account 1 brief),
+              user cần thấy rõ account hiện tại để không click nhầm. */}
+          {a && <AccountContextPanel info={a} />}
+
           {/* Habitat context — show "đang quyết định join community nào" */}
           {h && <HabitatContextPanel info={h} habitatUrl={habitatUrl} onOpenHabitat={onOpenHabitat} />}
 
@@ -337,6 +360,68 @@ function JoinStatusEditPopover({
           💡 Bấm 1 button trạng thái phía trên để lưu (auto close).
         </div>
       </div>
+    </div>
+  );
+}
+
+// AccountContextPanel — compact 1-row card hiển thị account đang được sửa
+// membership. Persona handle + platform + status badge. Banned/cooling →
+// đỏ + warning text vì không nên join community mới khi account đang bị block.
+function AccountContextPanel({ info }: { info: AccountJoinContext }) {
+  const statusColor = info.status === 'active' ? 'var(--ok)'
+                    : info.status === 'banned' || info.status === 'kicked' ? 'var(--bad)'
+                    : info.status === 'cooling' || info.status === 'pending' ? 'var(--warn)'
+                    : 'var(--fg-3)';
+  const isBlocked = info.status === 'banned' || info.status === 'kicked';
+  return (
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-line)',
+                  borderLeft: '3px solid var(--accent)',
+                  borderRadius: 6, padding: '10px 12px',
+                  display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {info.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={info.avatarUrl} alt="" width={28} height={28}
+               style={{ borderRadius: '50%', flexShrink: 0, border: '1px solid var(--line)' }} />
+        ) : (
+          <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                        background: 'var(--bg-1)', border: '1px solid var(--line)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+            {info.handle ? info.handle.charAt(0).toUpperCase() : '?'}
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                        textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 1 }}>
+            Đang sửa membership cho
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            @{info.handle ?? 'no-handle'}
+            <span style={{ marginLeft: 8, fontSize: 10.5, color: 'var(--fg-3)',
+                           fontWeight: 400, fontFamily: 'var(--font-mono)' }}>
+              · {info.platformLabel}
+            </span>
+          </div>
+        </div>
+        <span title={info.blockReason ?? `Account status: ${info.status}`}
+              style={{ padding: '2px 7px', fontSize: 10, fontFamily: 'var(--font-mono)',
+                       fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                       letterSpacing: '.04em', cursor: info.blockReason ? 'help' : 'default',
+                       background: statusColor + '22', color: statusColor,
+                       border: `1px solid ${statusColor}66` }}>
+          {info.status}
+        </span>
+      </div>
+      {isBlocked && (
+        <div style={{ fontSize: 10.5, color: 'var(--bad)', lineHeight: 1.4,
+                      padding: '4px 8px', background: 'rgba(248,113,113,.08)',
+                      borderRadius: 3 }}>
+          ⚠ Account đang bị <strong>{info.status}</strong>
+          {info.blockReason ? ` — ${info.blockReason}` : ''}. Không nên join community mới đến khi unblock.
+        </div>
+      )}
     </div>
   );
 }

@@ -629,6 +629,18 @@ export function BriefEditModal({
               joinUrl={joinUrl}
               joinNote={joinNote}
               habitatInfo={habitatInfo}
+              accountInfo={(() => {
+                // accountLabel format: "@oritapp · Reddit" — split để lấy handle + platform.
+                const parts = accountLabel.split('·').map((s) => s.trim());
+                const handle = parts[0]?.replace(/^@/, '') ?? null;
+                const platformLabel = parts[1] ?? (platformKey ?? '');
+                return {
+                  handle: handle || null,
+                  platformLabel,
+                  status: accountStatus ?? 'unknown',
+                  blockReason: accountBlockReason ?? null,
+                };
+              })()}
               onOpenHabitat={onOpenHabitat ? () => onOpenHabitat(habitatId) : undefined}
               onChange={(next, payload) => {
                 setJoinStatusState(next);

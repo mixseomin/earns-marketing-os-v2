@@ -479,36 +479,56 @@ export function HabitatFormModal({
                             background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
                             textDecoration: 'none' }}>↗</a>
               )}
-              {/* Language inline editor — flag + label, always visible ở header.
-                  Click select đổi nhanh, không cần scroll xuống Outreach meta. */}
+              {/* Language inline editor — flag + code pill + label đồng nhất
+                  với brief modal header. Native <select> text bị làm trong suốt;
+                  overlay span hiển thị nội dung custom (flag + ES + Español). */}
               {!isCreate && (() => {
                 const meta = getLangMeta(form.language);
                 const isSet = !!form.language;
+                const code = (form.language || '').toUpperCase();
                 return (
                   <span style={{ position: 'relative', display: 'inline-flex' }}>
-                    <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)',
-                                   fontSize: 13, lineHeight: 1, pointerEvents: 'none', zIndex: 1 }}>
-                      {meta.flag}
+                    {/* Overlay hiển thị "🇪🇸 ES Español" — pointer-events:none để click pass through select. */}
+                    <span style={{ position: 'absolute', inset: 0,
+                                   display: 'inline-flex', alignItems: 'center', gap: 5,
+                                   padding: '0 18px 0 8px',
+                                   pointerEvents: 'none', zIndex: 1,
+                                   fontSize: 11, fontWeight: 700,
+                                   color: isSet ? 'var(--ok)' : 'var(--warn)' }}>
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>{meta.flag}</span>
+                      {isSet && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                                       padding: '0 4px', borderRadius: 2,
+                                       background: 'rgba(74,222,128,.2)',
+                                       letterSpacing: '.04em' }}>
+                          {code}
+                        </span>
+                      )}
+                      <span style={{ fontWeight: 600 }}>{meta.label}</span>
                     </span>
                     <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)}
                             title={langTooltip(form.language)}
                             style={{
                               appearance: 'none', WebkitAppearance: 'none',
-                              padding: '3px 18px 3px 28px', fontSize: 11, fontWeight: 700,
+                              padding: '3px 18px 3px 8px', fontSize: 11, fontWeight: 700,
                               fontFamily: 'var(--font-sans)', letterSpacing: '.01em',
                               background: isSet ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
-                              color: isSet ? 'var(--ok)' : 'var(--warn)',
+                              color: 'transparent',  // ẩn native text — overlay span ở trên hiển thị
                               border: `1px solid ${isSet ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
-                              borderRadius: 4, cursor: 'pointer', minWidth: 110,
+                              borderRadius: 4, cursor: 'pointer', minWidth: 150,
                             }}>
                       {LANGUAGES.map((l) => {
                         const m = getLangMeta(l);
-                        return <option key={l} value={l}>{m.flag} {l ? `${l.toUpperCase()} · ` : ''}{m.label}</option>;
+                        // Option text: browser fallback render trong dropdown (KHÔNG bị transparent
+                        // vì option element không inherit từ select khi mở popup native).
+                        return <option key={l} value={l} style={{ color: 'var(--fg-0)' }}>
+                          {m.flag} {l ? `${l.toUpperCase()} · ` : ''}{m.label}
+                        </option>;
                       })}
                     </select>
                     <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',
                                    fontSize: 8, color: isSet ? 'var(--ok)' : 'var(--warn)',
-                                   pointerEvents: 'none' }}>▾</span>
+                                   pointerEvents: 'none', zIndex: 2 }}>▾</span>
                   </span>
                 );
               })()}

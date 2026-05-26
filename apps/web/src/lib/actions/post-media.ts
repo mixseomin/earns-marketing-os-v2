@@ -195,16 +195,17 @@ async function persistImage(
   return { assetId, url: storeUrl };
 }
 
-// Map UI model id → OpenAI API model + quality. modelId format gọn ("gpt-image-2-medium")
-// trong UI, ở đây tách thành { model, quality }. FLUX → external, không support ở đây
-// (placeholder cho future external image API integration).
+// Map UI model id → OpenAI API model + quality. modelId format gọn
+// ("gpt-image-2-medium") trong UI, ở đây tách thành { model, quality }.
+// IDs verified qua GET /v1/models 2026-05-26.
 function resolveImageModel(modelId?: string): { model: string; quality: 'low' | 'medium' | 'high' } {
   switch (modelId) {
-    case 'gpt-image-2-low':    return { model: 'gpt-image-2', quality: 'low' };
-    case 'gpt-image-2-high':   return { model: 'gpt-image-2', quality: 'high' };
-    case 'gpt-image-2-medium': return { model: 'gpt-image-2', quality: 'medium' };
-    case 'flux-schnell':       return { model: 'gpt-image-2', quality: 'low' }; // fallback
-    default:                   return { model: 'gpt-image-2', quality: 'medium' };
+    case 'gpt-image-1-mini':     return { model: 'gpt-image-1-mini', quality: 'medium' };
+    case 'gpt-image-1.5-medium': return { model: 'gpt-image-1.5',    quality: 'medium' };
+    case 'gpt-image-2-low':      return { model: 'gpt-image-2',      quality: 'low' };
+    case 'gpt-image-2-high':     return { model: 'gpt-image-2',      quality: 'high' };
+    case 'gpt-image-2-medium':   return { model: 'gpt-image-2',      quality: 'medium' };
+    default:                     return { model: 'gpt-image-2',      quality: 'medium' };
   }
 }
 

@@ -424,7 +424,7 @@ export async function generateFullDraft(
 ): Promise<{
   ok: boolean; saved?: boolean; rationale?: string; error?: string;
   // Trả nguyên data đã lưu — client setState local thay vì revalidate page.
-  title?: string; bodyReview?: string; bodyTarget?: string;
+  title?: string; titleReview?: string; bodyReview?: string; bodyTarget?: string;
 }> {
   try {
     const client = ensureClient();
@@ -458,11 +458,13 @@ export async function generateFullDraft(
 
     const db = getDb();
     if (!db) return { ok: false, error: 'DATABASE_URL not configured' };
-    const newTitle = String(parsed.titleTarget ?? parsed.titleReview ?? ctx.cardTitle);
+    const newTitleTarget = String(parsed.titleTarget ?? parsed.titleReview ?? ctx.cardTitle);
+    const newTitleReview = String(parsed.titleReview ?? parsed.titleTarget ?? ctx.cardTitle);
     const newBodyReview = String(parsed.bodyReview ?? '');
     const newBodyTarget = String(parsed.bodyTarget ?? parsed.bodyReview ?? '');
     await db.update(cards).set({
-      title: newTitle,
+      title: newTitleTarget,
+      titleReview: newTitleReview,
       bodyReview: newBodyReview,
       bodyTarget: newBodyTarget,
       updatedAt: new Date(),
@@ -471,7 +473,8 @@ export async function generateFullDraft(
     // values trả về. Cả page re-render = lãng phí + UX giật.
     return {
       ok: true, saved: true, rationale: parsed.rationale,
-      title: newTitle, bodyReview: newBodyReview, bodyTarget: newBodyTarget,
+      title: newTitleTarget, titleReview: newTitleReview,
+      bodyReview: newBodyReview, bodyTarget: newBodyTarget,
     };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

@@ -179,7 +179,10 @@ export const cards = pgTable(
     projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
     cardRef: text('card_ref').notNull(),                    // 'OFR-2891'
     col: text('col').notNull(),                             // 'needs', 'deciding', 'approved', ...
+    // title = bản đăng thật (theo target_lang). Khi target_lang='vi' thì
+    // titleReview merge với title. titleReview luôn vi để operator review.
     title: text('title').notNull(),
+    titleReview: text('title_review').notNull().default(''),     // 0067: bilingual
     squadKey: text('squad_key').notNull(),                  // FK-by-key into squads.squadKey (denorm for speed)
     level: smallint('level').notNull().default(2),          // 1-4 trust level
     money: text('money'),                                   // free-form: '+est. 18tr/tháng', '-2.4tr/ngày'

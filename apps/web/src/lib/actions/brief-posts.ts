@@ -23,7 +23,8 @@ function ensureDb() {
 export interface BriefPost {
   id: number;
   cardRef: string;
-  title: string;
+  title: string;             // bản đăng thật theo target_lang
+  titleReview: string;       // bản vi review (0067) — fallback từ title nếu rỗng
   body: string;              // legacy field - chỉ dùng nếu body_review + body_target rỗng
   bodyReview: string;        // luôn vi-VN
   bodyTarget: string;        // theo target_lang
@@ -67,7 +68,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   // Server actions của Next có overhead serialization/RSC framing cao —
   // giảm số round-trip là tối ưu lớn nhất ở tầng này.
   const rows = await db.execute(sql`
-    SELECT c.id, c.card_ref, c.title, c.body, c.body_review, c.body_target,
+    SELECT c.id, c.card_ref, c.title, c.title_review, c.body, c.body_review, c.body_target,
            c.target_lang, c.content_type, c.media_asset_id, c.channel_id,
            c.pillar_id, c.content_kind, c.col, c.level,
            c.urgent, c.tags, c.brief_id, c.brief_phase, c.agent_kind,
@@ -99,7 +100,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
      ORDER BY c.updated_at DESC
   `);
   type Row = {
-    id: number; card_ref: string; title: string | null;
+    id: number; card_ref: string; title: string | null; title_review: string | null;
     body: string | null; body_review: string | null; body_target: string | null;
     target_lang: string | null; content_type: string | null;
     media_asset_id: number | null; channel_id: number | null;
@@ -122,6 +123,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     id: Number(r.id),     // cast pg bigint string → number
     cardRef: r.card_ref,
     title: r.title ?? '',
+    titleReview: r.title_review ?? r.title ?? '',
     body: r.body ?? '',
     bodyReview: r.body_review ?? '',
     bodyTarget: r.body_target ?? '',
@@ -323,7 +325,7 @@ export async function createPostForBriefPhase(
 export async function updatePost(
   projectId: string, cardId: number,
   patch: {
-    title?: string; body?: string;
+    title?: string; titleReview?: string; body?: string;
     bodyReview?: string; bodyTarget?: string; targetLang?: string;
     contentType?: string;
     channelId?: number | null;
@@ -336,6 +338,7 @@ export async function updatePost(
   await db.update(cards)
     .set({
       ...(patch.title != null ? { title: patch.title } : {}),
+      ...(patch.titleReview != null ? { titleReview: patch.titleReview } : {}),
       ...(patch.body != null ? { body: patch.body } : {}),
       ...(patch.bodyReview != null ? { bodyReview: patch.bodyReview } : {}),
       ...(patch.bodyTarget != null ? { bodyTarget: patch.bodyTarget } : {}),

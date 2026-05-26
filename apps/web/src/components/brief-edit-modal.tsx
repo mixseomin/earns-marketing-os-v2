@@ -56,7 +56,7 @@ import { generatePostImage, generatePostImageVariants, generatePostImageSequence
 import { Spinner } from './ui';
 import ReactMarkdown from 'react-markdown';
 import { getLangMeta, langTooltip } from '@/lib/lang-meta';
-import { TEXT_MODELS, IMAGE_MODELS, costBadge, type ModelOption } from '@/lib/ai/model-options';
+import { TEXT_MODELS, IMAGE_MODELS, costBadge, formatPrice, modelTooltip, type ModelOption } from '@/lib/ai/model-options';
 
 type SuggestableField = 'approachMd' | 'narrativeMd' | 'cadence' | 'tone' | 'doMd' | 'dontMd';
 
@@ -99,7 +99,8 @@ function useModelPref(key: string, def: string): [string, (v: string) => void] {
   return [val, setVal];
 }
 
-// Render chip select for model picker — flag-style cho compact header.
+// Render chip select for model picker — hiển thị label + price + reasoning flag.
+// Option label = "GPT-5 mini · $0.25↓/$2.00↑/M 🧠" (per 1M tokens) hoặc "$0.053/ảnh".
 function ModelPickerChip({
   value, onChange, options, kind,
 }: {
@@ -110,25 +111,33 @@ function ModelPickerChip({
 }) {
   const cur = options.find((m) => m.id === value) ?? options[0]!;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
+    <span style={{ position: 'relative', display: 'inline-flex' }}
+          title={modelTooltip(cur)}>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-              title={`AI model cho ${kind === 'text' ? 'sinh draft text' : 'sinh ảnh'}: ${cur.label} — ${cur.hint}`}
               style={{
                 appearance: 'none', WebkitAppearance: 'none',
                 padding: '2px 16px 2px 7px', fontSize: 10, fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
                 background: 'var(--bg-2)', color: 'var(--fg-2)',
                 border: '1px solid var(--line)', borderRadius: 3,
-                cursor: 'pointer', minWidth: 100,
+                cursor: 'pointer', minWidth: 120,
               }}>
         {options.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.label} {costBadge(m.cost)}{m.reasoning ? ' 🧠' : ''}
+          <option key={m.id} value={m.id} title={modelTooltip(m)}>
+            {m.label} · {formatPrice(m)}{m.reasoning ? ' 🧠' : ''} {costBadge(m.cost)}
           </option>
         ))}
       </select>
       <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
                      fontSize: 8, color: 'var(--fg-3)', pointerEvents: 'none' }}>▾</span>
+      {/* Price hint chip cạnh — luôn hiển thị giá hiện tại để khỏi mở dropdown.
+          kind=text → $X↓/$Y↑/M; kind=image → $X/ảnh */}
+      <span style={{ marginLeft: 4, padding: '1px 5px', fontSize: 9,
+                     fontFamily: 'var(--font-mono)', color: cur.cost === 'cheap' ? 'var(--ok)' : cur.cost === 'mid' ? 'var(--fg-2)' : 'var(--warn)',
+                     background: 'var(--bg-1)', border: '1px solid var(--line)',
+                     borderRadius: 2 }}>
+        💰 {formatPrice(cur)}
+      </span>
     </span>
   );
 }
@@ -2859,6 +2868,7 @@ function PostRow({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [title, setTitle] = useState(post.title);
+  const [titleReview, setTitleReview] = useState(post.titleReview || post.title);
   const [bodyReview, setBodyReview] = useState(post.bodyReview);
   const [bodyTarget, setBodyTarget] = useState(post.bodyTarget);
   const [col, setCol] = useState(post.col);
@@ -2874,8 +2884,8 @@ function PostRow({
   // Sequence preview: carousel/thread cần multi-image, list từng beat
   const [sequence, setSequence] = useState<Array<{ assetId: number; url: string; beat: string }> | null>(null);
   // Model preferences — remembered across cards/sessions trong localStorage.
-  // Default: o3-mini cho text (rẻ reasoning), gpt-image-2-medium cho ảnh.
-  const [textModelId, setTextModelId] = useModelPref('mos2.draft.textModel', 'o3-mini');
+  // Default: o4-mini cho text (reasoning generation mới), gpt-image-2-medium cho ảnh.
+  const [textModelId, setTextModelId] = useModelPref('mos2.draft.textModel', 'o4-mini');
   const [imageModelId, setImageModelId] = useModelPref('mos2.draft.imageModel', 'gpt-image-2-medium');
   const genImg = () => {
     setMediaErr(null); setMediaBusy('gen');
@@ -3025,12 +3035,13 @@ function PostRow({
   // Re-sync khi post từ server thay đổi (vd: sau AI generate)
   useEffect(() => {
     setTitle(post.title);
+    setTitleReview(post.titleReview || post.title);
     setBodyReview(post.bodyReview);
     setBodyTarget(post.bodyTarget);
     setCol(post.col);
-  }, [post.title, post.bodyReview, post.bodyTarget, post.col]);
+  }, [post.title, post.titleReview, post.bodyReview, post.bodyTarget, post.col]);
 
-  const persist = (patch: { title?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string }) => {
+  const persist = (patch: { title?: string; titleReview?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string }) => {
     setSaving(true);
     // Optimistic local — không onChange (refetch list) cũng không router.refresh.
     // Patch chỉ chứa fields đã đổi → áp dụng trực tiếp lên posts state.
@@ -3068,10 +3079,12 @@ function PostRow({
       if (res.rationale) setDraftRationale(res.rationale);
       // Local setState + patch — không refresh, không refetch list.
       if (res.title != null) setTitle(res.title);
+      if (res.titleReview != null) setTitleReview(res.titleReview);
       if (res.bodyReview != null) setBodyReview(res.bodyReview);
       if (res.bodyTarget != null) setBodyTarget(res.bodyTarget);
       onLocalPatch?.({
         ...(res.title != null ? { title: res.title } : {}),
+        ...(res.titleReview != null ? { titleReview: res.titleReview } : {}),
         ...(res.bodyReview != null ? { bodyReview: res.bodyReview } : {}),
         ...(res.bodyTarget != null ? { bodyTarget: res.bodyTarget } : {}),
       });
@@ -3575,14 +3588,37 @@ function PostRow({
             <CritiquePanel critique={critique} onClose={() => setCritique(null)} />
           )}
 
-          {/* Title */}
-          <div>
-            <label style={labelStyle}>Tiêu đề</label>
-            <input type="text" value={title}
-                   onChange={(e) => setTitle(e.target.value)}
-                   onBlur={() => title !== post.title && persist({ title })}
-                   style={fld} />
-          </div>
+          {/* Title — 2 cột nếu bilingual (VN review + target đăng thật) */}
+          {isBilingual ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <label style={labelStyle} title="Tiêu đề tiếng Việt — để bạn review nhanh.">
+                  🇻🇳 Tiêu đề VN (review)
+                </label>
+                <input type="text" value={titleReview}
+                       onChange={(e) => setTitleReview(e.target.value)}
+                       onBlur={() => titleReview !== post.titleReview && persist({ titleReview })}
+                       style={fld} placeholder="Tiêu đề tiếng Việt để review nhanh" />
+              </div>
+              <div>
+                <label style={labelStyle} title={`Tiêu đề ${post.targetLang.toUpperCase()} — sẽ paste lên community.`}>
+                  🌐 Tiêu đề {post.targetLang.toUpperCase()} (đăng thật)
+                </label>
+                <input type="text" value={title}
+                       onChange={(e) => setTitle(e.target.value)}
+                       onBlur={() => title !== post.title && persist({ title })}
+                       style={fld} placeholder={`Tiêu đề ngôn ngữ ${post.targetLang}`} />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label style={labelStyle}>Tiêu đề</label>
+              <input type="text" value={title}
+                     onChange={(e) => setTitle(e.target.value)}
+                     onBlur={() => title !== post.title && persist({ title, titleReview: title })}
+                     style={fld} />
+            </div>
+          )}
 
           {/* Body editors - 2 cột nếu bilingual, 1 cột nếu target=vi */}
           {isBilingual ? (

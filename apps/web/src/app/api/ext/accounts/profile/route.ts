@@ -21,7 +21,14 @@ export async function GET(req: Request) {
   if (authErr) return authErr;
 
   const url = new URL(req.url);
-  const handle = (url.searchParams.get('handle') ?? '').trim().replace(/^u\//i, '').replace(/^@/, '');
+  // Strip mọi prefix có thể: u/, @, /u/, /user/, etc → handle thuần
+  const rawHandle = (url.searchParams.get('handle') ?? '').trim();
+  const handle = rawHandle
+    .replace(/^\/+/, '')
+    .replace(/^u\//i, '')
+    .replace(/^user\//i, '')
+    .replace(/^@/, '')
+    .trim();
   const platformKey = (url.searchParams.get('platformKey') ?? '').trim().toLowerCase();
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
 
@@ -32,7 +39,9 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
 
-  // 1. Lookup account
+  // 1. Lookup account — case-insensitive + cross-project (1 handle dùng nhiều projects)
+  // Reddit/FB preserve case nhưng login state có thể return lowercase trong API
+  // (vd /me.json), nên TRIM + LOWER 2 phía.
   const accRows = await db.execute(sql`
     SELECT
       pa.id, pa.project_id, pa.handle, pa.email, pa.status, pa.block_reason,
@@ -41,24 +50,71 @@ export async function GET(req: Request) {
     FROM platform_accounts pa
     LEFT JOIN platforms p ON p.key = pa.platform_key
     WHERE pa.platform_key = ${platformKey}
-      AND LOWER(pa.handle) = LOWER(${handle})
+      AND LOWER(TRIM(pa.handle)) = LOWER(TRIM(${handle}))
+    ORDER BY pa.updated_at DESC NULLS LAST
     LIMIT 1
   `);
   const acc = (accRows as unknown as Array<Record<string, unknown>>)[0];
 
   if (!acc) {
+    // Debug: log để verify tại sao miss
+    console.warn('[ext/accounts/profile] miss', { platformKey, handle, rawHandle });
+    // Fuzzy fallback: ILIKE handle để bắt typo / case / whitespace.
+    // Reddit/FB strip whitespace nhưng user có thể nhập tay vào MOS2 với
+    // space lung tung; case-insensitive lookup ở trên đã handle case nên
+    // chỉ test ILIKE để bắt typo + handles tương tự.
+    const fuzzy = await db.execute(sql`
+      SELECT id, handle FROM platform_accounts
+      WHERE platform_key = ${platformKey}
+        AND handle ILIKE ${'%' + handle + '%'}
+      LIMIT 5
+    `);
+    const fuzzyMatches = (fuzzy as unknown as Array<Record<string, unknown>>)
+      .map((r) => ({ id: Number(r.id), handle: String(r.handle ?? '') }))
+      .filter((m) => m.handle);
+
+    const candidates = await db.execute(sql`
+      SELECT handle FROM platform_accounts
+      WHERE platform_key = ${platformKey} AND handle IS NOT NULL
+      ORDER BY updated_at DESC LIMIT 20
+    `);
+    const candList = (candidates as unknown as Array<Record<string, unknown>>)
+      .map((r) => String(r.handle ?? '')).filter(Boolean);
     return NextResponse.json({
       ok: true,
       account: null,
-      message: `Chưa tìm thấy account @${handle} trên ${platformKey} trong MOS2.`,
+      debug: { handle, platformKey, rawHandle, candidates: candList, fuzzyMatches },
+      message: fuzzyMatches.length
+        ? `Không match exact "@${handle}", nhưng có ${fuzzyMatches.length} handle tương tự: ${fuzzyMatches.map((m) => '@' + m.handle).join(', ')}.`
+        : `Chưa tìm thấy account @${handle} trên ${platformKey} trong MOS2. (Có ${candList.length} account khác)`,
     });
   }
 
   const persona = (acc.persona as Record<string, unknown> | null) ?? {};
 
-  // 2. Brief context — nếu có habitatId
+  // 2. Brief context — pass habitatId từ ext. Brief = pair (account, habitat).
+  // Nếu pair chưa có → null. UI side panel sẽ hiển thị nút tạo brief.
   let brief: Record<string, unknown> | null = null;
   let habitat: Record<string, unknown> | null = null;
+  // Trả list ALL briefs của account (cross-habitat) → side panel có thể
+  // hiển thị "có brief ở 3 habitat khác" + link mở.
+  const allBriefRows = await db.execute(sql`
+    SELECT b.id, b.habitat_id, h.name AS habitat_name, b.current_phase, b.join_status
+    FROM community_briefs b
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    WHERE b.account_id = ${Number(acc.id)}
+    ORDER BY b.updated_at DESC
+    LIMIT 20
+  `);
+  const otherBriefs = (allBriefRows as unknown as Array<Record<string, unknown>>)
+    .map((r) => ({
+      id: Number(r.id),
+      habitatId: Number(r.habitat_id),
+      habitatName: String(r.habitat_name ?? ''),
+      currentPhase: String(r.current_phase ?? ''),
+      joinStatus: String(r.join_status ?? ''),
+    }));
+
   if (habitatId > 0) {
     const briefRows = await db.execute(sql`
       SELECT
@@ -96,6 +152,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    otherBriefs,
     account: {
       id: Number(acc.id),
       projectId: String(acc.project_id),

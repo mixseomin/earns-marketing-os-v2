@@ -45,6 +45,7 @@ import {
 // markCardSeeded sử dụng qua confirmCardPosted trong DispatchPostFlow
 import { suggestBrief, type BriefSuggestion, type BriefSuggestionLang } from '@/lib/ai/brief-suggest';
 import { parseParentContext } from '@/lib/ai/parent-parser';
+import { getAstrolasAnswer } from '@/lib/ai/astrolas-answer';
 import { AIFormParser } from './ai-form-parser';
 import { VoiceContextPill } from './voice-context-pill';
 import { ChannelPickerChip } from './channel-picker-chip';
@@ -2990,6 +2991,10 @@ function PostRow({
 
   // AI ops state
   const [draftBusy, setDraftBusy] = useState(false);
+  // Astrolas QA answer state — data-backed reply từ Astrolas Reasoning Engine
+  // (khác AI generic). Có sources[] để hiển thị citations.
+  const [astrolasBusy, setAstrolasBusy] = useState(false);
+  const [astrolasErr, setAstrolasErr] = useState<string | null>(null);
   const [draftRationale, setDraftRationale] = useState<string | null>(null);
   const [critiqueBusy, setCritiqueBusy] = useState(false);
   const [critique, setCritique] = useState<PostCritique | null>(null);
@@ -3138,6 +3143,25 @@ function PostRow({
         ...(res.bodyReview != null ? { bodyReview: res.bodyReview } : {}),
         ...(res.bodyTarget != null ? { bodyTarget: res.bodyTarget } : {}),
       });
+    });
+  };
+
+  const handleAstrolas = () => {
+    setAstrolasBusy(true);
+    setAstrolasErr(null);
+    startTransition(async () => {
+      const res = await getAstrolasAnswer(post.id);
+      setAstrolasBusy(false);
+      if (!res.ok) { setAstrolasErr(res.error ?? 'Astrolas API failed'); return; }
+      // Sync local state — body_target đã được server cập nhật
+      if (res.answerMd) {
+        setBodyTarget(res.answerMd);
+        onLocalPatch?.({
+          bodyTarget: res.answerMd,
+          answerSource: res.mock ? 'astrolas-mock' : 'astrolas',
+          answerSources: res.sources ?? [],
+        });
+      }
     });
   };
 
@@ -3629,6 +3653,26 @@ function PostRow({
               title="AI viết full draft cả 2 ngôn ngữ từ context phase + persona + community rules + voice profile + few-shot examples."
               onRun={(modelId) => handleGenerate(modelId)}
             />
+            {/* ⭐ Astrolas Answer — chỉ cho comment/reply. Khác AI generic:
+                gọi Astrolas Reasoning Engine cho data-backed answer + sources[]. */}
+            {isInteractionType(post.contentType) && (
+              <button type="button" onClick={handleAstrolas}
+                      disabled={astrolasBusy || !(post.parentBody || parentBody)}
+                      title={!(post.parentBody || parentBody)
+                        ? 'Cần parent_body trước. Click "✨ AI parse" hoặc paste thread body vào panel cyan ở trên.'
+                        : 'Trả lời từ Astrolas Reasoning Engine (data-backed). Khác AI generic ở chỗ có citations từ Astrolas DB.'}
+                      style={{ fontSize: 10, padding: '4px 10px', fontWeight: 700,
+                               background: (post.parentBody || parentBody) ? '#a78bfa' : 'var(--bg-3)',
+                               color: (post.parentBody || parentBody) ? '#0d1117' : 'var(--fg-3)',
+                               border: 'none', borderRadius: 4,
+                               cursor: (post.parentBody || parentBody) && !astrolasBusy ? 'pointer' : 'not-allowed',
+                               display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {astrolasBusy ? <><Spinner size="xs" /> Astrolas…</> : <>⭐ Astrolas Answer <span style={{ opacity: 0.75 }}>≈ $0.01</span></>}
+              </button>
+            )}
+            {astrolasErr && (
+              <span style={{ fontSize: 10, color: 'var(--bad)' }}>⚠ {astrolasErr}</span>
+            )}
             <button type="button" className="btn" onClick={handleCritique} disabled={critiqueBusy}
                     title="Reasoning model review bản nháp: dự đoán mod có remove không, list risks + suggest fix. Chi phí ước lượng ≈ $0.005 / lần."
                     style={{ fontSize: 10, padding: '4px 10px' }}>
@@ -3658,6 +3702,40 @@ function PostRow({
               <div style={{ flexBasis: '100%', fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>⚠ {aiError}</div>
             )}
           </div>
+
+          {/* Astrolas Answer sources panel — hiển thị citations khi answer
+              source là 'astrolas' / 'astrolas-mock'. Tách riêng vì là metadata
+              quan trọng (data provenance, click để verify). */}
+          {(post.answerSource === 'astrolas' || post.answerSource === 'astrolas-mock') && (post.answerSources?.length ?? 0) > 0 && (
+            <div style={{ padding: '8px 10px', background: 'rgba(167,139,250,.08)',
+                          border: '1px solid rgba(167,139,250,.4)',
+                          borderLeft: '3px solid #a78bfa',
+                          borderRadius: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10,
+                            fontFamily: 'var(--font-mono)', color: '#a78bfa',
+                            textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>
+                ⭐ Astrolas sources ({post.answerSources.length})
+                {post.answerSource === 'astrolas-mock' && (
+                  <span style={{ padding: '0 5px', fontSize: 9, background: 'var(--warn)',
+                                 color: '#0d1117', borderRadius: 2, fontWeight: 700 }}>
+                    MOCK
+                  </span>
+                )}
+                <span style={{ flex: 1, color: 'var(--fg-3)', fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>
+                  · Citations từ Astrolas DB (data-backed)
+                </span>
+              </div>
+              {post.answerSources.map((s, i) => (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                   style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none',
+                            padding: '2px 4px', borderRadius: 3,
+                            display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span style={{ fontWeight: 700 }}>↗ {s.title}</span>
+                  {s.snippet && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{s.snippet.slice(0, 150)}…</span>}
+                </a>
+              ))}
+            </div>
+          )}
 
           {/* Critique panel */}
           {critique && (

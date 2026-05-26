@@ -34,6 +34,9 @@ export interface BriefPost {
   parentBody: string | null;    // Body của parent (AI nạp prompt)
   parentAuthor: string | null;  // Handle author của parent
   parentSnippets: Array<{ author?: string; text: string }>; // top comments
+  // 0070: nguồn body_target — manual | ai | astrolas | astrolas-mock | null
+  answerSource: string | null;
+  answerSources: Array<{ title: string; url: string; snippet?: string; type?: string }>;
   contentType: string;       // text|image|video|link|thread|poll|carousel|story|doc
   mediaAssetId: number | null;
   mediaUrl: string | null;   // ảnh/video thật kèm bài (preview render)
@@ -75,6 +78,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.title_review, c.body, c.body_review, c.body_target,
            c.target_lang, c.parent_url, c.parent_title, c.parent_body, c.parent_author, c.parent_snippets,
+           c.answer_source, c.answer_sources,
            c.content_type, c.media_asset_id, c.channel_id,
            c.pillar_id, c.content_kind, c.col, c.level,
            c.urgent, c.tags, c.brief_id, c.brief_phase, c.agent_kind,
@@ -110,6 +114,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     body: string | null; body_review: string | null; body_target: string | null;
     target_lang: string | null; parent_url: string | null; parent_title: string | null;
     parent_body: string | null; parent_author: string | null; parent_snippets: unknown;
+    answer_source: string | null; answer_sources: unknown;
     content_type: string | null;
     media_asset_id: number | null; channel_id: number | null;
     pillar_id: number | null; content_kind: string | null;
@@ -141,6 +146,8 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     parentBody: r.parent_body ?? null,
     parentAuthor: r.parent_author ?? null,
     parentSnippets: Array.isArray(r.parent_snippets) ? r.parent_snippets as Array<{ author?: string; text: string }> : [],
+    answerSource: r.answer_source ?? null,
+    answerSources: Array.isArray(r.answer_sources) ? r.answer_sources as Array<{ title: string; url: string; snippet?: string; type?: string }> : [],
     contentType: r.content_type ?? 'text',
     // Cast Number cho bigint fields (pg-driver default trả string).
     mediaAssetId: r.media_asset_id != null ? Number(r.media_asset_id) : null,

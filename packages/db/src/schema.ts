@@ -226,6 +226,9 @@ export const cards = pgTable(
     parentBody: text('parent_body'),
     parentAuthor: text('parent_author'),
     parentSnippets: jsonb('parent_snippets').notNull().default([]),
+    // 0070: track nguồn body_target. 'astrolas' = từ Astrolas QA API (có sources[]).
+    answerSource: text('answer_source'),
+    answerSources: jsonb('answer_sources').notNull().default([]),
     // 0055: content-type-aware seeding. content_type = text|image|video|
     // link|thread|poll|carousel|story|doc (xem lib/content-formats.ts).
     // media_asset_id = link tuỳ chọn tới media_assets (ảnh/video kèm bài).

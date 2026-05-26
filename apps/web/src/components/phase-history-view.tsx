@@ -6,6 +6,7 @@
 
 import { memo } from 'react';
 import { PHASE_LABEL, PHASE_COLOR, type Phase } from '@/lib/phase-plan';
+import { PhasePill } from './phase-pill';
 import { fmtAgo } from '@/lib/time-format';
 
 export interface PhaseHistoryEntry {
@@ -46,19 +47,15 @@ function PhaseHistoryViewImpl({
           <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', minWidth: 120 }}>
             {fmtAgo(h.at)}
           </span>
-          <span style={{
-            padding: '1px 6px', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-            background: h.from ? PHASE_COLOR[h.from] + '22' : 'transparent',
-            color: h.from ? PHASE_COLOR[h.from] : 'var(--fg-3)',
-            border: h.from ? `1px solid ${PHASE_COLOR[h.from]}44` : '1px dashed var(--line)',
-            borderRadius: 3, textTransform: 'uppercase',
-          }}>{h.from ? PHASE_LABEL[h.from] : 'ban đầu'}</span>
+          {h.from ? (
+            <PhasePill phase={h.from} size="sm" />
+          ) : (
+            <span style={{ padding: '1px 6px', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                           color: 'var(--fg-3)', border: '1px dashed var(--line)',
+                           borderRadius: 3, textTransform: 'uppercase' }}>ban đầu</span>
+          )}
           <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>→</span>
-          <span style={{
-            padding: '1px 6px', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-            background: PHASE_COLOR[h.to] + '22', color: PHASE_COLOR[h.to],
-            border: `1px solid ${PHASE_COLOR[h.to]}44`, borderRadius: 3, textTransform: 'uppercase',
-          }}>{PHASE_LABEL[h.to]}</span>
+          <PhasePill phase={h.to} size="sm" />
           <span style={{ flex: 1, fontSize: 11, color: 'var(--fg-1)' }}>
             {h.reason || <em style={{ color: 'var(--fg-4)' }}>(không ghi lý do)</em>}
           </span>

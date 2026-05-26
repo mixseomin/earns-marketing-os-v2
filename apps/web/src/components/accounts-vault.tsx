@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
 import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
+import { PhasePill } from './phase-pill';
 import type { PlatformRow, AccountRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import {
@@ -2911,7 +2912,6 @@ function AccountBriefsSection({
             const joinColor = JOIN_STATUS_COLOR[b.joinStatus];
             const joinIcon = JOIN_STATUS_ICON[b.joinStatus];
             const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
-            const phaseColor = PHASE_COLOR[b.currentPhase];
             const phaseLabel = PHASE_LABEL[b.currentPhase];
             // Mỗi part click vào đúng đối tượng:
             //   row body / icon → Brief modal (chiến lược + bài)
@@ -2963,14 +2963,8 @@ function AccountBriefsSection({
                     {joinIcon} {joinLabel}
                   </span>
                   {/* Phase chip — tầng 3 */}
-                  <span title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`}
-                        style={{ display: 'inline-flex', alignItems: 'center',
-                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
-                                 background: phaseColor + '22', color: phaseColor,
-                                 border: `1px solid ${phaseColor}66` }}>
-                    {phaseLabel}
-                  </span>
+                  <PhasePill phase={b.currentPhase} size="sm"
+                             title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`} />
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {b.approachMd ? b.approachMd.split('\n')[0] : <em style={{ color: 'var(--fg-4)' }}>chưa viết approach</em>}

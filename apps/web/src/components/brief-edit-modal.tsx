@@ -57,6 +57,7 @@ import { Spinner } from './ui';
 import ReactMarkdown from 'react-markdown';
 import { getLangMeta } from '@/lib/lang-meta';
 import { LangChip } from './lang-chip';
+import { PhasePill } from './phase-pill';
 import { TEXT_MODELS, IMAGE_MODELS } from '@/lib/ai/model-options';
 import { AIRunButton } from './ai-run-button';
 
@@ -822,7 +823,6 @@ export function BriefEditModal({
               const actualCounts = phaseTypeCounts?.[cur] ?? {};
               const ach = computeMixAchievement(actualCounts, eff);
               const missCount = ach.items.filter((i) => i.verdict === 'miss' || i.verdict === 'under').length;
-              const phaseColor = PHASE_COLOR[cur];
               const fullTooltip = [
                 `Phase hiện tại: ${PHASE_LABEL[cur]}`,
                 entry?.goal ? `🎯 ${entry.goal}` : null,
@@ -832,16 +832,7 @@ export function BriefEditModal({
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                                fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-                  <span title={fullTooltip}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                                 padding: '2px 8px', fontSize: 10, fontWeight: 700,
-                                 borderRadius: 3, textTransform: 'uppercase',
-                                 background: phaseColor + '22', color: phaseColor,
-                                 border: `1px solid ${phaseColor}66`, cursor: 'help' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 3, background: phaseColor,
-                                   boxShadow: `0 0 6px ${phaseColor}` }} />
-                    {PHASE_LABEL[cur]}
-                  </span>
+                  <PhasePill phase={cur} current title={fullTooltip} />
                   <span title={fullTooltip}
                         style={{ color: have > 0 ? 'var(--ok)' : 'var(--fg-3)', cursor: 'help' }}>
                     📝 {have}{planned > 0 ? `/${planned}` : ''} bài

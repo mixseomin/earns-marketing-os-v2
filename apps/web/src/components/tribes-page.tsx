@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from "react";
+import { HabitatKindChip } from "./habitat-kind-chip";
 
 
 const TRIBES_DATA = {
@@ -189,35 +190,8 @@ const TRIBES_DATA = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────
-const HABITAT_KIND_LABEL = {
-  "fb-group":   "FB Group",
-  "fb-page":    "FB Page",
-  "subreddit":  "Subreddit",
-  "forum":      "Forum",
-  "hashtag":    "Hashtag",
-  "tiktok-tag": "TikTok #",
-  "ig-tag":     "IG #",
-  "youtube":    "YouTube",
-  "twitter":    "X/Twitter",
-  "discord":    "Discord",
-  "zalo":       "Zalo",
-  "offline":    "Offline",
-};
-
-const HABITAT_KIND_GLYPH = {
-  "fb-group":   "[G]",
-  "fb-page":    "[P]",
-  "subreddit":  "[r/]",
-  "forum":      "[F]",
-  "hashtag":    "[#]",
-  "tiktok-tag": "[#t]",
-  "ig-tag":     "[#i]",
-  "youtube":    "[Y]",
-  "twitter":    "[X]",
-  "discord":    "[D]",
-  "zalo":       "[Z]",
-  "offline":    "[•]",
-};
+// HABITAT_KIND_LABEL/GLYPH centralized in lib/habitat-kind-meta.ts.
+// Dùng <HabitatKindChip> thay vì lookup raw.
 
 function fmtNum(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
@@ -516,8 +490,7 @@ function HabitatRow({ h, onOpen }) {
   return (
     <tr style={{ borderBottom: "1px solid var(--line)" }}>
       <td style={{ padding: "9px 10px", color: "var(--fg-2)", whiteSpace: "nowrap" }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-3)" }}>{HABITAT_KIND_GLYPH[h.kind]}</span>{" "}
-        {HABITAT_KIND_LABEL[h.kind]}
+        <HabitatKindChip kind={h.kind} showGlyph size="sm" />
       </td>
       <td style={{ padding: "9px 10px" }}>
         <div style={{ color: "var(--fg-0)", fontWeight: 500 }}>{h.name}</div>

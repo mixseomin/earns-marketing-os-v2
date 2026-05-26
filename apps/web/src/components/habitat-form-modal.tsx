@@ -478,6 +478,33 @@ export function HabitatFormModal({
                             background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
                             textDecoration: 'none' }}>↗</a>
               )}
+              {/* 🌐 Language inline editor — always visible ở header để xem +
+                  đổi nhanh, không cần scroll xuống Outreach meta. Click select
+                  ngay. Empty = "?" warn vàng. */}
+              {!isCreate && (
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                  <select value={form.language ?? ''} onChange={(e) => setF('language', e.target.value)}
+                          title={form.language
+                            ? `Community language: ${form.language.toUpperCase()}. AI brief + posts sẽ dùng ngôn ngữ này.`
+                            : 'Chưa biết community nói ngôn ngữ gì → AI sẽ auto-detect heuristic. Set explicit để chắc chắn.'}
+                          style={{
+                            appearance: 'none', WebkitAppearance: 'none',
+                            padding: '2px 18px 2px 7px', fontSize: 10, fontWeight: 700,
+                            fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.04em',
+                            background: form.language ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.15)',
+                            color: form.language ? 'var(--ok)' : 'var(--warn)',
+                            border: `1px solid ${form.language ? 'rgba(74,222,128,.4)' : 'rgba(251,191,36,.5)'}`,
+                            borderRadius: 4, cursor: 'pointer', minWidth: 60,
+                          }}>
+                    {LANGUAGES.map((l) => (
+                      <option key={l} value={l}>🌐 {l ? l.toUpperCase() : '?'}</option>
+                    ))}
+                  </select>
+                  <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                                 fontSize: 8, color: form.language ? 'var(--ok)' : 'var(--warn)',
+                                 pointerEvents: 'none' }}>▾</span>
+                </span>
+              )}
             </h2>
           </div>
           <button className="btn ghost" onClick={onClose}>✕</button>

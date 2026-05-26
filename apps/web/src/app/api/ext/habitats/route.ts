@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, habitats, platformAccounts, communityBriefs } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
+import { detectLang } from '@/lib/lang-detect';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,12 +192,26 @@ export async function POST(req: Request) {
     const finalPatch: Record<string, unknown> = { ...patch };
     if (body.scraped_meta && typeof body.scraped_meta === 'object') {
       const cur = await db
-        .select({ scrapedMeta: habitats.scrapedMeta })
+        .select({ scrapedMeta: habitats.scrapedMeta, language: habitats.language })
         .from(habitats)
         .where(eq(habitats.id, habitatId))
         .limit(1);
       const curMeta = (cur[0]?.scrapedMeta as Record<string, unknown>) || {};
       finalPatch.scrapedMeta = { ...curMeta, ...body.scraped_meta };
+      // Auto-detect language nếu habitats.language còn rỗng — chỉ chạy khi
+      // có description hoặc rules đủ dài. KHÔNG override nếu user đã set.
+      const curLang = (cur[0]?.language ?? '').trim();
+      if (!curLang) {
+        const corpus = [
+          (body.title ?? '') as string,
+          (body.description ?? '') as string,
+          postingRules,
+        ].filter(Boolean).join('\n');
+        const detected = detectLang(corpus);
+        if (detected !== 'unknown') {
+          finalPatch.language = detected;
+        }
+      }
     }
     await db.update(habitats).set(finalPatch).where(eq(habitats.id, habitatId));
   } else {
@@ -261,6 +276,14 @@ export async function POST(req: Request) {
       habitatId = inserted[0]!.id;
       action = 'cloned';
     } else {
+      // Auto-detect language khi habitat hoàn toàn mới (lần đầu seed). Sibling
+      // branch đã inherit sib.language, branch sibling-không-tồn-tại cần tự detect.
+      const corpus = [
+        (body.title ?? '') as string,
+        (body.description ?? '') as string,
+        postingRules,
+      ].filter(Boolean).join('\n');
+      const detected = detectLang(corpus);
       const inserted = await db.insert(habitats).values({
         tenantId: 'self',
         projectId: body.projectId,
@@ -270,6 +293,7 @@ export async function POST(req: Request) {
         platformKey: body.platform_key,
         ...patch,
         scrapedMeta: body.scraped_meta || {},
+        ...(detected !== 'unknown' ? { language: detected } : {}),
       }).returning({ id: habitats.id });
       habitatId = inserted[0]!.id;
       action = 'created';

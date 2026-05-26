@@ -30,7 +30,7 @@ import {
   type Phase, type PhaseEntry, PLANNED_PHASES,
   PHASE_LABEL, PHASE_COLOR, PHASE_DESCRIPTION,
 } from '@/lib/phase-plan';
-import { CONTENT_FORMATS, formatMeta, allowedFormats, formatColors, postCompleteness, effectiveMix, computeMixAchievement } from '@/lib/content-formats';
+import { CONTENT_FORMATS, formatMeta, allowedFormats, formatColors, postCompleteness, effectiveMix, computeMixAchievement, isInteractionType } from '@/lib/content-formats';
 import { FormatIcon, IconSliders, IconChevron, ModalHeader, InfoHint, SiteFavicon } from './ui';
 import {
   listPostsForBriefPhase, createPostForBriefPhase, createPlaceholdersForBriefPhase,
@@ -2537,7 +2537,7 @@ function PostsForPhase({
           📝 {posts.length} bài
         </span>
         {posts.length > 0 && (() => {
-          const ready = posts.filter((p) => postCompleteness(p.contentType, p.bodyTarget, p.mediaAssetId).complete).length;
+          const ready = posts.filter((p) => postCompleteness(p.contentType, p.bodyTarget, p.mediaAssetId, p.parentUrl).complete).length;
           const isAll = ready === posts.length;
           return (
             <span title={isAll ? 'Tất cả đã đủ data' : `${ready}/${posts.length} đủ data`}
@@ -2906,6 +2906,7 @@ function PostRow({
   const [titleReview, setTitleReview] = useState(post.titleReview || post.title);
   const [bodyReview, setBodyReview] = useState(post.bodyReview);
   const [bodyTarget, setBodyTarget] = useState(post.bodyTarget);
+  const [parentUrl, setParentUrl] = useState(post.parentUrl ?? '');
   const [col, setCol] = useState(post.col);
   const [confirmDel, setConfirmDel] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3070,10 +3071,11 @@ function PostRow({
     setTitleReview(post.titleReview || post.title);
     setBodyReview(post.bodyReview);
     setBodyTarget(post.bodyTarget);
+    setParentUrl(post.parentUrl ?? '');
     setCol(post.col);
-  }, [post.title, post.titleReview, post.bodyReview, post.bodyTarget, post.col]);
+  }, [post.title, post.titleReview, post.bodyReview, post.bodyTarget, post.parentUrl, post.col]);
 
-  const persist = (patch: { title?: string; titleReview?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string }) => {
+  const persist = (patch: { title?: string; titleReview?: string; bodyReview?: string; bodyTarget?: string; col?: string; targetLang?: string; parentUrl?: string | null }) => {
     setSaving(true);
     // Optimistic local — không onChange (refetch list) cũng không router.refresh.
     // Patch chỉ chứa fields đã đổi → áp dụng trực tiếp lên posts state.
@@ -3175,7 +3177,8 @@ function PostRow({
       <div onClick={onToggle}
            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'pointer' }}
            title={`${post.cardRef} — click để mở/đóng editor`}>
-        {/* SEED-XX: chỉ hiện khi expanded (collapsed → tooltip thay vì badge) */}
+        {/* SEED-XX + Channel + Pillar: chỉ hiện khi EXPANDED. Collapsed = gọn,
+            chỉ format chip + title + lang + status. */}
         {expanded && (
           <span style={{
             padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -3242,7 +3245,9 @@ function PostRow({
         </span>
         {/* Channel picker — chỉ hiện cho Discord/Slack/Telegram habitats.
             Click chip → dropdown chọn channel + AI suggest. Đổi channel
-            mà voice thay đổi → confirm prompt re-gen. */}
+            mà voice thay đổi → confirm prompt re-gen.
+            Collapsed → ẩn (giảm chip trên row); expanded mới show. */}
+        {expanded && (
         <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
           <ChannelPickerChip
             cardId={post.id}
@@ -3267,9 +3272,12 @@ function PostRow({
             }}
           />
         </span>
+        )}
         {/* Pillar picker — macro positioning. Hidden tự động nếu project chưa
             có pillar nào (CPS chưa setup). Đổi pillar = đổi voice + key msgs
-            + forbidden → AI gen ra bài khác hẳn. */}
+            + forbidden → AI gen ra bài khác hẳn.
+            Collapsed → ẩn (giảm chip trên row); expanded mới show. */}
+        {expanded && (
         <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
           <PillarPickerChip
             cardId={post.id}
@@ -3287,14 +3295,34 @@ function PostRow({
             }}
           />
         </span>
+        )}
         <span style={{ flex: 1, fontSize: 12, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {title || <em style={{ color: 'var(--fg-4)' }}>(không tiêu đề)</em>}
         </span>
+        {/* Interaction indicator: 🔗 nếu có parentUrl; ⚠ nếu type là comment/reply
+            mà parent URL chưa set. */}
+        {isInteractionType(post.contentType) && (
+          post.parentUrl ? (
+            <a href={post.parentUrl} target="_blank" rel="noopener noreferrer"
+               onClick={(e) => e.stopPropagation()}
+               title={`Parent thread/post: ${post.parentUrl}\nClick mở tab mới.`}
+               style={{ fontSize: 11, color: '#06b6d4', textDecoration: 'none',
+                        padding: '0 4px', flexShrink: 0 }}>
+              🔗
+            </a>
+          ) : (
+            <span title="Comment/Reply thiếu Parent URL — chưa thể đăng"
+                  style={{ fontSize: 10, color: 'var(--warn)', padding: '0 4px',
+                           flexShrink: 0, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+              ⚠ thiếu link
+            </span>
+          )
+        )}
         {/* Compact status: 1 dot completeness + chỉ hiện "thiếu X" khi chưa
             đủ data (giảm noise khi đa số card đã OK). Lang/col/dispatch gộp
             vào tooltip + chỉ icon nhỏ. */}
         {(() => {
-          const cmp = postCompleteness(post.contentType, bodyTarget || post.bodyTarget, post.mediaAssetId);
+          const cmp = postCompleteness(post.contentType, bodyTarget || post.bodyTarget, post.mediaAssetId, parentUrl || post.parentUrl);
           if (cmp.complete) {
             // Đủ data → chỉ chấm xanh nhỏ
             return (
@@ -3536,6 +3564,8 @@ function PostRow({
                 postUrl={post.postUrl}
                 channelUrl={channelMeta?.url ?? null}
                 habitatUrl={habitatUrl}
+                parentUrl={post.parentUrl}
+                contentType={post.contentType}
                 channelName={post.channelName}
                 habitatName={undefined}
                 isJoined={isJoined}
@@ -3616,6 +3646,43 @@ function PostRow({
           {/* Critique panel */}
           {critique && (
             <CritiquePanel critique={critique} onClose={() => setCritique(null)} />
+          )}
+
+          {/* Parent URL — yêu cầu cho comment/reply: thread/post gốc để AI
+              có context discussion + operator biết click đâu paste reply.
+              Skip cho standalone post (text/image/...). */}
+          {isInteractionType(post.contentType) && (
+            <div style={{ padding: '8px 12px', background: 'rgba(6,182,212,.08)',
+                          border: '1px solid rgba(6,182,212,.45)',
+                          borderLeft: '3px solid #06b6d4',
+                          borderRadius: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6,
+                              fontSize: 10, fontFamily: 'var(--font-mono)', color: '#06b6d4',
+                              textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>
+                🔗 Parent URL
+                <span style={{ color: 'var(--fg-3)', fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>
+                  ({formatMeta(post.contentType).label} cần link thread/post gốc để paste reply vào)
+                </span>
+                {!parentUrl.trim() && (
+                  <span style={{ marginLeft: 'auto', padding: '0 5px', fontSize: 9,
+                                 background: 'var(--warn)', color: '#0d1117', borderRadius: 2,
+                                 fontWeight: 700, letterSpacing: '.04em' }}>
+                    BẮT BUỘC
+                  </span>
+                )}
+              </label>
+              <input type="url" value={parentUrl}
+                     onChange={(e) => setParentUrl(e.target.value)}
+                     onBlur={() => (parentUrl || null) !== post.parentUrl && persist({ parentUrl: parentUrl.trim() || null })}
+                     placeholder="https://reddit.com/r/Astrologia/comments/xxx/thread-title/"
+                     style={{ ...fld, fontSize: 12, fontFamily: 'var(--font-mono)' }} />
+              {parentUrl.trim() && (
+                <a href={parentUrl} target="_blank" rel="noopener noreferrer"
+                   style={{ fontSize: 10.5, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+                  ↗ Mở thread/post gốc
+                </a>
+              )}
+            </div>
           )}
 
           {/* Title — 2 cột nếu bilingual. Thứ tự target(đăng thật) | review(VN)

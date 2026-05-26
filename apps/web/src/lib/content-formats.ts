@@ -14,8 +14,11 @@ export interface ContentFormat {
 }
 
 // Thứ tự = thứ tự hiển thị trong menu.
-// Màu: mỗi format 1 hue riêng → nhìn 1 phát biết loại bài. Tránh đụng
-// --ok/--bad/--accent (semantic chung).
+// Màu: mỗi format 1 hue riêng → nhìn 1 phát biết loại bài.
+//
+// Standalone posts (text → doc): tạo post mới trên community.
+// Interactions (comment, reply): bám vào thread/post HIỆN CÓ → yêu cầu
+// parent_url để AI có context discussion gốc và operator biết đăng ở đâu.
 export const CONTENT_FORMATS: ContentFormat[] = [
   { key: 'text',     label: 'Bài chữ',      icon: '📝', color: '#94a3b8', hint: 'Post thuần text — kể chuyện / chia sẻ / hỏi đáp' },
   { key: 'image',    label: 'Bài ảnh',      icon: '🖼️', color: '#fbbf24', hint: 'Caption + 1 ảnh/đồ hoạ (meme, infographic, screenshot)' },
@@ -26,7 +29,16 @@ export const CONTENT_FORMATS: ContentFormat[] = [
   { key: 'carousel', label: 'Carousel',     icon: '🎠', color: '#f472b6', hint: 'Nhiều slide (outline từng slide)' },
   { key: 'story',    label: 'Story/Reel',   icon: '⚡', color: '#fb923c', hint: 'Khung dọc ngắn frame-by-frame' },
   { key: 'doc',      label: 'Tài liệu',     icon: '📄', color: '#34d399', hint: 'Bài dài có cấu trúc / guide / writeup' },
+  // ── Interactions (yêu cầu parent_url) ──
+  { key: 'comment',  label: 'Comment',      icon: '💬', color: '#06b6d4', hint: 'Reply trong thread/forum — bám vào discussion có sẵn (yêu cầu parent URL)' },
+  { key: 'reply',    label: 'Reply',        icon: '↩️', color: '#0ea5e9', hint: 'Trả lời câu hỏi cụ thể (FB Q-post, Reddit question) — yêu cầu parent URL' },
 ];
+
+// Content type yêu cầu parent_url. UI require + AI prompt nạp context.
+export const INTERACTION_TYPES = new Set(['comment', 'reply']);
+export function isInteractionType(contentType: string): boolean {
+  return INTERACTION_TYPES.has(contentType);
+}
 
 export const CONTENT_FORMAT_MAP: Record<string, ContentFormat> =
   Object.fromEntries(CONTENT_FORMATS.map((f) => [f.key, f]));
@@ -64,12 +76,19 @@ export function meaningfulLen(body: string): number {
 
 export function postCompleteness(
   contentType: string, bodyTarget: string, mediaAssetId: number | null,
+  parentUrl?: string | null,
 ): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
   if (VISUAL_NEEDS_MEDIA.includes(contentType)) {
     if (mediaAssetId == null) missing.push('ảnh');
   } else {
-    if (meaningfulLen(bodyTarget) < 50) missing.push('nội dung');
+    // Comment/reply: yêu cầu ít nội dung hơn (1-3 câu OK)
+    const minLen = isInteractionType(contentType) ? 20 : 50;
+    if (meaningfulLen(bodyTarget) < minLen) missing.push('nội dung');
+  }
+  // Interaction types CẦN parent URL — không có = không thể đăng
+  if (isInteractionType(contentType) && !parentUrl?.trim()) {
+    missing.push('parent URL');
   }
   return { complete: missing.length === 0, missing };
 }

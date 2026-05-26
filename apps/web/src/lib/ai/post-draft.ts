@@ -93,6 +93,10 @@ interface PostContext {
   cardTitle: string;
   cardBodyReview: string;
   cardBodyTarget: string;
+  // Interaction context (comment/reply): content_type + parent_url để AI
+  // gen reply phù hợp thay vì standalone post.
+  contentType: string;
+  parentUrl: string | null;
   // RESOLVED voice profile (channel override ?? habitat ?? 'regular')
   effectiveVoiceProfile: VoiceProfile;
 }
@@ -105,6 +109,7 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     SELECT
       c.id AS card_id, c.project_id, c.title, c.body_review, c.body_target,
       c.target_lang, c.brief_id, c.brief_phase, c.channel_id,
+      c.content_type, c.parent_url,
       c.pillar_id AS card_pillar_id,
       b.approach_md, b.narrative_md, b.tone, b.do_md, b.dont_md, b.phase_plan,
       b.primary_pillar_id AS brief_primary_pillar_id,
@@ -255,6 +260,8 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     cardTitle: String(r.title ?? ''),
     cardBodyReview: String(r.body_review ?? ''),
     cardBodyTarget: String(r.body_target ?? ''),
+    contentType: String(r.content_type ?? 'text'),
+    parentUrl: r.parent_url ? String(r.parent_url) : null,
     effectiveVoiceProfile,
   };
 }
@@ -288,10 +295,38 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null): string {
     `  Community: ${ctx.habitatName} (${ctx.habitatKind}, ngôn ngữ chính: ${ctx.habitatLanguage})`,
     ctx.channelName ? `  Channel: #${ctx.channelName}${ctx.channelDescription ? ` — ${ctx.channelDescription}` : ''}` : null,
     `  Account/Persona: @${ctx.accountHandle ?? '?'}`,
+    `  Content type: ${ctx.contentType}`,
     ctx.personaVoiceSummary ? `  Persona voice: ${ctx.personaVoiceSummary}` : null,
     ctx.personaNarrativeStyle ? `  Narrative style: ${ctx.personaNarrativeStyle}` : null,
     ctx.personaBackstory ? `  Backstory: ${ctx.personaBackstory}` : null,
     '',
+    // INTERACTION CONTEXT — khi content_type là comment/reply, bài này không
+    // phải standalone post mà là reply vào 1 thread/post HIỆN CÓ. Prompt
+    // phải nói rõ để AI gen reply phù hợp (không mở bài lại từ đầu, không
+    // tự giới thiệu, bám vào câu hỏi/discussion gốc).
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') ? '' : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply')
+      ? `# INTERACTION MODE — ${ctx.contentType === 'comment' ? 'COMMENT REPLY' : 'POST REPLY'}`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply')
+      ? `Bài này KHÔNG phải standalone post — là REPLY vào thread/post HIỆN CÓ.`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentUrl
+      ? `Parent URL (thread/post gốc): ${ctx.parentUrl}`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentUrl
+      ? `⚠ Parent URL chưa được set — gen reply chung chung, KHÔNG bám vào discussion cụ thể.`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply')
+      ? `Quy tắc reply:
+  - KHÔNG mở bài lại bằng greeting / "Hello" / "Tôi là..." — nhảy thẳng vào câu trả lời
+  - Bám vào nội dung thread/post gốc (giả định reader đã đọc parent)
+  - Ngắn gọn (1-4 câu cho comment, 3-8 câu cho reply Q&A)
+  - Nếu là reply câu hỏi: trả lời trực tiếp + 1 insight có giá trị + (optional) câu hỏi mở rộng
+  - Nếu là comment trong thread discussion: đóng góp 1 góc nhìn / kinh nghiệm / nuance
+  - KHÔNG link / pitch / self-promo trừ khi phase=Seed/Direct VÀ rules cho phép`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') ? '' : null,
     // CONTENT PILLAR section — macro positioning. Đặt SAU bối cảnh nhưng TRƯỚC
     // voice profile để AI hiểu "tại sao bài này tồn tại trong toàn project"
     // trước khi áp dụng voice mechanics.

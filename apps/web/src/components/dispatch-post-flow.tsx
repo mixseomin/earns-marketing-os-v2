@@ -16,10 +16,15 @@ interface DispatchButtonProps {
   cardId: number;
   // Body để copy (bodyTarget ưu tiên — bản đã dịch sang lang đăng thật)
   bodyToCopy: string;
-  // Deep-link priority: channel URL > habitat URL. Mở tab mới.
+  // Deep-link priority: parent URL (comment/reply mode) > channel URL > habitat URL.
   postUrl?: string | null;          // URL bài đã đăng (nếu đã confirm)
   channelUrl?: string | null;
   habitatUrl?: string | null;
+  /** Khi content_type là comment/reply: URL thread/post gốc để paste reply vào.
+   *  Khi present → "Mở thread → paste reply" thay vì "Mở community → tạo post mới". */
+  parentUrl?: string | null;
+  /** content_type — hiển thị label đúng nút (Đăng bài / Comment / Reply). */
+  contentType?: string;
   // Hiển thị channel name trong button "Mở #channel" thay vì "Mở community"
   channelName?: string | null;
   habitatName?: string | null;
@@ -43,11 +48,14 @@ DispatchPostFlow.displayName = 'DispatchPostFlow';
 
 function DispatchPostFlowImpl({
   projectId, briefId, cardId, bodyToCopy,
-  postUrl, channelUrl, habitatUrl,
+  postUrl, channelUrl, habitatUrl, parentUrl, contentType = 'text',
   channelName, habitatName,
   isJoined = true, onRequestJoin, notReadyReason = 'membership',
   onConfirmed, onUnconfirmed,
 }: DispatchButtonProps) {
+  // Interaction mode: comment/reply bám vào thread/post gốc.
+  const isInteraction = contentType === 'comment' || contentType === 'reply';
+  const interactionLabel = contentType === 'comment' ? 'Comment' : 'Reply';
   const [confirmOpen, setConfirmOpen] = useState(false);
   const clip = useCopyToClipboard(2000);
 
@@ -132,9 +140,18 @@ function DispatchPostFlowImpl({
     );
   }
 
-  // Chưa đăng → button 1-click flow
-  const target = channelUrl?.trim() || habitatUrl?.trim() || '';
-  const targetLabel = channelName ? `#${channelName}` : habitatName || 'community';
+  // Chưa đăng → button 1-click flow.
+  // Priority: parent URL (interaction) > channel URL > habitat URL.
+  // Interaction → open thread/post gốc để paste reply DƯỚI nó.
+  const target = (isInteraction && parentUrl?.trim())
+    ? parentUrl.trim()
+    : channelUrl?.trim() || habitatUrl?.trim() || '';
+  const targetLabel = isInteraction
+    ? `thread → paste ${interactionLabel}`
+    : (channelName ? `#${channelName}` : habitatName || 'community');
+
+  // Interaction thiếu parent URL → block dispatch + báo rõ
+  const interactionMissingParent = isInteraction && !parentUrl?.trim();
 
   const handleDispatch = async () => {
     // 1. Copy body (auto-handles state via useCopyToClipboard)
@@ -165,15 +182,17 @@ function DispatchPostFlowImpl({
         )}
         <span style={{ flex: 1 }} />
         <button type="button" onClick={handleDispatch}
-                disabled={!bodyToCopy.trim()}
+                disabled={!bodyToCopy.trim() || interactionMissingParent}
                 title={!bodyToCopy.trim()
                   ? 'Chưa có nội dung để copy — sinh draft trước'
-                  : `Copy nội dung + mở ${targetLabel} + hiện form xác nhận`}
+                  : interactionMissingParent
+                    ? `${interactionLabel} thiếu Parent URL — set trong form trước khi đăng`
+                    : `Copy nội dung + mở ${targetLabel} + hiện form xác nhận`}
                 style={{ fontSize: 11, padding: '5px 12px', fontWeight: 700,
-                         background: bodyToCopy.trim() ? 'var(--ok)' : 'var(--bg-3)',
-                         color: bodyToCopy.trim() ? '#0d1117' : 'var(--fg-3)',
+                         background: (bodyToCopy.trim() && !interactionMissingParent) ? 'var(--ok)' : 'var(--bg-3)',
+                         color: (bodyToCopy.trim() && !interactionMissingParent) ? '#0d1117' : 'var(--fg-3)',
                          border: 'none', borderRadius: 4,
-                         cursor: bodyToCopy.trim() ? 'pointer' : 'not-allowed',
+                         cursor: (bodyToCopy.trim() && !interactionMissingParent) ? 'pointer' : 'not-allowed',
                          display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           📋 Copy + Mở {targetLabel}
         </button>

@@ -384,7 +384,7 @@ export async function listBriefPipeline(
 
   const cardRows = await db.execute(sql`
     SELECT id, card_ref, title, col, content_type, target_lang,
-           brief_phase, dispatch_ready, body_target, media_asset_id,
+           brief_phase, dispatch_ready, body_target, media_asset_id, parent_url,
            created_at, updated_at
     FROM cards
     WHERE project_id = ${projectId} AND brief_id = ${briefId} AND archived_at IS NULL
@@ -412,7 +412,7 @@ export async function listBriefPipeline(
   const mkCard = (r: Record<string, unknown>): PipelineCard => {
     const ct = String(r.content_type ?? 'text');
     const mid = r.media_asset_id != null ? Number(r.media_asset_id) : null;
-    const cmp = postCompleteness(ct, String(r.body_target ?? ''), mid);
+    const cmp = postCompleteness(ct, String(r.body_target ?? ''), mid, r.parent_url ? String(r.parent_url) : null);
     return {
       id: Number(r.id),
       cardRef: String(r.card_ref ?? ''),

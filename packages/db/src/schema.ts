@@ -217,6 +217,9 @@ export const cards = pgTable(
     bodyReview: text('body_review').notNull().default(''),
     bodyTarget: text('body_target').notNull().default(''),
     targetLang: text('target_lang').notNull().default('en'),
+    // 0068: URL thread/post gốc cho comment/reply (interaction types).
+    // NULL = standalone post. AI prompt nạp parent context khi present.
+    parentUrl: text('parent_url'),
     // 0055: content-type-aware seeding. content_type = text|image|video|
     // link|thread|poll|carousel|story|doc (xem lib/content-formats.ts).
     // media_asset_id = link tuỳ chọn tới media_assets (ảnh/video kèm bài).

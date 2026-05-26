@@ -29,6 +29,7 @@ export interface BriefPost {
   bodyReview: string;        // luôn vi-VN
   bodyTarget: string;        // theo target_lang
   targetLang: string;        // en|fr|vi|zh|ko|ja - auto từ habitat.language
+  parentUrl: string | null;  // URL thread/post gốc (comment/reply only)
   contentType: string;       // text|image|video|link|thread|poll|carousel|story|doc
   mediaAssetId: number | null;
   mediaUrl: string | null;   // ảnh/video thật kèm bài (preview render)
@@ -69,7 +70,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   // giảm số round-trip là tối ưu lớn nhất ở tầng này.
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.title_review, c.body, c.body_review, c.body_target,
-           c.target_lang, c.content_type, c.media_asset_id, c.channel_id,
+           c.target_lang, c.parent_url, c.content_type, c.media_asset_id, c.channel_id,
            c.pillar_id, c.content_kind, c.col, c.level,
            c.urgent, c.tags, c.brief_id, c.brief_phase, c.agent_kind,
            c.dispatch_ready, c.post_url, c.posted_at, c.post_screenshot_url, c.post_note,
@@ -102,7 +103,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   type Row = {
     id: number; card_ref: string; title: string | null; title_review: string | null;
     body: string | null; body_review: string | null; body_target: string | null;
-    target_lang: string | null; content_type: string | null;
+    target_lang: string | null; parent_url: string | null; content_type: string | null;
     media_asset_id: number | null; channel_id: number | null;
     pillar_id: number | null; content_kind: string | null;
     col: string; level: number;
@@ -128,6 +129,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     bodyReview: r.body_review ?? '',
     bodyTarget: r.body_target ?? '',
     targetLang: r.target_lang ?? 'en',
+    parentUrl: r.parent_url ?? null,
     contentType: r.content_type ?? 'text',
     // Cast Number cho bigint fields (pg-driver default trả string).
     mediaAssetId: r.media_asset_id != null ? Number(r.media_asset_id) : null,
@@ -327,6 +329,7 @@ export async function updatePost(
   patch: {
     title?: string; titleReview?: string; body?: string;
     bodyReview?: string; bodyTarget?: string; targetLang?: string;
+    parentUrl?: string | null;
     contentType?: string;
     channelId?: number | null;
     col?: string; urgent?: boolean; dispatchReady?: boolean;
@@ -343,6 +346,7 @@ export async function updatePost(
       ...(patch.bodyReview != null ? { bodyReview: patch.bodyReview } : {}),
       ...(patch.bodyTarget != null ? { bodyTarget: patch.bodyTarget } : {}),
       ...(patch.targetLang != null ? { targetLang: patch.targetLang } : {}),
+      ...(patch.parentUrl !== undefined ? { parentUrl: patch.parentUrl } : {}),
       ...(ct != null ? { contentType: ct } : {}),
       ...(patch.channelId !== undefined ? { channelId: patch.channelId } : {}),
       ...(patch.col != null ? { col: patch.col } : {}),

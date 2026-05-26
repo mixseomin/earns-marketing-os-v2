@@ -1456,7 +1456,30 @@ button { font-family: inherit; color: inherit; }
 /* cột phải (nội dung-nặng, vd danh sách bài) rộng hơn cột trái.
    2026-05-22: thu nhỏ cột trái thêm (3.2fr/8.8fr ~ 27%/73%) — phase plan
    panel compact, list bài cần nhiều không gian hơn cho chips toolbar + rows. */
-.modal-cols.cols-2.right-wide { grid-template-columns: minmax(0, 3.2fr) minmax(0, 8.8fr); }
+.modal-cols.cols-2.right-wide { grid-template-columns: minmax(0, 2.4fr) minmax(0, 9.6fr); }
+/* Phase entry editor: cột trái compact + scroll độc lập với cột phải (post list).
+   Sticky max-height theo viewport để content dài (hooks/format mix expanded)
+   không kéo dài cả modal-body — chỉ scroll trong panel. */
+.modal-col.phase-detail {
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.modal-col.phase-detail::-webkit-scrollbar { width: 6px; }
+.modal-col.phase-detail::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+/* Inline label trong phase detail: label + input cùng row (label left, input flex 1).
+   Giúp panel compact hơn ~30% chiều cao. */
+.phase-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.phase-row > label {
+  flex-shrink: 0; min-width: 80px;
+  font-size: 10px; font-family: var(--font-mono); color: var(--fg-3);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.phase-row > .phase-input {
+  flex: 1; min-width: 0;
+}
 @media (max-width: 760px) {
   .modal-cols.cols-2 { grid-template-columns: 1fr; }
 }

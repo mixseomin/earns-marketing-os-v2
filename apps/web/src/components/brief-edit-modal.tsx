@@ -1950,36 +1950,33 @@ function PhaseEntryEditor({
       )}
 
       <div className="modal-cols cols-2 right-wide">
-      <div className="modal-col">
+      <div className="modal-col phase-detail">
 
-      {/* PRIMARY: Mục tiêu + Tần suất + Bài đã tạo (1 row) */}
-      <div>
-        <label style={lbl} title="Mục tiêu của phase này — coi như phase hoàn tất khi đạt được điều này.">Mục tiêu</label>
-        <input type="text" value={entry.goal} onBlur={onBlur}
+      {/* Inline rows — label left, input right cùng dòng cho compact. */}
+      <div className="phase-row">
+        <label title="Mục tiêu của phase này — coi như phase hoàn tất khi đạt được điều này.">🎯 Mục tiêu</label>
+        <input className="phase-input" type="text" value={entry.goal} onBlur={onBlur}
                onChange={(e) => onChange({ goal: e.target.value })}
-               style={fld} placeholder="vd: 20 bài chất lượng + intro - mod nhận diện account" />
+               style={fld} placeholder="20 bài chất lượng + intro - mod nhận diện account" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
-        <div>
-          <label style={lbl} title="Tần suất đăng bài trong phase này (vd: 2 bài/tuần).">Tần suất</label>
-          <input type="text" value={entry.cadence} onBlur={onBlur}
-                 onChange={(e) => onChange({ cadence: e.target.value })}
-                 style={fld} placeholder="2 bài/tuần" />
-        </div>
-        <div>
-          <label style={lbl} title="Số bài đã tạo (đếm thực từ DB).">Đã tạo</label>
-          <div style={{ ...fld, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-1)',
-                        background: 'var(--bg-1)', cursor: 'default' }}>
-            <strong style={{ color: (actualPostCount ?? 0) > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>
-              {actualPostCount ?? 0}
-            </strong>
-            <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>bài</span>
-          </div>
-        </div>
+      <div className="phase-row">
+        <label title="Tần suất đăng bài trong phase này.">⏱ Tần suất</label>
+        <input className="phase-input" type="text" value={entry.cadence} onBlur={onBlur}
+               onChange={(e) => onChange({ cadence: e.target.value })}
+               style={fld} placeholder="2 bài/tuần" />
+        <span title="Số bài đã tạo (đếm thực từ DB)"
+              style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 5,
+                       background: 'var(--bg-1)', border: '1px solid var(--line)',
+                       fontSize: 11.5, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>
+          <strong style={{ color: (actualPostCount ?? 0) > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>
+            {actualPostCount ?? 0}
+          </strong>
+          <span style={{ color: 'var(--fg-4)', fontSize: 10, marginLeft: 4 }}>bài</span>
+        </span>
       </div>
 
-      {/* PRIMARY: Nên/Không (2 col) */}
+      {/* Nên/Không 2 cột vẫn giữ — textarea cần chiều cao */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div>
           <label style={lbl} title="Những điều NÊN làm trong phase này.">✅ Nên</label>
@@ -2013,26 +2010,24 @@ function PhaseEntryEditor({
         {detailsOpen && (
           <div style={{ marginTop: 6, padding: 8, background: 'var(--bg-2)',
                         border: '1px solid var(--line)', borderRadius: 5,
-                        display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div>
-                <label style={lbl} title="Điều kiện để BẮT ĐẦU vào phase này.">Bắt đầu khi</label>
-                <input type="text" value={entry.startTrigger} onBlur={onBlur}
-                       onChange={(e) => onChange({ startTrigger: e.target.value })}
-                       style={fld} placeholder="Account tạo + bio set xong" />
-              </div>
-              <div>
-                <label style={lbl} title="Điều kiện để KẾT THÚC phase này → chuyển phase tiếp.">Kết thúc khi</label>
-                <input type="text" value={entry.endTrigger} onBlur={onBlur}
-                       onChange={(e) => onChange({ endTrigger: e.target.value })}
-                       style={fld} placeholder="20 bài chất lượng VÀ qua 30+ ngày" />
-              </div>
+                        display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="phase-row">
+              <label title="Điều kiện để BẮT ĐẦU vào phase này.">▶ Bắt đầu</label>
+              <input className="phase-input" type="text" value={entry.startTrigger} onBlur={onBlur}
+                     onChange={(e) => onChange({ startTrigger: e.target.value })}
+                     style={fld} placeholder="Account tạo + bio set xong" />
             </div>
-            <div>
-              <label style={lbl} title="Tone string ngắn — voice profile của habitat/pillar có rồi, đây chỉ là note bổ sung.">Giọng (note)</label>
-              <input type="text" value={entry.tone} onBlur={onBlur}
+            <div className="phase-row">
+              <label title="Điều kiện để KẾT THÚC phase này → chuyển phase tiếp.">⏹ Kết thúc</label>
+              <input className="phase-input" type="text" value={entry.endTrigger} onBlur={onBlur}
+                     onChange={(e) => onChange({ endTrigger: e.target.value })}
+                     style={fld} placeholder="20 bài chất lượng VÀ qua 30+ ngày" />
+            </div>
+            <div className="phase-row">
+              <label title="Tone string ngắn — voice profile của habitat/pillar có rồi, đây chỉ là note bổ sung.">🎙 Giọng</label>
+              <input className="phase-input" type="text" value={entry.tone} onBlur={onBlur}
                      onChange={(e) => onChange({ tone: e.target.value })}
-                     style={fld} placeholder="Học thuật, dày citation (note bổ sung — voice profile habitat ưu tiên)" />
+                     style={fld} placeholder="Học thuật, dày citation (note bổ sung)" />
             </div>
           </div>
         )}

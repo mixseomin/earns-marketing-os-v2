@@ -161,7 +161,7 @@ export async function POST(req: Request) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(astrolasPayload),
-      signal: AbortSignal.timeout(60000),  // 60s per spec
+      signal: AbortSignal.timeout(120000),  // 120s — Astrolas reasoning có thể chạy 60-90s + buffer
     });
   } catch (e) {
     return NextResponse.json({

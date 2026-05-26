@@ -10,14 +10,12 @@ set +a
 
 echo "── MOS v2 deploy ── $(date -Iseconds) ──"
 
-# 1. Pre-deploy DB backup (best-effort)
-PG_BACKUP_FILE="/backup/mos2-pre-deploy-$(date +%Y%m%d-%H%M%S).sql.gz"
-mkdir -p /backup
-if pg_dump -U mos2 mos2_prod 2>/dev/null | gzip > "$PG_BACKUP_FILE"; then
-  echo "✓ DB backup: $PG_BACKUP_FILE"
-else
-  echo "⚠ DB backup skipped (no DB yet)"
-  rm -f "$PG_BACKUP_FILE"
+# DB backup moved to daily cron at /etc/cron.daily/mos2-backup (saved 5-15s/deploy).
+# To force a backup-before-deploy: `MOS2_BACKUP=1 ./deploy.sh`.
+if [ "${MOS2_BACKUP:-0}" = "1" ]; then
+  PG_BACKUP_FILE="/backup/mos2-pre-deploy-$(date +%Y%m%d-%H%M%S).sql.gz"
+  mkdir -p /backup
+  pg_dump -U mos2 mos2_prod 2>/dev/null | gzip > "$PG_BACKUP_FILE" && echo "✓ DB backup: $PG_BACKUP_FILE" || rm -f "$PG_BACKUP_FILE"
 fi
 
 # 2. Pull latest from git
@@ -74,11 +72,24 @@ if [ -n "${DATABASE_URL:-}" ] && [ -d "packages/db/migrations" ]; then
   echo "✓ File-based migrations up-to-date"
 fi
 
-# 4b. Always run seed — spec-only by default (idempotent: modes + platforms +
-#     use_cases). User-managed state (use_case status/feedback) preserved.
-#     If MOS2_AUTO_SEED=1, also wipes+reseeds demo projects (destructive).
-npm run db:seed
-echo "✓ DB seed completed (destructive=${MOS2_AUTO_SEED:-0})"
+# 4b. Run seed ONLY if seed files changed (packages/db/src/seed*) or first run
+#     (no _seed_ran marker). Saves 5-15s when only app code changed.
+#     If MOS2_AUTO_SEED=1, force seed (also wipes+reseeds demo projects).
+SEED_NEEDED=false
+if [ "${MOS2_AUTO_SEED:-0}" = "1" ]; then
+  SEED_NEEDED=true
+elif [ ! -f .next/.seed_ran ]; then
+  SEED_NEEDED=true
+elif [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^packages/db/src/seed"; then
+  SEED_NEEDED=true
+fi
+if [ "$SEED_NEEDED" = "true" ]; then
+  npm run db:seed
+  mkdir -p .next && touch .next/.seed_ran
+  echo "✓ DB seed completed (destructive=${MOS2_AUTO_SEED:-0})"
+else
+  echo "↺ Skip seed (no seed file changes)"
+fi
 
 # 5. Build only if web src changed
 WEB_CHANGED=false

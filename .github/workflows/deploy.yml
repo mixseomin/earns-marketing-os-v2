@@ -12,7 +12,8 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: false
+  # Push 3 commits rapid → only deploy the last; skip intermediate runs.
+  cancel-in-progress: true
 
 jobs:
   deploy:

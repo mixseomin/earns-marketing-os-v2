@@ -34,6 +34,8 @@ const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'steamsolo.com': { emoji: '🎮' },
   'on.tc': { emoji: '🛠️' },
   'scriptinstant.blogspot.com': { emoji: '📜' },
+  'chatlt.com': { emoji: '💬' },
+  'bestweightlosspills.reviews': { emoji: '💊' },
 };
 
 function normalize(key: string): string {

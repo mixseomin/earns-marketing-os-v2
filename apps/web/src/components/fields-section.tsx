@@ -11,7 +11,7 @@
 // biết về habitat/brief/account. Tách concerns: data-fetch ở wrapper,
 // presentation ở đây.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { ScopeKind } from '@/lib/actions/habitat-selectors';
 
 export interface FieldRowSpec {
@@ -48,9 +48,12 @@ interface Props {
   loading?: boolean;
   /** Empty state — show khi fields.length === 0 hoặc tất cả rỗng. */
   emptyMessage?: ReactNode;
-  /** ↻ refresh button — show khi pass; click trigger re-fetch. */
-  onRefresh?: () => void;
-  /** Refreshing state — disable + spinner button. */
+  /** ↻ refresh button — show khi pass; click trigger re-fetch.
+   * Có thể trả Promise (async) → component TỰ manage loading state
+   * (button ⏳ + disabled trong suốt thời gian Promise pending). Caller
+   * KHÔNG cần useState refresh thủ công. */
+  onRefresh?: () => void | Promise<void>;
+  /** Optional override — nếu caller muốn force loading state ngoài. */
   refreshing?: boolean;
   /** Max height list (default 280, auto scroll). */
   maxListHeight?: number;
@@ -81,6 +84,23 @@ export function FieldsSection({
   maxListHeight = 280, actionMsg, noneTooltip = 'Chưa có selector trained',
   renderRowAction,
 }: Props) {
+  // Self-managed loading state — caller chỉ cần pass onRefresh (sync or
+  // async). Nếu pass refreshing prop explicit → caller override.
+  const [internalRefreshing, setInternalRefreshing] = useState(false);
+  const isRefreshing = refreshing ?? internalRefreshing;
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    setInternalRefreshing(true);
+    try {
+      const ret = onRefresh();
+      if (ret instanceof Promise) await ret;
+      // Min visible delay 500ms để user thấy feedback (router.refresh ko
+      // return Promise → finish ngay, button flash quá nhanh).
+      await new Promise((r) => setTimeout(r, 500));
+    } finally {
+      setInternalRefreshing(false);
+    }
+  };
   return (
     <div style={{ border: '1px dashed var(--line-2)', borderRadius: 5, padding: 8,
                   background: 'var(--bg-1)', fontSize: 11 }}>
@@ -105,14 +125,14 @@ export function FieldsSection({
           </span>
         )}
         {onRefresh && (
-          <button type="button" onClick={onRefresh} disabled={refreshing || loading}
+          <button type="button" onClick={handleRefresh} disabled={isRefreshing || loading}
                   title="Refresh data"
                   style={{ background: 'transparent', border: '1px solid var(--line)',
                            borderRadius: 3, padding: '1px 7px', fontSize: 10,
-                           color: refreshing ? 'var(--fg-4)' : 'var(--fg-2)',
-                           cursor: refreshing ? 'wait' : 'pointer',
+                           color: isRefreshing ? 'var(--fg-4)' : 'var(--fg-2)',
+                           cursor: isRefreshing ? 'wait' : 'pointer',
                            fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>
-            {refreshing ? '⏳' : '↻'} refresh
+            {isRefreshing ? '⏳ refreshing…' : '↻ refresh'}
           </button>
         )}
       </div>

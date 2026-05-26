@@ -13,6 +13,12 @@ export const maxDuration = 30;
 // Cho phép intent free-form (vd "extract every rule title h2") thay vì field
 // schema hint, để user pick 1 vùng rồi yêu cầu rút trích.
 
+interface AnchorEntry {
+  tag: string;
+  attrs: Record<string, string>;
+  signal: string;
+  depth: number;
+}
 interface SuggestReq {
   platform_key: string;
   page_kind: string;
@@ -22,6 +28,9 @@ interface SuggestReq {
   element_html: string;        // outerHTML element user pick
   parent_html?: string;
   element_text?: string;
+  // Ancestors stable (aria-label/role/landmark/heading) — LLM dùng làm
+  // gốc selector ổn định thay vì class hash. Array từ closest → root.
+  anchor_chain?: AnchorEntry[];
 }
 
 export async function POST(req: Request) {
@@ -84,6 +93,18 @@ Output JSON shape:
   "expected_count": <số element selector khả năng match — 1 nếu unique, >1 nếu list>
 }`;
 
+  // Anchor chain summary cho LLM. Format gốc → element để LLM hiểu
+  // descendant relationship + dùng anchor stable làm root cho selector.
+  const anchorSummary = Array.isArray(body.anchor_chain) && body.anchor_chain.length > 0
+    ? body.anchor_chain.slice().reverse().map((a, i) => {
+        const indent = '  '.repeat(i);
+        const attrPairs = Object.entries(a.attrs || {})
+          .map(([k, v]) => `${k}="${String(v).slice(0, 60)}"`)
+          .join(' ');
+        return `${indent}└─ <${a.tag}${attrPairs ? ' ' + attrPairs : ''}>  // ${a.signal}`;
+      }).join('\n')
+    : '';
+
   const userPrompt = `INTENT: ${intent}
 
 PICKED ELEMENT (outerHTML, có thể là vùng wrap nhiều child cần extract):
@@ -92,6 +113,7 @@ ${body.element_html.slice(0, 12_000)}
 \`\`\`
 ${body.parent_html ? `\nPARENT CONTEXT (3 levels up):\n\`\`\`html\n${body.parent_html.slice(0, 8_000)}\n\`\`\`` : ''}
 ${body.element_text ? `\nSample text (text user thấy): "${body.element_text.slice(0, 300)}"` : ''}
+${anchorSummary ? `\nSTABLE ANCESTORS CHAIN (gốc → element) — dùng làm root cho selector ổn định:\n\`\`\`\n${anchorSummary}\n  └─ <PICKED ELEMENT>\n\`\`\`\nQUAN TRỌNG: ưu tiên xây selector từ 1 ancestor có aria-label / role / data-testid / heading text / landmark tag → descendant tới element. KHÔNG hardcode class hash random (.css-1abc, utility classes Tailwind dài).` : ''}
 
 Sinh ${kind === 'css' ? 'CSS selector' : 'XPath'} thoả intent + rules.`;
 

@@ -247,12 +247,27 @@ export function FormatPreview({ contentType, title, body, handle = '@account', m
       );
       break;
     }
-    default: { // text
+    default: { // text — show full body, không chỉ heading "## caption".
+      // Strip markdown heading lines (## ...) chỉ giữ paragraphs để mock UX
+      // gần với reddit/forum (raw text post, không có section header).
+      const cleanBody = body
+        ? body.split('\n')
+            .filter((l) => !/^#{1,3}\s+/.test(l.trim()))
+            .join('\n')
+            .trim()
+        : '';
+      const displayBody = cleanBody || caption;
       inner = (
         <div style={C.card}>
           <Head handle={handle} />
-          <div style={{ padding: '0 10px 10px', fontSize: 12.5, color: 'var(--fg-1)', whiteSpace: 'pre-wrap' }}>
-            {caption}
+          {cleanTitle && (
+            <div style={{ padding: '4px 10px 0', fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>
+              {cleanTitle}
+            </div>
+          )}
+          <div style={{ padding: '4px 10px 10px', fontSize: 12.5, color: 'var(--fg-1)',
+                        whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+            {displayBody}
           </div>
         </div>
       );

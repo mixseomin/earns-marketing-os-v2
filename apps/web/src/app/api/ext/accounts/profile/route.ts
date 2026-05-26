@@ -119,7 +119,7 @@ export async function GET(req: Request) {
     const briefRows = await db.execute(sql`
       SELECT
         b.id, b.current_phase, b.approach_md, b.narrative_md, b.tone, b.do_md, b.dont_md,
-        b.join_status, b.cadence_per_week,
+        b.join_status,
         h.id AS habitat_id, h.name AS habitat_name, h.language AS habitat_language,
         h.voice_profile AS habitat_voice, h.voice_notes AS habitat_voice_notes
       FROM community_briefs b
@@ -138,7 +138,6 @@ export async function GET(req: Request) {
         doMd: String(br.do_md ?? ''),
         dontMd: String(br.dont_md ?? ''),
         joinStatus: String(br.join_status ?? ''),
-        cadencePerWeek: Number(br.cadence_per_week ?? 0),
       };
       habitat = {
         id: Number(br.habitat_id),

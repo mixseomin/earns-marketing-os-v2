@@ -186,6 +186,21 @@ export function BriefEditModal({
   const [joinStatus, setJoinStatusState] = useState<JoinStatus>(existing?.joinStatus ?? 'not_joined');
   const [joinUrl, setJoinUrl] = useState<string>(existing?.joinUrl ?? '');
   const [joinNote, setJoinNote] = useState<string>(existing?.joinNote ?? '');
+  // Re-sync khi parent fetch lại existing (sau ↻ refresh / postMessage update).
+  // useState chỉ init 1 lần → giữ value cũ khi prop đổi → modal stale dù DB
+  // đã đúng. F5 fix vì component remount.
+  useEffect(() => {
+    if (existing?.joinStatus && existing.joinStatus !== joinStatus) {
+      setJoinStatusState(existing.joinStatus);
+    }
+    if (existing?.joinUrl != null && existing.joinUrl !== joinUrl) {
+      setJoinUrl(existing.joinUrl);
+    }
+    if (existing?.joinNote != null && existing.joinNote !== joinNote) {
+      setJoinNote(existing.joinNote);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.joinStatus, existing?.joinUrl, existing?.joinNote]);
   const joinedAt = existing?.joinedAt ?? null;
   // Ref + scroll handler để chip ở header click → scroll banner ở body
   // vào viewport (banner có chi tiết + edit button).

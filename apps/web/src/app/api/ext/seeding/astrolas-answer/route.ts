@@ -144,13 +144,24 @@ export async function POST(req: Request) {
   // Note operator: append brief approach / persona hint vào question_body để
   // Astrolas Reasoning Engine có context đầy đủ. Tránh để Astrolas trả answer
   // generic mà không apply brief.
-  // Format: original question + operator hint section (clearly separated).
+  // Format: language enforce block ĐẦU + original question + operator hint section.
+  // BUG cũ: brief context (approach/do/dont/persona) viết tiếng Việt nên
+  // Astrolas hay drift sang VN dù question_lang='en' — operator phải shout
+  // language strictly trong question_body để engine obey.
+  const LANG_NAMES: Record<string, string> = {
+    en: 'English', vi: 'Vietnamese (Tiếng Việt)', es: 'Spanish', fr: 'French',
+    de: 'German', pt: 'Portuguese', it: 'Italian', zh: 'Chinese', ja: 'Japanese',
+    ko: 'Korean', ru: 'Russian', id: 'Indonesian', th: 'Thai',
+  };
+  const langName = LANG_NAMES[habitatLang] || habitatLang.toUpperCase();
   const customPromptClean = (body.customPrompt ?? '').trim().slice(0, 1500);
   const questionBodyEnriched = [
+    `[STRICT OUTPUT LANGUAGE: ${langName} (${habitatLang}) — MUST reply ENTIRELY in ${langName}. Brief context below may be in Vietnamese (operator notes) but YOUR ANSWER must be ${langName}. DO NOT mix languages.]`,
+    '',
     body.parentBody,
     '',
     '---',
-    '[OPERATOR CONTEXT — không phải nội dung user hỏi, chỉ là instruction cho engine]',
+    '[OPERATOR CONTEXT — KHÔNG phải nội dung user hỏi, chỉ là instruction cho engine. Reply language vẫn phải là ' + langName + ']',
     persona.voice_summary ? `Persona voice: ${persona.voice_summary}` : null,
     persona.narrative_style ? `Persona narrative: ${persona.narrative_style}` : null,
     persona.backstory ? `Persona backstory: ${String(persona.backstory).slice(0, 300)}` : null,
@@ -160,6 +171,8 @@ export async function POST(req: Request) {
     ctx.dont_md ? `DON'T:\n${String(ctx.dont_md).slice(0, 500)}` : null,
     forbiddenTopics.length > 0 ? `FORBIDDEN TOPICS: ${forbiddenTopics.join(', ')}` : null,
     customPromptClean ? `\n[OPERATOR INSTRUCTION — ưu tiên cao, áp dụng cho answer này]\n${customPromptClean}` : null,
+    '',
+    `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');
 
   const astrolasPayload = {

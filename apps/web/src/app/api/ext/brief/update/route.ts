@@ -1,0 +1,65 @@
+import { NextResponse } from 'next/server';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
+import { checkAuth } from '../../_auth';
+
+// POST /api/ext/brief/update
+// Body: { briefId, approach_md?, tone?, do_md?, dont_md?, narrative_md? }
+//
+// Partial update — chỉ field nào gửi được update. Ext side panel cho user
+// edit brief "tại thực địa" rồi muốn lưu lại vào DB (không chỉ dùng cho
+// session hiện tại). Khác briefOverride trong gen-draft request: lần này
+// commit thật vào community_briefs.
+
+export async function POST(req: Request) {
+  const authErr = checkAuth(req);
+  if (authErr) return authErr;
+
+  const body = await req.json().catch(() => ({})) as {
+    briefId?: number;
+    approach_md?: string;
+    tone?: string;
+    do_md?: string;
+    dont_md?: string;
+    narrative_md?: string;
+  };
+
+  const briefId = Number(body.briefId ?? 0);
+  if (!briefId) {
+    return NextResponse.json({ ok: false, error: 'briefId required' }, { status: 400 });
+  }
+
+  const db = getDb();
+  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+
+  // Verify brief tồn tại
+  const checkRows = await db.execute(sql`
+    SELECT id FROM community_briefs WHERE id = ${briefId} LIMIT 1
+  `);
+  if (!(checkRows as unknown as Array<unknown>)[0]) {
+    return NextResponse.json({ ok: false, error: 'Brief not found' }, { status: 404 });
+  }
+
+  // Build SET clause động — chỉ update field user explicit gửi (typeof string).
+  // Empty string '' = clear field (intentional). undefined = skip.
+  const sets: ReturnType<typeof sql>[] = [];
+  if (typeof body.approach_md === 'string') sets.push(sql`approach_md = ${body.approach_md}`);
+  if (typeof body.tone === 'string') sets.push(sql`tone = ${body.tone}`);
+  if (typeof body.do_md === 'string') sets.push(sql`do_md = ${body.do_md}`);
+  if (typeof body.dont_md === 'string') sets.push(sql`dont_md = ${body.dont_md}`);
+  if (typeof body.narrative_md === 'string') sets.push(sql`narrative_md = ${body.narrative_md}`);
+  sets.push(sql`updated_at = NOW()`);
+
+  if (sets.length === 1) {
+    return NextResponse.json({ ok: false, error: 'Không có field nào để update' }, { status: 400 });
+  }
+
+  const setClause = sql.join(sets, sql`, `);
+  await db.execute(sql`UPDATE community_briefs SET ${setClause} WHERE id = ${briefId}`);
+
+  return NextResponse.json({
+    ok: true,
+    briefId,
+    updated: Object.keys(body).filter((k) => k !== 'briefId'),
+  });
+}

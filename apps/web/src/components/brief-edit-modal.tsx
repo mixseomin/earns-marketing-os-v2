@@ -72,6 +72,14 @@ const MARKDOWN_FIELDS = new Set<SuggestableField>(['approachMd', 'narrativeMd', 
 // AI thỉnh thoảng trả markdown nén 1 dòng: "- A - B - C **Arc** ... **Voice** ...".
 // Normalize: break trước mỗi bullet "- " và mỗi label "**Xxx**:" (narrative arc
 // pattern). Cũng split " · " thành newline (separator AI hay dùng).
+// Rút gọn số lớn (views/upvotes): 1234 → "1.2k", 50000 → "50k", 1500000 → "1.5M".
+function formatStat(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 10_000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
+  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+}
+
 function normalizeMarkdown(s: string): string {
   if (!s) return s;
   let out = s.replace(/\r\n/g, '\n');
@@ -3384,7 +3392,9 @@ function PostRow({
         })()}
         {/* ✅ Posted badge — hiện khi card đã đăng (postedAt + postUrl).
             Click chip = mở postUrl tab mới (verify đúng comment). Time-ago
-            tooltip + label "1m"/"2h"/"3d" gọn cạnh icon ✓. */}
+            tooltip + label "1m"/"2h"/"3d" gọn cạnh icon ✓.
+            P1: thêm 📊 link Reddit insights (commentstats/t1_xxx) khi parse
+            thingId từ postUrl ra được (Reddit comment URL pattern). */}
         {post.postedAt && post.postUrl && (() => {
           const ago = (() => {
             try {
@@ -3396,18 +3406,58 @@ function PostRow({
               return `${Math.floor(diff / 86_400_000)}d`;
             } catch { return ''; }
           })();
+          // Reddit comment thingId: pattern URL .../comments/<post>/<slug>/<commentId>/
+          // hoặc query ?context= → commentId thường là 7-10 ký tự alphanum cuối path.
+          // Insights URL: https://www.reddit.com/commentstats/t1_<commentId>
+          const thingId = (() => {
+            try {
+              const u = new URL(post.postUrl!);
+              if (!u.host.includes('reddit.com')) return null;
+              const m = u.pathname.match(/\/comments\/[^/]+\/[^/]*\/([a-z0-9]+)\/?$/i);
+              return m ? m[1] : null;
+            } catch { return null; }
+          })();
+          const insightsUrl = thingId ? `https://www.reddit.com/commentstats/t1_${thingId}` : null;
+          // Stats inline khi đã sync
+          const v = post.insightsViewsCount;
+          const r = post.insightsUpvoteRatio;
+          const hasStats = v != null || r != null;
           return (
-            <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
-               onClick={(e) => e.stopPropagation()}
-               title={`✅ Đã đăng — ${post.postedAt}\n${post.postUrl}\nClick để mở comment.`}
-               style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                        padding: '1px 6px', fontSize: 9.5, fontWeight: 700,
-                        fontFamily: 'var(--font-mono)',
-                        background: 'rgba(74,222,128,.15)', color: 'var(--ok)',
-                        border: '1px solid rgba(74,222,128,.4)', borderRadius: 999,
-                        flexShrink: 0, textDecoration: 'none' }}>
-              ✓ <span>{ago}</span>
-            </a>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}
+                  onClick={(e) => e.stopPropagation()}>
+              <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
+                 title={`✅ Đã đăng — ${post.postedAt}\n${post.postUrl}\nClick để mở comment.`}
+                 style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                          padding: '1px 6px', fontSize: 9.5, fontWeight: 700,
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(74,222,128,.15)', color: 'var(--ok)',
+                          border: '1px solid rgba(74,222,128,.4)', borderRadius: 999,
+                          textDecoration: 'none' }}>
+                ✓ <span>{ago}</span>
+              </a>
+              {hasStats && (
+                <span title={`Insights cập nhật ${post.insightsFetchedAt ?? '?'}\nViews: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote ratio: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'} · Replies: ${post.insightsReplyCount ?? '?'}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                               padding: '1px 5px', fontSize: 9.5, fontWeight: 700,
+                               fontFamily: 'var(--font-mono)',
+                               background: 'rgba(96,165,250,.13)', color: '#60a5fa',
+                               border: '1px solid rgba(96,165,250,.4)', borderRadius: 999 }}>
+                  {v != null && <span>👁 {formatStat(v)}</span>}
+                  {r != null && <span>↑ {Math.round(Number(r) * 100)}%</span>}
+                </span>
+              )}
+              {insightsUrl && (
+                <a href={insightsUrl} target="_blank" rel="noopener noreferrer"
+                   title={`📊 Reddit Insights — view stats (views, upvote ratio, replies)\n${insightsUrl}`}
+                   style={{ display: 'inline-flex', alignItems: 'center',
+                            padding: '1px 4px', fontSize: 11,
+                            background: 'var(--bg-1)', color: 'var(--fg-3)',
+                            border: '1px solid var(--line)', borderRadius: 3,
+                            textDecoration: 'none' }}>
+                  📊
+                </a>
+              )}
+            </span>
           );
         })()}
         {/* Target lang chip — dùng <LangChip> chung; variant='warn' khi card.lang

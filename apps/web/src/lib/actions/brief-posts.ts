@@ -65,6 +65,14 @@ export interface BriefPost {
   postedAt: string | null;
   postScreenshotUrl: string | null;
   postNote: string | null;
+  // Reddit/community insights — null nếu chưa sync.
+  insightsViewsCount: number | null;
+  insightsScore: number | null;
+  insightsUpvoteRatio: number | null;       // 0.0-1.0
+  insightsReplyCount: number | null;
+  insightsShareCount: number | null;
+  insightsAwardCount: number | null;
+  insightsFetchedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +91,9 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
            c.pillar_id, c.content_kind, c.col, c.level,
            c.urgent, c.tags, c.brief_id, c.brief_phase, c.agent_kind,
            c.dispatch_ready, c.post_url, c.posted_at, c.post_screenshot_url, c.post_note,
+           c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
+           c.insights_reply_count, c.insights_share_count, c.insights_award_count,
+           c.insights_fetched_at,
            c.created_at, c.updated_at,
            m.url AS media_url, m.kind AS media_kind,
            hc.name AS channel_name,
@@ -131,6 +142,13 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     posted_at: Date | string | null;
     post_screenshot_url: string | null;
     post_note: string | null;
+    insights_views_count: number | string | null;
+    insights_score: number | string | null;
+    insights_upvote_ratio: number | string | null;
+    insights_reply_count: number | string | null;
+    insights_share_count: number | string | null;
+    insights_award_count: number | string | null;
+    insights_fetched_at: Date | string | null;
   };
   return (rows as unknown as Row[]).map((r) => ({
     id: Number(r.id),     // cast pg bigint string → number
@@ -174,6 +192,13 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     postedAt: r.posted_at instanceof Date ? r.posted_at.toISOString() : (r.posted_at ? String(r.posted_at) : null),
     postScreenshotUrl: r.post_screenshot_url ?? null,
     postNote: r.post_note ?? null,
+    insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
+    insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
+    insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
+    insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
+    insightsShareCount: r.insights_share_count != null ? Number(r.insights_share_count) : null,
+    insightsAwardCount: r.insights_award_count != null ? Number(r.insights_award_count) : null,
+    insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   }));

@@ -267,6 +267,16 @@ export const cards = pgTable(
     postedAt: timestamp('posted_at', { withTimezone: true }),
     postScreenshotUrl: text('post_screenshot_url'),
     postNote: text('post_note'),
+    // Insights data — ext scrape Reddit commentstats/<id> bằng user session,
+    // POST /api/ext/seeding/insights save. Cron stale > 24h re-fetch sau.
+    insightsViewsCount: integer('insights_views_count'),
+    insightsScore: integer('insights_score'),                                  // ups - downs
+    insightsUpvoteRatio: decimal('insights_upvote_ratio', { precision: 4, scale: 3 }),
+    insightsReplyCount: integer('insights_reply_count'),
+    insightsShareCount: integer('insights_share_count'),
+    insightsAwardCount: integer('insights_award_count'),
+    insightsFetchedAt: timestamp('insights_fetched_at', { withTimezone: true }),
+    insightsRawJson: jsonb('insights_raw_json'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

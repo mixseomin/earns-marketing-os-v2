@@ -50,11 +50,13 @@ interface SelectProps extends BaseProps {
 
 export type LangChipProps = StaticProps | ButtonProps | SelectProps;
 
+// Sau khi bỏ label "English"/"Tiếng Việt" → chip chỉ còn flag + ISO code
+// (vd 🇺🇸 EN). Pad + gap shrink để chip thật compact, không "ngợp khoảng trắng".
 const SIZE_STYLE: Record<NonNullable<BaseProps['size']>, {
   padX: number; padY: number; font: number; flagSize: number; codeFont: number; gap: number;
 }> = {
-  sm: { padX: 6, padY: 1, font: 10,   flagSize: 11, codeFont: 9,  gap: 4 },
-  md: { padX: 8, padY: 2, font: 11,   flagSize: 13, codeFont: 10, gap: 5 },
+  sm: { padX: 4, padY: 1, font: 9,    flagSize: 10, codeFont: 9,  gap: 2 },
+  md: { padX: 6, padY: 1, font: 10.5, flagSize: 12, codeFont: 10, gap: 3 },
 };
 
 export function LangChip(props: LangChipProps) {
@@ -97,8 +99,8 @@ export function LangChip(props: LangChipProps) {
       <span style={{ fontSize: sz.flagSize, lineHeight: 1 }}>{m.flag}</span>
       {isSet && (
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: sz.codeFont,
-                       padding: '0 4px', borderRadius: 2,
-                       background: codeBg, letterSpacing: '.04em' }}>
+                       padding: '0 2px', borderRadius: 2,
+                       background: codeBg, letterSpacing: '.02em' }}>
           {codeText}
         </span>
       )}
@@ -127,7 +129,7 @@ export function LangChip(props: LangChipProps) {
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
       <span style={{ ...baseStyle, position: 'absolute', inset: 0,
-                     padding: `0 ${sz.padX + 12}px 0 ${sz.padX}px`,
+                     padding: `0 ${sz.padX + 8}px 0 ${sz.padX}px`,
                      pointerEvents: 'none', zIndex: 1, border: 'none' }}>
         {innerContent}
       </span>
@@ -138,13 +140,13 @@ export function LangChip(props: LangChipProps) {
               title={tooltip}
               style={{
                 appearance: 'none', WebkitAppearance: 'none',
-                padding: `${sz.padY + 1}px ${sz.padX + 12}px ${sz.padY + 1}px ${sz.padX}px`,
+                padding: `${sz.padY + 1}px ${sz.padX + 8}px ${sz.padY + 1}px ${sz.padX}px`,
                 fontSize: sz.font, fontWeight: 700, fontFamily: 'var(--font-sans)',
                 letterSpacing: '.01em',
                 background: bg, color: 'transparent',
                 border: `1px solid ${border}`, borderRadius: 4,
                 cursor: props.disabled ? 'wait' : 'pointer',
-                minWidth: size === 'sm' ? 50 : 60,
+                minWidth: size === 'sm' ? 0 : 0,
               }}>
         {props.langs.map((l) => {
           const opt = getLangMeta(l);
@@ -155,8 +157,8 @@ export function LangChip(props: LangChipProps) {
           );
         })}
       </select>
-      <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',
-                     fontSize: 8, color: fg, pointerEvents: 'none', zIndex: 2 }}>▾</span>
+      <span style={{ position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
+                     fontSize: 7, color: fg, pointerEvents: 'none', zIndex: 2 }}>▾</span>
     </span>
   );
 }

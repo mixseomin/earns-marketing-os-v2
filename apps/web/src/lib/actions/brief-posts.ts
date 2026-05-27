@@ -826,3 +826,347 @@ export async function createPlaceholdersForBriefPhase(
   }
   return { ok: true, created };
 }
+
+// ────────────────────────────────────────────────────────────────────
+// listAllPostedCards — danh sách FULL bài đã đăng cross-brief / cross-time
+// với filter mạnh. Dùng cho tab "Tất cả bài đăng" trong /seeding.
+// Khác listRecentPostedCards (7d, 50 limit, chỉ posted_at IS NOT NULL):
+//   - time range linh hoạt
+//   - filter lifecycle / platform / habitat / account / brief / AI-detect
+//   - threshold min-views/score/replies
+//   - sort theo posted/views/score/replies/ratio
+//   - pagination offset+limit
+// ────────────────────────────────────────────────────────────────────
+
+export type PostedSortKey =
+  | 'posted_desc' | 'posted_asc'
+  | 'views_desc' | 'score_desc' | 'replies_desc' | 'ratio_desc';
+
+export interface AllPostedFilters {
+  days?: number | null;            // null = all-time, default 7
+  lifecycles?: string[];           // include nếu set; mặc định = exclude removed
+  hideRemoved?: boolean;           // default true (hide removed-by-mod + self-deleted)
+  platformKeys?: string[];
+  habitatIds?: number[];
+  accountIds?: number[];
+  briefIds?: number[];
+  contentTypes?: string[];
+  aiDetectionOnly?: boolean;       // true = chỉ habitats.ai_content_detection=true
+  minViews?: number | null;
+  minScore?: number | null;
+  minReplies?: number | null;
+  sort?: PostedSortKey;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AllPostedCard extends RecentPostedCard {
+  briefRef: string | null;         // BRF-12 — gọn hơn briefId
+  briefTitle: string | null;
+  squadKey: string | null;
+  aiContentDetection: boolean;
+}
+
+export interface AllPostedResult {
+  rows: AllPostedCard[];
+  total: number;       // tổng match filter (cho pagination)
+  facets: {
+    lifecycleCounts: Record<string, number>;   // bao gồm null=>'_none'
+    platformCounts: Record<string, number>;
+    contentTypeCounts: Record<string, number>;
+  };
+}
+
+const REMOVED_LIFECYCLES_SET = ['removed-by-mod', 'self-deleted'];
+
+function buildPostedWhere(projectId: string, f: AllPostedFilters) {
+  const conds: ReturnType<typeof sql>[] = [
+    sql`c.project_id = ${projectId}`,
+    sql`c.post_url IS NOT NULL`,
+    sql`c.archived_at IS NULL`,
+    sql`c.posted_at IS NOT NULL`,
+  ];
+
+  if (f.days != null && f.days > 0) {
+    conds.push(sql`c.posted_at > NOW() - INTERVAL '${sql.raw(String(f.days))} days'`);
+  }
+
+  // Lifecycle filter:
+  // - lifecycles set rõ → IN (...), include null nếu '_none' có trong list
+  // - else hideRemoved (default true) → exclude removed-by-mod + self-deleted
+  if (f.lifecycles && f.lifecycles.length > 0) {
+    const concrete = f.lifecycles.filter((l) => l !== '_none');
+    const includeNone = f.lifecycles.includes('_none');
+    const parts: ReturnType<typeof sql>[] = [];
+    if (concrete.length > 0) {
+      parts.push(sql`c.post_lifecycle IN (${sql.join(concrete.map((l) => sql`${l}`), sql`, `)})`);
+    }
+    if (includeNone) parts.push(sql`c.post_lifecycle IS NULL`);
+    if (parts.length > 0) {
+      conds.push(sql`(${sql.join(parts, sql` OR `)})`);
+    }
+  } else if (f.hideRemoved !== false) {
+    conds.push(sql`(c.post_lifecycle IS NULL OR c.post_lifecycle NOT IN (${sql.join(REMOVED_LIFECYCLES_SET.map((l) => sql`${l}`), sql`, `)}))`);
+  }
+
+  if (f.platformKeys && f.platformKeys.length > 0) {
+    conds.push(sql`p.key IN (${sql.join(f.platformKeys.map((k) => sql`${k}`), sql`, `)})`);
+  }
+  if (f.habitatIds && f.habitatIds.length > 0) {
+    conds.push(sql`b.habitat_id IN (${sql.join(f.habitatIds.map((id) => sql`${id}`), sql`, `)})`);
+  }
+  if (f.accountIds && f.accountIds.length > 0) {
+    conds.push(sql`b.account_id IN (${sql.join(f.accountIds.map((id) => sql`${id}`), sql`, `)})`);
+  }
+  if (f.briefIds && f.briefIds.length > 0) {
+    conds.push(sql`c.brief_id IN (${sql.join(f.briefIds.map((id) => sql`${id}`), sql`, `)})`);
+  }
+  if (f.contentTypes && f.contentTypes.length > 0) {
+    conds.push(sql`c.content_type IN (${sql.join(f.contentTypes.map((t) => sql`${t}`), sql`, `)})`);
+  }
+  if (f.aiDetectionOnly) {
+    conds.push(sql`h.ai_content_detection = TRUE`);
+  }
+  if (f.minViews != null) conds.push(sql`COALESCE(c.insights_views_count, 0) >= ${f.minViews}`);
+  if (f.minScore != null) conds.push(sql`COALESCE(c.insights_score, 0) >= ${f.minScore}`);
+  if (f.minReplies != null) conds.push(sql`COALESCE(c.insights_reply_count, 0) >= ${f.minReplies}`);
+
+  return sql.join(conds, sql` AND `);
+}
+
+function orderByFor(sort: PostedSortKey | undefined) {
+  switch (sort) {
+    case 'posted_asc':   return sql`c.posted_at ASC`;
+    case 'views_desc':   return sql`COALESCE(c.insights_views_count, 0) DESC, c.posted_at DESC`;
+    case 'score_desc':   return sql`COALESCE(c.insights_score, 0) DESC, c.posted_at DESC`;
+    case 'replies_desc': return sql`COALESCE(c.insights_reply_count, 0) DESC, c.posted_at DESC`;
+    case 'ratio_desc':   return sql`COALESCE(c.insights_upvote_ratio, 0) DESC, c.posted_at DESC`;
+    case 'posted_desc':
+    default:             return sql`c.posted_at DESC`;
+  }
+}
+
+export async function listAllPostedCards(
+  projectId: string,
+  filters: AllPostedFilters = {},
+): Promise<AllPostedResult> {
+  const db = ensureDb();
+  const f: AllPostedFilters = {
+    days: filters.days === null ? null : (filters.days ?? 7),
+    lifecycles: filters.lifecycles,
+    hideRemoved: filters.hideRemoved !== false,
+    platformKeys: filters.platformKeys,
+    habitatIds: filters.habitatIds,
+    accountIds: filters.accountIds,
+    briefIds: filters.briefIds,
+    contentTypes: filters.contentTypes,
+    aiDetectionOnly: filters.aiDetectionOnly,
+    minViews: filters.minViews ?? null,
+    minScore: filters.minScore ?? null,
+    minReplies: filters.minReplies ?? null,
+    sort: filters.sort ?? 'posted_desc',
+    limit: Math.min(filters.limit ?? 50, 200),
+    offset: Math.max(filters.offset ?? 0, 0),
+  };
+  const where = buildPostedWhere(projectId, f);
+  const order = orderByFor(f.sort);
+
+  const rows = await db.execute(sql`
+    SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
+           c.post_url, c.posted_at, c.parent_url,
+           c.post_lifecycle, c.squad_key,
+           c.brief_id,
+           c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
+           c.insights_reply_count, c.insights_fetched_at,
+           b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
+           h.name AS habitat_name, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
+           p.label AS platform_label, p.key AS platform_key,
+           pa.handle AS account_handle,
+           (SELECT COUNT(*) FROM cards c2
+              WHERE c2.project_id = c.project_id
+                AND c2.parent_url = c.parent_url
+                AND c2.parent_url IS NOT NULL) AS parent_attempt_count
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    WHERE ${where}
+    ORDER BY ${order}
+    LIMIT ${f.limit} OFFSET ${f.offset}
+  `);
+
+  const totalRows = await db.execute(sql`
+    SELECT COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    WHERE ${where}
+  `);
+  const total = Number((totalRows as unknown as Array<{ n: number }>)[0]?.n ?? 0);
+
+  // Facets: 3 query riêng cho lifecycle / platform / content_type
+  // (TÔN TRỌNG cùng filter áp dụng — chip count match danh sách).
+  const lcRows = await db.execute(sql`
+    SELECT COALESCE(c.post_lifecycle, '_none') AS k, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    WHERE ${where}
+    GROUP BY 1
+  `);
+  const lcMap: Record<string, number> = {};
+  for (const r of lcRows as unknown as Array<{ k: string; n: number }>) lcMap[r.k] = Number(r.n);
+
+  const pkRows = await db.execute(sql`
+    SELECT COALESCE(p.key, '_none') AS k, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    WHERE ${where}
+    GROUP BY 1
+  `);
+  const pkMap: Record<string, number> = {};
+  for (const r of pkRows as unknown as Array<{ k: string; n: number }>) pkMap[r.k] = Number(r.n);
+
+  const ctRows = await db.execute(sql`
+    SELECT COALESCE(c.content_type, 'text') AS k, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    WHERE ${where}
+    GROUP BY 1
+  `);
+  const ctMap: Record<string, number> = {};
+  for (const r of ctRows as unknown as Array<{ k: string; n: number }>) ctMap[r.k] = Number(r.n);
+
+  const mapped: AllPostedCard[] = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    cardRef: String(r.card_ref ?? ''),
+    title: String(r.title ?? ''),
+    bodyTarget: String(r.body_target ?? '').slice(0, 200),
+    contentType: String(r.content_type ?? 'text'),
+    targetLang: String(r.target_lang ?? 'en'),
+    postUrl: String(r.post_url ?? ''),
+    postedAt: r.posted_at instanceof Date ? r.posted_at.toISOString() : String(r.posted_at),
+    briefId: r.brief_id != null ? Number(r.brief_id) : null,
+    briefRef: r.brief_id != null ? `BRF-${r.brief_id}` : null,
+    briefTitle: r.brief_phase_now ? String(r.brief_phase_now) : null,
+    squadKey: r.squad_key ? String(r.squad_key) : null,
+    habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
+    habitatName: String(r.habitat_name ?? ''),
+    platformLabel: String(r.platform_label ?? ''),
+    platformKey: r.platform_key ? String(r.platform_key) : null,
+    accountHandle: r.account_handle ? String(r.account_handle) : null,
+    aiContentDetection: Boolean(r.ai_detect),
+    insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
+    insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
+    insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
+    insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
+    insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
+    postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
+    parentAttemptCount: Number(r.parent_attempt_count ?? 1),
+  }));
+
+  return {
+    rows: mapped,
+    total,
+    facets: { lifecycleCounts: lcMap, platformCounts: pkMap, contentTypeCounts: ctMap },
+  };
+}
+
+// Options cho filter dropdown — load 1 lần khi mở tab.
+export interface PostedFilterOptions {
+  platforms: Array<{ key: string; label: string; count: number }>;
+  habitats: Array<{ id: number; name: string; platformKey: string | null; aiDetection: boolean; count: number }>;
+  accounts: Array<{ id: number; handle: string; platformKey: string | null; count: number }>;
+  briefs: Array<{ id: number; ref: string; title: string; count: number }>;
+  contentTypes: Array<{ key: string; count: number }>;
+}
+
+export async function getPostedFilterOptions(projectId: string): Promise<PostedFilterOptions> {
+  const db = ensureDb();
+  // Chỉ list options thực sự có card posted (giảm noise dropdown).
+  const baseWhere = sql`
+    c.project_id = ${projectId}
+    AND c.post_url IS NOT NULL
+    AND c.archived_at IS NULL
+    AND c.posted_at IS NOT NULL
+  `;
+
+  const platforms = await db.execute(sql`
+    SELECT p.key, p.label, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
+    WHERE ${baseWhere} AND p.key IS NOT NULL
+    GROUP BY p.key, p.label
+    ORDER BY n DESC
+  `);
+  const habitats = await db.execute(sql`
+    SELECT h.id, h.name, h.platform_key, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
+           COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    WHERE ${baseWhere} AND h.id IS NOT NULL
+    GROUP BY h.id, h.name, h.platform_key, h.ai_content_detection
+    ORDER BY n DESC
+  `);
+  const accounts = await db.execute(sql`
+    SELECT pa.id, pa.handle, pa.platform_key, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    WHERE ${baseWhere} AND pa.id IS NOT NULL
+    GROUP BY pa.id, pa.handle, pa.platform_key
+    ORDER BY n DESC
+  `);
+  // Brief KHÔNG có card_ref/headline trong schema → dùng `BRF-{id}` + habitat.name
+  // làm title gợi nhớ. Account handle để phân biệt brief same habitat khác account.
+  const briefs = await db.execute(sql`
+    SELECT b.id, h.name AS habitat_name, pa.handle AS account_handle, COUNT(*)::int AS n
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    WHERE ${baseWhere} AND b.id IS NOT NULL
+    GROUP BY b.id, h.name, pa.handle
+    ORDER BY n DESC
+  `);
+  const cts = await db.execute(sql`
+    SELECT c.content_type AS k, COUNT(*)::int AS n
+    FROM cards c
+    WHERE ${baseWhere}
+    GROUP BY c.content_type
+    ORDER BY n DESC
+  `);
+
+  return {
+    platforms: (platforms as unknown as Array<Record<string, unknown>>).map((r) => ({
+      key: String(r.key), label: String(r.label ?? r.key), count: Number(r.n),
+    })),
+    habitats: (habitats as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), name: String(r.name ?? ''),
+      platformKey: r.platform_key ? String(r.platform_key) : null,
+      aiDetection: Boolean(r.ai_detect), count: Number(r.n),
+    })),
+    accounts: (accounts as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), handle: String(r.handle ?? ''),
+      platformKey: r.platform_key ? String(r.platform_key) : null, count: Number(r.n),
+    })),
+    briefs: (briefs as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), ref: `BRF-${r.id}`,
+      title: `${r.habitat_name ?? '(no habitat)'}${r.account_handle ? ` · @${r.account_handle}` : ''}`,
+      count: Number(r.n),
+    })),
+    contentTypes: (cts as unknown as Array<Record<string, unknown>>).map((r) => ({
+      key: String(r.k ?? 'text'), count: Number(r.n),
+    })),
+  };
+}

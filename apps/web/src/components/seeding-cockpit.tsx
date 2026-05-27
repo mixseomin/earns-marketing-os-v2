@@ -8,7 +8,13 @@
 import { useState, useMemo, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SeedingQueueItem, SeedingStatus } from '@/lib/actions/seeding';
-import type { RecentPostedCard } from '@/lib/actions/brief-posts';
+import type {
+  RecentPostedCard,
+  AllPostedFilters,
+  AllPostedResult,
+  PostedFilterOptions,
+} from '@/lib/actions/brief-posts';
+import { AllPostsTab } from './all-posts-tab';
 import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
@@ -80,7 +86,7 @@ function EntityLink({ onClick, title, color, children }: {
   );
 }
 
-export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [] }: {
+export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [], postedOptions, postedInitial, postedInitialFilters }: {
   projectId: string;
   projectName: string;
   project: Project;
@@ -88,6 +94,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   queue: SeedingQueueItem[];
   tribes: TribeRow[];
   recentPosted?: RecentPostedCard[];
+  postedOptions?: PostedFilterOptions;
+  postedInitial?: AllPostedResult;
+  postedInitialFilters?: AllPostedFilters;
 }) {
   const router = useRouter();
   const modal = useModalParam('m'); // ?m=schedule&mId=<briefId>
@@ -97,6 +106,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const habNested = useModalParam('hab');   // ?hab=open&habId=<habitatId>
   const [busy, startBusy] = useTransition();
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
+  // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
+  const [view, setView] = useState<'queue' | 'posts'>('queue');
   // Filter theo loại blocking issue — click chip ở banner → lọc queue chỉ hiển
   // thị các dòng có issue đó. null = không filter.
   const [issueFilter, setIssueFilter] = useState<'no-url' | 'acct-dead' | 'acct-not-ready' | 'platform-mismatch' | 'no-posts' | 'incomplete-posts' | 'ready' | null>(null);
@@ -1121,21 +1132,46 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           </div>
         </div>
         <div className="page-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Segmented options={[{ value: 'active', label: 'Đang chạy' }, { value: 'all', label: 'Tất cả' }]}
-                     value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
-          <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
-                 style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
-          <button className="btn primary" disabled={busy} onClick={doGenerate}
-                  title="Sinh sẵn 1 bài nháp vào backlog cho mọi lịch đến hạn (auto + chưa có nháp)">
-            {busy ? <><Spinner size="xs" /> Đang sinh</> : '▶ Sinh bài đến hạn'}
-          </button>
+          <Segmented options={[
+                       { value: 'queue', label: '⏱ Lịch seed' },
+                       { value: 'posts', label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
+                     ]}
+                     value={view} onChange={(v) => setView(v as 'queue' | 'posts')} />
+          {view === 'queue' && (
+            <>
+              <Segmented options={[{ value: 'active', label: 'Đang chạy' }, { value: 'all', label: 'Tất cả' }]}
+                         value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
+              <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
+                     style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
+              <button className="btn primary" disabled={busy} onClick={doGenerate}
+                      title="Sinh sẵn 1 bài nháp vào backlog cho mọi lịch đến hạn (auto + chưa có nháp)">
+                {busy ? <><Spinner size="xs" /> Đang sinh</> : '▶ Sinh bài đến hạn'}
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* View 'posts': render AllPostsTab thay vì queue + chip + buckets. */}
+      {view === 'posts' && postedOptions && postedInitial && postedInitialFilters && (
+        <AllPostsTab projectId={projectId}
+                     options={postedOptions}
+                     initial={postedInitial}
+                     initialFilters={postedInitialFilters}
+                     onOpenBrief={(briefId, cardId) => {
+                       const qs = new URLSearchParams(window.location.search);
+                       qs.set('m', 'brief');
+                       qs.set('mId', String(briefId));
+                       if (cardId) qs.set('bfc', String(cardId));
+                       window.history.replaceState({}, '', `${window.location.pathname}?${qs.toString()}`);
+                       modal.open('brief', briefId);
+                     }} />
+      )}
 
       {/* Chip filter — click 1 chip = lọc queue bên dưới theo loại. 'ready'
           xanh = không issue, sẵn sàng seed. acct-dead đỏ; 3 loại còn lại
           vàng. Không banner background — chỉ chip + 1 dòng hint nhỏ. */}
-      {(issuesGrouped.ready + issuesGrouped.totalIssues) > 0 && (() => {
+      {view === 'queue' && (issuesGrouped.ready + issuesGrouped.totalIssues) > 0 && (() => {
         type Sev = 'ok' | 'bad' | 'warn';
         type ChipKey = NonNullable<typeof issueFilter>;
         const allChips: Array<{ key: ChipKey; label: string; n: number; sev: Sev }> = [
@@ -1198,7 +1234,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         </div>
       )}
 
-      {queue.length === 0 ? (
+      {view === 'queue' && (queue.length === 0 ? (
         <EmptyState icon="⏱" title="Chưa có lịch seeding nào"
           description="Vào trang Tribes → mở 1 account-brief → '+ Lịch seed' để tạo nhịp seeding cho cộng đồng đó." />
       ) : (liveList.length === 0 && deadGroups.length === 0 && needAccountGroups.length === 0 && needJoinGroups.length === 0) ? (
@@ -1246,7 +1282,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <Bucket title="Sắp tới" items={buckets.later!} accent="var(--fg-3)" />
           {statusFilter === 'all' && <Bucket title="Tạm dừng / Ngoài phase" items={buckets.rest!} accent="var(--fg-4)" />}
         </>
-      )}
+      ))}
 
       {editingBriefId != null && (
         <ScheduleEditModal projectId={projectId} briefId={editingBriefId}

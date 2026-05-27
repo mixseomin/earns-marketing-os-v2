@@ -537,7 +537,18 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
 // ── generateFullDraft (reasoning) ──────────────────────────────────
 
 export async function generateFullDraft(
-  cardId: number, opts?: { hookChoice?: string; modelId?: string; customInstruction?: string },
+  cardId: number, opts?: {
+    hookChoice?: string;
+    modelId?: string;
+    customInstruction?: string;
+    briefOverride?: {
+      approach_md?: string;
+      tone?: string;
+      do_md?: string;
+      dont_md?: string;
+      narrative_md?: string;
+    };
+  },
 ): Promise<{
   ok: boolean; saved?: boolean; rationale?: string; error?: string;
   // Trả nguyên data đã lưu — client setState local thay vì revalidate page.
@@ -547,7 +558,18 @@ export async function generateFullDraft(
     const client = ensureClient();
     const ctxOrErr = await loadPostContext(cardId);
     if ('error' in ctxOrErr) return { ok: false, error: ctxOrErr.error };
-    const ctx = ctxOrErr;
+    const ctxBase = ctxOrErr;
+    // Apply briefOverride field-by-field (chỉ thay field user explicit gửi).
+    // User chỉnh tại side panel = experiment "tại thực địa" không lưu DB.
+    const ov = opts?.briefOverride ?? {};
+    const ctx: typeof ctxBase = {
+      ...ctxBase,
+      ...(typeof ov.approach_md === 'string' ? { briefApproachMd: ov.approach_md } : {}),
+      ...(typeof ov.tone === 'string' ? { briefTone: ov.tone } : {}),
+      ...(typeof ov.do_md === 'string' ? { briefDoMd: ov.do_md } : {}),
+      ...(typeof ov.dont_md === 'string' ? { briefDontMd: ov.dont_md } : {}),
+      ...(typeof ov.narrative_md === 'string' ? { briefNarrativeMd: ov.narrative_md } : {}),
+    };
 
     const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction);
 

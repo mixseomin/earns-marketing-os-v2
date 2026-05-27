@@ -40,6 +40,13 @@ export async function POST(req: Request) {
     topicsHint?: string[];
     llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — Astrolas tự validate
     customPrompt?: string;  // Operator instruction kèm theo brief context
+    briefOverride?: {       // User edit brief tại side panel — override field-by-field
+      approach_md?: string;
+      tone?: string;
+      do_md?: string;
+      dont_md?: string;
+      narrative_md?: string;
+    };
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -89,7 +96,20 @@ export async function POST(req: Request) {
     WHERE b.id = ${briefId}
     LIMIT 1
   `);
-  const ctx = (ctxRows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  const ctxRaw = (ctxRows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  // Apply briefOverride field-by-field (chỉ thay field user explicit truyền,
+  // không clobber các field không gửi). User chỉnh tại side panel = "experiment
+  // tại thực địa" mà không cần lưu vào DB brief gốc.
+  const ov = body.briefOverride ?? {};
+  const ctx: Record<string, unknown> = {
+    ...ctxRaw,
+    ...(typeof ov.approach_md === 'string' ? { approach_md: ov.approach_md } : {}),
+    ...(typeof ov.tone === 'string' ? { brief_tone: ov.tone } : {}),
+    ...(typeof ov.do_md === 'string' ? { do_md: ov.do_md } : {}),
+    ...(typeof ov.dont_md === 'string' ? { dont_md: ov.dont_md } : {}),
+    ...(typeof ov.narrative_md === 'string' ? { narrative_md: ov.narrative_md } : {}),
+  };
+  const briefOverridden = Object.values(ov).some((v) => typeof v === 'string');
   const persona = (ctx.persona as Record<string, unknown> | null) ?? {};
   const phase = (ctx.current_phase ?? 'warm-up') as Phase;
   const habitatLang = String(ctx.habitat_lang ?? 'en');
@@ -241,6 +261,7 @@ export async function POST(req: Request) {
       briefTone: tonePart,
       topicsSent: topics,
       customPromptApplied: customPromptClean ? customPromptClean.slice(0, 200) : null,
+      briefOverridden,
     },
   });
 }

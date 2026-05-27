@@ -30,6 +30,13 @@ export async function POST(req: Request) {
     parentAuthor?: string;
     modelId?: string;
     customPrompt?: string;
+    briefOverride?: {
+      approach_md?: string;
+      tone?: string;
+      do_md?: string;
+      dont_md?: string;
+      narrative_md?: string;
+    };
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -85,6 +92,7 @@ export async function POST(req: Request) {
   const draft = await generateFullDraft(cardId, {
     modelId: body.modelId || 'gpt-4.1-mini',
     customInstruction: body.customPrompt,
+    briefOverride: body.briefOverride,
   });
   const genDurationMs = Date.now() - genStart;
 

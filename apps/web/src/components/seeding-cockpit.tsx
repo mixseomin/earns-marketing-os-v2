@@ -1690,6 +1690,37 @@ function RecentPostedSection({ cards, onOpenBrief }: {
                     <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
                                    background: 'var(--bg-3)', color: 'var(--fg-3)',
                                    padding: '0 4px', borderRadius: 2 }}>{c.contentType}</span>
+                    {/* 🧵 Multi-attempt indicator — parent_url có ≥2 attempts */}
+                    {c.parentAttemptCount > 1 && (
+                      <span title={`Thread này đã được engage ${c.parentAttemptCount} lần`}
+                            style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
+                                     background: 'rgba(96,165,250,.15)', color: '#60a5fa',
+                                     border: '1px solid rgba(96,165,250,.4)',
+                                     padding: '0 5px', borderRadius: 999, fontWeight: 700 }}>
+                        🧵 ×{c.parentAttemptCount}
+                      </span>
+                    )}
+                    {/* Lifecycle badge — ghosted/removed/live/etc */}
+                    {c.postLifecycle && (() => {
+                      const meta: Record<string, { icon: string; label: string; color: string; bg: string }> = {
+                        live: { icon: '✅', label: 'Live', color: 'var(--ok)', bg: 'rgba(74,222,128,.15)' },
+                        ghosted: { icon: '👻', label: 'Ghosted', color: '#a78bfa', bg: 'rgba(167,139,250,.15)' },
+                        'removed-by-mod': { icon: '🗑', label: 'Mod removed', color: 'var(--bad)', bg: 'rgba(248,113,113,.15)' },
+                        'self-deleted': { icon: '🗑', label: 'Self deleted', color: 'var(--fg-3)', bg: 'var(--bg-3)' },
+                        'low-engagement': { icon: '💤', label: 'Low engage', color: 'var(--warn)', bg: 'rgba(251,191,36,.15)' },
+                      };
+                      const m = meta[c.postLifecycle];
+                      if (!m) return null;
+                      return (
+                        <span title={`Lifecycle: ${m.label}`}
+                              style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
+                                       background: m.bg, color: m.color,
+                                       border: `1px solid ${m.color}`, padding: '0 5px',
+                                       borderRadius: 999, fontWeight: 700 }}>
+                          {m.icon} {m.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div style={{ color: 'var(--fg-2)', fontSize: 11,
                                 whiteSpace: 'nowrap', overflow: 'hidden',

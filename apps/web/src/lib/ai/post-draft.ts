@@ -48,6 +48,8 @@ interface PostContext {
   habitatVoiceNotes: string;
   habitatFewShot: FewShotExample[] | null;
   habitatVisualStyle: string | null;        // for image gen
+  habitatAiDetection: boolean;              // habitat dùng AI-content detector → human voice mạnh hơn
+  habitatAiDetectionNote: string;           // optional thêm rule cụ thể từ user
   // Channel (sub-channel của Discord/Slack/Telegram). NULL = habitat-level post.
   channelId: number | null;
   channelName: string | null;
@@ -119,6 +121,7 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
       b.primary_pillar_id AS brief_primary_pillar_id,
       h.id   AS habitat_id,
       h.name AS habitat_name, h.kind AS habitat_kind, h.language AS habitat_lang,
+      h.ai_content_detection AS habitat_ai_detection, h.ai_detection_note AS habitat_ai_detection_note,
       h.posting_rules, h.forbidden_topics, h.dominant_topics,
       h.mod_strictness, h.min_account_age_days, h.min_karma, h.links_allowed_after,
       h.voice_profile, h.voice_notes, h.few_shot_examples, h.visual_style_descriptor,
@@ -218,6 +221,8 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     habitatVoiceNotes: String(r.voice_notes ?? ''),
     habitatFewShot: Array.isArray(r.few_shot_examples) ? (r.few_shot_examples as FewShotExample[]) : null,
     habitatVisualStyle: r.visual_style_descriptor ? String(r.visual_style_descriptor) : null,
+    habitatAiDetection: !!r.habitat_ai_detection,
+    habitatAiDetectionNote: String(r.habitat_ai_detection_note ?? ''),
     channelId: r.channel_id ? Number(r.channel_id) : null,
     channelName: r.channel_name ? String(r.channel_name) : null,
     channelDescription: String(r.channel_description ?? ''),
@@ -415,6 +420,29 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     // Priority cao — override default tone/length/style cho lần generate này.
     customInstruction?.trim()
       ? `\n═══════════════════════════════════════════════════════════\n🎙 OPERATOR CUSTOM INSTRUCTION (HIGH PRIORITY — apply on top of everything above):\n  ${customInstruction.trim()}\n═══════════════════════════════════════════════════════════\n`
+      : null,
+    // 🚨 Habitat AI-detection flag — community có mod tool / auto-mod rule
+    // detect AI content (vd r/Astrology_Vedic). Phải né strict các pattern AI:
+    ctx.habitatAiDetection
+      ? `\n═══════════════════════════════════════════════════════════
+🚨 ANTI-AI-DETECTION (CRITICAL — habitat này có cơ chế tự detect AI content):
+
+PHẢI:
+- Viết như 1 human thật, có quirk: rare typo, em hesitation ("hmm", "honestly", "tbh"), incomplete thought ok
+- Câu ngắn xen dài tự nhiên, không uniform length
+- Dùng contraction (don't / it's / I've) thay vì "do not / it is / I have"
+- Concrete personal anecdote > generic advice (vd "khi tôi sinh con đầu lòng năm 2019..." > "as a parent...")
+- Câu kết tự nhiên, không "Hope this helps!" / "Let me know if..."
+
+NÉ TUYỆT ĐỐI:
+- Em dash '—' (replace bằng '-' hoặc '...')
+- Markdown bullet/header/bold ('**', '#', '- '): community thường flat text
+- Phrase mở đầu AI: "As an AI", "I understand", "Great question!", "Certainly!"
+- 3+ short sentences đồng độ dài (AI thường sinh "A is B. B is C. C is D.")
+- Em dash + "while" + "however" cùng câu
+- Sentence kết bằng "Hope this helps!" / "Best of luck!"
+${ctx.habitatAiDetectionNote ? `\nADMIN NOTE: ${ctx.habitatAiDetectionNote}` : ''}
+═══════════════════════════════════════════════════════════\n`
       : null,
     `TASK: Viết 1 post hoàn chỉnh cho cộng đồng này.`,
     `Ngôn ngữ target (đăng thật): ${ctx.targetLang}`,

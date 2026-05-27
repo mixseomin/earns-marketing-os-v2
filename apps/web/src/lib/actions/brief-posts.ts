@@ -208,6 +208,206 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
 // RecentPostedCard — slim shape cho "📨 Vừa đăng" section trên cockpit.
 // Cross-brief, sort posted_at desc, default 7 ngày gần nhất.
 // ──────────────────────────────────────────────────────────────────
+// EngagementAttempt — 1 card trong group "thread engagement" theo parent_url.
+// Bao gồm cả card đã archive (để xem history), cross-brief, cross-account.
+// ──────────────────────────────────────────────────────────────────
+export interface EngagementAttempt {
+  id: number;
+  cardRef: string;
+  bodyTarget: string;
+  contentType: string;
+  briefId: number | null;
+  habitatId: number | null;
+  habitatName: string | null;
+  accountId: number | null;
+  accountHandle: string | null;
+  platformKey: string | null;
+  postUrl: string | null;
+  postedAt: string | null;
+  archivedAt: string | null;
+  postLifecycle: string | null;        // 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null
+  postLifecycleAt: string | null;
+  postLifecycleNote: string | null;
+  // Insights inline (P2 từ trước)
+  insightsViewsCount: number | null;
+  insightsScore: number | null;
+  insightsUpvoteRatio: number | null;
+  insightsReplyCount: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParentEngagementSummary {
+  parentUrl: string;
+  parentTitle: string | null;
+  totalAttempts: number;
+  postedCount: number;          // có post_url
+  liveCount: number;            // post_lifecycle = 'live'
+  ghostedCount: number;
+  removedCount: number;         // removed-by-mod + self-deleted
+  lowEngagementCount: number;
+  draftCount: number;           // chưa post (post_url null)
+  archivedCount: number;
+  accountsEngaged: string[];    // unique handles
+  lastAttemptAt: string | null;
+  attempts: EngagementAttempt[]; // sort posted_at desc, archived last
+}
+
+// Get all engagement attempts for 1 parent_url. Cross-brief, cross-account,
+// includes archived. Sort: archived LAST, then posted_at DESC (mới nhất trước).
+export async function listEngagementsByParentUrl(
+  projectId: string,
+  parentUrl: string,
+): Promise<ParentEngagementSummary | null> {
+  if (!parentUrl?.trim()) return null;
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT c.id, c.card_ref, c.body_target, c.content_type, c.parent_title,
+           c.brief_id, c.post_url, c.posted_at, c.archived_at,
+           c.post_lifecycle, c.post_lifecycle_at, c.post_lifecycle_note,
+           c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
+           c.insights_reply_count,
+           c.created_at, c.updated_at,
+           b.habitat_id, b.account_id,
+           h.name AS habitat_name,
+           h.platform_key,
+           pa.handle AS account_handle
+      FROM cards c
+      LEFT JOIN community_briefs b ON b.id = c.brief_id
+      LEFT JOIN habitats h ON h.id = b.habitat_id
+      LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+     WHERE c.project_id = ${projectId} AND c.parent_url = ${parentUrl}
+     ORDER BY
+       (c.archived_at IS NOT NULL) ASC,
+       c.posted_at DESC NULLS LAST,
+       c.created_at DESC
+  `);
+  const data = rows as unknown as Array<Record<string, unknown>>;
+  if (data.length === 0) return null;
+
+  const attempts: EngagementAttempt[] = data.map((r) => ({
+    id: Number(r.id),
+    cardRef: String(r.card_ref ?? ''),
+    bodyTarget: String(r.body_target ?? '').slice(0, 300),
+    contentType: String(r.content_type ?? 'text'),
+    briefId: r.brief_id != null ? Number(r.brief_id) : null,
+    habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
+    habitatName: r.habitat_name ? String(r.habitat_name) : null,
+    accountId: r.account_id != null ? Number(r.account_id) : null,
+    accountHandle: r.account_handle ? String(r.account_handle) : null,
+    platformKey: r.platform_key ? String(r.platform_key) : null,
+    postUrl: r.post_url ? String(r.post_url) : null,
+    postedAt: r.posted_at instanceof Date ? r.posted_at.toISOString() : (r.posted_at ? String(r.posted_at) : null),
+    archivedAt: r.archived_at instanceof Date ? r.archived_at.toISOString() : (r.archived_at ? String(r.archived_at) : null),
+    postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
+    postLifecycleAt: r.post_lifecycle_at instanceof Date ? r.post_lifecycle_at.toISOString() : (r.post_lifecycle_at ? String(r.post_lifecycle_at) : null),
+    postLifecycleNote: r.post_lifecycle_note ? String(r.post_lifecycle_note) : null,
+    insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
+    insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
+    insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
+    insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
+    createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
+  }));
+
+  const accountsSet = new Set<string>();
+  let postedCount = 0, liveCount = 0, ghostedCount = 0, removedCount = 0;
+  let lowEngagementCount = 0, draftCount = 0, archivedCount = 0;
+  let lastAttemptAt: string | null = null;
+  for (const a of attempts) {
+    if (a.accountHandle) accountsSet.add(a.accountHandle);
+    if (a.archivedAt) archivedCount++;
+    if (a.postUrl) postedCount++; else draftCount++;
+    if (a.postLifecycle === 'live') liveCount++;
+    else if (a.postLifecycle === 'ghosted') ghostedCount++;
+    else if (a.postLifecycle === 'removed-by-mod' || a.postLifecycle === 'self-deleted') removedCount++;
+    else if (a.postLifecycle === 'low-engagement') lowEngagementCount++;
+    if (a.postedAt && (!lastAttemptAt || a.postedAt > lastAttemptAt)) lastAttemptAt = a.postedAt;
+  }
+
+  const parentTitle = data.find((r) => r.parent_title)?.parent_title;
+
+  return {
+    parentUrl,
+    parentTitle: parentTitle ? String(parentTitle) : null,
+    totalAttempts: attempts.length,
+    postedCount, liveCount, ghostedCount, removedCount, lowEngagementCount,
+    draftCount, archivedCount,
+    accountsEngaged: Array.from(accountsSet),
+    lastAttemptAt,
+    attempts,
+  };
+}
+
+// List tất cả parent_url có ≥1 attempt cho 1 brief, kèm summary stats.
+// Dùng cho "🧵 Threads đã engage" section trong brief modal.
+export async function listEngagedThreadsForBrief(
+  briefId: number,
+): Promise<Array<{
+  parentUrl: string;
+  parentTitle: string | null;
+  attemptCount: number;
+  postedCount: number;
+  liveCount: number;
+  ghostedCount: number;
+  removedCount: number;
+  lastAttemptAt: string | null;
+}>> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT c.parent_url,
+           MAX(c.parent_title) AS parent_title,
+           COUNT(*) AS attempt_count,
+           COUNT(c.post_url) AS posted_count,
+           COUNT(*) FILTER (WHERE c.post_lifecycle = 'live') AS live_count,
+           COUNT(*) FILTER (WHERE c.post_lifecycle = 'ghosted') AS ghosted_count,
+           COUNT(*) FILTER (WHERE c.post_lifecycle IN ('removed-by-mod', 'self-deleted')) AS removed_count,
+           MAX(c.posted_at) AS last_attempt_at
+      FROM cards c
+     WHERE c.brief_id = ${briefId}
+       AND c.parent_url IS NOT NULL
+       AND c.parent_url != ''
+     GROUP BY c.parent_url
+     ORDER BY MAX(c.posted_at) DESC NULLS LAST, MAX(c.created_at) DESC
+     LIMIT 50
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    parentUrl: String(r.parent_url ?? ''),
+    parentTitle: r.parent_title ? String(r.parent_title) : null,
+    attemptCount: Number(r.attempt_count ?? 0),
+    postedCount: Number(r.posted_count ?? 0),
+    liveCount: Number(r.live_count ?? 0),
+    ghostedCount: Number(r.ghosted_count ?? 0),
+    removedCount: Number(r.removed_count ?? 0),
+    lastAttemptAt: r.last_attempt_at instanceof Date ? r.last_attempt_at.toISOString() : (r.last_attempt_at ? String(r.last_attempt_at) : null),
+  }));
+}
+
+// Update post_lifecycle cho 1 card (manual mark hoặc cron auto-detect).
+export async function updateCardLifecycle(
+  cardId: number,
+  lifecycle: 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null,
+  note?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const checkRows = await db.execute(sql`
+    SELECT id FROM cards WHERE id = ${cardId} LIMIT 1
+  `);
+  if (!(checkRows as unknown as Array<unknown>)[0]) {
+    return { ok: false, error: 'Card not found' };
+  }
+  await db.execute(sql`
+    UPDATE cards SET
+      post_lifecycle = ${lifecycle},
+      post_lifecycle_at = NOW(),
+      post_lifecycle_note = ${note ?? null},
+      updated_at = NOW()
+     WHERE id = ${cardId}
+  `);
+  return { ok: true };
+}
+
+// ──────────────────────────────────────────────────────────────────
 export interface RecentPostedCard {
   id: number;
   cardRef: string;
@@ -229,6 +429,11 @@ export interface RecentPostedCard {
   insightsUpvoteRatio: number | null;
   insightsReplyCount: number | null;
   insightsFetchedAt: string | null;
+  // Lifecycle status — null nếu chưa mark
+  postLifecycle: string | null;
+  // Số attempts cùng parent_url (>= 1, include self). Khi >1 = thread engaged
+  // nhiều lần (re-post sau ghost / multi-account). UI prefix "🧵 ×N".
+  parentAttemptCount: number;
 }
 
 export async function listRecentPostedCards(
@@ -240,14 +445,21 @@ export async function listRecentPostedCards(
   const limit = opts?.limit ?? 50;
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
-           c.post_url, c.posted_at,
+           c.post_url, c.posted_at, c.parent_url,
+           c.post_lifecycle,
            c.brief_id,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id,
            h.name AS habitat_name,
            p.label AS platform_label, p.key AS platform_key,
-           pa.handle AS account_handle
+           pa.handle AS account_handle,
+           -- COUNT attempts cùng parent_url (>= 1, include self). Window function
+           -- để tránh subquery; project-scoped để cross-brief OK.
+           (SELECT COUNT(*) FROM cards c2
+              WHERE c2.project_id = c.project_id
+                AND c2.parent_url = c.parent_url
+                AND c2.parent_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
@@ -281,6 +493,8 @@ export async function listRecentPostedCards(
     insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
     insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
+    postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
+    parentAttemptCount: Number(r.parent_attempt_count ?? 1),
   }));
 }
 

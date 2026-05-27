@@ -267,6 +267,11 @@ export const cards = pgTable(
     postedAt: timestamp('posted_at', { withTimezone: true }),
     postScreenshotUrl: text('post_screenshot_url'),
     postNote: text('post_note'),
+    // Lifecycle: live | ghosted | removed-by-mod | self-deleted | low-engagement
+    // User mark manual khi phát hiện, hoặc cron auto-detect (Phase D).
+    postLifecycle: text('post_lifecycle'),
+    postLifecycleAt: timestamp('post_lifecycle_at', { withTimezone: true }),
+    postLifecycleNote: text('post_lifecycle_note'),
     // Insights data — ext scrape Reddit commentstats/<id> bằng user session,
     // POST /api/ext/seeding/insights save. Cron stale > 24h re-fetch sau.
     insightsViewsCount: integer('insights_views_count'),
@@ -667,6 +672,14 @@ export const habitats = pgTable(
     // telegram, etc.) — tránh ALTER TABLE mỗi field mới.
     // Ext POST /api/ext/habitats với scraped_meta object, server merge.
     scrapedMeta: jsonb('scraped_meta').notNull().default({}),
+    // Flag: habitat có cơ chế tự động detect AI content (mod tool / auto-mod
+    // rule / Reddit's quality filter). Khi true, AI gen prompt phải:
+    //   - Né markdown overuse (** _ # bullets)
+    //   - Né em dash '—'
+    //   - Voice human hơn (cá nhân, hesitation, typo nhẹ)
+    //   - Tránh "Hi, I'm an AI..." patterns
+    aiContentDetection: boolean('ai_content_detection').notNull().default(false),
+    aiDetectionNote: text('ai_detection_note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -348,6 +348,9 @@ export interface HabitatInput {
   weeklyContributions?: number;
   // migration 0063
   description?: string;
+  // migration 0074: habitat dùng AI-content detector
+  aiContentDetection?: boolean;
+  aiDetectionNote?: string;
 }
 
 export async function createHabitat(
@@ -392,6 +395,8 @@ export async function createHabitat(
     weeklyVisitors: input.weeklyVisitors ?? 0,
     weeklyContributions: input.weeklyContributions ?? 0,
     description: input.description ?? '',
+    aiContentDetection: input.aiContentDetection ?? false,
+    aiDetectionNote: input.aiDetectionNote ?? null,
   }).returning({ id: habitats.id });
   const newId = inserted[0]?.id;
   // M2M: mirror the (single) tribe picked at create-time as the primary
@@ -446,6 +451,9 @@ export async function updateHabitat(
   if (patch.weeklyContributions != null)     set.weeklyContributions = patch.weeklyContributions;
   // migration 0063
   if (patch.description != null)             set.description = patch.description;
+  // migration 0074
+  if (patch.aiContentDetection != null)      set.aiContentDetection = patch.aiContentDetection;
+  if (patch.aiDetectionNote !== undefined)   set.aiDetectionNote = patch.aiDetectionNote;
   // allowed_formats_override: nếu đổi → tính diff để auto-restore (types
   // được ADD lại sau khi từng bị remove). Archive cho types REMOVED là
   // responsibility của client (qua confirm dialog gọi

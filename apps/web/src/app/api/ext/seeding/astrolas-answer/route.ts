@@ -89,6 +89,7 @@ export async function POST(req: Request) {
       b.current_phase, b.tone AS brief_tone, b.do_md, b.dont_md, b.approach_md, b.narrative_md,
       h.language AS habitat_lang, h.voice_profile AS habitat_voice, h.voice_notes,
       h.dominant_topics, h.forbidden_topics,
+      h.ai_content_detection, h.ai_detection_note,
       pa.handle AS account_handle, pa.persona
     FROM community_briefs b
     LEFT JOIN habitats h ON h.id = b.habitat_id
@@ -171,6 +172,22 @@ export async function POST(req: Request) {
     ctx.dont_md ? `DON'T:\n${String(ctx.dont_md).slice(0, 500)}` : null,
     forbiddenTopics.length > 0 ? `FORBIDDEN TOPICS: ${forbiddenTopics.join(', ')}` : null,
     customPromptClean ? `\n[OPERATOR INSTRUCTION — ưu tiên cao, áp dụng cho answer này]\n${customPromptClean}` : null,
+    // 🚨 Habitat dùng AI-content detector → enforce strict anti-AI patterns.
+    ctx.ai_content_detection
+      ? `\n[🚨 ANTI-AI-DETECTION ACTIVE for this habitat — community has AI-detect mod tools]
+MUST:
+- Write like a real human: rare typos OK, hesitation words ("hmm", "tbh", "honestly")
+- Mix short/long sentences, not uniform length
+- Use contractions (don't, it's, I've)
+- Concrete personal anecdote with year/place/name
+- Natural ending, NO "Hope this helps!" / "Let me know if..."
+AVOID ABSOLUTELY:
+- Em dash '—' (use '-' or '...')
+- Markdown bullets/headers/bold (**, #, "- ")
+- AI opening: "As an AI", "Great question!", "Certainly!"
+- 3+ same-length sentences in a row
+${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
+      : null,
     '',
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');

@@ -622,6 +622,9 @@ export interface HabitatRow {
   // migration 0066: generic kv storage cho custom fields ext scrape
   // (official_website, discord_invite, twitter_handle, etc.)
   scrapedMeta: Record<string, unknown>;
+  // migration 0074: flag community có cơ chế tự detect AI content
+  aiContentDetection: boolean;
+  aiDetectionNote: string;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -734,6 +737,8 @@ function mapHabitat(
     description: str('description', 'description'),
     title: str('title', 'title'),
     scrapedMeta: (get('scrapedMeta', 'scraped_meta') as Record<string, unknown>) ?? {},
+    aiContentDetection: !!get('aiContentDetection', 'ai_content_detection'),
+    aiDetectionNote: str('aiDetectionNote', 'ai_detection_note'),
   };
 }
 

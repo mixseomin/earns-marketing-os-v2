@@ -136,6 +136,9 @@ export function HabitatFormModal({
     weeklyContributions: habitat?.weeklyContributions ?? 0,
     // migration 0063
     description: habitat?.description ?? '',
+    // migration 0074: AI-detection flag
+    aiContentDetection: habitat?.aiContentDetection ?? false,
+    aiDetectionNote: habitat?.aiDetectionNote ?? '',
   });
   const setF = <K extends keyof HabitatInput>(k: K, v: HabitatInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -966,6 +969,32 @@ export function HabitatFormModal({
                   {STRICTNESS.map((s) => <option key={s} value={s}>{s || '—'}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* 🚨 AI content detection flag — habitat có cơ chế detect AI
+                (auto-mod rule / quality filter). Khi check → AI prompt sẽ
+                enforce anti-AI patterns (né em dash, markdown, AI cliché). */}
+            <div style={{ padding: 8, background: form.aiContentDetection ? 'rgba(248,113,113,.08)' : 'var(--bg-2)', border: `1px solid ${form.aiContentDetection ? 'rgba(248,113,113,.4)' : 'var(--line)'}`, borderRadius: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                <input type="checkbox"
+                       checked={form.aiContentDetection ?? false}
+                       onChange={(e) => setF('aiContentDetection', e.target.checked)} />
+                <span style={{ fontWeight: 700, color: form.aiContentDetection ? 'var(--bad)' : 'var(--fg-1)' }}>
+                  🚨 Habitat có cơ chế detect AI content
+                </span>
+              </label>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
+                Check khi community có auto-mod rule / quality filter remove comment AI.
+                AI gen sẽ enforce: né em dash, markdown bullets, AI clichés ("Hope this helps!", "Great question!"), 3+ uniform sentences.
+              </div>
+              {form.aiContentDetection && (
+                <textarea
+                  value={form.aiDetectionNote ?? ''}
+                  onChange={(e) => setF('aiDetectionNote', e.target.value)}
+                  placeholder='Optional: thêm rule cụ thể, vd "tránh từ delve/leverage", "max 200 words"...'
+                  rows={2}
+                  style={{ ...fld, marginTop: 6, fontSize: 11, resize: 'vertical' }} />
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

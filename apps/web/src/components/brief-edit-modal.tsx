@@ -20,6 +20,7 @@ import { BriefSelectorsSection } from './brief-selectors-section';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 import { fmtAgo } from '@/lib/time-format';
 import { JoinStatusBanner } from './join-status-banner';
+import { EngagedThreadsSection } from './engaged-threads-section';
 import { JoinChip } from './join-chip';
 import { AccountReadinessChip } from './account-readiness-chip';
 import { CritiquePanel } from './critique-panel';
@@ -2838,6 +2839,35 @@ function PostsForPhase({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* 🚨 AI-detection warning — habitat có cơ chế tự detect AI content.
+              Show banner đỏ để user nhớ check draft cẩn thận trước khi post. */}
+          {habitatRow?.aiContentDetection && (
+            <div style={{
+              padding: '6px 10px', marginBottom: 4,
+              background: 'rgba(248,113,113,.1)',
+              border: '1px solid rgba(248,113,113,.4)',
+              borderLeft: '3px solid var(--bad)',
+              borderRadius: 4, fontSize: 11.5, lineHeight: 1.5,
+              color: 'var(--fg-1)',
+            }}>
+              <strong style={{ color: 'var(--bad)' }}>🚨 Habitat có AI-content detector</strong>
+              <span style={{ color: 'var(--fg-3)' }}>
+                {' '}— AI prompt đã enforce anti-AI patterns (né em dash, markdown, AI clichés).
+                Vẫn nên đọc kỹ draft + chỉnh tay câu sống động hơn trước khi post.
+              </span>
+              {habitatRow.aiDetectionNote && (
+                <div style={{ marginTop: 4, padding: '4px 7px', background: 'var(--bg-1)', borderRadius: 3, fontSize: 11, fontStyle: 'italic', color: 'var(--fg-2)' }}>
+                  💡 {habitatRow.aiDetectionNote}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 🧵 Threads đã engage — group cards theo parent_url. User thấy
+              history attempts trên cùng 1 Reddit thread (ghosted/live/removed).
+              Click parent_url → expand drawer xem attempts chi tiết. */}
+          <EngagedThreadsSection briefId={briefId} bumpKey={bumpKey} />
+
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <PostFiltersBar posts={posts} filters={filters} onChange={setFilters} />

@@ -43,7 +43,7 @@ function parseRedditThingId(url: string): string | null {
     const u = new URL(url);
     if (!u.host.includes('reddit.com')) return null;
     const m = u.pathname.match(/\/comments\/[^/]+\/[^/]*\/([a-z0-9]+)\/?$/i);
-    return m ? m[1] : null;
+    return m?.[1] ?? null;
   } catch { return null; }
 }
 

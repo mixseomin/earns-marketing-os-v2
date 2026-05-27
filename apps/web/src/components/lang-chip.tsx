@@ -124,12 +124,15 @@ export function LangChip(props: LangChipProps) {
   }
 
   // mode === 'select': overlay layout — native <select> giữ click + dropdown
-  // popup; overlay <span> hiển thị flag + code + label custom (browser ko
-  // cho style option khi collapsed).
+  // popup; overlay <span> hiển thị flag + code custom (browser ko cho style
+  // option khi collapsed). Native <select> tự lấy width theo text option dài
+  // nhất → BẮT BUỘC fix width cứng (flagSize + codeFont*2.5 + paddings + arrow),
+  // không cho browser tự measure.
+  const selectW = sz.padX + sz.flagSize + sz.gap + (isSet ? sz.codeFont * 2 + 4 : 0) + 10;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
+    <span style={{ position: 'relative', display: 'inline-flex', width: selectW, height: sz.flagSize + sz.padY * 2 + 4 }}>
       <span style={{ ...baseStyle, position: 'absolute', inset: 0,
-                     padding: `0 ${sz.padX + 8}px 0 ${sz.padX}px`,
+                     padding: `0 ${sz.padX + 6}px 0 ${sz.padX}px`,
                      pointerEvents: 'none', zIndex: 1, border: 'none' }}>
         {innerContent}
       </span>
@@ -139,14 +142,14 @@ export function LangChip(props: LangChipProps) {
               disabled={props.disabled}
               title={tooltip}
               style={{
-                appearance: 'none', WebkitAppearance: 'none',
-                padding: `${sz.padY + 1}px ${sz.padX + 8}px ${sz.padY + 1}px ${sz.padX}px`,
+                appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+                width: '100%', height: '100%',
+                padding: 0,
                 fontSize: sz.font, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                letterSpacing: '.01em',
                 background: bg, color: 'transparent',
                 border: `1px solid ${border}`, borderRadius: 4,
                 cursor: props.disabled ? 'wait' : 'pointer',
-                minWidth: size === 'sm' ? 0 : 0,
+                textIndent: -9999,           // ẩn text native rendering trên macOS/Linux
               }}>
         {props.langs.map((l) => {
           const opt = getLangMeta(l);
@@ -157,7 +160,7 @@ export function LangChip(props: LangChipProps) {
           );
         })}
       </select>
-      <span style={{ position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
+      <span style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)',
                      fontSize: 7, color: fg, pointerEvents: 'none', zIndex: 2 }}>▾</span>
     </span>
   );

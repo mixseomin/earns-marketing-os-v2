@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { wrapExternalUrl } from '@/lib/external-url';
 import {
   listAllPostedCards,
+  updateCardLifecycle,
   type AllPostedCard,
   type AllPostedFilters,
   type AllPostedResult,
@@ -25,6 +26,10 @@ import {
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
+import {
+  loadPresets, addPreset, removePreset,
+  type PostsTabPreset,
+} from '@/lib/posts-tab-presets';
 
 interface Props {
   projectId: string;
@@ -123,6 +128,28 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
     });
   }
 
+  // Auto-refresh khi tab seeding visible trở lại sau khi user đi mở Reddit
+  // commentstats / comment URL ở tab khác. Workflow thường gặp: click row
+  // mở Reddit → ext scrape POST insights → quay lại tab MOS2. Trước phải
+  // bấm ⟳ Refresh tay; giờ auto khi thấy tab hidden ≥15s rồi visible lại.
+  // Threshold 15s tránh refresh thừa khi user switch nhanh giữa tab.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    let hiddenAt: number | null = null;
+    const onVisibility = () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
+      }
+      const wasHiddenFor = hiddenAt != null ? Date.now() - hiddenAt : 0;
+      hiddenAt = null;
+      if (wasHiddenFor >= 15_000) refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
   const totalAll = useMemo(() => {
     return Object.values(data.facets.lifecycleCounts).reduce((s, n) => s + n, 0);
   }, [data.facets.lifecycleCounts]);
@@ -149,6 +176,27 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
     Array.isArray(v) ? v.length > 0 :
     (v != null && v !== false && v !== 'posted_desc' && v !== 7 && v !== 50 && v !== 0)
   ), [filters]);
+
+  // Filter presets (localStorage per-project).
+  const [presets, setPresets] = useState<PostsTabPreset[]>([]);
+  useEffect(() => { setPresets(loadPresets(projectId)); }, [projectId]);
+  const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
+  function applyPreset(p: PostsTabPreset) {
+    setFilters({ ...p.filters, offset: 0 });
+  }
+  function doSavePreset() {
+    if (!presetName.trim()) return;
+    const p = addPreset(projectId, presetName, filters);
+    setPresets((prev) => [...prev, p]);
+    setPresetName('');
+    setSavePromptOpen(false);
+  }
+  function doRemovePreset(id: string) {
+    removePreset(projectId, id);
+    setPresets((prev) => prev.filter((p) => p.id !== id));
+  }
   const [moreOpen, setMoreOpen] = useState(() =>
     !!(filters.habitatIds || filters.accountIds || filters.briefIds ||
        filters.contentTypes || filters.minViews != null || filters.minScore != null ||
@@ -212,6 +260,16 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
           {moreOpen ? '▾ Bộ lọc' : '▸ Bộ lọc'}
         </button>
 
+        {hasAnyFilter && (
+          <button type="button" onClick={() => setSavePromptOpen(true)}
+                  title="Save bộ filter hiện tại thành preset (localStorage)"
+                  style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)',
+                           background: 'var(--bg-2)', border: '1px solid var(--line)',
+                           color: 'var(--fg-2)', borderRadius: 4, cursor: 'pointer' }}>
+            💾 Save preset
+          </button>
+        )}
+
         <FilterReset
           active={hasAnyFilter}
           onReset={() => setFilters({
@@ -219,6 +277,64 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
           })}
         />
       </div>
+
+      {/* Preset row — 1 hàng chip để 1-click apply bộ filter đã save. Ẩn khi
+          không có preset nào. Save button kế bên Reset/Bộ lọc trên toolbar. */}
+      {(presets.length > 0 || savePromptOpen) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                      padding: '4px 8px', marginBottom: 6 }}>
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+            preset:
+          </span>
+          {presets.map((p) => (
+            <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center',
+                                       background: 'var(--bg-2)', border: '1px solid var(--line)',
+                                       borderRadius: 999, overflow: 'hidden' }}>
+              <button type="button" onClick={() => applyPreset(p)}
+                      title={`Apply preset: ${p.name}`}
+                      style={{ padding: '2px 9px', fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                               fontWeight: 700, background: 'transparent', border: 'none',
+                               color: 'var(--fg-1)', cursor: 'pointer' }}>
+                {p.icon ? `${p.icon} ` : ''}{p.name}
+              </button>
+              <button type="button" onClick={() => doRemovePreset(p.id)}
+                      title="Xoá preset"
+                      style={{ padding: '2px 6px 2px 2px', fontSize: 10, background: 'transparent',
+                               border: 'none', borderLeft: '1px solid var(--line)',
+                               color: 'var(--fg-4)', cursor: 'pointer' }}>
+                ✕
+              </button>
+            </span>
+          ))}
+          {savePromptOpen && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <input autoFocus type="text" placeholder="Tên preset (vd: Top AI 30d)"
+                     value={presetName}
+                     onChange={(e) => setPresetName(e.target.value)}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') { e.preventDefault(); doSavePreset(); }
+                       if (e.key === 'Escape') { setSavePromptOpen(false); setPresetName(''); }
+                     }}
+                     style={{ width: 180, padding: '2px 7px', fontSize: 11,
+                              background: 'var(--bg-2)', border: '1px solid var(--accent)',
+                              borderRadius: 4, color: 'var(--fg-0)' }} />
+              <button type="button" onClick={doSavePreset} disabled={!presetName.trim()}
+                      style={{ padding: '2px 8px', fontSize: 11, fontFamily: 'var(--font-mono)',
+                               background: 'var(--accent)', color: '#fff',
+                               border: 'none', borderRadius: 4,
+                               cursor: presetName.trim() ? 'pointer' : 'not-allowed',
+                               opacity: presetName.trim() ? 1 : 0.5 }}>
+                Save
+              </button>
+              <button type="button" onClick={() => { setSavePromptOpen(false); setPresetName(''); }}
+                      style={{ padding: '2px 6px', fontSize: 11, background: 'transparent',
+                               border: 'none', color: 'var(--fg-4)', cursor: 'pointer' }}>
+                ✕
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Chip row: lifecycle + platform + content type + AI toggle — 1 hàng dense */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
@@ -346,7 +462,13 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               </tr>
             </thead>
             <tbody>
-              {rows.map((c) => <Row key={c.id} c={c} projectId={projectId} onOpenBrief={onOpenBrief} />)}
+              {rows.map((c) => (
+                <Row key={c.id} c={c} projectId={projectId} onOpenBrief={onOpenBrief}
+                     onLifecycleSaved={(lc) => setData((prev) => ({
+                       ...prev,
+                       rows: prev.rows.map((r) => r.id === c.id ? { ...r, postLifecycle: lc } : r),
+                     }))} />
+              ))}
             </tbody>
           </table>
         </div>
@@ -388,10 +510,11 @@ function buildMetricsRefreshUrl(c: AllPostedCard): string {
   return c.postUrl;
 }
 
-function Row({ c, projectId, onOpenBrief }: {
+function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
   c: AllPostedCard;
   projectId: string;
   onOpenBrief: (briefId: number, cardId?: number) => void;
+  onLifecycleSaved: (lc: string) => void;
 }) {
   const v = c.insightsViewsCount;
   const r = c.insightsUpvoteRatio;
@@ -460,27 +583,8 @@ function Row({ c, projectId, onOpenBrief }: {
         </button>
       </td>
       <td style={td()}>
-        {lc === '_none' && c.postUrl ? (
-          <a href={wrapExternalUrl(c.postUrl)} target="_blank" rel="noopener noreferrer"
-             onClick={(e) => e.stopPropagation()}
-             title={`Chưa đánh dấu — click mở bài để ext auto-detect lifecycle (live/removed/deleted)`}
-             style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
-                      background: m.bg, color: m.color, border: `1px dashed ${m.color}`,
-                      padding: '1px 7px', borderRadius: 999, fontWeight: 700,
-                      whiteSpace: 'nowrap', textDecoration: 'none',
-                      cursor: 'pointer', display: 'inline-flex',
-                      alignItems: 'center', gap: 3 }}>
-            {m.icon} {m.label} <span style={{ opacity: 0.6, fontSize: 9 }}>↗</span>
-          </a>
-        ) : (
-          <span title={`Lifecycle: ${m.label}`}
-                style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
-                         background: m.bg, color: m.color, border: `1px solid ${m.color}`,
-                         padding: '1px 7px', borderRadius: 999, fontWeight: 700,
-                         whiteSpace: 'nowrap' }}>
-            {m.icon} {m.label}
-          </span>
-        )}
+        <LifecycleBadge cardId={c.id} current={c.postLifecycle} postUrl={c.postUrl}
+                        onSaved={onLifecycleSaved} />
       </td>
       <td style={td()}>
         <a href={wrapExternalUrl(refreshUrl)} target="_blank" rel="noopener noreferrer"
@@ -653,6 +757,107 @@ function FilterReset({ active, onReset }: { active: boolean; onReset: () => void
                      color: 'var(--bad)', borderRadius: 4, cursor: 'pointer' }}>
       ✕ Reset filter
     </button>
+  );
+}
+
+// LifecycleBadge — click badge mở popover picker để override manual lifecycle.
+// Trước đó chỉ click '⏳ Chưa đánh dấu' mở Reddit cho ext detect; giờ:
+//   - Click bất kỳ badge → popover 5 lựa chọn manual + (nếu postUrl) link mở Reddit
+//   - Optimistic update local sau khi server OK
+//   - Vẫn giữ click-to-open Reddit cho row chưa mark (qua nút trong popover)
+function LifecycleBadge({ cardId, current, postUrl, onSaved }: {
+  cardId: number;
+  current: string | null;
+  postUrl: string;
+  onSaved: (lc: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const lc = current ?? '_none';
+  const m = LIFECYCLE_META[lc] ?? LIFECYCLE_META._none!;
+  const isUnmarked = lc === '_none';
+
+  async function pick(next: string) {
+    setBusy(true);
+    setErr(null);
+    const res = await updateCardLifecycle(cardId,
+      next as 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement',
+      'manual override từ All Posts tab');
+    setBusy(false);
+    if (!res.ok) {
+      setErr(res.error || 'Save fail');
+      return;
+    }
+    onSaved(next);
+    setOpen(false);
+  }
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+              title={isUnmarked
+                ? 'Chưa đánh dấu — click để chọn lifecycle thủ công (hoặc mở Reddit cho ext detect)'
+                : `Lifecycle: ${m.label} — click để đổi`}
+              style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                       background: m.bg, color: m.color,
+                       border: `1px ${isUnmarked ? 'dashed' : 'solid'} ${m.color}`,
+                       padding: '1px 7px', borderRadius: 999, fontWeight: 700,
+                       whiteSpace: 'nowrap', cursor: 'pointer',
+                       display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        {m.icon} {m.label}
+        <span style={{ opacity: 0.6, fontSize: 8 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)}
+               style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                        background: 'var(--bg-1)', border: '1px solid var(--line)',
+                        borderRadius: 5, padding: 4, minWidth: 170, zIndex: 51,
+                        boxShadow: '0 4px 12px rgba(0,0,0,.3)' }}
+               onClick={(e) => e.stopPropagation()}>
+            {(['live', 'ghosted', 'removed-by-mod', 'self-deleted', 'low-engagement'] as const).map((key) => {
+              const meta = LIFECYCLE_META[key]!;
+              const on = lc === key;
+              return (
+                <button key={key} type="button" disabled={busy}
+                        onClick={() => pick(key)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6,
+                                 width: '100%', textAlign: 'left',
+                                 padding: '4px 8px', fontSize: 11,
+                                 background: on ? 'var(--accent-soft)' : 'transparent',
+                                 border: 'none', cursor: busy ? 'wait' : 'pointer',
+                                 color: meta.color, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3 }}>
+                  <span>{meta.icon}</span>
+                  <span style={{ flex: 1 }}>{meta.label}</span>
+                  {on && <span style={{ opacity: 0.7 }}>✓</span>}
+                </button>
+              );
+            })}
+            {postUrl && (
+              <>
+                <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
+                <a href={wrapExternalUrl(postUrl)} target="_blank" rel="noopener noreferrer"
+                   onClick={() => setOpen(false)}
+                   style={{ display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '4px 8px', fontSize: 11,
+                            color: 'var(--accent)', textDecoration: 'none',
+                            fontFamily: 'var(--font-mono)' }}>
+                  ↗ Mở Reddit · ext auto-detect
+                </a>
+              </>
+            )}
+            {err && (
+              <div style={{ padding: '4px 8px', fontSize: 10, color: 'var(--bad)' }}>
+                ⚠ {err}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </span>
   );
 }
 

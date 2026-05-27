@@ -1195,13 +1195,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                      options={postedOptions}
                      initial={postedInitial}
                      initialFilters={postedInitialFilters}
-                     onOpenBrief={(briefId, cardId) => {
-                       const qs = new URLSearchParams(window.location.search);
-                       qs.set('m', 'brief');
-                       qs.set('mId', String(briefId));
-                       if (cardId) qs.set('bfc', String(cardId));
-                       window.history.replaceState({}, '', `${window.location.pathname}?${qs.toString()}`);
-                       modal.open('brief', briefId);
+                     onOpenBrief={(briefId, cardId, phase) => {
+                       // phase null → modal mở ở phase mặc định (overview).
+                       // Có phase → focus đúng phase + card (?bfp=&bfc=) qua focusPost.
+                       if (phase) focusPost(briefId, phase, cardId ?? undefined);
+                       else { clearFocus(); modal.open('brief', briefId); }
                      }} />
       )}
 
@@ -1299,17 +1297,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           {recentPosted.length > 0 && (
             <RecentPostedSection
               cards={recentPosted}
-              onOpenBrief={(briefId, cardId) => {
-                // Set URL with brief modal + focus card. modal.open chỉ set
-                // m+mId, focus card cần param `bfc`. Dùng history replace
-                // trực tiếp để giữ shallow nav (KHÔNG router.push - sẽ RSC).
-                const qs = new URLSearchParams(window.location.search);
-                qs.set('m', 'brief');
-                qs.set('mId', String(briefId));
-                if (cardId) qs.set('bfc', String(cardId));
-                window.history.replaceState({}, '', `${window.location.pathname}?${qs.toString()}`);
-                // Force re-render by triggering modal state update
-                modal.open('brief', briefId);
+              onOpenBrief={(briefId, cardId, phase) => {
+                if (phase) focusPost(briefId, phase, cardId ?? undefined);
+                else { clearFocus(); modal.open('brief', briefId); }
               }}
             />
           )}
@@ -1690,7 +1680,7 @@ function AccountModalLoader({ projectId, accountId, project, platforms, onClose,
 // ──────────────────────────────────────────────────────────────────
 function RecentPostedSection({ cards, onOpenBrief }: {
   cards: RecentPostedCard[];
-  onOpenBrief: (briefId: number, cardId?: number) => void;
+  onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   if (cards.length === 0) return null;
@@ -1734,7 +1724,7 @@ function RecentPostedSection({ cards, onOpenBrief }: {
             const hasStats = v != null || r != null || score != null;
             return (
               <button key={c.id} type="button"
-                      onClick={() => c.briefId != null && onOpenBrief(c.briefId, c.id)}
+                      onClick={() => c.briefId != null && onOpenBrief(c.briefId, c.id, c.briefPhase)}
                       disabled={c.briefId == null}
                       style={{ display: 'grid',
                                gridTemplateColumns: 'auto 1fr auto auto auto',

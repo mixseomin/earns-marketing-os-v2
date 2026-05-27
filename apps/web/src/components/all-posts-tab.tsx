@@ -36,7 +36,7 @@ interface Props {
   options: PostedFilterOptions;
   initial: AllPostedResult;
   initialFilters: AllPostedFilters;
-  onOpenBrief: (briefId: number, cardId?: number) => void;
+  onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
 }
 
 const LIFECYCLE_META: Record<string, { icon: string; label: string; color: string; bg: string }> = {
@@ -568,7 +568,7 @@ function buildMetricsRefreshUrl(c: AllPostedCard): string {
 function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
   c: AllPostedCard;
   projectId: string;
-  onOpenBrief: (briefId: number, cardId?: number) => void;
+  onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
   onLifecycleSaved: (lc: string) => void;
 }) {
   const v = c.insightsViewsCount;
@@ -584,7 +584,7 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
     ? 'Mở Reddit commentstats — ext sẽ tự scrape & cập nhật metrics khi page load'
     : 'Mở bài trên platform để review metrics thủ công';
 
-  const openBrief = () => { if (c.briefId != null) onOpenBrief(c.briefId, c.id); };
+  const openBrief = () => { if (c.briefId != null) onOpenBrief(c.briefId, c.id, c.briefPhase); };
 
   return (
     <tr style={{ borderTop: '1px solid var(--line)' }}

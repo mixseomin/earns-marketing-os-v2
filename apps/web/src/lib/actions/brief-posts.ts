@@ -449,6 +449,9 @@ export interface RecentPostedCard {
   insightsFetchedAt: string | null;
   // Lifecycle status — null nếu chưa mark
   postLifecycle: string | null;
+  // Phase card thuộc về (warm-up/value/bridge/seed/direct/cooldown) — focus
+  // đúng phase khi mở brief modal qua URL ?bfp=<phase>.
+  briefPhase: string | null;
   // Số attempts cùng parent_url (>= 1, include self). Khi >1 = thread engaged
   // nhiều lần (re-post sau ghost / multi-account). UI prefix "🧵 ×N".
   parentAttemptCount: number;
@@ -464,7 +467,7 @@ export async function listRecentPostedCards(
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
-           c.post_lifecycle,
+           c.post_lifecycle, c.brief_phase,
            c.brief_id,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
@@ -512,6 +515,7 @@ export async function listRecentPostedCards(
     insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
+    briefPhase: r.brief_phase ? String(r.brief_phase) : null,
     parentAttemptCount: Number(r.parent_attempt_count ?? 1),
   }));
 }
@@ -864,6 +868,7 @@ export interface AllPostedFilters {
 export interface AllPostedCard extends RecentPostedCard {
   briefRef: string | null;         // BRF-12 — gọn hơn briefId
   briefTitle: string | null;
+  briefPhase: string | null;       // card.brief_phase — focus đúng phase khi mở modal
   squadKey: string | null;
   aiContentDetection: boolean;
 }
@@ -987,7 +992,7 @@ export async function listAllPostedCards(
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
-           c.post_lifecycle, c.squad_key,
+           c.post_lifecycle, c.squad_key, c.brief_phase,
            c.brief_id,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
@@ -1070,6 +1075,7 @@ export async function listAllPostedCards(
     briefRef: r.brief_id != null ? `BRF-${r.brief_id}` : null,
     briefTitle: r.brief_phase_now ? String(r.brief_phase_now) : null,
     squadKey: r.squad_key ? String(r.squad_key) : null,
+    briefPhase: r.brief_phase ? String(r.brief_phase) : null,
     habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
     habitatName: String(r.habitat_name ?? ''),
     platformLabel: String(r.platform_label ?? ''),

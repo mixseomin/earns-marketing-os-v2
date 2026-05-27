@@ -76,6 +76,8 @@ export interface BriefPost {
   // Geo + top replies (migration 0076) — null nếu chưa sync.
   insightsTopCountries: Array<{ country: string; pct: number }> | null;
   insightsTopReplies: Array<{ author: string; ago?: string; body: string; score?: number | null }> | null;
+  // Lifecycle status: 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null
+  postLifecycle: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -98,6 +100,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
            c.insights_reply_count, c.insights_share_count, c.insights_award_count,
            c.insights_fetched_at,
            c.insights_top_countries, c.insights_top_replies,
+           c.post_lifecycle,
            c.created_at, c.updated_at,
            m.url AS media_url, m.kind AS media_kind,
            hc.name AS channel_name,
@@ -155,6 +158,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     insights_fetched_at: Date | string | null;
     insights_top_countries: unknown;
     insights_top_replies: unknown;
+    post_lifecycle: string | null;
   };
   return (rows as unknown as Row[]).map((r) => ({
     id: Number(r.id),     // cast pg bigint string → number
@@ -207,6 +211,7 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     insightsTopCountries: Array.isArray(r.insights_top_countries) ? r.insights_top_countries as Array<{ country: string; pct: number }> : null,
     insightsTopReplies: Array.isArray(r.insights_top_replies) ? r.insights_top_replies as Array<{ author: string; ago?: string; body: string; score?: number | null }> : null,
+    postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   }));

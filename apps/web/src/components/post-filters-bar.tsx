@@ -21,8 +21,12 @@ import type { BriefPost } from '@/lib/actions/brief-posts';
 export interface PostFilters {
   /** 'all' | 'text' | 'image' | ... */
   contentType: string;
-  /** 'all' | 'posted' | 'unposted' */
-  postStatus: 'all' | 'posted' | 'unposted';
+  /**
+   * 'all' | 'posted' | 'unposted' | 'removed'
+   * - 'posted' = mặc định LOẠI removed-by-mod + self-deleted (chỉ live / ghosted / null / low-engagement)
+   * - 'removed' = chỉ show removed-by-mod + self-deleted (cards đã bị xoá / mod xoá)
+   */
+  postStatus: 'all' | 'posted' | 'unposted' | 'removed';
   /** 'all' | pillarId string */
   pillarId: string;
   /** 'all' | channelId string */
@@ -51,12 +55,24 @@ export function isFilterActive(f: PostFilters): boolean {
       || f.media !== 'all';
 }
 
+// Lifecycle classified "removed" — comment đã không còn live, ẩn khỏi tab
+// "Đã đăng" mặc định vì user không cần re-engage nữa.
+const REMOVED_LIFECYCLES = new Set(['removed-by-mod', 'self-deleted']);
+
 /** Apply filters to list. Pure function — easy test. */
 export function applyPostFilters(posts: BriefPost[], f: PostFilters): BriefPost[] {
   return posts.filter((p) => {
     if (f.contentType !== 'all' && (p.contentType || 'text') !== f.contentType) return false;
-    if (f.postStatus === 'posted' && !p.postUrl) return false;
+    if (f.postStatus === 'posted') {
+      if (!p.postUrl) return false;
+      // Posted mặc định ẩn các card đã removed (mod xoá hoặc self-delete)
+      if (p.postLifecycle && REMOVED_LIFECYCLES.has(p.postLifecycle)) return false;
+    }
     if (f.postStatus === 'unposted' && p.postUrl) return false;
+    if (f.postStatus === 'removed') {
+      // Chỉ show removed/self-deleted
+      if (!p.postLifecycle || !REMOVED_LIFECYCLES.has(p.postLifecycle)) return false;
+    }
     if (f.pillarId !== 'all') {
       const pid = p.pillarId != null ? String(p.pillarId) : 'none';
       if (pid !== f.pillarId) return false;
@@ -127,7 +143,7 @@ function PostFiltersBarImpl({ posts, filters, onChange, pillars, channels }: Pos
   const byPillar = new Map<string, { count: number; name: string }>();
   const byChannel = new Map<string, { count: number; name: string }>();
   const byLang = new Map<string, number>();
-  let posted = 0; let unposted = 0;
+  let posted = 0; let unposted = 0; let removed = 0;
   let hasMedia = 0; let needsMedia = 0;
 
   for (const p of posts) {
@@ -147,7 +163,15 @@ function PostFiltersBarImpl({ posts, filters, onChange, pillars, channels }: Pos
     const lang = p.targetLang || 'en';
     byLang.set(lang, (byLang.get(lang) ?? 0) + 1);
 
-    if (p.postUrl) posted++; else unposted++;
+    // Posted count: trừ các card đã removed/self-deleted (đã không còn live).
+    // Removed count: track riêng cho chip "🗑 Removed".
+    if (p.postUrl) {
+      const isRemoved = p.postLifecycle && REMOVED_LIFECYCLES.has(p.postLifecycle);
+      if (isRemoved) removed++;
+      else posted++;
+    } else {
+      unposted++;
+    }
     if (p.mediaAssetId != null) hasMedia++;
     const isVisual = ['image', 'carousel', 'story', 'video'].includes(ct);
     if (isVisual && p.mediaAssetId == null) needsMedia++;
@@ -189,8 +213,15 @@ function PostFiltersBarImpl({ posts, filters, onChange, pillars, channels }: Pos
           <Chip active={filters.postStatus === 'posted'} count={posted}
                 color={{ fg: 'var(--ok)', bg: 'rgba(74,222,128,.12)', border: 'rgba(74,222,128,.4)' }}
                 icon="✓" label="Đã đăng"
-                title="Bài có post_url — đã dispatch confirmed"
+                title="Bài có post_url + chưa removed (live / ghosted / null lifecycle)"
                 onClick={() => toggle('postStatus', 'posted')} />
+        )}
+        {removed > 0 && (
+          <Chip active={filters.postStatus === 'removed'} count={removed}
+                color={{ fg: 'var(--bad)', bg: 'rgba(248,113,113,.12)', border: 'rgba(248,113,113,.4)' }}
+                icon="🗑" label="Removed"
+                title="Bài đã removed-by-mod hoặc self-deleted (comment không còn live)"
+                onClick={() => toggle('postStatus', 'removed')} />
         )}
         {needsMedia > 0 && (
           <Chip active={filters.media === 'needs'} count={needsMedia}

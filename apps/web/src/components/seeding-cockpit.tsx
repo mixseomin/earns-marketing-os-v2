@@ -649,14 +649,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           </div>
         </div>
         <div style={{ display: 'flex', gap: 5 }}>
-          {/* CTA chính — mọi việc của brief (xem bài, chốt nhịp, sửa nội dung)
-              vào đây. Các action khác gom vào menu ⋯ overflow. */}
-          <button className="btn primary" disabled={busy} onClick={() => modal.open('pipeline', it.briefId)}
-                  title="Mở danh sách bài của cặp account×habitat này. Xem bài kỳ này đăng GÌ / Ở ĐÂU, rồi bấm 'Đánh dấu đã đăng' ngay cạnh bài đó để chốt nhịp."
-                  style={{ fontSize: 11, padding: '4px 9px', fontWeight: 700,
-                           display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <IconList size={13} /> Bài &amp; chốt nhịp <IconChevron dir="right" size={11} />
-          </button>
+          {/* CTA chính = metrics chip thay cho 'Bài & chốt nhịp'.
+              Chốt nhịp thủ công bỏ — overdue auto-reset khi có cards.posted_at mới.
+              Click chip mở pipeline modal xem chi tiết bài + metrics từng bài. */}
+          <BriefMetricsChip it={it} onOpen={() => modal.open('pipeline', it.briefId)} />
           {/* Auto-fix conditional — chỉ khi sai nền tảng (issue rõ ràng cần
               fix nhanh, không cần chôn vào menu overflow). */}
           {platformIssue(it) && (
@@ -1838,6 +1834,93 @@ function RecentPostedSection({ cards, onOpenBrief }: {
       )}
     </div>
   );
+}
+
+// BriefMetricsChip — thay nút 'Bài & chốt nhịp' bằng metric summary thực tế.
+// Hiển thị 3 dòng compact:
+//   - top: số bài đã đăng (lifetime) + 30d
+//   - middle: 👁 ↑ 💬 tổng metrics (chỉ tính bài có insight_fetched_at)
+//   - bottom: lần đăng gần nhất ("3d trước") + chevron mở modal
+// Click → mở pipeline modal (xem chi tiết bài, edit, dispatch...).
+// Khi chưa có bài → fallback "Chưa có bài — mở pipeline".
+function BriefMetricsChip({ it, onOpen }: {
+  it: SeedingQueueItem;
+  onOpen: () => void;
+}) {
+  const hasInsight = it.insightSampleCount > 0;
+  const hasPosted = it.postedCount > 0;
+  const lastPostedAgo = it.lastPostedAt ? timeAgoShort(new Date(it.lastPostedAt)) : null;
+
+  return (
+    <button type="button" onClick={onOpen} disabled={false}
+            title={hasPosted
+              ? `${it.postedCount} bài đăng (${it.postedCount30d} trong 30d). ${hasInsight ? `${it.insightSampleCount} bài có insights synced.` : 'Chưa có insights synced.'} Click xem chi tiết.`
+              : 'Chưa có bài đăng nào — click để mở pipeline tạo / chốt'}
+            style={{
+              display: 'inline-flex', flexDirection: 'column', alignItems: 'stretch',
+              gap: 1, padding: '4px 10px', minWidth: 130,
+              background: hasPosted ? 'rgba(96,165,250,.08)' : 'var(--bg-2)',
+              border: `1px solid ${hasPosted ? 'rgba(96,165,250,.4)' : 'var(--line)'}`,
+              borderRadius: 5, cursor: 'pointer', fontFamily: 'inherit',
+              color: 'var(--fg-1)', textAlign: 'left',
+            }}>
+      {hasPosted ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5,
+                        fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontWeight: 700, color: '#60a5fa' }}>📨 {it.postedCount}</span>
+            {it.postedCount30d > 0 && (
+              <span style={{ color: 'var(--fg-3)', fontSize: 9.5 }}>
+                +{it.postedCount30d}/30d
+              </span>
+            )}
+            <span style={{ flex: 1 }} />
+            <IconChevron dir="right" size={10} />
+          </div>
+          {hasInsight ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6,
+                          fontSize: 10, fontFamily: 'var(--font-mono)',
+                          color: '#60a5fa', fontWeight: 700 }}>
+              {it.totalViews > 0 && <span title={`${it.totalViews.toLocaleString()} views tổng`}>👁 {formatStatShort(it.totalViews)}</span>}
+              {it.totalScore > 0 && <span title={`Score tổng ${it.totalScore}`}>↑ {formatStatShort(it.totalScore)}</span>}
+              {it.totalReplies > 0 && <span title={`${it.totalReplies} replies tổng`}>💬 {it.totalReplies}</span>}
+              {it.totalViews === 0 && it.totalScore === 0 && it.totalReplies === 0 && (
+                <span style={{ color: 'var(--fg-4)', fontStyle: 'italic', fontWeight: 400 }}>
+                  insights = 0
+                </span>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+              chưa sync insights
+            </div>
+          )}
+          {lastPostedAgo && (
+            <div style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+              ⏱ {lastPostedAgo}
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+                      fontSize: 11, color: 'var(--fg-3)' }}>
+          <IconList size={13} />
+          <span>Chưa có bài</span>
+          <span style={{ flex: 1 }} />
+          <IconChevron dir="right" size={11} />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function timeAgoShort(d: Date): string {
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return 'vừa xong';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m trước`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h trước`;
+  if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d trước`;
+  return `${Math.floor(diff / (30 * 86_400_000))}mo trước`;
 }
 
 function formatStatShort(n: number): string {

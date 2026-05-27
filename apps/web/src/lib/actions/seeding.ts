@@ -77,6 +77,16 @@ export interface SeedingQueueItem {
   adherencePct: number;          // 0..100, touches30d vs expected in 30d
   backlogCount: number;          // backlog cards for this brief × currentPhase
   completeCount: number;         // trong số đó, bài đã đủ data (nội dung + media)
+  // Bài đã đăng thực sự (từ cards.posted_at) — phân biệt với touch_log
+  // (cốt yếu khi card cũ đã có post_url mà chưa qua markSeeded).
+  postedCount: number;           // tổng bài đã đăng trong brief
+  postedCount30d: number;        // bài đăng trong 30d
+  lastPostedAt: string | null;   // posted_at gần nhất
+  // Aggregate metrics từ cards.insights_* (chỉ tính bài đã đăng + insights synced)
+  totalViews: number;            // 0 nếu chưa có insight nào
+  totalScore: number;
+  totalReplies: number;
+  insightSampleCount: number;    // bao nhiêu bài có insights — biết coverage
 }
 
 function statusOf(
@@ -93,6 +103,27 @@ function statusOf(
   if (now >= nextDueMs + frequencyDays * DAY * 2) return 'overdue';
   if (now >= nextDueMs) return 'due';
   return 'upcoming';
+}
+
+// resolveLastSeededMs — nguồn truth của "lần đăng gần nhất":
+//   1. cards.posted_at MAX (bài đăng thật, kể cả khi chưa markSeeded)
+//   2. last_seeded_at (touch_log) — fallback cho lane chưa post nhưng đã chốt
+//      nhịp thủ công (legacy)
+//   3. created_at — không có signal nào, dùng để tính delay nextDueMs đầu tiên
+// Trả MS để tính nextDueMs.
+function resolveLastSeededMs(
+  lastPostedAt: Date | null,
+  lastSeededAt: Date | null,
+  createdAt: Date,
+): { lastMs: number; source: 'posted' | 'seeded' | 'created' } {
+  const candidates: Array<{ ms: number; source: 'posted' | 'seeded' | 'created' }> = [];
+  if (lastPostedAt) candidates.push({ ms: lastPostedAt.getTime(), source: 'posted' });
+  if (lastSeededAt) candidates.push({ ms: lastSeededAt.getTime(), source: 'seeded' });
+  candidates.push({ ms: createdAt.getTime(), source: 'created' });
+  // Lấy max → reset overdue khi có bài posted mới nhất (kể cả posted < lastSeeded).
+  candidates.sort((a, b) => b.ms - a.ms);
+  const top = candidates[0]!;
+  return { lastMs: top.ms, source: top.source };
 }
 
 export async function listSeedingQueue(projectId: string): Promise<SeedingQueueItem[]> {
@@ -128,7 +159,31 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
                     AND left(btrim(coalesce(c.body_target,'')), 1) <> '#'
              END
            )
-        ) AS complete_count
+        ) AS complete_count,
+      -- Posted cards aggregate (cross-phase: brief đã có bài posted nào,
+      -- không phụ thuộc currentPhase). Dùng để reset overdue + show metrics.
+      (SELECT count(*)::int FROM cards c
+         WHERE c.brief_id = b.id AND c.post_url IS NOT NULL
+           AND c.posted_at IS NOT NULL AND c.archived_at IS NULL) AS posted_count,
+      (SELECT count(*)::int FROM cards c
+         WHERE c.brief_id = b.id AND c.post_url IS NOT NULL
+           AND c.archived_at IS NULL
+           AND c.posted_at > NOW() - INTERVAL '30 days') AS posted_count_30d,
+      (SELECT max(c.posted_at) FROM cards c
+         WHERE c.brief_id = b.id AND c.post_url IS NOT NULL
+           AND c.archived_at IS NULL) AS last_posted_at,
+      (SELECT coalesce(sum(c.insights_views_count), 0)::bigint FROM cards c
+         WHERE c.brief_id = b.id AND c.archived_at IS NULL
+           AND c.insights_fetched_at IS NOT NULL) AS total_views,
+      (SELECT coalesce(sum(c.insights_score), 0)::bigint FROM cards c
+         WHERE c.brief_id = b.id AND c.archived_at IS NULL
+           AND c.insights_fetched_at IS NOT NULL) AS total_score,
+      (SELECT coalesce(sum(c.insights_reply_count), 0)::bigint FROM cards c
+         WHERE c.brief_id = b.id AND c.archived_at IS NULL
+           AND c.insights_fetched_at IS NOT NULL) AS total_replies,
+      (SELECT count(*)::int FROM cards c
+         WHERE c.brief_id = b.id AND c.archived_at IS NULL
+           AND c.insights_fetched_at IS NOT NULL) AS insight_sample_count
     FROM seeding_schedules ss
     JOIN community_briefs b ON b.id = ss.brief_id
     JOIN platform_accounts pa ON pa.id = b.account_id
@@ -141,8 +196,12 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
   const list = (rows as unknown as Array<Record<string, unknown>>).map((r) => {
     const freq = Math.max(1, Number(r.frequency_days ?? 3));
     const lastSeeded = r.last_seeded_at ? new Date(String(r.last_seeded_at)) : null;
-    const base = lastSeeded ?? new Date(String(r.created_at));
-    const nextDueMs = base.getTime() + freq * DAY;
+    const lastPosted = r.last_posted_at ? new Date(String(r.last_posted_at)) : null;
+    const createdAt = new Date(String(r.created_at));
+    // Resolve "lần đăng gần nhất" — ưu tiên cards.posted_at thật để brief
+    // đã có bài đăng KHÔNG bị quá hạn dù chưa qua markSeeded thủ công.
+    const { lastMs } = resolveLastSeededMs(lastPosted, lastSeeded, createdAt);
+    const nextDueMs = lastMs + freq * DAY;
     const currentPhase = parsePhase(r.current_phase);
     const activePhases = parsePhaseArr(r.active_phases);
     const paused = Boolean(r.paused);
@@ -187,6 +246,13 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       adherencePct,
       backlogCount: Number(r.backlog_count ?? 0),
       completeCount: Number(r.complete_count ?? 0),
+      postedCount: Number(r.posted_count ?? 0),
+      postedCount30d: Number(r.posted_count_30d ?? 0),
+      lastPostedAt: lastPosted ? lastPosted.toISOString() : null,
+      totalViews: Number(r.total_views ?? 0),
+      totalScore: Number(r.total_score ?? 0),
+      totalReplies: Number(r.total_replies ?? 0),
+      insightSampleCount: Number(r.insight_sample_count ?? 0),
     } as SeedingQueueItem;
   });
   // Order: overdue → due → upcoming → off-phase → paused; then soonest due.

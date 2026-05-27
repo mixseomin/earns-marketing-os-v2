@@ -454,13 +454,27 @@ function Row({ c, onOpenBrief }: { c: AllPostedCard; onOpenBrief: (briefId: numb
         </button>
       </td>
       <td style={td()}>
-        <span title={`Lifecycle: ${m.label}`}
-              style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
-                       background: m.bg, color: m.color, border: `1px solid ${m.color}`,
-                       padding: '1px 7px', borderRadius: 999, fontWeight: 700,
-                       whiteSpace: 'nowrap' }}>
-          {m.icon} {m.label}
-        </span>
+        {lc === '_none' && c.postUrl ? (
+          <a href={wrapExternalUrl(c.postUrl)} target="_blank" rel="noopener noreferrer"
+             onClick={(e) => e.stopPropagation()}
+             title={`Chưa đánh dấu — click mở bài để ext auto-detect lifecycle (live/removed/deleted)`}
+             style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                      background: m.bg, color: m.color, border: `1px dashed ${m.color}`,
+                      padding: '1px 7px', borderRadius: 999, fontWeight: 700,
+                      whiteSpace: 'nowrap', textDecoration: 'none',
+                      cursor: 'pointer', display: 'inline-flex',
+                      alignItems: 'center', gap: 3 }}>
+            {m.icon} {m.label} <span style={{ opacity: 0.6, fontSize: 9 }}>↗</span>
+          </a>
+        ) : (
+          <span title={`Lifecycle: ${m.label}`}
+                style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                         background: m.bg, color: m.color, border: `1px solid ${m.color}`,
+                         padding: '1px 7px', borderRadius: 999, fontWeight: 700,
+                         whiteSpace: 'nowrap' }}>
+            {m.icon} {m.label}
+          </span>
+        )}
       </td>
       <td style={td()}>
         <a href={wrapExternalUrl(refreshUrl)} target="_blank" rel="noopener noreferrer"

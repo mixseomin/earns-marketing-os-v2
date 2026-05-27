@@ -202,7 +202,7 @@ export async function POST(req: Request) {
         ${`r/${parsed.subredditPath.slice(2)} thread ${parsed.postId}`},
         ${`u/${authorHandle}`},
         'external',
-        'live', 'L1', 'warm-up', 'community-seed',
+        'production', 1, 'warm-up', 'community-seed',
         'live', NOW(), 'auto-imported from Reddit insights page'
       )
       RETURNING id, post_url

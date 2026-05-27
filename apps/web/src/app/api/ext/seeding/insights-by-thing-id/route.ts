@@ -182,9 +182,10 @@ export async function POST(req: Request) {
     const projectId = String(brief.project_id);
 
     // Tạo card. card_ref dùng convention EXT-<thingId> tránh đụng SEED-N.
+    // squad_key NOT NULL → fallback 'wf-writer' (default seeding squad).
     const newCardRows = await db.execute(sql`
       INSERT INTO cards (
-        tenant_id, project_id, brief_id, card_ref,
+        tenant_id, project_id, brief_id, card_ref, squad_key,
         title, body_target, content_type, target_lang,
         post_url, posted_at,
         parent_url, parent_title, parent_author,
@@ -193,7 +194,7 @@ export async function POST(req: Request) {
         post_lifecycle, post_lifecycle_at, post_lifecycle_note
       )
       VALUES (
-        'self', ${projectId}, ${briefId}, ${`EXT-${thingId}`},
+        'self', ${projectId}, ${briefId}, ${`EXT-${thingId}`}, 'wf-writer',
         ${`Reddit comment ${thingId}`},
         ${String(body.bodyText ?? '').slice(0, 4000)},
         'comment', ${habitatLang},

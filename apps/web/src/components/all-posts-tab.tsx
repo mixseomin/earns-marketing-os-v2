@@ -419,12 +419,12 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
 
           <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
                          marginLeft: 4 }}>min:</span>
-          <NumberInput placeholder="views" value={filters.minViews}
-                       onChange={(v) => setF({ minViews: v })} />
-          <NumberInput placeholder="score" value={filters.minScore}
-                       onChange={(v) => setF({ minScore: v })} />
-          <NumberInput placeholder="replies" value={filters.minReplies}
-                       onChange={(v) => setF({ minReplies: v })} />
+          <ThresholdInput label="👁 views" value={filters.minViews}
+                          onChange={(v) => setF({ minViews: v })} />
+          <ThresholdInput label="↑ score" value={filters.minScore}
+                          onChange={(v) => setF({ minScore: v })} />
+          <ThresholdInput label="💬 replies" value={filters.minReplies}
+                          onChange={(v) => setF({ minReplies: v })} />
         </div>
       )}
 
@@ -444,8 +444,11 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
             <colgroup>
               <col style={{ width: 22 }} />
               <col />
-              <col style={{ width: 130 }} />
               <col style={{ width: 110 }} />
+              <col style={{ width: 56 }} />
+              <col style={{ width: 56 }} />
+              <col style={{ width: 56 }} />
+              <col style={{ width: 56 }} />
               <col style={{ width: 60 }} />
               <col style={{ width: 30 }} />
             </colgroup>
@@ -456,7 +459,18 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                 <th style={th()} />
                 <th style={th()}>Habitat / Account / Title</th>
                 <th style={th()}>Lifecycle</th>
-                <th style={th()}>Metrics</th>
+                <SortableHeader label="👁 Views" sortKey="views_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })} />
+                <SortableHeader label="↑ Score" sortKey="score_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })} />
+                <SortableHeader label="💬 Reply" sortKey="replies_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })} />
+                <SortableHeader label="% Ratio" sortKey="ratio_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })} />
                 <th style={th()}>Ago</th>
                 <th style={th()} />
               </tr>
@@ -586,39 +600,18 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
         <LifecycleBadge cardId={c.id} current={c.postLifecycle} postUrl={c.postUrl}
                         onSaved={onLifecycleSaved} />
       </td>
-      <td style={td()}>
-        <a href={wrapExternalUrl(refreshUrl)} target="_blank" rel="noopener noreferrer"
-           onClick={(e) => e.stopPropagation()} title={refreshTitle}
-           style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '2px 6px', fontSize: 10, fontWeight: 700,
-                    fontFamily: 'var(--font-mono)',
-                    color: hasStats ? '#60a5fa' : 'var(--fg-4)',
-                    background: 'transparent', border: '1px solid transparent',
-                    borderRadius: 3, textDecoration: 'none',
-                    transition: 'background .1s, border-color .1s' }}
-           onMouseEnter={(e) => {
-             e.currentTarget.style.background = 'var(--bg-2)';
-             e.currentTarget.style.borderColor = 'var(--line)';
-           }}
-           onMouseLeave={(e) => {
-             e.currentTarget.style.background = 'transparent';
-             e.currentTarget.style.borderColor = 'transparent';
-           }}>
-          {hasStats ? (
-            <>
-              {v != null && <span title={`${v.toLocaleString()} views`}>👁 {formatStatShort(v)}</span>}
-              {s != null && <span title={`Score ${s}`}>↑ {formatStatShort(s)}</span>}
-              {rp != null && <span title={`${rp} replies`}>💬 {rp}</span>}
-              {r != null && <span title={`Upvote ratio ${Math.round(r * 100)}%`}>{Math.round(r * 100)}%</span>}
-              <span style={{ opacity: 0.5, fontSize: 9 }}>↻</span>
-            </>
-          ) : (
-            <span style={{ fontStyle: 'italic' }}>
-              chưa sync {isReddit ? '— click để fetch' : '— click mở bài'}
-            </span>
-          )}
-        </a>
-      </td>
+      <MetricCell value={v != null ? formatStatShort(v) : null}
+                  fullTitle={v != null ? `${v.toLocaleString()} views` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  url={refreshUrl} />
+      <MetricCell value={s != null ? formatStatShort(s) : null}
+                  fullTitle={s != null ? `Score ${s}` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  url={refreshUrl} />
+      <MetricCell value={rp != null ? String(rp) : null}
+                  fullTitle={rp != null ? `${rp} replies` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  url={refreshUrl} />
+      <MetricCell value={r != null ? `${Math.round(r * 100)}%` : null}
+                  fullTitle={r != null ? `Upvote ratio ${Math.round(r * 100)}%` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  url={refreshUrl} />
       <td style={td()}>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
           {timeAgo(c.postedAt)}
@@ -858,6 +851,75 @@ function LifecycleBadge({ cardId, current, postUrl, onSaved }: {
         </>
       )}
     </span>
+  );
+}
+
+// ThresholdInput — label + NumberInput inline. Hiển thị icon ngữ nghĩa rõ
+// hơn placeholder text trống.
+function ThresholdInput({ label, value, onChange }: {
+  label: string;
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+        {label}
+      </span>
+      <NumberInput placeholder="0" value={value} onChange={onChange} />
+    </span>
+  );
+}
+
+// MetricCell — 1 cột metric (views/score/replies/ratio). Click cell = mở
+// commentstats để ext sync. '—' khi null.
+function MetricCell({ value, fullTitle, url }: {
+  value: string | null;
+  fullTitle: string;
+  url: string;
+}) {
+  return (
+    <td style={td()}>
+      <a href={wrapExternalUrl(url)} target="_blank" rel="noopener noreferrer"
+         onClick={(e) => e.stopPropagation()} title={fullTitle}
+         style={{ display: 'inline-block', padding: '1px 5px',
+                  fontSize: 10.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                  color: value != null ? '#60a5fa' : 'var(--fg-4)',
+                  textDecoration: 'none', borderRadius: 3,
+                  border: '1px solid transparent',
+                  transition: 'background .1s, border-color .1s' }}
+         onMouseEnter={(e) => {
+           e.currentTarget.style.background = 'var(--bg-2)';
+           e.currentTarget.style.borderColor = 'var(--line)';
+         }}
+         onMouseLeave={(e) => {
+           e.currentTarget.style.background = 'transparent';
+           e.currentTarget.style.borderColor = 'transparent';
+         }}>
+        {value ?? '—'}
+      </a>
+    </td>
+  );
+}
+
+// SortableHeader — th có thể click để sort theo cột tương ứng. Highlight
+// hiện trạng (mũi tên ↓ nếu đang sort cột này), click lần 2 toggle về posted_desc.
+function SortableHeader({ label, sortKey, current, onSort }: {
+  label: string;
+  sortKey: PostedSortKey;
+  current: PostedSortKey;
+  onSort: (s: PostedSortKey) => void;
+}) {
+  const active = current === sortKey;
+  return (
+    <th style={{ ...th(), cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => onSort(active ? 'posted_desc' : sortKey)}
+        title={active ? 'Click để bỏ sort (về Mới nhất)' : 'Click để sort cột này giảm dần'}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                     color: active ? 'var(--accent)' : 'var(--fg-3)' }}>
+        {label}{active && ' ↓'}
+      </span>
+    </th>
   );
 }
 

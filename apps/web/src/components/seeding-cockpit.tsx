@@ -1132,11 +1132,6 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           </div>
         </div>
         <div className="page-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Segmented options={[
-                       { value: 'queue', label: '⏱ Lịch seed' },
-                       { value: 'posts', label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
-                     ]}
-                     value={view} onChange={(v) => setView(v as 'queue' | 'posts')} />
           {view === 'queue' && (
             <>
               <Segmented options={[{ value: 'active', label: 'Đang chạy' }, { value: 'all', label: 'Tất cả' }]}
@@ -1150,6 +1145,34 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             </>
           )}
         </div>
+      </div>
+
+      {/* Tab bar — view switcher 'Lịch seed | Tất cả bài đăng', đứng riêng
+          dưới page-head, không lẫn với action buttons bên trong. */}
+      <div role="tablist"
+           style={{ display: 'flex', alignItems: 'flex-end', gap: 0,
+                    marginTop: 8, marginBottom: 12,
+                    borderBottom: '1px solid var(--line)' }}>
+        {([
+          { value: 'queue' as const, label: '⏱ Lịch seed' },
+          { value: 'posts' as const, label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
+        ]).map((t) => {
+          const on = view === t.value;
+          return (
+            <button key={t.value} role="tab" aria-selected={on}
+                    onClick={() => setView(t.value)}
+                    style={{
+                      padding: '8px 16px', fontSize: 13, fontWeight: on ? 700 : 500,
+                      background: 'transparent', border: 'none',
+                      borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                      color: on ? 'var(--accent)' : 'var(--fg-3)',
+                      cursor: 'pointer', marginBottom: -1,
+                      transition: 'color .15s, border-color .15s',
+                    }}>
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* View 'posts': render AllPostsTab thay vì queue + chip + buckets. */}

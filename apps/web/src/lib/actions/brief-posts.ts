@@ -204,6 +204,86 @@ export async function listPostsForBriefPhase(briefId: number, phase: Phase): Pro
   }));
 }
 
+// ──────────────────────────────────────────────────────────────────
+// RecentPostedCard — slim shape cho "📨 Vừa đăng" section trên cockpit.
+// Cross-brief, sort posted_at desc, default 7 ngày gần nhất.
+// ──────────────────────────────────────────────────────────────────
+export interface RecentPostedCard {
+  id: number;
+  cardRef: string;
+  title: string;
+  bodyTarget: string;     // preview 200 chars
+  contentType: string;
+  targetLang: string;
+  postUrl: string;
+  postedAt: string;
+  briefId: number | null;
+  habitatId: number | null;
+  habitatName: string;
+  platformLabel: string;
+  platformKey: string | null;
+  accountHandle: string | null;
+  // Insights inline (P2)
+  insightsViewsCount: number | null;
+  insightsScore: number | null;
+  insightsUpvoteRatio: number | null;
+  insightsReplyCount: number | null;
+  insightsFetchedAt: string | null;
+}
+
+export async function listRecentPostedCards(
+  projectId: string,
+  opts?: { days?: number; limit?: number },
+): Promise<RecentPostedCard[]> {
+  const db = ensureDb();
+  const days = opts?.days ?? 7;
+  const limit = opts?.limit ?? 50;
+  const rows = await db.execute(sql`
+    SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
+           c.post_url, c.posted_at,
+           c.brief_id,
+           c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
+           c.insights_reply_count, c.insights_fetched_at,
+           b.habitat_id,
+           h.name AS habitat_name,
+           p.label AS platform_label, p.key AS platform_key,
+           pa.handle AS account_handle
+    FROM cards c
+    LEFT JOIN community_briefs b ON b.id = c.brief_id
+    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN platforms p ON p.id = h.platform_id
+    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    WHERE c.project_id = ${projectId}
+      AND c.post_url IS NOT NULL
+      AND c.archived_at IS NULL
+      AND c.posted_at IS NOT NULL
+      AND c.posted_at > NOW() - INTERVAL '${sql.raw(String(days))} days'
+    ORDER BY c.posted_at DESC
+    LIMIT ${limit}
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    cardRef: String(r.card_ref ?? ''),
+    title: String(r.title ?? ''),
+    bodyTarget: String(r.body_target ?? '').slice(0, 200),
+    contentType: String(r.content_type ?? 'text'),
+    targetLang: String(r.target_lang ?? 'en'),
+    postUrl: String(r.post_url ?? ''),
+    postedAt: r.posted_at instanceof Date ? r.posted_at.toISOString() : String(r.posted_at),
+    briefId: r.brief_id != null ? Number(r.brief_id) : null,
+    habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
+    habitatName: String(r.habitat_name ?? ''),
+    platformLabel: String(r.platform_label ?? ''),
+    platformKey: r.platform_key ? String(r.platform_key) : null,
+    accountHandle: r.account_handle ? String(r.account_handle) : null,
+    insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
+    insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
+    insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
+    insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
+    insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
+  }));
+}
+
 // Generate next card_ref unique trong project. Pattern: SEED-{N}
 async function nextCardRef(projectId: string): Promise<string> {
   const db = ensureDb();

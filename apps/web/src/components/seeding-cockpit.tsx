@@ -8,6 +8,7 @@
 import { useState, useMemo, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SeedingQueueItem, SeedingStatus } from '@/lib/actions/seeding';
+import type { RecentPostedCard } from '@/lib/actions/brief-posts';
 import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
@@ -78,13 +79,14 @@ function EntityLink({ onClick, title, color, children }: {
   );
 }
 
-export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes }: {
+export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [] }: {
   projectId: string;
   projectName: string;
   project: Project;
   platforms: PlatformRow[];
   queue: SeedingQueueItem[];
   tribes: TribeRow[];
+  recentPosted?: RecentPostedCard[];
 }) {
   const router = useRouter();
   const modal = useModalParam('m'); // ?m=schedule&mId=<briefId>
@@ -1220,6 +1222,23 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             />
           )}
           {deadGroups.map((g) => <DeadAccountCard key={g.accountId} g={g} />)}
+          {recentPosted.length > 0 && (
+            <RecentPostedSection
+              cards={recentPosted}
+              onOpenBrief={(briefId, cardId) => {
+                // Set URL with brief modal + focus card. modal.open chỉ set
+                // m+mId, focus card cần param `bfc`. Dùng history replace
+                // trực tiếp để giữ shallow nav (KHÔNG router.push - sẽ RSC).
+                const qs = new URLSearchParams(window.location.search);
+                qs.set('m', 'brief');
+                qs.set('mId', String(briefId));
+                if (cardId) qs.set('bfc', String(cardId));
+                window.history.replaceState({}, '', `${window.location.pathname}?${qs.toString()}`);
+                // Force re-render by triggering modal state update
+                modal.open('brief', briefId);
+              }}
+            />
+          )}
           <Bucket title="Quá hạn" items={buckets.overdue!} accent="var(--bad)" />
           <Bucket title="Đến hạn" items={buckets.due!} accent="var(--warn)" />
           <Bucket title="Tuần này" items={buckets.week!} accent="var(--accent)" />
@@ -1586,6 +1605,140 @@ function AccountModalLoader({ projectId, accountId, project, platforms, onClose,
 // Habitat loader — fetch HabitatRow đầy đủ rồi mở HabitatFormModal in-place
 // từ brief modal header (chip community click → edit platform/url/kind/
 // posting rules/topics). Cùng pattern AccountModalLoader.
+// ──────────────────────────────────────────────────────────────────
+// RecentPostedSection — list các bài đã đăng < 7 ngày, cross-brief.
+// User vào /seeding tìm "bài vừa đăng" mà không phải nhớ brief nào →
+// thấy ngay trên cockpit. Click row mở Brief modal focus card đó.
+// ──────────────────────────────────────────────────────────────────
+function RecentPostedSection({ cards, onOpenBrief }: {
+  cards: RecentPostedCard[];
+  onOpenBrief: (briefId: number, cardId?: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  if (cards.length === 0) return null;
+
+  return (
+    <div style={{
+      marginBottom: 10, background: 'var(--bg-1)',
+      border: '1px solid rgba(74,222,128,.3)', borderLeft: '3px solid var(--ok)',
+      borderRadius: 5,
+    }}>
+      <button type="button" onClick={() => setExpanded((v) => !v)}
+              style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 6,
+                       padding: '8px 10px', background: 'transparent', border: 'none',
+                       cursor: 'pointer', color: 'var(--fg-1)', textAlign: 'left' }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{expanded ? '▾' : '▸'}</span>
+        <span style={{ fontWeight: 700, color: 'var(--ok)' }}>📨 Vừa đăng (7d)</span>
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                       background: 'rgba(74,222,128,.15)', color: 'var(--ok)',
+                       border: '1px solid rgba(74,222,128,.4)', padding: '1px 6px',
+                       borderRadius: 999 }}>{cards.length}</span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+          Click bài để xem chi tiết + insights
+        </span>
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {cards.map((c) => {
+            const ago = (() => {
+              const t = new Date(c.postedAt).getTime();
+              const diff = Date.now() - t;
+              if (diff < 60_000) return 'vừa xong';
+              if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
+              if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
+              return `${Math.floor(diff / 86_400_000)}d`;
+            })();
+            const v = c.insightsViewsCount;
+            const r = c.insightsUpvoteRatio;
+            const score = c.insightsScore;
+            const replies = c.insightsReplyCount;
+            const hasStats = v != null || r != null || score != null;
+            return (
+              <button key={c.id} type="button"
+                      onClick={() => c.briefId != null && onOpenBrief(c.briefId, c.id)}
+                      disabled={c.briefId == null}
+                      style={{ display: 'grid',
+                               gridTemplateColumns: 'auto 1fr auto auto auto',
+                               gap: 8, alignItems: 'center',
+                               padding: '6px 8px',
+                               background: 'var(--bg-2)', border: '1px solid var(--line)',
+                               borderRadius: 4, cursor: c.briefId ? 'pointer' : 'default',
+                               textAlign: 'left', color: 'var(--fg-1)',
+                               fontFamily: 'inherit', fontSize: 12 }}>
+                {/* Platform icon */}
+                <span style={{ display: 'inline-flex', position: 'relative', flexShrink: 0 }}>
+                  {c.platformKey ? (
+                    <img src={`https://cdn.simpleicons.org/${c.platformKey}/d4d4d8`}
+                         alt={c.platformLabel} width={14} height={14}
+                         style={{ verticalAlign: 'middle' }} />
+                  ) : (
+                    <span style={{ width: 14, height: 14, display: 'inline-block',
+                                   background: 'var(--bg-3)', borderRadius: 3 }} />
+                  )}
+                </span>
+                {/* Habitat + title */}
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--fg-0)', fontSize: 11.5,
+                                   whiteSpace: 'nowrap' }}>{c.habitatName}</span>
+                    {c.accountHandle && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                                     color: 'var(--fg-3)' }}>@{c.accountHandle}</span>
+                    )}
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
+                                   background: 'var(--bg-3)', color: 'var(--fg-3)',
+                                   padding: '0 4px', borderRadius: 2 }}>{c.contentType}</span>
+                  </div>
+                  <div style={{ color: 'var(--fg-2)', fontSize: 11,
+                                whiteSpace: 'nowrap', overflow: 'hidden',
+                                textOverflow: 'ellipsis', minWidth: 0 }}>
+                    {c.title || c.bodyTarget || '(no content)'}
+                  </div>
+                </div>
+                {/* Stats chip */}
+                {hasStats ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                                 padding: '2px 7px', fontSize: 10, fontWeight: 700,
+                                 fontFamily: 'var(--font-mono)',
+                                 background: 'rgba(96,165,250,.13)', color: '#60a5fa',
+                                 border: '1px solid rgba(96,165,250,.4)', borderRadius: 999 }}>
+                    {v != null && <span title={`${v.toLocaleString()} views`}>👁 {formatStatShort(v)}</span>}
+                    {score != null && <span title={`Score ${score}`}>↑ {formatStatShort(score)}</span>}
+                    {r != null && <span title={`Upvote ratio ${Math.round(r * 100)}%`}>{Math.round(r * 100)}%</span>}
+                    {replies != null && <span title={`${replies} replies`}>💬 {replies}</span>}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+                    chưa sync
+                  </span>
+                )}
+                {/* Time ago */}
+                <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)',
+                               whiteSpace: 'nowrap' }}>{ago}</span>
+                {/* Open in new tab */}
+                <a href={c.postUrl} target="_blank" rel="noopener noreferrer"
+                   onClick={(e) => e.stopPropagation()}
+                   title="Mở bài trên platform"
+                   style={{ fontSize: 11, color: 'var(--ok)', textDecoration: 'none',
+                            padding: '2px 6px', background: 'var(--bg-1)',
+                            border: '1px solid var(--line)', borderRadius: 3 }}>↗</a>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatStatShort(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 10_000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
+  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+}
+
 function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, onOpenAccount, onOpenBrief }: {
   projectId: string;
   habitatId: number;

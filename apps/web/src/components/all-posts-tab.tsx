@@ -24,6 +24,7 @@ import {
   type PostedSortKey,
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
+import { prefetchBriefModal } from '@/lib/brief-modal-cache';
 
 interface Props {
   projectId: string;
@@ -345,7 +346,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               </tr>
             </thead>
             <tbody>
-              {rows.map((c) => <Row key={c.id} c={c} onOpenBrief={onOpenBrief} />)}
+              {rows.map((c) => <Row key={c.id} c={c} projectId={projectId} onOpenBrief={onOpenBrief} />)}
             </tbody>
           </table>
         </div>
@@ -387,7 +388,11 @@ function buildMetricsRefreshUrl(c: AllPostedCard): string {
   return c.postUrl;
 }
 
-function Row({ c, onOpenBrief }: { c: AllPostedCard; onOpenBrief: (briefId: number, cardId?: number) => void }) {
+function Row({ c, projectId, onOpenBrief }: {
+  c: AllPostedCard;
+  projectId: string;
+  onOpenBrief: (briefId: number, cardId?: number) => void;
+}) {
   const v = c.insightsViewsCount;
   const r = c.insightsUpvoteRatio;
   const s = c.insightsScore;
@@ -404,7 +409,8 @@ function Row({ c, onOpenBrief }: { c: AllPostedCard; onOpenBrief: (briefId: numb
   const openBrief = () => { if (c.briefId != null) onOpenBrief(c.briefId, c.id); };
 
   return (
-    <tr style={{ borderTop: '1px solid var(--line)' }}>
+    <tr style={{ borderTop: '1px solid var(--line)' }}
+        onMouseEnter={() => { if (c.briefId != null) prefetchBriefModal(projectId, c.briefId); }}>
       <td style={td()}>
         {c.platformKey ? (
           <img src={`https://cdn.simpleicons.org/${c.platformKey}/d4d4d8`}

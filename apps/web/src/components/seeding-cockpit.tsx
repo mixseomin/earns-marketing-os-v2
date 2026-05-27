@@ -19,7 +19,8 @@ import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
 } from '@/lib/actions/seeding';
-import { getBriefForModal, getHabitatRowAction, reassignBriefAccount, autoFixBriefAccount, type BriefRow, type BriefModalCtx } from '@/lib/actions/community-briefs';
+import { getHabitatRowAction, reassignBriefAccount, autoFixBriefAccount, type BriefRow, type BriefModalCtx } from '@/lib/actions/community-briefs';
+import { fetchBriefModal, prefetchBriefModal, invalidateBriefModal } from '@/lib/brief-modal-cache';
 import { SwapAccountButton } from './swap-account-button';
 import type { TribeRow, PlatformRow, AccountRow, HabitatRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
@@ -1492,26 +1493,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
 // service restart bị Next 15 warm-up chậm 1-3s. Pre-warm khi user hover
 // dòng queue (chưa click): khi click thật → response đã sẵn / on-the-fly.
 // TTL ngắn (45s) để không cache stale qua sửa.
-type BriefModalRes = Awaited<ReturnType<typeof getBriefForModal>>;
-type Pending = Promise<BriefModalRes>;
-const briefCache = new Map<string, { at: number; promise: Pending }>();
-const BRIEF_TTL = 45_000;
-function fetchBriefModal(projectId: string, briefId: number): Pending {
-  const key = `${projectId}/${briefId}`;
-  const hit = briefCache.get(key);
-  if (hit && Date.now() - hit.at < BRIEF_TTL) return hit.promise;
-  const promise = getBriefForModal(projectId, briefId);
-  briefCache.set(key, { at: Date.now(), promise });
-  // Nếu fail thì xoá để lần sau retry sạch.
-  promise.catch(() => briefCache.delete(key));
-  return promise;
-}
-function prefetchBriefModal(projectId: string, briefId: number): void {
-  void fetchBriefModal(projectId, briefId);
-}
-function invalidateBriefModal(projectId: string, briefId: number): void {
-  briefCache.delete(`${projectId}/${briefId}`);
-}
+// Brief modal cache (TTL 45s + timeout 10s + dedup hover prefetch) đã tách
+// ra @/lib/brief-modal-cache để AllPostsTab dùng chung — import ở top file.
+
 
 // Fetch the full BriefRow for the clicked seeding row, then render
 // BriefEditModal IN PLACE (no navigation). Module-scope (không định nghĩa
@@ -1533,6 +1517,7 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
   const [phaseCounts, setPhaseCounts] = useState<Record<string, number>>({});
   const [phaseTypeCounts, setPhaseTypeCounts] = useState<Record<string, Record<string, number>>>({});
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
   // Tăng reloadKey → re-fetch ctx + counts (debounced) khi posts mutate.
   const [reloadKey, setReloadKey] = useState(0);
   const reloadTimer = useRef<number | null>(null);
@@ -1553,8 +1538,10 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
     // Lần đầu (reloadKey=0 + externalReloadKey=0) → show 'loading'. Reload
     // sau khi mutate → giữ UI (counts cập nhật mượt, không flash spinner).
     if (reloadKey === 0 && externalReloadKey === 0) setState('loading');
-    // fetchBriefModal: cache 45s + dedup. Nếu user đã hover prefetch trước
-    // khi click, promise có sẵn → resolve gần như tức thì.
+    setLoadingTooLong(false);
+    const longLoadTimer = window.setTimeout(() => { if (!cancel) setLoadingTooLong(true); }, 4000);
+    // fetchBriefModal: cache 45s + dedup + timeout 10s. Nếu user đã hover
+    // prefetch trước khi click, promise có sẵn → resolve gần như tức thì.
     fetchBriefModal(projectId, briefId)
       .then((res) => {
         if (cancel) return;
@@ -1567,7 +1554,7 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
         else setState('error');
       })
       .catch(() => { if (!cancel) setState('error'); });
-    return () => { cancel = true; };
+    return () => { cancel = true; window.clearTimeout(longLoadTimer); };
   }, [projectId, briefId, reloadKey, externalReloadKey]);
 
   if (state === 'loading') {
@@ -1576,6 +1563,24 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
         <div className="modal" style={{ width: 'min(420px,100%)', padding: 28, textAlign: 'center' }}
              onClick={(e) => e.stopPropagation()}>
           <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải brief…</span>
+          {loadingTooLong && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+              <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
+                Tải lâu hơn bình thường. Có thể server action bị treo.
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <button className="btn" onClick={() => {
+                  invalidateBriefModal(projectId, briefId);
+                  setReloadKey((n) => n + 1);
+                }} style={{ fontSize: 11 }}>
+                  ⟳ Thử lại
+                </button>
+                <button className="btn ghost" onClick={onClose} style={{ fontSize: 11 }}>
+                  Đóng
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

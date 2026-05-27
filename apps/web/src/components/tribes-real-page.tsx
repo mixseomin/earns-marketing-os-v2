@@ -526,6 +526,12 @@ export function TribesRealPage({ projectId, project, tribes, habitats, platforms
           platforms={platforms}
           presetTribeId={creatingHabitat && activeTribe !== 'all' ? activeTribe : null}
           onClose={() => modal.close()}
+          onOpenBrief={(briefId) => {
+            // Deep-link sang Seeding page với Brief modal mở. Tribes page
+            // không host BriefEditModal trực tiếp vì cần load BriefRow ctx
+            // (accountId/habitatId/etc) — Seeding page có sẵn loader.
+            window.location.assign(`/p/${projectId}/seeding?m=brief&mId=${briefId}`);
+          }}
         />
       )}
     </div>

@@ -3620,6 +3620,29 @@ function PostRow({
             </span>
           );
         })()}
+        {/* Lifecycle badge — show status comment (live/ghosted/removed/etc).
+            Chỉ render khi post.postLifecycle có giá trị (đã sync hoặc ext
+            auto-detect). live skip vì redundant với chip ✓ ago xanh. */}
+        {post.postLifecycle && post.postLifecycle !== 'live' && (() => {
+          const META: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
+            ghosted: { icon: '👻', label: 'Ghosted', color: '#a78bfa', bg: 'rgba(167,139,250,.15)', border: 'rgba(167,139,250,.5)' },
+            'removed-by-mod': { icon: '🗑', label: 'Mod removed', color: 'var(--bad)', bg: 'rgba(248,113,113,.15)', border: 'rgba(248,113,113,.5)' },
+            'self-deleted': { icon: '🗑', label: 'Self deleted', color: 'var(--fg-3)', bg: 'var(--bg-2)', border: 'var(--line)' },
+            'low-engagement': { icon: '💤', label: 'Low engage', color: 'var(--warn)', bg: 'rgba(251,191,36,.15)', border: 'rgba(251,191,36,.5)' },
+          };
+          const m = META[post.postLifecycle];
+          if (!m) return null;
+          return (
+            <span title={`Lifecycle: ${m.label}${post.postLifecycle === 'removed-by-mod' ? ' — Reddit insights page trả Unauthorized access' : ''}`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 2,
+                           padding: '1px 5px', fontSize: 9.5, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                           background: m.bg, color: m.color,
+                           border: `1px solid ${m.border}`, borderRadius: 999,
+                           flexShrink: 0 }}>
+              {m.icon} {m.label}
+            </span>
+          );
+        })()}
         {/* Target lang chip — dùng <LangChip> chung; variant='warn' khi card.lang
             ≠ habitat.lang để cảnh báo mismatch trực quan. */}
         {(() => {

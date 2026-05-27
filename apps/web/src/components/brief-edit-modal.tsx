@@ -3579,24 +3579,32 @@ function PostRow({
               {hasStats && insightsUrl ? (
                 <a href={wrapExternalUrl(insightsUrl)} target="_blank" rel="noopener noreferrer"
                    title={`📊 Reddit Insights\nViews: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'} · Replies: ${post.insightsReplyCount ?? '?'}\nSync: ${post.insightsFetchedAt ?? '?'}\nClick mở Reddit Insights page.`}
-                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '1px 5px', fontSize: 9.5, fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
                             background: 'rgba(96,165,250,.13)', color: '#60a5fa',
                             border: '1px solid rgba(96,165,250,.4)', borderRadius: 999,
                             textDecoration: 'none' }}>
                   {v != null && <span>👁 {formatStat(v)}</span>}
-                  {r != null && <span>↑ {Math.round(Number(r) * 100)}%</span>}
+                  {post.insightsScore != null && <span>↑ {formatStat(post.insightsScore)}</span>}
+                  {r != null && <span>{Math.round(Number(r) * 100)}%</span>}
+                  {post.insightsReplyCount != null && post.insightsReplyCount > 0 && (
+                    <span>💬 {post.insightsReplyCount}</span>
+                  )}
                 </a>
               ) : hasStats ? (
-                <span title={`Views: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                <span title={`Views: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'} · Replies: ${post.insightsReplyCount ?? '?'}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
                                padding: '1px 5px', fontSize: 9.5, fontWeight: 700,
                                fontFamily: 'var(--font-mono)',
                                background: 'rgba(96,165,250,.13)', color: '#60a5fa',
                                border: '1px solid rgba(96,165,250,.4)', borderRadius: 999 }}>
                   {v != null && <span>👁 {formatStat(v)}</span>}
-                  {r != null && <span>↑ {Math.round(Number(r) * 100)}%</span>}
+                  {post.insightsScore != null && <span>↑ {formatStat(post.insightsScore)}</span>}
+                  {r != null && <span>{Math.round(Number(r) * 100)}%</span>}
+                  {post.insightsReplyCount != null && post.insightsReplyCount > 0 && (
+                    <span>💬 {post.insightsReplyCount}</span>
+                  )}
                 </span>
               ) : insightsUrl ? (
                 <a href={wrapExternalUrl(insightsUrl)} target="_blank" rel="noopener noreferrer"

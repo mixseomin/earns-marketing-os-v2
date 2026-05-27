@@ -2838,7 +2838,26 @@ function PostsForPhase({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <PostFiltersBar posts={posts} filters={filters} onChange={setFilters} />
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <PostFiltersBar posts={posts} filters={filters} onChange={setFilters} />
+            </div>
+            {/* Refresh — reload danh sách (post/insights/posted_at) sau khi ext
+                sync stats hoặc mark-posted từ Reddit. KHÔNG router.refresh
+                (RSC roundtrip nặng) — chỉ bump bumpKey re-fetch posts + bundle. */}
+            <button type="button"
+                    onClick={refresh}
+                    disabled={loading}
+                    title="Reload danh sách bài (lấy stats/posted mới từ DB)"
+                    style={{ alignSelf: 'flex-start', marginBottom: 6,
+                             padding: '6px 10px', fontSize: 11.5, fontWeight: 700,
+                             background: 'var(--bg-1)', color: 'var(--fg-1)',
+                             border: '1px solid var(--line)', borderRadius: 5,
+                             cursor: loading ? 'wait' : 'pointer',
+                             whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {loading ? '⟳ Đang load…' : '↻ Refresh'}
+            </button>
+          </div>
           {applyPostFilters(posts, filters).map((p) => (
             <div key={p.id} id={`post-row-${p.id}`}
                  style={focusCardId === p.id ? { outline: '2px solid var(--accent)', borderRadius: 6 } : undefined}>

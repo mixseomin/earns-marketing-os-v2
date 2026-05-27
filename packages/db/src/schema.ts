@@ -282,6 +282,11 @@ export const cards = pgTable(
     insightsAwardCount: integer('insights_award_count'),
     insightsFetchedAt: timestamp('insights_fetched_at', { withTimezone: true }),
     insightsRawJson: jsonb('insights_raw_json'),
+    // Geo breakdown: [{ country: 'Vietnam', pct: 78 }, ...] — sort desc
+    insightsTopCountries: jsonb('insights_top_countries'),
+    // Top replies snapshot: [{ author, ago, body, score }] — text only,
+    // không track replies URLs (Reddit không expose qua insights page).
+    insightsTopReplies: jsonb('insights_top_replies'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

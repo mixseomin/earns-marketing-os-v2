@@ -32,6 +32,8 @@ export async function POST(req: Request) {
     replyCount?: number;
     shareCount?: number;
     awardCount?: number;
+    topCountries?: Array<{ country: string; pct: number }>;
+    topReplies?: Array<{ author: string; ago?: string; body: string; score?: number | null }>;
     rawJson?: unknown;
   };
 
@@ -65,6 +67,12 @@ export async function POST(req: Request) {
   if (body.replyCount != null) sets.push(sql`insights_reply_count = ${Math.round(Number(body.replyCount))}`);
   if (body.shareCount != null) sets.push(sql`insights_share_count = ${Math.round(Number(body.shareCount))}`);
   if (body.awardCount != null) sets.push(sql`insights_award_count = ${Math.round(Number(body.awardCount))}`);
+  if (Array.isArray(body.topCountries)) {
+    sets.push(sql`insights_top_countries = ${JSON.stringify(body.topCountries.slice(0, 10))}::jsonb`);
+  }
+  if (Array.isArray(body.topReplies)) {
+    sets.push(sql`insights_top_replies = ${JSON.stringify(body.topReplies.slice(0, 5))}::jsonb`);
+  }
   if (body.rawJson) sets.push(sql`insights_raw_json = ${JSON.stringify(body.rawJson)}::jsonb`);
   sets.push(sql`insights_fetched_at = NOW()`);
   sets.push(sql`updated_at = NOW()`);

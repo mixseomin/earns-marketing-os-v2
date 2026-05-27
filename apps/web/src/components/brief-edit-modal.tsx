@@ -81,6 +81,93 @@ function formatStat(n: number): string {
   return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
 }
 
+// 📊 Reddit Insights deep-dive — top countries + top replies block trong
+// PostRow expanded. Source: ext content.js scrape from /commentstats page.
+// Top countries: stacked horizontal bars với pct labels.
+// Top replies: each = author + ago + body preview + optional score.
+function InsightsDeepDive({
+  topCountries, topReplies, views, score, ratio, replyCount,
+}: {
+  topCountries: Array<{ country: string; pct: number }> | null;
+  topReplies: Array<{ author: string; ago?: string; body: string; score?: number | null }> | null;
+  views: number | null;
+  score: number | null;
+  ratio: number | null;
+  replyCount: number | null;
+}): React.ReactElement {
+  return (
+    <div style={{
+      padding: '8px 10px',
+      background: 'rgba(96,165,250,.08)',
+      border: '1px solid rgba(96,165,250,.3)',
+      borderLeft: '3px solid #60a5fa',
+      borderRadius: 4,
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontWeight: 700, color: '#60a5fa', fontSize: 12 }}>📊 Reddit Insights</span>
+        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', display: 'flex', gap: 8 }}>
+          {views != null && <span>👁 {formatStat(views)}</span>}
+          {score != null && <span>↑ {formatStat(score)}</span>}
+          {ratio != null && <span>{Math.round(Number(ratio) * 100)}%</span>}
+          {replyCount != null && <span>💬 {replyCount}</span>}
+        </span>
+      </div>
+
+      {topCountries && topCountries.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontWeight: 600, marginBottom: 4 }}>
+            🌍 Top countries by views
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {topCountries.slice(0, 5).map((c) => (
+              <div key={c.country} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 40px', gap: 8, alignItems: 'center', fontSize: 11 }}>
+                <span style={{ color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.country}</span>
+                <div style={{ height: 6, background: 'var(--bg-2)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, c.pct)}%`, height: '100%', background: '#60a5fa', borderRadius: 999 }} />
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', fontWeight: 700, textAlign: 'right' }}>{c.pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {topReplies && topReplies.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', fontWeight: 600, marginBottom: 4 }}>
+            💬 Top replies ({topReplies.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {topReplies.slice(0, 5).map((r, i) => (
+              <div key={i} style={{
+                padding: '5px 7px', background: 'var(--bg-1)',
+                border: '1px solid var(--line)', borderRadius: 4,
+                fontSize: 11, color: 'var(--fg-2)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--fg-1)' }}>
+                    @{r.author}
+                  </span>
+                  {r.ago && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>{r.ago}</span>}
+                  {r.score != null && (
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginLeft: 'auto' }}>
+                      ↑ {r.score}
+                    </span>
+                  )}
+                </div>
+                <div style={{ color: 'var(--fg-2)', lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {r.body}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function normalizeMarkdown(s: string): string {
   if (!s) return s;
   let out = s.replace(/\r\n/g, '\n');
@@ -3562,6 +3649,17 @@ function PostRow({
 
       {expanded && (
         <div style={{ padding: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* 📊 Insights deep-dive: top countries + top replies (sync từ ext) */}
+          {(post.insightsTopCountries?.length || post.insightsTopReplies?.length) ? (
+            <InsightsDeepDive
+              topCountries={post.insightsTopCountries}
+              topReplies={post.insightsTopReplies}
+              views={post.insightsViewsCount}
+              score={post.insightsScore}
+              ratio={post.insightsUpvoteRatio}
+              replyCount={post.insightsReplyCount} />
+          ) : null}
+
           {/* Preview: bilingual → interleaved theo từng paragraph (mỗi
               dòng/bullet 2 cột song song target | review để đối chiếu trực
               tiếp). 2 FormatPreview riêng biệt sẽ lệch theo line break.

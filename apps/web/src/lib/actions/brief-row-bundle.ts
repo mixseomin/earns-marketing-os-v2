@@ -31,6 +31,10 @@ export interface BriefRowContextBundle {
   habitatLanguage: string;
   tribeLexiconCount: number;
   tribeAvoidCount: number;
+  // Habitat dùng AI-content detector → brief modal show warning banner +
+  // post-draft/astrolas enforce anti-AI patterns.
+  habitatAiContentDetection: boolean;
+  habitatAiDetectionNote: string;
 }
 
 export async function getBriefRowContextBundle(
@@ -44,7 +48,9 @@ export async function getBriefRowContextBundle(
            h.name AS habitat_name,
            h.language AS habitat_language,
            h.voice_notes AS habitat_voice_notes,
-           h.visual_style_descriptor IS NOT NULL AS has_visual_style
+           h.visual_style_descriptor IS NOT NULL AS has_visual_style,
+           h.ai_content_detection AS habitat_ai_content_detection,
+           h.ai_detection_note AS habitat_ai_detection_note
       FROM community_briefs b
       LEFT JOIN habitats h ON h.id = b.habitat_id
      WHERE b.id = ${briefId} AND b.project_id = ${projectId}
@@ -85,5 +91,7 @@ export async function getBriefRowContextBundle(
     habitatHasVisualStyle: !!br.has_visual_style,
     tribeLexiconCount: Math.min(lexSet.size, 40),
     tribeAvoidCount: Math.min(avoidSet.size, 30),
+    habitatAiContentDetection: !!br.habitat_ai_content_detection,
+    habitatAiDetectionNote: String(br.habitat_ai_detection_note ?? ''),
   };
 }

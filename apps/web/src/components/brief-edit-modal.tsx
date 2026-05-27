@@ -2840,8 +2840,9 @@ function PostsForPhase({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {/* 🚨 AI-detection warning — habitat có cơ chế tự detect AI content.
-              Show banner đỏ để user nhớ check draft cẩn thận trước khi post. */}
-          {habitatRow?.aiContentDetection && (
+              Show banner đỏ để user nhớ check draft cẩn thận trước khi post.
+              Lấy từ bundle (đã fetch cùng channels/pillars). */}
+          {bundle?.habitatAiContentDetection && (
             <div style={{
               padding: '6px 10px', marginBottom: 4,
               background: 'rgba(248,113,113,.1)',
@@ -2855,9 +2856,9 @@ function PostsForPhase({
                 {' '}— AI prompt đã enforce anti-AI patterns (né em dash, markdown, AI clichés).
                 Vẫn nên đọc kỹ draft + chỉnh tay câu sống động hơn trước khi post.
               </span>
-              {habitatRow.aiDetectionNote && (
+              {bundle.habitatAiDetectionNote && (
                 <div style={{ marginTop: 4, padding: '4px 7px', background: 'var(--bg-1)', borderRadius: 3, fontSize: 11, fontStyle: 'italic', color: 'var(--fg-2)' }}>
-                  💡 {habitatRow.aiDetectionNote}
+                  💡 {bundle.habitatAiDetectionNote}
                 </div>
               )}
             </div>

@@ -251,7 +251,7 @@ export async function listRecentPostedCards(
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
-    LEFT JOIN platforms p ON p.id = h.platform_id
+    LEFT JOIN platforms p ON p.key = h.platform_key
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
     WHERE c.project_id = ${projectId}
       AND c.post_url IS NOT NULL

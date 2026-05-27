@@ -13,11 +13,10 @@
 // State giữ trong React; có thể sync URL sau (?days=, ?lc=, etc.) — chưa làm
 // để tránh xung đột với queue filter (issueFilter, q, statusFilter) cùng page.
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { wrapExternalUrl } from '@/lib/external-url';
 import {
   listAllPostedCards,
-  updateCardInsightsManual,
   type AllPostedCard,
   type AllPostedFilters,
   type AllPostedResult,
@@ -288,15 +287,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               </tr>
             </thead>
             <tbody>
-              {rows.map((c) => (
-                <Row key={c.id} c={c} onOpenBrief={onOpenBrief}
-                     onMetricSaved={(patch) => {
-                       setData((prev) => ({
-                         ...prev,
-                         rows: prev.rows.map((r) => r.id === c.id ? { ...r, ...patch } : r),
-                       }));
-                     }} />
-              ))}
+              {rows.map((c) => <Row key={c.id} c={c} onOpenBrief={onOpenBrief} />)}
             </tbody>
           </table>
         </div>
@@ -326,17 +317,31 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
 }
 
 // ── Row ───────────────────────────────────────────────────────────────
-function Row({ c, onOpenBrief, onMetricSaved }: {
-  c: AllPostedCard;
-  onOpenBrief: (briefId: number, cardId?: number) => void;
-  onMetricSaved: (patch: Partial<AllPostedCard>) => void;
-}) {
+// Build link để update metrics: Reddit → commentstats page (ext tự scrape +
+// POST insights khi user mở), platform khác → post_url (manual review).
+function buildMetricsRefreshUrl(c: AllPostedCard): string {
+  if (c.platformKey === 'reddit' && c.postUrl) {
+    // Reddit comment URL: .../comments/<post>/<slug>/<thingId>/
+    const m = c.postUrl.match(/\/([a-z0-9]{4,12})\/?(?:\?|$)/i);
+    const thingId = m?.[1];
+    if (thingId) return `https://www.reddit.com/commentstats/t1_${thingId}`;
+  }
+  return c.postUrl;
+}
+
+function Row({ c, onOpenBrief }: { c: AllPostedCard; onOpenBrief: (briefId: number, cardId?: number) => void }) {
   const v = c.insightsViewsCount;
   const r = c.insightsUpvoteRatio;
   const s = c.insightsScore;
   const rp = c.insightsReplyCount;
+  const hasStats = v != null || r != null || s != null || rp != null;
   const lc = c.postLifecycle ?? '_none';
   const m = LIFECYCLE_META[lc] ?? LIFECYCLE_META._none!;
+  const refreshUrl = buildMetricsRefreshUrl(c);
+  const isReddit = c.platformKey === 'reddit';
+  const refreshTitle = isReddit
+    ? 'Mở Reddit commentstats — ext sẽ tự scrape & cập nhật metrics khi page load'
+    : 'Mở bài trên platform để review metrics thủ công';
 
   const openBrief = () => { if (c.briefId != null) onOpenBrief(c.briefId, c.id); };
 
@@ -400,33 +405,37 @@ function Row({ c, onOpenBrief, onMetricSaved }: {
         </span>
       </td>
       <td style={td()}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
-                       fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-          <MetricCell icon="👁" label="views" value={v} kind="int"
-                      onSave={async (next) => {
-                        const res = await updateCardInsightsManual(c.id, { views: next });
-                        if (res.ok) onMetricSaved({ insightsViewsCount: next });
-                        return res;
-                      }} />
-          <MetricCell icon="↑" label="score" value={s} kind="int"
-                      onSave={async (next) => {
-                        const res = await updateCardInsightsManual(c.id, { score: next });
-                        if (res.ok) onMetricSaved({ insightsScore: next });
-                        return res;
-                      }} />
-          <MetricCell icon="💬" label="replies" value={rp} kind="int"
-                      onSave={async (next) => {
-                        const res = await updateCardInsightsManual(c.id, { replyCount: next });
-                        if (res.ok) onMetricSaved({ insightsReplyCount: next });
-                        return res;
-                      }} />
-          <MetricCell icon="%" label="upvote ratio" value={r} kind="ratio"
-                      onSave={async (next) => {
-                        const res = await updateCardInsightsManual(c.id, { upvoteRatio: next });
-                        if (res.ok) onMetricSaved({ insightsUpvoteRatio: next });
-                        return res;
-                      }} />
-        </div>
+        <a href={wrapExternalUrl(refreshUrl)} target="_blank" rel="noopener noreferrer"
+           onClick={(e) => e.stopPropagation()} title={refreshTitle}
+           style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '2px 6px', fontSize: 10, fontWeight: 700,
+                    fontFamily: 'var(--font-mono)',
+                    color: hasStats ? '#60a5fa' : 'var(--fg-4)',
+                    background: 'transparent', border: '1px solid transparent',
+                    borderRadius: 3, textDecoration: 'none',
+                    transition: 'background .1s, border-color .1s' }}
+           onMouseEnter={(e) => {
+             e.currentTarget.style.background = 'var(--bg-2)';
+             e.currentTarget.style.borderColor = 'var(--line)';
+           }}
+           onMouseLeave={(e) => {
+             e.currentTarget.style.background = 'transparent';
+             e.currentTarget.style.borderColor = 'transparent';
+           }}>
+          {hasStats ? (
+            <>
+              {v != null && <span title={`${v.toLocaleString()} views`}>👁 {formatStatShort(v)}</span>}
+              {s != null && <span title={`Score ${s}`}>↑ {formatStatShort(s)}</span>}
+              {rp != null && <span title={`${rp} replies`}>💬 {rp}</span>}
+              {r != null && <span title={`Upvote ratio ${Math.round(r * 100)}%`}>{Math.round(r * 100)}%</span>}
+              <span style={{ opacity: 0.5, fontSize: 9 }}>↻</span>
+            </>
+          ) : (
+            <span style={{ fontStyle: 'italic' }}>
+              chưa sync {isReddit ? '— click để fetch' : '— click mở bài'}
+            </span>
+          )}
+        </a>
       </td>
       <td style={td()}>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
@@ -572,116 +581,6 @@ function FilterReset({ active, onReset }: { active: boolean; onReset: () => void
                      background: 'transparent', border: '1px solid var(--bad)',
                      color: 'var(--bad)', borderRadius: 4, cursor: 'pointer' }}>
       ✕ Reset filter
-    </button>
-  );
-}
-
-// MetricCell — click chip → input inline, Enter save, Esc cancel, blur save.
-// Hiển thị '—' khi null; user click vẫn vào edit (=> insert mới).
-function MetricCell({ icon, label, value, kind, onSave }: {
-  icon: string;
-  label: string;
-  value: number | null;
-  kind: 'int' | 'ratio';   // ratio = 0..1, hiển thị % nhưng lưu decimal
-  onSave: (next: number | null) => Promise<{ ok: true } | { ok: false; error: string }>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Auto focus + select khi vào edit mode.
-  useEffect(() => {
-    if (editing) {
-      const init = value == null ? '' :
-        (kind === 'ratio' ? String(Math.round(value * 100)) : String(value));
-      setDraft(init);
-      requestAnimationFrame(() => inputRef.current?.select());
-    }
-  }, [editing, value, kind]);
-
-  const displayValue = useMemo(() => {
-    if (value == null) return '—';
-    if (kind === 'ratio') return `${Math.round(value * 100)}%`;
-    return formatStatShort(value);
-  }, [value, kind]);
-
-  const fullTitle = useMemo(() => {
-    if (value == null) return `${label}: chưa có — click để nhập`;
-    if (kind === 'ratio') return `${label}: ${Math.round(value * 100)}% — click sửa`;
-    return `${label}: ${value.toLocaleString()} — click sửa`;
-  }, [value, kind, label]);
-
-  async function commit() {
-    const trimmed = draft.trim();
-    let next: number | null;
-    if (trimmed === '' || trimmed === '-') {
-      next = null;
-    } else {
-      const n = Number(trimmed.replace(/[^0-9.\-]/g, ''));
-      if (!Number.isFinite(n)) {
-        setErr('Số không hợp lệ');
-        return;
-      }
-      next = kind === 'ratio' ? Math.max(0, Math.min(1, n / 100)) : Math.max(0, Math.round(n));
-    }
-    setBusy(true);
-    const res = await onSave(next);
-    setBusy(false);
-    if (!res.ok) {
-      setErr(res.error);
-      return;
-    }
-    setErr(null);
-    setEditing(false);
-  }
-
-  if (editing) {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-        <span style={{ color: 'var(--fg-3)' }}>{icon}</span>
-        <input ref={inputRef} type="text" inputMode="numeric"
-               value={draft} disabled={busy}
-               onChange={(e) => { setDraft(e.target.value); setErr(null); }}
-               onKeyDown={(e) => {
-                 if (e.key === 'Enter') { e.preventDefault(); commit(); }
-                 else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setErr(null); }
-               }}
-               onBlur={() => { if (!busy) commit(); }}
-               style={{ width: kind === 'ratio' ? 36 : 56, padding: '1px 4px',
-                        fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                        background: 'var(--bg-1)', border: '1px solid var(--accent)',
-                        borderRadius: 3, color: 'var(--fg-0)', outline: 'none' }}
-               placeholder={kind === 'ratio' ? '%' : '0'} />
-        {kind === 'ratio' && <span style={{ color: 'var(--fg-3)' }}>%</span>}
-        {busy && <span style={{ color: 'var(--fg-3)' }}>…</span>}
-        {err && <span title={err} style={{ color: 'var(--bad)' }}>!</span>}
-      </span>
-    );
-  }
-
-  return (
-    <button type="button" title={fullTitle}
-            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 2,
-              padding: '1px 5px', background: 'transparent',
-              border: '1px solid transparent', borderRadius: 3,
-              color: value == null ? 'var(--fg-4)' : '#60a5fa',
-              fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-              cursor: 'pointer', transition: 'background .1s, border-color .1s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-2)';
-              e.currentTarget.style.borderColor = 'var(--line)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'transparent';
-            }}>
-      <span>{icon}</span>
-      <span>{displayValue}</span>
     </button>
   );
 }

@@ -453,6 +453,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               <col style={{ width: 30 }} />
             </colgroup>
             <thead>
+              {/* Hàng 1: label + sort */}
               <tr style={{ background: 'var(--bg-2)', textAlign: 'left',
                            color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase',
                            fontFamily: 'var(--font-mono)' }}>
@@ -471,8 +472,48 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                 <SortableHeader label="% Ratio" sortKey="ratio_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
-                <th style={th()}>Ago</th>
+                <SortableHeader label="Ago" sortKey="posted_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })}
+                                altKey="posted_asc" />
                 <th style={th()} />
+              </tr>
+              {/* Hàng 2: filter inline per-column */}
+              <tr style={{ background: 'var(--bg-1)', borderTop: '1px solid var(--line)',
+                           textAlign: 'left' }}>
+                <th style={thFilter()} />
+                <th style={thFilter()}>
+                  <ColumnSearchInput placeholder="tìm habitat/account/title…"
+                                     value={filters.q ?? ''}
+                                     onChange={(v) => setF({ q: v || undefined })} />
+                </th>
+                <th style={thFilter()}>
+                  <ColumnLifecyclePicker
+                    selected={filters.lifecycles ?? []}
+                    facets={data.facets.lifecycleCounts}
+                    onChange={(arr) => setF({ lifecycles: arr.length > 0 ? arr : undefined })} />
+                </th>
+                <th style={thFilter()}>
+                  <ColumnNumberInput value={filters.minViews}
+                                     placeholder="≥"
+                                     onChange={(v) => setF({ minViews: v })} />
+                </th>
+                <th style={thFilter()}>
+                  <ColumnNumberInput value={filters.minScore}
+                                     placeholder="≥"
+                                     onChange={(v) => setF({ minScore: v })} />
+                </th>
+                <th style={thFilter()}>
+                  <ColumnNumberInput value={filters.minReplies}
+                                     placeholder="≥"
+                                     onChange={(v) => setF({ minReplies: v })} />
+                </th>
+                <th style={thFilter()} />
+                <th style={thFilter()}>
+                  <ColumnTimeSelect value={filters.days ?? 7}
+                                    onChange={(v) => setF({ days: v })} />
+                </th>
+                <th style={thFilter()} />
               </tr>
             </thead>
             <tbody>
@@ -902,24 +943,182 @@ function MetricCell({ value, fullTitle, url }: {
   );
 }
 
-// SortableHeader — th có thể click để sort theo cột tương ứng. Highlight
-// hiện trạng (mũi tên ↓ nếu đang sort cột này), click lần 2 toggle về posted_desc.
-function SortableHeader({ label, sortKey, current, onSort }: {
+// SortableHeader — th có thể click để sort theo cột tương ứng. Hỗ trợ:
+//   - 1 sortKey: click toggle posted_desc ⇄ sortKey
+//   - 2 sortKey (sortKey + altKey, vd posted_desc + posted_asc): click cycle
+//     desc → asc → off (posted_desc default).
+function SortableHeader({ label, sortKey, altKey, current, onSort }: {
   label: string;
   sortKey: PostedSortKey;
+  altKey?: PostedSortKey;
   current: PostedSortKey;
   onSort: (s: PostedSortKey) => void;
 }) {
-  const active = current === sortKey;
+  const isDesc = current === sortKey;
+  const isAsc = altKey != null && current === altKey;
+  const active = isDesc || isAsc;
+  const next: PostedSortKey = isDesc && altKey
+    ? altKey
+    : isAsc
+      ? 'posted_desc'
+      : isDesc
+        ? 'posted_desc'
+        : sortKey;
+  const arrow = isDesc ? ' ↓' : (isAsc ? ' ↑' : '');
   return (
     <th style={{ ...th(), cursor: 'pointer', userSelect: 'none' }}
-        onClick={() => onSort(active ? 'posted_desc' : sortKey)}
-        title={active ? 'Click để bỏ sort (về Mới nhất)' : 'Click để sort cột này giảm dần'}>
+        onClick={() => onSort(next)}
+        title={active
+          ? (altKey ? 'Click để đổi chiều / tắt sort' : 'Click để bỏ sort')
+          : 'Click để sort cột này giảm dần'}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
                      color: active ? 'var(--accent)' : 'var(--fg-3)' }}>
-        {label}{active && ' ↓'}
+        {label}{arrow}
       </span>
     </th>
+  );
+}
+
+function thFilter(): React.CSSProperties {
+  return { padding: '4px 6px', verticalAlign: 'top' };
+}
+
+// ColumnSearchInput — text search (q filter). Debounce 250ms để khỏi spam fetch.
+function ColumnSearchInput({ value, placeholder, onChange }: {
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (local !== value) onChange(local);
+    }, 250);
+    return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local]);
+  return (
+    <input type="text" placeholder={placeholder} value={local}
+           onChange={(e) => setLocal(e.target.value)}
+           style={{ width: '100%', padding: '2px 6px', fontSize: 10.5,
+                    background: 'var(--bg-2)', border: '1px solid var(--line)',
+                    borderRadius: 3, color: 'var(--fg-0)', fontFamily: 'inherit' }} />
+  );
+}
+
+// ColumnNumberInput — min threshold inline. Debounce qua native onChange OK
+// vì user gõ xong unfocus mới apply hợp lý; nhưng dùng debounce 300ms cho
+// gõ nhanh.
+function ColumnNumberInput({ value, placeholder, onChange }: {
+  value: number | null | undefined;
+  placeholder: string;
+  onChange: (v: number | null) => void;
+}) {
+  const [local, setLocal] = useState<string>(value != null ? String(value) : '');
+  useEffect(() => {
+    setLocal(value != null ? String(value) : '');
+  }, [value]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const next = local.trim() === '' ? null : Math.max(0, Number(local) || 0);
+      if (next !== (value ?? null)) onChange(next);
+    }, 300);
+    return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local]);
+  return (
+    <input type="number" inputMode="numeric" min={0} placeholder={placeholder} value={local}
+           onChange={(e) => setLocal(e.target.value)}
+           style={{ width: '100%', padding: '2px 4px', fontSize: 10.5,
+                    background: 'var(--bg-2)', border: '1px solid var(--line)',
+                    borderRadius: 3, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)',
+                    textAlign: 'right' }} />
+  );
+}
+
+// ColumnLifecyclePicker — multi-select compact. Hiện summary "All" / "Live"
+// / "+2", click mở popover checkbox.
+function ColumnLifecyclePicker({ selected, facets, onChange }: {
+  selected: string[];
+  facets: Record<string, number>;
+  onChange: (arr: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = selected.length === 0
+    ? 'Tất cả'
+    : selected.length === 1
+      ? (LIFECYCLE_META[selected[0]!]?.label ?? selected[0]!)
+      : `${selected.length} đã chọn`;
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+              style={{ width: '100%', padding: '2px 6px', fontSize: 10.5,
+                       fontFamily: 'var(--font-mono)',
+                       background: selected.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)',
+                       border: `1px solid ${selected.length > 0 ? 'var(--accent)' : 'var(--line)'}`,
+                       color: selected.length > 0 ? 'var(--accent)' : 'var(--fg-2)',
+                       borderRadius: 3, cursor: 'pointer', textAlign: 'left' }}>
+        {label} ▾
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)}
+               style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                        background: 'var(--bg-1)', border: '1px solid var(--line)',
+                        borderRadius: 5, padding: 4, minWidth: 170, zIndex: 51,
+                        boxShadow: '0 4px 12px rgba(0,0,0,.3)' }}
+               onClick={(e) => e.stopPropagation()}>
+            {Object.entries(LIFECYCLE_META).map(([key, meta]) => {
+              const on = selected.includes(key);
+              const count = facets[key] ?? 0;
+              return (
+                <button key={key} type="button"
+                        onClick={() => {
+                          const next = on ? selected.filter((x) => x !== key) : [...selected, key];
+                          onChange(next);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5,
+                                 width: '100%', textAlign: 'left',
+                                 padding: '3px 6px', fontSize: 11,
+                                 background: on ? 'var(--accent-soft)' : 'transparent',
+                                 border: 'none', cursor: 'pointer',
+                                 color: meta.color, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3 }}>
+                  <span style={{ width: 11, height: 11, border: '1px solid currentColor',
+                                 borderRadius: 2, flexShrink: 0,
+                                 background: on ? 'currentColor' : 'transparent' }} />
+                  <span style={{ flex: 1 }}>{meta.icon} {meta.label}</span>
+                  {count > 0 && (
+                    <span style={{ fontSize: 9, opacity: 0.7 }}>{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
+// ColumnTimeSelect — dropdown time range cột Ago.
+function ColumnTimeSelect({ value, onChange }: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <select value={value == null ? 'all' : String(value)}
+            onChange={(e) => onChange(e.target.value === 'all' ? null : Number(e.target.value))}
+            style={{ width: '100%', padding: '2px 4px', fontSize: 10.5,
+                     background: 'var(--bg-2)', border: '1px solid var(--line)',
+                     borderRadius: 3, color: 'var(--fg-0)', cursor: 'pointer',
+                     fontFamily: 'var(--font-mono)' }}>
+      {TIME_OPTIONS.map((t) => (
+        <option key={t.label} value={t.value == null ? 'all' : String(t.value)}>{t.label}</option>
+      ))}
+    </select>
   );
 }
 

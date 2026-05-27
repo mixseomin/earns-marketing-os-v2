@@ -10,6 +10,7 @@
 //   ?ct=text,image                      contentTypes CSV
 //   ?ai=1                               aiDetectionOnly 0/1
 //   ?mv=100  ?ms=10  ?mr=5              min views/score/replies
+//   ?q=search                           text search habitat/account/title/body
 //   ?s=views_desc                       sort key
 //   ?p=2                                page number (1-based), default 1
 //
@@ -97,6 +98,7 @@ export function parseSeedingTabUrl(
   const minViews = parseNum(sp.mv);
   const minScore = parseNum(sp.ms);
   const minReplies = parseNum(sp.mr);
+  const q = pickStr(sp.q) ?? undefined;
 
   const pageRaw = parseNum(sp.p);
   const page = pageRaw != null && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
@@ -117,6 +119,7 @@ export function parseSeedingTabUrl(
       minViews,
       minScore,
       minReplies,
+      q,
       sort,
       limit: PAGE_LIMIT,
       offset: (page - 1) * PAGE_LIMIT,
@@ -158,6 +161,7 @@ export function serializeSeedingTabUrl(
   if (filters.minViews != null) qs.set('mv', String(filters.minViews));
   if (filters.minScore != null) qs.set('ms', String(filters.minScore));
   if (filters.minReplies != null) qs.set('mr', String(filters.minReplies));
+  if (filters.q && filters.q.trim()) qs.set('q', filters.q.trim());
   if (filters.sort && filters.sort !== 'posted_desc') qs.set('s', filters.sort);
 
   const limit = filters.limit ?? PAGE_LIMIT;

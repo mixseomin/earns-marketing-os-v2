@@ -855,6 +855,7 @@ export interface AllPostedFilters {
   minViews?: number | null;
   minScore?: number | null;
   minReplies?: number | null;
+  q?: string;                      // search habitat/account/title/body
   sort?: PostedSortKey;
   limit?: number;
   offset?: number;
@@ -931,6 +932,17 @@ function buildPostedWhere(projectId: string, f: AllPostedFilters) {
   if (f.minScore != null) conds.push(sql`COALESCE(c.insights_score, 0) >= ${f.minScore}`);
   if (f.minReplies != null) conds.push(sql`COALESCE(c.insights_reply_count, 0) >= ${f.minReplies}`);
 
+  // Search ILIKE qua nhiều cột — habitat name, account handle, card title/body.
+  if (f.q && f.q.trim()) {
+    const pattern = `%${f.q.trim()}%`;
+    conds.push(sql`(
+      h.name ILIKE ${pattern}
+      OR pa.handle ILIKE ${pattern}
+      OR c.title ILIKE ${pattern}
+      OR c.body_target ILIKE ${pattern}
+    )`);
+  }
+
   return sql.join(conds, sql` AND `);
 }
 
@@ -964,6 +976,7 @@ export async function listAllPostedCards(
     minViews: filters.minViews ?? null,
     minScore: filters.minScore ?? null,
     minReplies: filters.minReplies ?? null,
+    q: filters.q,
     sort: filters.sort ?? 'posted_desc',
     limit: Math.min(filters.limit ?? 50, 200),
     offset: Math.max(filters.offset ?? 0, 0),

@@ -1291,7 +1291,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           // modal overlay (đè lên Account modal). Click brief icon → mở Brief
           // modal (đè cả Account + Habitat — brief là top stack).
           onOpenHabitat={(habId) => setHabitatOverlayId(habId)}
-          onOpenBrief={(briefId) => modal.open('brief', briefId)}
+          // Click brief từ Account overlay → đóng account+habitat trước,
+          // nếu không account overlay che mất brief modal click.
+          onOpenBrief={(briefId) => {
+            setAccountOverlayId(null);
+            setHabitatOverlayId(null);
+            modal.open('brief', briefId);
+          }}
           onClose={() => {
             // Đóng cả 2 paths: nested overlay (mới) + legacy `?m=acct`.
             if (accountOverlayId != null) setAccountOverlayId(null);
@@ -1311,7 +1317,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           // Cross-modal: click @accountHandle trong HabitatBriefsSection → mở
           // Account modal overlay. Click brief icon → mở Brief modal.
           onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
-          onOpenBrief={(briefId) => modal.open('brief', briefId)}
+          // Click brief từ Accounts engaging trong habitat overlay → ĐÓNG
+          // habitat overlay trước (nếu không nó che brief modal phía dưới
+          // → click vào brief không bắt được event), sau đó mở brief modal.
+          onOpenBrief={(briefId) => {
+            setHabitatOverlayId(null);
+            modal.open('brief', briefId);
+          }}
           onClose={() => {
             setHabitatOverlayId(null);
             router.refresh();

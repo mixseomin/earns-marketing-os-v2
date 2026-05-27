@@ -3455,8 +3455,23 @@ function PostRow({
                           textDecoration: 'none' }}>
                 ✓ <span>{ago}</span>
               </a>
-              {hasStats && (
-                <span title={`Insights cập nhật ${post.insightsFetchedAt ?? '?'}\nViews: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote ratio: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'} · Replies: ${post.insightsReplyCount ?? '?'}`}
+              {/* Stats chip — gộp luôn link insights vào (clickable). Bỏ icon
+                  📊 riêng để compact. Nếu chưa sync mà có insightsUrl → chỉ
+                  icon 📊 link nhỏ; có data → chip stats clickable mở insights. */}
+              {hasStats && insightsUrl ? (
+                <a href={wrapExternalUrl(insightsUrl)} target="_blank" rel="noopener noreferrer"
+                   title={`📊 Reddit Insights\nViews: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'} · Replies: ${post.insightsReplyCount ?? '?'}\nSync: ${post.insightsFetchedAt ?? '?'}\nClick mở Reddit Insights page.`}
+                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                            padding: '1px 5px', fontSize: 9.5, fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            background: 'rgba(96,165,250,.13)', color: '#60a5fa',
+                            border: '1px solid rgba(96,165,250,.4)', borderRadius: 999,
+                            textDecoration: 'none' }}>
+                  {v != null && <span>👁 {formatStat(v)}</span>}
+                  {r != null && <span>↑ {Math.round(Number(r) * 100)}%</span>}
+                </a>
+              ) : hasStats ? (
+                <span title={`Views: ${v ?? '?'} · Score: ${post.insightsScore ?? '?'} · Upvote: ${r != null ? Math.round(Number(r) * 100) + '%' : '?'}`}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
                                padding: '1px 5px', fontSize: 9.5, fontWeight: 700,
                                fontFamily: 'var(--font-mono)',
@@ -3465,10 +3480,9 @@ function PostRow({
                   {v != null && <span>👁 {formatStat(v)}</span>}
                   {r != null && <span>↑ {Math.round(Number(r) * 100)}%</span>}
                 </span>
-              )}
-              {insightsUrl && (
+              ) : insightsUrl ? (
                 <a href={wrapExternalUrl(insightsUrl)} target="_blank" rel="noopener noreferrer"
-                   title={`📊 Reddit Insights — view stats (views, upvote ratio, replies)\n${insightsUrl}`}
+                   title={`📊 Mở Reddit Insights (chưa sync stats vào MOS2)\n${insightsUrl}`}
                    style={{ display: 'inline-flex', alignItems: 'center',
                             padding: '1px 4px', fontSize: 11,
                             background: 'var(--bg-1)', color: 'var(--fg-3)',
@@ -3476,7 +3490,7 @@ function PostRow({
                             textDecoration: 'none' }}>
                   📊
                 </a>
-              )}
+              ) : null}
             </span>
           );
         })()}

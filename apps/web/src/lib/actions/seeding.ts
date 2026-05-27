@@ -741,9 +741,10 @@ export async function confirmCardPosted(
   const postedAt = payload.postedAt ? new Date(payload.postedAt) : new Date();
   if (isNaN(postedAt.getTime())) return { ok: false, error: 'Thời gian đăng không hợp lệ' };
 
-  // 0057 GATE: brief phải READY (account active + joined community). Pull cả
-  // 2 tầng: account.status + join_status. Helper getBriefReadiness sẽ giải
-  // thích blocking layer (account vs membership).
+  // 0057 GATE: account phải active. join_status có thể là 'not_joined'
+  // nhưng user vẫn post được (vd r/Astrology_Vedic không yêu cầu approval) —
+  // chính việc post thành công = bằng chứng đã join. Auto-upgrade
+  // join_status='joined' khi mark-posted thay vì block.
   const readyCheck = await db.execute(sql`
     SELECT b.join_status, pa.status AS account_status
       FROM community_briefs b
@@ -752,13 +753,21 @@ export async function confirmCardPosted(
   `);
   const rc = (readyCheck as unknown as Array<{ join_status: string; account_status: string }>)[0];
   if (!rc) return { ok: false, error: 'Brief không tồn tại trong project' };
-  const { getBriefReadiness } = await import('@/lib/brief-readiness');
-  const verdict = getBriefReadiness(rc.account_status, rc.join_status);
-  if (!verdict.ready) {
+  // Chỉ block khi account dead (banned/suspended). Membership-level block bỏ
+  // qua — user post được = đã trong community thật, MOS2 join_status stale.
+  if (rc.account_status !== 'active' && rc.account_status !== 'warming') {
     return {
       ok: false,
-      error: `❌ ${verdict.reason}. ${verdict.fixHint}. (Blocking layer: ${verdict.blockingLayer})`,
+      error: `❌ Account đang ở trạng thái '${rc.account_status}', không post được. Mở account modal đổi sang active.`,
     };
+  }
+  // Auto-upgrade join_status nếu chưa joined (vì user đã post thành công).
+  const wasNotJoined = rc.join_status !== 'joined';
+  if (wasNotJoined) {
+    await db.execute(sql`
+      UPDATE community_briefs SET join_status = 'joined', updated_at = now()
+       WHERE id = ${briefId} AND project_id = ${projectId}
+    `);
   }
 
   // 1. Update card với metadata đã đăng

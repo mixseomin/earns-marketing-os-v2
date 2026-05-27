@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Sparkline } from './sparkline';
 import { GscDetailDrawer } from './gsc-detail-drawer';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 interface RowData {
   domain: string;
@@ -63,7 +64,7 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
                   <a
-                    href={gscUrl}
+                    href={wrapExternalUrl(gscUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Open ${r.domain} in Google Search Console`}

@@ -221,6 +221,7 @@ function BilingualAlignedPreview({
 // Account status meta — dùng registry chung trong @/lib/status-meta. Pre-2026-05-22
 // đã có 1 map riêng ở đây + 1 ở accounts-vault + 1 ở seeding-cockpit → drift; giờ centralize.
 import { accountStatusMeta } from '@/lib/status-meta';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 export interface BriefEditModalProps {
   projectId: string;
@@ -791,7 +792,7 @@ export function BriefEditModal({
               )}
               {/* Link community — icon only để header gọn (label nhét tooltip) */}
               {habitatUrl && (
-                <a href={habitatUrl} target="_blank" rel="noopener noreferrer"
+                <a href={wrapExternalUrl(habitatUrl)} target="_blank" rel="noopener noreferrer"
                    onClick={(e) => e.stopPropagation()}
                    title={`Mở community trong tab mới: ${habitatUrl}`}
                    style={{ display: 'inline-flex', alignItems: 'center',
@@ -3351,7 +3352,7 @@ function PostRow({
             mà parent URL chưa set. */}
         {isInteractionType(post.contentType) && (
           post.parentUrl ? (
-            <a href={post.parentUrl} target="_blank" rel="noopener noreferrer"
+            <a href={wrapExternalUrl(post.parentUrl)} target="_blank" rel="noopener noreferrer"
                onClick={(e) => e.stopPropagation()}
                title={`Parent thread/post: ${post.parentUrl}\nClick mở tab mới.`}
                style={{ fontSize: 11, color: '#06b6d4', textDecoration: 'none',
@@ -3425,7 +3426,7 @@ function PostRow({
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}
                   onClick={(e) => e.stopPropagation()}>
-              <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
+              <a href={wrapExternalUrl(post.postUrl)} target="_blank" rel="noopener noreferrer"
                  title={`✅ Đã đăng — ${post.postedAt}\n${post.postUrl}\nClick để mở comment.`}
                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
                           padding: '1px 6px', fontSize: 9.5, fontWeight: 700,
@@ -3447,7 +3448,7 @@ function PostRow({
                 </span>
               )}
               {insightsUrl && (
-                <a href={insightsUrl} target="_blank" rel="noopener noreferrer"
+                <a href={wrapExternalUrl(insightsUrl)} target="_blank" rel="noopener noreferrer"
                    title={`📊 Reddit Insights — view stats (views, upvote ratio, replies)\n${insightsUrl}`}
                    style={{ display: 'inline-flex', alignItems: 'center',
                             padding: '1px 4px', fontSize: 11,
@@ -3804,7 +3805,7 @@ function PostRow({
                 </span>
               </div>
               {post.answerSources.map((s, i) => (
-                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                <a key={i} href={wrapExternalUrl(s.url)} target="_blank" rel="noopener noreferrer"
                    style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none',
                             padding: '2px 4px', borderRadius: 3,
                             display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -3878,7 +3879,7 @@ function PostRow({
                          placeholder="https://reddit.com/r/.../comments/xxx/thread/"
                          style={{ ...fld, flex: 1, fontSize: 11.5, fontFamily: 'var(--font-mono)' }} />
                   {parentUrl.trim() && (
-                    <a href={parentUrl} target="_blank" rel="noopener noreferrer"
+                    <a href={wrapExternalUrl(parentUrl)} target="_blank" rel="noopener noreferrer"
                        style={{ fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>↗</a>
                   )}
                 </div>

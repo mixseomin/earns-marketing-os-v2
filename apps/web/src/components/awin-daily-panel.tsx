@@ -4,6 +4,8 @@
 // programmes is manual via the mos2-crew Chrome extension, so this panel's job
 // is to surface "did you run today's batch?" + the remaining backlog.
 
+import { wrapExternalUrl } from '@/lib/external-url';
+
 const AWIN_JSON_URL =
   'https://militarymarkdown.com/wp-content/uploads/phase7/awin-daily-latest.json';
 
@@ -115,9 +117,9 @@ export async function AwinDailyPanel() {
             Programmes →
           </a>
           <a
-            href="https://ui.awin.com/awin/publisher/410323/partnerships/explore"
+            href={wrapExternalUrl("https://ui.awin.com/awin/publisher/410323/partnerships/explore")}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 11,

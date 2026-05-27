@@ -5,6 +5,7 @@ import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
 import { listCardAgentRuns, deleteAgentRun, type CardRunDetail } from '@/lib/actions/agents-admin';
 import ReactMarkdown from 'react-markdown';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 type Level = 1 | 2 | 3 | 4;
 type Mode_ = 'view' | 'edit' | 'create';
@@ -522,7 +523,7 @@ function CardAgentRunsSection({ projectId, cardRef }: { projectId: string; cardR
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                   {r.mediaEntries.map((m) => (
-                    <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer"
+                    <a key={m.id} href={wrapExternalUrl(m.url)} target="_blank" rel="noopener noreferrer"
                        title={`#${m.id} ${m.filename}`}
                        style={{ display: 'inline-block' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}

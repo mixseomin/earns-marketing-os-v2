@@ -2,6 +2,7 @@
 
 import type { ProviderStatus } from '@/lib/ai-providers';
 import { Pill } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 export function ApiSettingsPage({ providers }: { providers: ProviderStatus[] }) {
   const configuredCount = providers.filter((p) => p.configured).length;
@@ -40,7 +41,7 @@ export function ApiSettingsPage({ providers }: { providers: ProviderStatus[] }) 
                   size="xs"
                 />
                 <a className="btn" style={{ fontSize: 10, padding: '3px 8px' }}
-                   href={p.setupUrl} target="_blank" rel="noreferrer">
+                   href={wrapExternalUrl(p.setupUrl)} target="_blank" rel="noopener noreferrer">
                   Get key ↗
                 </a>
               </div>

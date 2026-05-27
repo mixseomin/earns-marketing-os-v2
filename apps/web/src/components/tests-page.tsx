@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { UseCaseRow, UseCaseStatus } from '@/lib/data';
 import { markUseCase, addFeedback, clearStatus } from '@/lib/actions/use-cases';
 import { Pill, PriorityPill, StatsStrip, EmptyState, type Priority, type StatCard } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: string }> = {
   pending:     { label: 'Pending',   icon: '⚪', color: 'var(--fg-3)' },
@@ -238,7 +239,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                             </span>
                             <PriorityPill priority={c.priority as Priority} />
                             {c.shippedIn && c.shippedIn !== 'WIP' && (
-                              <a href={`https://href.li/?https://github.com/${REPO}/commit/${c.shippedIn}`}
+                              <a href={wrapExternalUrl(`https://github.com/${REPO}/commit/${c.shippedIn}`)}
                                  target="_blank" rel="noopener noreferrer"
                                  onClick={(e) => e.stopPropagation()}
                                  style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textDecoration: 'none' }}>
@@ -269,7 +270,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                               animation: 'pulse-cyan 2s ease-in-out infinite',
                             }}>
                               <span>🔄 Fix shipped {fmtDate(c.fixedAt)}</span>
-                              <a href={`https://href.li/?https://github.com/${REPO}/commit/${c.fixedIn}`}
+                              <a href={wrapExternalUrl(`https://github.com/${REPO}/commit/${c.fixedIn}`)}
                                  target="_blank" rel="noopener noreferrer"
                                  onClick={(e) => e.stopPropagation()}
                                  style={{ color: '#38bdf8', textDecoration: 'underline' }}>
@@ -298,7 +299,7 @@ export function TestsPage({ cases }: { cases: UseCaseRow[] }) {
                                 <li key={s.n} style={{ marginBottom: 3 }}>
                                   {s.action}
                                   {s.url && (
-                                    <a href={s.url} target="_blank" rel="noopener noreferrer"
+                                    <a href={wrapExternalUrl(s.url)} target="_blank" rel="noopener noreferrer"
                                        style={{ marginLeft: 6, color: 'var(--accent)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
                                       ↗ {s.url}
                                     </a>

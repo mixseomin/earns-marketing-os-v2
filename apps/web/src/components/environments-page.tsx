@@ -13,9 +13,10 @@ import {
 import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import type { TeamMemberRow } from '@/lib/actions/team';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 // Wrap external URLs through href.li to strip referrer (per global rule).
-const hl = (url: string) => `https://href.li/?${url}`;
+const hl = wrapExternalUrl;
 
 type Tab = 'proxies' | 'profiles';
 

@@ -36,6 +36,7 @@ import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib
 import { listTechnologies, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker } from './technology-picker';
 import { LangChip } from './lang-chip';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const KINDS = ['subreddit', 'fb-group', 'discord', 'forum', 'hashtag', 'slack', 'telegram', 'youtube', 'other'] as const;
 const SCRAPE = ['manual', 'live', 'weekly', 'comments'] as const;
@@ -472,7 +473,7 @@ export function HabitatFormModal({
               )}
               <span>{isCreate ? '+ New habitat' : (form.name.trim() || habitat!.name)}</span>
               {!isCreate && habitat?.url && (
-                <a href={habitat.url} target="_blank" rel="noopener noreferrer"
+                <a href={wrapExternalUrl(habitat.url)} target="_blank" rel="noopener noreferrer"
                    title={`Mở ${habitat.url}`}
                    style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700,
                             color: 'var(--accent)', padding: '2px 7px', borderRadius: 4,
@@ -591,9 +592,8 @@ export function HabitatFormModal({
               {form.url && (() => {
                 // Internal tool → wrap qua href.li để khỏi leak referrer
                 // (xem feedback_href_li_wrap memory). Click label → mở community.
-                const safe = `https://href.li/?${form.url}`;
                 return (
-                  <a href={safe} target="_blank" rel="noopener noreferrer"
+                  <a href={wrapExternalUrl(form.url)} target="_blank" rel="noopener noreferrer"
                      onClick={(e) => e.stopPropagation()}
                      title={`Mở community trong tab mới: ${form.url}`}
                      style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)',
@@ -1173,7 +1173,7 @@ export function HabitatFormModal({
                 <span title="URL chính thức của trang rules (vd reddit.com/r/X/about/rules). Bấm Fetch để AI parse rules + meta gates tự động."
                       style={{ cursor: 'help' }}>Rules URL</span>
                 {form.postingRulesUrl && (
-                  <a href={form.postingRulesUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={wrapExternalUrl(form.postingRulesUrl)} target="_blank" rel="noopener noreferrer"
                      style={{ marginLeft: 6, color: 'var(--accent)', textDecoration: 'none', fontSize: 10 }}
                      title="Open rules page in new tab">↗ open</a>
                 )}
@@ -1723,7 +1723,7 @@ function ChannelRow({
           # {ch.name || 'unnamed'}
         </span>
         {shortUrl && (
-          <a href={`https://href.li/?${ch.url}`} target="_blank" rel="noopener noreferrer"
+          <a href={wrapExternalUrl(ch.url)} target="_blank" rel="noopener noreferrer"
              onClick={(e) => e.stopPropagation()}
              title={`Mở channel: ${ch.url}`}
              style={{

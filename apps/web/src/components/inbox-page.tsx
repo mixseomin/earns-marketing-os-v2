@@ -7,6 +7,7 @@ import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, po
 import { assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
 import { ExternalLink } from './external-link';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--fg-3)',
@@ -669,7 +670,7 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, current
                   <span style={lbl}>Images ({imageUrls.length})</span>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                     {imageUrls.map((u, i) => (
-                      <a key={i} href={u} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+                      <a key={i} href={wrapExternalUrl(u)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={u} alt="" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />
                       </a>
@@ -825,7 +826,7 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, current
             <>
               <div className="modal-section-title">✓ Completed</div>
               <div style={{ fontSize: 12 }}>
-                <a href={task.publishUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{task.publishUrl}</a>
+                <a href={wrapExternalUrl(task.publishUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{task.publishUrl}</a>
               </div>
               {task.completedAt && <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>Completed: {fmtRel(task.completedAt)}</div>}
             </>
@@ -905,7 +906,7 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, current
                     )}
                     {e.publishUrl && (
                       <div style={{ marginTop: 3, fontSize: 10 }}>
-                        <a href={e.publishUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{e.publishUrl}</a>
+                        <a href={wrapExternalUrl(e.publishUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{e.publishUrl}</a>
                       </div>
                     )}
                   </div>

@@ -5,6 +5,7 @@ import type { Publication, PublicationActivity } from '@/lib/publications/types'
 import { PLATFORM_CONFIGS, detectPlatform } from '@/lib/publications/types';
 import { addPublication, updatePublicationStatus, updatePublicationInterval, getPublicationActivities } from '@/lib/actions/publications';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 // ── Helpers ──────────────────────────────────────────────────────
 function fmtRel(iso: string | null): string {
@@ -228,7 +229,7 @@ function ActivityRow({ act }: { act: PublicationActivity }) {
         )}
         {act.activityUrl && (
           <a
-            href={`https://href.li/?${act.activityUrl}`}
+            href={wrapExternalUrl(act.activityUrl)}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: 'var(--neon-cyan)', textDecoration: 'none', fontSize: 10 }}
@@ -321,7 +322,7 @@ function PublicationRow({
           </div>
           <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             <a
-              href={`https://href.li/?${pub.url}`}
+              href={wrapExternalUrl(pub.url)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}

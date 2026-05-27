@@ -4,6 +4,7 @@
 
 import { getDb, extCallLog } from '@mos2/db';
 import { desc } from 'drizzle-orm';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,7 @@ export default async function ExtDebugPage() {
 
                 {c.pageUrl && (
                   <div style={{ fontSize: 10, color: 'var(--fg-3)', marginBottom: 4 }}>
-                    📄 <a href={c.pageUrl} target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>{c.pageUrl}</a>
+                    📄 <a href={wrapExternalUrl(c.pageUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{c.pageUrl}</a>
                   </div>
                 )}
 

@@ -12,6 +12,7 @@ import { listMemberProjects, setProjectMembership, getMemberAssignments, listMem
 import { useModalParam } from '@/lib/use-modal-param';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const SPECIALTY_META: Record<Specialty, { label: string; icon: string; color: string }> = {
   founder:        { label: 'Founder',        icon: '👑', color: 'var(--neon-amber)' },
@@ -752,7 +753,7 @@ function ActivityTimeline({ userId, userName }: { userId: number; userName: stri
             {e.projectId && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{e.projectId}</span>}
             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', whiteSpace: 'nowrap' }}>{fmtRel(e.at)}</span>
             {e.publishUrl && (
-              <a href={`https://href.li/?${e.publishUrl}`} target="_blank" rel="noopener noreferrer"
+              <a href={wrapExternalUrl(e.publishUrl)} target="_blank" rel="noopener noreferrer"
                 onClick={(ev) => ev.stopPropagation()}
                 style={{ fontSize: 9, color: 'var(--neon-cyan)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>↗</a>
             )}

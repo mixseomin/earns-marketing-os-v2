@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { AwinProgramme } from '@/lib/awin/programmes';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 type Props = { programmes: AwinProgramme[] };
 
@@ -53,7 +54,7 @@ export function AwinProgrammesView({ programmes }: Props) {
             // {programmes.length} synced from Awin pub 410323
           </small>
         </h1>
-        <a href="https://ui.awin.com/awin/publisher/410323/partnerships/explore" target="_blank" rel="noreferrer"
+        <a href={wrapExternalUrl("https://ui.awin.com/awin/publisher/410323/partnerships/explore")} target="_blank" rel="noopener noreferrer"
           style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--neon-violet, #a78bfa)', textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px' }}>
           Open Awin →
         </a>
@@ -118,10 +119,10 @@ export function AwinProgrammesView({ programmes }: Props) {
                 <td style={cell}>{p.currency ?? <span style={{ color: 'var(--fg-3)' }}>—</span>}</td>
                 <td style={cell}>
                   {p.displayUrl && (
-                    <a href={p.displayUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-2)', marginRight: 8 }} title="Merchant site">↗</a>
+                    <a href={wrapExternalUrl(p.displayUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--fg-2)', marginRight: 8 }} title="Merchant site">↗</a>
                   )}
                   {p.affiliateUrl && (
-                    <a href={p.affiliateUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-violet, #a78bfa)' }} title="Affiliate deeplink (cread.php)">aff</a>
+                    <a href={wrapExternalUrl(p.affiliateUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-violet, #a78bfa)' }} title="Affiliate deeplink (cread.php)">aff</a>
                   )}
                 </td>
               </tr>

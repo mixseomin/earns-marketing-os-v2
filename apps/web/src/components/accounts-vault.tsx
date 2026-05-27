@@ -68,6 +68,7 @@ import { PlatformFormModal } from './platform-form-modal';
 import { updatePlatform, type PlatformWithUsage } from '@/lib/actions/platforms';
 import { getEffectiveSignupFields, listTechnologies, upsertTechnology, detectTechnologyFromUrl, type SignupField, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker, SignupFieldsChecklist, SignupFieldsBuilder, type SignupFieldDef } from './technology-picker';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 // ──────────────────────────────────────────────────────────────────────
 // STATUS MODEL (2 cấp — đừng nhầm lẫn):
@@ -2041,7 +2042,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                               {item.tip && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>{item.tip}</div>}
                             </div>
                             {item.actionUrl && (
-                              <a href={item.actionUrl} target="_blank" rel="noopener noreferrer"
+                              <a href={wrapExternalUrl(item.actionUrl)} target="_blank" rel="noopener noreferrer"
                                  className="btn" style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}>↗</a>
                             )}
                           </div>

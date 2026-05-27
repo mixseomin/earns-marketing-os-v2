@@ -47,6 +47,7 @@ import {
   ACCT_STATUS_META, blockingIssues, isDeadStatus, notReady,
   platformIssue, expectedPlatformForKind, type SeedingIssue,
 } from '@/lib/seeding-issues';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const RETIRE_REASONS = [
   { key: 'banned',  label: 'Bị banned vĩnh viễn' },
@@ -854,7 +855,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                         {r.backlogCount > 0 ? `${r.backlogCount} bài chờ` : ''}
                       </span>
                       {r.habitatUrl && (
-                        <a href={r.habitatUrl} target="_blank" rel="noopener noreferrer"
+                        <a href={wrapExternalUrl(r.habitatUrl)} target="_blank" rel="noopener noreferrer"
                            title="Mở community trong tab mới → click Join / accept invite"
                            style={{ fontSize: 10, padding: '2px 8px', color: 'var(--warn)',
                                     textDecoration: 'none', borderRadius: 3,
@@ -941,7 +942,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <span style={{ flex: 1 }} />
                 {/* Signup link nhanh nếu platform có */}
                 {platform?.signupUrl && (
-                  <a href={platform.signupUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={wrapExternalUrl(platform.signupUrl)} target="_blank" rel="noopener noreferrer"
                      title={`Mở trang đăng ký official: ${platform.signupUrl}`}
                      style={{ fontSize: 10.5, padding: '3px 9px',
                               background: 'rgba(59,130,246,.18)', color: '#60a5fa',
@@ -1002,7 +1003,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                         Brief ↗
                       </button>
                       {r.habitatUrl && (
-                        <a href={r.habitatUrl} target="_blank" rel="noopener noreferrer"
+                        <a href={wrapExternalUrl(r.habitatUrl)} target="_blank" rel="noopener noreferrer"
                            title="Mở community trong tab mới"
                            style={{ fontSize: 10, padding: '2px 7px', color: 'var(--accent)',
                                     textDecoration: 'none', borderRadius: 3,
@@ -1717,7 +1718,7 @@ function RecentPostedSection({ cards, onOpenBrief }: {
                 <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)',
                                whiteSpace: 'nowrap' }}>{ago}</span>
                 {/* Open in new tab */}
-                <a href={c.postUrl} target="_blank" rel="noopener noreferrer"
+                <a href={wrapExternalUrl(c.postUrl)} target="_blank" rel="noopener noreferrer"
                    onClick={(e) => e.stopPropagation()}
                    title="Mở bài trên platform"
                    style={{ fontSize: 11, color: 'var(--ok)', textDecoration: 'none',

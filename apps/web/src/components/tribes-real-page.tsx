@@ -27,6 +27,7 @@ import { ScheduleEditModal } from './schedule-edit-modal';
 import { HabitatFormModal } from './habitat-form-modal';
 import { AccountFormModal } from './accounts-vault';
 import { syncHabitatPlatformsFromDirectus, updateHabitat, updateTribe } from '@/lib/actions/tribes-crud';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const KIND_GLYPH: Record<string, string> = {
   subreddit: '🔴', reddit: '🔴',
@@ -356,7 +357,7 @@ export function TribesRealPage({ projectId, project, tribes, habitats, platforms
                       <span style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: 'rgba(255,180,0,.12)', color: 'var(--warn)', fontFamily: 'var(--font-mono)' }}>defunct</span>
                     )}
                     {h.url
-                      ? <a href={h.url} target="_blank" rel="noopener noreferrer"
+                      ? <a href={wrapExternalUrl(h.url)} target="_blank" rel="noopener noreferrer"
                            onClick={(e) => e.stopPropagation()}
                            style={{ color: h.status === 'defunct' ? 'var(--fg-3)' : 'var(--fg-0)', textDecoration: h.status === 'defunct' ? 'line-through' : 'none' }}>{h.name}</a>
                       : <span style={{ textDecoration: h.status === 'defunct' ? 'line-through' : 'none' }}>{h.name}</span>}
@@ -603,7 +604,7 @@ function HabitatBriefsDrawer({
             <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap', fontFamily: 'var(--font-mono)' }}>
               {habitat.members > 0 && <span>👥 {habitat.members.toLocaleString()}</span>}
               <span>scrape: {habitat.scrapeFrequency}</span>
-              {habitat.url && <a href={habitat.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>↗ open</a>}
+              {habitat.url && <a href={wrapExternalUrl(habitat.url)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>↗ open</a>}
             </div>
           </div>
           <button className="btn ghost" onClick={closeDrawer}>✕</button>

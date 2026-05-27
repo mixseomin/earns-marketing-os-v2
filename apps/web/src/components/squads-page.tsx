@@ -11,6 +11,7 @@ import type { ToolRow, SkillRow } from '@/lib/actions/library';
 import { TOOL_STATUS_META } from './library-page';
 import { AIFormParser } from './ai-form-parser';
 import { SquadDrawer } from './squad-drawer';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const TRUST_LEVELS = [
   { l: 1, name: 'AUTO',     sub: 'Tự xử, không báo',
@@ -537,7 +538,7 @@ function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }
                   {previewing.source && (
                     <span style={{ marginLeft: 'auto' }}>
                       📎 {previewing.sourceUrl
-                        ? <a href={previewing.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{previewing.source}</a>
+                        ? <a href={wrapExternalUrl(previewing.sourceUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{previewing.source}</a>
                         : previewing.source}
                       {previewing.license ? ` · ${previewing.license}` : ''}
                     </span>
@@ -611,7 +612,7 @@ function ToolInfoModal({ tool, active, onToggle, onClose }: {
             <div>
               <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source</span>
               <div style={{ marginTop: 3 }}>
-                <a href={tool.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: 12, wordBreak: 'break-all' }}>
+                <a href={wrapExternalUrl(tool.sourceUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: 12, wordBreak: 'break-all' }}>
                   {tool.sourceUrl} ↗
                 </a>
               </div>

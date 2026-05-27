@@ -16,6 +16,7 @@ import {
   type JoinStatus,
 } from '@/lib/join-status';
 import { TextField, TextAreaField } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 // Habitat context — đủ thông tin để user "biết phải làm gì khi join":
 // name + kind (Discord server vs subreddit vs FB group có flow khác),
@@ -239,7 +240,7 @@ function JoinStatusBannerImpl({
         {joinStatus === 'not_joined' && (
           <>
             {habitatUrl && (
-              <a href={habitatUrl} target="_blank" rel="noopener noreferrer"
+              <a href={wrapExternalUrl(habitatUrl)} target="_blank" rel="noopener noreferrer"
                  title={`Mở ${habitatLabel} → join thủ công`}
                  style={{ fontSize: 10.5, padding: '4px 9px',
                           background: 'var(--bg-2)', color: 'var(--accent)',
@@ -515,7 +516,7 @@ function HabitatContextPanel({
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {openLink && (
-            <a href={openLink} target="_blank" rel="noopener noreferrer"
+            <a href={wrapExternalUrl(openLink)} target="_blank" rel="noopener noreferrer"
                title={`Mở community: ${openLink}`}
                style={{ fontSize: 10.5, padding: '4px 9px', textDecoration: 'none',
                         background: 'var(--accent-soft)', color: 'var(--accent)',
@@ -554,7 +555,7 @@ function HabitatContextPanel({
           </span>
         )}
         {info.postingRulesUrl && (
-          <a href={info.postingRulesUrl} target="_blank" rel="noopener noreferrer"
+          <a href={wrapExternalUrl(info.postingRulesUrl)} target="_blank" rel="noopener noreferrer"
              style={{ fontSize: 10.5, color: 'var(--accent)', textDecoration: 'none' }}>
             📖 Rules ↗
           </a>

@@ -8,6 +8,7 @@
 import { memo, useState, useTransition } from 'react';
 import { Spinner } from './ui';
 import { confirmCardPosted, unconfirmCardPosted } from '@/lib/actions/seeding';
+import { wrapExternalUrl } from '@/lib/external-url';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 
 interface DispatchButtonProps {
@@ -129,7 +130,7 @@ function DispatchPostFlowImpl({
                        color: 'var(--ok)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
           ✓ Đã đăng
         </span>
-        <a href={postUrl} target="_blank" rel="noopener noreferrer"
+        <a href={wrapExternalUrl(postUrl)} target="_blank" rel="noopener noreferrer"
            style={{ flex: 1, fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     textDecoration: 'none' }}>

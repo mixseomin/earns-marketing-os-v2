@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { RoadmapRow, RoadmapStatus } from '@/lib/data';
 import { markRoadmapItem, addRoadmapNote } from '@/lib/actions/roadmap';
 import { PriorityPill, EffortPill, StatsStrip, EmptyState, type Priority, type Effort, type StatCard } from './ui';
+import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_META: Record<RoadmapStatus, { label: string; icon: string; color: string }> = {
   backlog:       { label: 'Backlog',     icon: '⚪', color: 'var(--fg-3)' },
@@ -246,7 +247,7 @@ export function RoadmapPage({ items }: { items: RoadmapRow[] }) {
                                 </>
                               )}
                               {item.shippedIn && (
-                                <a href={`https://href.li/?https://github.com/${REPO}/commit/${item.shippedIn}`}
+                                <a href={wrapExternalUrl(`https://github.com/${REPO}/commit/${item.shippedIn}`)}
                                    target="_blank" rel="noopener noreferrer"
                                    onClick={(e) => e.stopPropagation()}
                                    style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textDecoration: 'none' }}>

@@ -1131,20 +1131,6 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 chặn kế hoạch" phía dưới (chip click filter) — tránh trùng lặp. */}
           </div>
         </div>
-        <div className="page-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {view === 'queue' && (
-            <>
-              <Segmented options={[{ value: 'active', label: 'Đang chạy' }, { value: 'all', label: 'Tất cả' }]}
-                         value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
-              <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
-                     style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
-              <button className="btn primary" disabled={busy} onClick={doGenerate}
-                      title="Sinh sẵn 1 bài nháp vào backlog cho mọi lịch đến hạn (auto + chưa có nháp)">
-                {busy ? <><Spinner size="xs" /> Đang sinh</> : '▶ Sinh bài đến hạn'}
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Tab bar — view switcher 'Lịch seed | Tất cả bài đăng', đứng riêng
@@ -1174,6 +1160,23 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           );
         })}
       </div>
+
+      {/* Filter/action thuộc tab 'Lịch seed' — đặt ngay dưới tab bar, không
+          ở page-actions header (sẽ lởm khi sang tab khác). */}
+      {view === 'queue' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8,
+                      marginBottom: 12, flexWrap: 'wrap' }}>
+          <Segmented options={[{ value: 'active', label: 'Đang chạy' }, { value: 'all', label: 'Tất cả' }]}
+                     value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
+          <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
+                 style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
+          <span style={{ flex: 1 }} />
+          <button className="btn primary" disabled={busy} onClick={doGenerate}
+                  title="Sinh sẵn 1 bài nháp vào backlog cho mọi lịch đến hạn (auto + chưa có nháp)">
+            {busy ? <><Spinner size="xs" /> Đang sinh</> : '▶ Sinh bài đến hạn'}
+          </button>
+        </div>
+      )}
 
       {/* View 'posts': render AllPostsTab thay vì queue + chip + buckets. */}
       {view === 'posts' && postedOptions && postedInitial && postedInitialFilters && (

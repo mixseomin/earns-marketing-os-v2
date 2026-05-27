@@ -1170,3 +1170,34 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
     })),
   };
 }
+
+// updateCardInsightsManual — user edit nhanh metrics từ UI (click cell).
+// Partial: chỉ update field gửi (null = skip, không xoá field hiện có).
+// Khác ext POST /insights: không reset fetched_at vì manual ≠ sync.
+export async function updateCardInsightsManual(
+  cardId: number,
+  patch: {
+    views?: number | null;
+    score?: number | null;
+    upvoteRatio?: number | null;   // 0..1
+    replyCount?: number | null;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!Number.isFinite(cardId) || cardId <= 0) {
+    return { ok: false, error: 'Invalid cardId' };
+  }
+  const db = ensureDb();
+  const sets: ReturnType<typeof sql>[] = [];
+  if (patch.views != null)        sets.push(sql`insights_views_count = ${Math.max(0, Math.round(patch.views))}`);
+  if (patch.score != null)        sets.push(sql`insights_score = ${Math.round(patch.score)}`);
+  if (patch.replyCount != null)   sets.push(sql`insights_reply_count = ${Math.max(0, Math.round(patch.replyCount))}`);
+  if (patch.upvoteRatio != null) {
+    const r = Math.max(0, Math.min(1, patch.upvoteRatio));
+    sets.push(sql`insights_upvote_ratio = ${r}`);
+  }
+  if (sets.length === 0) return { ok: false, error: 'Không có metric nào để cập nhật' };
+  sets.push(sql`updated_at = NOW()`);
+  const setClause = sql.join(sets, sql`, `);
+  await db.execute(sql`UPDATE cards SET ${setClause} WHERE id = ${cardId}`);
+  return { ok: true };
+}

@@ -63,6 +63,12 @@ const REMOVED_LIFECYCLES = new Set(['removed-by-mod', 'self-deleted']);
 export function applyPostFilters(posts: BriefPost[], f: PostFilters): BriefPost[] {
   return posts.filter((p) => {
     if (f.contentType !== 'all' && (p.contentType || 'text') !== f.contentType) return false;
+    // Tab "Tất cả" cũng ẩn removed/self-deleted mặc định (user feedback:
+    // 'để các seed removed ẩn default đi'). Chỉ tab "🗑 Removed" mới show
+    // các card này — explicit opt-in để xem history.
+    if (f.postStatus === 'all') {
+      if (p.postLifecycle && REMOVED_LIFECYCLES.has(p.postLifecycle)) return false;
+    }
     if (f.postStatus === 'posted') {
       if (!p.postUrl) return false;
       // Posted mặc định ẩn các card đã removed (mod xoá hoặc self-delete)
@@ -200,7 +206,10 @@ function PostFiltersBarImpl({ posts, filters, onChange, pillars, channels }: Pos
       {/* Row 1: trạng thái đăng + media (luôn hiện) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
         <span style={lblStyle}>trạng thái:</span>
-        <Chip active={filters.postStatus === 'all'} label="Tất cả" count={total}
+        {/* 'Tất cả' = mọi card TRỪ removed (default ẩn) — count = total - removed.
+            Click chip 'Removed' explicit để xem các card đã bị mod xoá / self-delete. */}
+        <Chip active={filters.postStatus === 'all'} label="Tất cả" count={total - removed}
+              title={removed > 0 ? `${total - removed} card visible (${removed} removed ẩn — click chip 🗑 Removed để xem)` : undefined}
               onClick={() => set('postStatus', 'all')} />
         {unposted > 0 && (
           <Chip active={filters.postStatus === 'unposted'} count={unposted}

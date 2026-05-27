@@ -7,23 +7,27 @@ import {
   listRecentPostedCards,
   listAllPostedCards,
   getPostedFilterOptions,
-  type AllPostedFilters,
 } from '@/lib/actions/brief-posts';
 import { getCurrentUser } from '@/lib/auth';
+import { parseSeedingTabUrl } from '@/lib/posts-tab-url';
 
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_ALL_FILTERS: AllPostedFilters = {
-  days: 7, hideRemoved: true, sort: 'posted_desc', limit: 50, offset: 0,
-};
-
-export default async function SeedingRoute({ params }: { params: Promise<{ id: string }> }) {
+export default async function SeedingRoute({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
   const project = await getProject(id);
   if (!project) notFound();
 
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect(`/p/${id}/inbox`);
+
+  const { view, filters: initialFilters } = parseSeedingTabUrl(sp);
 
   const [mode, projects, queue, tribes, platforms, recentPosted, postedOptions, postedInitial] = await Promise.all([
     getProjectMode(id, project.mode),
@@ -33,7 +37,7 @@ export default async function SeedingRoute({ params }: { params: Promise<{ id: s
     listPlatforms(),
     listRecentPostedCards(id, { days: 7, limit: 50 }),
     getPostedFilterOptions(id),
-    listAllPostedCards(id, DEFAULT_ALL_FILTERS),
+    listAllPostedCards(id, initialFilters),
   ]);
 
   return (
@@ -42,9 +46,10 @@ export default async function SeedingRoute({ params }: { params: Promise<{ id: s
       <SeedingCockpit projectId={id} projectName={project.name} project={project}
                       platforms={platforms} queue={queue} tribes={tribes}
                       recentPosted={recentPosted}
+                      initialView={view}
                       postedOptions={postedOptions}
                       postedInitial={postedInitial}
-                      postedInitialFilters={DEFAULT_ALL_FILTERS} />
+                      postedInitialFilters={initialFilters} />
     </AppShell>
   );
 }

@@ -86,7 +86,7 @@ function EntityLink({ onClick, title, color, children }: {
   );
 }
 
-export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [], postedOptions, postedInitial, postedInitialFilters }: {
+export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
   projectId: string;
   projectName: string;
   project: Project;
@@ -94,6 +94,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   queue: SeedingQueueItem[];
   tribes: TribeRow[];
   recentPosted?: RecentPostedCard[];
+  initialView?: 'queue' | 'posts';
   postedOptions?: PostedFilterOptions;
   postedInitial?: AllPostedResult;
   postedInitialFilters?: AllPostedFilters;
@@ -107,7 +108,20 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [busy, startBusy] = useTransition();
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
-  const [view, setView] = useState<'queue' | 'posts'>('queue');
+  // Sync vào URL ?st=posts để F5 giữ tab.
+  const [view, setView] = useState<'queue' | 'posts'>(initialView);
+  // Đồng bộ tab vào URL — không reload page, chỉ replaceState.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const qs = new URLSearchParams(window.location.search);
+    if (view === 'posts') qs.set('st', 'posts');
+    else qs.delete('st');
+    const next = qs.toString();
+    const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.replaceState({}, '', url);
+    }
+  }, [view]);
   // Filter theo loại blocking issue — click chip ở banner → lọc queue chỉ hiển
   // thị các dòng có issue đó. null = không filter.
   const [issueFilter, setIssueFilter] = useState<'no-url' | 'acct-dead' | 'acct-not-ready' | 'platform-mismatch' | 'no-posts' | 'incomplete-posts' | 'ready' | null>(null);

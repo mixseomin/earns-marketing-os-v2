@@ -23,6 +23,7 @@ import {
   type PostedFilterOptions,
   type PostedSortKey,
 } from '@/lib/actions/brief-posts';
+import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
 
 interface Props {
   projectId: string;
@@ -92,6 +93,35 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
+  // Sync filters → URL (replaceState, không reload server). Giữ ?st=posts vì
+  // cockpit đã set. F5 → server đọc params + render lại với filter chuẩn.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const qs = serializeSeedingTabUrl('posts', filters);
+    // Giữ params khác ngoài scope tab (vd ?m=brief&mId=...) — merge.
+    const cur = new URLSearchParams(window.location.search);
+    const preserved = ['m', 'mId', 'bfc', 'bfp', 'acct', 'acctId', 'hab', 'habId'];
+    for (const k of preserved) {
+      const v = cur.get(k);
+      if (v != null) qs.set(k, v);
+    }
+    const next = qs.toString();
+    const url = `${window.location.pathname}${next ? '?' + next : ''}`;
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.replaceState({}, '', url);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  // Refresh button — re-fetch list HIỆN TẠI (không reset filter). Hay dùng
+  // sau khi ext scrape commentstats xong, muốn thấy metrics mới ngay.
+  function refresh() {
+    startTransition(async () => {
+      const next = await listAllPostedCards(projectId, filters);
+      setData(next);
+    });
+  }
+
   const totalAll = useMemo(() => {
     return Object.values(data.facets.lifecycleCounts).reduce((s, n) => s + n, 0);
   }, [data.facets.lifecycleCounts]);
@@ -114,144 +144,172 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
   const page = Math.floor(offset / limit) + 1;
   const totalPages = Math.max(1, Math.ceil(data.total / limit));
 
+  const hasAnyFilter = useMemo(() => Object.values(filters).some((v) =>
+    Array.isArray(v) ? v.length > 0 :
+    (v != null && v !== false && v !== 'posted_desc' && v !== 7 && v !== 50 && v !== 0)
+  ), [filters]);
+  const [moreOpen, setMoreOpen] = useState(() =>
+    !!(filters.habitatIds || filters.accountIds || filters.briefIds ||
+       filters.contentTypes || filters.minViews != null || filters.minScore != null ||
+       filters.minReplies != null || filters.aiDetectionOnly)
+  );
+
   return (
-    <div style={{ marginTop: 8 }}>
-      {/* Header strip: total + active filter chips + reset */}
+    <div style={{ marginTop: 4 }}>
+      {/* Toolbar: counts + time + sort + refresh + reset + more-toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-                    padding: '8px 10px', background: 'var(--bg-1)',
-                    border: '1px solid var(--line)', borderRadius: 6, marginBottom: 8 }}>
+                    padding: '6px 10px', background: 'var(--bg-1)',
+                    border: '1px solid var(--line)', borderRadius: 6, marginBottom: 6 }}>
         <span style={{ fontWeight: 700, color: 'var(--fg-0)', fontSize: 13 }}>
-          {pending ? '…' : data.total} bài
+          {pending ? '…' : data.total}
         </span>
-        <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>
-          / {totalAll} match filter
-        </span>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>/ {totalAll}</span>
+
+        <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 2px' }} />
+
+        {/* Time chip inline */}
+        {TIME_OPTIONS.map((t) => {
+          const on = (filters.days ?? 7) === t.value;
+          return (
+            <Chip key={t.label} on={on} onClick={() => setF({ days: t.value })}>
+              {t.label}
+            </Chip>
+          );
+        })}
+
+        <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 2px' }} />
+
+        <select value={filters.sort ?? 'posted_desc'}
+                onChange={(e) => setF({ sort: e.target.value as PostedSortKey })}
+                title="Sắp xếp"
+                style={{ padding: '3px 8px', fontSize: 11, background: 'var(--bg-2)',
+                         border: '1px solid var(--line)', borderRadius: 4,
+                         color: 'var(--fg-0)', cursor: 'pointer' }}>
+          {SORT_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+
         <span style={{ flex: 1 }} />
+
+        <button type="button" onClick={refresh} disabled={pending}
+                title="Refresh — tải lại danh sách (dùng sau khi ext scrape metrics xong)"
+                style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)',
+                         background: 'var(--bg-2)', border: '1px solid var(--line)',
+                         color: 'var(--fg-1)', borderRadius: 4, cursor: 'pointer',
+                         opacity: pending ? 0.5 : 1 }}>
+          {pending ? '⟳ Đang tải…' : '⟳ Refresh'}
+        </button>
+
+        <button type="button" onClick={() => setMoreOpen((v) => !v)}
+                title={moreOpen ? 'Thu gọn filter chi tiết' : 'Mở filter chi tiết (habitat/account/brief/threshold)'}
+                style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)',
+                         background: moreOpen ? 'var(--accent-soft)' : 'var(--bg-2)',
+                         border: `1px solid ${moreOpen ? 'var(--accent)' : 'var(--line)'}`,
+                         color: moreOpen ? 'var(--accent)' : 'var(--fg-1)',
+                         borderRadius: 4, cursor: 'pointer' }}>
+          {moreOpen ? '▾ Bộ lọc' : '▸ Bộ lọc'}
+        </button>
+
         <FilterReset
-          active={Object.values(filters).some((v) =>
-            Array.isArray(v) ? v.length > 0 :
-            (v != null && v !== false && v !== 'posted_desc' && v !== 7 && v !== 50 && v !== 0))}
+          active={hasAnyFilter}
           onReset={() => setFilters({
             days: 7, hideRemoved: true, sort: 'posted_desc', limit: 50, offset: 0,
           })}
         />
       </div>
 
-      {/* Filter row 1: time + sort + lifecycle chips */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
-                    marginBottom: 8 }}>
-        <FilterGroup label="Thời gian">
-          {TIME_OPTIONS.map((t) => {
-            const on = (filters.days ?? 7) === t.value;
-            return (
-              <Chip key={t.label} on={on} onClick={() => setF({ days: t.value })}>
-                {t.label}
-              </Chip>
-            );
-          })}
-        </FilterGroup>
+      {/* Chip row: lifecycle + platform + content type + AI toggle — 1 hàng dense */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
+                    padding: '4px 8px', marginBottom: 6 }}>
+        {Object.entries(LIFECYCLE_META).map(([key, m]) => {
+          const count = data.facets.lifecycleCounts[key] ?? 0;
+          if (count === 0 && !(filters.lifecycles?.includes(key))) return null;
+          const on = filters.lifecycles?.includes(key) ?? false;
+          return (
+            <Chip key={key} on={on}
+                  onClick={() => toggleArr<string>('lifecycles', key)}
+                  color={m.color} bg={m.bg}>
+              {m.icon} {m.label} <small style={{ opacity: .8 }}>{count}</small>
+            </Chip>
+          );
+        })}
+        <Chip on={filters.hideRemoved !== false}
+              onClick={() => setF({ hideRemoved: filters.hideRemoved === false })}
+              title="Ẩn removed-by-mod + self-deleted khi chip lifecycle chưa chọn">
+          🙈 Hide removed
+        </Chip>
 
-        <FilterGroup label="Sort">
-          <select value={filters.sort ?? 'posted_desc'}
-                  onChange={(e) => setF({ sort: e.target.value as PostedSortKey })}
-                  style={{ padding: '3px 8px', fontSize: 11, background: 'var(--bg-2)',
-                           border: '1px solid var(--line)', borderRadius: 4,
-                           color: 'var(--fg-0)', cursor: 'pointer' }}>
-            {SORT_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-        </FilterGroup>
+        {options.platforms.length > 1 && (
+          <span style={{ width: 1, height: 16, background: 'var(--line)', margin: '0 3px' }} />
+        )}
+        {options.platforms.length > 1 && options.platforms.map((p) => {
+          const on = filters.platformKeys?.includes(p.key) ?? false;
+          return (
+            <Chip key={p.key} on={on}
+                  onClick={() => toggleArr<string>('platformKeys', p.key)}>
+              {p.label} <small style={{ opacity: .7 }}>{p.count}</small>
+            </Chip>
+          );
+        })}
 
-        <FilterGroup label="Lifecycle">
-          {Object.entries(LIFECYCLE_META).map(([key, m]) => {
-            const count = data.facets.lifecycleCounts[key] ?? 0;
-            const on = filters.lifecycles?.includes(key) ?? false;
-            return (
-              <Chip key={key} on={on} dim={count === 0}
-                    onClick={() => toggleArr<string>('lifecycles', key)}
-                    color={m.color} bg={m.bg}>
-                {m.icon} {m.label} {count > 0 && <small style={{ opacity: .8 }}>{count}</small>}
-              </Chip>
-            );
-          })}
-          <Chip on={filters.hideRemoved !== false}
-                onClick={() => setF({ hideRemoved: filters.hideRemoved === false })}
-                title="Ẩn removed-by-mod + self-deleted khi chip lifecycle chưa chọn">
-            🙈 Hide removed
-          </Chip>
-        </FilterGroup>
+        <Chip on={filters.aiDetectionOnly === true}
+              onClick={() => setF({ aiDetectionOnly: !filters.aiDetectionOnly })}
+              title="Chỉ habitats có cơ chế detect AI content">
+          🤖 AI-detect
+        </Chip>
       </div>
 
-      {/* Filter row 2: platform / content type / AI-detect */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
-                    marginBottom: 8 }}>
-        {options.platforms.length > 0 && (
-          <FilterGroup label="Platform">
-            {options.platforms.map((p) => {
-              const on = filters.platformKeys?.includes(p.key) ?? false;
-              return (
-                <Chip key={p.key} on={on}
-                      onClick={() => toggleArr<string>('platformKeys', p.key)}>
-                  {p.label} <small style={{ opacity: .7 }}>{p.count}</small>
-                </Chip>
-              );
-            })}
-          </FilterGroup>
-        )}
-        {options.contentTypes.length > 1 && (
-          <FilterGroup label="Content type">
-            {options.contentTypes.map((c) => {
-              const on = filters.contentTypes?.includes(c.key) ?? false;
-              return (
-                <Chip key={c.key} on={on}
-                      onClick={() => toggleArr<string>('contentTypes', c.key)}>
-                  {c.key} <small style={{ opacity: .7 }}>{c.count}</small>
-                </Chip>
-              );
-            })}
-          </FilterGroup>
-        )}
-        <FilterGroup label="AI Detection">
-          <Chip on={filters.aiDetectionOnly === true}
-                onClick={() => setF({ aiDetectionOnly: !filters.aiDetectionOnly })}
-                title="Chỉ habitats có cơ chế detect AI content">
-            🤖 AI-detect habitat only
-          </Chip>
-        </FilterGroup>
-      </div>
+      {/* Advanced filter — habitat/account/brief multi-select + content type + threshold.
+          Mặc định collapse, mở khi click '▸ Bộ lọc' hoặc auto-mở nếu có filter active. */}
+      {moreOpen && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                      padding: '6px 10px', background: 'var(--bg-1)',
+                      border: '1px solid var(--line)', borderRadius: 6, marginBottom: 6 }}>
+          <MultiSelect label="Habitat"
+                       options={options.habitats.map((h) => ({
+                         value: h.id, label: `${h.name}${h.aiDetection ? ' 🤖' : ''}`, count: h.count,
+                       }))}
+                       selected={filters.habitatIds ?? []}
+                       onChange={(ids) => setF({ habitatIds: ids.length > 0 ? ids : undefined })} />
+          <MultiSelect label="Account"
+                       options={options.accounts.map((a) => ({
+                         value: a.id, label: `@${a.handle}`, count: a.count,
+                       }))}
+                       selected={filters.accountIds ?? []}
+                       onChange={(ids) => setF({ accountIds: ids.length > 0 ? ids : undefined })} />
+          <MultiSelect label="Brief"
+                       options={options.briefs.map((b) => ({
+                         value: b.id, label: `${b.ref} · ${b.title}`, count: b.count,
+                       }))}
+                       selected={filters.briefIds ?? []}
+                       onChange={(ids) => setF({ briefIds: ids.length > 0 ? ids : undefined })} />
 
-      {/* Filter row 3: habitat / account / brief multi-select + threshold */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
-                    marginBottom: 8 }}>
-        <MultiSelect label="Habitat"
-                     options={options.habitats.map((h) => ({
-                       value: h.id, label: `${h.name}${h.aiDetection ? ' 🤖' : ''}`, count: h.count,
-                     }))}
-                     selected={filters.habitatIds ?? []}
-                     onChange={(ids) => setF({ habitatIds: ids.length > 0 ? ids : undefined })} />
-        <MultiSelect label="Account"
-                     options={options.accounts.map((a) => ({
-                       value: a.id, label: `@${a.handle}`, count: a.count,
-                     }))}
-                     selected={filters.accountIds ?? []}
-                     onChange={(ids) => setF({ accountIds: ids.length > 0 ? ids : undefined })} />
-        <MultiSelect label="Brief"
-                     options={options.briefs.map((b) => ({
-                       value: b.id, label: `${b.ref} · ${b.title}`, count: b.count,
-                     }))}
-                     selected={filters.briefIds ?? []}
-                     onChange={(ids) => setF({ briefIds: ids.length > 0 ? ids : undefined })} />
+          {options.contentTypes.length > 1 && (
+            <MultiSelect label="Type"
+                         options={options.contentTypes.map((c, i) => ({
+                           value: i, label: c.key, count: c.count,
+                         }))}
+                         selected={(filters.contentTypes ?? []).map((k) =>
+                           options.contentTypes.findIndex((c) => c.key === k)
+                         ).filter((i) => i >= 0)}
+                         onChange={(idxs) => setF({
+                           contentTypes: idxs.length > 0
+                             ? idxs.map((i) => options.contentTypes[i]?.key).filter((k): k is string => !!k)
+                             : undefined,
+                         })} />
+          )}
 
-        <FilterGroup label="Min threshold">
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
+                         marginLeft: 4 }}>min:</span>
           <NumberInput placeholder="views" value={filters.minViews}
                        onChange={(v) => setF({ minViews: v })} />
           <NumberInput placeholder="score" value={filters.minScore}
                        onChange={(v) => setF({ minScore: v })} />
           <NumberInput placeholder="replies" value={filters.minReplies}
                        onChange={(v) => setF({ minReplies: v })} />
-        </FilterGroup>
-      </div>
+        </div>
+      )}
 
       {/* Table */}
       {rows.length === 0 ? (
@@ -454,16 +512,6 @@ function Row({ c, onOpenBrief }: { c: AllPostedCard; onOpenBrief: (briefId: numb
 }
 
 // ── Subcomponents ─────────────────────────────────────────────────────
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-      <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
-                     textTransform: 'uppercase' }}>{label}</span>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{children}</div>
-    </div>
-  );
-}
-
 function Chip({ on, dim, onClick, children, color, bg, title }: {
   on: boolean; dim?: boolean; onClick: () => void; children: React.ReactNode;
   color?: string; bg?: string; title?: string;
@@ -506,15 +554,18 @@ function MultiSelect<T extends number>({ label, options, selected, onChange }: {
   const [open, setOpen] = useState(false);
   const filtered = options;
   return (
-    <FilterGroup label={`${label}${selected.length > 0 ? ` (${selected.length})` : ''}`}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+        {label}:
+      </span>
       <div style={{ position: 'relative' }}>
-        <button type="button" onClick={() => setOpen((v) => !v)}
+      <button type="button" onClick={() => setOpen((v) => !v)}
                 style={{ padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--font-mono)',
                          fontWeight: 700, borderRadius: 999, cursor: 'pointer',
                          background: selected.length > 0 ? 'var(--accent)' : 'var(--bg-2)',
                          color: selected.length > 0 ? '#fff' : 'var(--fg-2)',
                          border: `1px solid ${selected.length > 0 ? 'var(--accent)' : 'var(--line)'}` }}>
-          {selected.length === 0 ? `Tất cả (${options.length})` : `${selected.length} đã chọn ▾`}
+          {selected.length === 0 ? `Tất cả (${options.length}) ▾` : `${selected.length} đã chọn ▾`}
         </button>
         {open && (
           <>
@@ -569,7 +620,7 @@ function MultiSelect<T extends number>({ label, options, selected, onChange }: {
           </>
         )}
       </div>
-    </FilterGroup>
+    </div>
   );
 }
 

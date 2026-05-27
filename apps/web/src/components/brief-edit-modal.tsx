@@ -3382,6 +3382,34 @@ function PostRow({
             </span>
           );
         })()}
+        {/* ✅ Posted badge — hiện khi card đã đăng (postedAt + postUrl).
+            Click chip = mở postUrl tab mới (verify đúng comment). Time-ago
+            tooltip + label "1m"/"2h"/"3d" gọn cạnh icon ✓. */}
+        {post.postedAt && post.postUrl && (() => {
+          const ago = (() => {
+            try {
+              const t = new Date(post.postedAt!).getTime();
+              const diff = Date.now() - t;
+              if (diff < 60_000) return 'vừa xong';
+              if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
+              if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
+              return `${Math.floor(diff / 86_400_000)}d`;
+            } catch { return ''; }
+          })();
+          return (
+            <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
+               onClick={(e) => e.stopPropagation()}
+               title={`✅ Đã đăng — ${post.postedAt}\n${post.postUrl}\nClick để mở comment.`}
+               style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '1px 6px', fontSize: 9.5, fontWeight: 700,
+                        fontFamily: 'var(--font-mono)',
+                        background: 'rgba(74,222,128,.15)', color: 'var(--ok)',
+                        border: '1px solid rgba(74,222,128,.4)', borderRadius: 999,
+                        flexShrink: 0, textDecoration: 'none' }}>
+              ✓ <span>{ago}</span>
+            </a>
+          );
+        })()}
         {/* Target lang chip — dùng <LangChip> chung; variant='warn' khi card.lang
             ≠ habitat.lang để cảnh báo mismatch trực quan. */}
         {(() => {

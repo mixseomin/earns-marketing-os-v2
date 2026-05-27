@@ -102,7 +102,8 @@ export function LangChip(props: LangChipProps) {
           {codeText}
         </span>
       )}
-      <span style={{ fontWeight: 600 }}>{m.label}</span>
+      {/* label "English"/"Tiếng Việt" bỏ luôn — flag+code đã đủ context.
+          Tên đầy đủ vẫn ở tooltip. */}
     </>
   );
 
@@ -143,7 +144,7 @@ export function LangChip(props: LangChipProps) {
                 background: bg, color: 'transparent',
                 border: `1px solid ${border}`, borderRadius: 4,
                 cursor: props.disabled ? 'wait' : 'pointer',
-                minWidth: size === 'sm' ? 90 : 150,
+                minWidth: size === 'sm' ? 50 : 60,
               }}>
         {props.langs.map((l) => {
           const opt = getLangMeta(l);

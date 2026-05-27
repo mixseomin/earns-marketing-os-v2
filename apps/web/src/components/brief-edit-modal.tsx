@@ -397,14 +397,14 @@ export function BriefEditModal({
       { duration: 1200 },
     );
   };
-  // Auto-focus banner khi modal mở với !joined — đỡ user phải tự tìm chip header
-  // (0057 fix: brief chưa joined mà mở vào phase view → highlight ngay).
-  useEffect(() => {
-    if (joinStatus !== 'joined' && existing) {
-      const t = setTimeout(focusJoinBanner, 300);
-      return () => clearTimeout(t);
-    }
-  }, [joinStatus, existing]);
+  // ĐÃ BỎ auto-focus join banner khi modal mở với !joined (user feedback:
+  // 'mở modal này lại hiện luôn modal membership là sao?'). Lý do:
+  //   - User mở brief để xem/edit content, KHÔNG phải lúc nào cũng cần fix
+  //     membership (vd r/Astrology_Vedic không cần join cũng post được).
+  //   - JoinChip ở header đã đủ visible — click khi cần thật sự.
+  //   - focusJoinBanner() vẫn được gọi từ onRequestFix flow (dispatch action
+  //     trong DispatchPostFlow khi user thử post mà !joined) — đó là điểm
+  //     đáng auto-open vì user explicit muốn post.
 
   // Auto-refresh khi ext POST brief mới (background relay window.postMessage).
   // Match theo briefId hoặc (accountId+habitatId). router.refresh() invalidate

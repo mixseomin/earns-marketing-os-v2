@@ -700,31 +700,25 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             ) : '—'}
           </button>
         </td>
-        {/* C6: Metrics (👁 ↑ 💬) */}
-        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-          {it.insightSampleCount > 0 ? (
-            <button type="button" onClick={() => modal.open('pipeline', it.briefId)}
-                    title={`Insights synced từ ${it.insightSampleCount} bài`}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                             fontSize: 10.5, fontFamily: 'var(--font-mono)',
-                             color: '#60a5fa', fontWeight: 700,
-                             display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              {it.totalViews > 0 && <span title={`${it.totalViews.toLocaleString()} views`}>👁 {formatStatShort(it.totalViews)}</span>}
-              {it.totalScore > 0 && <span title={`Score ${it.totalScore}`}>↑ {formatStatShort(it.totalScore)}</span>}
-              {it.totalReplies > 0 && <span title={`${it.totalReplies} replies`}>💬 {it.totalReplies}</span>}
-              {it.totalViews === 0 && it.totalScore === 0 && it.totalReplies === 0 && (
-                <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>0</span>
-              )}
-            </button>
-          ) : it.postedCount > 0 ? (
-            <span title="Đã có bài đăng nhưng chưa sync insights"
-                  style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
-              chưa sync
-            </span>
-          ) : (
-            <span style={{ color: 'var(--fg-4)' }}>—</span>
-          )}
-        </td>
+        {/* C6: Views 👁 */}
+        <MetricTd value={it.totalViews}
+                  hasInsight={it.insightSampleCount > 0}
+                  hasPosted={it.postedCount > 0}
+                  title={(v) => `${v.toLocaleString()} views tổng`}
+                  onClick={() => modal.open('pipeline', it.briefId)} />
+        {/* C7: Score ↑ */}
+        <MetricTd value={it.totalScore}
+                  hasInsight={it.insightSampleCount > 0}
+                  hasPosted={it.postedCount > 0}
+                  title={(v) => `Score tổng ${v}`}
+                  onClick={() => modal.open('pipeline', it.briefId)} />
+        {/* C8: Replies 💬 */}
+        <MetricTd value={it.totalReplies}
+                  hasInsight={it.insightSampleCount > 0}
+                  hasPosted={it.postedCount > 0}
+                  title={(v) => `${v} replies tổng`}
+                  onClick={() => modal.open('pipeline', it.briefId)} />
+
         {/* C7: Last posted */}
         <td style={{ padding: '6px 8px', textAlign: 'center' }}>
           {it.lastPostedAt ? (
@@ -1143,11 +1137,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
               <col style={{ width: 60 }} />          {/* Brief ID */}
               <col />                                {/* Account + Habitat + Platform */}
               <col style={{ width: 130 }} />         {/* Status + Due */}
-              <col style={{ width: 70 }} />          {/* Backlog */}
-              <col style={{ width: 75 }} />          {/* Posted (📨) */}
-              <col style={{ width: 100 }} />         {/* Metrics (👁↑💬) */}
-              <col style={{ width: 70 }} />          {/* Last posted */}
-              <col style={{ width: 70 }} />          {/* Actions (autofix + ⋯) */}
+              <col style={{ width: 60 }} />          {/* Backlog */}
+              <col style={{ width: 65 }} />          {/* Posted (📨) */}
+              <col style={{ width: 50 }} />          {/* Views 👁 */}
+              <col style={{ width: 50 }} />          {/* Score ↑ */}
+              <col style={{ width: 50 }} />          {/* Replies 💬 */}
+              <col style={{ width: 65 }} />          {/* Last posted */}
+              <col style={{ width: 60 }} />          {/* Actions (autofix + ⋯) */}
             </colgroup>
             <thead>
               <tr style={{ background: 'var(--bg-2)', color: 'var(--fg-3)', fontSize: 10,
@@ -1155,10 +1151,12 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Brief</th>
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Account × Habitat</th>
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Status</th>
-                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Nháp đủ data / Backlog">Nháp</th>
-                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Bài đã đăng (lifetime + 30d)">Đăng</th>
-                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Insights: views ↑ replies">Metrics</th>
-                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Lần đăng gần nhất">Last</th>
+                <th style={{ padding: '4px 6px', textAlign: 'center' }} title="Nháp đủ data / Backlog">Nháp</th>
+                <th style={{ padding: '4px 6px', textAlign: 'center' }} title="Bài đã đăng (lifetime + 30d)">Đăng</th>
+                <th style={{ padding: '4px 4px', textAlign: 'center' }} title="Tổng views">👁</th>
+                <th style={{ padding: '4px 4px', textAlign: 'center' }} title="Tổng upvote/score">↑</th>
+                <th style={{ padding: '4px 4px', textAlign: 'center' }} title="Tổng replies">💬</th>
+                <th style={{ padding: '4px 6px', textAlign: 'center' }} title="Lần đăng gần nhất">Last</th>
                 <th style={{ padding: '4px 8px', textAlign: 'right' }}>•</th>
               </tr>
             </thead>
@@ -1529,11 +1527,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                   <col style={{ width: 60 }} />
                   <col />
                   <col style={{ width: 130 }} />
-                  <col style={{ width: 70 }} />
-                  <col style={{ width: 75 }} />
-                  <col style={{ width: 100 }} />
-                  <col style={{ width: 70 }} />
-                  <col style={{ width: 70 }} />
+                  <col style={{ width: 60 }} />
+                  <col style={{ width: 65 }} />
+                  <col style={{ width: 50 }} />
+                  <col style={{ width: 50 }} />
+                  <col style={{ width: 50 }} />
+                  <col style={{ width: 65 }} />
+                  <col style={{ width: 60 }} />
                 </colgroup>
                 <tbody>{g.rows.map(RowTable)}</tbody>
               </table>
@@ -2383,6 +2383,45 @@ function BriefMetricsChip({ it, onOpen }: {
         </div>
       )}
     </button>
+  );
+}
+
+// MetricTd — 1 cell hiển thị 1 metric (views/score/replies):
+//  - Có insight + value > 0 → số formatted, click mở pipeline
+//  - Có insight + value = 0 → 0 mờ
+//  - Có post nhưng chưa sync insight → · italic mờ
+//  - Chưa có post → —
+function MetricTd({ value, hasInsight, hasPosted, title, onClick }: {
+  value: number;
+  hasInsight: boolean;
+  hasPosted: boolean;
+  title: (v: number) => string;
+  onClick: () => void;
+}) {
+  if (!hasPosted) {
+    return (
+      <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--fg-4)' }}>—</td>
+    );
+  }
+  if (!hasInsight) {
+    return (
+      <td style={{ padding: '6px 4px', textAlign: 'center' }}
+          title="Đã có bài đăng nhưng chưa sync insights">
+        <span style={{ fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic' }}>·</span>
+      </td>
+    );
+  }
+  return (
+    <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+      <button type="button" onClick={onClick}
+              title={title(value)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                       fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                       color: value > 0 ? '#60a5fa' : 'var(--fg-4)',
+                       fontWeight: value > 0 ? 700 : 400 }}>
+        {value > 0 ? formatStatShort(value) : '0'}
+      </button>
+    </td>
   );
 }
 

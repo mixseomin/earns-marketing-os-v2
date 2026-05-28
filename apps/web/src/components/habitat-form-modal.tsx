@@ -153,6 +153,7 @@ export function HabitatFormModal({
     listChannelsForHabitat(habitat.id).then((rows) => {
       setChannels(rows.map((r) => ({
         name: r.name, url: r.url, description: r.description, rules: r.rules,
+        language: r.language,
         allowedFormats: r.allowedFormats, postingGates: r.postingGates,
         voiceProfileOverride: r.voiceProfileOverride, fewShotExamples: r.fewShotExamples,
         sortOrder: r.sortOrder,

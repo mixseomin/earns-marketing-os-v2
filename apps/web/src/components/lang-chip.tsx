@@ -126,9 +126,12 @@ export function LangChip(props: LangChipProps) {
   // mode === 'select': overlay layout — native <select> giữ click + dropdown
   // popup; overlay <span> hiển thị flag + code custom (browser ko cho style
   // option khi collapsed). Native <select> tự lấy width theo text option dài
-  // nhất → BẮT BUỘC fix width cứng (flagSize + codeFont*2.5 + paddings + arrow),
-  // không cho browser tự measure.
-  const selectW = sz.padX + sz.flagSize + sz.gap + (isSet ? sz.codeFont * 2 + 4 : 0) + 10;
+  // nhất → BẮT BUỘC fix width cứng theo CODE THỰC TẾ (vd 'MULTI' 5 ký tự khác
+  // 'EN' 2 ký tự).
+  const codeChars = isSet ? codeText.length : 0;
+  // ~0.65em per char cho mono font + 4px padding 2 bên code badge.
+  const codeWidth = codeChars > 0 ? codeChars * sz.codeFont * 0.65 + 4 : 0;
+  const selectW = sz.padX * 2 + sz.flagSize + sz.gap + codeWidth + 12; // 12 = arrow + buffer
   return (
     <span style={{ position: 'relative', display: 'inline-flex', width: selectW, height: sz.flagSize + sz.padY * 2 + 4 }}>
       <span style={{ ...baseStyle, position: 'absolute', inset: 0,

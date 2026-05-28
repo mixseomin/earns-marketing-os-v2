@@ -29,6 +29,7 @@ import {
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
+import { AccountKindIcon } from './account-kind-icon';
 import {
   loadPresets, addPreset, removePreset,
   type PostsTabPreset,
@@ -205,7 +206,8 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
   const [moreOpen, setMoreOpen] = useState(() =>
     !!(filters.habitatIds || filters.accountIds || filters.briefIds ||
        filters.contentTypes || filters.minViews != null || filters.minScore != null ||
-       filters.minReplies != null || filters.aiDetectionOnly || filters.ownership)
+       filters.minReplies != null || filters.aiDetectionOnly || filters.ownership ||
+       filters.accountKind)
   );
 
   return (
@@ -394,6 +396,21 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               })}
               title="Chỉ external communities (không own brand)">
           🌍 External
+        </Chip>
+
+        <Chip on={filters.accountKind === 'bot'}
+              onClick={() => setF({
+                accountKind: filters.accountKind === 'bot' ? undefined : 'bot',
+              })}
+              title="Chỉ bot account (Discord/Slack bot, auto-post API)">
+          🤖 Bot
+        </Chip>
+        <Chip on={filters.accountKind === 'user'}
+              onClick={() => setF({
+                accountKind: filters.accountKind === 'user' ? undefined : 'user',
+              })}
+              title="Chỉ user account (manual login, cần warming + persona)">
+          👤 User
         </Chip>
       </div>
 
@@ -642,8 +659,9 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
               {c.habitatName || '(orphan)'}
             </span>
             {c.accountHandle && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>
-                @{c.accountHandle}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}
+                    title={`Account kind: ${c.accountKind || 'user'}`}>
+                <AccountKindIcon kind={c.accountKind} />@{c.accountHandle}
               </span>
             )}
             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)',

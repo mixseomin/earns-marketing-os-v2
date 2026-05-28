@@ -62,6 +62,8 @@ export interface SeedingQueueItem {
   habitatPlatformKey: string;       // habitats.platform_key ('' nếu chưa set)
   habitatUrl: string | null;
   habitatIsOwn: boolean;            // 0077: habitat own brand mình
+  accountKind: string;              // 0058: user|bot|app — UI phân biệt
+
 
   tribeName: string | null;
   tribeId: number | null;
@@ -137,6 +139,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       ss.content_type AS lane_type, ss.language AS lane_lang,
       b.account_id, b.habitat_id, b.current_phase, b.join_status, h.language AS habitat_lang,
       pa.handle AS account_handle, pa.status AS account_status,
+      pa.account_kind AS account_kind,
       pa.block_reason AS account_block_reason, p.label AS platform_label,
       pa.platform_key AS platform_key, p.category AS platform_category,
       h.name AS habitat_name, h.kind AS habitat_kind,
@@ -219,6 +222,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       accountId: Number(r.account_id),
       accountHandle: r.account_handle ? String(r.account_handle) : 'no-handle',
       accountStatus: String(r.account_status ?? 'active'),
+      accountKind: String(r.account_kind ?? 'user'),
       accountBlockReason: r.account_block_reason ? String(r.account_block_reason) : null,
       platformLabel: String(r.platform_label ?? ''),
       platformKey: String(r.platform_key ?? ''),

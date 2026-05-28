@@ -287,7 +287,7 @@ export async function listEngagementsByParentUrl(
            b.habitat_id, b.account_id,
            h.name AS habitat_name,
            h.platform_key,
-           pa.handle AS account_handle
+           pa.handle AS account_handle, pa.account_kind AS account_kind
       FROM cards c
       LEFT JOIN community_briefs b ON b.id = c.brief_id
       LEFT JOIN habitats h ON h.id = b.habitat_id
@@ -311,6 +311,7 @@ export async function listEngagementsByParentUrl(
     habitatName: r.habitat_name ? String(r.habitat_name) : null,
     accountId: r.account_id != null ? Number(r.account_id) : null,
     accountHandle: r.account_handle ? String(r.account_handle) : null,
+    accountKind: String(r.account_kind ?? 'user'),
     platformKey: r.platform_key ? String(r.platform_key) : null,
     postUrl: r.post_url ? String(r.post_url) : null,
     postedAt: r.posted_at instanceof Date ? r.posted_at.toISOString() : (r.posted_at ? String(r.posted_at) : null),
@@ -441,6 +442,7 @@ export interface RecentPostedCard {
   platformLabel: string;
   platformKey: string | null;
   accountHandle: string | null;
+  accountKind: string;             // 0058: user|bot|app
   // Insights inline (P2)
   insightsViewsCount: number | null;
   insightsScore: number | null;
@@ -474,7 +476,7 @@ export async function listRecentPostedCards(
            b.habitat_id,
            h.name AS habitat_name,
            p.label AS platform_label, p.key AS platform_key,
-           pa.handle AS account_handle,
+           pa.handle AS account_handle, pa.account_kind AS account_kind,
            -- COUNT attempts cùng parent_url (>= 1, include self). Window function
            -- để tránh subquery; project-scoped để cross-brief OK.
            (SELECT COUNT(*) FROM cards c2
@@ -509,6 +511,7 @@ export async function listRecentPostedCards(
     platformLabel: String(r.platform_label ?? ''),
     platformKey: r.platform_key ? String(r.platform_key) : null,
     accountHandle: r.account_handle ? String(r.account_handle) : null,
+    accountKind: String(r.account_kind ?? 'user'),
     insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
     insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
     insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
@@ -859,6 +862,7 @@ export interface AllPostedFilters {
   contentTypes?: string[];
   aiDetectionOnly?: boolean;       // true = chỉ habitats.ai_content_detection=true
   ownership?: 'own' | 'external';  // filter theo habitats.is_own
+  accountKind?: string;            // filter theo platform_accounts.account_kind (user|bot|app)
   minViews?: number | null;
   minScore?: number | null;
   minReplies?: number | null;
@@ -947,6 +951,9 @@ function buildPostedWhere(projectId: string, f: AllPostedFilters) {
   } else if (f.ownership === 'external') {
     conds.push(sql`COALESCE(h.is_own, FALSE) = FALSE`);
   }
+  if (f.accountKind && f.accountKind.trim()) {
+    conds.push(sql`COALESCE(pa.account_kind, 'user') = ${f.accountKind}`);
+  }
   if (f.minViews != null) conds.push(sql`COALESCE(c.insights_views_count, 0) >= ${f.minViews}`);
   if (f.minScore != null) conds.push(sql`COALESCE(c.insights_score, 0) >= ${f.minScore}`);
   if (f.minReplies != null) conds.push(sql`COALESCE(c.insights_reply_count, 0) >= ${f.minReplies}`);
@@ -997,6 +1004,7 @@ export async function listAllPostedCards(
     contentTypes: filters.contentTypes,
     aiDetectionOnly: filters.aiDetectionOnly,
     ownership: filters.ownership,
+    accountKind: filters.accountKind,
     minViews: filters.minViews ?? null,
     minScore: filters.minScore ?? null,
     minReplies: filters.minReplies ?? null,
@@ -1019,7 +1027,7 @@ export async function listAllPostedCards(
            h.name AS habitat_name, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
            COALESCE(h.is_own, FALSE) AS habitat_is_own,
            p.label AS platform_label, p.key AS platform_key,
-           pa.handle AS account_handle,
+           pa.handle AS account_handle, pa.account_kind AS account_kind,
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
                 AND c2.parent_url = c.parent_url
@@ -1103,6 +1111,7 @@ export async function listAllPostedCards(
     platformLabel: String(r.platform_label ?? ''),
     platformKey: r.platform_key ? String(r.platform_key) : null,
     accountHandle: r.account_handle ? String(r.account_handle) : null,
+    accountKind: String(r.account_kind ?? 'user'),
     aiContentDetection: Boolean(r.ai_detect),
     habitatIsOwn: Boolean(r.habitat_is_own),
     insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,

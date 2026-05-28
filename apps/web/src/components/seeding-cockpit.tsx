@@ -44,6 +44,7 @@ import { BriefPipelineModal } from './brief-pipeline-modal';
 // đồng bộ với accounts-vault + brief-edit-modal. Adapter giữ shape cũ.
 import { SEEDING_STATUS_META, ACCOUNT_STATUS_META } from '@/lib/status-meta';
 import { LangChip } from './lang-chip';
+import { AccountKindIcon } from './account-kind-icon';
 const STATUS_META: Record<SeedingStatus, { label: string; color: string }> =
   Object.fromEntries(
     (Object.entries(SEEDING_STATUS_META) as Array<[SeedingStatus, typeof SEEDING_STATUS_META[SeedingStatus]]>)
@@ -530,7 +531,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)' }}>
               <EntityLink color="var(--fg-0)" onClick={() => setAccountOverlayId(it.accountId)}
-                title={`Mở Account modal: @${it.accountHandle} (status/credential/persona)`}>@{it.accountHandle}</EntityLink>
+                title={`Mở Account modal: @${it.accountHandle} (${it.accountKind === 'bot' ? 'BOT' : it.accountKind === 'app' ? 'APP' : 'user'} · status/credential/persona)`}>
+                <AccountKindIcon kind={it.accountKind} />@{it.accountHandle}
+              </EntityLink>
             </span>
             {notReady(it.accountStatus) && (() => {
               const m = ACCT_STATUS_META[it.accountStatus]
@@ -896,7 +899,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       <EntityLink color="var(--fg-3)"
                                   onClick={() => setAccountOverlayId(r.accountId)}
                                   title="Mở account modal">
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>@{r.accountHandle}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>
+                          <AccountKindIcon kind={r.accountKind} />@{r.accountHandle}
+                        </span>
                       </EntityLink>
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
                       <EntityLink color="var(--fg-1)"
@@ -1047,7 +1052,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       <EntityLink color="var(--fg-3)"
                                   onClick={() => setAccountOverlayId(r.accountId)}
                                   title="Mở account modal">
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>@{r.accountHandle}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>
+                          <AccountKindIcon kind={r.accountKind} />@{r.accountHandle}
+                        </span>
                       </EntityLink>
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
                       <EntityLink color="var(--fg-1)"

@@ -10,6 +10,7 @@
 //   ?ct=text,image                      contentTypes CSV
 //   ?ai=1                               aiDetectionOnly 0/1
 //   ?own=own|external                   habitat ownership filter
+//   ?ak=user|bot|app                    account kind filter
 //   ?mv=100  ?ms=10  ?mr=5              min views/score/replies
 //   ?q=search                           text search habitat/account/title/body
 //   ?s=views_desc                       sort key
@@ -122,6 +123,10 @@ export function parseSeedingTabUrl(
         const v = pickStr(sp.own);
         return v === 'own' || v === 'external' ? v : undefined;
       })(),
+      accountKind: (() => {
+        const v = pickStr(sp.ak);
+        return v === 'user' || v === 'bot' || v === 'app' ? v : undefined;
+      })(),
       minViews,
       minScore,
       minReplies,
@@ -165,6 +170,7 @@ export function serializeSeedingTabUrl(
   }
   if (filters.aiDetectionOnly) qs.set('ai', '1');
   if (filters.ownership) qs.set('own', filters.ownership);
+  if (filters.accountKind) qs.set('ak', filters.accountKind);
   if (filters.minViews != null) qs.set('mv', String(filters.minViews));
   if (filters.minScore != null) qs.set('ms', String(filters.minScore));
   if (filters.minReplies != null) qs.set('mr', String(filters.minReplies));

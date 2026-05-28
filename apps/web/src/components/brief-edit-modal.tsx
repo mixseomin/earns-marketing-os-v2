@@ -348,6 +348,10 @@ export interface BriefEditModalProps {
   // Click avatar/handle ở header → mở AccountFormModal (do parent cấp loader
   // vì cần project + platforms). Nếu không có callback → không click được.
   onOpenAccount?: (accountId: number) => void;
+  /** Mở AccountFormModal ở CREATE mode với preset platform. Dùng cho
+   *  Swap account → '+ Tạo account mới'. Sau create xong, AccountFormModal
+   *  sẽ trigger reload brief (parent handle qua revalidate). */
+  onCreateAccount?: (presetPlatformKey: string) => void;
   // Báo parent biết posts (cards) trong brief vừa thay đổi (tạo/xóa/đổi
   // type/edit body) → parent re-fetch phaseCounts + phaseTypeCounts để
   // Overview roadmap + tab badges cập nhật real-time.
@@ -365,7 +369,7 @@ export function BriefEditModal({
   accountLabel, habitatLabel, habitatUrl, habitatKind, platformKey, platformCategory,
   platformAllowedFormats, habitatAllowedFormats, accountStatus, accountBlockReason,
   phaseCounts, phaseTypeCounts,
-  existing, onClose, initialTab, focusCardId, onFocusChange, onOpenAccount, onOpenHabitat, onPostsChanged, postsReloadKey = 0,
+  existing, onClose, initialTab, focusCardId, onFocusChange, onOpenAccount, onCreateAccount, onOpenHabitat, onPostsChanged, postsReloadKey = 0,
 }: BriefEditModalProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -865,6 +869,9 @@ export function BriefEditModal({
                   briefId={existing.id}
                   currentAccountId={accountId}
                   onSwapped={() => { onClose(); }}
+                  onCreateAccount={onCreateAccount
+                    ? () => onCreateAccount(platformKey || '')
+                    : undefined}
                 />
               )}
               {/* Habitat chip — click mở HabitatFormModal (sửa url / kind /

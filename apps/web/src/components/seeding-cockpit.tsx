@@ -210,6 +210,26 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [reassign, setReassign] = useState<
     { briefId: number; habitatId: number; presetPlatformKey?: string; label: string;
       habitatName: string; habitatKind: string; habitatUrl: string | null } | null>(null);
+  // Brief modal click '+ Tạo account mới' → mở AccountFormModal trong CREATE
+  // mode với preset platform. Sau create xong, auto reassign brief sang
+  // account mới (qua onPickedAccountForBrief).
+  const [createForBrief, setCreateForBrief] = useState<
+    { briefId: number; presetPlatformKey: string } | null>(null);
+  const onCreateAccount = (briefId: number, presetPlatformKey: string) => {
+    setCreateForBrief({ briefId, presetPlatformKey });
+  };
+  const onPickedCreatedAccount = (newAccountId: number) => {
+    const cfg = createForBrief;
+    setCreateForBrief(null);
+    if (!cfg) return;
+    startBusy(async () => {
+      const res = await reassignBriefAccount(projectId, cfg.briefId, newAccountId);
+      setMsg(res.ok
+        ? 'Đã tạo + gán account mới cho brief.'
+        : (res.error ?? 'Lỗi gán account'));
+      router.refresh();
+    });
+  };
   const doAutoFix = (it: SeedingQueueItem) => {
     startBusy(async () => {
       const res = await autoFixBriefAccount(projectId, it.briefId);
@@ -1397,6 +1417,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             else { setBriefFocus(null); writeFocusUrl(null); }
           }}
           onOpenAccount={(accId) => setAccountOverlayId(accId)}
+          onCreateAccount={(presetPlatformKey) => onCreateAccount(briefModalId!, presetPlatformKey)}
           onOpenHabitat={(habId) => setHabitatOverlayId(habId)}
           externalReloadKey={briefReloadKey}
           onClose={() => { clearFocus(); modal.close(); }}
@@ -1431,6 +1452,18 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           }}
           onClose={() => setReassign(null)}
           onCreated={onPickedAccount}
+        />
+      )}
+
+      {createForBrief && (
+        <AccountFormModal
+          account={null}
+          project={project}
+          projectId={projectId}
+          platforms={platforms}
+          presetPlatformKey={createForBrief.presetPlatformKey}
+          onClose={() => setCreateForBrief(null)}
+          onCreated={onPickedCreatedAccount}
         />
       )}
 
@@ -1561,7 +1594,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
 // Fetch the full BriefRow for the clicked seeding row, then render
 // BriefEditModal IN PLACE (no navigation). Module-scope (không định nghĩa
 // component bên trong component — xem project-patterns.md).
-function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocusChange, onOpenAccount, onOpenHabitat, externalReloadKey = 0 }: {
+function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocusChange, onOpenAccount, onCreateAccount, onOpenHabitat, externalReloadKey = 0 }: {
   projectId: string;
   briefId: number;
   focus: { briefId: number; phase: string; cardId?: number } | null;
@@ -1569,6 +1602,7 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
   onSaved: () => void;
   onFocusChange?: (phase: string, cardId?: number) => void;
   onOpenAccount?: (accountId: number) => void;
+  onCreateAccount?: (presetPlatformKey: string) => void;
   onOpenHabitat?: (habitatId: number) => void;
   // Parent bump khi overlay con (account/habitat) lưu xong → loader re-fetch.
   externalReloadKey?: number;
@@ -1681,6 +1715,7 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
       onOpenAccount={onOpenAccount}
       onOpenHabitat={onOpenHabitat}
       onPostsChanged={handlePostsChanged}
+      onCreateAccount={onCreateAccount}
       onClose={onSaved}
     />
   );

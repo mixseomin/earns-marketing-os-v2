@@ -731,24 +731,22 @@ export async function listAddableAccountsForHabitat(
   }));
 }
 
-// 0058 fix: listSwappableAccountsForBrief — pick accounts ACTIVE đã có sẵn
-// trên platform same habitat (chưa có brief với habitat này) để user re-assign
-// brief sang account khác thay vì phải tạo account mới.
-//
-// Use case: brief đang dùng account 'todo' (chưa tạo) → user muốn swap sang
-// account đã active sẵn để start seeding ngay.
+// listSwappableAccountsForBrief — pick accounts ACTIVE same platform để swap
+// brief sang account khác. Scope MỞ RỘNG: include account TENANT-WIDE
+// (chưa thuộc project hiện tại). Khi pick account ngoài project, server
+// (reassignBriefAccount) tự thêm vào project_accounts pivot.
 //
 // Filter:
-//   - account active (todo/creating/blocked/banned excluded — không dùng được)
-//   - same project (qua project_accounts pivot)
-//   - platform_key match habitat.platform_key (Reddit account không assign
-//     vào Discord habitat)
-//   - account chưa có brief với habitat_id này
+//   - account active (todo/creating/blocked/banned excluded)
+//   - same tenant (multi-tenant safety)
+//   - platform_key match habitat.platform_key
+//   - account chưa có brief với habitat này (tránh duplicate)
+//
+// Flag `inProject` để UI badge phân biệt 'đã trong project' vs 'cross-project'.
 export async function listSwappableAccountsForBrief(
   projectId: string, briefId: number,
-): Promise<Array<{ id: number; handle: string | null; status: string; platformKey: string; platformLabel: string; accountKind: string }>> {
+): Promise<Array<{ id: number; handle: string | null; status: string; platformKey: string; platformLabel: string; accountKind: string; inProject: boolean }>> {
   const db = ensureDb();
-  // Lấy habitat_id + platform_key của brief
   const briefRow = await db.execute(sql`
     SELECT b.habitat_id, h.platform_key
       FROM community_briefs b
@@ -763,10 +761,13 @@ export async function listSwappableAccountsForBrief(
   if (!platformKey) return [];
   const rows = await db.execute(sql`
     SELECT pa.id, pa.handle, pa.status, pa.platform_key, pa.account_kind,
-           p.label AS platform_label
+           p.label AS platform_label,
+           EXISTS (
+             SELECT 1 FROM project_accounts pj
+             WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}
+           ) AS in_project
     FROM platform_accounts pa
     JOIN platforms p ON p.key = pa.platform_key
-    JOIN project_accounts pj ON pj.account_id = pa.id AND pj.project_id = ${projectId}
     WHERE pa.tenant_id = ${TENANT}
       AND pa.status = 'active'
       AND pa.platform_key = ${platformKey}
@@ -774,7 +775,7 @@ export async function listSwappableAccountsForBrief(
         SELECT 1 FROM community_briefs b2
         WHERE b2.habitat_id = ${habitatId} AND b2.account_id = pa.id
       )
-    ORDER BY pa.handle ASC NULLS LAST
+    ORDER BY in_project DESC, pa.handle ASC NULLS LAST
   `);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),
@@ -783,6 +784,7 @@ export async function listSwappableAccountsForBrief(
     platformKey: String(r.platform_key ?? ''),
     platformLabel: String(r.platform_label ?? ''),
     accountKind: String(r.account_kind ?? 'user'),
+    inProject: Boolean(r.in_project),
   }));
 }
 

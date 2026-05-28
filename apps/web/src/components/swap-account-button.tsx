@@ -22,6 +22,7 @@ interface SwappableAccount {
   platformKey: string;
   platformLabel: string;
   accountKind: string;
+  inProject: boolean;
 }
 
 export interface SwapAccountButtonProps {
@@ -30,9 +31,12 @@ export interface SwapAccountButtonProps {
   /** Account hiện tại của brief để exclude khỏi list. */
   currentAccountId: number;
   onSwapped: () => void;
+  /** Callback mở AccountFormModal để tạo account mới. Parent sẽ pass
+   *  preset platform + handler onCreated → tự pick account vừa tạo. */
+  onCreateAccount?: () => void;
 }
 
-function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped }: SwapAccountButtonProps) {
+function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped, onCreateAccount }: SwapAccountButtonProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -117,7 +121,7 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
                           background: 'var(--bg-2)', fontSize: 10,
                           fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
                           textTransform: 'uppercase', letterSpacing: '.04em' }}>
-              Account active sẵn có (same platform)
+              Account active (same platform)
             </div>
             <div style={{ maxHeight: 280, overflowY: 'auto' }}>
               {list == null ? (
@@ -128,15 +132,18 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
               ) : list.length === 0 ? (
                 <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)',
                               fontStyle: 'italic' }}>
-                  Không có account active nào trên platform này chưa được assign vào habitat này.
-                  Tạo account mới ở Account modal.
+                  Không có account active nào khả dụng trên platform này.
                 </div>
-              ) : (
-                list.map((a) => {
+              ) : (() => {
+                const inProject = list.filter((a) => a.inProject);
+                const crossProject = list.filter((a) => !a.inProject);
+                const renderRow = (a: SwappableAccount) => {
                   const meta = accountStatusMeta(a.status);
                   return (
                     <button key={a.id} type="button" disabled={busy}
                             onClick={() => doSwap(a.id, a.handle)}
+                            title={a.inProject ? 'Đã trong project — swap ngay' :
+                              'Account ngoài project — swap sẽ tự thêm vào project_accounts'}
                             style={{ display: 'flex', width: '100%', alignItems: 'center',
                                      gap: 8, padding: '6px 10px', textAlign: 'left',
                                      background: 'transparent', border: 'none',
@@ -154,6 +161,15 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
                           {a.accountKind}
                         </span>
                       )}
+                      {!a.inProject && (
+                        <span title="Chưa thuộc project — swap sẽ auto-add vào project_accounts"
+                              style={{ fontSize: 9, padding: '0 5px',
+                                       background: 'rgba(251,191,36,.15)', color: 'var(--warn)',
+                                       border: '1px solid rgba(251,191,36,.4)', borderRadius: 3,
+                                       textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                          + add
+                        </span>
+                      )}
                       <span style={{ flex: 1 }} />
                       <span style={{ padding: '0 5px', fontSize: 9, fontFamily: 'var(--font-mono)',
                                      fontWeight: 700, borderRadius: 3,
@@ -164,9 +180,45 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
                       </span>
                     </button>
                   );
-                })
-              )}
+                };
+                const sectionHeader = (label: string) => (
+                  <div style={{ padding: '4px 10px', fontSize: 9,
+                                fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                                background: 'var(--bg-2)',
+                                textTransform: 'uppercase', letterSpacing: '.04em',
+                                borderBottom: '1px solid var(--line)' }}>
+                    {label}
+                  </div>
+                );
+                return (
+                  <>
+                    {inProject.length > 0 && (
+                      <>
+                        {sectionHeader(`Trong project (${inProject.length})`)}
+                        {inProject.map(renderRow)}
+                      </>
+                    )}
+                    {crossProject.length > 0 && (
+                      <>
+                        {sectionHeader(`Cross-project (${crossProject.length}) — pick = auto-add`)}
+                        {crossProject.map(renderRow)}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
+            {onCreateAccount && (
+              <button type="button" onClick={() => { setOpen(false); onCreateAccount(); }}
+                      disabled={busy}
+                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 6,
+                               padding: '8px 10px', background: 'var(--accent-soft)',
+                               border: 'none', borderTop: '1px solid var(--line)',
+                               color: 'var(--accent)', cursor: 'pointer',
+                               fontSize: 11.5, fontWeight: 700, justifyContent: 'center' }}>
+                ➕ Tạo account mới
+              </button>
+            )}
             {error && (
               <div style={{ padding: '6px 10px', fontSize: 10.5, color: 'var(--bad)',
                             background: 'rgba(248,113,113,.08)',

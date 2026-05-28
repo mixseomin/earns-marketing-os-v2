@@ -518,20 +518,17 @@ export function HabitatFormModal({
           <button className="btn ghost" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Tab bar — Sticky top trong modal-body (overflow-y: auto). Đứng
-              TRƯỚC AIFormParser để khi scroll vẫn switch tab nhanh.
-              Background PHẢI match .modal (var(--bg-1)), KHÔNG dùng --bg-0
-              đậm hơn → tạo khe visual với modal header phía trên. */}
+        <div className="modal-body" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* Tab bar — Sticky top trong modal-body (overflow-y: auto).
+              Modal-body padding: 0 + gap: 0 để sticky không bị shift bởi
+              padding/gap. Padding áp dụng cho NỘI DUNG bên dưới qua wrapper. */}
           <div role="tablist"
                style={{
                  position: 'sticky', top: 0, zIndex: 20,
                  display: 'flex', alignItems: 'flex-end', gap: 0,
                  borderBottom: '1px solid var(--line)',
                  background: 'var(--bg-1)',
-                 marginLeft: -10, marginRight: -10, paddingLeft: 10, paddingRight: 10,
-                 marginTop: -10, paddingTop: 6,
-                 marginBottom: -6, paddingBottom: 0,
+                 paddingLeft: 10, paddingRight: 10, paddingTop: 6,
                }}>
             {([
               { key: 'overview', label: '📋 Overview', desc: 'Layout 3-col tổng hợp (default)' },
@@ -558,6 +555,10 @@ export function HabitatFormModal({
               );
             })}
           </div>
+
+          {/* Wrapper áp dụng padding cho mọi content SAU sticky tab bar (vì
+              modal-body padding: 0 để sticky không shift). */}
+          <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
 
           {/* AIFormParser — collapsed mặc định để gọn. User click '▸ AI fill'
               để mở khi cần paste text/URL/screenshot extract toàn bộ field. */}
@@ -1884,6 +1885,7 @@ export function HabitatFormModal({
               {error}
             </div>
           )}
+          </div>{/* /padding wrapper */}
         </div>
 
         <div className="modal-foot">

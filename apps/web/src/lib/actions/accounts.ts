@@ -8,6 +8,7 @@ import { getDb, platformAccounts, platforms } from '@mos2/db';
 import {
   fetchDirectusAccountsByPlatform, fetchDirectusAccount,
   createDirectusAccount, updateDirectusAccount,
+  findDirectusPlatformBySlug,
   normalizeStatus, denormalizeStatus, directusEnabled,
   type DirectusAccount, type DirectusAccountWritable,
 } from '../bridge/directus';
@@ -591,8 +592,20 @@ export async function pushAccountToDirectus(
   const importTag = tags.find((t) => t.startsWith('imported:directus:'));
   const existingDirectusId = importTag ? importTag.slice('imported:directus:'.length) : null;
 
+  // Resolve platform_id (m2o uuid) qua slug lookup. Directus UI filter
+  // "Platform là Discord" dùng platform_id picker, không phải text field.
+  // Bỏ qua platform_id nếu lookup fail (legacy `platform` text vẫn được set).
+  let platformId: string | null = null;
+  try {
+    const p = await findDirectusPlatformBySlug(acc.platformKey);
+    platformId = p?.id ?? null;
+  } catch (e) {
+    console.warn('[accounts] findDirectusPlatformBySlug failed', e);
+  }
+
   const payload: DirectusAccountWritable = {
     platform: acc.platformKey,
+    platform_id: platformId,
     handle: acc.handle ?? null,
     email: acc.email ?? null,
     status: denormalizeStatus(acc.status),
@@ -698,4 +711,105 @@ export async function clearAccountApiToken(
     .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)));
   revalidatePath(`/p/${projectId}/resources`);
   return { ok: true };
+}
+
+// ── Platform sync ────────────────────────────────────────────────────
+// Fetch profile từ platform API (Discord/Reddit/X/Telegram/Slack/...)
+// dùng token đã encrypt, merge về platform_accounts + persona.
+
+export async function syncAccountFromPlatform(
+  projectId: string, id: number,
+): Promise<{
+  ok: boolean;
+  updated?: string[];        // list field tên đã update
+  profile?: Record<string, unknown>;
+  error?: string;
+}> {
+  if (!cryptoEnabled()) return { ok: false, error: 'MOS2_SECRET_KEY chưa cấu hình' };
+  const { getSyncer } = await import('@/lib/platform-syncers');
+  const db = ensureDb();
+
+  const acc = await findById(projectId, id);
+  if (!acc) return { ok: false, error: 'account not found' };
+
+  const syncer = getSyncer(acc.platformKey);
+  if (!syncer) {
+    return { ok: false, error: `Platform "${acc.platformKey}" chưa support sync (chỉ: discord/reddit/x/telegram/slack)` };
+  }
+
+  // Pick token: bot_token nếu account_kind='bot', else api_token.
+  const isBot = acc.accountKind === 'bot' || acc.accountKind === 'app';
+  const encColumn = isBot ? acc.botTokenEnc : acc.apiTokenEnc;
+  if (!encColumn) {
+    return {
+      ok: false,
+      error: isBot
+        ? 'Account chưa có bot_token. Set qua field "Bot token" trong modal.'
+        : 'Account chưa có api_token. Set qua field "API token".',
+    };
+  }
+  let token: string;
+  try {
+    token = await decryptValue(encColumn);
+  } catch (e) {
+    return { ok: false, error: `decrypt token fail: ${(e as Error).message}` };
+  }
+  if (!token) return { ok: false, error: 'Token decrypt empty' };
+
+  const res = await syncer.fetch({
+    token,
+    clientId: acc.clientId,
+    accountKind: acc.accountKind,
+  });
+  if (!res.ok || !res.profile) {
+    return { ok: false, error: res.error ?? 'Syncer trả không OK' };
+  }
+  const p = res.profile;
+
+  // Merge: chỉ overwrite nếu profile có giá trị non-null. Local edit của user
+  // KHÔNG bị mất nếu API không trả field đó.
+  const updated: string[] = [];
+  const set: Partial<typeof platformAccounts.$inferInsert> = { updatedAt: new Date() };
+  if (p.handle && p.handle !== acc.handle) { set.handle = p.handle; updated.push('handle'); }
+  if (p.email && p.email !== acc.email) { set.email = p.email; updated.push('email'); }
+  if (typeof p.mfaEnabled === 'boolean' && p.mfaEnabled !== acc.has2fa) {
+    set.has2fa = p.mfaEnabled; updated.push('has_2fa');
+  }
+  if (p.externalId && p.externalId !== acc.clientId) {
+    set.clientId = p.externalId; updated.push('client_id');
+  }
+
+  // Merge persona: giữ field user đã set, overwrite các field từ API.
+  const currentPersona = (acc.persona as Record<string, string> | null) ?? {};
+  const newPersona: Record<string, string> = { ...currentPersona };
+  if (p.displayName) newPersona.displayName = p.displayName;
+  if (p.avatarUrl) newPersona.avatarUrl = p.avatarUrl;
+  if (typeof p.verified === 'boolean') newPersona.verified = String(p.verified);
+  if (p.tier) newPersona.tier = p.tier;
+  if (p.followerCount != null) newPersona.followerCount = String(p.followerCount);
+  if (p.followingCount != null) newPersona.followingCount = String(p.followingCount);
+  // Extra fields → stringify để fit persona shape Record<string,string>.
+  for (const [k, v] of Object.entries(p.extra ?? {})) {
+    if (v == null) continue;
+    newPersona[`platform_${k}`] = typeof v === 'string' ? v : JSON.stringify(v);
+  }
+  if (JSON.stringify(newPersona) !== JSON.stringify(currentPersona)) {
+    set.persona = newPersona;
+    updated.push('persona');
+  }
+
+  if (updated.length === 0) {
+    return { ok: true, updated: [], profile: p as unknown as Record<string, unknown> };
+  }
+
+  await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
+
+  // Cascade push sang Directus (cùng pattern updateAccount).
+  if (directusEnabled()) {
+    try { await pushAccountToDirectus(projectId, acc.id); }
+    catch (e) { console.warn('[sync] push to Directus failed', e); }
+  }
+
+  revalidatePath(`/p/${projectId}/resources`);
+  return { ok: true, updated, profile: p as unknown as Record<string, unknown> };
 }

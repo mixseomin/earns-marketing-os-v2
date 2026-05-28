@@ -31,7 +31,8 @@ async function getJson<T>(path: string): Promise<T> {
 
 export interface DirectusAccount {
   id: string;
-  platform: string | null;
+  platform: string | null;             // legacy text field
+  platform_id: string | null;          // m2o → platforms.id (uuid)
   handle: string | null;
   email: string | null;
   status: string | null;
@@ -48,7 +49,7 @@ export interface DirectusAccount {
 }
 
 const ACCOUNT_FIELDS = [
-  'id', 'platform', 'handle', 'email', 'status', 'auth_method',
+  'id', 'platform', 'platform_id', 'handle', 'email', 'status', 'auth_method',
   'has_2fa', 'monthly_cost', 'collect_stats', 'tags', 'notes',
   'recovery_info', 'warmup_checklist', 'purpose', 'value_tier',
 ].join(',');

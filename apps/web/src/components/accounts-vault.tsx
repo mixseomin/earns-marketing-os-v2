@@ -13,6 +13,7 @@ import {
   listAccountsForProjectByPlatform,
   listDirectusAccountsForPlatform, importDirectusAccount, pushAccountToDirectus,
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
+  syncAccountFromPlatform,
   listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
 } from '@/lib/actions/accounts';
@@ -1326,6 +1327,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             : undefined}
           onClose={onClose}
         />
+
+        {!isCreate && account && SYNC_PLATFORMS.has(form.platformKey) && (
+          <SyncBanner projectId={projectId} accountId={account.id}
+                      platformLabel={platform?.label ?? form.platformKey} />
+        )}
 
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
@@ -3088,5 +3094,67 @@ function AccountBriefsSection({
         />
       )}
     </Collapsible>
+  );
+}
+
+// ── Platform sync ────────────────────────────────────────────────────
+// Hardcode set platform key có support sync (đồng bộ với platform-syncers/
+// registry). Phải update khi thêm syncer mới.
+const SYNC_PLATFORMS = new Set(['discord', 'reddit', 'x', 'telegram', 'slack']);
+
+function SyncBanner({ projectId, accountId, platformLabel }: {
+  projectId: string;
+  accountId: number;
+  platformLabel: string;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; kind: 'ok' | 'warn' | 'info' } | null>(null);
+
+  const doSync = async () => {
+    setBusy(true);
+    setMsg({ text: 'Đang fetch profile từ ' + platformLabel + '…', kind: 'info' });
+    try {
+      const res = await syncAccountFromPlatform(projectId, accountId);
+      if (!res.ok) {
+        setMsg({ text: '⚠ ' + (res.error ?? 'sync fail'), kind: 'warn' });
+      } else if (!res.updated || res.updated.length === 0) {
+        setMsg({ text: '✓ Đã fetch — không có field nào cần update.', kind: 'ok' });
+      } else {
+        setMsg({
+          text: '✓ Update ' + res.updated.length + ' field: ' + res.updated.join(', '),
+          kind: 'ok',
+        });
+        router.refresh();
+      }
+    } catch (e) {
+      setMsg({ text: '⚠ Lỗi: ' + (e as Error).message, kind: 'warn' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10,
+                  background: 'var(--bg-1)', borderBottom: '1px solid var(--line)',
+                  fontSize: 12 }}>
+      <span style={{ color: 'var(--fg-3)' }}>
+        🔄 <strong>Sync</strong> từ {platformLabel} API
+      </span>
+      <span style={{ flex: 1, fontSize: 11, color:
+        msg?.kind === 'ok' ? 'var(--ok)' :
+        msg?.kind === 'warn' ? 'var(--warn)' : 'var(--fg-4)' }}>
+        {msg?.text ?? 'Fetch profile (handle, email, 2FA, follower count, avatar...) qua API token đã lưu.'}
+      </span>
+      <button type="button" onClick={doSync} disabled={busy}
+              className="btn"
+              style={{ fontSize: 11, padding: '4px 12px', fontWeight: 700,
+                       background: busy ? 'var(--bg-2)' : 'var(--accent)',
+                       color: busy ? 'var(--fg-3)' : '#fff',
+                       border: 'none', borderRadius: 4,
+                       cursor: busy ? 'wait' : 'pointer' }}>
+        {busy ? '⟳ Đang sync…' : '🔄 Sync now'}
+      </button>
+    </div>
   );
 }

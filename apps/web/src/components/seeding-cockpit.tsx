@@ -150,6 +150,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [confirmCleanup, setConfirmCleanup] = useState<number | null>(null); // accountId 2-step
   const [expandedDead, setExpandedDead] = useState<Set<number>>(() => new Set()); // collapse default
   const [expandedNeed, setExpandedNeed] = useState<Set<string>>(() => new Set()); // platformKey set
+  const [issuePanel, setIssuePanel] = useState<string | null>(null); // 1-at-a-time expand
   const [expandedNeedJoin, setExpandedNeedJoin] = useState<Set<string>>(() => new Set());
   const [fmtMenuFor, setFmtMenuFor] = useState<number | null>(null); // scheduleId mở menu chọn format
   const [actionMenuFor, setActionMenuFor] = useState<number | null>(null); // scheduleId mở overflow menu
@@ -1791,33 +1792,106 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         <EmptyState icon="🔍" title="Không có lịch match filter" compact />
       ) : (
         <>
-          {/* "Cần tạo account" — DEMAND signal, luôn hiện trên cùng để user
-              chủ động tạo account thay vì chờ. */}
-          {needAccountGroups.length > 0 && (
-            <NeedAccountSection
-              groups={needAccountGroups}
-              onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
-              onOpenBrief={(briefId) => modal.open('brief', briefId)}
-            />
-          )}
-          {/* "Cần join community" — account đã ready nhưng chưa join. Step
-              tiếp theo sau tạo account. */}
-          {needJoinGroups.length > 0 && (
-            <NeedJoinSection
-              groups={needJoinGroups}
-              onOpenBrief={(briefId) => modal.open('brief', briefId)}
-            />
-          )}
-          {deadGroups.map((g) => <DeadAccountCard key={g.accountId} g={g} />)}
-          {recentPosted.length > 0 && (
-            <RecentPostedSection
-              cards={recentPosted}
-              onOpenBrief={(briefId, cardId, phase) => {
-                if (phase) focusPost(briefId, phase, cardId ?? undefined);
-                else { clearFocus(); modal.open('brief', briefId); }
-              }}
-            />
-          )}
+          {/* Issue toolbar — 4 chip thay 4 section cồng kềnh. Click chip =
+              expand panel chi tiết bên dưới (chỉ 1 mở 1 lần). Default collapsed. */}
+          {(() => {
+            const totalNeedAccount = needAccountGroups.reduce((s, g) => s + g.accounts, 0);
+            const totalNeedJoin = needJoinGroups.reduce((s, g) => s + g.accounts, 0);
+            const totalDead = deadGroups.length;
+            const totalRecent = recentPosted.length;
+            const items: Array<{
+              key: string; label: string; count: number; color: string; bg: string;
+              icon: string; tooltip: string;
+            }> = [];
+            if (totalNeedAccount > 0) items.push({
+              key: 'need-account', label: 'Cần tạo account', count: totalNeedAccount,
+              color: '#60a5fa', bg: 'rgba(59,130,246,.12)', icon: '➕',
+              tooltip: `${totalNeedAccount} account cần tạo · ${needAccountGroups.reduce((s, g) => s + g.habitats, 0)} community đang chờ`,
+            });
+            if (totalNeedJoin > 0) items.push({
+              key: 'need-join', label: 'Cần join community', count: totalNeedJoin,
+              color: 'var(--warn)', bg: 'rgba(251,191,36,.12)', icon: '🔗',
+              tooltip: `${totalNeedJoin} account chưa join community`,
+            });
+            if (totalDead > 0) items.push({
+              key: 'dead', label: 'Account ngưng', count: totalDead,
+              color: 'var(--bad)', bg: 'rgba(248,113,113,.12)', icon: '⛔',
+              tooltip: `${totalDead} account banned/dead — cần fix hoặc dọn nháp`,
+            });
+            if (totalRecent > 0) items.push({
+              key: 'recent', label: 'Vừa đăng (7d)', count: totalRecent,
+              color: 'var(--ok)', bg: 'rgba(34,197,94,.12)', icon: '📨',
+              tooltip: `${totalRecent} bài đăng trong 7 ngày qua`,
+            });
+            if (items.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {items.map((it) => {
+                    const active = issuePanel === it.key;
+                    return (
+                      <button key={it.key} type="button"
+                              onClick={() => setIssuePanel(active ? null : it.key)}
+                              title={it.tooltip}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                padding: '4px 10px', borderRadius: 4,
+                                background: active ? it.color : it.bg,
+                                color: active ? '#fff' : it.color,
+                                border: `1px solid ${it.color}66`,
+                                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                fontFamily: 'inherit',
+                              }}>
+                        <span>{it.icon}</span>
+                        <span>{it.label}</span>
+                        <span style={{
+                          padding: '0 5px', borderRadius: 3,
+                          background: active ? 'rgba(255,255,255,.25)' : it.color,
+                          color: active ? '#fff' : '#fff',
+                          fontSize: 10, fontFamily: 'var(--font-mono)',
+                        }}>{it.count}</span>
+                        <IconChevron dir={active ? 'down' : 'right'} size={10} />
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Expand panel — chỉ render section đang được chọn */}
+                {issuePanel === 'need-account' && needAccountGroups.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <NeedAccountSection
+                      groups={needAccountGroups}
+                      onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
+                      onOpenBrief={(briefId) => modal.open('brief', briefId)}
+                    />
+                  </div>
+                )}
+                {issuePanel === 'need-join' && needJoinGroups.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <NeedJoinSection
+                      groups={needJoinGroups}
+                      onOpenBrief={(briefId) => modal.open('brief', briefId)}
+                    />
+                  </div>
+                )}
+                {issuePanel === 'dead' && deadGroups.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {deadGroups.map((g) => <DeadAccountCard key={g.accountId} g={g} />)}
+                  </div>
+                )}
+                {issuePanel === 'recent' && recentPosted.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <RecentPostedSection
+                      cards={recentPosted}
+                      onOpenBrief={(briefId, cardId, phase) => {
+                        if (phase) focusPost(briefId, phase, cardId ?? undefined);
+                        else { clearFocus(); modal.open('brief', briefId); }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <Bucket title="Quá hạn" items={bucketsByBrief.overdue} accent="var(--bad)" />
           <Bucket title="Đến hạn" items={bucketsByBrief.due} accent="var(--warn)" />
           <Bucket title="Tuần này" items={bucketsByBrief.week} accent="var(--accent)" />

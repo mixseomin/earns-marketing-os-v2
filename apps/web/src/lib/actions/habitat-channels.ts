@@ -22,6 +22,7 @@ export interface HabitatChannelRow {
   url: string | null;
   description: string;
   rules: string;
+  language: string;        // 0080: channel-level lang override
   allowedFormats: string[] | null;
   postingGates: Record<string, unknown> | null;
   voiceProfileOverride: string | null;
@@ -34,6 +35,7 @@ export interface HabitatChannelInput {
   url?: string | null;
   description?: string;
   rules?: string;
+  language?: string;
   allowedFormats?: string[] | null;
   postingGates?: Record<string, unknown> | null;
   voiceProfileOverride?: string | null;
@@ -44,7 +46,7 @@ export interface HabitatChannelInput {
 export async function listChannelsForHabitat(habitatId: number): Promise<HabitatChannelRow[]> {
   const db = ensureDb();
   const rows = await db.execute(sql`
-    SELECT id, habitat_id, name, url, description, rules,
+    SELECT id, habitat_id, name, url, description, rules, language,
            allowed_formats, posting_gates, voice_profile_override, few_shot_examples, sort_order
       FROM habitat_channels
      WHERE habitat_id = ${habitatId}
@@ -57,6 +59,7 @@ export async function listChannelsForHabitat(habitatId: number): Promise<Habitat
     url: r.url ? String(r.url) : null,
     description: String(r.description ?? ''),
     rules: String(r.rules ?? ''),
+    language: String(r.language ?? ''),
     allowedFormats: Array.isArray(r.allowed_formats) ? (r.allowed_formats as string[]) : null,
     postingGates: (r.posting_gates && typeof r.posting_gates === 'object' && !Array.isArray(r.posting_gates))
       ? (r.posting_gates as Record<string, unknown>) : null,
@@ -79,6 +82,7 @@ export async function createChannel(
     url: input.url ?? null,
     description: input.description ?? '',
     rules: input.rules ?? '',
+    language: input.language ?? '',
     allowedFormats: input.allowedFormats ?? null,
     postingGates: input.postingGates ?? null,
     voiceProfileOverride: input.voiceProfileOverride ?? null,
@@ -97,6 +101,7 @@ export async function updateChannel(
   if (patch.url !== undefined) set.url = patch.url;
   if (patch.description != null) set.description = patch.description;
   if (patch.rules != null) set.rules = patch.rules;
+  if (patch.language != null) set.language = patch.language;
   if (patch.allowedFormats !== undefined) set.allowedFormats = patch.allowedFormats;
   if (patch.postingGates !== undefined) set.postingGates = patch.postingGates;
   if (patch.voiceProfileOverride !== undefined) set.voiceProfileOverride = patch.voiceProfileOverride;

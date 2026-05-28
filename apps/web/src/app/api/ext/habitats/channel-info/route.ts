@@ -30,9 +30,11 @@ export async function GET(req: Request) {
     channel: {
       id: c.id,
       name: c.name,
+      url: c.url,
       externalId: c.externalId,
       topic: c.topic,
       rules: c.rules,
+      language: c.language,
       pinnedSummary: c.pinnedSummary,
       recentSummary: c.recentSummary,
       syncedAt: c.syncedAt,

@@ -726,6 +726,9 @@ export const habitatChannels = pgTable(
     pinnedSummary: jsonb('pinned_summary'),                // AI summary từ pinned messages
     recentSummary: jsonb('recent_summary'),                // AI summary từ recent messages
     syncedAt: timestamp('synced_at', { withTimezone: true }),
+    // 0080: channel-level language override (vd Discord multi-region server).
+    // Empty = kế thừa habitat.language.
+    language: text('language').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

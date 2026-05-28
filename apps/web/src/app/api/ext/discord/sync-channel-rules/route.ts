@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   // 1. Verify habitat
   const habRows = await db.select({
     id: habitats.id, name: habitats.name, kind: habitats.kind,
+    scrapedMeta: habitats.scrapedMeta,
   }).from(habitats).where(eq(habitats.id, habitatId)).limit(1);
   const hab = habRows[0];
   if (!hab) return NextResponse.json({ ok: false, error: 'habitat not found' }, { status: 404 });
@@ -52,6 +53,10 @@ export async function POST(req: Request) {
   if (hab.kind !== 'discord') {
     return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind}, không phải Discord` }, { status: 400 });
   }
+  const guildId = (hab.scrapedMeta as Record<string, unknown> | null)?.discord_guild_id;
+  const channelUrl = (typeof guildId === 'string' && guildId)
+    ? `https://discord.com/channels/${guildId}/${channelId}`
+    : null;
 
   const channelName = (body.channelName ?? '').trim() || `channel-${channelId.slice(-6)}`;
   const topic = (body.topic ?? '').trim();
@@ -63,6 +68,7 @@ export async function POST(req: Request) {
   let pinnedSummary: Record<string, unknown> | null = null;
   let recentSummary: Record<string, unknown> | null = null;
   let aiError: string | null = null;
+  let detectedLang = '';
 
   if (hasData) {
     const openai = getOpenAI();
@@ -87,7 +93,8 @@ Trả JSON shape:
   "dont": ["anti-pattern 1", ...],
   "voiceHint": "tone style ngắn (1-2 sentences)",
   "commonTopics": ["topic chính 1", ...],
-  "exampleStyles": ["1 ví dụ tin nhắn tiêu biểu (paraphrase)", ...]
+  "exampleStyles": ["1 ví dụ tin nhắn tiêu biểu (paraphrase)", ...],
+  "language": "ISO code 2 ký tự của ngôn ngữ chính dùng trong recent messages (en/vi/hi/zh/ja/ko/es/...). Empty nếu không xác định được."
 }
 
 KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng.`;
@@ -115,6 +122,11 @@ KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng
         commonTopics: Array.isArray(parsed.commonTopics) ? parsed.commonTopics : [],
         exampleStyles: Array.isArray(parsed.exampleStyles) ? parsed.exampleStyles : [],
       };
+      // Validate language: 2 ký tự ISO, lowercase.
+      if (typeof parsed.language === 'string') {
+        const lang = parsed.language.trim().toLowerCase();
+        if (/^[a-z]{2}$/.test(lang)) detectedLang = lang;
+      }
     } catch (e) {
       aiError = (e as Error).message;
     }
@@ -152,26 +164,33 @@ KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng
   let channelDbId: number;
   if (existing[0]) {
     channelDbId = existing[0].id;
-    await db.update(habitatChannels).set({
+    const updateSet: Record<string, unknown> = {
       name: channelName,
       externalId: channelId,    // backfill nếu match qua name fallback
+      url: channelUrl,           // auto-build từ guild_id + channel_id
       topic,
       rules: rulesMarkdown,
       pinnedSummary,
       recentSummary,
       syncedAt: new Date(),
       updatedAt: new Date(),
-    }).where(eq(habitatChannels.id, channelDbId));
+    };
+    // KHÔNG overwrite language nếu user đã set manual. AI detect chỉ điền
+    // khi rỗng (initial sync).
+    if (detectedLang) updateSet.language = detectedLang;
+    await db.update(habitatChannels).set(updateSet).where(eq(habitatChannels.id, channelDbId));
   } else {
     const inserted = await db.insert(habitatChannels).values({
       habitatId,
       name: channelName,
       externalId: channelId,
+      url: channelUrl,
       topic,
       rules: rulesMarkdown,
       pinnedSummary,
       recentSummary,
       syncedAt: new Date(),
+      language: detectedLang,
     }).returning({ id: habitatChannels.id });
     channelDbId = inserted[0]!.id;
   }
@@ -180,10 +199,12 @@ KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng
     ok: true,
     channelDbId,
     channelName,
+    channelUrl,
     topic,
     rulesMarkdown,
     pinnedSummary,
     recentSummary,
+    language: detectedLang,
     pinnedCount: pinned.length,
     recentCount: recent.length,
     aiError,

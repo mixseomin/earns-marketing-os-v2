@@ -44,7 +44,7 @@ const HEALTH = ['ok', 'warn', 'bad'] as const;
 const STATUS_OPTS = ['target', 'engaged', 'saturated', 'banned', 'dormant', 'defunct'] as const;
 const STRICTNESS = ['', 'low', 'medium', 'high'] as const;
 const COMMUNITY_TYPES = ['', 'discussion', 'news', 'q-a', 'portfolio', 'sharing', 'other'] as const;
-const LANGUAGES = ['', 'en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru', 'multi'] as const;
+const LANGUAGES = ['', 'en', 'vi', 'es', 'fr', 'de', 'pt', 'it', 'zh', 'ja', 'ko', 'ru', 'hi', 'ar', 'multi'] as const;
 
 export function HabitatFormModal({
   projectId, habitat, tribes, platforms, presetTribeId, onClose, onCreated,
@@ -1808,6 +1808,10 @@ function ChannelRow({
           <span title="Có description / rules"
                 style={{ fontSize: 10, color: 'var(--ok)' }}>●</span>
         )}
+        {ch.language && (
+          <LangChip mode="static" code={ch.language} size="sm" variant="accent"
+                    title={`Channel-level language: ${ch.language.toUpperCase()} (override habitat)`} />
+        )}
         {skipForPost && (
           <span title="Channel admin/info-only — AI sẽ KHÔNG pick channel này khi tạo bài"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -1849,6 +1853,18 @@ function ChannelRow({
                  onChange={(e) => onChange({ description: e.target.value })}
                  placeholder="Mô tả ngắn — off-topic / showcase only / Q&A…"
                  style={{ ...fld, fontSize: 11 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+              Ngôn ngữ:
+            </span>
+            <LangChip mode="select" code={ch.language ?? ''}
+                      langs={LANGUAGES}
+                      onChange={(v) => onChange({ language: v })}
+                      title="Channel-level. Empty = kế thừa habitat." />
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+              (empty = kế thừa habitat)
+            </span>
+          </div>
           <textarea value={ch.rules ?? ''}
                     onChange={(e) => onChange({ rules: e.target.value })}
                     placeholder="Rules markdown cho channel này — vd 'no links, AMA Friday only, 100+ karma…'"

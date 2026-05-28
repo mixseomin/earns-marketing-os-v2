@@ -29,6 +29,8 @@ const LANG_META: Record<string, LangMeta> = {
   ja:      { code: 'ja',    flag: '🇯🇵', label: '日本語',       fullLabel: 'Japanese · 日本語' },
   ko:      { code: 'ko',    flag: '🇰🇷', label: '한국어',        fullLabel: 'Korean · 한국어' },
   ru:      { code: 'ru',    flag: '🇷🇺', label: 'Русский',     fullLabel: 'Russian · Русский' },
+  hi:      { code: 'hi',    flag: '🇮🇳', label: 'हिन्दी',         fullLabel: 'Hindi · हिन्दी' },
+  ar:      { code: 'ar',    flag: '🇸🇦', label: 'العربية',       fullLabel: 'Arabic · العربية' },
   multi:   { code: 'multi', flag: '🌍', label: 'Multi',       fullLabel: 'Multilingual — community trộn nhiều ngôn ngữ' },
 };
 

@@ -105,6 +105,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       warmupChecklist: {},
       ownerUserId: input.ownerUserId ?? null,
       persona: input.persona ?? {},
+      accountKind: input.accountKind ?? 'user',
     })
     .returning({ id: platformAccounts.id });
 

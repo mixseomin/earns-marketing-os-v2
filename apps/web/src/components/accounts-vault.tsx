@@ -1005,6 +1005,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     proxyId: account?.proxyId ?? null as number | null,
     browserProfileId: account?.browserProfileId ?? null as number | null,
     persona: account?.persona ?? {} as Record<string, string>,
+    accountKind: ((account as { accountKind?: string } | null)?.accountKind ?? 'user') as 'user' | 'bot' | 'app',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -1180,6 +1181,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         notes: form.notes || null,
         ownerUserId: form.ownerUserId,
         persona: form.persona,
+        accountKind: form.accountKind,
       };
       const res = isCreate
         ? await createAccount(projectId, payload)
@@ -1500,6 +1502,36 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   locked ? { ...fld, opacity: 0.6, cursor: 'not-allowed' } : fld;
                 return (
                   <>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <span style={lbl} title="user = manual login (cần warming + persona). bot = Discord/Slack bot có bot_token (auto-post API). app = OAuth integration (Reddit script-app).">
+                        Account kind
+                      </span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {(['user', 'bot', 'app'] as const).map((k) => {
+                          const on = form.accountKind === k;
+                          const icon = k === 'bot' ? '🤖' : k === 'app' ? '🔌' : '👤';
+                          const label = k === 'bot' ? 'Bot' : k === 'app' ? 'App' : 'User';
+                          const hint = k === 'bot' ? 'Discord/Slack bot, có bot_token, auto-post API'
+                            : k === 'app' ? 'OAuth integration (Reddit script-app)'
+                            : 'Manual login, cần warming + persona';
+                          return (
+                            <button key={k} type="button"
+                                    onClick={() => setF('accountKind', k)}
+                                    title={hint}
+                                    style={{ flex: 1, padding: '6px 10px', fontSize: 11,
+                                             fontWeight: 700, fontFamily: 'var(--font-mono)',
+                                             background: on ? 'var(--accent)' : 'var(--bg-2)',
+                                             color: on ? '#fff' : 'var(--fg-2)',
+                                             border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                                             borderRadius: 4, cursor: 'pointer',
+                                             display: 'inline-flex', alignItems: 'center',
+                                             justifyContent: 'center', gap: 4 }}>
+                              {icon} {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div>
                       <span style={lbl}>Handle / username</span>
                       <NoFillInput

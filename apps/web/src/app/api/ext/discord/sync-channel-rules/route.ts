@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitats, habitatChannels } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
@@ -131,16 +131,30 @@ KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng
     ps.voiceHint ? `**Voice hint:** ${ps.voiceHint}` : '',
   ].filter(Boolean).join('\n\n') || '(no summary yet)';
 
-  // 4. Upsert habitat_channels
-  const existing = await db.select({ id: habitatChannels.id }).from(habitatChannels)
+  // 4. Upsert habitat_channels — 2 tầng match:
+  //   a. external_id = channelId (chính xác, sau khi đã sync 1 lần)
+  //   b. Fallback name match (case-insensitive) — channels tạo qua
+  //      ChannelBulkParser KHÔNG có external_id → tránh duplicate khi sync.
+  //      Sau update, set external_id để lần sau match tier a.
+  let existing = await db.select({ id: habitatChannels.id }).from(habitatChannels)
     .where(and(eq(habitatChannels.habitatId, habitatId), eq(habitatChannels.externalId, channelId)))
     .limit(1);
+  if (existing.length === 0 && channelName) {
+    existing = await db.select({ id: habitatChannels.id }).from(habitatChannels)
+      .where(and(
+        eq(habitatChannels.habitatId, habitatId),
+        sql`LOWER(${habitatChannels.name}) = LOWER(${channelName})`,
+        sql`(${habitatChannels.externalId} IS NULL OR ${habitatChannels.externalId} = '')`,
+      ))
+      .limit(1);
+  }
 
   let channelDbId: number;
   if (existing[0]) {
     channelDbId = existing[0].id;
     await db.update(habitatChannels).set({
       name: channelName,
+      externalId: channelId,    // backfill nếu match qua name fallback
       topic,
       rules: rulesMarkdown,
       pinnedSummary,

@@ -13,7 +13,8 @@
 // State giữ trong React; có thể sync URL sau (?days=, ?lc=, etc.) — chưa làm
 // để tránh xung đột với queue filter (issueFilter, q, statusFilter) cùng page.
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { wrapExternalUrl } from '@/lib/external-url';
 import {
   listAllPostedCards,
@@ -1161,6 +1162,9 @@ function formatDuration(ms: number): string {
 
 // CostHoverCell — hover mở popover hiện breakdown các version (sibling drafts
 // cùng parent_url) + tổng cost + total time. Lazy fetch khi hover lần đầu.
+// Popover render qua portal vào body để THOÁT clip của table wrapper
+// (overflow: hidden). Position = bounding rect của cell, flip lên/xuống
+// tuỳ chỗ trống màn hình.
 function CostHoverCell({ cardId, currentCost }: {
   cardId: number;
   currentCost: number | null;
@@ -1168,6 +1172,10 @@ function CostHoverCell({ cardId, currentCost }: {
   const [data, setData] = useState<CostBreakdown | null>(null);
   const [open, setOpen] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number; placeAbove: boolean } | null>(null);
+  const tdRef = useRef<HTMLTableCellElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   async function ensureFetched() {
     if (data != null || fetching) return;
@@ -1180,11 +1188,33 @@ function CostHoverCell({ cardId, currentCost }: {
     }
   }
 
+  function openWithPos() {
+    ensureFetched();
+    const el = tdRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const POPOVER_HEIGHT = 240;   // ước lượng
+      const POPOVER_WIDTH = 300;
+      const spaceAbove = rect.top;
+      const placeAbove = spaceAbove > POPOVER_HEIGHT + 20;
+      // Anchor right edge của cell, popover xoè sang trái.
+      let left = rect.right - POPOVER_WIDTH;
+      if (left < 8) left = 8;
+      if (left + POPOVER_WIDTH > window.innerWidth - 8) {
+        left = window.innerWidth - POPOVER_WIDTH - 8;
+      }
+      const top = placeAbove ? rect.top - 4 : rect.bottom + 4;
+      setCoords({ top, left, placeAbove });
+    }
+    setOpen(true);
+  }
+
   const hasCost = currentCost != null && currentCost > 0;
 
   return (
-    <td style={{ ...td(), textAlign: 'center', position: 'relative' }}
-        onMouseEnter={() => { ensureFetched(); setOpen(true); }}
+    <td ref={tdRef}
+        style={{ ...td(), textAlign: 'center' }}
+        onMouseEnter={openWithPos}
         onMouseLeave={() => setOpen(false)}>
       {hasCost ? (
         <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
@@ -1196,12 +1226,14 @@ function CostHoverCell({ cardId, currentCost }: {
         <span style={{ fontSize: 10, color: 'var(--fg-4)', opacity: 0.55,
                        fontFamily: 'var(--font-mono)' }}>—</span>
       )}
-      {open && hasCost && (
-        <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
-                      minWidth: 280, padding: 8, zIndex: 60,
+      {open && hasCost && mounted && coords && createPortal(
+        <div style={{ position: 'fixed',
+                      [coords.placeAbove ? 'bottom' : 'top']:
+                        coords.placeAbove ? window.innerHeight - coords.top : coords.top,
+                      left: coords.left, width: 300, padding: 8, zIndex: 9999,
                       background: 'var(--bg-1)', border: '1px solid var(--line)',
                       borderRadius: 5, boxShadow: '0 4px 14px rgba(0,0,0,.5)',
-                      textAlign: 'left' }}>
+                      textAlign: 'left', pointerEvents: 'none' }}>
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
                         color: 'var(--fg-3)', marginBottom: 6,
                         textTransform: 'uppercase' }}>
@@ -1274,7 +1306,8 @@ function CostHoverCell({ cardId, currentCost }: {
               Không có dữ liệu version
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </td>
   );

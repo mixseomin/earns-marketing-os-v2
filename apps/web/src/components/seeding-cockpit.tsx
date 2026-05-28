@@ -1682,7 +1682,9 @@ function RecentPostedSection({ cards, onOpenBrief }: {
   cards: RecentPostedCard[];
   onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  // Mặc định collapse — section này tham khảo nhanh, không phải primary
+  // workflow. User click chevron để xem chi tiết khi cần.
+  const [expanded, setExpanded] = useState(false);
   if (cards.length === 0) return null;
 
   return (

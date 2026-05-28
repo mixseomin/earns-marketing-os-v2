@@ -863,14 +863,27 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
                       fontSize: 11,
                     }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-                        @{r.accountHandle}
-                      </span>
+                      <EntityLink color="var(--fg-3)"
+                                  onClick={() => setAccountOverlayId(r.accountId)}
+                                  title="Mở account modal">
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>@{r.accountHandle}</span>
+                      </EntityLink>
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
-                      <span style={{ color: 'var(--fg-1)' }}>{r.habitatName}</span>
+                      <EntityLink color="var(--fg-1)"
+                                  onClick={() => setHabitatOverlayId(r.habitatId)}
+                                  title="Mở habitat modal">
+                        {r.habitatName}
+                      </EntityLink>
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
                         ({r.habitatKind}{r.tribeName ? ` · ${r.tribeName}` : ''})
                       </span>
+                      <EntityLink color="var(--accent)"
+                                  onClick={() => onOpenBrief(r.briefId)}
+                                  title="Mở Brief modal">
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                          BRF-{r.briefId}
+                        </span>
+                      </EntityLink>
                       <span style={{ flex: 1 }} />
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)',
                                      color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
@@ -997,14 +1010,27 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
                       fontSize: 11,
                     }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-                        @{r.accountHandle}
-                      </span>
+                      <EntityLink color="var(--fg-3)"
+                                  onClick={() => setAccountOverlayId(r.accountId)}
+                                  title="Mở account modal">
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>@{r.accountHandle}</span>
+                      </EntityLink>
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
-                      <span style={{ color: 'var(--fg-1)' }}>{r.habitatName}</span>
+                      <EntityLink color="var(--fg-1)"
+                                  onClick={() => setHabitatOverlayId(r.habitatId)}
+                                  title="Mở habitat modal">
+                        {r.habitatName}
+                      </EntityLink>
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
                         ({r.habitatKind}{r.tribeName ? ` · ${r.tribeName}` : ''})
                       </span>
+                      <EntityLink color="var(--accent)"
+                                  onClick={() => onOpenBrief(r.briefId)}
+                                  title="Mở Brief modal">
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                          BRF-{r.briefId}
+                        </span>
+                      </EntityLink>
                       <span style={{ flex: 1 }} />
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)',
                                      color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>

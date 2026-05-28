@@ -410,6 +410,11 @@ export const platforms = pgTable(
     // formatMix = JSONB object {format_key: weight}.
     allowedFormats: jsonb('allowed_formats'),
     formatMix: jsonb('format_mix'),
+    // Migration 0081: ext login detection selectors. Shape:
+    //   { login: string[], handle?: string[] }
+    // login = selectors check logged-in (avatar/dropdown). handle = optional
+    // selectors extract viewer username từ href / text content.
+    viewerSelectors: jsonb('viewer_selectors').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

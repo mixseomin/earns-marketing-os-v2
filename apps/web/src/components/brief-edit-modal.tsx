@@ -3459,8 +3459,8 @@ function PostRow({
         {/* Channel picker — chỉ hiện cho Discord/Slack/Telegram habitats.
             Click chip → dropdown chọn channel + AI suggest. Đổi channel
             mà voice thay đổi → confirm prompt re-gen.
-            Collapsed → ẩn (giảm chip trên row); expanded mới show. */}
-        {expanded && (
+            Show cả collapsed + expanded để user biết card đăng channel nào
+            (Discord/Slack sub-channel khác nhau ruleset + voice). */}
         <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
           <ChannelPickerChip
             cardId={post.id}
@@ -3485,7 +3485,6 @@ function PostRow({
             }}
           />
         </span>
-        )}
         {/* Pillar picker — macro positioning. Hidden tự động nếu project chưa
             có pillar nào (CPS chưa setup). Đổi pillar = đổi voice + key msgs
             + forbidden → AI gen ra bài khác hẳn.

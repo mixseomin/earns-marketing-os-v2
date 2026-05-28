@@ -141,6 +141,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   // thị các dòng có issue đó. null = không filter.
   const [issueFilter, setIssueFilter] = useState<'no-url' | 'acct-dead' | 'acct-not-ready' | 'platform-mismatch' | 'no-posts' | 'incomplete-posts' | 'ready' | null>(null);
   const [q, setQ] = useState('');
+  // Multi-select filters — platform/account/habitat. Default empty = không lọc.
+  const [filterPlatforms, setFilterPlatforms] = useState<string[]>([]);
+  const [filterAccounts, setFilterAccounts] = useState<number[]>([]);
+  const [filterHabitats, setFilterHabitats] = useState<number[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   // In-place "account chết" confirm panel (KHÔNG navigate, KHÔNG native confirm)
   const [retiring, setRetiring] = useState<
@@ -291,13 +295,57 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
 
   // Search-only (status filter applied later, only to live rows).
   const searchOnly = useMemo(() => {
-    if (!q.trim()) return queue;
-    const s = q.toLowerCase();
-    return queue.filter((x) =>
-      x.habitatName.toLowerCase().includes(s) ||
-      x.accountHandle.toLowerCase().includes(s) ||
-      (x.tribeName ?? '').toLowerCase().includes(s));
-  }, [queue, q]);
+    let list = queue;
+    if (q.trim()) {
+      const s = q.toLowerCase();
+      list = list.filter((x) =>
+        x.habitatName.toLowerCase().includes(s) ||
+        x.accountHandle.toLowerCase().includes(s) ||
+        (x.tribeName ?? '').toLowerCase().includes(s));
+    }
+    if (filterPlatforms.length > 0) {
+      const set = new Set(filterPlatforms);
+      list = list.filter((x) => set.has(x.platformKey));
+    }
+    if (filterAccounts.length > 0) {
+      const set = new Set(filterAccounts);
+      list = list.filter((x) => set.has(x.accountId));
+    }
+    if (filterHabitats.length > 0) {
+      const set = new Set(filterHabitats);
+      list = list.filter((x) => set.has(x.habitatId));
+    }
+    return list;
+  }, [queue, q, filterPlatforms, filterAccounts, filterHabitats]);
+
+  // Options cho 3 filter dropdowns — derive từ queue.
+  // Sort alpha, hiển thị count để user biết platform/account/habitat nào nhiều.
+  const filterOptions = useMemo(() => {
+    const platformMap = new Map<string, { label: string; count: number }>();
+    const accountMap = new Map<number, { handle: string; count: number }>();
+    const habitatMap = new Map<number, { name: string; count: number }>();
+    for (const x of queue) {
+      if (x.platformKey) {
+        const cur = platformMap.get(x.platformKey);
+        if (cur) cur.count++;
+        else platformMap.set(x.platformKey, { label: x.platformLabel, count: 1 });
+      }
+      const a = accountMap.get(x.accountId);
+      if (a) a.count++;
+      else accountMap.set(x.accountId, { handle: x.accountHandle, count: 1 });
+      const h = habitatMap.get(x.habitatId);
+      if (h) h.count++;
+      else habitatMap.set(x.habitatId, { name: x.habitatName, count: 1 });
+    }
+    return {
+      platforms: [...platformMap.entries()].map(([key, v]) => ({ value: key, label: v.label, count: v.count }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+      accounts: [...accountMap.entries()].map(([id, v]) => ({ value: id, label: `@${v.handle}`, count: v.count }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+      habitats: [...habitatMap.entries()].map(([id, v]) => ({ value: id, label: v.name, count: v.count }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    };
+  }, [queue]);
 
   // "Cần tạo account" → briefs có account.status ∈ {todo, creating}. Gom theo
   // platform thay vì account (vì user cần biết platform nào cần đăng ký, không
@@ -1692,6 +1740,33 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                      value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
           <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
                  style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
+          <FilterDropdown<string>
+            label="Platform"
+            options={filterOptions.platforms}
+            selected={filterPlatforms}
+            onChange={setFilterPlatforms}
+          />
+          <FilterDropdown<number>
+            label="Account"
+            options={filterOptions.accounts}
+            selected={filterAccounts}
+            onChange={setFilterAccounts}
+          />
+          <FilterDropdown<number>
+            label="Habitat"
+            options={filterOptions.habitats}
+            selected={filterHabitats}
+            onChange={setFilterHabitats}
+          />
+          {(filterPlatforms.length + filterAccounts.length + filterHabitats.length) > 0 && (
+            <button type="button"
+                    onClick={() => { setFilterPlatforms([]); setFilterAccounts([]); setFilterHabitats([]); }}
+                    title="Xoá mọi filter"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer',
+                             color: 'var(--fg-3)', fontSize: 11, padding: '4px 6px' }}>
+              ✕ reset
+            </button>
+          )}
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={() => setAddBriefOpen(true)}
                   title="Tạo brief mới (pick account × habitat → mở editor)"
@@ -2575,6 +2650,106 @@ function MetricTd({ value, hasInsight, hasPosted, title, onClick }: {
         {value > 0 ? formatStatShort(value) : '0'}
       </button>
     </td>
+  );
+}
+
+// FilterDropdown — multi-select dropdown compact.
+// Hiển thị label + count "(N)" khi có selection, popup checkbox list khi mở.
+// Generic theo T (string platformKey hoặc number accountId/habitatId).
+function FilterDropdown<T extends string | number>({ label, options, selected, onChange }: {
+  label: string;
+  options: Array<{ value: T; label: string; count: number }>;
+  selected: T[];
+  onChange: (v: T[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const selectedSet = new Set(selected);
+  const filtered = search.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options;
+  const summary = selected.length === 0
+    ? label
+    : selected.length === 1
+    ? options.find((o) => o.value === selected[0])?.label ?? label
+    : `${label} (${selected.length})`;
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }}>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+              title={selected.length > 0
+                ? `${selected.length} ${label.toLowerCase()} selected · click toggle`
+                : `Lọc theo ${label.toLowerCase()}`}
+              style={{
+                padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
+                background: selected.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)',
+                border: `1px solid ${selected.length > 0 ? 'var(--accent-line)' : 'var(--line)'}`,
+                color: selected.length > 0 ? 'var(--accent)' : 'var(--fg-1)',
+                fontSize: 11.5, fontWeight: selected.length > 0 ? 700 : 400,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}>
+        {summary}
+        <IconChevron dir={open ? 'down' : 'right'} size={9} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)}
+               style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 41,
+                        minWidth: 240, maxWidth: 320, maxHeight: 360, overflowY: 'auto',
+                        background: 'var(--bg-1)', border: '1px solid var(--line-2)',
+                        borderRadius: 6, boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 6 }}>
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+                   placeholder={`Tìm ${label.toLowerCase()}…`}
+                   style={{ width: '100%', padding: '5px 8px', background: 'var(--bg-2)',
+                            border: '1px solid var(--line)', borderRadius: 4,
+                            color: 'var(--fg-0)', fontSize: 11.5, marginBottom: 4,
+                            outline: 'none', boxSizing: 'border-box' }} />
+            {selected.length > 0 && (
+              <button type="button" onClick={() => onChange([])}
+                      style={{ width: '100%', padding: '4px 8px', background: 'none',
+                               border: 'none', textAlign: 'left', cursor: 'pointer',
+                               color: 'var(--fg-3)', fontSize: 11, fontStyle: 'italic' }}>
+                ✕ Bỏ chọn tất cả ({selected.length})
+              </button>
+            )}
+            {filtered.length === 0 && (
+              <div style={{ padding: '8px 6px', color: 'var(--fg-4)', fontSize: 11,
+                            textAlign: 'center', fontStyle: 'italic' }}>
+                Không tìm thấy
+              </div>
+            )}
+            {filtered.map((o) => {
+              const isSelected = selectedSet.has(o.value);
+              return (
+                <label key={String(o.value)}
+                       style={{ display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '5px 8px', borderRadius: 4, cursor: 'pointer',
+                                background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                                fontSize: 11.5 }}
+                       onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-2)'; }}
+                       onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
+                  <input type="checkbox" checked={isSelected}
+                         onChange={() => {
+                           if (isSelected) onChange(selected.filter((v) => v !== o.value));
+                           else onChange([...selected, o.value]);
+                         }}
+                         style={{ accentColor: 'var(--accent)' }} />
+                  <span style={{ flex: 1, color: isSelected ? 'var(--accent)' : 'var(--fg-1)',
+                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                 fontWeight: isSelected ? 600 : 400 }}>
+                    {o.label}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+                    {o.count}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

@@ -3,6 +3,24 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels, habitats } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 
+/**
+ * Normalize channel name — strip Discord new UI prefixes (`#`, `»`, `「emoji」`).
+ * Match với cleanChannelName trong ext content.js + sync-channel-rules.
+ * Cùng helper sẽ giúp PATCH match được channel cũ tạo bằng ChannelBulkParser
+ * (raw name) khi anh click Block trên UI fresh.
+ */
+function normalizeChannelName(raw: string): string {
+  if (!raw) return '';
+  let s = raw.trim();
+  s = s.replace(/^#+\s*/, '');
+  s = s.replace(/^[»›→]+\s*/, '');
+  s = s.replace(/「[^」]*」/g, '');
+  s = s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '');
+  s = s.trim().toLowerCase();
+  const m = s.match(/[a-z0-9][-_a-z0-9]{1,}/);
+  return m ? m[0] : s;
+}
+
 // Helper: derive noPosting boolean từ postingGates.skip_for_post (JSONB key
 // đã được modal habitat-form-modal dùng từ trước → đồng bộ 1 source of truth).
 function readNoPosting(gates: unknown): boolean {
@@ -70,6 +88,7 @@ export async function PATCH(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
 
+  try {
   const body = await req.json() as {
     habitatId?: number;
     channelId?: string;
@@ -84,17 +103,37 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'noPosting must be boolean' }, { status: 400 });
   }
 
-  const existing = await db.select().from(habitatChannels)
+  // Tier 1: match by external_id (chính xác Discord snowflake)
+  let existing = await db.select().from(habitatChannels)
     .where(and(
       eq(habitatChannels.habitatId, body.habitatId),
       eq(habitatChannels.externalId, body.channelId),
     ))
     .limit(1);
 
+  // Tier 2: fallback match by normalized name — channels cũ tạo bằng
+  // ChannelBulkParser KHÔNG có external_id. Sau update set external_id
+  // backfill để lần sau match tier 1.
+  const cleanedName = normalizeChannelName(body.channelName ?? '');
+  if (existing.length === 0 && cleanedName) {
+    const candidates = await db.select().from(habitatChannels)
+      .where(and(
+        eq(habitatChannels.habitatId, body.habitatId),
+        sql`(${habitatChannels.externalId} IS NULL OR ${habitatChannels.externalId} = '')`,
+      ));
+    const match = candidates.find((c) => normalizeChannelName(c.name) === cleanedName);
+    if (match) existing = [match];
+  }
+
   if (existing.length > 0) {
     const newGates = buildGates(existing[0]!.postingGates, body.noPosting);
     const updated = await db.update(habitatChannels)
-      .set({ postingGates: newGates, updatedAt: new Date() })
+      .set({
+        postingGates: newGates,
+        externalId: existing[0]!.externalId || body.channelId,    // backfill
+        url: existing[0]!.url || body.channelUrl || null,
+        updatedAt: new Date(),
+      })
       .where(eq(habitatChannels.id, existing[0]!.id))
       .returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
     return NextResponse.json({
@@ -104,11 +143,13 @@ export async function PATCH(req: Request) {
     });
   }
 
-  const fallbackName = `#${body.channelId.slice(-8)}`;
+  // Insert mới — dùng cleanedName để tránh duplicate (UNIQUE index
+  // habitat_channels_habitat_name_uniq sẽ block raw name có emoji prefix).
+  const fallbackName = cleanedName || `channel-${body.channelId.slice(-6)}`;
   const newGates = buildGates(null, body.noPosting);
   const inserted = await db.insert(habitatChannels).values({
     habitatId: body.habitatId,
-    name: body.channelName?.trim() || fallbackName,
+    name: fallbackName,
     externalId: body.channelId,
     url: body.channelUrl ?? null,
     postingGates: newGates,
@@ -119,6 +160,20 @@ export async function PATCH(req: Request) {
     channel: { id: inserted[0]!.id, noPosting: readNoPosting(inserted[0]!.postingGates) },
     created: true,
   });
+  } catch (e) {
+    const msg = (e as { code?: string; detail?: string; message?: string }) || {};
+    console.error('[ext channel-info PATCH] err:', msg);
+    if (msg.code === '23505') {
+      return NextResponse.json({
+        error: 'Duplicate channel — DB UNIQUE constraint hit',
+        detail: msg.detail || msg.message,
+      }, { status: 409 });
+    }
+    return NextResponse.json({
+      error: msg.message || 'PATCH channel-info failed',
+      detail: msg.detail,
+    }, { status: 500 });
+  }
 }
 
 // POST — atomic create habitat (Discord guild) + channel với noPosting flag.
@@ -131,6 +186,7 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
 
+  try {
   const body = await req.json() as {
     projectId?: string;
     guildId?: string;
@@ -165,17 +221,35 @@ export async function POST(req: Request) {
   }
 
   const noPosting = body.noPosting ?? true;
-  const existingChannel = await db.select().from(habitatChannels)
+  const cleanedChannelName = normalizeChannelName(body.channelName ?? '');
+  // Tier 1: match by external_id
+  let existingChannel = await db.select().from(habitatChannels)
     .where(and(
       eq(habitatChannels.habitatId, habitatId),
       eq(habitatChannels.externalId, body.channelId),
     ))
     .limit(1);
 
+  // Tier 2: fallback by normalized name (ChannelBulkParser legacy rows)
+  if (existingChannel.length === 0 && cleanedChannelName) {
+    const candidates = await db.select().from(habitatChannels)
+      .where(and(
+        eq(habitatChannels.habitatId, habitatId),
+        sql`(${habitatChannels.externalId} IS NULL OR ${habitatChannels.externalId} = '')`,
+      ));
+    const match = candidates.find((c) => normalizeChannelName(c.name) === cleanedChannelName);
+    if (match) existingChannel = [match];
+  }
+
   if (existingChannel.length > 0) {
     const newGates = buildGates(existingChannel[0]!.postingGates, noPosting);
     const updated = await db.update(habitatChannels)
-      .set({ postingGates: newGates, updatedAt: new Date() })
+      .set({
+        postingGates: newGates,
+        externalId: existingChannel[0]!.externalId || body.channelId,
+        url: existingChannel[0]!.url || body.channelUrl || null,
+        updatedAt: new Date(),
+      })
       .where(eq(habitatChannels.id, existingChannel[0]!.id))
       .returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
     return NextResponse.json({
@@ -186,11 +260,11 @@ export async function POST(req: Request) {
     });
   }
 
-  const fallbackName = `#${body.channelId.slice(-8)}`;
+  const fallbackName = cleanedChannelName || `channel-${body.channelId.slice(-6)}`;
   const newGates = buildGates(null, noPosting);
   const inserted = await db.insert(habitatChannels).values({
     habitatId,
-    name: body.channelName?.trim() || fallbackName,
+    name: fallbackName,
     externalId: body.channelId,
     url: body.channelUrl ?? null,
     postingGates: newGates,
@@ -203,4 +277,18 @@ export async function POST(req: Request) {
     channel: { id: inserted[0]!.id, noPosting: readNoPosting(inserted[0]!.postingGates) },
     created: true,
   });
+  } catch (e) {
+    const msg = (e as { code?: string; detail?: string; message?: string }) || {};
+    console.error('[ext channel-info POST] err:', msg);
+    if (msg.code === '23505') {
+      return NextResponse.json({
+        error: 'Duplicate — DB UNIQUE constraint hit',
+        detail: msg.detail || msg.message,
+      }, { status: 409 });
+    }
+    return NextResponse.json({
+      error: msg.message || 'POST channel-info failed',
+      detail: msg.detail,
+    }, { status: 500 });
+  }
 }

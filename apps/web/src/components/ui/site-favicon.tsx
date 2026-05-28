@@ -16,10 +16,10 @@ import type { CSSProperties } from 'react';
 
 // kind → domain khi habitat không có url (discord/hashtag…)
 const KIND_DOMAIN: Record<string, string> = {
-  'discord-server': 'discord.com', discord: 'discord.com',
+  discord: 'discord.com',
   subreddit: 'reddit.com', reddit: 'reddit.com',
   'fb-group': 'facebook.com', facebook: 'facebook.com', 'fb_group': 'facebook.com',
-  twitter: 'x.com', x: 'x.com', 'hashtag-community': 'x.com', hashtag: 'x.com',
+  twitter: 'x.com', x: 'x.com', hashtag: 'x.com',
   telegram: 'telegram.org', youtube: 'youtube.com', slack: 'slack.com',
   feed: 'bsky.app', bluesky: 'bsky.app',
 };

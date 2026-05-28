@@ -48,8 +48,8 @@ export async function POST(req: Request) {
   }).from(habitats).where(eq(habitats.id, habitatId)).limit(1);
   const hab = habRows[0];
   if (!hab) return NextResponse.json({ ok: false, error: 'habitat not found' }, { status: 404 });
-  // Accept cả 'discord' (legacy) và 'discord-server' (ext detector mới).
-  if (hab.kind !== 'discord-server' && hab.kind !== 'discord') {
+  // Sau migration 0079: kind chuẩn hoá về 'discord' (1 từ).
+  if (hab.kind !== 'discord') {
     return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind}, không phải Discord` }, { status: 400 });
   }
 

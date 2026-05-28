@@ -24,12 +24,12 @@ export function notReady(s: string): boolean {
 // được vào forum/Twitter/Weibo… Trả lý do mismatch hoặc null nếu OK.
 export function expectedPlatformForKind(kind: string): string | null {
   if (kind === 'subreddit') return 'reddit';
-  if (kind === 'discord-server' || kind === 'discord') return 'discord';
+  if (kind === 'discord') return 'discord';
   if (kind === 'fb-group' || kind === 'fb_group' || kind === 'facebook') return 'facebook';
-  if (kind === 'twitter' || kind === 'x') return 'twitter';
+  if (kind === 'twitter' || kind === 'x' || kind === 'hashtag') return 'twitter';
   if (kind === 'telegram') return 'telegram';
   if (kind === 'youtube') return 'youtube';
-  return null; // forum/cafe/hashtag/hashtag-community/other → kênh ngoài
+  return null; // forum/cafe/org/other → kênh ngoài
 }
 
 export function platformIssue(it: SeedingQueueItem): string | null {

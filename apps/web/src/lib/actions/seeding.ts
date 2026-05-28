@@ -652,11 +652,11 @@ async function seedGuard(
   const acctPf = String(r.acct_pf ?? '');
   const hpf = String(r.hpf ?? '');
   const hkind = String(r.hkind ?? '');
-  const km: Record<string, string> = { subreddit: 'reddit', 'discord-server': 'discord', discord: 'discord', 'fb-group': 'facebook', telegram: 'telegram', youtube: 'youtube' };
+  const km: Record<string, string> = { subreddit: 'reddit', discord: 'discord', 'fb-group': 'facebook', telegram: 'telegram', youtube: 'youtube' };
   const expected = hpf || km[hkind] || '';
   if (expected && acctPf && expected !== acctPf) {
     blockers.push(`account "${acctPf}" sai nền tảng (kênh cần ${expected}) — dùng "tự fix"`);
-  } else if (!expected && acctPf && ['forum', 'cafe', 'hashtag', 'hashtag-community', 'other'].includes(hkind)) {
+  } else if (!expected && acctPf && ['forum', 'cafe', 'hashtag', 'org', 'other'].includes(hkind)) {
     warnings.push(`kênh ngoài (${hkind}) — đảm bảo "${acctPf}" thật sự đăng được ở đây`);
   }
 

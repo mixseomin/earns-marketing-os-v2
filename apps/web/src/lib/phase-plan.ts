@@ -98,7 +98,7 @@ export function archetypeFor(habitat: {
     return strict === 'high' ? 'reddit-strict' : 'reddit';
   }
   if (k === 'fb-group' || k === 'fb_group' || k === 'facebook') return 'fb-group';
-  if (k === 'discord' || k === 'discord-server') return 'discord';
+  if (k === 'discord') return 'discord';
 
   // Forum kinds: scholarly vs mainstream vs lifestyle vs eastern.
   // Heuristic: language tells us eastern; mod_strictness tells us scholarly.
@@ -106,7 +106,7 @@ export function archetypeFor(habitat: {
   if (['vi', 'zh', 'ko', 'ja'].includes(lang)) return 'eastern';
   if (strict === 'high') return 'scholarly';
   // Default forum/group/cafe → mainstream
-  if (k === 'forum' || k === 'group' || k === 'cafe' || k === 'professional-org') {
+  if (k === 'forum' || k === 'group' || k === 'cafe' || k === 'org') {
     return 'mainstream';
   }
   return 'generic';

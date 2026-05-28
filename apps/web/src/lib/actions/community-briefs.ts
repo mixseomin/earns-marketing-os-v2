@@ -882,8 +882,8 @@ function slug(s: string): string {
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'ext';
 }
 const KIND_CATEGORY: Record<string, string> = {
-  forum: 'community', cafe: 'community', 'q-a': 'community', other: 'community',
-  hashtag: 'social', 'hashtag-community': 'social', twitter: 'social', x: 'social',
+  forum: 'community', cafe: 'community', 'q-a': 'community', org: 'community', other: 'community',
+  hashtag: 'social', twitter: 'social', x: 'social',
 };
 
 export interface AutoFixResult {
@@ -930,7 +930,7 @@ export async function autoFixBriefAccount(
   }
   if (!platformKey) {
     const km: Record<string, string> = {
-      subreddit: 'reddit', 'discord-server': 'discord', discord: 'discord',
+      subreddit: 'reddit', discord: 'discord',
       'fb-group': 'facebook', fb_group: 'facebook', facebook: 'facebook',
       telegram: 'telegram', youtube: 'youtube',
     };

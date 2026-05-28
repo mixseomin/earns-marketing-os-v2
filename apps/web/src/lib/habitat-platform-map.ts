@@ -35,8 +35,8 @@ export function platformKeysForHabitatKind(kind: string): string[] | null {
 const PLATFORM_TO_KIND: Record<string, string> = {
   reddit:   'subreddit',
   facebook: 'fb-group',
-  discord:  'discord-server',
-  twitter:  'hashtag-community',
+  discord:  'discord',
+  twitter:  'hashtag',
   telegram: 'telegram',
   slack:    'slack',
   linkedin: 'linkedin',

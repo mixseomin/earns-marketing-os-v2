@@ -48,8 +48,9 @@ export async function POST(req: Request) {
   }).from(habitats).where(eq(habitats.id, habitatId)).limit(1);
   const hab = habRows[0];
   if (!hab) return NextResponse.json({ ok: false, error: 'habitat not found' }, { status: 404 });
-  if (hab.kind !== 'discord-server') {
-    return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind}, không phải discord-server` }, { status: 400 });
+  // Accept cả 'discord' (legacy) và 'discord-server' (ext detector mới).
+  if (hab.kind !== 'discord-server' && hab.kind !== 'discord') {
+    return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind}, không phải Discord` }, { status: 400 });
   }
 
   const channelName = (body.channelName ?? '').trim() || `channel-${channelId.slice(-6)}`;

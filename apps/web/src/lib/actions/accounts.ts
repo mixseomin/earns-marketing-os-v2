@@ -116,6 +116,16 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       VALUES (${projectId}, ${row.id}, 'primary', 100)
       ON CONFLICT DO NOTHING
     `);
+
+    // Auto-push sang Directus (single source of truth cho asset). Lỗi
+    // không block create — local đã insert OK. Warning log để debug.
+    if (directusEnabled()) {
+      try {
+        await pushAccountToDirectus(projectId, row.id);
+      } catch (e) {
+        console.warn('[accounts] auto-push to Directus failed', e);
+      }
+    }
   }
 
   revalidatePath(`/p/${projectId}/resources`);
@@ -302,6 +312,15 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
            SET join_status = 'not_joined', updated_at = now()
          WHERE account_id = ${acc.id} AND join_status != 'not_joined'
       `);
+    }
+  }
+
+  // Auto-push update sang Directus. Lỗi không block — local đã update OK.
+  if (directusEnabled()) {
+    try {
+      await pushAccountToDirectus(projectId, acc.id);
+    } catch (e) {
+      console.warn('[accounts] auto-push update to Directus failed', e);
     }
   }
 

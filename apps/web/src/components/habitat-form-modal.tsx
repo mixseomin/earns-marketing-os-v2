@@ -552,14 +552,16 @@ export function HabitatFormModal({
               )}
             </h2>
           </div>
-          <button className="btn ghost"
-                  title="Refresh — fetch lại channels + habitat data từ server"
-                  onClick={() => {
-                    setChannelsReloadTick((t) => t + 1);
-                    router.refresh();
-                  }}
-                  style={{ fontSize: 14, padding: '4px 8px' }}>↻</button>
-          <button className="btn ghost" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button className="btn ghost"
+                    title="Refresh — fetch lại channels + habitat data từ server"
+                    onClick={() => {
+                      setChannelsReloadTick((t) => t + 1);
+                      router.refresh();
+                    }}
+                    style={{ fontSize: 14, padding: '4px 10px' }}>↻</button>
+            <button className="btn ghost" onClick={onClose}>✕</button>
+          </div>
         </div>
 
         <div className="modal-body"

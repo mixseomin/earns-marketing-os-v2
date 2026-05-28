@@ -18,11 +18,13 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import {
   listAllPostedCards,
   updateCardLifecycle,
+  listCostVersions,
   type AllPostedCard,
   type AllPostedFilters,
   type AllPostedResult,
   type PostedFilterOptions,
   type PostedSortKey,
+  type CostBreakdown,
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
@@ -452,6 +454,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               <col style={{ width: 56 }} />
               <col style={{ width: 56 }} />
               <col style={{ width: 56 }} />
+              <col style={{ width: 56 }} />
               <col style={{ width: 60 }} />
               <col style={{ width: 30 }} />
             </colgroup>
@@ -479,6 +482,10 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })}
                                 altKey="cost_asc" />
+                <SortableHeader label="⏱ Gen" sortKey="duration_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })}
+                                altKey="duration_asc" />
                 <SortableHeader label="Ago" sortKey="posted_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })}
@@ -515,6 +522,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                                      placeholder="≥"
                                      onChange={(v) => setF({ minReplies: v })} />
                 </th>
+                <th style={thFilter()} />
                 <th style={thFilter()} />
                 <th style={thFilter()} />
                 <th style={thFilter()}>
@@ -661,19 +669,8 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
       <MetricCell value={r != null ? `${Math.round(r * 100)}%` : null}
                   fullTitle={r != null ? `Upvote ratio ${Math.round(r * 100)}%` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
-      <td style={{ ...td(), textAlign: 'center' }}>
-        {c.genCostUsd != null && c.genCostUsd > 0 ? (
-          <span title={`Chi phí AI gen version cuối: $${c.genCostUsd.toFixed(5)}`}
-                style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                         color: c.genCostUsd >= 0.01 ? '#fbbf24' : '#60a5fa' }}>
-            ${c.genCostUsd < 0.001 ? c.genCostUsd.toFixed(4) : c.genCostUsd.toFixed(3)}
-          </span>
-        ) : (
-          <span title="Không sinh bằng AI / manual writer / legacy card"
-                style={{ fontSize: 10, color: 'var(--fg-4)', opacity: 0.55,
-                         fontFamily: 'var(--font-mono)' }}>—</span>
-        )}
-      </td>
+      <CostHoverCell cardId={c.id} currentCost={c.genCostUsd} />
+      <DurationCell durationMs={c.genDurationMs} />
       <td style={{ ...td(), textAlign: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
           {timeAgo(c.postedAt)}
@@ -1144,6 +1141,160 @@ function ColumnTimeSelect({ value, onChange }: {
         <option key={t.label} value={t.value == null ? 'all' : String(t.value)}>{t.label}</option>
       ))}
     </select>
+  );
+}
+
+// formatCost — 4 chữ số khi <$0.001, 3 chữ số khi ≥$0.001.
+function formatCost(n: number): string {
+  if (n === 0) return '$0';
+  if (n < 0.001) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(3)}`;
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(ms / 60_000);
+  const s = Math.round((ms % 60_000) / 1000);
+  return s > 0 ? `${m}m${s}s` : `${m}m`;
+}
+
+// CostHoverCell — hover mở popover hiện breakdown các version (sibling drafts
+// cùng parent_url) + tổng cost + total time. Lazy fetch khi hover lần đầu.
+function CostHoverCell({ cardId, currentCost }: {
+  cardId: number;
+  currentCost: number | null;
+}) {
+  const [data, setData] = useState<CostBreakdown | null>(null);
+  const [open, setOpen] = useState(false);
+  const [fetching, setFetching] = useState(false);
+
+  async function ensureFetched() {
+    if (data != null || fetching) return;
+    setFetching(true);
+    try {
+      const res = await listCostVersions(cardId);
+      setData(res);
+    } finally {
+      setFetching(false);
+    }
+  }
+
+  const hasCost = currentCost != null && currentCost > 0;
+
+  return (
+    <td style={{ ...td(), textAlign: 'center', position: 'relative' }}
+        onMouseEnter={() => { ensureFetched(); setOpen(true); }}
+        onMouseLeave={() => setOpen(false)}>
+      {hasCost ? (
+        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                       color: currentCost >= 0.01 ? '#fbbf24' : '#60a5fa',
+                       cursor: 'help', borderBottom: '1px dotted currentColor' }}>
+          {formatCost(currentCost)}
+        </span>
+      ) : (
+        <span style={{ fontSize: 10, color: 'var(--fg-4)', opacity: 0.55,
+                       fontFamily: 'var(--font-mono)' }}>—</span>
+      )}
+      {open && hasCost && (
+        <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
+                      minWidth: 280, padding: 8, zIndex: 60,
+                      background: 'var(--bg-1)', border: '1px solid var(--line)',
+                      borderRadius: 5, boxShadow: '0 4px 14px rgba(0,0,0,.5)',
+                      textAlign: 'left' }}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                        color: 'var(--fg-3)', marginBottom: 6,
+                        textTransform: 'uppercase' }}>
+            Versions cùng thread
+          </div>
+          {fetching && (
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 4 }}>
+              ⟳ Đang tải…
+            </div>
+          )}
+          {data && data.versions.length > 0 && (
+            <>
+              <table style={{ width: '100%', borderCollapse: 'collapse',
+                              fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
+                <thead>
+                  <tr style={{ color: 'var(--fg-4)', textAlign: 'left' }}>
+                    <th style={{ padding: '2px 4px', fontWeight: 600 }}>#</th>
+                    <th style={{ padding: '2px 4px', fontWeight: 600 }}>Model</th>
+                    <th style={{ padding: '2px 4px', fontWeight: 600, textAlign: 'right' }}>Cost</th>
+                    <th style={{ padding: '2px 4px', fontWeight: 600, textAlign: 'right' }}>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.versions.map((v, i) => (
+                    <tr key={v.id}
+                        style={{ borderTop: '1px solid var(--line)',
+                                 background: v.isCurrent ? 'var(--accent-soft)' : 'transparent',
+                                 color: v.isPosted ? 'var(--ok)' : 'var(--fg-1)' }}>
+                      <td style={{ padding: '2px 4px' }}>
+                        {v.isCurrent ? '▸' : ''}{i + 1}
+                        {v.isPosted && <span title="đã đăng" style={{ marginLeft: 2 }}>✓</span>}
+                      </td>
+                      <td style={{ padding: '2px 4px', fontSize: 9.5,
+                                   maxWidth: 90, overflow: 'hidden',
+                                   textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          title={v.modelUsed ?? ''}>
+                        {v.modelUsed
+                          ? v.modelUsed.replace(/^(claude|gpt|gemini)-?/i, '').slice(0, 14)
+                          : (v.answerSource ?? '—')}
+                      </td>
+                      <td style={{ padding: '2px 4px', textAlign: 'right',
+                                   color: v.costUsd != null && v.costUsd >= 0.01 ? '#fbbf24' : '#60a5fa' }}>
+                        {v.costUsd != null ? formatCost(v.costUsd) : '—'}
+                      </td>
+                      <td style={{ padding: '2px 4px', textAlign: 'right', color: 'var(--fg-3)' }}>
+                        {v.durationMs != null ? formatDuration(v.durationMs) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ borderTop: '1px solid var(--accent)', marginTop: 6,
+                            paddingTop: 4, display: 'flex', gap: 12,
+                            fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: 'var(--fg-3)' }}>Tổng:</span>
+                <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                  💰 {formatCost(data.totalCostUsd)}
+                </span>
+                <span style={{ color: 'var(--fg-3)' }}>
+                  ⏱ {formatDuration(data.totalDurationMs)}
+                </span>
+                <span style={{ color: 'var(--fg-4)', marginLeft: 'auto' }}>
+                  {data.versionCount} ver
+                </span>
+              </div>
+            </>
+          )}
+          {data && data.versions.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--fg-4)' }}>
+              Không có dữ liệu version
+            </div>
+          )}
+        </div>
+      )}
+    </td>
+  );
+}
+
+// DurationCell — cột '⏱ Gen' show gen_duration_ms version cuối.
+function DurationCell({ durationMs }: { durationMs: number | null }) {
+  return (
+    <td style={{ ...td(), textAlign: 'center' }}>
+      {durationMs != null && durationMs > 0 ? (
+        <span title={`Thời gian gen AI version cuối: ${durationMs}ms`}
+              style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
+                       color: durationMs >= 30_000 ? '#fbbf24' : 'var(--fg-2)' }}>
+          {formatDuration(durationMs)}
+        </span>
+      ) : (
+        <span style={{ fontSize: 10, color: 'var(--fg-4)', opacity: 0.55,
+                       fontFamily: 'var(--font-mono)' }}>—</span>
+      )}
+    </td>
   );
 }
 

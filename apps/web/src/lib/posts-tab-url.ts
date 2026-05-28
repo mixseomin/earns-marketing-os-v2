@@ -29,7 +29,7 @@ export interface ParsedSeedingTabUrl {
 
 const VALID_SORTS: PostedSortKey[] = [
   'posted_desc', 'posted_asc', 'views_desc', 'score_desc', 'replies_desc', 'ratio_desc',
-  'cost_desc', 'cost_asc',
+  'cost_desc', 'cost_asc', 'duration_desc', 'duration_asc',
 ];
 
 const VALID_LIFECYCLES = new Set([

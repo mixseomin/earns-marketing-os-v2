@@ -845,7 +845,8 @@ export async function createPlaceholdersForBriefPhase(
 export type PostedSortKey =
   | 'posted_desc' | 'posted_asc'
   | 'views_desc' | 'score_desc' | 'replies_desc' | 'ratio_desc'
-  | 'cost_desc' | 'cost_asc';
+  | 'cost_desc' | 'cost_asc'
+  | 'duration_desc' | 'duration_asc';
 
 export interface AllPostedFilters {
   days?: number | null;            // null = all-time, default 7
@@ -875,6 +876,8 @@ export interface AllPostedCard extends RecentPostedCard {
   // Chi phí AI gen version cuối cùng (gen_cost_usd, USD). Null = chưa gen
   // bằng AI / manual writer / legacy.
   genCostUsd: number | null;
+  // Thời gian gen AI version cuối (ms).
+  genDurationMs: number | null;
 }
 
 export interface AllPostedResult {
@@ -964,6 +967,8 @@ function orderByFor(sort: PostedSortKey | undefined) {
     case 'ratio_desc':   return sql`COALESCE(c.insights_upvote_ratio, 0) DESC, c.posted_at DESC`;
     case 'cost_desc':    return sql`COALESCE(c.gen_cost_usd, 0) DESC, c.posted_at DESC`;
     case 'cost_asc':     return sql`COALESCE(c.gen_cost_usd, 0) ASC, c.posted_at DESC`;
+    case 'duration_desc':return sql`COALESCE(c.gen_duration_ms, 0) DESC, c.posted_at DESC`;
+    case 'duration_asc': return sql`COALESCE(c.gen_duration_ms, 0) ASC, c.posted_at DESC`;
     case 'posted_desc':
     default:             return sql`c.posted_at DESC`;
   }
@@ -999,7 +1004,7 @@ export async function listAllPostedCards(
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
            c.post_lifecycle, c.squad_key, c.brief_phase,
-           c.brief_id, c.gen_cost_usd,
+           c.brief_id, c.gen_cost_usd, c.gen_duration_ms,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
@@ -1083,6 +1088,7 @@ export async function listAllPostedCards(
     squadKey: r.squad_key ? String(r.squad_key) : null,
     briefPhase: r.brief_phase ? String(r.brief_phase) : null,
     genCostUsd: r.gen_cost_usd != null ? Number(r.gen_cost_usd) : null,
+    genDurationMs: r.gen_duration_ms != null ? Number(r.gen_duration_ms) : null,
     habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
     habitatName: String(r.habitat_name ?? ''),
     platformLabel: String(r.platform_label ?? ''),
@@ -1194,6 +1200,89 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
     contentTypes: (cts as unknown as Array<Record<string, unknown>>).map((r) => ({
       key: String(r.k ?? 'text'), count: Number(r.n),
     })),
+  };
+}
+
+// listCostVersions — trả các "version" gen AI cùng parent_url (sibling drafts)
+// + duration + model + tổng cost. Mỗi lần regen ext = card mới với same
+// parent_url → đây là gần với "version history" nhất có thể.
+// Nếu card không có parent_url (post chính, không phải comment/reply) →
+// chỉ trả 1 entry = chính nó.
+
+export interface CostVersion {
+  id: number;
+  cardRef: string;
+  costUsd: number | null;
+  durationMs: number | null;
+  modelUsed: string | null;
+  answerSource: string | null;
+  createdAt: string;
+  isCurrent: boolean;       // true nếu là card đang được focus (id match)
+  isPosted: boolean;        // có post_url
+}
+
+export interface CostBreakdown {
+  versions: CostVersion[];
+  totalCostUsd: number;
+  totalDurationMs: number;
+  versionCount: number;
+}
+
+export async function listCostVersions(
+  cardId: number,
+): Promise<CostBreakdown> {
+  if (!Number.isFinite(cardId) || cardId <= 0) {
+    return { versions: [], totalCostUsd: 0, totalDurationMs: 0, versionCount: 0 };
+  }
+  const db = ensureDb();
+
+  const target = await db.execute(sql`
+    SELECT parent_url, project_id FROM cards WHERE id = ${cardId} LIMIT 1
+  `);
+  const tr = (target as unknown as Array<Record<string, unknown>>)[0];
+  if (!tr) return { versions: [], totalCostUsd: 0, totalDurationMs: 0, versionCount: 0 };
+
+  const parentUrl = tr.parent_url ? String(tr.parent_url) : null;
+  const projectId = String(tr.project_id);
+
+  const rows = parentUrl
+    ? await db.execute(sql`
+        SELECT id, card_ref, gen_cost_usd, gen_duration_ms, gen_model_used,
+               answer_source, post_url, created_at
+        FROM cards
+        WHERE project_id = ${projectId}
+          AND parent_url = ${parentUrl}
+          AND archived_at IS NULL
+        ORDER BY created_at ASC
+      `)
+    : await db.execute(sql`
+        SELECT id, card_ref, gen_cost_usd, gen_duration_ms, gen_model_used,
+               answer_source, post_url, created_at
+        FROM cards
+        WHERE id = ${cardId}
+        LIMIT 1
+      `);
+
+  const versions: CostVersion[] = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    cardRef: String(r.card_ref ?? ''),
+    costUsd: r.gen_cost_usd != null ? Number(r.gen_cost_usd) : null,
+    durationMs: r.gen_duration_ms != null ? Number(r.gen_duration_ms) : null,
+    modelUsed: r.gen_model_used ? String(r.gen_model_used) : null,
+    answerSource: r.answer_source ? String(r.answer_source) : null,
+    createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    isCurrent: Number(r.id) === cardId,
+    isPosted: !!r.post_url,
+  }));
+
+  const totalCostUsd = versions.reduce((s, v) => s + (v.costUsd ?? 0), 0);
+  const totalDurationMs = versions.reduce((s, v) => s + (v.durationMs ?? 0), 0);
+
+  return {
+    versions,
+    totalCostUsd,
+    totalDurationMs,
+    versionCount: versions.length,
   };
 }
 

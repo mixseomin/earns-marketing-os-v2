@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { SeedingCockpit } from '@/components/seeding-cockpit';
-import { getProject, getProjectMode, listProjects, listTribes, listPlatforms } from '@/lib/data';
+import { getProject, getProjectMode, listProjects, listTribes, listPlatforms, listHabitats } from '@/lib/data';
 import { listSeedingQueue } from '@/lib/actions/seeding';
 import {
   listRecentPostedCards,
@@ -29,12 +29,13 @@ export default async function SeedingRoute({
 
   const { view, filters: initialFilters } = parseSeedingTabUrl(sp);
 
-  const [mode, projects, queue, tribes, platforms, recentPosted, postedOptions, postedInitial] = await Promise.all([
+  const [mode, projects, queue, tribes, platforms, habitats, recentPosted, postedOptions, postedInitial] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listSeedingQueue(id),
     listTribes(id),
     listPlatforms(),
+    listHabitats(id),
     listRecentPostedCards(id, { days: 7, limit: 50 }),
     getPostedFilterOptions(id),
     listAllPostedCards(id, initialFilters),
@@ -45,6 +46,7 @@ export default async function SeedingRoute({
               currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}>
       <SeedingCockpit projectId={id} projectName={project.name} project={project}
                       platforms={platforms} queue={queue} tribes={tribes}
+                      habitats={habitats}
                       recentPosted={recentPosted}
                       initialView={view}
                       postedOptions={postedOptions}

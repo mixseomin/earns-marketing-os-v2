@@ -38,6 +38,7 @@ import {
 import { ScheduleEditModal } from './schedule-edit-modal';
 import { BriefEditModal } from './brief-edit-modal';
 import { TribeFormModal } from './tribe-form-modal';
+import { AddBriefModal } from './add-brief-modal';
 import { BriefPipelineModal } from './brief-pipeline-modal';
 
 // STATUS_META + ACCT_STATUS_META đã centralize trong @/lib/status-meta để
@@ -88,13 +89,14 @@ function EntityLink({ onClick, title, color, children }: {
   );
 }
 
-export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
+export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, habitats = [], recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
   projectId: string;
   projectName: string;
   project: Project;
   platforms: PlatformRow[];
   queue: SeedingQueueItem[];
   tribes: TribeRow[];
+  habitats?: HabitatRow[];
   recentPosted?: RecentPostedCard[];
   initialView?: 'queue' | 'posts';
   postedOptions?: PostedFilterOptions;
@@ -215,6 +217,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   // account mới (qua onPickedAccountForBrief).
   const [createForBrief, setCreateForBrief] = useState<
     { briefId: number; presetPlatformKey: string } | null>(null);
+  // '+ Brief mới' button (header) → mở AddBriefModal pick account + habitat
+  // → upsertBrief → mở BriefEditModal cho chi tiết.
+  const [addBriefOpen, setAddBriefOpen] = useState(false);
   const onCreateAccount = (briefId: number, presetPlatformKey: string) => {
     setCreateForBrief({ briefId, presetPlatformKey });
   };
@@ -1282,6 +1287,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
                  style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
           <span style={{ flex: 1 }} />
+          <button className="btn" onClick={() => setAddBriefOpen(true)}
+                  title="Tạo brief mới (pick account × habitat → mở editor)"
+                  style={{ fontSize: 11.5, fontWeight: 700 }}>
+            + Brief mới
+          </button>
           <button className="btn primary" disabled={busy} onClick={doGenerate}
                   title="Sinh sẵn 1 bài nháp vào backlog cho mọi lịch đến hạn (auto + chưa có nháp)">
             {busy ? <><Spinner size="xs" /> Đang sinh</> : '▶ Sinh bài đến hạn'}
@@ -1473,6 +1483,20 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           presetPlatformKey={createForBrief.presetPlatformKey}
           onClose={() => setCreateForBrief(null)}
           onCreated={onPickedCreatedAccount}
+        />
+      )}
+
+      {addBriefOpen && (
+        <AddBriefModal
+          projectId={projectId}
+          habitats={habitats}
+          onClose={() => setAddBriefOpen(false)}
+          onCreated={(briefId, _accId, _habId) => {
+            setAddBriefOpen(false);
+            // Open brief modal để user edit chi tiết ngay.
+            modal.open('brief', briefId);
+            router.refresh();
+          }}
         />
       )}
 

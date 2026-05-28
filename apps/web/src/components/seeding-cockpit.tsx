@@ -269,13 +269,21 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       else by.set(key, { platformLabel: x.platformLabel || key, rows: [x] });
     }
     return [...by.entries()].map(([platformKey, group]) => {
-      const accounts = new Set(group.rows.map((r) => r.accountId)).size;
-      const habitats = new Set(group.rows.map((r) => r.habitatId)).size;
-      const totalEstimatedPosts = group.rows.reduce((s, x) => s + Math.max(0, x.backlogCount), 0);
+      // Dedup theo briefId (1 brief × N lanes = N rows → gộp về 1).
+      const byBrief = new Map<number, SeedingQueueItem>();
+      for (const r of group.rows) {
+        const cur = byBrief.get(r.briefId);
+        if (!cur) byBrief.set(r.briefId, { ...r });
+        else cur.backlogCount += r.backlogCount;
+      }
+      const uniqueRows = [...byBrief.values()];
+      const accounts = new Set(uniqueRows.map((r) => r.accountId)).size;
+      const habitats = new Set(uniqueRows.map((r) => r.habitatId)).size;
+      const totalEstimatedPosts = uniqueRows.reduce((s, x) => s + Math.max(0, x.backlogCount), 0);
       return {
         platformKey,
         platformLabel: group.platformLabel,
-        rows: group.rows,
+        rows: uniqueRows,
         accounts,           // số account cần tạo (distinct)
         habitats,           // số community đang chờ
         totalEstimatedPosts,
@@ -302,11 +310,25 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       else by.set(key, { platformLabel: x.platformLabel || key, rows: [x] });
     }
     return [...by.entries()].map(([platformKey, group]) => {
-      const accounts = new Set(group.rows.map((r) => r.accountId)).size;
-      const habitats = new Set(group.rows.map((r) => r.habitatId)).size;
-      const totalBacklog = group.rows.reduce((s, x) => s + Math.max(0, x.backlogCount), 0);
+      // Dedup theo briefId — 1 brief có nhiều lane (text/image/video/...) tức
+      // nhiều seeding_schedules → mỗi schedule = 1 SeedingQueueItem. UI chỉ
+      // cần 1 row per brief (action = mark joined). Cộng dồn backlog từ tất
+      // cả lanes của brief đó.
+      const byBrief = new Map<number, SeedingQueueItem>();
+      for (const r of group.rows) {
+        const cur = byBrief.get(r.briefId);
+        if (!cur) {
+          byBrief.set(r.briefId, { ...r });
+        } else {
+          cur.backlogCount += r.backlogCount;
+        }
+      }
+      const uniqueRows = [...byBrief.values()];
+      const accounts = new Set(uniqueRows.map((r) => r.accountId)).size;
+      const habitats = new Set(uniqueRows.map((r) => r.habitatId)).size;
+      const totalBacklog = uniqueRows.reduce((s, x) => s + Math.max(0, x.backlogCount), 0);
       return {
-        platformKey, platformLabel: group.platformLabel, rows: group.rows,
+        platformKey, platformLabel: group.platformLabel, rows: uniqueRows,
         accounts, habitats, totalBacklog,
       };
     }).sort((a, b) => b.habitats - a.habitats);

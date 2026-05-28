@@ -625,6 +625,8 @@ export interface HabitatRow {
   // migration 0074: flag community có cơ chế tự detect AI content
   aiContentDetection: boolean;
   aiDetectionNote: string;
+  // migration 0077: own habitat (brand mình quản lý)
+  isOwn: boolean;
 }
 export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
@@ -739,6 +741,7 @@ function mapHabitat(
     scrapedMeta: (get('scrapedMeta', 'scraped_meta') as Record<string, unknown>) ?? {},
     aiContentDetection: !!get('aiContentDetection', 'ai_content_detection'),
     aiDetectionNote: str('aiDetectionNote', 'ai_detection_note'),
+    isOwn: !!get('isOwn', 'is_own'),
   };
 }
 

@@ -139,6 +139,8 @@ export function HabitatFormModal({
     // migration 0074: AI-detection flag
     aiContentDetection: habitat?.aiContentDetection ?? false,
     aiDetectionNote: habitat?.aiDetectionNote ?? '',
+    // migration 0077: own habitat (brand mình quản lý)
+    isOwn: habitat?.isOwn ?? false,
   });
   const setF = <K extends keyof HabitatInput>(k: K, v: HabitatInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -968,6 +970,27 @@ export function HabitatFormModal({
                 <select value={form.modStrictness ?? ''} onChange={(e) => setF('modStrictness', e.target.value as HabitatInput['modStrictness'])} style={fld}>
                   {STRICTNESS.map((s) => <option key={s} value={s}>{s || '—'}</option>)}
                 </select>
+              </div>
+            </div>
+
+            {/* 👑 Own habitat — flag habitat brand mình quản lý (Discord
+                server own, FB group, subreddit user mod). UI hiển thị icon
+                trên row + filter Own/External. AI prompt có thể đổi tone. */}
+            <div style={{ padding: 8,
+                          background: form.isOwn ? 'rgba(251,191,36,.08)' : 'var(--bg-2)',
+                          border: `1px solid ${form.isOwn ? 'rgba(251,191,36,.4)' : 'var(--line)'}`,
+                          borderRadius: 4, marginBottom: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                <input type="checkbox"
+                       checked={form.isOwn ?? false}
+                       onChange={(e) => setF('isOwn', e.target.checked)} />
+                <span style={{ fontWeight: 700, color: form.isOwn ? '#fbbf24' : 'var(--fg-1)' }}>
+                  👑 Own habitat (brand mình)
+                </span>
+              </label>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
+                Check nếu habitat thuộc brand mình quản lý (Discord server own, FB group, subreddit user mod).
+                Khác với external community ta engage. Hiển thị icon 👑 + filter Own/External.
               </div>
             </div>
 

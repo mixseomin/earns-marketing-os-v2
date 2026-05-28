@@ -984,7 +984,7 @@ function SortableHeader({ label, sortKey, altKey, current, onSort }: {
 }
 
 function thFilter(): React.CSSProperties {
-  return { padding: '4px 6px', verticalAlign: 'top' };
+  return { padding: '4px 6px', verticalAlign: 'top', textAlign: 'center' };
 }
 
 // ColumnSearchInput — text search (q filter). Debounce 250ms để khỏi spam fetch.
@@ -1037,7 +1037,7 @@ function ColumnNumberInput({ value, placeholder, onChange }: {
            style={{ width: '100%', padding: '2px 4px', fontSize: 10.5,
                     background: 'var(--bg-2)', border: '1px solid var(--line)',
                     borderRadius: 3, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)',
-                    textAlign: 'right' }} />
+                    textAlign: 'center' }} />
   );
 }
 

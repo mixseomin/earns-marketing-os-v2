@@ -659,27 +659,84 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             </span>
           </div>
         </td>
-        {/* C4: Backlog + actions (compact) */}
+        {/* C4: Backlog nháp */}
+        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+          <EntityLink
+            color={it.backlogCount > 0 ? 'var(--accent)' : 'var(--fg-4)'}
+            onClick={() => modal.open('pipeline', it.briefId)}
+            title={it.backlogCount > 0
+              ? `${it.completeCount}/${it.backlogCount} nháp đủ data — mở pipeline`
+              : 'Mở pipeline (chưa có nháp)'}>
+            <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                           display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <IconList size={10} />
+              {it.backlogCount > 0
+                ? <>{it.backlogCount}{' '}
+                    <span style={{ color: it.completeCount === it.backlogCount ? 'var(--ok)' : 'var(--warn)' }}>
+                      ({it.completeCount}/{it.backlogCount})
+                    </span></>
+                : '—'}
+            </span>
+          </EntityLink>
+        </td>
+        {/* C5: Posted count (📨 lifetime + 30d) */}
+        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+          <button type="button" onClick={() => modal.open('pipeline', it.briefId)}
+                  title={it.postedCount > 0
+                    ? `${it.postedCount} bài đăng (${it.postedCount30d} trong 30d)`
+                    : 'Chưa có bài đăng'}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                           fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                           color: it.postedCount > 0 ? '#60a5fa' : 'var(--fg-4)' }}>
+            {it.postedCount > 0 ? (
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3, fontWeight: 700 }}>
+                📨 {it.postedCount}
+                {it.postedCount30d > 0 && (
+                  <span style={{ fontSize: 9, fontWeight: 400, color: 'var(--fg-3)' }}>
+                    +{it.postedCount30d}/30d
+                  </span>
+                )}
+              </span>
+            ) : '—'}
+          </button>
+        </td>
+        {/* C6: Metrics (👁 ↑ 💬) */}
+        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+          {it.insightSampleCount > 0 ? (
+            <button type="button" onClick={() => modal.open('pipeline', it.briefId)}
+                    title={`Insights synced từ ${it.insightSampleCount} bài`}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                             fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                             color: '#60a5fa', fontWeight: 700,
+                             display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {it.totalViews > 0 && <span title={`${it.totalViews.toLocaleString()} views`}>👁 {formatStatShort(it.totalViews)}</span>}
+              {it.totalScore > 0 && <span title={`Score ${it.totalScore}`}>↑ {formatStatShort(it.totalScore)}</span>}
+              {it.totalReplies > 0 && <span title={`${it.totalReplies} replies`}>💬 {it.totalReplies}</span>}
+              {it.totalViews === 0 && it.totalScore === 0 && it.totalReplies === 0 && (
+                <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>0</span>
+              )}
+            </button>
+          ) : it.postedCount > 0 ? (
+            <span title="Đã có bài đăng nhưng chưa sync insights"
+                  style={{ fontSize: 9.5, color: 'var(--fg-4)', fontStyle: 'italic' }}>
+              chưa sync
+            </span>
+          ) : (
+            <span style={{ color: 'var(--fg-4)' }}>—</span>
+          )}
+        </td>
+        {/* C7: Last posted */}
+        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+          {it.lastPostedAt ? (
+            <span title={new Date(it.lastPostedAt).toLocaleString()}
+                  style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+              ⏱ {timeAgoShort(new Date(it.lastPostedAt))}
+            </span>
+          ) : <span style={{ color: 'var(--fg-4)' }}>—</span>}
+        </td>
+        {/* C8: Actions (autofix + ⋯) */}
         <td style={{ padding: '6px 8px', textAlign: 'right' }}>
           <div style={{ display: 'inline-flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
-            <EntityLink
-              color={it.backlogCount > 0 ? 'var(--accent)' : 'var(--fg-4)'}
-              onClick={() => modal.open('pipeline', it.briefId)}
-              title={it.backlogCount > 0
-                ? `${it.completeCount}/${it.backlogCount} nháp đủ data — mở pipeline`
-                : 'Mở pipeline'}>
-              <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)',
-                             display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                <IconList size={11} />
-                {it.backlogCount > 0
-                  ? <>{it.backlogCount}{' '}
-                      <span style={{ color: it.completeCount === it.backlogCount ? 'var(--ok)' : 'var(--warn)' }}>
-                        ({it.completeCount}/{it.backlogCount})
-                      </span></>
-                  : 'xem'}
-              </span>
-            </EntityLink>
-            <BriefMetricsChip it={it} onOpen={() => modal.open('pipeline', it.briefId)} />
             {issue && (
               <button className="btn" disabled={busy} onClick={() => doAutoFix(it)}
                       title="Auto-fix sai nền tảng"
@@ -1085,8 +1142,12 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             <colgroup>
               <col style={{ width: 60 }} />          {/* Brief ID */}
               <col />                                {/* Account + Habitat + Platform */}
-              <col style={{ width: 150 }} />         {/* Status + Due */}
-              <col style={{ width: 200 }} />         {/* Backlog + actions */}
+              <col style={{ width: 130 }} />         {/* Status + Due */}
+              <col style={{ width: 70 }} />          {/* Backlog */}
+              <col style={{ width: 75 }} />          {/* Posted (📨) */}
+              <col style={{ width: 100 }} />         {/* Metrics (👁↑💬) */}
+              <col style={{ width: 70 }} />          {/* Last posted */}
+              <col style={{ width: 70 }} />          {/* Actions (autofix + ⋯) */}
             </colgroup>
             <thead>
               <tr style={{ background: 'var(--bg-2)', color: 'var(--fg-3)', fontSize: 10,
@@ -1094,7 +1155,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Brief</th>
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Account × Habitat</th>
                 <th style={{ padding: '4px 8px', textAlign: 'left' }}>Status</th>
-                <th style={{ padding: '4px 8px', textAlign: 'right' }}>Backlog · Actions</th>
+                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Nháp đủ data / Backlog">Nháp</th>
+                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Bài đã đăng (lifetime + 30d)">Đăng</th>
+                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Insights: views ↑ replies">Metrics</th>
+                <th style={{ padding: '4px 8px', textAlign: 'center' }} title="Lần đăng gần nhất">Last</th>
+                <th style={{ padding: '4px 8px', textAlign: 'right' }}>•</th>
               </tr>
             </thead>
             <tbody>{items.map(RowTable)}</tbody>
@@ -1463,8 +1528,12 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <colgroup>
                   <col style={{ width: 60 }} />
                   <col />
-                  <col style={{ width: 150 }} />
-                  <col style={{ width: 200 }} />
+                  <col style={{ width: 130 }} />
+                  <col style={{ width: 70 }} />
+                  <col style={{ width: 75 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 70 }} />
+                  <col style={{ width: 70 }} />
                 </colgroup>
                 <tbody>{g.rows.map(RowTable)}</tbody>
               </table>

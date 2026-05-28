@@ -10,6 +10,7 @@ import {
 import {
   listChannelsForHabitat, bulkReplaceChannels, type HabitatChannelInput,
 } from '@/lib/actions/habitat-channels';
+import { StatusFlag } from './ui';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
 import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible } from './ui';
 import {
@@ -2308,16 +2309,8 @@ function ChannelRow({
                     title={`Channel-level language: ${ch.language.toUpperCase()} (override habitat)`} />
         )}
         {skipForPost && (
-          <span title="Channel admin/info-only — AI sẽ KHÔNG pick channel này khi tạo bài"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                         padding: '1px 6px', fontSize: 9, fontWeight: 700,
-                         fontFamily: 'var(--font-mono)',
-                         background: 'rgba(248,113,113,0.12)',
-                         color: 'var(--bad)',
-                         border: '1px solid rgba(248,113,113,0.4)',
-                         borderRadius: 3 }}>
-            🚫 không đăng
-          </span>
+          <StatusFlag icon="🚫" tone="bad"
+                      title="Channel admin/info-only — AI sẽ KHÔNG pick channel này khi tạo bài" />
         )}
         <button type="button"
                 onClick={(e) => { e.stopPropagation(); onRemove(); }}

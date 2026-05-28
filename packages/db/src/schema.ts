@@ -713,7 +713,30 @@ export const habitatChannels = pgTable(
     description: text('description').notNull().default(''),// off-topic / showcase / Q&A...
     rules: text('rules').notNull().default(''),             // markdown — channel-specific
     allowedFormats: jsonb('allowed_formats'),               // override habitat-level
-    postingGates: jsonb('posting_gates'),                   // {minAge, minKarma, linksAllowedAfter...}
+    /**
+     * posting_gates JSONB shape — SOURCE OF TRUTH cho mọi gate-related flag.
+     * KHÔNG tạo column boolean song song với keys trong JSONB này (vd
+     * KHÔNG `no_posting` column khi đã có `skip_for_post` key).
+     * Tham khảo `feedback_no_parallel_fields.md`.
+     *
+     * Shape:
+     *   {
+     *     skip_for_post?: boolean,      // true = channel admin/info-only (rules/announce/bot)
+     *                                   //   → AI bỏ qua khi pick channel + UI badge 🚫
+     *     reason?: string,              // 'auto-detect' | 'manual' | 'ext' — ai/khi nào set
+     *     min_age_days?: number,        // require account.age >= N days (chưa implement)
+     *     min_karma?: number,           // require account karma >= N (chưa implement)
+     *     links_allowed_after?: string, // ISO date — chỉ post link sau ngày này (chưa implement)
+     *   }
+     *
+     * Consumers (grep `skip_for_post` để verify):
+     *  - habitat-form-modal: UI toggle + 🚫 badge
+     *  - channel-coverage-grid: disable channel chip
+     *  - parse-channels: auto-detect rules/bot channels
+     *  - card-channel: AI selection skip
+     *  - api/ext/habitats/channel-info: ext sidepanel toggle
+     */
+    postingGates: jsonb('posting_gates'),
     // Channel-level voice override. NULL = kế thừa habitat.voiceProfile.
     // Vd habitat shitposter + #rules channel = 'regular' để bài #rules đỡ trolling.
     voiceProfileOverride: text('voice_profile_override'),

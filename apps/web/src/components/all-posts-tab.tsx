@@ -459,7 +459,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                            fontFamily: 'var(--font-mono)' }}>
                 <th style={th()} />
                 <th style={th()}>Habitat / Account / Title</th>
-                <th style={th()}>Lifecycle</th>
+                <th style={{ ...th(), textAlign: 'center' }}>Lifecycle</th>
                 <SortableHeader label="👁 Views" sortKey="views_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
@@ -637,7 +637,7 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
           </div>
         </button>
       </td>
-      <td style={td()}>
+      <td style={{ ...td(), textAlign: 'center' }}>
         <LifecycleBadge cardId={c.id} current={c.postLifecycle} postUrl={c.postUrl}
                         onSaved={onLifecycleSaved} />
       </td>
@@ -653,7 +653,7 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
       <MetricCell value={r != null ? `${Math.round(r * 100)}%` : null}
                   fullTitle={r != null ? `Upvote ratio ${Math.round(r * 100)}%` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
-      <td style={td()}>
+      <td style={{ ...td(), textAlign: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
           {timeAgo(c.postedAt)}
         </span>
@@ -923,7 +923,7 @@ function MetricCell({ value, fullTitle, url }: {
   // (giá trị > 0 nổi bật màu xanh).
   const isZero = value == null || value === '0' || value === '0%';
   return (
-    <td style={td()}>
+    <td style={{ ...td(), textAlign: 'center' }}>
       <a href={wrapExternalUrl(url)} target="_blank" rel="noopener noreferrer"
          onClick={(e) => e.stopPropagation()} title={fullTitle}
          style={{ display: 'inline-block', padding: '1px 5px',
@@ -970,7 +970,7 @@ function SortableHeader({ label, sortKey, altKey, current, onSort }: {
         : sortKey;
   const arrow = isDesc ? ' ↓' : (isAsc ? ' ↑' : '');
   return (
-    <th style={{ ...th(), cursor: 'pointer', userSelect: 'none' }}
+    <th style={{ ...th(), cursor: 'pointer', userSelect: 'none', textAlign: 'center' }}
         onClick={() => onSort(next)}
         title={active
           ? (altKey ? 'Click để đổi chiều / tắt sort' : 'Click để bỏ sort')

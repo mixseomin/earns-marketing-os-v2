@@ -205,7 +205,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
   const [moreOpen, setMoreOpen] = useState(() =>
     !!(filters.habitatIds || filters.accountIds || filters.briefIds ||
        filters.contentTypes || filters.minViews != null || filters.minScore != null ||
-       filters.minReplies != null || filters.aiDetectionOnly)
+       filters.minReplies != null || filters.aiDetectionOnly || filters.ownership)
   );
 
   return (
@@ -379,6 +379,21 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               onClick={() => setF({ aiDetectionOnly: !filters.aiDetectionOnly })}
               title="Chỉ habitats có cơ chế detect AI content">
           🤖 AI-detect
+        </Chip>
+
+        <Chip on={filters.ownership === 'own'}
+              onClick={() => setF({
+                ownership: filters.ownership === 'own' ? undefined : 'own',
+              })}
+              title="Chỉ habitats brand mình quản lý">
+          👑 Own
+        </Chip>
+        <Chip on={filters.ownership === 'external'}
+              onClick={() => setF({
+                ownership: filters.ownership === 'external' ? undefined : 'external',
+              })}
+              title="Chỉ external communities (không own brand)">
+          🌍 External
         </Chip>
       </div>
 
@@ -620,6 +635,10 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
                          display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
             <span style={{ fontWeight: 700, color: 'var(--fg-0)', whiteSpace: 'nowrap' }}>
+              {c.habitatIsOwn && (
+                <span title="Own — habitat brand mình quản lý"
+                      style={{ color: '#fbbf24', marginRight: 3 }}>👑</span>
+              )}
               {c.habitatName || '(orphan)'}
             </span>
             {c.accountHandle && (

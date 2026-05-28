@@ -685,6 +685,9 @@ export const habitats = pgTable(
     //   - Tránh "Hi, I'm an AI..." patterns
     aiContentDetection: boolean('ai_content_detection').notNull().default(false),
     aiDetectionNote: text('ai_detection_note'),
+    // 0077: habitat own brand mình (Discord server own, FB group, subreddit user mod)
+    // vs external community. UI hiển thị 👑 + AI prompt có thể đổi tone.
+    isOwn: boolean('is_own').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

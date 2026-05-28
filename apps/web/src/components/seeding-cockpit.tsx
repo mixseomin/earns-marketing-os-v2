@@ -535,7 +535,15 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             <span style={{ color: 'var(--fg-4)' }}>·</span>
             <span style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>
               <EntityLink color="var(--fg-1)" onClick={() => setHabitatOverlayId(it.habitatId)}
-                title={`Mở Habitat modal: ${it.habitatName} (rules/members/topics)`}>{it.habitatName}</EntityLink>
+                title={it.habitatIsOwn
+                  ? `Own habitat (brand mình) · ${it.habitatName}`
+                  : `Mở Habitat modal: ${it.habitatName} (rules/members/topics)`}>
+                {it.habitatIsOwn && (
+                  <span title="Own — habitat brand mình"
+                        style={{ color: '#fbbf24', marginRight: 3 }}>👑</span>
+                )}
+                {it.habitatName}
+              </EntityLink>
             </span>
             <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{it.habitatKind}</span>
             {!it.habitatUrl && (
@@ -871,7 +879,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
                       <EntityLink color="var(--fg-1)"
                                   onClick={() => setHabitatOverlayId(r.habitatId)}
-                                  title="Mở habitat modal">
+                                  title={r.habitatIsOwn ? 'Own habitat (brand mình) · Mở habitat modal' : 'Mở habitat modal'}>
+                        {r.habitatIsOwn && (
+                          <span title="Own — habitat brand mình quản lý"
+                                style={{ color: '#fbbf24', marginRight: 3 }}>👑</span>
+                        )}
                         {r.habitatName}
                       </EntityLink>
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>
@@ -1018,7 +1030,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                       <span style={{ color: 'var(--fg-4)' }}>×</span>
                       <EntityLink color="var(--fg-1)"
                                   onClick={() => setHabitatOverlayId(r.habitatId)}
-                                  title="Mở habitat modal">
+                                  title={r.habitatIsOwn ? 'Own habitat (brand mình) · Mở habitat modal' : 'Mở habitat modal'}>
+                        {r.habitatIsOwn && (
+                          <span title="Own — habitat brand mình quản lý"
+                                style={{ color: '#fbbf24', marginRight: 3 }}>👑</span>
+                        )}
                         {r.habitatName}
                       </EntityLink>
                       <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>

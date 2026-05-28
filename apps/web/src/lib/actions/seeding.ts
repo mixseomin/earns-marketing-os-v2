@@ -61,6 +61,8 @@ export interface SeedingQueueItem {
   habitatKind: string;
   habitatPlatformKey: string;       // habitats.platform_key ('' nếu chưa set)
   habitatUrl: string | null;
+  habitatIsOwn: boolean;            // 0077: habitat own brand mình
+
   tribeName: string | null;
   tribeId: number | null;
   currentPhase: Phase;
@@ -139,6 +141,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       pa.platform_key AS platform_key, p.category AS platform_category,
       h.name AS habitat_name, h.kind AS habitat_kind,
       h.platform_key AS habitat_platform_key, h.url AS habitat_url,
+      COALESCE(h.is_own, false) AS habitat_is_own,
       t.name AS tribe_name, t.id AS tribe_id,
       (SELECT e->'formatMix' FROM jsonb_array_elements(
          CASE WHEN jsonb_typeof(b.phase_plan) = 'array' THEN b.phase_plan ELSE '[]'::jsonb END
@@ -230,6 +233,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       habitatKind: String(r.habitat_kind ?? 'forum'),
       habitatPlatformKey: String(r.habitat_platform_key ?? ''),
       habitatUrl: r.habitat_url ? String(r.habitat_url) : null,
+      habitatIsOwn: Boolean(r.habitat_is_own),
       tribeName: r.tribe_name ? String(r.tribe_name) : null,
       tribeId: r.tribe_id != null ? Number(r.tribe_id) : null,
       currentPhase,

@@ -858,6 +858,7 @@ export interface AllPostedFilters {
   briefIds?: number[];
   contentTypes?: string[];
   aiDetectionOnly?: boolean;       // true = chỉ habitats.ai_content_detection=true
+  ownership?: 'own' | 'external';  // filter theo habitats.is_own
   minViews?: number | null;
   minScore?: number | null;
   minReplies?: number | null;
@@ -873,6 +874,7 @@ export interface AllPostedCard extends RecentPostedCard {
   briefPhase: string | null;       // card.brief_phase — focus đúng phase khi mở modal
   squadKey: string | null;
   aiContentDetection: boolean;
+  habitatIsOwn: boolean;           // 0077
   // Chi phí AI gen version cuối cùng (gen_cost_usd, USD). Null = chưa gen
   // bằng AI / manual writer / legacy.
   genCostUsd: number | null;
@@ -940,6 +942,11 @@ function buildPostedWhere(projectId: string, f: AllPostedFilters) {
   if (f.aiDetectionOnly) {
     conds.push(sql`h.ai_content_detection = TRUE`);
   }
+  if (f.ownership === 'own') {
+    conds.push(sql`COALESCE(h.is_own, FALSE) = TRUE`);
+  } else if (f.ownership === 'external') {
+    conds.push(sql`COALESCE(h.is_own, FALSE) = FALSE`);
+  }
   if (f.minViews != null) conds.push(sql`COALESCE(c.insights_views_count, 0) >= ${f.minViews}`);
   if (f.minScore != null) conds.push(sql`COALESCE(c.insights_score, 0) >= ${f.minScore}`);
   if (f.minReplies != null) conds.push(sql`COALESCE(c.insights_reply_count, 0) >= ${f.minReplies}`);
@@ -989,6 +996,7 @@ export async function listAllPostedCards(
     briefIds: filters.briefIds,
     contentTypes: filters.contentTypes,
     aiDetectionOnly: filters.aiDetectionOnly,
+    ownership: filters.ownership,
     minViews: filters.minViews ?? null,
     minScore: filters.minScore ?? null,
     minReplies: filters.minReplies ?? null,
@@ -1009,6 +1017,7 @@ export async function listAllPostedCards(
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
            h.name AS habitat_name, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
+           COALESCE(h.is_own, FALSE) AS habitat_is_own,
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle,
            (SELECT COUNT(*) FROM cards c2
@@ -1095,6 +1104,7 @@ export async function listAllPostedCards(
     platformKey: r.platform_key ? String(r.platform_key) : null,
     accountHandle: r.account_handle ? String(r.account_handle) : null,
     aiContentDetection: Boolean(r.ai_detect),
+    habitatIsOwn: Boolean(r.habitat_is_own),
     insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
     insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
     insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,

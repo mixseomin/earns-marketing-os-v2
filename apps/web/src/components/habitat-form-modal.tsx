@@ -72,6 +72,26 @@ export function HabitatFormModal({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Tab navigation — Overview = layout 3-col cũ giữ nguyên. 5 tabs chuyên
+  // sâu drill-down từng nhóm field (Phase B-F sẽ migrate nội dung).
+  type ModalTab = 'overview' | 'identity' | 'outreach' | 'rules' | 'voice' | 'channels';
+  const readTabFromUrl = (): ModalTab => {
+    if (typeof window === 'undefined') return 'overview';
+    const t = new URLSearchParams(window.location.search).get('habTab');
+    if (t === 'identity' || t === 'outreach' || t === 'rules' || t === 'voice' || t === 'channels') return t;
+    return 'overview';
+  };
+  const [activeTab, setActiveTab] = useState<ModalTab>(() => readTabFromUrl());
+  const writeTabUrl = (t: ModalTab) => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    if (t === 'overview') sp.delete('habTab');
+    else sp.set('habTab', t);
+    const qs = sp.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState({}, '', url);
+  };
+  const switchTab = (t: ModalTab) => { setActiveTab(t); writeTabUrl(t); };
   // Pre-save confirm khi user bỏ format support mà còn cards loại đó.
   // Hiển thị list affected + 2 actions: archive (soft-hide, restore khi bật
   // lại format) hoặc giữ orphan visible (badge cảnh báo).
@@ -571,6 +591,38 @@ export function HabitatFormModal({
             }}
           />
 
+          {/* Tab bar — Overview giữ layout 3-col cũ, 5 tabs khác drill-down
+              từng nhóm field. URL ?habTab=identity|outreach|... persist khi F5. */}
+          <div role="tablist"
+               style={{ display: 'flex', alignItems: 'flex-end', gap: 0,
+                        borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+            {([
+              { key: 'overview', label: '📋 Overview', desc: 'Layout 3-col tổng hợp (default)' },
+              { key: 'identity', label: '🆔 Identity', desc: 'Name/URL/kind/platform/tribes/flags' },
+              { key: 'outreach', label: '🎯 Outreach', desc: 'Language/status/community type/mod' },
+              { key: 'rules', label: '📜 Rules', desc: 'Posting rules + gates + topics' },
+              { key: 'voice', label: '🎙 Voice', desc: 'Voice profile + notes + few-shot' },
+              { key: 'channels', label: '📺 Channels', desc: 'Sub-channels Discord/Slack/Telegram' },
+            ] as Array<{ key: ModalTab; label: string; desc: string }>).map((t) => {
+              const on = activeTab === t.key;
+              return (
+                <button key={t.key} role="tab" aria-selected={on} title={t.desc}
+                        onClick={() => switchTab(t.key)}
+                        style={{
+                          padding: '6px 12px', fontSize: 11.5, fontWeight: on ? 700 : 500,
+                          background: 'transparent', border: 'none',
+                          borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                          color: on ? 'var(--accent)' : 'var(--fg-3)',
+                          cursor: 'pointer', marginBottom: -1,
+                          transition: 'color .15s, border-color .15s',
+                        }}>
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeTab === 'overview' && (<>
           {/* ── 3-column body ── col1: identity | col2: outreach gates | col3: voice + rules + topics + channels ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
@@ -1396,6 +1448,43 @@ export function HabitatFormModal({
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}
           </div>{/* /3-col wrapper */}
+          </>)}
+
+          {activeTab === 'identity' && (
+            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                🆔 Identity tab — Phase B coming. Hiện dùng Overview cho name/url/kind/platform/tribes.
+              </div>
+            </div>
+          )}
+          {activeTab === 'outreach' && (
+            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                🎯 Outreach tab — Phase C coming. Hiện dùng Overview cho language/status/community type/mod.
+              </div>
+            </div>
+          )}
+          {activeTab === 'rules' && (
+            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                📜 Rules tab — Phase D coming. Hiện dùng Overview cho posting rules + gates + topics.
+              </div>
+            </div>
+          )}
+          {activeTab === 'voice' && (
+            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                🎙 Voice tab — Phase E coming. Hiện dùng Overview cho voice profile + notes + few-shot.
+              </div>
+            </div>
+          )}
+          {activeTab === 'channels' && (
+            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                📺 Channels tab — Phase F coming. Hiện dùng Overview cho channels list.
+              </div>
+            </div>
+          )}
 
           {error && (
             <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)', color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>

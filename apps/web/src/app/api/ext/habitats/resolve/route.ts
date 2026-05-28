@@ -53,6 +53,36 @@ export async function GET(req: Request) {
     }
   }
 
+  // Discord channel page: /channels/<guild_id>/<channel_id>
+  // KEY match: scraped_meta.discord_guild_id (snowflake). Cùng server dù URL
+  // invite (discord.gg/xxx) hay channel page → cùng guild_id.
+  if (host.endsWith('discord.com') && pathParts[0] === 'channels' && pathParts[1]) {
+    const guildId = pathParts[1];
+    if (/^\d{15,25}$/.test(guildId)) {
+      const rows = await db.execute(sql`
+        SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,
+               (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
+        FROM habitats h
+        WHERE h.scraped_meta->>'discord_guild_id' = ${guildId}
+        LIMIT 1
+      `);
+      const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+      if (r) {
+        return NextResponse.json({
+          habitat: {
+            id: Number(r.id),
+            name: String(r.name),
+            kind: String(r.kind),
+            language: String(r.language ?? ''),
+            projectId: String(r.project_id),
+            url: r.url ? String(r.url) : null,
+            briefId: r.brief_id ? Number(r.brief_id) : null,
+          },
+        });
+      }
+    }
+  }
+
   // Generic URL substring match — fallback cho FB group / forum / Discord
   const rows = await db.execute(sql`
     SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,

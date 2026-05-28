@@ -519,6 +519,52 @@ export function HabitatFormModal({
         </div>
 
         <div className="modal-body" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Tab bar — Sticky top trong modal-body (overflow-y: auto). Đứng
+              TRƯỚC AIFormParser để khi scroll vẫn switch tab nhanh. */}
+          <div role="tablist"
+               style={{
+                 position: 'sticky', top: 0, zIndex: 20,
+                 display: 'flex', alignItems: 'flex-end', gap: 0,
+                 borderBottom: '1px solid var(--line)',
+                 background: 'var(--bg-0)',
+                 marginLeft: -10, marginRight: -10, paddingLeft: 10, paddingRight: 10,
+                 marginTop: -10, paddingTop: 6,
+               }}>
+            {([
+              { key: 'overview', label: '📋 Overview', desc: 'Layout 3-col tổng hợp (default)' },
+              { key: 'identity', label: '🆔 Identity', desc: 'Name/URL/kind/platform/tribes/flags' },
+              { key: 'outreach', label: '🎯 Outreach', desc: 'Language/status/community type/mod' },
+              { key: 'rules', label: '📜 Rules', desc: 'Posting rules + gates + topics' },
+              { key: 'voice', label: '🎙 Voice', desc: 'Voice profile + notes + few-shot' },
+              { key: 'channels', label: '📺 Channels', desc: 'Sub-channels Discord/Slack/Telegram' },
+            ] as Array<{ key: ModalTab; label: string; desc: string }>).map((t) => {
+              const on = activeTab === t.key;
+              return (
+                <button key={t.key} role="tab" aria-selected={on} title={t.desc}
+                        onClick={() => switchTab(t.key)}
+                        style={{
+                          padding: '6px 12px', fontSize: 11.5, fontWeight: on ? 700 : 500,
+                          background: 'transparent', border: 'none',
+                          borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                          color: on ? 'var(--accent)' : 'var(--fg-3)',
+                          cursor: 'pointer', marginBottom: -1,
+                          transition: 'color .15s, border-color .15s',
+                        }}>
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* AIFormParser — collapsed mặc định để gọn. User click '▸ AI fill'
+              để mở khi cần paste text/URL/screenshot extract toàn bộ field. */}
+          <details>
+            <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)',
+                              fontFamily: 'var(--font-mono)', padding: '4px 0',
+                              userSelect: 'none' }}>
+              <span style={{ color: 'var(--accent)' }}>✨ AI fill</span> — paste text / URL / screenshot → AI extract 18 fields
+            </summary>
+            <div style={{ marginTop: 6 }}>
           <AIFormParser
             context={[
               'Đây là 1 habitat (community/group concrete) cho marketing project. Đọc URL/text/screenshot/wiki rules → fill mọi field bên dưới.',
@@ -590,37 +636,8 @@ export function HabitatFormModal({
               if (v.bestPostTimes != null)     setF('bestPostTimes', String(v.bestPostTimes));
             }}
           />
-
-          {/* Tab bar — Overview giữ layout 3-col cũ, 5 tabs khác drill-down
-              từng nhóm field. URL ?habTab=identity|outreach|... persist khi F5. */}
-          <div role="tablist"
-               style={{ display: 'flex', alignItems: 'flex-end', gap: 0,
-                        borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
-            {([
-              { key: 'overview', label: '📋 Overview', desc: 'Layout 3-col tổng hợp (default)' },
-              { key: 'identity', label: '🆔 Identity', desc: 'Name/URL/kind/platform/tribes/flags' },
-              { key: 'outreach', label: '🎯 Outreach', desc: 'Language/status/community type/mod' },
-              { key: 'rules', label: '📜 Rules', desc: 'Posting rules + gates + topics' },
-              { key: 'voice', label: '🎙 Voice', desc: 'Voice profile + notes + few-shot' },
-              { key: 'channels', label: '📺 Channels', desc: 'Sub-channels Discord/Slack/Telegram' },
-            ] as Array<{ key: ModalTab; label: string; desc: string }>).map((t) => {
-              const on = activeTab === t.key;
-              return (
-                <button key={t.key} role="tab" aria-selected={on} title={t.desc}
-                        onClick={() => switchTab(t.key)}
-                        style={{
-                          padding: '6px 12px', fontSize: 11.5, fontWeight: on ? 700 : 500,
-                          background: 'transparent', border: 'none',
-                          borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
-                          color: on ? 'var(--accent)' : 'var(--fg-3)',
-                          cursor: 'pointer', marginBottom: -1,
-                          transition: 'color .15s, border-color .15s',
-                        }}>
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
+            </div>
+          </details>
 
           {activeTab === 'overview' && (<>
           {/* ── 3-column body ── col1: identity | col2: outreach gates | col3: voice + rules + topics + channels ── */}

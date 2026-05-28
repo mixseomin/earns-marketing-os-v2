@@ -1891,6 +1891,16 @@ function RecentPostedSection({ cards, onOpenBrief }: {
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
                     <span style={{ fontWeight: 700, color: 'var(--fg-0)', fontSize: 11.5,
                                    whiteSpace: 'nowrap' }}>{c.habitatName}</span>
+                    {c.channelName && (
+                      <span title={`Sub-channel: ${c.channelName}`}
+                            style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                                     color: 'var(--accent)', fontWeight: 700,
+                                     background: 'var(--accent-soft)',
+                                     border: '1px solid var(--accent-line)',
+                                     padding: '0 5px', borderRadius: 3 }}>
+                        #{c.channelName}
+                      </span>
+                    )}
                     {c.accountHandle && (
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
                                      color: 'var(--fg-3)' }}>@{c.accountHandle}</span>

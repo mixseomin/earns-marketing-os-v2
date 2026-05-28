@@ -454,6 +454,9 @@ export interface RecentPostedCard {
   // Phase card thuộc về (warm-up/value/bridge/seed/direct/cooldown) — focus
   // đúng phase khi mở brief modal qua URL ?bfp=<phase>.
   briefPhase: string | null;
+  // Sub-channel của habitat (Discord channel, Slack channel...). Null nếu
+  // card đăng habitat-level (subreddit/forum 1 ruleset).
+  channelName: string | null;
   // Số attempts cùng parent_url (>= 1, include self). Khi >1 = thread engaged
   // nhiều lần (re-post sau ghost / multi-account). UI prefix "🧵 ×N".
   parentAttemptCount: number;
@@ -470,13 +473,14 @@ export async function listRecentPostedCards(
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
            c.post_lifecycle, c.brief_phase,
-           c.brief_id,
+           c.brief_id, c.channel_id,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id,
            h.name AS habitat_name,
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle, pa.account_kind AS account_kind,
+           hc.name AS channel_name,
            -- COUNT attempts cùng parent_url (>= 1, include self). Window function
            -- để tránh subquery; project-scoped để cross-brief OK.
            (SELECT COUNT(*) FROM cards c2
@@ -486,6 +490,7 @@ export async function listRecentPostedCards(
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitat_channels hc ON hc.id = c.channel_id
     LEFT JOIN platforms p ON p.key = h.platform_key
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
     WHERE c.project_id = ${projectId}
@@ -519,6 +524,7 @@ export async function listRecentPostedCards(
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
     briefPhase: r.brief_phase ? String(r.brief_phase) : null,
+    channelName: r.channel_name ? String(r.channel_name) : null,
     parentAttemptCount: Number(r.parent_attempt_count ?? 1),
   }));
 }
@@ -1020,7 +1026,7 @@ export async function listAllPostedCards(
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
            c.post_lifecycle, c.squad_key, c.brief_phase,
-           c.brief_id, c.gen_cost_usd, c.gen_duration_ms,
+           c.brief_id, c.channel_id, c.gen_cost_usd, c.gen_duration_ms,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
@@ -1028,6 +1034,7 @@ export async function listAllPostedCards(
            COALESCE(h.is_own, FALSE) AS habitat_is_own,
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle, pa.account_kind AS account_kind,
+           hc.name AS channel_name,
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
                 AND c2.parent_url = c.parent_url
@@ -1035,6 +1042,7 @@ export async function listAllPostedCards(
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitat_channels hc ON hc.id = c.channel_id
     LEFT JOIN platforms p ON p.key = h.platform_key
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
     WHERE ${where}
@@ -1120,6 +1128,7 @@ export async function listAllPostedCards(
     insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
+    channelName: r.channel_name ? String(r.channel_name) : null,
     parentAttemptCount: Number(r.parent_attempt_count ?? 1),
   }));
 

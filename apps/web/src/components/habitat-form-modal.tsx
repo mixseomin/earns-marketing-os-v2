@@ -475,7 +475,9 @@ export function HabitatFormModal({
 
   return (
     <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(1280px, 96vw)', maxWidth: 1280 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal"
+           style={{ width: 'min(1280px, 96vw)', maxWidth: 1280 }}
+           onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="id-line">
@@ -518,7 +520,8 @@ export function HabitatFormModal({
           <button className="btn ghost" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="modal-body"
+             style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
           {/* Tab bar — Sticky top trong modal-body (overflow-y: auto).
               Modal-body padding: 0 + gap: 0 để sticky không bị shift bởi
               padding/gap. Padding áp dụng cho NỘI DUNG bên dưới qua wrapper. */}

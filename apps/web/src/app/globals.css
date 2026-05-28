@@ -1405,6 +1405,11 @@ button { font-family: inherit; color: inherit; }
   border: 1px solid var(--line-2);
   border-radius: var(--r-xl);
   width: min(720px, 100%);
+  /* LOCK height = 100% backdrop để mọi modal có chiều cao ổn định.
+     Lý do: trước đây modal auto-shrink theo content → đổi tab/state làm
+     content thay đổi chiều cao → modal nhảy lên xuống flicker.
+     Giờ modal full height, body scroll trong locked container. */
+  height: 100%;
   max-height: 100%;
   display: flex; flex-direction: column;
   overflow: hidden;
@@ -1433,6 +1438,10 @@ button { font-family: inherit; color: inherit; }
   padding: 18px;
   overflow-y: auto;
   display: flex; flex-direction: column; gap: 14px;
+  /* flex: 1 + minHeight: 0 → fill height còn lại của .modal đã lock.
+     Tab content/state changes chỉ scroll trong body, không co modal. */
+  flex: 1;
+  min-height: 0;
 }
 .modal-grid {
   display: grid; grid-template-columns: 1fr 1fr;

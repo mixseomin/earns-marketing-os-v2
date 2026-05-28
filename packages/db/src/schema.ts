@@ -720,6 +720,12 @@ export const habitatChannels = pgTable(
     // Few-shot examples specific cho channel này. NULL = kế thừa habitat.fewShotExamples.
     fewShotExamples: jsonb('few_shot_examples'),
     sortOrder: integer('sort_order').notNull().default(0),
+    // 0078: Discord/Slack sync fields
+    externalId: text('external_id'),                       // Discord snowflake / Slack channel ID
+    topic: text('topic').notNull().default(''),            // platform topic field
+    pinnedSummary: jsonb('pinned_summary'),                // AI summary từ pinned messages
+    recentSummary: jsonb('recent_summary'),                // AI summary từ recent messages
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

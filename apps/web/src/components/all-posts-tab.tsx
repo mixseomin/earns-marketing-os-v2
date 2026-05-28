@@ -28,6 +28,7 @@ import {
   type CostBreakdown,
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
+import { MultiSelect as SharedMultiSelect } from './ui';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
 import { AccountKindIcon } from './account-kind-icon';
 import {
@@ -420,19 +421,19 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                       padding: '6px 10px', background: 'var(--bg-1)',
                       border: '1px solid var(--line)', borderRadius: 6, marginBottom: 6 }}>
-          <MultiSelect label="Habitat"
+          <SharedMultiSelect variant="chip" label="Habitat"
                        options={options.habitats.map((h) => ({
                          value: h.id, label: `${h.name}${h.aiDetection ? ' 🤖' : ''}`, count: h.count,
                        }))}
                        selected={filters.habitatIds ?? []}
                        onChange={(ids) => setF({ habitatIds: ids.length > 0 ? ids : undefined })} />
-          <MultiSelect label="Account"
+          <SharedMultiSelect variant="chip" label="Account"
                        options={options.accounts.map((a) => ({
                          value: a.id, label: `@${a.handle}`, count: a.count,
                        }))}
                        selected={filters.accountIds ?? []}
                        onChange={(ids) => setF({ accountIds: ids.length > 0 ? ids : undefined })} />
-          <MultiSelect label="Brief"
+          <SharedMultiSelect variant="chip" label="Brief"
                        options={options.briefs.map((b) => ({
                          value: b.id, label: `${b.ref} · ${b.title}`, count: b.count,
                        }))}
@@ -440,7 +441,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                        onChange={(ids) => setF({ briefIds: ids.length > 0 ? ids : undefined })} />
 
           {options.contentTypes.length > 1 && (
-            <MultiSelect label="Type"
+            <SharedMultiSelect variant="chip" label="Type"
                          options={options.contentTypes.map((c, i) => ({
                            value: i, label: c.key, count: c.count,
                          }))}
@@ -769,84 +770,6 @@ function NumberInput({ value, onChange, placeholder }: {
   );
 }
 
-function MultiSelect<T extends number>({ label, options, selected, onChange }: {
-  label: string;
-  options: Array<{ value: T; label: string; count: number }>;
-  selected: T[];
-  onChange: (v: T[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const filtered = options;
-  return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-        {label}:
-      </span>
-      <div style={{ position: 'relative' }}>
-      <button type="button" onClick={() => setOpen((v) => !v)}
-                style={{ padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--font-mono)',
-                         fontWeight: 700, borderRadius: 999, cursor: 'pointer',
-                         background: selected.length > 0 ? 'var(--accent)' : 'var(--bg-2)',
-                         color: selected.length > 0 ? '#fff' : 'var(--fg-2)',
-                         border: `1px solid ${selected.length > 0 ? 'var(--accent)' : 'var(--line)'}` }}>
-          {selected.length === 0 ? `Tất cả (${options.length}) ▾` : `${selected.length} đã chọn ▾`}
-        </button>
-        {open && (
-          <>
-            <div onClick={() => setOpen(false)}
-                 style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                          background: 'var(--bg-1)', border: '1px solid var(--line)',
-                          borderRadius: 5, padding: 6, minWidth: 220, maxWidth: 320,
-                          maxHeight: 320, overflow: 'auto', zIndex: 51,
-                          boxShadow: '0 4px 12px rgba(0,0,0,.3)' }}>
-              {selected.length > 0 && (
-                <button onClick={() => onChange([])}
-                        style={{ display: 'block', width: '100%', textAlign: 'left',
-                                 padding: '4px 6px', fontSize: 10.5, background: 'transparent',
-                                 border: 'none', cursor: 'pointer', color: 'var(--bad)',
-                                 fontFamily: 'var(--font-mono)' }}>
-                  ✕ Bỏ tất cả
-                </button>
-              )}
-              {filtered.length === 0 && (
-                <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-4)' }}>Không có lựa chọn</div>
-              )}
-              {filtered.map((o) => {
-                const on = selected.includes(o.value);
-                return (
-                  <button key={String(o.value)} type="button"
-                          onClick={() => {
-                            const next = on ? selected.filter((x) => x !== o.value) : [...selected, o.value];
-                            onChange(next);
-                          }}
-                          style={{ display: 'flex', justifyContent: 'space-between',
-                                   alignItems: 'center', width: '100%', textAlign: 'left',
-                                   padding: '4px 6px', fontSize: 11, gap: 8,
-                                   background: on ? 'var(--accent-soft)' : 'transparent',
-                                   border: 'none', cursor: 'pointer', color: 'var(--fg-1)',
-                                   borderRadius: 3 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                                   minWidth: 0, overflow: 'hidden' }}>
-                      <span style={{ width: 11, height: 11, border: '1px solid var(--line)',
-                                     borderRadius: 2, background: on ? 'var(--accent)' : 'transparent',
-                                     display: 'inline-block', flexShrink: 0 }} />
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {o.label}
-                      </span>
-                    </span>
-                    <span style={{ fontSize: 9.5, color: 'var(--fg-4)',
-                                   fontFamily: 'var(--font-mono)' }}>{o.count}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function FilterReset({ active, onReset }: { active: boolean; onReset: () => void }) {
   if (!active) return null;

@@ -29,6 +29,7 @@ export {
 export { Section, type SectionProps } from './section';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
+export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';
 // Note: feedback_picker_inline_crud.md — every entity picker should use
 // <ResourcePicker> + filter by relevant context (platform, project, role)
 // instead of dumping the full list and forcing the user to search.

@@ -34,6 +34,7 @@ import {
   Spinner, Segmented, EmptyState, SiteFavicon, FormatIcon,
   IconFilePlus, IconList, IconBan, IconGear, IconUndo,
   IconTrash, IconGlobe, IconClock, IconChevron, IconWarn, IconSwap, IconPencil, IconX, IconDots, InfoHint,
+  MultiSelect,
 } from './ui';
 import { ScheduleEditModal } from './schedule-edit-modal';
 import { BriefEditModal } from './brief-edit-modal';
@@ -1740,19 +1741,19 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                      value={statusFilter} onChange={(v) => setStatusFilter(v as 'active' | 'all')} />
           <input placeholder="Tìm habitat / account / tribe…" value={q} onChange={(e) => setQ(e.target.value)}
                  style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 200 }} />
-          <FilterDropdown<string>
+          <MultiSelect<string>
             label="Platform"
             options={filterOptions.platforms}
             selected={filterPlatforms}
             onChange={setFilterPlatforms}
           />
-          <FilterDropdown<number>
+          <MultiSelect<number>
             label="Account"
             options={filterOptions.accounts}
             selected={filterAccounts}
             onChange={setFilterAccounts}
           />
-          <FilterDropdown<number>
+          <MultiSelect<number>
             label="Habitat"
             options={filterOptions.habitats}
             selected={filterHabitats}
@@ -2653,105 +2654,6 @@ function MetricTd({ value, hasInsight, hasPosted, title, onClick }: {
   );
 }
 
-// FilterDropdown — multi-select dropdown compact.
-// Hiển thị label + count "(N)" khi có selection, popup checkbox list khi mở.
-// Generic theo T (string platformKey hoặc number accountId/habitatId).
-function FilterDropdown<T extends string | number>({ label, options, selected, onChange }: {
-  label: string;
-  options: Array<{ value: T; label: string; count: number }>;
-  selected: T[];
-  onChange: (v: T[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const selectedSet = new Set(selected);
-  const filtered = search.trim()
-    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
-    : options;
-  const summary = selected.length === 0
-    ? label
-    : selected.length === 1
-    ? options.find((o) => o.value === selected[0])?.label ?? label
-    : `${label} (${selected.length})`;
-  return (
-    <div style={{ position: 'relative', display: 'inline-flex' }}>
-      <button type="button" onClick={() => setOpen((v) => !v)}
-              title={selected.length > 0
-                ? `${selected.length} ${label.toLowerCase()} selected · click toggle`
-                : `Lọc theo ${label.toLowerCase()}`}
-              style={{
-                padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
-                background: selected.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)',
-                border: `1px solid ${selected.length > 0 ? 'var(--accent-line)' : 'var(--line)'}`,
-                color: selected.length > 0 ? 'var(--accent)' : 'var(--fg-1)',
-                fontSize: 11.5, fontWeight: selected.length > 0 ? 700 : 400,
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontFamily: 'inherit', whiteSpace: 'nowrap',
-              }}>
-        {summary}
-        <IconChevron dir={open ? 'down' : 'right'} size={9} />
-      </button>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)}
-               style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 41,
-                        minWidth: 240, maxWidth: 320, maxHeight: 360, overflowY: 'auto',
-                        background: 'var(--bg-1)', border: '1px solid var(--line-2)',
-                        borderRadius: 6, boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 6 }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-                   placeholder={`Tìm ${label.toLowerCase()}…`}
-                   style={{ width: '100%', padding: '5px 8px', background: 'var(--bg-2)',
-                            border: '1px solid var(--line)', borderRadius: 4,
-                            color: 'var(--fg-0)', fontSize: 11.5, marginBottom: 4,
-                            outline: 'none', boxSizing: 'border-box' }} />
-            {selected.length > 0 && (
-              <button type="button" onClick={() => onChange([])}
-                      style={{ width: '100%', padding: '4px 8px', background: 'none',
-                               border: 'none', textAlign: 'left', cursor: 'pointer',
-                               color: 'var(--fg-3)', fontSize: 11, fontStyle: 'italic' }}>
-                ✕ Bỏ chọn tất cả ({selected.length})
-              </button>
-            )}
-            {filtered.length === 0 && (
-              <div style={{ padding: '8px 6px', color: 'var(--fg-4)', fontSize: 11,
-                            textAlign: 'center', fontStyle: 'italic' }}>
-                Không tìm thấy
-              </div>
-            )}
-            {filtered.map((o) => {
-              const isSelected = selectedSet.has(o.value);
-              return (
-                <label key={String(o.value)}
-                       style={{ display: 'flex', alignItems: 'center', gap: 6,
-                                padding: '5px 8px', borderRadius: 4, cursor: 'pointer',
-                                background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                                fontSize: 11.5 }}
-                       onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-2)'; }}
-                       onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
-                  <input type="checkbox" checked={isSelected}
-                         onChange={() => {
-                           if (isSelected) onChange(selected.filter((v) => v !== o.value));
-                           else onChange([...selected, o.value]);
-                         }}
-                         style={{ accentColor: 'var(--accent)' }} />
-                  <span style={{ flex: 1, color: isSelected ? 'var(--accent)' : 'var(--fg-1)',
-                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                 fontWeight: isSelected ? 600 : 400 }}>
-                    {o.label}
-                  </span>
-                  <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-                    {o.count}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function timeAgoShort(d: Date): string {
   const diff = Date.now() - d.getTime();

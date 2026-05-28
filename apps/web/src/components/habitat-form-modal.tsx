@@ -1451,38 +1451,411 @@ export function HabitatFormModal({
           </>)}
 
           {activeTab === 'identity' && (
-            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                🆔 Identity tab — Phase B coming. Hiện dùng Overview cho name/url/kind/platform/tribes.
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                          gap: 12, padding: 12, background: 'var(--bg-1)',
+                          border: '1px solid var(--line)', borderRadius: 6 }}>
+              {/* Core: name + URL */}
+              <div>
+                <label style={lbl}>Name *</label>
+                <input type="text" style={fld} value={form.name}
+                       onChange={(e) => setF('name', e.target.value)} placeholder="r/astrology, Astrolas Discord, ..." />
+              </div>
+              <div>
+                <label style={lbl}>URL</label>
+                <input type="url" style={fld} value={form.url ?? ''}
+                       onChange={(e) => setF('url', e.target.value)} placeholder="https://..." />
+              </div>
+              {/* Kind + platform */}
+              <div>
+                <label style={lbl}>Kind</label>
+                <select style={fld} value={form.kind ?? ''}
+                        onChange={(e) => setF('kind', e.target.value)}>
+                  {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Platform key</label>
+                <PlatformPicker platforms={platforms} value={form.platformKey ?? ''}
+                                onChange={(k) => setF('platformKey', k)} fld={fld} />
+              </div>
+              {/* Tribe */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Tribe (primary)</label>
+                <select style={fld} value={form.tribeId ?? ''}
+                        onChange={(e) => setF('tribeId', e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">— None —</option>
+                  {tribes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              {/* Flags */}
+              <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer',
+                                padding: 8, background: form.isOwn ? 'rgba(251,191,36,.08)' : 'var(--bg-2)',
+                                border: `1px solid ${form.isOwn ? 'rgba(251,191,36,.4)' : 'var(--line)'}`,
+                                borderRadius: 4 }}>
+                  <input type="checkbox" checked={form.isOwn ?? false}
+                         onChange={(e) => setF('isOwn', e.target.checked)} />
+                  <span style={{ fontWeight: 700, color: form.isOwn ? '#fbbf24' : 'var(--fg-1)' }}>
+                    👑 Own habitat (brand mình)
+                  </span>
+                  <span style={{ fontSize: 10.5, color: 'var(--fg-4)', marginLeft: 'auto' }}>
+                    Discord server/FB group/subreddit user mod
+                  </span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer',
+                                padding: 8, background: form.aiContentDetection ? 'rgba(248,113,113,.08)' : 'var(--bg-2)',
+                                border: `1px solid ${form.aiContentDetection ? 'rgba(248,113,113,.4)' : 'var(--line)'}`,
+                                borderRadius: 4 }}>
+                  <input type="checkbox" checked={form.aiContentDetection ?? false}
+                         onChange={(e) => setF('aiContentDetection', e.target.checked)} />
+                  <span style={{ fontWeight: 700, color: form.aiContentDetection ? 'var(--bad)' : 'var(--fg-1)' }}>
+                    🚨 Habitat có cơ chế detect AI content
+                  </span>
+                </label>
+                {form.aiContentDetection && (
+                  <textarea value={form.aiDetectionNote ?? ''}
+                            onChange={(e) => setF('aiDetectionNote', e.target.value)}
+                            placeholder='Rule cụ thể, vd "tránh delve/leverage", "max 200 words"...'
+                            rows={2}
+                            style={{ ...fld, fontSize: 11, resize: 'vertical' }} />
+                )}
+              </div>
+              {/* Stats + scraping */}
+              <div>
+                <label style={lbl}>Members</label>
+                <input type="number" min={0} style={fld} value={form.members ?? 0}
+                       onChange={(e) => setF('members', Number(e.target.value))} />
+              </div>
+              <div>
+                <label style={lbl}>Activity</label>
+                <input type="text" style={fld} value={form.activity ?? ''}
+                       onChange={(e) => setF('activity', e.target.value)}
+                       placeholder="high / 120 posts/d / dormant" />
+              </div>
+              <div>
+                <label style={lbl}>Scrape frequency</label>
+                <select style={fld} value={form.scrapeFrequency ?? 'manual'}
+                        onChange={(e) => setF('scrapeFrequency', e.target.value as HabitatInput['scrapeFrequency'])}>
+                  {(['live', 'manual', 'weekly', 'comments'] as const).map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Health</label>
+                <select style={fld} value={form.health ?? 'ok'}
+                        onChange={(e) => setF('health', e.target.value as HabitatInput['health'])}>
+                  <option value="ok">ok</option>
+                  <option value="warn">warn</option>
+                  <option value="bad">bad</option>
+                </select>
+              </div>
+              {/* Reddit sidebar / Privacy */}
+              <div>
+                <label style={lbl}>Privacy</label>
+                <select style={fld} value={form.privacy ?? ''}
+                        onChange={(e) => setF('privacy', e.target.value as HabitatInput['privacy'])}>
+                  <option value="">— Unknown —</option>
+                  <option value="public">public</option>
+                  <option value="restricted">restricted</option>
+                  <option value="private">private</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Icon URL</label>
+                <input type="url" style={fld} value={form.iconUrl ?? ''}
+                       onChange={(e) => setF('iconUrl', e.target.value)}
+                       placeholder="CDN icon URL (Discord guild icon, subreddit icon...)" />
+              </div>
+              <div>
+                <label style={lbl}>Weekly visitors</label>
+                <input type="number" min={0} style={fld} value={form.weeklyVisitors ?? 0}
+                       onChange={(e) => setF('weeklyVisitors', Number(e.target.value))} />
+              </div>
+              <div>
+                <label style={lbl}>Weekly contributions</label>
+                <input type="number" min={0} style={fld} value={form.weeklyContributions ?? 0}
+                       onChange={(e) => setF('weeklyContributions', Number(e.target.value))} />
+              </div>
+              {/* Description full-size */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Description (markdown)</label>
+                <textarea value={form.description ?? ''}
+                          onChange={(e) => setF('description', e.target.value)}
+                          placeholder="Mô tả community — từ About page / sidebar..."
+                          rows={6}
+                          style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} />
               </div>
             </div>
           )}
           {activeTab === 'outreach' && (
-            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                🎯 Outreach tab — Phase C coming. Hiện dùng Overview cho language/status/community type/mod.
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                          gap: 12, padding: 12, background: 'var(--bg-1)',
+                          border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div>
+                <label style={lbl}>Language</label>
+                <LangChip mode="select" code={form.language ?? ''} langs={LANGUAGES}
+                          onChange={(v) => setF('language', v)} />
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  Default cho mọi channel. Discord/Slack channel có thể override riêng.
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Community type</label>
+                <select style={fld} value={form.communityType ?? ''}
+                        onChange={(e) => setF('communityType', e.target.value)}>
+                  {COMMUNITY_TYPES.map((c) => <option key={c} value={c}>{c || '—'}</option>)}
+                </select>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  discussion/news/q-a/portfolio/sharing/other
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Outreach status</label>
+                <select style={fld} value={form.status}
+                        onChange={(e) => setF('status', e.target.value as HabitatInput['status'])}>
+                  {STATUS_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  Lifecycle: target → engaged → saturated → banned/dormant
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Mod strictness</label>
+                <select style={fld} value={form.modStrictness ?? ''}
+                        onChange={(e) => setF('modStrictness', e.target.value as HabitatInput['modStrictness'])}>
+                  {STRICTNESS.map((s) => <option key={s} value={s}>{s || '—'}</option>)}
+                </select>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  Suy từ giọng văn rules + auto-mod tools
+                </div>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Best post times</label>
+                <input type="text" style={fld} value={form.bestPostTimes ?? ''}
+                       onChange={(e) => setF('bestPostTimes', e.target.value)}
+                       placeholder='vd "8-10am UTC weekdays", "Fri 6pm EST", "low traffic"' />
               </div>
             </div>
           )}
           {activeTab === 'rules' && (
-            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                📜 Rules tab — Phase D coming. Hiện dùng Overview cho posting rules + gates + topics.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12,
+                          background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div>
+                <label style={lbl}>Posting rules URL</label>
+                <input type="url" style={fld} value={form.postingRulesUrl ?? ''}
+                       onChange={(e) => setF('postingRulesUrl', e.target.value)}
+                       placeholder="https://reddit.com/r/X/about/rules, FB group About, ..." />
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  Canonical link tới trang rules. AI có thể fetch + parse tự động.
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Posting rules (markdown full)</label>
+                <textarea value={form.postingRules ?? ''}
+                          onChange={(e) => setF('postingRules', e.target.value)}
+                          placeholder="Paste community rules / wiki / about page (markdown)"
+                          rows={14}
+                          style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5,
+                                   resize: 'vertical', minHeight: 200 }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+                <div>
+                  <label style={lbl}>Min account age (days)</label>
+                  <input type="number" min={0} style={{ ...fld, fontFamily: 'var(--font-mono)' }}
+                         value={form.minAccountAgeDays ?? 0}
+                         onChange={(e) => setF('minAccountAgeDays', Number(e.target.value))} />
+                </div>
+                <div>
+                  <label style={lbl}>Min karma</label>
+                  <input type="number" min={0} style={{ ...fld, fontFamily: 'var(--font-mono)' }}
+                         value={form.minKarma ?? 0}
+                         onChange={(e) => setF('minKarma', Number(e.target.value))} />
+                </div>
+                <div>
+                  <label style={lbl}>Min prior posts</label>
+                  <input type="number" min={0} style={{ ...fld, fontFamily: 'var(--font-mono)' }}
+                         value={form.minPosts ?? 0}
+                         onChange={(e) => setF('minPosts', Number(e.target.value))} />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Links allowed after</label>
+                <input type="text" style={fld} value={form.linksAllowedAfter ?? ''}
+                       onChange={(e) => setF('linksAllowedAfter', e.target.value)}
+                       placeholder='vd "5 posts", "never", "profile only", "DM only"' />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <label style={lbl}>Dominant topics</label>
+                  <textarea value={(form.dominantTopics ?? []).join(', ')}
+                            onChange={(e) => setF('dominantTopics', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                            placeholder="topic1, topic2, topic3..."
+                            rows={3}
+                            style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} />
+                  <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                    Comma-separated topics encouraged.
+                  </div>
+                </div>
+                <div>
+                  <label style={lbl}>Forbidden topics</label>
+                  <textarea value={(form.forbiddenTopics ?? []).join(', ')}
+                            onChange={(e) => setF('forbiddenTopics', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                            placeholder="banned1, banned2..."
+                            rows={3}
+                            style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} />
+                  <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                    Topics cấm theo rules.
+                  </div>
+                </div>
               </div>
             </div>
           )}
           {activeTab === 'voice' && (
-            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                🎙 Voice tab — Phase E coming. Hiện dùng Overview cho voice profile + notes + few-shot.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12,
+                          background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              <div>
+                <label style={lbl}>Voice profile preset</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {VOICE_PROFILES.map((p) => {
+                    const meta = VOICE_PROFILE_META[p];
+                    const on = form.voiceProfile === p;
+                    return (
+                      <button key={p} type="button"
+                              onClick={() => setF('voiceProfile', p)}
+                              title={meta?.short ?? p}
+                              style={{ padding: '6px 12px', fontSize: 11.5, fontFamily: 'var(--font-mono)',
+                                       fontWeight: 700, borderRadius: 4, cursor: 'pointer',
+                                       background: on ? 'var(--accent)' : 'var(--bg-2)',
+                                       color: on ? '#fff' : 'var(--fg-2)',
+                                       border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}` }}>
+                        {meta?.icon ?? ''} {p}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.voiceProfile && VOICE_PROFILE_META[form.voiceProfile as VoiceProfile]?.short && (
+                  <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 6, fontStyle: 'italic' }}>
+                    {VOICE_PROFILE_META[form.voiceProfile as VoiceProfile].short}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={lbl}>Voice notes (free text)</label>
+                <textarea value={form.voiceNotes ?? ''}
+                          onChange={(e) => setF('voiceNotes', e.target.value)}
+                          placeholder='vd "lots of finance bro lingo, ironic technical terms, never serious", "hindi mixed with english"...'
+                          rows={4}
+                          style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} />
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  Inject vào AI prompt SAU voice profile preset. Càng specific càng tốt.
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Visual style descriptor</label>
+                <textarea value={form.visualStyleDescriptor ?? ''}
+                          onChange={(e) => setF('visualStyleDescriptor', e.target.value)}
+                          placeholder='vd "purple cosmic gradient, mystical astrology aesthetic" — inject vào image-gen prompt'
+                          rows={2}
+                          style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} />
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
+                  AI auto-fill từ habitat icon (Vision call 1x). Override nếu cần.
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Few-shot examples</label>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 6 }}>
+                  High-performing bài cho AI mimic. Inject sau voice notes, trước task prompt.
+                </div>
+                <textarea
+                  value={form.fewShotExamples ? JSON.stringify(form.fewShotExamples, null, 2) : ''}
+                  onChange={(e) => {
+                    const txt = e.target.value;
+                    if (!txt.trim()) { setF('fewShotExamples', null); return; }
+                    try {
+                      const arr = JSON.parse(txt);
+                      if (Array.isArray(arr)) setF('fewShotExamples', arr);
+                    } catch {/* invalid JSON, skip */}
+                  }}
+                  placeholder='[{"title":"...","body":"...","whyItWorks":"..."}, ...]'
+                  rows={10}
+                  style={{ ...fld, fontFamily: 'var(--font-mono)', fontSize: 11, resize: 'vertical' }} />
               </div>
             </div>
           )}
           {activeTab === 'channels' && (
-            <div style={{ padding: 14, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                📺 Channels tab — Phase F coming. Hiện dùng Overview cho channels list.
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12,
+                          background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+              {!showChannels ? (
+                <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic', padding: 16, textAlign: 'center' }}>
+                  Platform <strong style={{ color: 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>
+                    {form.platformKey ?? '(chưa set)'}
+                  </strong> không có concept sub-channel.
+                  <br />
+                  Channels chỉ áp dụng cho Discord/Slack/Telegram.
+                </div>
+              ) : !channelsLoaded ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Spinner size="xs" /> Đang tải channels…
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <strong>📺 {channels.length} channels</strong>
+                    <span style={{ color: 'var(--fg-4)', fontSize: 11 }}>
+                      — mỗi channel rules + format + voice riêng. Bài tạo qua picker chọn channel để áp đúng.
+                    </span>
+                  </div>
+                  <ChannelBulkParser
+                    platformKey={form.platformKey ?? 'discord'}
+                    onApply={(parsed) => {
+                      setChannels((prev) => {
+                        const existing = new Map(prev.map((c) => [c.name.trim().toLowerCase(), c]));
+                        for (const p of parsed) {
+                          const k = p.name.toLowerCase();
+                          const existed = existing.get(k);
+                          if (existed) {
+                            existing.set(k, {
+                              ...existed,
+                              url: existed.url || p.url,
+                              description: existed.description || p.description,
+                              rules: existed.rules || p.rules,
+                              allowedFormats: existed.allowedFormats ?? p.allowedFormats,
+                              postingGates: existed.postingGates ?? p.postingGates,
+                            });
+                          } else {
+                            existing.set(k, p);
+                          }
+                        }
+                        return Array.from(existing.values());
+                      });
+                    }}
+                  />
+                  {(() => {
+                    const habitatAllowed = new Set(allowedFormats(
+                      form.platformKey, platforms.find((p) => p.key === form.platformKey)?.category,
+                      undefined, form.allowedFormatsOverride ?? null,
+                    ).map((f) => f.key));
+                    return channels.map((ch, i) => (
+                      <ChannelRow
+                        key={`tab-${i}-${ch.name}`}
+                        ch={ch}
+                        habitatAllowed={habitatAllowed}
+                        onChange={(patch) => setChannels((arr) => arr.map((x, j) => j === i ? { ...x, ...patch } : x))}
+                        onRemove={() => setChannels((arr) => arr.filter((_, j) => j !== i))}
+                        fld={fld}
+                      />
+                    ));
+                  })()}
+                  <button type="button"
+                          onClick={() => setChannels((arr) => [...arr, { name: '', url: null, description: '', rules: '' }])}
+                          style={{ fontSize: 11, padding: '6px 12px', background: 'var(--bg-2)',
+                                   color: 'var(--accent)', border: '1px dashed var(--accent-line)',
+                                   borderRadius: 5, cursor: 'pointer', alignSelf: 'flex-start' }}>
+                    + Thêm channel
+                  </button>
+                </>
+              )}
             </div>
           )}
 

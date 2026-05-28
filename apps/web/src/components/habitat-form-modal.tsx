@@ -1736,10 +1736,17 @@ function ChannelRow({
   // Hiển thị mute (giảm opacity + badge 🚫) + AI sẽ bỏ qua khi pick.
   const skipForPost = ch.postingGates != null && typeof ch.postingGates === 'object'
     && (ch.postingGates as Record<string, unknown>).skip_for_post === true;
-  // Short URL display — strip protocol + domain trailing
-  const shortUrl = ch.url
-    ? ch.url.replace(/^https?:\/\//, '').replace(/^discord\.com\//, 'd/').replace(/\/$/, '')
-    : '';
+  // Short URL display — strip protocol + domain trailing. Discord channel URL
+  // chứa 2 snowflake dài → rút gọn còn icon ↗ + last segment ngắn (slack/web
+  // URL có path ngắn hơn vẫn hiển thị bình thường).
+  const shortUrl = (() => {
+    if (!ch.url) return '';
+    let u = ch.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    // Discord channel URL: discord.com/channels/<guild>/<chan> → quá dài
+    if (/^discord\.com\/channels\/\d+\/\d+/.test(u)) return 'discord';
+    u = u.replace(/^discord\.com\//, 'd/');
+    return u.length > 30 ? u.slice(0, 27) + '…' : u;
+  })();
 
   const toggleFmt = (k: string) => {
     const next = new Set(selected);
@@ -1767,7 +1774,7 @@ function ChannelRow({
           {expanded ? '▾' : '▸'}
         </span>
         <span style={{
-          flex: 1, fontWeight: 700, fontSize: 12,
+          flex: 1, minWidth: 120, fontWeight: 700, fontSize: 12,
           color: ch.name?.trim() ? 'var(--fg-0)' : 'var(--fg-4)',
           fontFamily: 'var(--font-mono)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

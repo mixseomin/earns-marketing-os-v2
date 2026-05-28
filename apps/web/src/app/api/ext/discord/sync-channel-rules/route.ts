@@ -4,6 +4,32 @@ import { getDb, habitats, habitatChannels } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 
+/**
+ * Normalize Discord channel name — strip prefixes Discord new UI thêm vào.
+ * VD: `»「💬」chat` → `chat`, `# »「🎴」tarot-reading` → `tarot-reading`.
+ *
+ * Cleaning order:
+ *  1. Strip leading `#` + spaces
+ *  2. Strip prefix `»` (Discord categorized indicator)
+ *  3. Strip emoji wrapper `「<emoji>」` (Discord new UI fancy)
+ *  4. Strip orphan emojis còn lại
+ *  5. Lowercase + trim
+ *
+ * Match channel slug regex: `[a-z0-9][-_a-z0-9]+`. Nếu cleaned empty → fallback raw.
+ */
+function normalizeChannelName(raw: string): string {
+  if (!raw) return '';
+  let s = raw.trim();
+  s = s.replace(/^#+\s*/, '');           // strip '#'
+  s = s.replace(/^[»›→]+\s*/, '');         // strip '»' indicator
+  s = s.replace(/「[^」]*」/g, '');        // strip 「emoji」 wrapper
+  // Strip standalone emojis (Unicode pictographic) — keep ASCII + slug chars
+  s = s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '');
+  s = s.trim().toLowerCase();
+  const m = s.match(/[a-z0-9][-_a-z0-9]{1,}/);
+  return m ? m[0] : s;
+}
+
 // POST /api/ext/discord/sync-channel-rules
 // Body: {
 //   habitatId: number,
@@ -58,7 +84,12 @@ export async function POST(req: Request) {
     ? `https://discord.com/channels/${guildId}/${channelId}`
     : null;
 
-  const channelName = (body.channelName ?? '').trim() || `channel-${channelId.slice(-6)}`;
+  // Channel name normalize — Discord new UI có prefix `»「emoji」slug`
+  // → strip để KHÔNG tạo duplicate row với name khác visual nhưng cùng channel.
+  // Khớp với clean logic của ext scrape (cleanChannelName) để 2 sides đồng nhất.
+  const rawName = (body.channelName ?? '').trim();
+  const cleanedName = normalizeChannelName(rawName);
+  const channelName = cleanedName || rawName || `channel-${channelId.slice(-6)}`;
   const topic = (body.topic ?? '').trim();
   const pinned = Array.isArray(body.pinnedMessages) ? body.pinnedMessages.filter(Boolean).slice(0, 30) : [];
   const recent = Array.isArray(body.recentMessages) ? body.recentMessages.filter(Boolean).slice(0, 80) : [];
@@ -152,13 +183,18 @@ KHÔNG bịa rule không có trong source. Nếu pinned trống → rules rỗng
     .where(and(eq(habitatChannels.habitatId, habitatId), eq(habitatChannels.externalId, channelId)))
     .limit(1);
   if (existing.length === 0 && channelName) {
-    existing = await db.select({ id: habitatChannels.id }).from(habitatChannels)
+    // Fallback: match channels chưa có external_id qua normalized name.
+    // Lấy mọi candidate có external_id NULL trên habitat → normalize JS-side
+    // (regex JS đầy đủ Unicode tốt hơn postgres regex_replace cross-version).
+    const candidates = await db.select({
+      id: habitatChannels.id, name: habitatChannels.name,
+    }).from(habitatChannels)
       .where(and(
         eq(habitatChannels.habitatId, habitatId),
-        sql`LOWER(${habitatChannels.name}) = LOWER(${channelName})`,
         sql`(${habitatChannels.externalId} IS NULL OR ${habitatChannels.externalId} = '')`,
-      ))
-      .limit(1);
+      ));
+    const match = candidates.find((c) => normalizeChannelName(c.name) === channelName);
+    if (match) existing = [{ id: match.id }];
   }
 
   let channelDbId: number;

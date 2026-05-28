@@ -136,10 +136,28 @@ export async function POST(req: Request) {
     ? `${body.url.replace(/\/$/, '')}/about/rules`
     : '';
 
-  // Upsert: check existing by (project_id, platform_key, LOWER(name)) —
-  // case-insensitive để 'r/Astrologia' === 'r/astrologia' (Reddit URL
-  // path tự động lowercase, DB có thể lưu cap khác).
-  const existing = await db
+  // Upsert match priority:
+  //   1. Discord: scraped_meta.discord_guild_id (1 guild = 1 habitat, dù channel
+  //      detector ext gửi name khác nhau cho từng channel page → KHÔNG tạo
+  //      duplicate habitat per channel).
+  //   2. (project_id, platform_key, LOWER(name)) — case-insensitive cho Reddit
+  //      'r/Astrologia' === 'r/astrologia'.
+  const guildId = body.platform_key === 'discord'
+    ? (body.scraped_meta as Record<string, unknown> | undefined)?.discord_guild_id
+    : null;
+  let existing: Array<{ id: number }> = [];
+  if (typeof guildId === 'string' && guildId) {
+    existing = await db
+      .select({ id: habitats.id })
+      .from(habitats)
+      .where(and(
+        eq(habitats.projectId, body.projectId),
+        eq(habitats.platformKey, body.platform_key),
+        sql`${habitats.scrapedMeta}->>'discord_guild_id' = ${guildId}`,
+      ))
+      .limit(1);
+  }
+  if (existing.length === 0) existing = await db
     .select({ id: habitats.id })
     .from(habitats)
     .where(and(

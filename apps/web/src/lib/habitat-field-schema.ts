@@ -9,6 +9,7 @@
 // Khi thêm field mới, edit cả 3 nơi.
 
 import { BRIEF_FIELD_SCHEMAS } from './brief-field-schema';
+import { VIEWER_FIELD_SCHEMAS } from './viewer-field-schema';
 
 export interface FieldSchemaEntry {
   /** Field name khớp với spec key trong selector_overrides table. */
@@ -95,6 +96,13 @@ export function getFieldHint(pageKind: string, field: string): string {
     const briefKey = field.slice('brief.'.length);
     const entry = BRIEF_FIELD_SCHEMAS[pageKind]?.find((f) => f.key === briefKey);
     if (entry) return `[BRIEF/viewer-relationship] ${entry.hint}`;
+  }
+  // Viewer fields prefixed with "viewer.<key>" → lookup viewer schema
+  // (page_kind='platform-any', không tied to specific habitat page).
+  if (field.startsWith('viewer.')) {
+    const viewerKey = field.slice('viewer.'.length);
+    const entry = VIEWER_FIELD_SCHEMAS['platform-any']?.find((f) => f.key === viewerKey);
+    if (entry) return `[VIEWER/platform-login] ${entry.hint}`;
   }
   return FIELD_SCHEMAS[pageKind]?.find((f) => f.key === field)?.hint ?? 'extract value';
 }

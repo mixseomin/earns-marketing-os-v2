@@ -5,6 +5,7 @@ import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
+import { getViewerFieldSchema, parseViewerFieldName } from '@/lib/viewer-field-schema';
 import { validateSelector } from '@/lib/selector-validate';
 
 export const dynamic = 'force-dynamic';
@@ -57,11 +58,13 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
-  // Field hint từ schema (helps LLM verify semantic match). Field có
-  // prefix "brief.<key>" → lookup brief-field-schema; ngược lại habitat.
+  // Field hint từ schema. 3 prefixes (brief.* / viewer.* / habitat field).
   const briefKey = parseBriefFieldName(body.field_name);
+  const viewerKey = parseViewerFieldName(body.field_name);
   const schema = briefKey
     ? getBriefFieldSchema(body.page_kind).find((f) => f.key === briefKey)
+    : viewerKey
+    ? getViewerFieldSchema('platform-any').find((f) => f.key === viewerKey)
     : getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
   const fieldHint = schema?.hint ?? 'extract value';
   const parseHint = schema?.parse;

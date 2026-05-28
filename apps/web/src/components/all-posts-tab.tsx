@@ -55,6 +55,8 @@ const SORT_OPTIONS: Array<{ value: PostedSortKey; label: string }> = [
   { value: 'score_desc',   label: 'Upvote ↓' },
   { value: 'replies_desc', label: 'Replies ↓' },
   { value: 'ratio_desc',   label: 'Upvote ratio ↓' },
+  { value: 'cost_desc',    label: 'Cost ↓' },
+  { value: 'cost_asc',     label: 'Cost ↑' },
 ];
 
 const TIME_OPTIONS: Array<{ value: number | null; label: string }> = [
@@ -449,6 +451,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
               <col style={{ width: 56 }} />
               <col style={{ width: 56 }} />
               <col style={{ width: 56 }} />
+              <col style={{ width: 56 }} />
               <col style={{ width: 60 }} />
               <col style={{ width: 30 }} />
             </colgroup>
@@ -472,6 +475,10 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                 <SortableHeader label="% Ratio" sortKey="ratio_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
+                <SortableHeader label="💰 Cost" sortKey="cost_desc"
+                                current={filters.sort ?? 'posted_desc'}
+                                onSort={(s) => setF({ sort: s })}
+                                altKey="cost_asc" />
                 <SortableHeader label="Ago" sortKey="posted_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })}
@@ -508,6 +515,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                                      placeholder="≥"
                                      onChange={(v) => setF({ minReplies: v })} />
                 </th>
+                <th style={thFilter()} />
                 <th style={thFilter()} />
                 <th style={thFilter()}>
                   <ColumnTimeSelect value={filters.days ?? 7}
@@ -653,6 +661,19 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
       <MetricCell value={r != null ? `${Math.round(r * 100)}%` : null}
                   fullTitle={r != null ? `Upvote ratio ${Math.round(r * 100)}%` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
+      <td style={{ ...td(), textAlign: 'center' }}>
+        {c.genCostUsd != null && c.genCostUsd > 0 ? (
+          <span title={`Chi phí AI gen version cuối: $${c.genCostUsd.toFixed(5)}`}
+                style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                         color: c.genCostUsd >= 0.01 ? '#fbbf24' : '#60a5fa' }}>
+            ${c.genCostUsd < 0.001 ? c.genCostUsd.toFixed(4) : c.genCostUsd.toFixed(3)}
+          </span>
+        ) : (
+          <span title="Không sinh bằng AI / manual writer / legacy card"
+                style={{ fontSize: 10, color: 'var(--fg-4)', opacity: 0.55,
+                         fontFamily: 'var(--font-mono)' }}>—</span>
+        )}
+      </td>
       <td style={{ ...td(), textAlign: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
           {timeAgo(c.postedAt)}

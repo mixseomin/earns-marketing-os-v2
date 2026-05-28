@@ -844,7 +844,8 @@ export async function createPlaceholdersForBriefPhase(
 
 export type PostedSortKey =
   | 'posted_desc' | 'posted_asc'
-  | 'views_desc' | 'score_desc' | 'replies_desc' | 'ratio_desc';
+  | 'views_desc' | 'score_desc' | 'replies_desc' | 'ratio_desc'
+  | 'cost_desc' | 'cost_asc';
 
 export interface AllPostedFilters {
   days?: number | null;            // null = all-time, default 7
@@ -871,6 +872,9 @@ export interface AllPostedCard extends RecentPostedCard {
   briefPhase: string | null;       // card.brief_phase — focus đúng phase khi mở modal
   squadKey: string | null;
   aiContentDetection: boolean;
+  // Chi phí AI gen version cuối cùng (gen_cost_usd, USD). Null = chưa gen
+  // bằng AI / manual writer / legacy.
+  genCostUsd: number | null;
 }
 
 export interface AllPostedResult {
@@ -958,6 +962,8 @@ function orderByFor(sort: PostedSortKey | undefined) {
     case 'score_desc':   return sql`COALESCE(c.insights_score, 0) DESC, c.posted_at DESC`;
     case 'replies_desc': return sql`COALESCE(c.insights_reply_count, 0) DESC, c.posted_at DESC`;
     case 'ratio_desc':   return sql`COALESCE(c.insights_upvote_ratio, 0) DESC, c.posted_at DESC`;
+    case 'cost_desc':    return sql`COALESCE(c.gen_cost_usd, 0) DESC, c.posted_at DESC`;
+    case 'cost_asc':     return sql`COALESCE(c.gen_cost_usd, 0) ASC, c.posted_at DESC`;
     case 'posted_desc':
     default:             return sql`c.posted_at DESC`;
   }
@@ -993,7 +999,7 @@ export async function listAllPostedCards(
     SELECT c.id, c.card_ref, c.title, c.body_target, c.content_type, c.target_lang,
            c.post_url, c.posted_at, c.parent_url,
            c.post_lifecycle, c.squad_key, c.brief_phase,
-           c.brief_id,
+           c.brief_id, c.gen_cost_usd,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
            b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
@@ -1076,6 +1082,7 @@ export async function listAllPostedCards(
     briefTitle: r.brief_phase_now ? String(r.brief_phase_now) : null,
     squadKey: r.squad_key ? String(r.squad_key) : null,
     briefPhase: r.brief_phase ? String(r.brief_phase) : null,
+    genCostUsd: r.gen_cost_usd != null ? Number(r.gen_cost_usd) : null,
     habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
     habitatName: String(r.habitat_name ?? ''),
     platformLabel: String(r.platform_label ?? ''),

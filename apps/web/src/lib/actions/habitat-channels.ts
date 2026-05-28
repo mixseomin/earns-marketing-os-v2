@@ -23,7 +23,6 @@ export interface HabitatChannelRow {
   description: string;
   rules: string;
   language: string;        // 0080: channel-level lang override
-  noPosting: boolean;      // 0082: block posting trên channel này
   allowedFormats: string[] | null;
   postingGates: Record<string, unknown> | null;
   voiceProfileOverride: string | null;
@@ -37,7 +36,6 @@ export interface HabitatChannelInput {
   description?: string;
   rules?: string;
   language?: string;
-  noPosting?: boolean;
   allowedFormats?: string[] | null;
   postingGates?: Record<string, unknown> | null;
   voiceProfileOverride?: string | null;
@@ -48,7 +46,7 @@ export interface HabitatChannelInput {
 export async function listChannelsForHabitat(habitatId: number): Promise<HabitatChannelRow[]> {
   const db = ensureDb();
   const rows = await db.execute(sql`
-    SELECT id, habitat_id, name, url, description, rules, language, no_posting,
+    SELECT id, habitat_id, name, url, description, rules, language,
            allowed_formats, posting_gates, voice_profile_override, few_shot_examples, sort_order
       FROM habitat_channels
      WHERE habitat_id = ${habitatId}
@@ -62,7 +60,6 @@ export async function listChannelsForHabitat(habitatId: number): Promise<Habitat
     description: String(r.description ?? ''),
     rules: String(r.rules ?? ''),
     language: String(r.language ?? ''),
-    noPosting: !!r.no_posting,
     allowedFormats: Array.isArray(r.allowed_formats) ? (r.allowed_formats as string[]) : null,
     postingGates: (r.posting_gates && typeof r.posting_gates === 'object' && !Array.isArray(r.posting_gates))
       ? (r.posting_gates as Record<string, unknown>) : null,
@@ -86,7 +83,6 @@ export async function createChannel(
     description: input.description ?? '',
     rules: input.rules ?? '',
     language: input.language ?? '',
-    noPosting: input.noPosting ?? false,
     allowedFormats: input.allowedFormats ?? null,
     postingGates: input.postingGates ?? null,
     voiceProfileOverride: input.voiceProfileOverride ?? null,
@@ -106,7 +102,6 @@ export async function updateChannel(
   if (patch.description != null) set.description = patch.description;
   if (patch.rules != null) set.rules = patch.rules;
   if (patch.language != null) set.language = patch.language;
-  if (patch.noPosting !== undefined) set.noPosting = patch.noPosting;
   if (patch.allowedFormats !== undefined) set.allowedFormats = patch.allowedFormats;
   if (patch.postingGates !== undefined) set.postingGates = patch.postingGates;
   if (patch.voiceProfileOverride !== undefined) set.voiceProfileOverride = patch.voiceProfileOverride;

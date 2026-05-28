@@ -3,9 +3,27 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels, habitats } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 
-// GET /api/ext/habitats/channel-info?habitatId=18&channelId=1069825483178520607
-// Trả channel info đã sync (nếu có) để sidepanel hiển thị rules + topic.
+// Helper: derive noPosting boolean từ postingGates.skip_for_post (JSONB key
+// đã được modal habitat-form-modal dùng từ trước → đồng bộ 1 source of truth).
+function readNoPosting(gates: unknown): boolean {
+  return gates != null && typeof gates === 'object' && !Array.isArray(gates)
+    && (gates as Record<string, unknown>).skip_for_post === true;
+}
+function buildGates(prev: unknown, noPosting: boolean): Record<string, unknown> | null {
+  const base = (prev != null && typeof prev === 'object' && !Array.isArray(prev))
+    ? { ...(prev as Record<string, unknown>) } : {};
+  if (noPosting) {
+    base.skip_for_post = true;
+    if (!base.reason) base.reason = 'ext';
+  } else {
+    delete base.skip_for_post;
+    if (base.reason === 'ext') delete base.reason;
+  }
+  return Object.keys(base).length > 0 ? base : null;
+}
 
+// GET /api/ext/habitats/channel-info?habitatId=18&channelId=1069825483178520607
+// Trả channel info đã sync (nếu có) để sidepanel hiển thị rules + topic + noPosting.
 export async function GET(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
@@ -35,7 +53,7 @@ export async function GET(req: Request) {
       topic: c.topic,
       rules: c.rules,
       language: c.language,
-      noPosting: c.noPosting,
+      noPosting: readNoPosting(c.postingGates),
       pinnedSummary: c.pinnedSummary,
       recentSummary: c.recentSummary,
       syncedAt: c.syncedAt,
@@ -43,12 +61,8 @@ export async function GET(req: Request) {
   });
 }
 
-// PATCH /api/ext/habitats/channel-info
-// Body: { habitatId, channelId (externalId), noPosting?, channelName?, channelUrl? }
-//
-// Upsert pattern: nếu channel chưa có DB → auto-create (cần channelName từ ext
-// scrape, fallback "#<channelId-suffix>"). User KHÔNG cần sync rules trước
-// để toggle no_posting.
+// PATCH — upsert channel với noPosting flag (ghi vào postingGates.skip_for_post
+// để đồng bộ với modal habitat-form-modal). Auto-create channel nếu chưa có.
 export async function PATCH(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
@@ -70,8 +84,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'noPosting must be boolean' }, { status: 400 });
   }
 
-  // Check tồn tại
-  const existing = await db.select({ id: habitatChannels.id }).from(habitatChannels)
+  const existing = await db.select().from(habitatChannels)
     .where(and(
       eq(habitatChannels.habitatId, body.habitatId),
       eq(habitatChannels.externalId, body.channelId),
@@ -79,34 +92,38 @@ export async function PATCH(req: Request) {
     .limit(1);
 
   if (existing.length > 0) {
-    // Update existing
+    const newGates = buildGates(existing[0]!.postingGates, body.noPosting);
     const updated = await db.update(habitatChannels)
-      .set({ noPosting: body.noPosting, updatedAt: new Date() })
+      .set({ postingGates: newGates, updatedAt: new Date() })
       .where(eq(habitatChannels.id, existing[0]!.id))
-      .returning({ id: habitatChannels.id, noPosting: habitatChannels.noPosting });
-    return NextResponse.json({ ok: true, channel: updated[0], created: false });
+      .returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
+    return NextResponse.json({
+      ok: true,
+      channel: { id: updated[0]!.id, noPosting: readNoPosting(updated[0]!.postingGates) },
+      created: false,
+    });
   }
 
-  // Auto-create channel record (chưa sync rules nhưng user muốn block ngay).
-  // Name fallback: '#<last8 of channelId>' khi ext không gửi tên.
   const fallbackName = `#${body.channelId.slice(-8)}`;
+  const newGates = buildGates(null, body.noPosting);
   const inserted = await db.insert(habitatChannels).values({
     habitatId: body.habitatId,
     name: body.channelName?.trim() || fallbackName,
     externalId: body.channelId,
     url: body.channelUrl ?? null,
-    noPosting: body.noPosting,
-  }).returning({ id: habitatChannels.id, noPosting: habitatChannels.noPosting });
+    postingGates: newGates,
+  }).returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
 
-  return NextResponse.json({ ok: true, channel: inserted[0], created: true });
+  return NextResponse.json({
+    ok: true,
+    channel: { id: inserted[0]!.id, noPosting: readNoPosting(inserted[0]!.postingGates) },
+    created: true,
+  });
 }
 
-// POST /api/ext/habitats/channel-info
+// POST — atomic create habitat (Discord guild) + channel với noPosting flag.
 // Body: { projectId, guildId, channelId, guildName?, channelName?,
 //         channelUrl?, noPosting?, language? }
-// Atomic: create habitat (Discord guild) + channel với no_posting=true.
-// Dùng khi user click Block trên channel chưa có habitat → ext gửi project_id
-// từ inline picker.
 export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
@@ -128,8 +145,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'projectId + guildId + channelId required' }, { status: 400 });
   }
 
-  // Check habitat tồn tại trước theo guildId (idempotent — nếu race
-  // condition tạo 2 nơi cùng lúc, lần 2 dùng habitat cũ).
   const existingHabitat = await db.execute(sql`
     SELECT id FROM habitats WHERE scraped_meta->>'discord_guild_id' = ${body.guildId} LIMIT 1
   `);
@@ -149,8 +164,8 @@ export async function POST(req: Request) {
     habitatId = inserted[0]!.id;
   }
 
-  // Check channel tồn tại
-  const existingChannel = await db.select({ id: habitatChannels.id }).from(habitatChannels)
+  const noPosting = body.noPosting ?? true;
+  const existingChannel = await db.select().from(habitatChannels)
     .where(and(
       eq(habitatChannels.habitatId, habitatId),
       eq(habitatChannels.externalId, body.channelId),
@@ -158,22 +173,34 @@ export async function POST(req: Request) {
     .limit(1);
 
   if (existingChannel.length > 0) {
+    const newGates = buildGates(existingChannel[0]!.postingGates, noPosting);
     const updated = await db.update(habitatChannels)
-      .set({ noPosting: body.noPosting ?? true, updatedAt: new Date() })
+      .set({ postingGates: newGates, updatedAt: new Date() })
       .where(eq(habitatChannels.id, existingChannel[0]!.id))
-      .returning({ id: habitatChannels.id, noPosting: habitatChannels.noPosting });
-    return NextResponse.json({ ok: true, habitatId, channel: updated[0], created: false });
+      .returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
+    return NextResponse.json({
+      ok: true,
+      habitatId,
+      channel: { id: updated[0]!.id, noPosting: readNoPosting(updated[0]!.postingGates) },
+      created: false,
+    });
   }
 
   const fallbackName = `#${body.channelId.slice(-8)}`;
+  const newGates = buildGates(null, noPosting);
   const inserted = await db.insert(habitatChannels).values({
     habitatId,
     name: body.channelName?.trim() || fallbackName,
     externalId: body.channelId,
     url: body.channelUrl ?? null,
-    noPosting: body.noPosting ?? true,
+    postingGates: newGates,
     language: body.language ?? '',
-  }).returning({ id: habitatChannels.id, noPosting: habitatChannels.noPosting });
+  }).returning({ id: habitatChannels.id, postingGates: habitatChannels.postingGates });
 
-  return NextResponse.json({ ok: true, habitatId, channel: inserted[0], created: true });
+  return NextResponse.json({
+    ok: true,
+    habitatId,
+    channel: { id: inserted[0]!.id, noPosting: readNoPosting(inserted[0]!.postingGates) },
+    created: true,
+  });
 }

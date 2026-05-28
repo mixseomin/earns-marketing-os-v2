@@ -24,10 +24,10 @@ function DropdownTab({
       closeTimer.current = null;
     }
   };
-  // Generous 1500ms close delay — chống đóng sớm khi mouse đi chậm/chéo
+  // Snappy 250ms — đủ tolerate mouse đi chéo qua bridge, không "đợi tết"
   const scheduleClose = () => {
     cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 1500);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 250);
   };
   const openNow = () => { cancelClose(); setOpen(true); };
 

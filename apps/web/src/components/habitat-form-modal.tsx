@@ -167,8 +167,22 @@ export function HabitatFormModal({
 
   // Channels (sub-channel của Discord/Slack/Telegram). Load lazy khi mount,
   // bulk-save khi user bấm Save modal (cùng habitat update).
+  // channelsReloadTick: bump khi ext sync rules xong (window message
+  // `mos2:habitat-updated`) → refetch channels từ DB.
+  // channelsDirty: user đã chỉnh channels → block refetch để KHÔNG clobber
+  // pending edits. User Save xong → clear → refetch lại nếu có message mới.
   const [channels, setChannels] = useState<HabitatChannelInput[]>([]);
   const [channelsLoaded, setChannelsLoaded] = useState(false);
+  const [channelsReloadTick, setChannelsReloadTick] = useState(0);
+  const [channelsDirty, setChannelsDirty] = useState(false);
+  // Wrapper setChannels — mọi UI edit dùng cái này để track dirty.
+  // Initial fetch + post-message fetch dùng setChannels trực tiếp (skip dirty).
+  const setChannelsWithDirty = (
+    next: HabitatChannelInput[] | ((prev: HabitatChannelInput[]) => HabitatChannelInput[]),
+  ) => {
+    setChannels(next);
+    setChannelsDirty(true);
+  };
   useEffect(() => {
     if (isCreate || !habitat) { setChannelsLoaded(true); return; }
     listChannelsForHabitat(habitat.id).then((rows) => {
@@ -180,8 +194,28 @@ export function HabitatFormModal({
         sortOrder: r.sortOrder,
       })));
       setChannelsLoaded(true);
+      setChannelsDirty(false);  // fresh load = clean
     }).catch(() => setChannelsLoaded(true));
-  }, [habitat, isCreate]);
+  }, [habitat, isCreate, channelsReloadTick]);
+  // Listen ext post-message khi sync channel rules thành công → refetch.
+  // Pattern giống BriefsSection. Skip nếu user đang có pending edits để
+  // KHÔNG clobber (user sẽ thấy update sau khi Save xong).
+  useEffect(() => {
+    if (!habitat) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const data = e.data as { type?: string; habitatId?: number } | undefined;
+      if (data?.type === 'mos2:habitat-updated' && data.habitatId === habitat.id) {
+        if (channelsDirty) {
+          console.log('[mos2 modal] skip channel refetch — pending edits');
+          return;
+        }
+        setChannelsReloadTick((t) => t + 1);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [habitat, channelsDirty]);
   // Multi-channel platform: chỉ hiện section channels cho các platform có
   // concept "channel" (Discord/Slack/Telegram). Reddit/forum chỉ 1 ruleset.
   const showChannels = ['discord', 'slack', 'telegram'].includes(form.platformKey ?? '');
@@ -1243,7 +1277,7 @@ export function HabitatFormModal({
                     <ChannelBulkParser
                       platformKey={form.platformKey ?? 'discord'}
                       onApply={(parsed) => {
-                        setChannels((prev) => {
+                        setChannelsWithDirty((prev) => {
                           const existing = new Map(prev.map((c) => [c.name.trim().toLowerCase(), c]));
                           for (const p of parsed) {
                             const k = p.name.toLowerCase();
@@ -1280,14 +1314,14 @@ export function HabitatFormModal({
                           key={`${i}-${ch.name}`}
                           ch={ch}
                           habitatAllowed={habitatAllowed}
-                          onChange={(patch) => setChannels((arr) => arr.map((x, j) => j === i ? { ...x, ...patch } : x))}
-                          onRemove={() => setChannels((arr) => arr.filter((_, j) => j !== i))}
+                          onChange={(patch) => setChannelsWithDirty((arr) => arr.map((x, j) => j === i ? { ...x, ...patch } : x))}
+                          onRemove={() => setChannelsWithDirty((arr) => arr.filter((_, j) => j !== i))}
                           fld={fld}
                         />
                       ));
                     })()}
                     <button type="button"
-                            onClick={() => setChannels((arr) => [...arr, { name: '', url: null, description: '', rules: '' }])}
+                            onClick={() => setChannelsWithDirty((arr) => [...arr, { name: '', url: null, description: '', rules: '' }])}
                             style={{ fontSize: 11, padding: '5px 10px', background: 'var(--bg-2)',
                                      color: 'var(--accent)', border: '1px dashed var(--accent-line)',
                                      borderRadius: 5, cursor: 'pointer' }}>
@@ -1834,7 +1868,7 @@ export function HabitatFormModal({
                   <ChannelBulkParser
                     platformKey={form.platformKey ?? 'discord'}
                     onApply={(parsed) => {
-                      setChannels((prev) => {
+                      setChannelsWithDirty((prev) => {
                         const existing = new Map(prev.map((c) => [c.name.trim().toLowerCase(), c]));
                         for (const p of parsed) {
                           const k = p.name.toLowerCase();
@@ -1866,14 +1900,14 @@ export function HabitatFormModal({
                         key={`tab-${i}-${ch.name}`}
                         ch={ch}
                         habitatAllowed={habitatAllowed}
-                        onChange={(patch) => setChannels((arr) => arr.map((x, j) => j === i ? { ...x, ...patch } : x))}
-                        onRemove={() => setChannels((arr) => arr.filter((_, j) => j !== i))}
+                        onChange={(patch) => setChannelsWithDirty((arr) => arr.map((x, j) => j === i ? { ...x, ...patch } : x))}
+                        onRemove={() => setChannelsWithDirty((arr) => arr.filter((_, j) => j !== i))}
                         fld={fld}
                       />
                     ));
                   })()}
                   <button type="button"
-                          onClick={() => setChannels((arr) => [...arr, { name: '', url: null, description: '', rules: '' }])}
+                          onClick={() => setChannelsWithDirty((arr) => [...arr, { name: '', url: null, description: '', rules: '' }])}
                           style={{ fontSize: 11, padding: '6px 12px', background: 'var(--bg-2)',
                                    color: 'var(--accent)', border: '1px dashed var(--accent-line)',
                                    borderRadius: 5, cursor: 'pointer', alignSelf: 'flex-start' }}>

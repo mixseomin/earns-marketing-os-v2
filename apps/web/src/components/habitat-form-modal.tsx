@@ -175,6 +175,8 @@ export function HabitatFormModal({
   const [channelsLoaded, setChannelsLoaded] = useState(false);
   const [channelsReloadTick, setChannelsReloadTick] = useState(0);
   const [channelsDirty, setChannelsDirty] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   // Wrapper setChannels — mọi UI edit dùng cái này để track dirty.
   // Initial fetch + post-message fetch dùng setChannels trực tiếp (skip dirty).
   const setChannelsWithDirty = (
@@ -195,7 +197,15 @@ export function HabitatFormModal({
       })));
       setChannelsLoaded(true);
       setChannelsDirty(false);  // fresh load = clean
-    }).catch(() => setChannelsLoaded(true));
+      // Sau refresh: stop spinner + show timestamp
+      if (channelsReloadTick > 0) {
+        setRefreshing(false);
+        setRefreshedAt(Date.now());
+      }
+    }).catch(() => {
+      setChannelsLoaded(true);
+      setRefreshing(false);
+    });
   }, [habitat, isCreate, channelsReloadTick]);
   // Listen ext post-message khi sync channel rules thành công → refetch.
   // Pattern giống BriefsSection. Skip nếu user đang có pending edits để
@@ -552,14 +562,32 @@ export function HabitatFormModal({
               )}
             </h2>
           </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+            {refreshedAt && !refreshing && (
+              <span style={{ fontSize: 10, color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}
+                    title={`Refreshed at ${new Date(refreshedAt).toLocaleTimeString()}`}>
+                ✓ {Math.max(1, Math.round((Date.now() - refreshedAt) / 1000))}s
+              </span>
+            )}
             <button className="btn ghost"
                     title="Refresh — fetch lại channels + habitat data từ server"
+                    disabled={refreshing}
                     onClick={() => {
+                      setRefreshing(true);
+                      setRefreshedAt(null);
                       setChannelsReloadTick((t) => t + 1);
                       router.refresh();
                     }}
-                    style={{ fontSize: 14, padding: '4px 10px' }}>↻</button>
+                    style={{
+                      fontSize: 14, padding: '4px 10px',
+                      color: refreshing ? 'var(--accent)' : undefined,
+                      cursor: refreshing ? 'wait' : 'pointer',
+                    }}>
+              <span style={{
+                display: 'inline-block',
+                animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
+              }}>↻</span>
+            </button>
             <button className="btn ghost" onClick={onClose}>✕</button>
           </div>
         </div>

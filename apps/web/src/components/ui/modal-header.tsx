@@ -46,11 +46,16 @@ export function ModalHeader({
   const m = KIND_META[kind] ?? KIND_META.generic;
   const c = accentColor ?? m.color;
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   const handleRefresh = async () => {
     if (!onRefresh || refreshing) return;
     setRefreshing(true);
+    setRefreshedAt(null);
     try { await onRefresh(); }
-    finally { setRefreshing(false); }
+    finally {
+      setRefreshing(false);
+      setRefreshedAt(Date.now());
+    }
   };
   return (
     <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg-2)' }}>
@@ -93,14 +98,22 @@ export function ModalHeader({
           )}
         </div>
 
-        <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 4, alignItems: 'center' }}>
+          {refreshedAt && !refreshing && (
+            <span style={{ fontSize: 10, color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}
+                  title={`Refreshed at ${new Date(refreshedAt).toLocaleTimeString()}`}>
+              ✓ refreshed
+            </span>
+          )}
           {onRefresh && (
             <button onClick={handleRefresh} aria-label="Làm mới dữ liệu"
                     disabled={refreshing}
                     title="Refresh — fetch lại data mới nhất từ server"
-                    style={{ appearance: 'none', background: 'var(--bg-3)',
-                             border: '1px solid var(--line)', width: 30, height: 30, borderRadius: 7,
-                             color: refreshing ? 'var(--fg-3)' : 'var(--fg-1)',
+                    style={{ appearance: 'none',
+                             background: refreshing ? 'var(--accent-soft)' : 'var(--bg-3)',
+                             border: `1px solid ${refreshing ? 'var(--accent-line)' : 'var(--line)'}`,
+                             width: 30, height: 30, borderRadius: 7,
+                             color: refreshing ? 'var(--accent)' : 'var(--fg-1)',
                              cursor: refreshing ? 'wait' : 'pointer',
                              display: 'flex', alignItems: 'center', justifyContent: 'center',
                              fontSize: 14, lineHeight: 1 }}>

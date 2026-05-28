@@ -729,6 +729,9 @@ export const habitatChannels = pgTable(
     // 0080: channel-level language override (vd Discord multi-region server).
     // Empty = kế thừa habitat.language.
     language: text('language').notNull().default(''),
+    // 0082: manual flag block posting trên channel này (vd #rules, #announcements).
+    // Seeding planner skip mọi channel có no_posting=true khi gen lịch / autopost.
+    noPosting: boolean('no_posting').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

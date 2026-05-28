@@ -35,9 +35,47 @@ export async function GET(req: Request) {
       topic: c.topic,
       rules: c.rules,
       language: c.language,
+      noPosting: c.noPosting,
       pinnedSummary: c.pinnedSummary,
       recentSummary: c.recentSummary,
       syncedAt: c.syncedAt,
     },
   });
+}
+
+// PATCH /api/ext/habitats/channel-info
+// Body: { habitatId, channelId (externalId), noPosting?: boolean }
+// User toggle no-posting trên ext sidepanel cho channel cụ thể.
+export async function PATCH(req: Request) {
+  const authErr = checkAuth(req);
+  if (authErr) return authErr;
+
+  const db = getDb();
+  if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+
+  const body = await req.json() as {
+    habitatId?: number;
+    channelId?: string;
+    noPosting?: boolean;
+  };
+  if (!body.habitatId || !body.channelId) {
+    return NextResponse.json({ error: 'habitatId + channelId required' }, { status: 400 });
+  }
+  if (typeof body.noPosting !== 'boolean') {
+    return NextResponse.json({ error: 'noPosting must be boolean' }, { status: 400 });
+  }
+
+  const updated = await db.update(habitatChannels)
+    .set({ noPosting: body.noPosting, updatedAt: new Date() })
+    .where(and(
+      eq(habitatChannels.habitatId, body.habitatId),
+      eq(habitatChannels.externalId, body.channelId),
+    ))
+    .returning({ id: habitatChannels.id, noPosting: habitatChannels.noPosting });
+
+  if (updated.length === 0) {
+    return NextResponse.json({ error: 'channel not found' }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, channel: updated[0] });
 }

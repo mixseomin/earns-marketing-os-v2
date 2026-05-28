@@ -52,7 +52,7 @@ const SORT_OPTIONS: Array<{ value: PostedSortKey; label: string }> = [
   { value: 'posted_desc',  label: 'Mới nhất' },
   { value: 'posted_asc',   label: 'Cũ nhất' },
   { value: 'views_desc',   label: 'Views ↓' },
-  { value: 'score_desc',   label: 'Score ↓' },
+  { value: 'score_desc',   label: 'Upvote ↓' },
   { value: 'replies_desc', label: 'Replies ↓' },
   { value: 'ratio_desc',   label: 'Upvote ratio ↓' },
 ];
@@ -421,7 +421,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                          marginLeft: 4 }}>min:</span>
           <ThresholdInput label="👁 views" value={filters.minViews}
                           onChange={(v) => setF({ minViews: v })} />
-          <ThresholdInput label="↑ score" value={filters.minScore}
+          <ThresholdInput label="↑ upvote" value={filters.minScore}
                           onChange={(v) => setF({ minScore: v })} />
           <ThresholdInput label="💬 replies" value={filters.minReplies}
                           onChange={(v) => setF({ minReplies: v })} />
@@ -463,7 +463,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                 <SortableHeader label="👁 Views" sortKey="views_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
-                <SortableHeader label="↑ Score" sortKey="score_desc"
+                <SortableHeader label="↑ Upvote" sortKey="score_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
                 <SortableHeader label="💬 Reply" sortKey="replies_desc"
@@ -645,7 +645,7 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
                   fullTitle={v != null ? `${v.toLocaleString()} views` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
       <MetricCell value={s != null ? formatStatShort(s) : null}
-                  fullTitle={s != null ? `Score ${s}` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  fullTitle={s != null ? `Upvote ${s}` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
       <MetricCell value={rp != null ? String(rp) : null}
                   fullTitle={rp != null ? `${rp} replies` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
@@ -919,13 +919,17 @@ function MetricCell({ value, fullTitle, url }: {
   fullTitle: string;
   url: string;
 }) {
+  // Zero-value (0 / 0% / —): dim xám để dễ scan các bài CÓ engagement
+  // (giá trị > 0 nổi bật màu xanh).
+  const isZero = value == null || value === '0' || value === '0%';
   return (
     <td style={td()}>
       <a href={wrapExternalUrl(url)} target="_blank" rel="noopener noreferrer"
          onClick={(e) => e.stopPropagation()} title={fullTitle}
          style={{ display: 'inline-block', padding: '1px 5px',
                   fontSize: 10.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                  color: value != null ? '#60a5fa' : 'var(--fg-4)',
+                  color: isZero ? 'var(--fg-4)' : '#60a5fa',
+                  opacity: isZero ? 0.55 : 1,
                   textDecoration: 'none', borderRadius: 3,
                   border: '1px solid transparent',
                   transition: 'background .1s, border-color .1s' }}

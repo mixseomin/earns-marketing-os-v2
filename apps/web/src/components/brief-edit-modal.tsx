@@ -310,6 +310,7 @@ function BilingualAlignedPreview({
 // đã có 1 map riêng ở đây + 1 ở accounts-vault + 1 ở seeding-cockpit → drift; giờ centralize.
 import { accountStatusMeta } from '@/lib/status-meta';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { SwapAccountButton } from './swap-account-button';
 
 export interface BriefEditModalProps {
   projectId: string;
@@ -851,6 +852,20 @@ export function BriefEditModal({
               {existing && isAccountReady(accountStatus) && (
                 <JoinChip joinStatus={joinStatus} joinedAt={joinedAt}
                           onClick={openJoinPopover} />
+              )}
+              {/* Swap account — cho đổi sang account khác đã có sẵn trong project.
+                  Hiển thị khi (a) chưa join community (chỉ là planning, chưa
+                  cam kết account này) HOẶC (b) phase=warm-up + chưa có bài đăng
+                  nào (brief mới khởi động, swap không phá lịch sử). */}
+              {existing && (joinStatus !== 'joined' ||
+                            (currentPhase === 'warm-up' &&
+                             Object.values(phaseCounts ?? {}).reduce((s, n) => s + n, 0) === 0)) && (
+                <SwapAccountButton
+                  projectId={projectId}
+                  briefId={existing.id}
+                  currentAccountId={accountId}
+                  onSwapped={() => { onClose(); }}
+                />
               )}
               {/* Habitat chip — click mở HabitatFormModal (sửa url / kind /
                   platform / mod rules / members / posting rules / topics). */}

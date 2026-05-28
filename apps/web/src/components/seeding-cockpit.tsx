@@ -221,12 +221,21 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const onPickedCreatedAccount = (newAccountId: number) => {
     const cfg = createForBrief;
     setCreateForBrief(null);
-    if (!cfg) return;
+    if (!cfg) {
+      setMsg(`⚠ Account #${newAccountId} đã tạo nhưng mất context brief — không auto-assign được. Mở brief modal manual.`);
+      return;
+    }
     startBusy(async () => {
       const res = await reassignBriefAccount(projectId, cfg.briefId, newAccountId);
-      setMsg(res.ok
-        ? 'Đã tạo + gán account mới cho brief.'
-        : (res.error ?? 'Lỗi gán account'));
+      if (!res.ok) {
+        setMsg(`⚠ Tạo account #${newAccountId} OK nhưng KHÔNG gán được brief #${cfg.briefId}: ${res.error ?? '?'}`);
+        return;
+      }
+      setMsg(`✓ Đã tạo account #${newAccountId} + gán cho brief #${cfg.briefId}.`);
+      // Invalidate brief modal cache + bump reload key để loader fetch lại với
+      // account mới. Trước đó chỉ router.refresh() — không trigger
+      // BriefModalLoader re-fetch (deps không đổi) → modal hiển thị account cũ.
+      reloadBrief(0);
       router.refresh();
     });
   };

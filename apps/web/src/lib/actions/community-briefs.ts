@@ -759,6 +759,9 @@ export async function listSwappableAccountsForBrief(
   const habitatId = Number(br.habitat_id);
   const platformKey = String(br.platform_key ?? '');
   if (!platformKey) return [];
+  // Relax filter: include account ở mọi status NGOẠI TRỪ dead status
+  // (banned/blocked/dormant/defunct). Account 'todo'/'creating'/'warming' VẪN
+  // được swap — operator có thể assign brief cho account đang setup.
   const rows = await db.execute(sql`
     SELECT pa.id, pa.handle, pa.status, pa.platform_key, pa.account_kind,
            p.label AS platform_label,
@@ -769,13 +772,16 @@ export async function listSwappableAccountsForBrief(
     FROM platform_accounts pa
     JOIN platforms p ON p.key = pa.platform_key
     WHERE pa.tenant_id = ${TENANT}
-      AND pa.status = 'active'
+      AND pa.status NOT IN ('banned', 'blocked', 'dormant', 'defunct')
       AND pa.platform_key = ${platformKey}
       AND NOT EXISTS (
         SELECT 1 FROM community_briefs b2
         WHERE b2.habitat_id = ${habitatId} AND b2.account_id = pa.id
       )
-    ORDER BY in_project DESC, pa.handle ASC NULLS LAST
+    ORDER BY in_project DESC,
+             CASE pa.status WHEN 'active' THEN 0 WHEN 'warming' THEN 1
+               WHEN 'creating' THEN 2 WHEN 'todo' THEN 3 ELSE 4 END,
+             pa.handle ASC NULLS LAST
   `);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),

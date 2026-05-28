@@ -868,7 +868,12 @@ export function BriefEditModal({
                   projectId={projectId}
                   briefId={existing.id}
                   currentAccountId={accountId}
-                  onSwapped={() => { onClose(); }}
+                  onSwapped={() => {
+                    // KHÔNG đóng modal. Trigger parent reload để loader fetch
+                    // lại brief với account mới — modal giữ nguyên, user thấy
+                    // account chip đổi ngay tại chỗ.
+                    onPostsChanged?.();
+                  }}
                   onCreateAccount={onCreateAccount
                     ? () => onCreateAccount(platformKey || '')
                     : undefined}

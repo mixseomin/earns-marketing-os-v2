@@ -163,6 +163,7 @@ export function BriefPipelineModal({ projectId, briefId, onClose, onOpenPost }: 
             ? `${pl.prep.length} cần chuẩn bị · ${pl.upcoming.length} sẽ đăng · ${pl.posted.length} đã đăng — click 1 bài để mở đúng bài đó`
             : 'Cần chuẩn bị / Sẽ đăng / Đã đăng'}
           onClose={onClose}
+          onRefresh={() => setBump((b) => b + 1)}
         />
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>

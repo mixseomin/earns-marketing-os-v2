@@ -1326,6 +1326,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               </span>
             : undefined}
           onClose={onClose}
+          onRefresh={() => { router.refresh(); }}
         />
 
         {!isCreate && account && SYNC_PLATFORMS.has(form.platformKey) && (

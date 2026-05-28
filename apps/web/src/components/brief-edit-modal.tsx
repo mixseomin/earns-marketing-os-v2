@@ -975,6 +975,7 @@ export function BriefEditModal({
             })()
           ) : undefined}
           onClose={onClose}
+          onRefresh={() => { router.refresh(); }}
         />
 
         {/* Membership popover — mở khi click JoinChip ở header. KHÔNG render

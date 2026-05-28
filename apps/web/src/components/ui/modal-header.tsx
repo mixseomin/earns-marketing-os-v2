@@ -5,6 +5,7 @@
 // nào (title to), (4) vì sao (context). Thay cho .modal-head rời rạc.
 
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import {
   IconUser, IconSliders, IconClock, IconList, IconCommunity, IconGear, IconX,
 } from './icons';
@@ -28,7 +29,7 @@ const ACTION_LABEL: Record<ActionKind, string> = {
 };
 
 export function ModalHeader({
-  kind, action, title, idText, subtitle, context, accentColor, onClose,
+  kind, action, title, idText, subtitle, context, accentColor, onClose, onRefresh,
 }: {
   kind: ModalKind;
   action: ActionKind;
@@ -38,9 +39,19 @@ export function ModalHeader({
   context?: ReactNode;         // dòng vàng "vì sao bạn ở đây"
   accentColor?: string;        // override màu (vd theo phase)
   onClose: () => void;
+  /** Optional refresh button cạnh close. Caller pass async handler → spin
+   *  trong khi pending. Caller chịu trách nhiệm refetch data. */
+  onRefresh?: () => void | Promise<void>;
 }) {
   const m = KIND_META[kind] ?? KIND_META.generic;
   const c = accentColor ?? m.color;
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    try { await onRefresh(); }
+    finally { setRefreshing(false); }
+  };
   return (
     <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg-2)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
@@ -82,13 +93,31 @@ export function ModalHeader({
           )}
         </div>
 
-        <button onClick={onClose} aria-label="Đóng"
-                style={{ flexShrink: 0, appearance: 'none', background: 'var(--bg-3)',
-                         border: '1px solid var(--line)', width: 30, height: 30, borderRadius: 7,
-                         color: 'var(--fg-1)', cursor: 'pointer', display: 'flex',
-                         alignItems: 'center', justifyContent: 'center' }}>
-          <IconX size={15} />
-        </button>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
+          {onRefresh && (
+            <button onClick={handleRefresh} aria-label="Làm mới dữ liệu"
+                    disabled={refreshing}
+                    title="Refresh — fetch lại data mới nhất từ server"
+                    style={{ appearance: 'none', background: 'var(--bg-3)',
+                             border: '1px solid var(--line)', width: 30, height: 30, borderRadius: 7,
+                             color: refreshing ? 'var(--fg-3)' : 'var(--fg-1)',
+                             cursor: refreshing ? 'wait' : 'pointer',
+                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                             fontSize: 14, lineHeight: 1 }}>
+              <span style={{ display: 'inline-block',
+                             animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
+                ↻
+              </span>
+            </button>
+          )}
+          <button onClick={onClose} aria-label="Đóng"
+                  style={{ appearance: 'none', background: 'var(--bg-3)',
+                           border: '1px solid var(--line)', width: 30, height: 30, borderRadius: 7,
+                           color: 'var(--fg-1)', cursor: 'pointer', display: 'flex',
+                           alignItems: 'center', justifyContent: 'center' }}>
+            <IconX size={15} />
+          </button>
+        </div>
       </div>
 
       {context && (

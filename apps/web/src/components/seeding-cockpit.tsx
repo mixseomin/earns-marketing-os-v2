@@ -89,6 +89,17 @@ function EntityLink({ onClick, title, color, children }: {
   );
 }
 
+// 1 brief có thể có N schedule lanes (mỗi lane = 1 contentType: text/image/
+// video/link/carousel/story/thread). UI table render 1 row/brief, chip strip
+// trong row cho mỗi lane (click chip = generate nháp loại đó).
+interface BriefLaneGroup {
+  rep: SeedingQueueItem;           // Lane đại diện (earliest-due) — dùng cho status/account/habitat row
+  lanes: SeedingQueueItem[];       // Mọi lane của brief này
+  backlogTotal: number;            // Sum backlogCount cross-lane
+  completeTotal: number;
+  touches30dTotal: number;
+}
+
 export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, habitats = [], recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
   projectId: string;
   projectName: string;
@@ -431,6 +442,34 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     return b;
   }, [liveList]);
 
+  // Group lanes per brief — 1 brief có N schedule lanes (text/image/video/link).
+  // UI render 1 row/brief, chip strip cho lanes. Earliest-due lane = representative
+  // status. Metrics đã đồng nhất cross-lane (server tính per brief, không per lane).
+  const groupLanesByBrief = (items: SeedingQueueItem[]): BriefLaneGroup[] => {
+    const by = new Map<number, SeedingQueueItem[]>();
+    for (const x of items) {
+      (by.get(x.briefId) ?? by.set(x.briefId, []).get(x.briefId)!).push(x);
+    }
+    return [...by.values()].map((lanes) => {
+      // Earliest-due lane = representative (status + due nhỏ nhất)
+      const sorted = [...lanes].sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+      const rep = sorted[0]!;
+      // Sum backlog/touches cross-lane; metrics đã là brief-level từ server
+      const backlogTotal = lanes.reduce((s, x) => s + x.backlogCount, 0);
+      const completeTotal = lanes.reduce((s, x) => s + x.completeCount, 0);
+      const touches30dTotal = lanes.reduce((s, x) => s + x.touches30d, 0);
+      return { rep, lanes, backlogTotal, completeTotal, touches30dTotal };
+    });
+  };
+
+  const bucketsByBrief = useMemo(() => ({
+    overdue: groupLanesByBrief(buckets.overdue!),
+    due: groupLanesByBrief(buckets.due!),
+    week: groupLanesByBrief(buckets.week!),
+    later: groupLanesByBrief(buckets.later!),
+    rest: groupLanesByBrief(buckets.rest!),
+  }), [buckets]);
+
   const stats = useMemo(() => {
     const live = queue.filter((x) => !isDeadStatus(x.accountStatus));
     const active = live.filter((x) => x.status !== 'paused');
@@ -542,9 +581,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   };
 
   // ── RowTable: ưu tiên 4 cột chính (Brief / Account×Habitat / Status / Actions).
-  // Cột phụ (tribe, phase, lang, format, frequency, adherence, last seed) →
-  // tooltip + hover badge nhỏ. User cần xem chi tiết click Brief ID mở modal.
-  const RowTable = (it: SeedingQueueItem) => {
+  // Group 1 brief với N lanes = 1 row. Earliest-due lane = rep cho status.
+  // Lanes hiển thị thành chip strip dưới account×habitat. Click chip → tạo
+  // nháp loại đó (skip ⋯ menu chọn format).
+  // Cột phụ (tribe, phase, lang, frequency, adherence, last seed) → tooltip
+  // multi-line. User cần xem chi tiết click Brief ID mở modal.
+  const RowTable = (g: BriefLaneGroup) => {
+    const it = g.rep;
     const sm = STATUS_META[it.status];
     const issue = platformIssue(it);
     const effLang = it.laneLang || it.habitatLang;
@@ -627,7 +670,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <span style={{ color: 'var(--fg-4)' }}>·</span>
                 <span>{PHASE_LABEL[it.currentPhase]}</span>
                 <span style={{ color: 'var(--fg-4)' }}>·</span>
-                <span>{fmtLabel} {effLang.toUpperCase()}</span>
+                <span>{effLang.toUpperCase()}</span>
                 {!it.habitatUrl && (
                   <span title="Habitat thiếu URL — click sửa habitat"
                         onClick={() => setHabitatOverlayId(it.habitatId)}
@@ -638,6 +681,49 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 {issue && (
                   <span title={issue} style={{ color: 'var(--warn)' }}>⚠ sai nền tảng</span>
                 )}
+              </div>
+              {/* Lane chip strip — mỗi lane = 1 chip clickable (tạo nháp loại đó).
+                  Tooltip lane: frequency, due, lastSeed. 1 lane mặc định mix
+                  thì chỉ 1 chip "mix". */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                {g.lanes.map((lane) => {
+                  const laneMix = !lane.laneType || lane.laneType === 'mix';
+                  const laneLabel = laneMix ? 'mix' : formatMeta(lane.laneType).label;
+                  const laneColors = laneMix
+                    ? { fg: 'var(--fg-3)', bg: 'var(--bg-3)', border: 'var(--line)' }
+                    : formatColors(lane.laneType);
+                  const laneSm = STATUS_META[lane.status];
+                  const dueTxt = dueLabel(lane.daysUntilDue);
+                  const lastSeed = lane.lastSeededAt
+                    ? `Seed gần nhất: ${new Date(lane.lastSeededAt).toLocaleDateString()}`
+                    : 'Chưa seed lần nào';
+                  const tooltip = `${laneLabel} · ${laneSm.label} ${dueTxt}\nMỗi ${lane.frequencyDays}d · ${lastSeed}\nClick = tạo nháp loại "${laneLabel}"`;
+                  return (
+                    <button key={lane.scheduleId}
+                            type="button"
+                            disabled={busy}
+                            onClick={() => doGenerateOne(lane)}
+                            title={tooltip}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 3,
+                              padding: '1px 6px', borderRadius: 3,
+                              background: laneColors.bg, color: laneColors.fg,
+                              border: `1px solid ${laneColors.border}`,
+                              borderLeft: `2px solid ${laneSm.color}`,
+                              fontSize: 9.5, fontFamily: 'var(--font-mono)',
+                              fontWeight: 600, cursor: busy ? 'wait' : 'pointer',
+                              lineHeight: 1.3,
+                            }}>
+                      {!laneMix && <FormatIcon kind={lane.laneType} size={9} />}
+                      {laneLabel}
+                      {lane.status !== 'paused' && (
+                        <span style={{ color: laneSm.color, fontSize: 8.5, fontWeight: 700 }}>
+                          {dueTxt}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -657,21 +743,22 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             </span>
           </div>
         </td>
-        {/* C4: Nháp/Đăng gộp — 2 dòng compact (nháp trên, đăng dưới) */}
+        {/* C4: Nháp/Đăng gộp — cross-lane sum (g.backlogTotal cộng dồn từ
+            mọi lane của brief). */}
         <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', lineHeight: 1.2 }}>
             <EntityLink
-              color={it.backlogCount > 0 ? 'var(--accent)' : 'var(--fg-4)'}
+              color={g.backlogTotal > 0 ? 'var(--accent)' : 'var(--fg-4)'}
               onClick={() => modal.open('pipeline', it.briefId)}
-              title={it.backlogCount > 0
-                ? `${it.completeCount}/${it.backlogCount} nháp đủ data`
+              title={g.backlogTotal > 0
+                ? `${g.completeTotal}/${g.backlogTotal} nháp đủ data (gộp ${g.lanes.length} lane)`
                 : 'Chưa có nháp'}>
               <span style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                 <IconList size={9} />
-                {it.backlogCount > 0
-                  ? <>{it.backlogCount}{' '}
-                      <span style={{ color: it.completeCount === it.backlogCount ? 'var(--ok)' : 'var(--warn)' }}>
-                        ({it.completeCount}/{it.backlogCount})
+                {g.backlogTotal > 0
+                  ? <>{g.backlogTotal}{' '}
+                      <span style={{ color: g.completeTotal === g.backlogTotal ? 'var(--ok)' : 'var(--warn)' }}>
+                        ({g.completeTotal}/{g.backlogTotal})
                       </span></>
                   : '—'}
               </span>
@@ -1118,7 +1205,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     );
   };
 
-  const Bucket = ({ title, items, accent }: { title: string; items: SeedingQueueItem[]; accent: string }) =>
+  const Bucket = ({ title, items, accent }: { title: string; items: BriefLaneGroup[]; accent: string }) =>
     items.length === 0 ? null : (
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em',
@@ -1527,7 +1614,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                   <col style={{ width: 52 }} />
                   <col style={{ width: 52 }} />
                 </colgroup>
-                <tbody>{g.rows.map(RowTable)}</tbody>
+                <tbody>{groupLanesByBrief(g.rows).map(RowTable)}</tbody>
               </table>
             </div>
           </>
@@ -1731,11 +1818,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
               }}
             />
           )}
-          <Bucket title="Quá hạn" items={buckets.overdue!} accent="var(--bad)" />
-          <Bucket title="Đến hạn" items={buckets.due!} accent="var(--warn)" />
-          <Bucket title="Tuần này" items={buckets.week!} accent="var(--accent)" />
-          <Bucket title="Sắp tới" items={buckets.later!} accent="var(--fg-3)" />
-          {statusFilter === 'all' && <Bucket title="Tạm dừng / Ngoài phase" items={buckets.rest!} accent="var(--fg-4)" />}
+          <Bucket title="Quá hạn" items={bucketsByBrief.overdue} accent="var(--bad)" />
+          <Bucket title="Đến hạn" items={bucketsByBrief.due} accent="var(--warn)" />
+          <Bucket title="Tuần này" items={bucketsByBrief.week} accent="var(--accent)" />
+          <Bucket title="Sắp tới" items={bucketsByBrief.later} accent="var(--fg-3)" />
+          {statusFilter === 'all' && <Bucket title="Tạm dừng / Ngoài phase" items={bucketsByBrief.rest} accent="var(--fg-4)" />}
         </>
       ))}
 

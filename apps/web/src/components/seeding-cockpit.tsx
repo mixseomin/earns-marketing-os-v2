@@ -541,6 +541,234 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     });
   };
 
+  // ── RowTable: ưu tiên 4 cột chính (Brief / Account×Habitat / Status / Actions).
+  // Cột phụ (tribe, phase, lang, format, frequency, adherence, last seed) →
+  // tooltip + hover badge nhỏ. User cần xem chi tiết click Brief ID mở modal.
+  const RowTable = (it: SeedingQueueItem) => {
+    const sm = STATUS_META[it.status];
+    const issue = platformIssue(it);
+    const effLang = it.laneLang || it.habitatLang;
+    const fmtLabel = (!it.laneType || it.laneType === 'mix') ? 'mix' : formatMeta(it.laneType).label;
+    // Tooltip tổng hợp các meta phụ — show on row hover
+    const metaTooltip = [
+      `Phase: ${PHASE_LABEL[it.currentPhase]}`,
+      `Tần suất: mỗi ${it.frequencyDays}d`,
+      `Lang: ${effLang.toUpperCase()}${it.laneLang ? ' (lane override)' : ' (kế thừa habitat)'}`,
+      `Format: ${fmtLabel}`,
+      `Adherence: ${it.adherencePct}% (${it.touches30d}/30d)`,
+      it.tribeName ? `Tribe: ${it.tribeName}` : null,
+      it.lastSeededAt ? `Seed gần nhất: ${new Date(it.lastSeededAt).toLocaleDateString()}` : 'Chưa seed',
+      it.autoDraft ? 'Auto-draft: ON' : null,
+    ].filter(Boolean).join('\n');
+
+    return (
+      <tr key={it.scheduleId}
+          onMouseEnter={() => prefetchBriefModal(projectId, it.briefId)}
+          style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-1)' }}
+          title={metaTooltip}>
+        {/* C1: Brief ID — mono, click mở brief modal */}
+        <td style={{ padding: '6px 8px', borderLeft: `3px solid ${sm.color}` }}>
+          <button type="button" onClick={() => openBrief(it.briefId)}
+                  title={`Mở brief #${it.briefId}`}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                           fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)',
+                           fontWeight: 700 }}>
+            #{it.briefId}
+          </button>
+        </td>
+        {/* C2: Account × Habitat + platform + warning chips */}
+        <td style={{ padding: '6px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <button type="button" onClick={() => openBrief(it.briefId)}
+                    title={`Brief: ${it.accountHandle} × ${it.habitatName}`}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                             display: 'inline-flex', borderRadius: 5, flexShrink: 0 }}>
+              <SiteFavicon url={it.habitatUrl} kind={it.habitatKind} size={22}
+                           title="" style={{ borderRadius: 5 }} />
+            </button>
+            <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', minWidth: 0 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+                  <EntityLink color="var(--fg-0)" onClick={() => setAccountOverlayId(it.accountId)}
+                    title={`Mở account: @${it.accountHandle}`}>
+                    <AccountKindIcon kind={it.accountKind} />@{it.accountHandle}
+                  </EntityLink>
+                </span>
+                {notReady(it.accountStatus) && (() => {
+                  const m = ACCT_STATUS_META[it.accountStatus]
+                    ?? { label: it.accountStatus.toUpperCase(), color: 'var(--warn)', dot: '⚠', hint: 'Account chưa active' };
+                  return (
+                    <span title={m.hint}
+                          style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                                   color: m.color, background: m.color + '22',
+                                   border: `1px solid ${m.color}66`, borderRadius: 3,
+                                   padding: '0 4px', textTransform: 'uppercase' }}>
+                      {m.label}
+                    </span>
+                  );
+                })()}
+                <span style={{ color: 'var(--fg-4)' }}>×</span>
+                <span style={{ fontSize: 11, color: 'var(--fg-1)', minWidth: 0, overflow: 'hidden',
+                               textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <EntityLink color="var(--fg-1)" onClick={() => setHabitatOverlayId(it.habitatId)}
+                    title={`Mở habitat: ${it.habitatName}`}>
+                    {it.habitatIsOwn && <span title="Own habitat" style={{ color: '#fbbf24', marginRight: 2 }}>👑</span>}
+                    {it.habitatName}
+                  </EntityLink>
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9.5,
+                            fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                {it.platformKey && (
+                  <img src={`https://cdn.simpleicons.org/${it.platformKey}/a3a3a3`}
+                       alt="" width={10} height={10} style={{ opacity: 0.85 }} />
+                )}
+                <span>{it.platformLabel}</span>
+                <span style={{ color: 'var(--fg-4)' }}>·</span>
+                <span>{PHASE_LABEL[it.currentPhase]}</span>
+                <span style={{ color: 'var(--fg-4)' }}>·</span>
+                <span>{fmtLabel} {effLang.toUpperCase()}</span>
+                {!it.habitatUrl && (
+                  <span title="Habitat thiếu URL — click sửa habitat"
+                        onClick={() => setHabitatOverlayId(it.habitatId)}
+                        style={{ color: 'var(--warn)', cursor: 'pointer' }}>
+                    ⚠ thiếu URL
+                  </span>
+                )}
+                {issue && (
+                  <span title={issue} style={{ color: 'var(--warn)' }}>⚠ sai nền tảng</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </td>
+        {/* C3: Status + Due */}
+        <td style={{ padding: '6px 8px', fontSize: 11 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ color: sm.color, fontWeight: 700, fontSize: 10.5,
+                           fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+              {sm.label}
+            </span>
+            <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>
+              {dueLabel(it.daysUntilDue)}
+            </span>
+            <span title={`Adherence cadence 30d: ${it.adherencePct}%`}
+                  style={{ color: healthColor(it.adherencePct), fontSize: 9.5,
+                           fontFamily: 'var(--font-mono)' }}>
+              ▮ {it.adherencePct}% · {it.touches30d}/30
+            </span>
+          </div>
+        </td>
+        {/* C4: Backlog + actions (compact) */}
+        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+          <div style={{ display: 'inline-flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+            <EntityLink
+              color={it.backlogCount > 0 ? 'var(--accent)' : 'var(--fg-4)'}
+              onClick={() => modal.open('pipeline', it.briefId)}
+              title={it.backlogCount > 0
+                ? `${it.completeCount}/${it.backlogCount} nháp đủ data — mở pipeline`
+                : 'Mở pipeline'}>
+              <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)',
+                             display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <IconList size={11} />
+                {it.backlogCount > 0
+                  ? <>{it.backlogCount}{' '}
+                      <span style={{ color: it.completeCount === it.backlogCount ? 'var(--ok)' : 'var(--warn)' }}>
+                        ({it.completeCount}/{it.backlogCount})
+                      </span></>
+                  : 'xem'}
+              </span>
+            </EntityLink>
+            <BriefMetricsChip it={it} onOpen={() => modal.open('pipeline', it.briefId)} />
+            {issue && (
+              <button className="btn" disabled={busy} onClick={() => doAutoFix(it)}
+                      title="Auto-fix sai nền tảng"
+                      style={{ fontSize: 10.5, padding: '2px 5px', color: 'var(--warn)' }}>
+                <IconSwap size={11} />
+              </button>
+            )}
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <button className="btn" disabled={busy}
+                      onClick={() => setActionMenuFor(actionMenuFor === it.scheduleId ? null : it.scheduleId)}
+                      title="Hành động khác"
+                      style={{ fontSize: 11, padding: '2px 5px',
+                               display: 'inline-flex', alignItems: 'center' }}>
+                <IconDots size={12} />
+              </button>
+              {actionMenuFor === it.scheduleId && (
+                <>
+                  <div onClick={() => setActionMenuFor(null)}
+                       style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 41,
+                                minWidth: 220, background: 'var(--bg-1)', border: '1px solid var(--line-2)',
+                                borderRadius: 6, boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 4,
+                                textAlign: 'left' }}>
+                    <div style={{ padding: '4px 8px', fontSize: 9, fontFamily: 'var(--font-mono)',
+                                  color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                      Brief × lane này
+                    </div>
+                    <button className="btn ghost" disabled={busy}
+                            onClick={() => { setActionMenuFor(null); doGenerateOne(it); }}
+                            style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                     fontSize: 11.5, padding: '5px 8px', textAlign: 'left' }}>
+                      <IconFilePlus size={13} /> Tạo nháp ngay
+                    </button>
+                    {(!it.laneType || it.laneType === 'mix') && (
+                      <button className="btn ghost" disabled={busy}
+                              onClick={() => { setActionMenuFor(null); setFmtMenuFor(it.scheduleId); }}
+                              style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                       fontSize: 11.5, padding: '5px 8px', textAlign: 'left' }}>
+                        <IconChevron dir="down" size={11} /> Tạo nháp theo loại
+                      </button>
+                    )}
+                    <button className="btn ghost"
+                            onClick={() => { setActionMenuFor(null); modal.open('schedule', it.briefId); }}
+                            style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                     fontSize: 11.5, padding: '5px 8px', textAlign: 'left' }}>
+                      <IconGear size={13} /> Schedule (lanes)
+                    </button>
+                    <div style={{ marginTop: 4, borderTop: '1px solid var(--line)', padding: '6px 8px 4px',
+                                  fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
+                                  textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                      Account @{it.accountHandle}
+                    </div>
+                    <button className="btn ghost" disabled={busy}
+                            onClick={() => { setActionMenuFor(null); setAccountOverlayId(it.accountId); }}
+                            style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                     fontSize: 11.5, padding: '5px 8px', textAlign: 'left' }}>
+                      <IconPencil size={13} /> Sửa account
+                    </button>
+                    {!isDeadStatus(it.accountStatus) && (
+                      <button className="btn ghost" disabled={busy}
+                              onClick={() => { setActionMenuFor(null); setRetiring({ accountId: it.accountId, handle: it.accountHandle, platformLabel: it.platformLabel, scheduleCount: queue.filter((x) => x.accountId === it.accountId).length }); setRetireReason('banned'); setRetireText(''); }}
+                              style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                       fontSize: 11.5, padding: '5px 8px', textAlign: 'left', color: 'var(--bad)' }}>
+                        <IconBan size={13} /> Ngưng dùng
+                      </button>
+                    )}
+                    {issue && (
+                      <button className="btn ghost" disabled={busy}
+                              onClick={() => { setActionMenuFor(null); setReassign({
+                                briefId: it.briefId, habitatId: it.habitatId,
+                                presetPlatformKey: it.habitatPlatformKey || expectedPlatformForKind(it.habitatKind) || undefined,
+                                label: `@${it.accountHandle} · ${it.habitatName}`,
+                                habitatName: it.habitatName, habitatKind: it.habitatKind, habitatUrl: it.habitatUrl,
+                              }); }}
+                              style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+                                       fontSize: 11.5, padding: '5px 8px', textAlign: 'left' }}>
+                        <IconSwap size={13} /> Gán account khác
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </span>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   const Row = (it: SeedingQueueItem) => {
     const sm = STATUS_META[it.status];
     return (
@@ -852,7 +1080,26 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <span style={{ width: 6, height: 6, borderRadius: 3, background: accent }} />{title}
           <span style={{ color: 'var(--fg-4)' }}>{items.length}</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{items.map(Row)}</div>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 60 }} />          {/* Brief ID */}
+              <col />                                {/* Account + Habitat + Platform */}
+              <col style={{ width: 150 }} />         {/* Status + Due */}
+              <col style={{ width: 200 }} />         {/* Backlog + actions */}
+            </colgroup>
+            <thead>
+              <tr style={{ background: 'var(--bg-2)', color: 'var(--fg-3)', fontSize: 10,
+                           textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Brief</th>
+                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Account × Habitat</th>
+                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Status</th>
+                <th style={{ padding: '4px 8px', textAlign: 'right' }}>Backlog · Actions</th>
+              </tr>
+            </thead>
+            <tbody>{items.map(RowTable)}</tbody>
+          </table>
+        </div>
       </div>
     );
 
@@ -1211,7 +1458,17 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                           background: 'rgba(248,113,113,.04)', borderTop: '1px solid rgba(248,113,113,.2)' }}>
               Bài đã đăng/seed = lịch sử, giữ nguyên (xem trong brief / Board). ~{g.seededApprox} seed/30d. Nháp CHƯA đăng thì vô dụng với account này → dùng 🗑 Dọn nháp.
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: '8px 10px' }}>{g.rows.map(Row)}</div>
+            <div style={{ padding: '8px 10px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: 60 }} />
+                  <col />
+                  <col style={{ width: 150 }} />
+                  <col style={{ width: 200 }} />
+                </colgroup>
+                <tbody>{g.rows.map(RowTable)}</tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

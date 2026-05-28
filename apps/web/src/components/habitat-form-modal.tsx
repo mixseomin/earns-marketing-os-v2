@@ -520,15 +520,18 @@ export function HabitatFormModal({
 
         <div className="modal-body" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {/* Tab bar — Sticky top trong modal-body (overflow-y: auto). Đứng
-              TRƯỚC AIFormParser để khi scroll vẫn switch tab nhanh. */}
+              TRƯỚC AIFormParser để khi scroll vẫn switch tab nhanh.
+              Background PHẢI match .modal (var(--bg-1)), KHÔNG dùng --bg-0
+              đậm hơn → tạo khe visual với modal header phía trên. */}
           <div role="tablist"
                style={{
                  position: 'sticky', top: 0, zIndex: 20,
                  display: 'flex', alignItems: 'flex-end', gap: 0,
                  borderBottom: '1px solid var(--line)',
-                 background: 'var(--bg-0)',
+                 background: 'var(--bg-1)',
                  marginLeft: -10, marginRight: -10, paddingLeft: 10, paddingRight: 10,
                  marginTop: -10, paddingTop: 6,
+                 marginBottom: -6, paddingBottom: 0,
                }}>
             {([
               { key: 'overview', label: '📋 Overview', desc: 'Layout 3-col tổng hợp (default)' },

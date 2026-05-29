@@ -458,6 +458,17 @@ export function HabitatFormModal({
         setBusy(false);
         router.refresh();
         if (res.id != null) onCreated?.(res.id);
+        // Signal cho MOS2 Crew extension (nếu cài) refresh side panel ngay khi
+        // habitat vừa tạo — user đang ở tab Reddit chưa map, panel sẽ tự resolve
+        // lại mà không cần quay lại/bấm refresh. Content script ext nghe message
+        // này trên mos2.on.tc → ghi chrome.storage → sidepanel.onChanged refresh.
+        try {
+          window.postMessage({
+            source: 'mos2-web',
+            type: 'mos2:habitat-created',
+            habitat: { id: res.id, name: form.name, url: form.url, kind: form.kind },
+          }, window.location.origin);
+        } catch { /* noop */ }
         onClose();
       } else {
         const res = await updateHabitat(projectId, habitat!.id, form);

@@ -165,6 +165,23 @@ export async function POST(req: Request) {
       .returning({ id: communityBriefs.id });
     briefId = inserted[0]!.id;
     action = 'created';
+
+    // Auto-create default seeding schedule cho brief mới — bằng không
+    // brief sẽ KHÔNG xuất hiện trong seeding queue page (queue join
+    // seeding_schedules). Default: lane='mix', frequency=7d, all phases.
+    // ON CONFLICT (brief_id, content_type, language) → safe idempotent.
+    try {
+      await db.execute(sql`
+        INSERT INTO seeding_schedules
+          (tenant_id, project_id, brief_id, content_type, language, frequency_days, active_phases, paused, auto_draft)
+        VALUES ('self', ${targetHabitat.projectId}, ${briefId}, 'mix', '', 7,
+                '["warm-up","value","bridge","seed","direct"]'::jsonb, false, false)
+        ON CONFLICT (brief_id, content_type, language) DO NOTHING
+      `);
+    } catch (e) {
+      // KHÔNG fail toàn bộ brief create chỉ vì schedule lỗi — log + continue
+      console.error('[ext briefs POST] auto-schedule fail:', e);
+    }
   }
 
   await logExtCall({

@@ -58,6 +58,10 @@ export async function GET(req: Request) {
         },
       }, { headers: noStoreHeaders });
     }
+    // RETURN SỚM: subreddit chưa map → null. KHÔNG rơi xuống generic fallback
+    // bên dưới vì ILIKE '%reddit.com%' khớp NHẦM bất kỳ subreddit nào khác
+    // (URL dài nhất thắng) → habitat sai. r/<sub> chỉ match đúng theo tên.
+    return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
   }
 
   // Discord channel page: /channels/<guild_id>/<channel_id>

@@ -327,7 +327,7 @@ button { font-family: inherit; color: inherit; }
 }
 .tab {
   display: flex; align-items: center; gap: 6px;
-  padding: 0 14px;
+  padding: 0 12px;
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -339,6 +339,11 @@ button { font-family: inherit; color: inherit; }
   font-variant-numeric: tabular-nums;
   position: relative;
   transition: color .12s;
+  /* Giữ mỗi tab trên 1 dòng — không để label dài (Morning Brief / Command
+     Board / Kế hoạch) wrap 2 dòng làm topbar (48px cố định) trông vỡ.
+     flex-shrink:0 → khi hẹp, search/spacer co trước, tab giữ nguyên. */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab:hover { color: var(--fg-1); }
 .tab[data-active="true"] {
@@ -374,10 +379,15 @@ button { font-family: inherit; color: inherit; }
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   width: 240px;
+  /* Khi topbar hẹp: search co lại (nhường chỗ cho tabs giữ 1 dòng) thay vì
+     đẩy layout tràn. min-width:0 cho phép flex item shrink dưới content size. */
+  min-width: 120px;
+  flex-shrink: 1;
   color: var(--fg-2);
   font-family: var(--font-mono);
   font-size: 11px;
 }
+.topbar-search input { min-width: 0; }
 .topbar-search input {
   background: transparent; border: 0; outline: 0; flex: 1; color: var(--fg-0);
   font-family: inherit; font-size: inherit;

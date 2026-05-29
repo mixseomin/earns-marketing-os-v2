@@ -16,7 +16,7 @@ import type {
 } from '@/lib/actions/brief-posts';
 import { AllPostsTab } from './all-posts-tab';
 import { HabitatsTable } from './habitats-table';
-import { AccountsTable } from './accounts-table';
+import { AccountsTable, type AccountLens } from './accounts-table';
 import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
@@ -37,7 +37,7 @@ import {
   Spinner, Segmented, EmptyState, SiteFavicon, FormatIcon,
   IconFilePlus, IconList, IconBan, IconGear, IconUndo,
   IconTrash, IconGlobe, IconClock, IconChevron, IconWarn, IconSwap, IconPencil, IconX, IconDots, InfoHint,
-  MultiSelect,
+  MultiSelect, StatsStrip,
 } from './ui';
 import { ScheduleEditModal } from './schedule-edit-modal';
 import { BriefEditModal } from './brief-edit-modal';
@@ -114,7 +114,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   habitats?: HabitatRow[];
   accounts?: AccountRow[];
   recentPosted?: RecentPostedCard[];
-  initialView?: 'queue' | 'posts' | 'habitats' | 'accounts';
+  initialView?: 'queue' | 'posts' | 'habitats' | 'accounts' | 'today';
   postedOptions?: PostedFilterOptions;
   postedInitial?: AllPostedResult;
   postedInitialFilters?: AllPostedFilters;
@@ -129,7 +129,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
   // Sync vào URL ?st=posts để F5 giữ tab.
-  const [view, setView] = useState<'queue' | 'posts' | 'habitats' | 'accounts'>(initialView);
+  const [view, setView] = useState<'queue' | 'posts' | 'habitats' | 'accounts' | 'today'>(initialView);
   // Đồng bộ tab vào URL — không reload page, chỉ replaceState.
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -137,6 +137,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     if (view === 'posts') qs.set('st', 'posts');
     else if (view === 'habitats') qs.set('st', 'habitats');
     else if (view === 'accounts') qs.set('st', 'accounts');
+    else if (view === 'today') qs.set('st', 'today');
     else qs.delete('st');
     const next = qs.toString();
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
@@ -247,6 +248,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [createHabitatOpen, setCreateHabitatOpen] = useState(false);
   // Tab 'Accounts' → '+ Account mới' mở AccountFormModal CREATE mode.
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  // Lens cho AccountsTable khi mở từ tab Hôm nay (warmup/health). 'all' default.
+  const [acctLensIntent, setAcctLensIntent] = useState<AccountLens>('all');
   const onCreateAccount = (briefId: number, presetPlatformKey: string) => {
     setCreateForBrief({ briefId, presetPlatformKey });
   };
@@ -525,6 +528,16 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     later: groupLanesByBrief(buckets.later!),
     rest: groupLanesByBrief(buckets.rest!),
   }), [buckets]);
+
+  // Tab 'Hôm nay' — độc lập với filter của tab queue: tính thẳng từ queue
+  // (loại account chết) → brief quá hạn + đến hạn hôm nay, gom theo brief.
+  const todayData = useMemo(() => {
+    const live = queue.filter((x) => !isDeadStatus(x.accountStatus));
+    return {
+      overdue: groupLanesByBrief(live.filter((x) => x.status === 'overdue')),
+      due: groupLanesByBrief(live.filter((x) => x.status === 'due')),
+    };
+  }, [queue]);
 
   const stats = useMemo(() => {
     const live = queue.filter((x) => !isDeadStatus(x.accountStatus));
@@ -1757,6 +1770,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                     marginTop: 8, marginBottom: 12,
                     borderBottom: '1px solid var(--line)' }}>
         {([
+          { value: 'today' as const, label: `⚡ Hôm nay${stats.needAction ? ` (${stats.needAction})` : ''}` },
           { value: 'queue' as const, label: '⏱ Lịch seed' },
           { value: 'posts' as const, label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
           { value: 'habitats' as const, label: `🏘 Habitats${habitats.length ? ` (${habitats.length})` : ''}` },
@@ -1856,13 +1870,33 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       )}
 
       {/* View 'accounts': table quản lý account. Click row → AccountFormModal
-          chi tiết (tái dùng nested ?acct= overlay). '+ Account mới' → create. */}
+          chi tiết (tái dùng nested ?acct= overlay). '+ Account mới' → create.
+          initialLens điều khiển từ tab Hôm nay (key buộc remount khi đổi lens). */}
       {view === 'accounts' && (
         <AccountsTable
+          key={`acct-${acctLensIntent}`}
           accounts={accounts}
           queue={queue}
+          initialLens={acctLensIntent}
           onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
           onCreateAccount={() => setCreateAccountOpen(true)}
+        />
+      )}
+
+      {/* View 'today': control tower — mở mỗi sáng. Trả lời 3 câu: gì cần seed
+          hôm nay, account nào kẹt, community nào chờ. StatsStrip click → nhảy
+          tab/filter tương ứng. Danh sách brief quá-hạn/đến-hạn click → mở modal. */}
+      {view === 'today' && (
+        <TodayView
+          stats={stats}
+          needAccountTotal={needAccountGroups.reduce((s, g) => s + g.accounts, 0)}
+          needJoinTotal={needJoinGroups.reduce((s, g) => s + g.habitats, 0)}
+          overdue={todayData.overdue}
+          due={todayData.due}
+          onOpenBrief={openBrief}
+          onGoQueue={() => setView('queue')}
+          onGoAccounts={(lens) => { setAcctLensIntent(lens); setView('accounts'); }}
+          onGoHabitats={() => setView('habitats')}
         />
       )}
 
@@ -2825,5 +2859,103 @@ function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, 
       onOpenBrief={onOpenBrief}
       onRefreshHabitatRow={refreshRow}
     />
+  );
+}
+
+// ── TodayView — control tower mở mỗi sáng ────────────────────────────────
+// Trả lời nhanh: cần seed gì hôm nay, account nào kẹt, community nào chờ.
+// StatsStrip click → nhảy tab/lens. Danh sách brief click → mở brief modal.
+function TodayBriefList({ title, color, groups, emptyText, onOpenBrief }: {
+  title: string; color: string; groups: BriefLaneGroup[]; emptyText: string;
+  onOpenBrief: (briefId: number) => void;
+}) {
+  return (
+    <div style={{ flex: 1, minWidth: 280 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase',
+                    letterSpacing: '.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+        {title} <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{groups.length}</span>
+      </div>
+      {groups.length === 0 ? (
+        <div style={{ fontSize: 11.5, color: 'var(--fg-4)', padding: '8px 0' }}>{emptyText}</div>
+      ) : (
+        <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+          {groups.slice(0, 12).map((g) => {
+            const it = g.rep;
+            return (
+              <button key={it.briefId} type="button" onClick={() => onOpenBrief(it.briefId)}
+                      title={`Mở brief #${it.briefId} — ${it.accountHandle} × ${it.habitatName}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+                               padding: '7px 10px', background: 'var(--bg-1)', border: 'none',
+                               borderBottom: '1px solid var(--line)', cursor: 'pointer', borderLeft: `3px solid ${color}` }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-1)')}>
+                <SiteFavicon url={it.habitatUrl} kind={it.habitatKind} size={18} title="" style={{ borderRadius: 4, flexShrink: 0 }} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap',
+                                overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    @{it.accountHandle} <span style={{ color: 'var(--fg-4)' }}>×</span> {it.habitatName}
+                  </div>
+                  <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                    {it.platformLabel} · {dueLabel(it.daysUntilDue)}{g.backlogTotal > 0 ? ` · ${g.backlogTotal} nháp` : ' · chưa có nháp'}
+                  </div>
+                </div>
+                <IconChevron dir="right" size={12} />
+              </button>
+            );
+          })}
+          {groups.length > 12 && (
+            <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', background: 'var(--bg-1)' }}>
+              +{groups.length - 12} brief nữa — xem ở tab Lịch seed
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TodayView({
+  stats, needAccountTotal, needJoinTotal, overdue, due,
+  onOpenBrief, onGoQueue, onGoAccounts, onGoHabitats,
+}: {
+  stats: { needAction: number; touches30d: number; deadAccts: number; notReadyAccts: number; noUrlHabitats: number };
+  needAccountTotal: number;
+  needJoinTotal: number;
+  overdue: BriefLaneGroup[];
+  due: BriefLaneGroup[];
+  onOpenBrief: (briefId: number) => void;
+  onGoQueue: () => void;
+  onGoAccounts: (lens: AccountLens) => void;
+  onGoHabitats: () => void;
+}) {
+  const cards = [
+    { key: 'due', label: 'Cần seed hôm nay', value: overdue.length + due.length,
+      color: overdue.length > 0 ? 'var(--bad)' : 'var(--warn)', onClick: onGoQueue,
+      title: 'Brief quá hạn + đến hạn hôm nay — click sang Lịch seed' },
+    { key: 'overdue', label: 'Quá hạn', value: overdue.length, color: 'var(--bad)', onClick: onGoQueue,
+      title: 'Brief đã quá hạn seed' },
+    { key: 'need-acct', label: 'Account cần setup', value: needAccountTotal,
+      color: needAccountTotal > 0 ? 'var(--warn)' : 'var(--fg-3)', onClick: () => onGoAccounts('warmup'),
+      title: 'Account todo/creating/warming chưa sẵn sàng — click sang Accounts › Khởi động' },
+    { key: 'need-join', label: 'Cần join community', value: needJoinTotal,
+      color: needJoinTotal > 0 ? 'var(--warn)' : 'var(--fg-3)', onClick: onGoHabitats,
+      title: 'Account active nhưng chưa join community' },
+    { key: 'dead', label: 'Account chết', value: stats.deadAccts,
+      color: stats.deadAccts > 0 ? 'var(--bad)' : 'var(--fg-3)', onClick: () => onGoAccounts('health'),
+      title: 'Account banned/blocked — click sang Accounts › Sức khỏe' },
+    { key: 'touches', label: 'Seed 30 ngày', value: stats.touches30d, color: 'var(--ok)',
+      title: 'Tổng lần seed trong 30 ngày' },
+  ];
+
+  return (
+    <div>
+      <StatsStrip cards={cards} columns={6} />
+      <div style={{ display: 'flex', gap: 20, marginTop: 16, flexWrap: 'wrap' }}>
+        <TodayBriefList title="🔴 Quá hạn" color="var(--bad)" groups={overdue}
+                        emptyText="Không có brief quá hạn 🎉" onOpenBrief={onOpenBrief} />
+        <TodayBriefList title="🟡 Đến hạn hôm nay" color="var(--warn)" groups={due}
+                        emptyText="Không có brief đến hạn hôm nay" onOpenBrief={onOpenBrief} />
+      </div>
+    </div>
   );
 }

@@ -19,8 +19,18 @@ import { accountStatusMeta } from '@/lib/status-meta';
 import { fmtCompactNum } from '@/lib/format';
 import { fmtAgoShort } from '@/lib/time-format';
 import {
-  MultiSelect, EmptyState, Pill, IconChevron,
+  MultiSelect, Segmented, EmptyState, Pill, IconChevron,
 } from './ui';
+
+// Lens lifecycle: cắt account theo giai đoạn sống. 'all' = tất cả; 'warmup' =
+// đang setup/đủ-điều-kiện (todo/creating/warming) — đây là nguồn block seeding
+// lớn nhất; 'health' = chết/giới hạn (banned/blocked/limited/dormant/defunct)
+// — rủi ro ban, cần revive/cleanup. (Đề xuất 🔥 Khởi động + 🩺 Sức khỏe.)
+export type AccountLens = 'all' | 'warmup' | 'health';
+const LENS_STATUSES: Record<Exclude<AccountLens, 'all'>, Set<string>> = {
+  warmup: new Set(['todo', 'creating', 'warming']),
+  health: new Set(['banned', 'blocked', 'limited', 'dormant', 'defunct']),
+};
 
 interface AccountSeedMetrics {
   briefs: number;        // distinct briefId account này đang seed
@@ -70,20 +80,32 @@ function warmupProgress(checklist: AccountRow['warmupChecklist']): { done: numbe
 }
 
 export function AccountsTable({
-  accounts, queue, teamMembers = [], onOpenAccount, onCreateAccount,
+  accounts, queue, teamMembers = [], initialLens = 'all', onOpenAccount, onCreateAccount,
 }: {
   accounts: AccountRow[];
   queue: SeedingQueueItem[];
   teamMembers?: Array<{ id: number; displayName: string }>;
+  initialLens?: AccountLens;
   onOpenAccount: (accountId: number) => void;
   onCreateAccount: () => void;
 }) {
+  const [lens, setLens] = useState<AccountLens>(initialLens);
   const [q, setQ] = useState('');
   const [filterPlatforms, setFilterPlatforms] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterOwners, setFilterOwners] = useState<number[]>([]);
   const [sort, setSort] = useState<SortKey>('handle');
   const [dir, setDir] = useState<SortDir>('asc');
+
+  // Count theo lens cho Segmented label.
+  const lensCounts = useMemo(() => {
+    let warmup = 0, health = 0;
+    for (const a of accounts) {
+      if (LENS_STATUSES.warmup.has(a.status)) warmup++;
+      else if (LENS_STATUSES.health.has(a.status)) health++;
+    }
+    return { all: accounts.length, warmup, health };
+  }, [accounts]);
 
   const onSort = (k: SortKey) => {
     if (k === sort) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -153,6 +175,7 @@ export function AccountsTable({
 
   const rows = useMemo(() => {
     let list = accounts;
+    if (lens !== 'all') { const set = LENS_STATUSES[lens]; list = list.filter((a) => set.has(a.status)); }
     if (q.trim()) {
       const s = q.toLowerCase();
       list = list.filter((a) =>
@@ -179,7 +202,7 @@ export function AccountsTable({
         default: return 0;
       }
     });
-  }, [accounts, q, filterPlatforms, filterStatus, filterOwners, sort, dir, metricsByAccount]);
+  }, [accounts, lens, q, filterPlatforms, filterStatus, filterOwners, sort, dir, metricsByAccount]);
 
   const totals = useMemo(() => {
     let cost = 0, briefs = 0, posts = 0;
@@ -198,6 +221,17 @@ export function AccountsTable({
 
   return (
     <div>
+      {/* Lens lifecycle — 🔥 Khởi động (warming) · 🩺 Sức khỏe (dead). */}
+      <div style={{ marginBottom: 10 }}>
+        <Segmented<AccountLens>
+          options={[
+            { value: 'all', label: `Tất cả (${lensCounts.all})` },
+            { value: 'warmup', label: `🔥 Khởi động${lensCounts.warmup ? ` (${lensCounts.warmup})` : ''}`, title: 'Account đang setup/đủ-điều-kiện (todo/creating/warming) — nguồn block seeding lớn nhất' },
+            { value: 'health', label: `🩺 Sức khỏe${lensCounts.health ? ` (${lensCounts.health})` : ''}`, title: 'Account chết/giới hạn (banned/blocked/limited/dormant/defunct) — cần revive/cleanup' },
+          ]}
+          value={lens} onChange={setLens} />
+      </div>
+
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <input placeholder="Tìm @handle / email / tag…" value={q} onChange={(e) => setQ(e.target.value)}

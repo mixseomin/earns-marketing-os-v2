@@ -3,6 +3,9 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 
+export const dynamic = 'force-dynamic';   // disable static optimization
+export const revalidate = 0;              // disable ISR
+
 // GET /api/ext/habitats/resolve?url=https://reddit.com/r/Astrologia/comments/xxx
 // Trả habitat info + brief active đang seed để side panel ext biết context.
 // Match URL theo:
@@ -10,19 +13,23 @@ import { checkAuth } from '../../_auth';
 //   2. Facebook group/...    → habitat WHERE kind=fb-group + url LIKE
 //   3. Generic               → habitat WHERE url LIKE '%<host>%'
 
+// Helper: response với Cache-Control no-store để Chrome/browser KHÔNG cache.
+// Symptom v1.5.71: ext cached response of previous URL leaks → habitat sai.
+const noStoreHeaders = { 'Cache-Control': 'no-store, max-age=0' };
+
 export async function GET(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url).searchParams.get('url') || '';
-  if (!url) return NextResponse.json({ habitat: null });
+  if (!url) return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
 
   const db = getDb();
-  if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503, headers: noStoreHeaders });
 
   let parsedUrl: URL;
   try { parsedUrl = new URL(url); }
-  catch { return NextResponse.json({ habitat: null }); }
+  catch { return NextResponse.json({ habitat: null }, { headers: noStoreHeaders }); }
 
   const host = parsedUrl.hostname.replace(/^www\./, '');
   const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
@@ -49,7 +56,7 @@ export async function GET(req: Request) {
           url: r.url ? String(r.url) : null,
           briefId: r.brief_id ? Number(r.brief_id) : null,
         },
-      });
+      }, { headers: noStoreHeaders });
     }
   }
 
@@ -123,7 +130,7 @@ export async function GET(req: Request) {
                 url: inviteUrl,
                 briefId: c.brief_id ? Number(c.brief_id) : null,
               },
-            });
+            }, { headers: noStoreHeaders });
           } else if (resolvedGuildId) {
             // Lỡ cơ hội backfill cho candidate KHÁC guild — vẫn cache để
             // lần resolve khác đỡ phải fetch
@@ -160,8 +167,8 @@ export async function GET(req: Request) {
         url: r.url ? String(r.url) : null,
         briefId: r.brief_id ? Number(r.brief_id) : null,
       },
-    });
+    }, { headers: noStoreHeaders });
   }
 
-  return NextResponse.json({ habitat: null });
+  return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
 }

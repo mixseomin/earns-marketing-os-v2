@@ -21,7 +21,7 @@
 
 import type { AllPostedFilters, PostedSortKey } from '@/lib/actions/brief-posts';
 
-export type SeedingTabKey = 'queue' | 'posts' | 'habitats';
+export type SeedingTabKey = 'queue' | 'posts' | 'habitats' | 'accounts';
 
 export interface ParsedSeedingTabUrl {
   view: SeedingTabKey;
@@ -78,7 +78,8 @@ export function parseSeedingTabUrl(
 ): ParsedSeedingTabUrl {
   const viewRaw = pickStr(sp.st);
   const view: SeedingTabKey = viewRaw === 'posts' ? 'posts'
-    : viewRaw === 'habitats' ? 'habitats' : 'queue';
+    : viewRaw === 'habitats' ? 'habitats'
+    : viewRaw === 'accounts' ? 'accounts' : 'queue';
 
   // Days: '7' → 7, 'all' / '' / null → null, số khác → number.
   let days: number | null = 7;

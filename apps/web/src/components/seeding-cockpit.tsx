@@ -16,6 +16,7 @@ import type {
 } from '@/lib/actions/brief-posts';
 import { AllPostsTab } from './all-posts-tab';
 import { HabitatsTable } from './habitats-table';
+import { AccountsTable } from './accounts-table';
 import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
@@ -103,7 +104,7 @@ interface BriefLaneGroup {
   touches30dTotal: number;
 }
 
-export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, habitats = [], recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
+export function SeedingCockpit({ projectId, projectName, project, platforms, queue, tribes, habitats = [], accounts = [], recentPosted = [], initialView = 'queue', postedOptions, postedInitial, postedInitialFilters }: {
   projectId: string;
   projectName: string;
   project: Project;
@@ -111,8 +112,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   queue: SeedingQueueItem[];
   tribes: TribeRow[];
   habitats?: HabitatRow[];
+  accounts?: AccountRow[];
   recentPosted?: RecentPostedCard[];
-  initialView?: 'queue' | 'posts' | 'habitats';
+  initialView?: 'queue' | 'posts' | 'habitats' | 'accounts';
   postedOptions?: PostedFilterOptions;
   postedInitial?: AllPostedResult;
   postedInitialFilters?: AllPostedFilters;
@@ -127,13 +129,14 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
   // Sync vào URL ?st=posts để F5 giữ tab.
-  const [view, setView] = useState<'queue' | 'posts' | 'habitats'>(initialView);
+  const [view, setView] = useState<'queue' | 'posts' | 'habitats' | 'accounts'>(initialView);
   // Đồng bộ tab vào URL — không reload page, chỉ replaceState.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const qs = new URLSearchParams(window.location.search);
     if (view === 'posts') qs.set('st', 'posts');
     else if (view === 'habitats') qs.set('st', 'habitats');
+    else if (view === 'accounts') qs.set('st', 'accounts');
     else qs.delete('st');
     const next = qs.toString();
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
@@ -242,6 +245,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [addBriefOpen, setAddBriefOpen] = useState(false);
   // Tab 'Habitats' → '+ Habitat mới' mở HabitatFormModal CREATE mode.
   const [createHabitatOpen, setCreateHabitatOpen] = useState(false);
+  // Tab 'Accounts' → '+ Account mới' mở AccountFormModal CREATE mode.
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
   const onCreateAccount = (briefId: number, presetPlatformKey: string) => {
     setCreateForBrief({ briefId, presetPlatformKey });
   };
@@ -1755,6 +1760,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           { value: 'queue' as const, label: '⏱ Lịch seed' },
           { value: 'posts' as const, label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
           { value: 'habitats' as const, label: `🏘 Habitats${habitats.length ? ` (${habitats.length})` : ''}` },
+          { value: 'accounts' as const, label: `🔐 Accounts${accounts.length ? ` (${accounts.length})` : ''}` },
         ]).map((t) => {
           const on = view === t.value;
           return (
@@ -1846,6 +1852,17 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           tribes={tribes}
           onOpenHabitat={(habitatId) => setHabitatOverlayId(habitatId)}
           onCreateHabitat={() => setCreateHabitatOpen(true)}
+        />
+      )}
+
+      {/* View 'accounts': table quản lý account. Click row → AccountFormModal
+          chi tiết (tái dùng nested ?acct= overlay). '+ Account mới' → create. */}
+      {view === 'accounts' && (
+        <AccountsTable
+          accounts={accounts}
+          queue={queue}
+          onOpenAccount={(accountId) => setAccountOverlayId(accountId)}
+          onCreateAccount={() => setCreateAccountOpen(true)}
         />
       )}
 
@@ -2176,6 +2193,23 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             router.refresh();
             // Mở luôn modal edit habitat vừa tạo để điền nốt chi tiết.
             setHabitatOverlayId(newId);
+          }}
+        />
+      )}
+
+      {/* Tab Accounts → '+ Account mới' → AccountFormModal CREATE mode. */}
+      {createAccountOpen && (
+        <AccountFormModal
+          account={null}
+          project={project}
+          projectId={projectId}
+          platforms={platforms}
+          onClose={() => setCreateAccountOpen(false)}
+          onCreated={(newId) => {
+            setCreateAccountOpen(false);
+            router.refresh();
+            // Mở luôn modal edit account vừa tạo để điền nốt credential/persona.
+            setAccountOverlayId(newId);
           }}
         />
       )}

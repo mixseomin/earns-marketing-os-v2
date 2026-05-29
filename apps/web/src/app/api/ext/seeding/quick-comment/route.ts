@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     habitatId?: number;
     projectId?: string;
     briefId?: number | null;
-    contentType?: 'comment' | 'reply';
+    contentType?: 'comment' | 'reply' | 'post' | 'thread' | 'text';
     parentUrl?: string;
     parentTitle?: string;
     parentBody?: string;
@@ -41,7 +41,12 @@ export async function POST(req: Request) {
 
   const habitatId = Number(body.habitatId ?? 0);
   const projectId = String(body.projectId ?? '');
-  const contentType = (body.contentType === 'reply' ? 'reply' : 'comment');
+  // contentType: comment/reply = interaction (cần parentUrl); post/thread/text =
+  // standalone (parentUrl=null). createPostForBriefPhase auto-normalize qua
+  // formatMeta() nên giá trị lạ rơi về 'text' an toàn.
+  const ALLOWED_CT = ['comment', 'reply', 'post', 'thread', 'text'] as const;
+  const contentType = (ALLOWED_CT as readonly string[]).includes(body.contentType ?? '')
+    ? (body.contentType as string) : 'comment';
   if (!habitatId || !projectId) {
     return NextResponse.json({ ok: false, error: 'habitatId + projectId required' }, { status: 400 });
   }

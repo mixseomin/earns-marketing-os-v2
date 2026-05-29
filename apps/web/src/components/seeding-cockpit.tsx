@@ -323,8 +323,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   // Sort alpha, hiển thị count để user biết platform/account/habitat nào nhiều.
   const filterOptions = useMemo(() => {
     const platformMap = new Map<string, { label: string; count: number }>();
-    const accountMap = new Map<number, { handle: string; count: number }>();
-    const habitatMap = new Map<number, { name: string; count: number }>();
+    const accountMap = new Map<number, { handle: string; platform: string; count: number }>();
+    const habitatMap = new Map<number, { name: string; platform: string; count: number }>();
     for (const x of queue) {
       if (x.platformKey) {
         const cur = platformMap.get(x.platformKey);
@@ -333,17 +333,17 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       }
       const a = accountMap.get(x.accountId);
       if (a) a.count++;
-      else accountMap.set(x.accountId, { handle: x.accountHandle, count: 1 });
+      else accountMap.set(x.accountId, { handle: x.accountHandle, platform: x.platformLabel, count: 1 });
       const h = habitatMap.get(x.habitatId);
       if (h) h.count++;
-      else habitatMap.set(x.habitatId, { name: x.habitatName, count: 1 });
+      else habitatMap.set(x.habitatId, { name: x.habitatName, platform: x.platformLabel, count: 1 });
     }
     return {
       platforms: [...platformMap.entries()].map(([key, v]) => ({ value: key, label: v.label, count: v.count }))
         .sort((a, b) => a.label.localeCompare(b.label)),
-      accounts: [...accountMap.entries()].map(([id, v]) => ({ value: id, label: `@${v.handle}`, count: v.count }))
+      accounts: [...accountMap.entries()].map(([id, v]) => ({ value: id, label: v.platform ? `@${v.handle} · ${v.platform}` : `@${v.handle}`, count: v.count }))
         .sort((a, b) => a.label.localeCompare(b.label)),
-      habitats: [...habitatMap.entries()].map(([id, v]) => ({ value: id, label: v.name, count: v.count }))
+      habitats: [...habitatMap.entries()].map(([id, v]) => ({ value: id, label: v.platform ? `${v.name} · ${v.platform}` : v.name, count: v.count }))
         .sort((a, b) => a.label.localeCompare(b.label)),
     };
   }, [queue]);

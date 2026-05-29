@@ -15,12 +15,14 @@ import type {
   PostedFilterOptions,
 } from '@/lib/actions/brief-posts';
 import { AllPostsTab } from './all-posts-tab';
+import { HabitatsTable } from './habitats-table';
 import {
   generateDueDrafts, generateOneDraft,
   retireAccount, reviveAccount, cleanupUnpostedDrafts,
 } from '@/lib/actions/seeding';
 import { getHabitatRowAction, reassignBriefAccount, autoFixBriefAccount, type BriefRow, type BriefModalCtx } from '@/lib/actions/community-briefs';
 import { fetchBriefModal, prefetchBriefModal, invalidateBriefModal } from '@/lib/brief-modal-cache';
+import { fmtCompactNum } from '@/lib/format';
 import { SwapAccountButton } from './swap-account-button';
 import type { TribeRow, PlatformRow, AccountRow, HabitatRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
@@ -110,7 +112,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   tribes: TribeRow[];
   habitats?: HabitatRow[];
   recentPosted?: RecentPostedCard[];
-  initialView?: 'queue' | 'posts';
+  initialView?: 'queue' | 'posts' | 'habitats';
   postedOptions?: PostedFilterOptions;
   postedInitial?: AllPostedResult;
   postedInitialFilters?: AllPostedFilters;
@@ -125,12 +127,13 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
   // Sync vào URL ?st=posts để F5 giữ tab.
-  const [view, setView] = useState<'queue' | 'posts'>(initialView);
+  const [view, setView] = useState<'queue' | 'posts' | 'habitats'>(initialView);
   // Đồng bộ tab vào URL — không reload page, chỉ replaceState.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const qs = new URLSearchParams(window.location.search);
     if (view === 'posts') qs.set('st', 'posts');
+    else if (view === 'habitats') qs.set('st', 'habitats');
     else qs.delete('st');
     const next = qs.toString();
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
@@ -237,6 +240,8 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   // '+ Brief mới' button (header) → mở AddBriefModal pick account + habitat
   // → upsertBrief → mở BriefEditModal cho chi tiết.
   const [addBriefOpen, setAddBriefOpen] = useState(false);
+  // Tab 'Habitats' → '+ Habitat mới' mở HabitatFormModal CREATE mode.
+  const [createHabitatOpen, setCreateHabitatOpen] = useState(false);
   const onCreateAccount = (briefId: number, presetPlatformKey: string) => {
     setCreateForBrief({ briefId, presetPlatformKey });
   };
@@ -1749,6 +1754,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         {([
           { value: 'queue' as const, label: '⏱ Lịch seed' },
           { value: 'posts' as const, label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
+          { value: 'habitats' as const, label: `🏘 Habitats${habitats.length ? ` (${habitats.length})` : ''}` },
         ]).map((t) => {
           const on = view === t.value;
           return (
@@ -1829,6 +1835,18 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                        if (phase) focusPost(briefId, phase, cardId ?? undefined);
                        else { clearFocus(); modal.open('brief', briefId); }
                      }} />
+      )}
+
+      {/* View 'habitats': table quản lý habitat. Click row → mở HabitatFormModal
+          chi tiết (tái dùng nested overlay ?hab=). '+ Habitat mới' → create. */}
+      {view === 'habitats' && (
+        <HabitatsTable
+          habitats={habitats}
+          queue={queue}
+          tribes={tribes}
+          onOpenHabitat={(habitatId) => setHabitatOverlayId(habitatId)}
+          onCreateHabitat={() => setCreateHabitatOpen(true)}
+        />
       )}
 
       {/* Chip filter — click 1 chip = lọc queue bên dưới theo loại. 'ready'
@@ -2143,6 +2161,23 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             // "+ Tạo 1 bài" và pickers hiển thị đúng format mới.
             reloadBrief(0);
           }} />
+      )}
+
+      {/* Tab Habitats → '+ Habitat mới' → HabitatFormModal CREATE mode. */}
+      {createHabitatOpen && (
+        <HabitatFormModal
+          projectId={projectId}
+          habitat={null}
+          tribes={tribes}
+          platforms={platforms}
+          onClose={() => setCreateHabitatOpen(false)}
+          onCreated={(newId) => {
+            setCreateHabitatOpen(false);
+            router.refresh();
+            // Mở luôn modal edit habitat vừa tạo để điền nốt chi tiết.
+            setHabitatOverlayId(newId);
+          }}
+        />
       )}
 
       {/* Confirm "account chết" — in-place dialog (KHÔNG navigate, KHÔNG native confirm) */}
@@ -2544,8 +2579,8 @@ function RecentPostedSection({ cards, onOpenBrief }: {
                                  fontFamily: 'var(--font-mono)',
                                  background: 'rgba(96,165,250,.13)', color: '#60a5fa',
                                  border: '1px solid rgba(96,165,250,.4)', borderRadius: 999 }}>
-                    {v != null && <span title={`${v.toLocaleString()} views`}>👁 {formatStatShort(v)}</span>}
-                    {score != null && <span title={`Score ${score}`}>↑ {formatStatShort(score)}</span>}
+                    {v != null && <span title={`${v.toLocaleString()} views`}>👁 {fmtCompactNum(v)}</span>}
+                    {score != null && <span title={`Score ${score}`}>↑ {fmtCompactNum(score)}</span>}
                     {r != null && <span title={`Upvote ratio ${Math.round(r * 100)}%`}>{Math.round(r * 100)}%</span>}
                     {replies != null && <span title={`${replies} replies`}>💬 {replies}</span>}
                   </span>
@@ -2618,8 +2653,8 @@ function BriefMetricsChip({ it, onOpen }: {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6,
                           fontSize: 10, fontFamily: 'var(--font-mono)',
                           color: '#60a5fa', fontWeight: 700 }}>
-              {it.totalViews > 0 && <span title={`${it.totalViews.toLocaleString()} views tổng`}>👁 {formatStatShort(it.totalViews)}</span>}
-              {it.totalScore > 0 && <span title={`Score tổng ${it.totalScore}`}>↑ {formatStatShort(it.totalScore)}</span>}
+              {it.totalViews > 0 && <span title={`${it.totalViews.toLocaleString()} views tổng`}>👁 {fmtCompactNum(it.totalViews)}</span>}
+              {it.totalScore > 0 && <span title={`Score tổng ${it.totalScore}`}>↑ {fmtCompactNum(it.totalScore)}</span>}
               {it.totalReplies > 0 && <span title={`${it.totalReplies} replies tổng`}>💬 {it.totalReplies}</span>}
               {it.totalViews === 0 && it.totalScore === 0 && it.totalReplies === 0 && (
                 <span style={{ color: 'var(--fg-4)', fontStyle: 'italic', fontWeight: 400 }}>
@@ -2684,7 +2719,7 @@ function MetricTd({ value, hasInsight, hasPosted, title, onClick }: {
                        fontSize: 10.5, fontFamily: 'var(--font-mono)',
                        color: value > 0 ? '#60a5fa' : 'var(--fg-4)',
                        fontWeight: value > 0 ? 700 : 400 }}>
-        {value > 0 ? formatStatShort(value) : '0'}
+        {value > 0 ? fmtCompactNum(value) : '0'}
       </button>
     </td>
   );
@@ -2698,13 +2733,6 @@ function timeAgoShort(d: Date): string {
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h trước`;
   if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d trước`;
   return `${Math.floor(diff / (30 * 86_400_000))}mo trước`;
-}
-
-function formatStatShort(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 10_000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
-  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
 }
 
 function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, onOpenAccount, onOpenBrief }: {

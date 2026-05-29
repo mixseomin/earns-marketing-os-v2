@@ -28,6 +28,7 @@ import {
   type CostBreakdown,
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
+import { fmtCompactNum } from '@/lib/format';
 import { MultiSelect as SharedMultiSelect } from './ui';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
 import { AccountKindIcon } from './account-kind-icon';
@@ -71,13 +72,6 @@ const TIME_OPTIONS: Array<{ value: number | null; label: string }> = [
   { value: 90,   label: '90d' },
   { value: null, label: 'Tất cả' },
 ];
-
-function formatStatShort(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 10_000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
-  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
-}
 
 function timeAgo(iso: string): string {
   const t = new Date(iso).getTime();
@@ -706,10 +700,10 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
         <LifecycleBadge cardId={c.id} current={c.postLifecycle} postUrl={c.postUrl}
                         onSaved={onLifecycleSaved} />
       </td>
-      <MetricCell value={v != null ? formatStatShort(v) : null}
+      <MetricCell value={v != null ? fmtCompactNum(v) : null}
                   fullTitle={v != null ? `${v.toLocaleString()} views` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
-      <MetricCell value={s != null ? formatStatShort(s) : null}
+      <MetricCell value={s != null ? fmtCompactNum(s) : null}
                   fullTitle={s != null ? `Upvote ${s}` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
                   url={refreshUrl} />
       <MetricCell value={rp != null ? String(rp) : null}

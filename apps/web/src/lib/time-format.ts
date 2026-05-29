@@ -32,6 +32,19 @@ export function fmtAgoVi(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('vi-VN');
 }
 
+/**
+ * Ultra-compact relative time WITHOUT "ago" suffix, from epoch ms.
+ * "3m" / "2h" / "5d" / "2mo". Dùng trong table cell chật (vd cột "Seed").
+ */
+export function fmtAgoShort(ms: number | null | undefined): string {
+  if (ms == null) return '';
+  const diff = Date.now() - ms;
+  if (diff < 3_600_000)        return `${Math.max(1, Math.floor(diff / 60_000))}m`;
+  if (diff < 86_400_000)       return `${Math.floor(diff / 3_600_000)}h`;
+  if (diff < 30 * 86_400_000)  return `${Math.floor(diff / 86_400_000)}d`;
+  return `${Math.floor(diff / (30 * 86_400_000))}mo`;
+}
+
 /** Short date (YYYY-MM-DD). */
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';

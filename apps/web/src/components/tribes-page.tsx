@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { HabitatKindChip } from "./habitat-kind-chip";
+import { fmtCompactNum } from "@/lib/format";
 
 
 const TRIBES_DATA = {
@@ -193,11 +194,6 @@ const TRIBES_DATA = {
 // HABITAT_KIND_LABEL/GLYPH centralized in lib/habitat-kind-meta.ts.
 // Dùng <HabitatKindChip> thay vì lookup raw.
 
-function fmtNum(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
-  if (n >= 1000)    return (n / 1000).toFixed(1) + "k";
-  return String(n);
-}
 
 // ── Page ────────────────────────────────────────────────────────
 export function TribesPage() {
@@ -305,7 +301,7 @@ function TribeChip({ tribe, active, onClick }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-2)" }}>
-        <div>{fmtNum(tribe.members)} <span style={{ color: "var(--fg-4)" }}>mbrs</span></div>
+        <div>{fmtCompactNum(tribe.members)} <span style={{ color: "var(--fg-4)" }}>mbrs</span></div>
         <div style={{ textAlign: "right", color: growthColor, fontWeight: 600 }}>{tribe.growth}</div>
         <div>{tribe.habitats} <span style={{ color: "var(--fg-4)" }}>habs</span></div>
         <div style={{ textAlign: "right", color: "var(--fg-1)" }}>aff {tribe.affinity}</div>
@@ -339,8 +335,8 @@ function TribeDetailPanel({ tribe }) {
 
         {/* Top metrics — just one accent for the headline */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-          <Metric label="Members" value={fmtNum(tribe.members)} />
-          <Metric label="Reach 30d" value={fmtNum(tribe.reach)} accent />
+          <Metric label="Members" value={fmtCompactNum(tribe.members)} />
+          <Metric label="Reach 30d" value={fmtCompactNum(tribe.reach)} accent />
           <Metric label="Affinity" value={tribe.affinity} suffix="/100" />
           <Metric label="Growth" value={tribe.growth} tone={tribe.growthTone} />
         </div>
@@ -471,7 +467,7 @@ function HabitatsPanel({ tribe, habitats, onOpenHabitat }) {
 
       <div style={{ padding: "8px 14px", borderTop: "1px solid var(--line)", background: "var(--bg-2)", display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-3)" }}>
         <span>{habitats.filter(h => h.scrape === "live").length} live · {habitats.filter(h => h.scrape === "manual").length} manual · {habitats.filter(h => h.scrape === "weekly" || h.scrape === "comments").length} other</span>
-        <span>Σ members: <b style={{ color: "var(--fg-1)" }}>{fmtNum(habitats.reduce((s, h) => s + h.members, 0))}</b></span>
+        <span>Σ members: <b style={{ color: "var(--fg-1)" }}>{fmtCompactNum(habitats.reduce((s, h) => s + h.members, 0))}</b></span>
       </div>
     </div>
   );
@@ -496,7 +492,7 @@ function HabitatRow({ h, onOpen }) {
         <div style={{ color: "var(--fg-0)", fontWeight: 500 }}>{h.name}</div>
         <div style={{ color: "var(--fg-3)", fontSize: 10, marginTop: 1 }}>{h.platform} · {h.url}</div>
       </td>
-      <td style={{ padding: "9px 10px", textAlign: "right", color: "var(--fg-1)" }}>{fmtNum(h.members)}</td>
+      <td style={{ padding: "9px 10px", textAlign: "right", color: "var(--fg-1)" }}>{fmtCompactNum(h.members)}</td>
       <td style={{ padding: "9px 10px", textAlign: "right", color: activityColor, textTransform: "uppercase", fontSize: 10, letterSpacing: "0.04em" }}>{h.activity}</td>
       <td style={{ padding: "9px 10px", textAlign: "right" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>

@@ -461,14 +461,10 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     let list = issueFilter === 'acct-dead'
       ? searchOnly
       : searchOnly.filter((x) => !isDeadStatus(x.accountStatus));
-    // Exclude need-account briefs khỏi main list — đã hiện ở section "Cần tạo
-    // account" riêng phía trên (luôn visible). Trừ khi user filter rõ ràng.
-    if (issueFilter !== 'acct-not-ready') {
-      list = list.filter((x) => x.accountStatus !== 'todo' && x.accountStatus !== 'creating');
-    }
-    // Exclude need-join briefs (account active nhưng not_joined) — đã hiện ở
-    // NeedJoinSection riêng. Trừ khi filter chuyên biệt.
-    list = list.filter((x) => !(x.accountStatus === 'active' && x.status === 'not-joined'));
+    // KHÔNG exclude need-account / need-join briefs nữa — hiện trong table chính
+    // với row mờ + chip warning. User feedback 2026-05-29: cần thấy mọi brief
+    // trong table, không phải section riêng phía trên.
+    // (toolbar 4-chip còn — counter tổng kiểu shortcut filter).
     if (statusFilter === 'active' && !issueFilter) {
       list = list.filter((x) => x.status === 'overdue' || x.status === 'due' || x.status === 'upcoming');
     }
@@ -642,6 +638,16 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     const issue = platformIssue(it);
     const effLang = it.laneLang || it.habitatLang;
     const fmtLabel = (!it.laneType || it.laneType === 'mix') ? 'mix' : formatMeta(it.laneType).label;
+    // 2 state cần highlight riêng: needAccount (chưa tạo account) + needJoin
+    // (account active nhưng chưa join community).
+    const isNeedAccount = it.accountStatus === 'todo' || it.accountStatus === 'creating';
+    const isNeedJoin = it.accountStatus === 'active' && it.status === 'not-joined';
+    const rowBg = isNeedAccount
+      ? 'rgba(248,113,113,0.06)'  // đỏ mờ
+      : isNeedJoin
+      ? 'rgba(251,191,36,0.06)'   // vàng mờ
+      : 'var(--bg-1)';
+    const rowOpacity = (isNeedAccount || isNeedJoin) ? 0.85 : 1;
     // Tooltip tổng hợp các meta phụ — show on row hover
     const metaTooltip = [
       `Phase: ${PHASE_LABEL[it.currentPhase]}`,
@@ -657,7 +663,11 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     return (
       <tr key={it.scheduleId}
           onMouseEnter={() => prefetchBriefModal(projectId, it.briefId)}
-          style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-1)' }}
+          style={{
+            borderTop: '1px solid var(--line)',
+            background: rowBg,
+            opacity: rowOpacity,
+          }}
           title={metaTooltip}>
         {/* C1: Brief ID — mono, click mở brief modal */}
         <td style={{ padding: '6px 4px 6px 6px', borderLeft: `3px solid ${sm.color}`, textAlign: 'center' }}>
@@ -700,6 +710,32 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                     </span>
                   );
                 })()}
+                {/* needAccount chip — đỏ, click mở account modal để tạo */}
+                {isNeedAccount && (
+                  <button type="button"
+                          onClick={(e) => { e.stopPropagation(); setAccountOverlayId(it.accountId); }}
+                          title="Account chưa được tạo — click để mở account modal hoàn tất setup (handle/credential/status)"
+                          style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                                   color: 'var(--bad)', background: 'rgba(248,113,113,0.15)',
+                                   border: '1px solid rgba(248,113,113,0.5)', borderRadius: 3,
+                                   padding: '0 5px', textTransform: 'uppercase', cursor: 'pointer' }}>
+                    ⚠ TẠO ACCOUNT
+                  </button>
+                )}
+                {/* needJoin chip — vàng, click mở habitat URL để join */}
+                {isNeedJoin && (
+                  <a href={it.habitatUrl ? wrapExternalUrl(it.habitatUrl) : '#'}
+                     target="_blank" rel="noopener noreferrer"
+                     onClick={(e) => { if (!it.habitatUrl) e.preventDefault(); e.stopPropagation(); }}
+                     title={`Account @${it.accountHandle} chưa join ${it.habitatName} — click mở community để join`}
+                     style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                              color: 'var(--warn)', background: 'rgba(251,191,36,0.15)',
+                              border: '1px solid rgba(251,191,36,0.5)', borderRadius: 3,
+                              padding: '0 5px', textTransform: 'uppercase', cursor: 'pointer',
+                              textDecoration: 'none' }}>
+                    🔗 CẦN JOIN
+                  </a>
+                )}
                 <span style={{ color: 'var(--fg-4)' }}>×</span>
                 <span style={{ fontSize: 11, color: 'var(--fg-1)', minWidth: 0, overflow: 'hidden',
                                textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

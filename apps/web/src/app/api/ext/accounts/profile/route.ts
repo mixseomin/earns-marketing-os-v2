@@ -31,6 +31,10 @@ export async function GET(req: Request) {
     .trim();
   const platformKey = (url.searchParams.get('platformKey') ?? '').trim().toLowerCase();
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
+  // projectId (optional) — PREFER account trong project đang chọn khi 1 handle
+  // dùng ở nhiều project. KHÔNG hard-filter (vẫn resolve cross-project).
+  const projectId = (url.searchParams.get('projectId') ?? '').trim();
+  const projectPref = projectId ? sql`(pa.project_id = ${projectId}) DESC, ` : sql``;
 
   if (!handle || !platformKey) {
     return NextResponse.json({ ok: false, error: 'handle + platformKey required' }, { status: 400 });
@@ -51,7 +55,7 @@ export async function GET(req: Request) {
     LEFT JOIN platforms p ON p.key = pa.platform_key
     WHERE pa.platform_key = ${platformKey}
       AND LOWER(TRIM(pa.handle)) = LOWER(TRIM(${handle}))
-    ORDER BY pa.updated_at DESC NULLS LAST
+    ORDER BY ${projectPref} pa.updated_at DESC NULLS LAST
     LIMIT 1
   `);
   const acc = (accRows as unknown as Array<Record<string, unknown>>)[0];

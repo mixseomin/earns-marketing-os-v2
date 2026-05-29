@@ -21,8 +21,15 @@ export async function GET(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
-  const url = new URL(req.url).searchParams.get('url') || '';
+  const params = new URL(req.url).searchParams;
+  const url = params.get('url') || '';
   if (!url) return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
+
+  // projectId (optional) — disambiguate khi 1 URL/subreddit map nhiều project.
+  // PREFER project đang chọn ở ext nhưng KHÔNG hard-filter: nếu habitat chỉ
+  // tồn tại ở project khác vẫn trả về (URL là sự thật) — ext sẽ cảnh báo lệch.
+  const projectId = (params.get('projectId') ?? '').trim();
+  const projectPref = projectId ? sql`(h.project_id = ${projectId}) DESC, ` : sql``;
 
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503, headers: noStoreHeaders });
@@ -42,6 +49,7 @@ export async function GET(req: Request) {
              (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
       FROM habitats h
       WHERE LOWER(h.name) = LOWER(${subName})
+      ORDER BY ${projectPref} h.id
       LIMIT 1
     `);
     const r = (rows as unknown as Array<Record<string, unknown>>)[0];
@@ -79,6 +87,7 @@ export async function GET(req: Request) {
                (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
         FROM habitats h
         WHERE h.scraped_meta->>'discord_guild_id' = ${guildId}
+        ORDER BY ${projectPref} h.id
         LIMIT 1
       `);
       const r = (rows as unknown as Array<Record<string, unknown>>)[0];
@@ -156,7 +165,7 @@ export async function GET(req: Request) {
            (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
     FROM habitats h
     WHERE h.url ILIKE ${'%' + host + '%'}
-    ORDER BY LENGTH(h.url) DESC
+    ORDER BY ${projectPref} LENGTH(h.url) DESC
     LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];

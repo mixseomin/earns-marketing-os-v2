@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, habitats, platformAccounts, communityBriefs } from '@mos2/db';
+import { getDb, habitats, platformAccounts, communityBriefs, platforms } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { detectLang } from '@/lib/lang-detect';
@@ -87,6 +87,23 @@ export async function POST(req: Request) {
   const body = (await req.json()) as ExtHabitatPayload & { projectId: string };
   if (!body.projectId) return NextResponse.json({ error: 'projectId required' }, { status: 400 });
   if (!body.platform_key || !body.name) return NextResponse.json({ error: 'platform_key + name required' }, { status: 400 });
+
+  // Ensure platform_key tồn tại trong platforms (habitats.platform_key là FK).
+  // Forum lạ (xenforo/vbulletin/custom host-slug) chưa có row platforms → tạo
+  // on-the-fly để không vi phạm habitats_platform_key_fkey. Mirror accounts POST.
+  const existingPlatform = await db
+    .select({ key: platforms.key })
+    .from(platforms)
+    .where(eq(platforms.key, body.platform_key))
+    .limit(1);
+  if (existingPlatform.length === 0) {
+    await db.insert(platforms).values({
+      key: body.platform_key,
+      label: body.title || body.name || body.platform_key,
+      signupUrl: body.url || '',
+      priority: 'medium',
+    }).onConflictDoNothing();
+  }
 
   // Posting rules: convert rule array → markdown bullets sort by priority
   const postingRules = (body.rules ?? [])

@@ -75,6 +75,8 @@ export async function POST(req: Request) {
     projectId?: string;
     platform: string;
     handle: string;
+    email?: string;
+    status?: string;
     notes?: string;
   };
 
@@ -102,7 +104,8 @@ export async function POST(req: Request) {
       platformKey: platformSlug,
       projectId: body.projectId ?? null,
       handle: body.handle,
-      status: 'todo',
+      email: body.email?.trim() || null,
+      status: body.status?.trim() || 'todo',
       notes: body.notes ?? null,
       tags: ['ext-detected'],
     })

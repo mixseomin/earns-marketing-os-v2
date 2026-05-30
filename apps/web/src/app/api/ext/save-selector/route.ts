@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
-import { getFieldSchema } from '@/lib/habitat-field-schema';
+import { getFieldSchema, WRITE_PAGE_KINDS } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
 import { getViewerFieldSchema, parseViewerFieldName } from '@/lib/viewer-field-schema';
 import { validateSelector } from '@/lib/selector-validate';
@@ -91,10 +91,12 @@ export async function POST(req: Request) {
     ? getViewerFieldSchema('platform-any').find((f) => f.key === viewerKey)
     : getFieldSchema(body.page_kind).find((f) => f.key === body.field_name);
   const parse = body.parse ?? schema?.parse ?? 'none';
+  // page_kind WRITE (signup) → attr='value' (fill vào input), KHÔNG đọc textContent.
   // icon_url default attr=src; created_at default attr=datetime; còn lại textContent.
   let attr = body.attr;
   if (!attr) {
-    if (body.field_name === 'icon_url') attr = 'src';
+    if (WRITE_PAGE_KINDS.has(body.page_kind)) attr = 'value';
+    else if (body.field_name === 'icon_url') attr = 'src';
     else if (body.field_name === 'created_at') attr = 'datetime';
     else attr = 'textContent';
   }

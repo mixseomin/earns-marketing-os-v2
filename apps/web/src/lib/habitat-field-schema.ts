@@ -83,8 +83,23 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
       habitatKey: 'postingRules',
     },
   ],
+  // Signup form (Req#2) — WRITE fields (fill value vào input). Selector
+  // attr mặc định = 'value' (xử lý ở save-selector route). Field lạ ngoài
+  // core → extra động (slug label), KHÔNG cần khai báo ở đây.
+  'signup': [
+    { key: 'username', label: 'Username', hint: 'Ô username/login (input[name=username]).' },
+    { key: 'email', label: 'Email', hint: 'Ô email (input[type=email]).' },
+    { key: 'password', label: 'Password', hint: 'Ô password (input[type=password] đầu tiên).' },
+    { key: 'password_confirm', label: 'Confirm password', hint: 'Ô nhập lại password (input[type=password] thứ 2).' },
+    { key: 'display_name', label: 'Display name', hint: 'Tên hiển thị / nickname (nếu khác username).' },
+    { key: 'bio', label: 'Bio', hint: 'Giới thiệu / about (textarea).' },
+  ],
   // Future: subreddit-rules, fb-group-about, discord-server-about ...
 };
+
+// Field signup là interaction WRITE → selector cần attr='value' (fill), khác
+// các page_kind READ (textContent/parse). save-selector dùng để default attr.
+export const WRITE_PAGE_KINDS = new Set(['signup']);
 
 export function getFieldSchema(pageKind: string): FieldSchemaEntry[] {
   return FIELD_SCHEMAS[pageKind] ?? [];

@@ -481,6 +481,32 @@ export const platformAccounts = pgTable(
   ],
 );
 
+// ── identities (Req#3) ───────────────────────────────────────────
+// Preset persona/brand per project → pre-fill form tạo account trên platform/
+// forum bất kỳ. password_enc = pgcrypto (lib/crypto encryptValue). persona
+// khớp shape platformAccounts.persona; custom_fields = value field signup lạ.
+export const identities = pgTable(
+  'identities',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    kind: text('kind').notNull().default('seeding'),       // brand | seeding
+    handleBase: text('handle_base').notNull().default(''),
+    email: text('email').notNull().default(''),
+    passwordEnc: text('password_enc'),                     // base64 ciphertext, nullable
+    displayName: text('display_name').notNull().default(''),
+    bio: text('bio').notNull().default(''),
+    avatarUrl: text('avatar_url').notNull().default(''),
+    persona: jsonb('persona').notNull().default({}),
+    customFields: jsonb('custom_fields').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('identities_project_idx').on(t.projectId)],
+);
+
 // ── project_accounts (pivot, multi-brand) ────────────────────────
 // 1 platform_account có thể được dùng bởi nhiều projects (vd: @tuan_builds
 // trên X dùng cho cả Astrolas + Orit). content_ratio = % content từ account

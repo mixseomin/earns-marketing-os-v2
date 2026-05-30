@@ -19,16 +19,20 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
 
-  const rows = await db
+  const raw = await db
     .select({
       id: identities.id, name: identities.name, kind: identities.kind,
       handleBase: identities.handleBase, displayName: identities.displayName,
+      passwordEnc: identities.passwordEnc,
     })
     .from(identities)
     .where(kind
       ? and(eq(identities.projectId, projectId), eq(identities.kind, kind))
       : eq(identities.projectId, projectId))
     .orderBy(desc(identities.updatedAt));
+  // Slim + an toàn: cờ hasPassword (boolean) cho picker hiện pwd:✓, KHÔNG ship
+  // ciphertext/email plain (email lộ sau reveal khi user chủ động chọn).
+  const rows = raw.map(({ passwordEnc, ...r }) => ({ ...r, hasPassword: !!passwordEnc }));
   return NextResponse.json({ ok: true, identities: rows });
 }
 

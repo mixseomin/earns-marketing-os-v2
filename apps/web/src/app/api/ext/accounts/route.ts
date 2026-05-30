@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
-import { and, eq, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, or } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +29,29 @@ export async function GET(req: Request) {
       .where(and(eq(platformAccounts.platformKey, slug), eq(platformAccounts.handle, handle)))
       .limit(1);
     return NextResponse.json({ found: !!row, account: row ?? null });
+  }
+
+  // List accounts by platform (account chip picker trong ext) — chọn account
+  // dùng cho habitat. Filter platform (+ project nếu truyền).
+  if (platform && !handle) {
+    const slug = platform.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const rows = await db
+      .select({
+        id: platformAccounts.id,
+        handle: platformAccounts.handle,
+        email: platformAccounts.email,
+        status: platformAccounts.status,
+        notes: platformAccounts.notes,
+        platformKey: platformAccounts.platformKey,
+      })
+      .from(platformAccounts)
+      .where(and(
+        eq(platformAccounts.platformKey, slug),
+        projectId ? eq(platformAccounts.projectId, projectId) : undefined,
+      ))
+      .orderBy(desc(platformAccounts.updatedAt))
+      .limit(100);
+    return NextResponse.json({ accounts: rows.filter((r) => r.handle) });
   }
 
   // Site accounts for regkit picker

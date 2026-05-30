@@ -162,7 +162,56 @@ export async function GET(req: Request) {
     }
   }
 
-  // Generic URL substring match — fallback cho FB group / forum / Discord
+  // Community-discriminator match — known platform nhiều community CÙNG host
+  // (FB group/page, LinkedIn group/company, X community, YouTube channel). Khớp
+  // theo phần ĐỊNH DANH trong path (group id / vanity), KHÔNG chỉ host → tránh
+  // generic host-match trả nhầm community khác. Xem wiki/mos/habitat-taxonomy.
+  const discrim = (() => {
+    const m = host.endsWith('facebook.com') || host.endsWith('fb.com');
+    if (m) {
+      if (pathParts[0] === 'groups' && pathParts[1]) return `/groups/${pathParts[1]}`;
+      if (pathParts[0] === 'profile.php') { const id = parsedUrl.searchParams.get('id'); if (id) return `profile.php?id=${id}`; }
+      if (pathParts[0] === 'pages' && pathParts[1]) return `/pages/${pathParts.slice(1).join('/')}`;
+      if (pathParts.length === 1) return `/${pathParts[0]}`;
+    }
+    if (host.endsWith('linkedin.com')) {
+      if (pathParts[0] === 'groups' && pathParts[1]) return `/groups/${pathParts[1]}`;
+      if (pathParts[0] === 'company' && pathParts[1]) return `/company/${pathParts[1]}`;
+    }
+    if ((host.endsWith('twitter.com') || host.endsWith('x.com')) && pathParts[0] === 'i' && pathParts[1] === 'communities' && pathParts[2]) return `/i/communities/${pathParts[2]}`;
+    if (host.endsWith('youtube.com')) {
+      if (pathParts[0] && pathParts[0].startsWith('@')) return `/${pathParts[0]}`;
+      if ((pathParts[0] === 'channel' || pathParts[0] === 'c' || pathParts[0] === 'user') && pathParts[1]) return `/${pathParts[0]}/${pathParts[1]}`;
+    }
+    return null;
+  })();
+  if (discrim) {
+    const drows = await db.execute(sql`
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
+             (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
+      FROM habitats h
+      WHERE h.url ILIKE ${'%' + discrim + '%'}
+      ORDER BY ${projectPref} LENGTH(h.url) DESC
+      LIMIT 1
+    `);
+    const dr = (drows as unknown as Array<Record<string, unknown>>)[0];
+    if (dr) {
+      return NextResponse.json({
+        habitat: {
+          id: Number(dr.id), name: String(dr.name), kind: String(dr.kind),
+          language: String(dr.language ?? ''), projectId: String(dr.project_id),
+          platformKey: dr.platform_key ? String(dr.platform_key) : null,
+          url: dr.url ? String(dr.url) : null,
+          briefId: dr.brief_id ? Number(dr.brief_id) : null,
+        },
+      }, { headers: noStoreHeaders });
+    }
+    // discriminator có nhưng chưa map → KHÔNG fallback host-match (tránh nhầm
+    // community khác cùng host) → trả null để ext hiện "thêm habitat".
+    return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
+  }
+
+  // Generic URL substring match — fallback cho forum / host = 1 cộng đồng
   const rows = await db.execute(sql`
     SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
            (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id

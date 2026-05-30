@@ -507,6 +507,22 @@ export const identities = pgTable(
   (t) => [index('identities_project_idx').on(t.projectId)],
 );
 
+// ── emails (H1) — thư viện email active để chọn khi tạo account ───
+export const emails = pgTable(
+  'emails',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    email: text('email').notNull(),
+    provider: text('provider').notNull().default('other'),  // gmail | catchall | other
+    status: text('status').notNull().default('active'),     // active | used | burned
+    label: text('label').notNull().default(''),
+    notes: text('notes').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
 // ── project_accounts (pivot, multi-brand) ────────────────────────
 // 1 platform_account có thể được dùng bởi nhiều projects (vd: @tuan_builds
 // trên X dùng cho cả Astrolas + Orit). content_ratio = % content từ account

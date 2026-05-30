@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { fetchDirectusAccountsByPlatform } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,22 @@ export async function GET(req: Request) {
       ))
       .orderBy(desc(platformAccounts.updatedAt))
       .limit(100);
-    return NextResponse.json({ accounts: rows.filter((r) => r.handle) });
+    const out: Array<Record<string, unknown>> = rows.filter((r) => r.handle).map((r) => ({ ...r, source: 'mos2' }));
+    // Merge accounts từ earns Directus (inventory chính) — account FB/... user
+    // đã có sẵn ở Directus nhưng chưa import vào MOS2. Dedupe theo handle.
+    const seen = new Set(out.map((r) => String(r.handle).toLowerCase()));
+    try {
+      const da = await fetchDirectusAccountsByPlatform(platform);
+      for (const a of da) {
+        const h = (a.handle ?? '').trim();
+        if (!h || seen.has(h.toLowerCase())) continue;
+        seen.add(h.toLowerCase());
+        out.push({ id: null, handle: h, email: a.email ?? null, status: a.status ?? null, notes: a.notes ?? null, platformKey: slug, source: 'directus' });
+      }
+    } catch (e) {
+      console.warn('[ext/accounts] directus merge fail:', (e as Error).message);
+    }
+    return NextResponse.json({ accounts: out });
   }
 
   // Site accounts for regkit picker

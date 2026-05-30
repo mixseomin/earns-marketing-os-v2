@@ -1,0 +1,44 @@
+import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
+import { getDb, habitats, platforms } from '@mos2/db';
+import { checkAuth } from '../../_auth';
+
+export const dynamic = 'force-dynamic';
+
+// PATCH /api/ext/habitats/[id] { platform_key?, kind? }
+// Đổi platform map cho habitat đã tồn tại (Req#1 — habitat đã map muốn chọn
+// platform khác). Ensure platform tồn tại trước (FK), create nếu mới.
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = checkAuth(req);
+  if (err) return err;
+  const { id } = await params;
+  const body = await req.json().catch(() => ({})) as { platform_key?: string; kind?: string };
+
+  const db = getDb();
+  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+
+  if (body.platform_key) {
+    const pk = body.platform_key.trim();
+    // Ensure platform tồn tại (FK habitats_platform_key_fkey).
+    const exists = await db.select({ key: platforms.key }).from(platforms).where(eq(platforms.key, pk)).limit(1);
+    if (exists.length === 0) {
+      await db.insert(platforms).values({
+        key: pk,
+        label: pk,
+        signupUrl: '',
+        priority: 'medium',
+      }).onConflictDoNothing();
+    }
+    patch.platformKey = pk;
+  }
+  if (body.kind) patch.kind = body.kind.trim();
+
+  if (Object.keys(patch).length <= 1) {
+    return NextResponse.json({ ok: false, error: 'nothing to update' }, { status: 400 });
+  }
+
+  await db.update(habitats).set(patch).where(eq(habitats.id, Number(id)));
+  return NextResponse.json({ ok: true });
+}

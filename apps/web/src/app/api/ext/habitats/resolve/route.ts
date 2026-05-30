@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   if (host.endsWith('reddit.com') && pathParts[0] === 'r' && pathParts[1]) {
     const subName = `r/${pathParts[1]}`;
     const rows = await db.execute(sql`
-      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
              (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
       FROM habitats h
       WHERE LOWER(h.name) = LOWER(${subName})
@@ -61,6 +61,7 @@ export async function GET(req: Request) {
           kind: String(r.kind),
           language: String(r.language ?? ''),
           projectId: String(r.project_id),
+          platformKey: r.platform_key ? String(r.platform_key) : null,
           url: r.url ? String(r.url) : null,
           briefId: r.brief_id ? Number(r.brief_id) : null,
         },
@@ -83,7 +84,7 @@ export async function GET(req: Request) {
     if (/^\d{15,25}$/.test(guildId)) {
       // TIER 1: direct guild_id match
       const rows = await db.execute(sql`
-        SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,
+        SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
                (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
         FROM habitats h
         WHERE h.scraped_meta->>'discord_guild_id' = ${guildId}
@@ -99,6 +100,7 @@ export async function GET(req: Request) {
             kind: String(r.kind),
             language: String(r.language ?? ''),
             projectId: String(r.project_id),
+            platformKey: r.platform_key ? String(r.platform_key) : null,
             url: r.url ? String(r.url) : null,
             briefId: r.brief_id ? Number(r.brief_id) : null,
           },
@@ -106,7 +108,7 @@ export async function GET(req: Request) {
       }
       // TIER 2: resolve invite URLs trong Discord habitats chưa có guild_id
       const inviteCandidates = await db.execute(sql`
-        SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,
+        SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
                (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
         FROM habitats h
         WHERE h.kind = 'discord'
@@ -140,6 +142,7 @@ export async function GET(req: Request) {
                 kind: String(c.kind),
                 language: String(c.language ?? ''),
                 projectId: String(c.project_id),
+                platformKey: c.platform_key ? String(c.platform_key) : null,
                 url: inviteUrl,
                 briefId: c.brief_id ? Number(c.brief_id) : null,
               },
@@ -161,7 +164,7 @@ export async function GET(req: Request) {
 
   // Generic URL substring match — fallback cho FB group / forum / Discord
   const rows = await db.execute(sql`
-    SELECT h.id, h.name, h.kind, h.language, h.project_id, h.url,
+    SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.url,
            (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
     FROM habitats h
     WHERE h.url ILIKE ${'%' + host + '%'}
@@ -177,6 +180,7 @@ export async function GET(req: Request) {
         kind: String(r.kind),
         language: String(r.language ?? ''),
         projectId: String(r.project_id),
+        platformKey: r.platform_key ? String(r.platform_key) : null,
         url: r.url ? String(r.url) : null,
         briefId: r.brief_id ? Number(r.brief_id) : null,
       },

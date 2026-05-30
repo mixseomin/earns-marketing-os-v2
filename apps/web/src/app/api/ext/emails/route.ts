@@ -1,46 +1,63 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
-import { getDb, emails } from '@mos2/db';
 import { checkAuth } from '../_auth';
+import {
+  directusEnabled,
+  fetchDirectusEmails,
+  createDirectusAccount,
+} from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/ext/emails?status=active → thư viện email (H1).
+// GET /api/ext/emails?status=active → thư viện email.
+// SOURCE = Directus accounts.email (distinct, owned emails). NOT a separate
+// MOS2 table — Directus is the single source of truth for owned emails so the
+// ext picks the real inventory + does gmail +tag (xyz+forum@gmail.com).
 export async function GET(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
+  if (!directusEnabled()) {
+    return NextResponse.json({ ok: false, error: 'Directus bridge disabled' }, { status: 503 });
+  }
   const status = (new URL(req.url).searchParams.get('status') ?? '').trim();
-  const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
-  const base = db
-    .select({ id: emails.id, email: emails.email, provider: emails.provider, status: emails.status, label: emails.label })
-    .from(emails);
-  const rows = await (status ? base.where(eq(emails.status, status)) : base).orderBy(desc(emails.updatedAt));
-  return NextResponse.json({ ok: true, emails: rows });
+  try {
+    const emails = await fetchDirectusEmails(status === 'active' || status === '');
+    return NextResponse.json({ ok: true, emails });
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'fetch fail' }, { status: 502 });
+  }
 }
 
-// POST /api/ext/emails { email, provider?, label?, notes? }
+// POST /api/ext/emails { email, provider?, label? }
+// Persist a NEW owned email to Directus accounts (the library) so it shows up
+// next time. gmail → platform 'Google', else 'Email'. handle = local-part.
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const email = String(body.email ?? '').trim();
+  if (!directusEnabled()) {
+    return NextResponse.json({ ok: false, error: 'Directus bridge disabled' }, { status: 503 });
+  }
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const email = String(body.email ?? '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
     return NextResponse.json({ ok: false, error: 'email hợp lệ required' }, { status: 400 });
   }
-  const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
-  // provider auto từ domain nếu không truyền.
-  const domain = email.split('@')[1]?.toLowerCase() ?? '';
-  const provider = body.provider ? String(body.provider) : (domain === 'gmail.com' || domain === 'googlemail.com' ? 'gmail' : 'other');
+  // Dedupe against the live Directus inventory (no separate table to drift).
   try {
-    const inserted = await db.insert(emails).values({
-      email, provider,
-      label: String(body.label ?? ''), notes: String(body.notes ?? ''),
-    }).onConflictDoNothing().returning({ id: emails.id });
-    if (!inserted[0]) return NextResponse.json({ ok: false, error: 'email đã tồn tại' }, { status: 409 });
-    return NextResponse.json({ ok: true, id: inserted[0].id });
+    const existing = await fetchDirectusEmails(false);
+    if (existing.some((e) => e.email === email)) {
+      return NextResponse.json({ ok: true, email, deduped: true });
+    }
+    const domain = email.split('@')[1] ?? '';
+    const platform = domain === 'gmail.com' || domain === 'googlemail.com' ? 'Google' : 'Email';
+    const created = await createDirectusAccount({
+      email,
+      platform,
+      handle: email.split('@')[0] ?? email,
+      status: 'active',
+      notes: String(body.label ?? '') || null,
+    });
+    return NextResponse.json({ ok: true, email, id: created?.id ?? null });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'insert fail' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'insert fail' }, { status: 502 });
   }
 }

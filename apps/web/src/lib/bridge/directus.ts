@@ -62,6 +62,54 @@ export async function fetchDirectusAccountsByPlatform(platformKey: string): Prom
   return json.data || [];
 }
 
+// ── Email library ────────────────────────────────────────────────
+// SOURCE OF TRUTH = Directus `accounts.email`. The Crew ext email picker
+// reads the DISTINCT emails the user actually owns (not a separate MOS2
+// table). gmail addresses get provider='gmail' so the ext can do +tag
+// aliasing (xyz+forum@gmail.com). Dedupe by email; an email counts as
+// 'active' if ANY account using it is active.
+export interface DirectusEmail {
+  id: string;        // = the email itself (stable key for the picker)
+  email: string;
+  provider: string;  // 'gmail' | 'other'
+  status: string;    // 'active' if any owning account active, else 'idle'
+  label: string;     // platforms already using it, e.g. "Google, Discord"
+}
+
+export async function fetchDirectusEmails(activeOnly = true): Promise<DirectusEmail[]> {
+  if (!directusEnabled()) return [];
+  const fields = ['email', 'status', 'platform'].join(',');
+  // email not null/empty. Pull all (we dedupe client-side).
+  const filter = encodeURIComponent(JSON.stringify({ email: { _nnull: true } }));
+  const url = `/items/accounts?fields=${fields}&filter=${filter}&limit=-1&sort=email`;
+  const json = await getJson<{ data: Array<Record<string, unknown>> }>(url);
+  const byEmail = new Map<string, { active: boolean; platforms: Set<string> }>();
+  for (const r of json.data ?? []) {
+    const email = String(r.email ?? '').trim().toLowerCase();
+    if (!email || !email.includes('@')) continue;
+    const entry = byEmail.get(email) ?? { active: false, platforms: new Set<string>() };
+    if (String(r.status ?? '').toLowerCase() === 'active') entry.active = true;
+    const plat = String(r.platform ?? '').trim();
+    if (plat) entry.platforms.add(plat);
+    byEmail.set(email, entry);
+  }
+  const out: DirectusEmail[] = [];
+  for (const [email, v] of byEmail) {
+    if (activeOnly && !v.active) continue;
+    const domain = email.split('@')[1] ?? '';
+    out.push({
+      id: email,
+      email,
+      provider: domain === 'gmail.com' || domain === 'googlemail.com' ? 'gmail' : 'other',
+      status: v.active ? 'active' : 'idle',
+      label: [...v.platforms].slice(0, 4).join(', '),
+    });
+  }
+  // gmail first (taggable), then alphabetical.
+  out.sort((a, b) => (a.provider === b.provider ? a.email.localeCompare(b.email) : a.provider === 'gmail' ? -1 : 1));
+  return out;
+}
+
 // ── Platforms collection (write methods) ─────────────────────────
 
 export type DirectusPlatformWritable = {

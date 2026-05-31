@@ -258,3 +258,26 @@ export async function updateDirectusAccount(id: string, patch: DirectusAccountWr
   const res = await sendJson<{ data: DirectusAccount }>('PATCH', `/items/accounts/${encodeURIComponent(id)}`, patch);
   return res.data;
 }
+
+// Upsert account vào Directus theo (platform, handle) — dùng bởi ext API routes
+// để reverse-sync KHÔNG cần server-action (revalidatePath không hợp route handler).
+// Dedupe theo handle case-insensitive; có → PATCH, chưa → POST. Resolve platform_id.
+export async function upsertDirectusAccountByHandle(input: {
+  platformKey: string; handle: string; email?: string | null; status?: string | null; notes?: string | null;
+}): Promise<{ ok: boolean; id?: string; created?: boolean; error?: string }> {
+  if (!directusEnabled()) return { ok: false, error: 'Directus bridge disabled' };
+  const handle = (input.handle ?? '').trim();
+  if (!handle) return { ok: false, error: 'handle required' };
+  try {
+    const existing = await fetchDirectusAccountsByPlatform(input.platformKey);
+    const match = existing.find((a) => (a.handle ?? '').trim().toLowerCase() === handle.toLowerCase());
+    let platformId: string | null = null;
+    try { const p = await findDirectusPlatformBySlug(input.platformKey); platformId = p?.id ?? null; } catch { /* legacy text platform vẫn set */ }
+    const payload: DirectusAccountWritable = {
+      platform: input.platformKey, platform_id: platformId, handle,
+      email: input.email ?? null, status: input.status ?? 'active', notes: input.notes ?? null,
+    };
+    if (match) { await updateDirectusAccount(match.id, payload); return { ok: true, id: match.id, created: false }; }
+    const created = await createDirectusAccount(payload); return { ok: true, id: created.id, created: true };
+  } catch (e) { return { ok: false, error: (e as Error).message }; }
+}

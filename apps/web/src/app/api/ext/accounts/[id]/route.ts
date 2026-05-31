@@ -3,7 +3,7 @@ import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { encryptValue, decryptValue } from '@/lib/crypto';
-import { pushAccountToDirectus } from '@/lib/actions/accounts';
+import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,11 +105,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .set(set)
     .where(eq(platformAccounts.id, accountId));
 
-  // Reverse-sync → Directus (fire-and-forget) khi field account đổi (bỏ qua checklist thuần).
-  if (body.handle !== undefined || body.email !== undefined || body.status !== undefined || body.password !== undefined || body.personaUpdates) {
+  // Reverse-sync → Directus (await, non-fatal) khi field account đổi (bỏ qua checklist thuần).
+  if (body.handle !== undefined || body.email !== undefined || body.status !== undefined || body.personaUpdates) {
     try {
-      const [acc] = await db.select({ projectId: platformAccounts.projectId }).from(platformAccounts).where(eq(platformAccounts.id, accountId)).limit(1);
-      if (acc?.projectId) pushAccountToDirectus(acc.projectId, accountId).catch(() => {});
+      const [acc] = await db.select({ platformKey: platformAccounts.platformKey, handle: platformAccounts.handle, email: platformAccounts.email, status: platformAccounts.status, notes: platformAccounts.notes }).from(platformAccounts).where(eq(platformAccounts.id, accountId)).limit(1);
+      if (acc?.handle) await upsertDirectusAccountByHandle({ platformKey: acc.platformKey, handle: acc.handle, email: acc.email, status: acc.status, notes: acc.notes });
     } catch { /* non-blocking */ }
   }
 

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
-import { fetchDirectusAccountsByPlatform } from '@/lib/bridge/directus';
-import { pushAccountToDirectus } from '@/lib/actions/accounts';
+import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,11 +150,17 @@ export async function POST(req: Request) {
     })
     .returning({ id: platformAccounts.id });
 
-  // Reverse-sync → Directus (fire-and-forget) — account tạo ở ext cũng vào
-  // inventory Directus. Dedupe + tag xử lý trong pushAccountToDirectus.
-  if (row?.id && body.projectId) {
-    try { pushAccountToDirectus(body.projectId, row.id).catch(() => {}); } catch { /* non-blocking */ }
+  // Reverse-sync → Directus (await, non-fatal) — account tạo ở ext cũng vào
+  // inventory Directus. Dedupe theo handle trong upsertDirectusAccountByHandle.
+  let directus: { ok: boolean; created?: boolean } | undefined;
+  if (row?.id) {
+    try {
+      directus = await upsertDirectusAccountByHandle({
+        platformKey: platformSlug, handle: body.handle,
+        email: body.email?.trim() || null, status: body.status?.trim() || 'active', notes: body.notes ?? null,
+      });
+    } catch { /* non-blocking */ }
   }
 
-  return NextResponse.json({ ok: true, id: row?.id });
+  return NextResponse.json({ ok: true, id: row?.id, directus });
 }

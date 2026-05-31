@@ -437,6 +437,7 @@ export const platformAccounts = pgTable(
     has2fa: boolean('has_2fa').notNull().default(false),
     lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
     recoveryInfo: text('recovery_info'),
+    passwordEnc: text('password_enc'),        // login password encrypted (pgcrypto) — mig 0085
     apiTokenEnc: text('api_token_enc'),       // encrypted at rest (pgcrypto, phase 3)
     monthlyCost: integer('monthly_cost').notNull().default(0),
     collectStats: boolean('collect_stats').notNull().default(false),

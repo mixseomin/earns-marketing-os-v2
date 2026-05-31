@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform } from '@/lib/bridge/directus';
+import { pushAccountToDirectus } from '@/lib/actions/accounts';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,6 +150,12 @@ export async function POST(req: Request) {
       tags: ['ext-detected'],
     })
     .returning({ id: platformAccounts.id });
+
+  // Reverse-sync → Directus (fire-and-forget) — account tạo ở ext cũng vào
+  // inventory Directus. Dedupe + tag xử lý trong pushAccountToDirectus.
+  if (row?.id && body.projectId) {
+    try { pushAccountToDirectus(body.projectId, row.id).catch(() => {}); } catch { /* non-blocking */ }
+  }
 
   return NextResponse.json({ ok: true, id: row?.id });
 }

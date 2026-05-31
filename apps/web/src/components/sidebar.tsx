@@ -55,6 +55,13 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
+            {currentUser?.role === 'admin' && (
+              <Link href={`/p/${currentProjectId}/identities`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--neon-pink)', color: 'var(--neon-pink)' }}>👤</div>
+                <div className="squad-name"><b>{t('nav.identities', 'Identities')}</b><span>preset persona · pre-fill</span></div>
+                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+              </Link>
+            )}
             <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
               <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>

@@ -36,6 +36,9 @@ interface ExtHabitatPayload {
   // ("+ New custom field" → field_name → value extract qua selector).
   // Server merge với existing scraped_meta, không replace toàn bộ.
   scraped_meta?: Record<string, unknown>;
+  // engine/technology của forum (xenforo/vbulletin/...) — để selector cascade
+  // dùng scope engine (nhiều site chung engine reuse selector). Optional.
+  technology_key?: string | null;
 }
 
 // GET /api/ext/habitats?platform_key=reddit&name=r%2Fastrology → duplicate check
@@ -327,6 +330,7 @@ export async function POST(req: Request) {
         url: body.url,
         platformKey: body.platform_key,
         ...patch,
+        ...(body.technology_key ? { technologyKey: body.technology_key } : {}),
         scrapedMeta: body.scraped_meta || {},
         ...(detected !== 'unknown' ? { language: detected } : {}),
       }).returning({ id: habitats.id });

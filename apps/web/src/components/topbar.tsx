@@ -173,6 +173,7 @@ export function TopBar({
         : [
             { label: 'Overview',     href: `/p/${pid}/resources`,                  icon: '🗄' },
             { label: 'Accounts',     href: `/p/${pid}/resources?vault=accounts`,   icon: '🔐' },
+            { label: 'Identities',   href: `/p/${pid}/identities`,                 icon: '👤' },
             { label: 'Media',        href: `/p/${pid}/resources?vault=media`,      icon: '🎬' },
             { label: 'Contacts',     href: `/p/${pid}/resources?vault=contacts`,   icon: '📇' },
             { label: 'Infra',        href: `/p/${pid}/resources?vault=infra`,      icon: '🌐' },

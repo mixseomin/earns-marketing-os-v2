@@ -234,6 +234,7 @@ export async function GET(req: Request) {
         language: String(r.language ?? ''),
         projectId: String(r.project_id),
         platformKey: r.platform_key ? String(r.platform_key) : null,
+        technologyKey: r.technology_key ? String(r.technology_key) : null,
         url: r.url ? String(r.url) : null,
         briefId: r.brief_id ? Number(r.brief_id) : null,
       },

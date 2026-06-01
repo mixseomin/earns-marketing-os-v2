@@ -504,6 +504,9 @@ export const identities = pgTable(
     avatarUrl: text('avatar_url').notNull().default(''),
     persona: jsonb('persona').notNull().default({}),
     customFields: jsonb('custom_fields').notNull().default({}),
+    // Backups per field để switch (mig 0087): { fieldKey: [v2, v3...] }. Primary = cột/customFields.
+    fieldVariants: jsonb('field_variants').notNull().default({}),
+    passwordVariantsEnc: text('password_variants_enc'),   // JSON array password backup, mã hoá
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

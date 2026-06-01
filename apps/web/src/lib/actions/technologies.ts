@@ -17,6 +17,11 @@ export interface SignupField {
   alt?: string[];
   maxLen?: number;
   source?: 'engine' | 'platform' | 'checklist';
+  // Ràng buộc signup tích luỹ per-platform (lộ lúc submit, vd "password ≥15 ký tự") →
+  // fill/gen khớp sẵn lần sau. notes = mô tả người đọc; min/max/pattern = structured.
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;       // regex value phải khớp
 }
 
 export interface TechnologyRow {

@@ -52,6 +52,8 @@ export async function POST(req: Request) {
 
   const pw = body.password ? String(body.password) : '';
   const passwordEnc = pw ? await encryptValue(pw) : null;
+  const pwVars = Array.isArray(body.passwordVariants) ? (body.passwordVariants as unknown[]).map((x) => String(x)).filter(Boolean) : [];
+  const passwordVariantsEnc = pwVars.length ? await encryptValue(JSON.stringify(pwVars)) : null;
 
   const inserted = await db.insert(identities).values({
     projectId,
@@ -60,11 +62,13 @@ export async function POST(req: Request) {
     handleBase: String(body.handleBase ?? ''),
     email: String(body.email ?? ''),
     passwordEnc,
+    passwordVariantsEnc,
     displayName: String(body.displayName ?? ''),
     bio: String(body.bio ?? ''),
     avatarUrl: String(body.avatarUrl ?? ''),
     persona: (body.persona && typeof body.persona === 'object') ? body.persona as object : {},
     customFields: (body.customFields && typeof body.customFields === 'object') ? body.customFields as object : {},
+    fieldVariants: (body.fieldVariants && typeof body.fieldVariants === 'object') ? body.fieldVariants as object : {},
   }).returning({ id: identities.id });
 
   return NextResponse.json({ ok: true, id: inserted[0]?.id });

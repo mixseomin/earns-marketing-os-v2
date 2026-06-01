@@ -23,14 +23,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!r) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
 
   const password = reveal && r.passwordEnc ? await decryptValue(r.passwordEnc) : undefined;
+  let passwordVariants: string[] = [];
+  if (reveal && r.passwordVariantsEnc) { try { passwordVariants = (JSON.parse(await decryptValue(r.passwordVariantsEnc)) as string[]) || []; } catch { /* ignore */ } }
   return NextResponse.json({
     ok: true,
     identity: {
       id: r.id, projectId: r.projectId, name: r.name, kind: r.kind,
       handleBase: r.handleBase, email: r.email, displayName: r.displayName,
       bio: r.bio, avatarUrl: r.avatarUrl, persona: r.persona, customFields: r.customFields,
+      // Backups per field (mig 0087) → ext switch / auto-pick khi platform khác ràng buộc.
+      fieldVariants: (r.fieldVariants as Record<string, string[]>) ?? {},
       hasPassword: !!r.passwordEnc,
-      ...(reveal ? { password: password ?? '' } : {}),
+      hasPasswordVariants: !!r.passwordVariantsEnc,
+      ...(reveal ? { password: password ?? '', passwordVariants } : {}),
     },
   });
 }
@@ -54,9 +59,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.avatarUrl !== undefined) patch.avatarUrl = String(body.avatarUrl);
   if (body.persona !== undefined && typeof body.persona === 'object') patch.persona = body.persona;
   if (body.customFields !== undefined && typeof body.customFields === 'object') patch.customFields = body.customFields;
+  if (body.fieldVariants !== undefined && typeof body.fieldVariants === 'object') patch.fieldVariants = body.fieldVariants;
   if (body.password !== undefined) {
     const pw = String(body.password);
     patch.passwordEnc = pw ? await encryptValue(pw) : null;
+  }
+  // Password backups → mã hoá JSON array (như password_enc). [] = xoá.
+  if (body.passwordVariants !== undefined && Array.isArray(body.passwordVariants)) {
+    const arr = (body.passwordVariants as unknown[]).map((x) => String(x)).filter(Boolean);
+    patch.passwordVariantsEnc = arr.length ? await encryptValue(JSON.stringify(arr)) : null;
   }
 
   await db.update(identities).set(patch).where(eq(identities.id, Number(id)));

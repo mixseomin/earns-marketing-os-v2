@@ -68,6 +68,17 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
   const [editing, setEditing] = useState<PlatformWithUsage | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Deep-link từ ext: ?m=edit&mId=<platformKey> → mở thẳng modal edit platform đó.
+  const deepParams = useSearchParams();
+  useEffect(() => {
+    if (deepParams.get('m') !== 'edit') return;
+    const k = deepParams.get('mId');
+    if (!k) return;
+    const p = platforms.find((x) => x.key === k);
+    if (p) setEditing(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Cross-project habitat matches — surface communities (Lyso, r/astrology,
   // FB groups…) when user searches. Helps users who don't know a community
   // is project-scoped, not platform-catalog. Debounced 250ms.

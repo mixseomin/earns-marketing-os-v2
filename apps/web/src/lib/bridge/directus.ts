@@ -281,3 +281,25 @@ export async function upsertDirectusAccountByHandle(input: {
     const created = await createDirectusAccount(payload); return { ok: true, id: created.id, created: true };
   } catch (e) { return { ok: false, error: (e as Error).message }; }
 }
+
+// Xoá account mirror trong Directus theo platform+handle (dùng khi xoá account ở MOS2).
+// Match đúng platform+handle → không xoá nhầm cùng handle ở platform khác.
+export async function deleteDirectusAccountByHandle(
+  platformKey: string, handle: string,
+): Promise<{ ok: boolean; deleted: number; error?: string }> {
+  if (!directusEnabled()) return { ok: false, deleted: 0, error: 'Directus bridge disabled' };
+  const h = (handle ?? '').trim();
+  if (!h) return { ok: false, deleted: 0, error: 'handle required' };
+  try {
+    const existing = await fetchDirectusAccountsByPlatform(platformKey);
+    const matches = existing.filter((a) => (a.handle ?? '').trim().toLowerCase() === h.toLowerCase());
+    let deleted = 0;
+    for (const m of matches) {
+      const res = await fetch(`${URL_}/items/accounts/${encodeURIComponent(m.id)}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${TOKEN}` },
+      });
+      if (res.ok) deleted += 1;
+    }
+    return { ok: true, deleted };
+  } catch (e) { return { ok: false, deleted: 0, error: (e as Error).message }; }
+}

@@ -3,9 +3,33 @@ import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { encryptValue, decryptValue } from '@/lib/crypto';
-import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
+import { upsertDirectusAccountByHandle, deleteDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
+
+// DELETE /api/ext/accounts/[id] → xoá account (dùng khi tạo nhầm / lỗi đăng ký).
+// FK: community_briefs/project_accounts/account_grants CASCADE, cards.brief_id SET NULL
+// (content cards GIỮ LẠI, chỉ unlink), human_tasks.account_id SET NULL. + xoá Directus mirror.
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = checkAuth(req);
+  if (err) return err;
+  const db = getDb();
+  if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
+  const { id } = await params;
+  const accountId = Number(id);
+  if (!Number.isFinite(accountId)) return NextResponse.json({ ok: false, error: 'bad id' }, { status: 400 });
+  // Lấy handle+platform TRƯỚC khi xoá để xoá đúng mirror Directus.
+  const [acc] = await db
+    .select({ platformKey: platformAccounts.platformKey, handle: platformAccounts.handle })
+    .from(platformAccounts)
+    .where(eq(platformAccounts.id, accountId))
+    .limit(1);
+  if (!acc) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  await db.delete(platformAccounts).where(eq(platformAccounts.id, accountId));
+  let directusDeleted = 0;
+  try { if (acc.handle) directusDeleted = (await deleteDirectusAccountByHandle(acc.platformKey, acc.handle)).deleted; } catch { /* non-blocking */ }
+  return NextResponse.json({ ok: true, id: accountId, handle: acc.handle, platformKey: acc.platformKey, directusDeleted });
+}
 
 // GET /api/ext/accounts/[id]?reveal=1 → account (password plain CHỈ khi reveal=1).
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -50,6 +50,7 @@ export async function GET(req: Request) {
     SELECT
       pa.id, pa.project_id, pa.handle, pa.email, pa.status, pa.block_reason,
       pa.persona, pa.tags, pa.notes, pa.account_kind,
+      pa.follow_up_at, pa.warmup_checklist,
       p.label AS platform_label
     FROM platform_accounts pa
     LEFT JOIN platforms p ON p.key = pa.platform_key
@@ -168,6 +169,9 @@ export async function GET(req: Request) {
       accountKind: String(acc.account_kind ?? 'user'),
       // Link tới identity (lưu trong persona lúc tạo) → view account hiện đúng identity.
       identityId: persona.identityId != null ? Number(persona.identityId) : null,
+      // Post-reg follow-up (tier 1): ngày hẹn + progress steps (warmup_checklist).
+      followUpAt: acc.follow_up_at ? new Date(acc.follow_up_at as string).toISOString() : null,
+      warmupChecklist: (acc.warmup_checklist as Record<string, { done?: boolean; updatedAt?: string }>) ?? {},
       // Persona fields — flatten cho ext convenience
       personaName: String(persona.name_first ?? '') + (persona.name_last ? ' ' + String(persona.name_last) : ''),
       personaGender: persona.gender ? String(persona.gender) : null,

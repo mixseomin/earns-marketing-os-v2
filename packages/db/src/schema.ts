@@ -436,6 +436,8 @@ export const platformAccounts = pgTable(
     authMethod: text('auth_method'),
     has2fa: boolean('has_2fa').notNull().default(false),
     lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    // Ngày hẹn check lại khi chờ verify email / platform duyệt (mig 0086).
+    followUpAt: timestamp('follow_up_at', { withTimezone: true }),
     recoveryInfo: text('recovery_info'),
     passwordEnc: text('password_enc'),        // login password encrypted (pgcrypto) — mig 0085
     apiTokenEnc: text('api_token_enc'),       // encrypted at rest (pgcrypto, phase 3)
@@ -674,6 +676,9 @@ export const habitats = pgTable(
     modStrictness: text('mod_strictness').notNull().default(''),                    // low|medium|high
     postingRules: text('posting_rules').notNull().default(''),                      // markdown — full rules
     postingRulesUrl: text('posting_rules_url').notNull().default(''),                // canonical rules page URL
+    // Template bước VÀO NHÓM per-habitat (mig 0086): [{key,label,tip?,actionUrl?}].
+    // Progress lưu ở community_briefs.join_checklist per (account×habitat).
+    joinChecklist: jsonb('join_checklist').notNull().default([]),
     minAccountAgeDays: integer('min_account_age_days').notNull().default(0),
     minKarma: integer('min_karma').notNull().default(0),
     minPosts: integer('min_posts').notNull().default(0),
@@ -897,6 +902,10 @@ export const communityBriefs = pgTable(
     joinedAt: timestamp('joined_at', { withTimezone: true }),
     joinUrl: text('join_url'),       // invite link / join request URL
     joinNote: text('join_note'),     // free-text: 'mod requires intro post', 'shadowed', etc.
+    // Progress bước vào nhóm (mig 0086): { stepKey: { done, updatedAt } }. Template ở
+    // habitats.join_checklist. followUpAt = ngày hẹn check mod duyệt join.
+    joinChecklist: jsonb('join_checklist').notNull().default({}),
+    followUpAt: timestamp('follow_up_at', { withTimezone: true }),
     // migration 0065: scraped relationship metadata từ ext (key-value flat).
     // Schema declared trong lib/brief-field-schema.ts; reuse selector_overrides
     // với field_name prefix "brief." cho train flow.

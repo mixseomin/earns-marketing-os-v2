@@ -75,6 +75,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     email?: string;
     status?: string;
     password?: string;
+    followUpAt?: string | null;
     personaUpdates?: Record<string, string | null>;
     checklistUpdates?: Record<string, { done: boolean }>;
   };
@@ -93,6 +94,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // password → password_enc (mã hoá). '' = xoá. undefined = giữ nguyên.
   if (body.password !== undefined) {
     set.passwordEnc = body.password ? await encryptValue(body.password) : null;
+  }
+  // follow_up_at: ngày hẹn check lại (chờ verify/duyệt). '' / null = xoá hẹn.
+  if (body.followUpAt !== undefined) {
+    set.followUpAt = body.followUpAt ? new Date(body.followUpAt) : null;
   }
 
   if (body.checklistUpdates) {

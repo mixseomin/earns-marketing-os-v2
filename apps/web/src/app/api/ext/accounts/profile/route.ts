@@ -124,7 +124,7 @@ export async function GET(req: Request) {
     const briefRows = await db.execute(sql`
       SELECT
         b.id, b.current_phase, b.approach_md, b.narrative_md, b.tone, b.do_md, b.dont_md,
-        b.join_status,
+        b.join_status, b.join_note, b.join_url, b.join_checklist, b.follow_up_at,
         h.id AS habitat_id, h.name AS habitat_name, h.language AS habitat_language,
         h.voice_profile AS habitat_voice, h.voice_notes AS habitat_voice_notes
       FROM community_briefs b
@@ -143,6 +143,10 @@ export async function GET(req: Request) {
         doMd: String(br.do_md ?? ''),
         dontMd: String(br.dont_md ?? ''),
         joinStatus: String(br.join_status ?? ''),
+        joinNote: br.join_note ? String(br.join_note) : '',
+        joinUrl: br.join_url ? String(br.join_url) : '',
+        joinChecklist: (br.join_checklist as Record<string, { done?: boolean }>) ?? {},
+        followUpAt: br.follow_up_at ? new Date(br.follow_up_at as string).toISOString() : null,
       };
       habitat = {
         id: Number(br.habitat_id),

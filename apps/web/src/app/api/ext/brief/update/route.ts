@@ -22,6 +22,12 @@ export async function POST(req: Request) {
     do_md?: string;
     dont_md?: string;
     narrative_md?: string;
+    // TIER 2 join (vào cộng đồng): membership + steps progress + ngày hẹn duyệt.
+    joinStatus?: string;
+    joinNote?: string;
+    joinUrl?: string;
+    followUpAt?: string | null;
+    joinChecklistUpdates?: Record<string, { done: boolean }>;
   };
 
   const briefId = Number(body.briefId ?? 0);
@@ -48,6 +54,18 @@ export async function POST(req: Request) {
   if (typeof body.do_md === 'string') sets.push(sql`do_md = ${body.do_md}`);
   if (typeof body.dont_md === 'string') sets.push(sql`dont_md = ${body.dont_md}`);
   if (typeof body.narrative_md === 'string') sets.push(sql`narrative_md = ${body.narrative_md}`);
+  // TIER 2 join fields
+  const VALID_JOIN = ['not_joined', 'pending', 'joined', 'rejected', 'kicked', 'left'];
+  if (typeof body.joinStatus === 'string' && VALID_JOIN.includes(body.joinStatus)) sets.push(sql`join_status = ${body.joinStatus}`);
+  if (typeof body.joinNote === 'string') sets.push(sql`join_note = ${body.joinNote}`);
+  if (typeof body.joinUrl === 'string') sets.push(sql`join_url = ${body.joinUrl}`);
+  if (body.followUpAt !== undefined) sets.push(sql`follow_up_at = ${body.followUpAt ? new Date(body.followUpAt).toISOString() : null}`);
+  if (body.joinChecklistUpdates && typeof body.joinChecklistUpdates === 'object') {
+    // merge top-level: { stepKey: { done } } → jsonb || (replace key). join_checklist NOT NULL default {}.
+    const patch: Record<string, { done: boolean; updatedAt: string }> = {};
+    for (const [k, v] of Object.entries(body.joinChecklistUpdates)) patch[k] = { done: !!v?.done, updatedAt: new Date().toISOString() };
+    sets.push(sql`join_checklist = join_checklist || ${JSON.stringify(patch)}::jsonb`);
+  }
   sets.push(sql`updated_at = NOW()`);
 
   if (sets.length === 1) {

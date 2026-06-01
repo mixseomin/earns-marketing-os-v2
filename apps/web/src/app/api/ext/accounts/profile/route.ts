@@ -160,11 +160,14 @@ export async function GET(req: Request) {
       id: Number(acc.id),
       projectId: String(acc.project_id),
       handle: String(acc.handle ?? ''),
+      email: acc.email ? String(acc.email) : null,
       platformKey,
       platformLabel: String(acc.platform_label ?? platformKey),
       status: String(acc.status ?? 'unknown'),
       blockReason: acc.block_reason ? String(acc.block_reason) : null,
       accountKind: String(acc.account_kind ?? 'user'),
+      // Link tới identity (lưu trong persona lúc tạo) → view account hiện đúng identity.
+      identityId: persona.identityId != null ? Number(persona.identityId) : null,
       // Persona fields — flatten cho ext convenience
       personaName: String(persona.name_first ?? '') + (persona.name_last ? ' ' + String(persona.name_last) : ''),
       personaGender: persona.gender ? String(persona.gender) : null,

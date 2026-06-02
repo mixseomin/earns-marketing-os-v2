@@ -173,6 +173,9 @@ export async function GET(req: Request) {
       accountKind: String(acc.account_kind ?? 'user'),
       // Link tới identity (lưu trong persona lúc tạo) → view account hiện đúng identity.
       identityId: persona.identityId != null ? Number(persona.identityId) : null,
+      // Full persona object → ext 🧩 Profile fields restore giá trị ĐÃ tự lưu vào
+      // profile account này (vals lưu dưới persona[fieldKey] qua personaUpdates).
+      persona,
       // Post-reg follow-up (tier 1): ngày hẹn + progress steps (warmup_checklist).
       followUpAt: acc.follow_up_at ? new Date(acc.follow_up_at as string).toISOString() : null,
       warmupChecklist: (acc.warmup_checklist as Record<string, { done?: boolean; updatedAt?: string }>) ?? {},

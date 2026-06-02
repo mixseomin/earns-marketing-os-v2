@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, platformAccounts, platforms } from '@mos2/db';
+import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
@@ -149,6 +149,18 @@ export async function POST(req: Request) {
       tags: ['ext-detected'],
     })
     .returning({ id: platformAccounts.id });
+
+  // Link account → project qua junction `project_accounts`. BẮT BUỘC: dashboard
+  // listAccountsByProject INNER JOIN bảng này → thiếu junction = account VÔ HÌNH
+  // trên dashboard (modal deep-link ko mở) dù platform_accounts.project_id đã set.
+  // (Sự cố #28: ext tạo account nhưng quên junction → ko thấy trong vault.)
+  if (row?.id && body.projectId) {
+    try {
+      await db.insert(projectAccounts)
+        .values({ projectId: body.projectId, accountId: row.id, role: 'primary' })
+        .onConflictDoNothing();
+    } catch { /* non-blocking — account vẫn tạo, chỉ thiếu link */ }
+  }
 
   // Reverse-sync → Directus (await, non-fatal) — account tạo ở ext cũng vào
   // inventory Directus. Dedupe theo handle trong upsertDirectusAccountByHandle.

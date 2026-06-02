@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 //    platforms.checklist các item phase='creating' (giữ nguyên item phase khác).
 //  - habitat: bước VÀO NHÓM (trả lời câu hỏi, chờ mod) → habitats.join_checklist.
 // Step shape: { key, label, tip?, actionUrl? }. Progress lưu riêng per account/brief.
-type Step = { key: string; label: string; tip?: string | null; actionUrl?: string | null };
+type Step = { key: string; label: string; tip?: string | null; actionUrl?: string | null; hidden?: boolean };
 
 function normSteps(raw: unknown): Step[] {
   if (!Array.isArray(raw)) return [];
@@ -18,7 +18,7 @@ function normSteps(raw: unknown): Step[] {
     .filter((s) => s && typeof s === 'object' && typeof (s as Step).key === 'string' && (s as Step).key.trim())
     .map((s) => {
       const o = s as Step;
-      return { key: o.key.trim(), label: String(o.label ?? o.key).trim(), tip: o.tip ?? null, actionUrl: o.actionUrl ?? null };
+      return { key: o.key.trim(), label: String(o.label ?? o.key).trim(), tip: o.tip ?? null, actionUrl: o.actionUrl ?? null, hidden: !!o.hidden };
     });
 }
 
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   if (!p) return NextResponse.json({ ok: false, error: 'platform not found' }, { status: 404 });
   const existing = Array.isArray(p.cl) ? (p.cl as Array<Record<string, unknown>>) : [];
   const kept = existing.filter((it) => it.phase !== 'creating');
-  const creating = steps.map((s) => ({ key: s.key, phase: 'creating', label: s.label, tip: s.tip, actionUrl: s.actionUrl }));
+  const creating = steps.map((s) => ({ key: s.key, phase: 'creating', label: s.label, tip: s.tip, actionUrl: s.actionUrl, hidden: !!s.hidden }));
   await db.update(platforms).set({ checklist: [...kept, ...creating] }).where(eq(platforms.key, key));
   return NextResponse.json({ ok: true, scope: 'platform', key, steps });
 }

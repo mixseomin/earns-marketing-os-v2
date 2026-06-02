@@ -1837,6 +1837,44 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
               </div>
             )}
+          {/* ── 🧩 Profile fields (persona đã lưu) — HIỆN MỌI status (Pre-deployment
+              chỉ hiện todo/creating → account active giấu hết field đã lưu). Đây là
+              các field ext tự lưu vào account.persona (profile_location, custom_fields_*,
+              dob_*, gender…). Editable, lưu cùng account. Bỏ key nội bộ (identityId) +
+              non-scalar (interests array). ── */}
+          {account && (() => {
+            const HIDE = new Set(['identityId']);
+            const entries = Object.entries((form.persona ?? {}) as Record<string, unknown>)
+              .filter(([k, v]) => !HIDE.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'));
+            if (!entries.length) return null;
+            return (
+              <Collapsible
+                title="🧩 Profile fields (đã lưu)"
+                defaultOpen
+                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{entries.length}</span>}
+                hint="persona tự lưu từ ext / signup — sửa rồi Save"
+              >
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {entries.map(([k, v]) => {
+                    const sval = String(v ?? '');
+                    const long = sval.length > 60;
+                    return (
+                      <div key={k} style={{ display: 'flex', gap: 8, alignItems: long ? 'flex-start' : 'center' }}>
+                        <span title={k} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', minWidth: 130, maxWidth: 130, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: long ? 6 : 0 }}>{k}</span>
+                        {long ? (
+                          <textarea style={{ ...fld, flex: 1, minHeight: 48, resize: 'vertical' }} value={sval}
+                            onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
+                        ) : (
+                          <input style={{ ...fld, flex: 1 }} value={sval}
+                            onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Collapsible>
+            );
+          })()}
           {/* ── Notes — collapsible. Open mặc định nếu đã có nội dung. ── */}
           <Collapsible
             title="Notes"

@@ -51,9 +51,10 @@ function LockNote({ lock }: { lock: { why: string; fillNote?: string } }) {
   return null;
 }
 import {
-  listBriefsForAccount, listAddableHabitatsForAccount,
+  listBriefsForAccount, listAddableHabitatsForAccount, setBriefJoinStatus,
   type BriefForAccount,
 } from '@/lib/actions/community-briefs';
+import { getIdentity, type IdentityRow } from '@/lib/actions/identities';
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
 import { BriefEditModal } from './brief-edit-modal';
@@ -1020,6 +1021,18 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const [fieldsTrigger, setFieldsTrigger] = useState(0);
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
 
+  // 🪪 Identity gốc — account.persona.identityId = identity preset đã tạo account này.
+  // Fetch read-only để hiển thị (giải thích vì sao persona gender/country… = của identity).
+  const srcIdentityId = account?.persona && typeof account.persona === 'object'
+    ? Number((account.persona as Record<string, unknown>).identityId) || null : null;
+  const [srcIdentity, setSrcIdentity] = useState<IdentityRow | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (srcIdentityId) getIdentity(srcIdentityId).then((r) => { if (!cancelled) setSrcIdentity(r); });
+    else setSrcIdentity(null);
+    return () => { cancelled = true; };
+  }, [srcIdentityId]);
+
   // Sync localTechKey when platform changes
   const platform = platforms.find((p) => p.key === form.platformKey);
   useEffect(() => {
@@ -1837,13 +1850,58 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
               </div>
             )}
+          {/* ── 🪪 Identity gốc — preset đã tạo account này (account.persona.identityId).
+              Read-only. GIẢI THÍCH vì sao persona gender/country/city… = của identity
+              (KHÔNG phải giá trị thật trên site — site field nằm ở "Profile fields"). ── */}
+          {srcIdentity && (() => {
+            const ip = (srcIdentity.persona ?? {}) as Record<string, unknown>;
+            const idRow = (label: string, value: unknown) => {
+              const sval = value == null ? '' : String(value);
+              if (!sval) return null;
+              return (
+                <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', minWidth: 84, flexShrink: 0 }}>{label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{sval}</span>
+                </div>
+              );
+            };
+            return (
+              <Collapsible
+                title="🪪 Identity gốc"
+                defaultOpen
+                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>#{srcIdentity.id}</span>}
+                hint={`${srcIdentity.kind} · @${srcIdentity.handleBase || '—'}`}
+              >
+                <div style={{ display: 'grid', gap: 5 }}>
+                  {idRow('name', srcIdentity.name)}
+                  {idRow('kind', srcIdentity.kind)}
+                  {idRow('@handle', srcIdentity.handleBase)}
+                  {idRow('email', srcIdentity.email)}
+                  {idRow('display', srcIdentity.displayName)}
+                  {idRow('gender', ip.gender)}
+                  {idRow('country', ip.country)}
+                  {idRow('city', ip.city)}
+                  {idRow('backstory', ip.backstory)}
+                  {idRow('password', srcIdentity.hasPassword ? '✓ có' : '— chưa đặt')}
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic', marginTop: 2 }}>
+                    ↑ Đây là persona của identity (nguồn của gender/country…). Giá trị THẬT điền trên site nằm ở &quot;Profile fields&quot; dưới.
+                  </div>
+                  <a href={`/p/${projectId}/identities?m=edit&mId=${srcIdentity.id}`}
+                     style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
+                    Mở identity #{srcIdentity.id} →
+                  </a>
+                </div>
+              </Collapsible>
+            );
+          })()}
           {/* ── 🧩 Profile fields (persona đã lưu) — HIỆN MỌI status (Pre-deployment
               chỉ hiện todo/creating → account active giấu hết field đã lưu). Đây là
-              các field ext tự lưu vào account.persona (profile_location, custom_fields_*,
-              dob_*, gender…). Editable, lưu cùng account. Bỏ key nội bộ (identityId) +
-              non-scalar (interests array). ── */}
+              các field THẬT ext lưu vào account.persona (profile_location, custom_fields_*,
+              dob_*…). Editable, lưu cùng account. BỎ key nội bộ + AI-persona meta
+              (gender/country/city/backstory/name… → đã hiện ở Identity gốc, tránh nhầm
+              "female" của persona với gender thật trên site). ── */}
           {account && (() => {
-            const HIDE = new Set(['identityId']);
+            const HIDE = new Set(['identityId', 'name_first', 'name_last', 'gender', 'country', 'city', 'interests', 'backstory', 'voice_summary', 'narrative_style', 'display_name', 'email', 'bio']);
             const entries = Object.entries((form.persona ?? {}) as Record<string, unknown>)
               .filter(([k, v]) => !HIDE.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'));
             if (!entries.length) return null;
@@ -2941,6 +2999,7 @@ function AccountBriefsSection({
   const [picking, setPicking] = useState(false);
   const [addable, setAddable] = useState<Array<{ id: number; name: string; kind: string; url: string | null; tribeName: string | null }>>([]);
   const [bumpKey, setBumpKey] = useState(0);
+  const [joinBusyId, setJoinBusyId] = useState<number | null>(null);
   // Inline "+ New habitat" — opens HabitatFormModal in-place instead of navigating
   const [showQuickHabitat, setShowQuickHabitat] = useState(false);
   const [tribesForPicker, setTribesForPicker] = useState<TribeRow[]>([]);
@@ -3031,16 +3090,28 @@ function AccountBriefsSection({
                   <Pill color="var(--fg-3)" label={b.habitatKind} size="xs" tone="ghost" />
                   {b.tribeName && <Pill color="var(--accent)" label={b.tribeName} size="xs" tone="soft" uppercase={false} />}
                   {b.habitatMembers > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{(b.habitatMembers / 1000).toFixed(b.habitatMembers > 9999 ? 0 : 1)}k</span>}
-                  {/* Join status chip — tầng 2 */}
-                  <span title={`Join status (tầng 2 — membership per-habitat): ${joinLabel}`}
+                  {/* Join status chip — tầng 2 · CLICK = toggle joined↔not_joined nhanh
+                      (đã join thực tế → 1 click đánh dấu). Status khác mở Brief modal. */}
+                  <button type="button"
+                        disabled={joinBusyId === b.id}
+                        title={`Join status: ${joinLabel}. Click = ${b.joinStatus === 'joined' ? 'bỏ joined' : 'đánh dấu JOINED'} · (pending/left… mở Brief modal)`}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setJoinBusyId(b.id);
+                          const next = b.joinStatus === 'joined' ? 'not_joined' : 'joined';
+                          const res = await setBriefJoinStatus(projectId, b.id, { joinStatus: next });
+                          setJoinBusyId(null);
+                          if (res.ok) refresh();
+                        }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                                 padding: '0 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
-                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase',
+                                 padding: '0 6px', height: 16, fontSize: 9, fontFamily: 'var(--font-mono)',
+                                 fontWeight: 700, borderRadius: 3, textTransform: 'uppercase', cursor: 'pointer',
                                  background: joinColor + (b.joinStatus === 'joined' ? '1a' : '22'),
                                  color: joinColor,
-                                 border: `1px solid ${joinColor}66` }}>
+                                 border: `1px solid ${joinColor}66`,
+                                 opacity: joinBusyId === b.id ? 0.5 : 1 }}>
                     {joinIcon} {joinLabel}
-                  </span>
+                  </button>
                   {/* Phase chip — tầng 3 */}
                   <PhasePill phase={b.currentPhase} size="sm"
                              title={`Engagement phase (tầng 3 — strategy step): ${phaseLabel}`} />

@@ -76,6 +76,13 @@ export async function listIdentities(projectId: string): Promise<IdentityRow[]> 
   return rows.map(toRow);
 }
 
+// 1 identity theo id (cho account modal show "Identity gốc" — account.persona.identityId).
+export async function getIdentity(id: number): Promise<IdentityRow | null> {
+  const db = ensureDb();
+  const [r] = await db.select().from(identities).where(eq(identities.id, id)).limit(1);
+  return r ? toRow(r) : null;
+}
+
 export async function createIdentity(projectId: string, input: IdentityInput): Promise<number> {
   const db = ensureDb();
   const name = (input.name ?? '').trim();

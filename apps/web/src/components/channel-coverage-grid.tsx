@@ -19,14 +19,15 @@ interface Props {
   projectId: string;
   briefId: number;
   habitatId: number;
-  isDiscordLike: boolean;        // ẩn grid hẳn nếu không phải discord/slack/telegram
   // reloadKey bump khi parent tạo/xoá bài → grid tự re-fetch posts.
   reloadKey?: number;
   onPostsChanged?: () => void;   // parent reload list sau khi tạo bài
 }
 
+// DATA-DRIVEN: hiện grid khi habitat CÓ channels (Discord/Slack/Telegram channel HOẶC
+// forum sub-forum) — bất kể platform. Không có channel → ẩn hẳn. Xem channel-support.ts.
 export function ChannelCoverageGrid({
-  projectId, briefId, habitatId, isDiscordLike, reloadKey = 0, onPostsChanged,
+  projectId, briefId, habitatId, reloadKey = 0, onPostsChanged,
 }: Props) {
   const [channels, setChannels] = useState<HabitatChannelRow[] | null>(null);
   const [posts, setPosts] = useState<Array<{ channelId: number | null; briefPhase: string | null }>>([]);
@@ -34,33 +35,16 @@ export function ChannelCoverageGrid({
   const [, startTransition] = useTransition();
 
   useEffect(() => {
-    if (!isDiscordLike) return;
     listChannelsForHabitat(habitatId).then(setChannels).catch(() => setChannels([]));
-  }, [habitatId, isDiscordLike]);
+  }, [habitatId]);
 
   // Posts re-fetch khi reloadKey bump (parent vừa tạo/sửa bài)
   useEffect(() => {
-    if (!isDiscordLike) return;
     listBriefPostChannels(briefId).then(setPosts).catch(() => setPosts([]));
-  }, [briefId, reloadKey, isDiscordLike]);
+  }, [briefId, reloadKey]);
 
-  if (!isDiscordLike) return null;
-
-  if (channels == null) {
-    return (
-      <div style={{ padding: 10, fontSize: 11, color: 'var(--fg-3)' }}>
-        <Spinner size="xs" /> Đang tải channels…
-      </div>
-    );
-  }
-  if (channels.length === 0) {
-    return (
-      <div style={{ padding: '10px 12px', fontSize: 11, color: 'var(--fg-3)',
-                    background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5 }}>
-        💡 Habitat chưa có channel — mở habitat (chip ↗) → section 📺 Channels → thêm channel để dùng coverage grid.
-      </div>
-    );
-  }
+  if (channels == null) return null;          // đang load → chưa render (tránh nhấp nháy)
+  if (channels.length === 0) return null;     // habitat ko có channel → ẩn grid hẳn
 
   // Count posts per (channelId, phase). channelId=null tách riêng.
   const countMap = new Map<string, number>();

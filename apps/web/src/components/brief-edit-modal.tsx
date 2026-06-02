@@ -1282,7 +1282,6 @@ export function BriefEditModal({
               projectId={projectId}
               briefId={existing.id}
               habitatId={habitatId}
-              isDiscordLike={['discord', 'slack', 'telegram'].includes(platformKey ?? '')}
               reloadKey={postsReloadKey}
               onPostsChanged={onPostsChanged}
             />

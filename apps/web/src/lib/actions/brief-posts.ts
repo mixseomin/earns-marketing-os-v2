@@ -643,8 +643,8 @@ export async function createPostForBriefPhase(
     };
   }
   const habitatId = briefRow.habitat_id ? Number(briefRow.habitat_id) : null;
-  const platformKey = briefRow.platform_key ? String(briefRow.platform_key) : '';
-  const isDiscordLike = ['discord', 'slack', 'telegram'].includes(platformKey);
+  // Channel auto-pick = DATA-DRIVEN (suggestChannelForNewPost query habitat_channels →
+  // null nếu ko có). KHÔNG gate platformKey → forum có sub-forum cũng auto-pick. Xem channel-support.ts.
 
   const ct = formatMeta(contentType).key; // chuẩn hoá về key hợp lệ
   const ref = await nextCardRef(projectId);
@@ -654,7 +654,7 @@ export async function createPostForBriefPhase(
   // Inline import để tránh circular dep (card-channel imports voice-profile,
   // voice-profile được brief-posts dùng indirectly via post-draft).
   let resolvedChannelId: number | null = channelIdOverride ?? null;
-  if (isDiscordLike && habitatId != null && channelIdOverride == null) {
+  if (habitatId != null && channelIdOverride == null) {
     try {
       const { suggestChannelForNewPost } = await import('./card-channel');
       const sugg = await suggestChannelForNewPost(habitatId, phase, ct);
@@ -780,8 +780,6 @@ export async function createPlaceholdersForBriefPhase(
     };
   }
   const habitatId = br?.habitat_id ? Number(br.habitat_id) : null;
-  const platformKey = br?.platform_key ? String(br.platform_key) : '';
-  const isDiscordLike = ['discord', 'slack', 'telegram'].includes(platformKey);
   const plan = Array.isArray(br?.phase_plan) ? (br?.phase_plan as Array<Record<string, unknown>>) : [];
   const phaseEntry = plan.find((p) => p.phase === phase);
   const pillarMix = (phaseEntry?.pillarMix && typeof phaseEntry.pillarMix === 'object')
@@ -789,7 +787,7 @@ export async function createPlaceholdersForBriefPhase(
 
   // Pre-compute channel assignments
   let channelAssignments: Array<number | null> = new Array(count).fill(null);
-  if (isDiscordLike && habitatId != null) {
+  if (habitatId != null) {  // data-driven: distributeChannelsForPlaceholders trả [] nếu habitat ko có channels
     try {
       const { distributeChannelsForPlaceholders } = await import('./card-channel');
       const ids = await distributeChannelsForPlaceholders(habitatId, phase, 'text', count);

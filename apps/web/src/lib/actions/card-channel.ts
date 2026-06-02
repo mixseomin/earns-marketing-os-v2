@@ -96,10 +96,8 @@ export async function getCardChannels(
   const habitatId = r.habitat_id ? Number(r.habitat_id) : null;
   if (habitatId == null) return { ok: true, channels: [], isDiscord: false };
 
-  const platformKey = r.habitat_platform ? String(r.habitat_platform) : '';
-  const isDiscord = ['discord', 'slack', 'telegram'].includes(platformKey);
-  if (!isDiscord) return { ok: true, channels: [], isDiscord: false };
-
+  // DATA-DRIVEN: habitat CÓ channel rows → multi-channel (Discord/Slack/Telegram HOẶC
+  // forum có sub-forum). KHÔNG gate theo platformKey nữa (xem channel-support.ts).
   const currentChannelId = r.channel_id ? Number(r.channel_id) : null;
   const phase = r.brief_phase ? String(r.brief_phase) : null;
   const contentType = String(r.content_type ?? 'text');
@@ -152,7 +150,7 @@ export async function getCardChannels(
   if (topPositive) topPositive.isSuggested = true;
   // Strip internal _score
   const channels: CardChannelOption[] = scored.map(({ _score, ...rest }) => { void _score; return rest; });
-  return { ok: true, channels, isDiscord: true };
+  return { ok: true, channels, isDiscord: channels.length > 0 };  // isDiscord = "có channels" (multi-channel)
 }
 
 // Set card.channel_id. Trả về voice changed flag để UI có thể prompt re-gen.
@@ -258,10 +256,8 @@ export async function getHabitatChannelsBundle(
   `);
   const h = (habRows as unknown as Array<Record<string, unknown>>)[0];
   if (!h) return { habitatId, isDiscord: false, habitatVoice: 'regular', channels: [] };
-  const platformKey = h.platform_key ? String(h.platform_key) : '';
-  const isDiscord = ['discord', 'slack', 'telegram'].includes(platformKey);
   const habitatVoice = String(h.voice_profile ?? 'regular') as VoiceProfile;
-  if (!isDiscord) return { habitatId, isDiscord: false, habitatVoice, channels: [] };
+  // DATA-DRIVEN: có channel rows → multi-channel (KHÔNG gate platformKey). Xem channel-support.ts.
 
   const chRows = await db.execute(sql`
     SELECT id, name, url, description, rules, allowed_formats,
@@ -294,7 +290,7 @@ export async function getHabitatChannelsBundle(
       skipForPost: gates.skip_for_post === true,
     };
   });
-  return { habitatId, isDiscord: true, habitatVoice, channels };
+  return { habitatId, isDiscord: channels.length > 0, habitatVoice, channels };  // isDiscord = "có channels"
 }
 
 // Phase C — list posts hiện có của 1 brief với chỉ (channel_id, brief_phase)

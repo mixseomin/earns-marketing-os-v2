@@ -31,6 +31,7 @@ import { extractDiscordInvite } from '@/lib/actions/discord-extract';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { BriefSelectorsSection } from './brief-selectors-section';
 import { parseChannelsFromInput } from '@/lib/actions/parse-channels';
+import { platformSupportsChannels, channelNoun } from '@/lib/channel-support';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import { inferHabitatVisualStyle } from '@/lib/actions/habitat-visual-style';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
@@ -226,9 +227,12 @@ export function HabitatFormModal({
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [habitat, channelsDirty]);
-  // Multi-channel platform: chỉ hiện section channels cho các platform có
-  // concept "channel" (Discord/Slack/Telegram). Reddit/forum chỉ 1 ruleset.
-  const showChannels = ['discord', 'slack', 'telegram'].includes(form.platformKey ?? '');
+  // Multi-channel: hiện tab channels cho platform có sub-area (Discord/Slack/Telegram
+  // channel + FORUM sub-forum). channelNoun = nhãn phù hợp (channel vs sub-forum).
+  // Xem channel-support.ts + wiki/mos/habitat-taxonomy.md.
+  const chScope = { platformKey: form.platformKey, kind: form.kind, technologyKey: form.technologyKey };
+  const showChannels = platformSupportsChannels(chScope);
+  const chNoun = channelNoun(chScope);
 
   // M2M: form.tribeId = PRIMARY tribe. extraTribeIds = secondary tribes
   // (excludes primary). Saved together via setHabitatTribes after the
@@ -622,7 +626,7 @@ export function HabitatFormModal({
               { key: 'outreach', label: '🎯 Outreach', desc: 'Language/status/community type/mod' },
               { key: 'rules', label: '📜 Rules', desc: 'Posting rules + gates + topics' },
               { key: 'voice', label: '🎙 Voice', desc: 'Voice profile + notes + few-shot' },
-              { key: 'channels', label: '📺 Channels', desc: 'Sub-channels Discord/Slack/Telegram' },
+              { key: 'channels', label: `${chNoun.emoji} ${chNoun.plural}`, desc: chNoun.singular === 'sub-forum' ? 'Sub-forums của forum (rules/tone riêng)' : 'Sub-channels Discord/Slack/Telegram' },
             ] as Array<{ key: ModalTab; label: string; desc: string }>).map((t) => {
               const on = activeTab === t.key;
               return (
@@ -1897,9 +1901,9 @@ export function HabitatFormModal({
                 <div style={{ fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic', padding: 16, textAlign: 'center' }}>
                   Platform <strong style={{ color: 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>
                     {form.platformKey ?? '(chưa set)'}
-                  </strong> không có concept sub-channel.
+                  </strong> không có concept sub-area.
                   <br />
-                  Channels chỉ áp dụng cho Discord/Slack/Telegram.
+                  Áp dụng cho Discord/Slack/Telegram (channel) + forum (sub-forum). Forum cần đặt engine ở tab Identity.
                 </div>
               ) : !channelsLoaded ? (
                 <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1908,9 +1912,9 @@ export function HabitatFormModal({
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <strong>📺 {channels.length} channels</strong>
+                    <strong>{chNoun.emoji} {channels.length} {chNoun.plural.toLowerCase()}</strong>
                     <span style={{ color: 'var(--fg-4)', fontSize: 11 }}>
-                      — mỗi channel rules + format + voice riêng. Bài tạo qua picker chọn channel để áp đúng.
+                      — mỗi {chNoun.singular} rules + format + voice riêng. Bài tạo qua picker chọn {chNoun.singular} để áp đúng.
                     </span>
                   </div>
                   <ChannelBulkParser

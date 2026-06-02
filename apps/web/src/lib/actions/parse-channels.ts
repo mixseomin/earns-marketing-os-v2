@@ -1,6 +1,7 @@
 'use server';
 
-// Bulk channel parser cho Discord/Slack/Telegram. Input: text dump (channel
+// Bulk channel parser cho multi-channel community (Discord/Slack/Telegram channel +
+// FORUM sub-forum/board). Input: text dump (channel
 // list copy từ sidebar / rules channel) HOẶC screenshot. Output: array
 // channels chuẩn để append vào HabitatFormModal state. Khác parseFormInput
 // generic ở chỗ output là ARRAY, không phải flat object.
@@ -53,23 +54,25 @@ export async function parseChannelsFromInput(input: {
   const model = hasImage ? 'gpt-4o' : 'gpt-4o-mini';
   const platformHint = input.platformKey || 'discord';
 
-  const systemMsg = `You extract a list of community channels from the user's input.
+  const systemMsg = `You extract a list of community sub-areas (channels / sub-forums / boards) from the user's input.
 Platform: ${platformHint}.
 
 For Discord: channels look like "# general", "# rules", "#promo-self", icons may prefix names.
 For Slack:   channels look like "# proj-alpha", "#announcements".
 For Telegram: groups/topics look like "📢 Announcements", "🚀 General".
+For a FORUM (XenForo/vBulletin/phpBB/Discourse): sub-areas are SUB-FORUMS / boards / categories,
+  e.g. "Gaming Discussion", "Off-Topic", "EtcetEra", "Feedback". Each row often shows thread/post counts.
 
 OUTPUT a JSON object with one key "channels" (array of objects). Each object:
-- "name"            (string, required) — channel name WITHOUT '#' prefix or emoji icon (clean: "general", "rules", "showcase")
-- "url"             (string|null)      — channel URL if visible in input, else null
+- "name"            (string, required) — sub-area name WITHOUT '#' prefix or emoji icon. For forums use the board title verbatim ("Gaming Discussion").
+- "url"             (string|null)      — sub-area URL if visible in input, else null
 - "description"     (string)           — short topic/intent line (max 100 chars), empty if unknown
-- "rules"           (string)           — rules content for this channel ONLY if extracted from input (markdown lines), empty if unknown
-- "allowed_formats" (array of strings|null) — subset of [${ALLOWED_FORMAT_KEYS.join(', ')}] if channel restricts formats (e.g. "showcase" → ["image","video"], "links" → ["link"]). null = inherits habitat (default).
+- "rules"           (string)           — rules content for this sub-area ONLY if extracted from input (markdown lines), empty if unknown
+- "allowed_formats" (array of strings|null) — subset of [${ALLOWED_FORMAT_KEYS.join(', ')}] if it restricts formats (e.g. "showcase" → ["image","video"], "links" → ["link"]). null = inherits habitat (default).
 
 CRITICAL:
-- Do NOT invent channels not visible in input.
-- Skip voice channels, category headers, threads.
+- Do NOT invent sub-areas not visible in input.
+- Skip Discord voice channels, category headers, threads. For forums: skip individual THREADS (extract the board/sub-forum, not threads inside it); skip read-only "Announcements/Rules" only if you also set rules-like intent (still list them).
 - Skip private/locked channels if marked (🔒).
 - Preserve order from input.
 - If allowed_formats is unclear from name/description, return null (don't guess).`;

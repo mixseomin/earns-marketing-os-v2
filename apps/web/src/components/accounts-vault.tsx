@@ -1850,50 +1850,6 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
               </div>
             )}
-          {/* ── 🪪 Identity gốc — preset đã tạo account này (account.persona.identityId).
-              Read-only. GIẢI THÍCH vì sao persona gender/country/city… = của identity
-              (KHÔNG phải giá trị thật trên site — site field nằm ở "Profile fields"). ── */}
-          {srcIdentity && (() => {
-            const ip = (srcIdentity.persona ?? {}) as Record<string, unknown>;
-            const idRow = (label: string, value: unknown) => {
-              const sval = value == null ? '' : String(value);
-              if (!sval) return null;
-              return (
-                <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', minWidth: 84, flexShrink: 0 }}>{label}</span>
-                  <span style={{ fontSize: 12, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{sval}</span>
-                </div>
-              );
-            };
-            return (
-              <Collapsible
-                title="🪪 Identity gốc"
-                defaultOpen
-                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>#{srcIdentity.id}</span>}
-                hint={`${srcIdentity.kind} · @${srcIdentity.handleBase || '—'}`}
-              >
-                <div style={{ display: 'grid', gap: 5 }}>
-                  {idRow('name', srcIdentity.name)}
-                  {idRow('kind', srcIdentity.kind)}
-                  {idRow('@handle', srcIdentity.handleBase)}
-                  {idRow('email', srcIdentity.email)}
-                  {idRow('display', srcIdentity.displayName)}
-                  {idRow('gender', ip.gender)}
-                  {idRow('country', ip.country)}
-                  {idRow('city', ip.city)}
-                  {idRow('backstory', ip.backstory)}
-                  {idRow('password', srcIdentity.hasPassword ? '✓ có' : '— chưa đặt')}
-                  <div style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic', marginTop: 2 }}>
-                    ↑ Đây là persona của identity (nguồn của gender/country…). Giá trị THẬT điền trên site nằm ở &quot;Profile fields&quot; dưới.
-                  </div>
-                  <a href={`/p/${projectId}/identities?m=edit&mId=${srcIdentity.id}`}
-                     style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
-                    Mở identity #{srcIdentity.id} →
-                  </a>
-                </div>
-              </Collapsible>
-            );
-          })()}
           {/* ── 🧩 Profile fields (persona đã lưu) — HIỆN MỌI status (Pre-deployment
               chỉ hiện todo/creating → account active giấu hết field đã lưu). Đây là
               các field THẬT ext lưu vào account.persona (profile_location, custom_fields_*,
@@ -1929,6 +1885,49 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       </div>
                     );
                   })}
+                </div>
+              </Collapsible>
+            );
+          })()}
+          {/* ── 🪪 Identity gốc — preset đã tạo account này (account.persona.identityId).
+              ĐẶT SAU + COLLAPSE mặc định: thông tin account (handle/status/Profile fields)
+              mới là chính; identity gốc chỉ là tham chiếu nguồn (gender/country… persona). ── */}
+          {srcIdentity && (() => {
+            const ip = (srcIdentity.persona ?? {}) as Record<string, unknown>;
+            const idRow = (label: string, value: unknown) => {
+              const sval = value == null ? '' : String(value);
+              if (!sval) return null;
+              return (
+                <div key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', minWidth: 84, flexShrink: 0 }}>{label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{sval}</span>
+                </div>
+              );
+            };
+            return (
+              <Collapsible
+                title="🪪 Identity gốc"
+                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>#{srcIdentity.id}</span>}
+                hint={`${srcIdentity.kind} · @${srcIdentity.handleBase || '—'}`}
+              >
+                <div style={{ display: 'grid', gap: 5 }}>
+                  {idRow('name', srcIdentity.name)}
+                  {idRow('kind', srcIdentity.kind)}
+                  {idRow('@handle', srcIdentity.handleBase)}
+                  {idRow('email', srcIdentity.email)}
+                  {idRow('display', srcIdentity.displayName)}
+                  {idRow('gender', ip.gender)}
+                  {idRow('country', ip.country)}
+                  {idRow('city', ip.city)}
+                  {idRow('backstory', ip.backstory)}
+                  {idRow('password', srcIdentity.hasPassword ? '✓ có' : '— chưa đặt')}
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic', marginTop: 2 }}>
+                    ↑ Persona của identity (nguồn của gender/country…). Giá trị THẬT trên site nằm ở &quot;Profile fields&quot; trên.
+                  </div>
+                  <a href={`/p/${projectId}/identities?m=edit&mId=${srcIdentity.id}`}
+                     style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
+                    Mở identity #{srcIdentity.id} →
+                  </a>
                 </div>
               </Collapsible>
             );

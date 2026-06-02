@@ -14,12 +14,14 @@ const VERIFY_SCRIPT = '/opt/orit-inbox-bot/verify-one.mjs';
 
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const body = await req.json().catch(() => ({})) as { email?: string };
+  const body = await req.json().catch(() => ({})) as { email?: string; click?: string };
   const email = (body.email || '').trim();
   if (!email || !email.includes('@')) return NextResponse.json({ ok: false, error: 'email required' }, { status: 400 });
+  // mode: 'detect' (default — chỉ tìm link, KHÔNG click) | 'click' (server GET ngầm).
+  const mode = body.click === 'server' ? 'click' : 'detect';
   try {
     const stdout = await new Promise<string>((resolve, reject) => {
-      execFile(process.execPath, [VERIFY_SCRIPT, email], { cwd: '/opt/orit-inbox-bot', timeout: 30000, maxBuffer: 1 << 20 }, (e, out, errOut) => {
+      execFile(process.execPath, [VERIFY_SCRIPT, email, mode], { cwd: '/opt/orit-inbox-bot', timeout: 30000, maxBuffer: 1 << 20 }, (e, out, errOut) => {
         if (e && !out) reject(new Error((errOut || e.message || 'verify script failed').slice(0, 200)));
         else resolve(out || '');
       });

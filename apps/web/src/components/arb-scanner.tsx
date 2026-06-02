@@ -15,7 +15,7 @@ interface Data {
   notional: number; netPositive: number; updatedAt: number;
 }
 
-const POLL_MS = 15_000;
+const POLL_MS = 30_000;
 const ok = 'var(--ok)';
 const bad = 'var(--neon-red)';
 const muted = 'var(--fg-2, #7c879b)';
@@ -49,10 +49,14 @@ export function ArbScanner() {
     } catch { setErr(true); }
   }, []);
 
+  // Only scan while this page/tab is actually visible. Hidden tab or closed
+  // page → no polling, no upstream fetches. Returning to the tab refetches.
   useEffect(() => {
-    load();
-    const t = setInterval(load, POLL_MS);
-    return () => clearInterval(t);
+    const tick = () => { if (document.visibilityState === 'visible') load(); };
+    tick();
+    const t = setInterval(tick, POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', tick); };
   }, [load]);
 
   // Persisted coin selection (empty = auto / top spreads)

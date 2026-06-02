@@ -196,7 +196,7 @@ async function build(): Promise<ScannerData> {
 // Module-level cache so concurrent viewers share one upstream refresh.
 let cache: ScannerData | null = null;
 let inflight: Promise<ScannerData> | null = null;
-const TTL_MS = 15_000;
+const TTL_MS = 30_000;
 
 export async function getScannerData(): Promise<ScannerData> {
   if (cache && Date.now() - cache.updatedAt < TTL_MS) return cache;

@@ -35,17 +35,30 @@ export async function POST(req: Request) {
       idn = r;
     }
   }
+  // persona json có sẵn (sinh lúc tạo identity): country, city, gender, interests[],
+  // backstory, name_first/last → ĐÂY là NGUỒN sự thật cho Location/About/Gender…
+  const p = (idn?.persona && typeof idn.persona === 'object') ? idn.persona as Record<string, unknown> : {};
+  const cf = (idn?.customFields && typeof idn.customFields === 'object') ? idn.customFields as Record<string, unknown> : {};
   const ctx = idn
-    ? `Persona của tài khoản:\n- name: ${idn.name}\n- handle: ${idn.handleBase}\n- display: ${idn.displayName}\n- bio: ${idn.bio}\n- persona: ${JSON.stringify(idn.persona).slice(0, 600)}\n- custom fields đã có: ${JSON.stringify(idn.customFields).slice(0, 400)}`
+    ? `Persona NHÂN VẬT (nguồn sự thật — derive từ đây, KHÔNG bịa mới):\n`
+      + `- name: ${idn.name} | display: ${idn.displayName} | handle: ${idn.handleBase}\n`
+      + `- bio: ${idn.bio}\n`
+      + `- country: ${String(p.country ?? '')} | city: ${String(p.city ?? '')} | gender: ${String(p.gender ?? '')}\n`
+      + `- interests: ${Array.isArray(p.interests) ? (p.interests as unknown[]).join(', ') : ''}\n`
+      + `- backstory: ${typeof p.backstory === 'string' ? p.backstory : ''}\n`
+      + `- persona (raw): ${JSON.stringify(idn.persona).slice(0, 400)}\n`
+      + `- giá trị ĐÃ LƯU (canonical — TÁI DÙNG y hệt nếu khớp field): ${JSON.stringify(cf).slice(0, 400)}`
     : 'Persona: (chưa gắn identity — điền trung tính, tự nhiên)';
   const list = fields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}`).join('\n');
-  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản seeding theo persona dưới đây.\n${ctx}\n\n`
+  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản theo NHÂN VẬT persona dưới đây.\n${ctx}\n\n`
     + `Các field cần điền:\n${list}\n\n`
-    + `Quy tắc:\n`
-    + `- Giá trị NGẮN GỌN, nhất quán persona. Nội dung public (bio/about/occupation/location) viết TIẾNG ANH tự nhiên, KHÔNG markdown, không dấu gạch ngang em-dash.\n`
-    + `- Field cần dữ liệu THẬT/cá nhân hoặc không suy ra được (Steam ID, Friend Code, phone, ID số, ngày sinh nếu thiếu) → trả chuỗi RỖNG "".\n`
-    + `- Giữ nguyên giá trị "đang có" nếu đã hợp lý.\n`
-    + `- "About you"/bio: 1-2 câu.\n`
+    + `Quy tắc DERIVE (suy từ persona, KHÔNG chế dữ liệu mới để giữ NHẤT QUÁN mọi site):\n`
+    + `- location/place/từ địa lý → ghép "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
+    + `- about/bio/intro/description/summary → từ bio + backstory (1-2 câu, English tự nhiên, KHÔNG markdown/em-dash).\n`
+    + `- gender → đúng gender persona. pronoun/pronouns → suy từ gender (he / she / they).\n`
+    + `- occupation/job/work → suy hợp lý từ backstory/interests (1 nghề ngắn). website/url → "" trừ khi persona ngụ ý có.\n`
+    + `- Nếu field trùng "giá trị ĐÃ LƯU" → trả ĐÚNG giá trị đó (canonical, không đổi). Giữ "đang có" nếu đã hợp lý.\n`
+    + `- Field cần DỮ LIỆU THẬT/định danh ngoài (Steam ID, Friend Code, phone, ID số, ngày sinh nếu persona không có) → trả chuỗi RỖNG "" (user điền tay).\n`
     + `Trả JSON: {"values":{"<key>":"<value>"}}. CHỈ JSON, không giải thích.`;
 
   try {

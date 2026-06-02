@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type CSSProperties } from 'react';
 
 interface Opp {
   base: string; pair: string;
@@ -38,6 +38,7 @@ export function ArbScanner() {
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
   const [view, setView] = useState<'net' | 'gross'>('net');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -54,8 +55,46 @@ export function ArbScanner() {
     return () => clearInterval(t);
   }, [load]);
 
-  const rows = (data?.opportunities ?? []).filter((o) => o.grossPct > 0).slice(0, 12);
+  // Persisted coin selection (empty = auto / top spreads)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('arb-scanner-coins');
+      if (raw) setSelected(new Set(JSON.parse(raw) as string[]));
+    } catch { /* ignore */ }
+  }, []);
+  const persist = (s: Set<string>) => {
+    try {
+      if (s.size) localStorage.setItem('arb-scanner-coins', JSON.stringify([...s]));
+      else localStorage.removeItem('arb-scanner-coins');
+    } catch { /* ignore */ }
+  };
+  const toggleCoin = useCallback((c: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c); else next.add(c);
+      persist(next);
+      return next;
+    });
+  }, []);
+  const clearSel = useCallback(() => { setSelected(new Set()); persist(new Set()); }, []);
+
+  const all = data?.opportunities ?? [];
+  const custom = selected.size > 0;
+  // Auto = top 12 by gross spread; custom = exactly the picked coins (any spread), gross-desc.
+  const rows = custom
+    ? all.filter((o) => selected.has(o.base))
+    : all.filter((o) => o.grossPct > 0).slice(0, 12);
+  const coinChips = [...new Set(all.map((o) => o.base))].sort();
   const liveEx = data?.exchanges.filter((e) => e.ok) ?? [];
+
+  const chip = (active: boolean): CSSProperties => ({
+    appearance: 'none', cursor: 'pointer',
+    border: `1px solid ${active ? 'var(--accent)' : 'var(--border, #1b2230)'}`,
+    background: active ? 'var(--accent-soft)' : 'transparent',
+    color: active ? 'var(--accent)' : muted,
+    borderRadius: 999, padding: '2px 9px', fontSize: 10.5,
+    fontFamily: 'var(--font-mono)', letterSpacing: '.04em',
+  });
 
   return (
     <section
@@ -104,10 +143,24 @@ export function ArbScanner() {
             fontSize: 11, padding: '3px 10px', borderRadius: 999,
             border: `1px solid var(--border, #1b2230)`, color: ok,
           }}>
-            {rows.length} opportunities
+            {rows.length} {custom ? 'selected' : 'opportunities'}
           </span>
         </div>
       </div>
+
+      {/* Coin picker — empty selection = auto (top spreads) */}
+      {coinChips.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12 }}>
+          <button onClick={clearSel} style={chip(!custom)} title="Auto: show the highest-spread pairs">★ Top spreads</button>
+          <span style={{ width: 1, height: 16, background: 'var(--border, #1b2230)', margin: '0 2px' }} />
+          {coinChips.map((c) => (
+            <button key={c} onClick={() => toggleCoin(c)} style={chip(selected.has(c))}
+              title={selected.has(c) ? `Remove ${c}` : `Pin ${c} to the table`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
@@ -149,7 +202,7 @@ export function ArbScanner() {
             })}
             {!rows.length && (
               <tr><td colSpan={5} style={{ padding: '18px 8px', textAlign: 'center', color: muted, fontSize: 12 }}>
-                {err ? 'Scanner offline — retrying…' : 'Scanning exchanges…'}
+                {err ? 'Scanner offline — retrying…' : data ? (custom ? 'No live spread for the selected pairs.' : 'No positive spreads right now.') : 'Scanning exchanges…'}
               </td></tr>
             )}
           </tbody>

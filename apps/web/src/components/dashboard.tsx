@@ -2,7 +2,6 @@ import type { Mode, Kpi } from '@/lib/mock/types';
 import { Sparkline, RevenueChart, HourBars } from './charts';
 import { ResourceStrip } from './resource-strip';
 import type { Project } from '@/lib/mock/types';
-import { AISuggestionsPanel } from './ai-suggestions-panel';
 
 const HOUR_DATA = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')}h`,
@@ -88,34 +87,7 @@ export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) 
               </div>
             </div>
           </div>
-          {m.suggestions && m.suggestions.length > 0 && (
-            <div className="panel">
-              <div className="panel-head">
-                <div className="panel-title">
-                  <span className="dot" style={{ background: 'var(--neon-violet)', boxShadow: '0 0 6px var(--neon-violet)' }}></span>
-                  AI Suggestions <small>// xếp theo impact</small>
-                </div>
-                <span className="chip">{m.suggestions.length}</span>
-              </div>
-              <div className="panel-body dense">
-                <div className="sugg-list">
-                  {m.suggestions.map((s, i) => (
-                    <div key={i} className="sugg">
-                      <div className="sugg-icon">{s.icon}</div>
-                      <div className="sugg-body">
-                        <div className="sugg-title">{s.title}</div>
-                        <div className="sugg-meta">{s.meta} • <span style={{ color: 'var(--accent)' }}>{s.agent}</span></div>
-                      </div>
-                      <div className="sugg-actions">
-                        <button className="btn primary">Approve</button>
-                        <button className="btn">…</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* AI Suggestions panel disabled per user 2026-05-28 */}
         </div>
       )}
 
@@ -228,8 +200,7 @@ export function Dashboard({ mode, project }: { mode: Mode; project?: Project }) 
       )}
 
       {isBlank && project && project.id !== 'cities-gg' && (
-        <div className="row r-2" style={{ marginTop: 16 }}>
-          <AISuggestionsPanel projectId={project.id} />
+        <div style={{ marginTop: 16 }}>
           <div className="panel">
             <div className="panel-body" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-2)' }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>🌱</div>

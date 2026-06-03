@@ -19,7 +19,9 @@ import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 
 const MAX_IMAGES = 4;
 const MODEL = 'gpt-4o';   // 4o native multimodal; mini không hỗ trợ vision đủ tốt cho chart
-const DETAIL: 'low' | 'high' | 'auto' = 'auto';
+// 'high' = tile ảnh đọc glyph nhỏ (natal chart wheel có ký hiệu hành tinh + độ rất nhỏ).
+// 'auto'/'low' từng làm vision đọc chart CHUNG CHUNG ("12 cung Aries→Pisces") → AI sai placement.
+const DETAIL: 'low' | 'high' | 'auto' = 'high';
 
 export async function POST(req: Request) {
   const authErr = checkAuth(req);
@@ -130,15 +132,15 @@ function buildSystemPrompt(tribeSlug: string, topics: string[], userHint?: strin
   let tribePrompt: string;
   if (isAstrology) {
     tribePrompt = `Bạn là chuyên gia astrology đọc natal chart / transit chart / synastry chart.
-Khi gặp chart wheel: extract đầy đủ
-  - 12 houses (cusps + planets trong mỗi house)
-  - Aspects chính (conjunction/opposition/trine/square/sextile + orb degree)
-  - Sun/Moon/Rising signs + degree
-  - Notable patterns (stellium, grand trine, T-square, yod, kite)
-  - Modalities/elements distribution nếu rõ
-Khi gặp screenshot app (astro-seek, co-star, TimePassages, etc.): extract data hiển thị verbatim.
-Khi gặp natal table: extract planet positions theo format "Sun 12°34' Aries in 5th house".
-Output dạng structured text dễ parse, KHÔNG interpret/giải nghĩa (engine sẽ làm).`;
+Khi gặp chart wheel: extract đầy đủ + CHÍNH XÁC từng giá trị (đọc ký hiệu hành tinh + cung + độ):
+  - 4 GÓC bắt buộc đọc rõ: Ascendant (ASC/Rising), Midheaven (MC), Descendant (DSC), IC — mỗi góc ở CUNG nào (+ độ nếu thấy).
+  - Sun/Moon + 8 hành tinh (Mercury..Pluto) + nếu có (Chiron, North Node): mỗi cái ở "<cung> trong nhà <N>" + độ.
+  - 12 houses (cusp sign + planets trong mỗi house).
+  - Aspects chính (conjunction/opposition/trine/square/sextile + orb degree).
+  - Notable patterns (stellium, grand trine, T-square, yod, kite); modalities/elements nếu rõ.
+Khi gặp screenshot app (astro-seek, co-star, TimePassages…) hoặc natal table: extract verbatim, format "Sun 12°34' Aries in 5th house".
+Output structured text dễ parse, KHÔNG interpret/giải nghĩa (engine làm).
+⚠ TUYỆT ĐỐI KHÔNG đoán / KHÔNG khái quát kiểu "12 cung từ Aries đến Pisces". Giá trị nào (cung/độ/nhà) KHÔNG đọc rõ → ghi "[không đọc được]" cho đúng mục đó. THÀ thiếu còn hơn sai — AI sẽ dùng đúng cái đọc được.`;
   } else if (isBiohack) {
     tribePrompt = `Bạn extract chi tiết screenshot Oura/Whoop/Apple Health/CGM/lab results:
   - Metrics + values + units + reference ranges
@@ -167,5 +169,8 @@ Output dạng structured text, factual, KHÔNG opinion/interpretation.`;
 
   return `${tribePrompt}${topicHint}${userHintBlock}
 
+QUY TẮC CHỐNG BỊA (mọi domain): chỉ ghi cái ĐỌC RÕ trong ảnh. Số liệu/nhãn/placement mờ
+hoặc không chắc → "[không đọc được]". KHÔNG suy đoán, KHÔNG mô tả chung chung thay cho giá
+trị cụ thể. Sai 1 con số có thể làm AI phân tích sai toàn bộ.
 Trả về plain text (không markdown header), dùng bullet/section ngắn. Cap ~800 từ.`;
 }

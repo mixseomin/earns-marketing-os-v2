@@ -33,6 +33,7 @@ export interface HabitatChannelRow {
 export interface HabitatChannelInput {
   name: string;
   url?: string | null;
+  externalId?: string | null;   // stable key (Discord snowflake | forum slug.id) — match khi sync rules
   description?: string;
   rules?: string;
   language?: string;
@@ -80,6 +81,7 @@ export async function createChannel(
     habitatId,
     name: input.name.trim(),
     url: input.url ?? null,
+    externalId: input.externalId ?? null,
     description: input.description ?? '',
     rules: input.rules ?? '',
     language: input.language ?? '',

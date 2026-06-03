@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { getDb } from '@mos2/db';
 import { listChannelsForHabitat, createChannel } from '@/lib/actions/habitat-channels';
+import { forumSubForumKey } from '@/lib/channel-support';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     const r = await createChannel(habitatId, {
       name,
       url: c.url ?? null,
+      externalId: forumSubForumKey(c.url),   // slug.id từ URL → match khi sync rules sau
       description: (c.description || '').slice(0, 200),
       sortOrder: order++,
     });

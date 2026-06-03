@@ -35,6 +35,21 @@ export function platformSupportsChannels(s: ChannelScope): boolean {
   return false;
 }
 
+// Stable key cho 1 sub-forum từ URL → externalId của habitat_channels (match khi sync
+// rules + tránh duplicate). XenForo /forums/<slug>.<id>/ → "<slug>.<id>"; vBulletin/phpBB
+// f=<id> → "f<id>"; Discourse /c/<slug>/<id> → "c<id>". Null nếu không nhận ra.
+export function forumSubForumKey(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const u = String(url);
+  let m = u.match(/\/forums\/([^/]+\.\d+)\/?(?:\?|#|$)/);          // XenForo
+  if (m?.[1]) return m[1];
+  m = u.match(/(?:forumdisplay|viewforum)\.php\?(?:[^#]*&)?f=(\d+)/); // vBulletin / phpBB
+  if (m?.[1]) return `f${m[1]}`;
+  m = u.match(/\/c\/(?:[-\w/]+\/)?(\d+)(?:\?|#|$)/);                 // Discourse
+  if (m?.[1]) return `c${m[1]}`;
+  return null;
+}
+
 // Nhãn phù hợp platform: forum → "sub-forum", còn lại → "channel".
 export function channelNoun(s: ChannelScope): { singular: string; plural: string; emoji: string } {
   const kind = (s.kind ?? '').toLowerCase();

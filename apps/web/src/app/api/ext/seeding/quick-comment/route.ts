@@ -4,6 +4,7 @@ import { getDb, cards } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { generateFullDraft } from '@/lib/ai/post-draft';
+import { normalizeParentUrl } from '@/lib/parent-url';
 import type { Phase } from '@/lib/phase-plan';
 
 // POST /api/ext/seeding/quick-comment
@@ -85,7 +86,8 @@ export async function POST(req: Request) {
 
   // 2. Fill parent_* fields
   await updatePost(projectId, cardId, {
-    parentUrl: body.parentUrl ?? null,
+    parentUrl: normalizeParentUrl(body.parentUrl),   // strip query (?screen_view_count…)/slash → match khi mở lại
+
     parentTitle: body.parentTitle ?? null,
     parentBody: body.parentBody ?? null,
     parentAuthor: body.parentAuthor ?? null,

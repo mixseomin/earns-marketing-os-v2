@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { normalizeParentUrl } from '@/lib/parent-url';
 
 // GET /api/ext/seeding/list-drafts?parentUrl=<url>&habitatId=<id>
 //
@@ -14,10 +15,10 @@ export async function GET(req: Request) {
   if (authErr) return authErr;
 
   const url = new URL(req.url);
-  const parentUrl = (url.searchParams.get('parentUrl') ?? '').trim();
+  const np = normalizeParentUrl(url.searchParams.get('parentUrl'));
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
 
-  if (!parentUrl) {
+  if (!np) {
     return NextResponse.json({ ok: false, error: 'parentUrl required' }, { status: 400 });
   }
 
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
-    WHERE c.parent_url = ${parentUrl}
+    WHERE rtrim(split_part(c.parent_url, '?', 1), '/') = ${np}
       AND c.archived_at IS NULL
       ${habitatId > 0 ? sql`AND b.habitat_id = ${habitatId}` : sql``}
     ORDER BY c.created_at DESC

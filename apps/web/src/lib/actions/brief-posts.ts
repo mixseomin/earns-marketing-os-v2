@@ -9,6 +9,7 @@ import { getDb, cards } from '@mos2/db';
 import type { Phase } from '@/lib/phase-plan';
 import { PHASE_LABEL } from '@/lib/phase-plan';
 import { formatMeta } from '@/lib/content-formats';
+import { normalizeParentUrl } from '@/lib/parent-url';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const DEFAULT_SQUAD = 'wf-writer';
@@ -274,7 +275,8 @@ export async function listEngagementsByParentUrl(
   projectId: string,
   parentUrl: string,
 ): Promise<ParentEngagementSummary | null> {
-  if (!parentUrl?.trim()) return null;
+  const np = normalizeParentUrl(parentUrl);
+  if (!np) return null;
   const db = ensureDb();
   const rows = await db.execute(sql`
     SELECT c.id, c.card_ref, c.body_target, c.content_type, c.parent_title,
@@ -292,7 +294,7 @@ export async function listEngagementsByParentUrl(
       LEFT JOIN community_briefs b ON b.id = c.brief_id
       LEFT JOIN habitats h ON h.id = b.habitat_id
       LEFT JOIN platform_accounts pa ON pa.id = b.account_id
-     WHERE c.project_id = ${projectId} AND c.parent_url = ${parentUrl}
+     WHERE c.project_id = ${projectId} AND rtrim(split_part(c.parent_url, '?', 1), '/') = ${np}
      ORDER BY
        (c.archived_at IS NOT NULL) ASC,
        c.posted_at DESC NULLS LAST,
@@ -485,7 +487,7 @@ export async function listRecentPostedCards(
            -- để tránh subquery; project-scoped để cross-brief OK.
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
-                AND c2.parent_url = c.parent_url
+                AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
                 AND c2.parent_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -1035,7 +1037,7 @@ export async function listAllPostedCards(
            hc.name AS channel_name,
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
-                AND c2.parent_url = c.parent_url
+                AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
                 AND c2.parent_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -1268,7 +1270,7 @@ export async function listCostVersions(
   const tr = (target as unknown as Array<Record<string, unknown>>)[0];
   if (!tr) return { versions: [], totalCostUsd: 0, totalDurationMs: 0, versionCount: 0 };
 
-  const parentUrl = tr.parent_url ? String(tr.parent_url) : null;
+  const parentUrl = normalizeParentUrl(tr.parent_url ? String(tr.parent_url) : null);
   const projectId = String(tr.project_id);
 
   const rows = parentUrl
@@ -1277,7 +1279,7 @@ export async function listCostVersions(
                answer_source, post_url, created_at
         FROM cards
         WHERE project_id = ${projectId}
-          AND parent_url = ${parentUrl}
+          AND rtrim(split_part(parent_url, '?', 1), '/') = ${parentUrl}
           AND archived_at IS NULL
         ORDER BY created_at ASC
       `)

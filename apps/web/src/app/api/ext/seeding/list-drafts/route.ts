@@ -31,6 +31,7 @@ export async function GET(req: Request) {
     SELECT
       c.id, c.card_ref, c.content_type, c.target_lang,
       c.body_target, c.body_review, c.title,
+      c.parent_url, c.parent_title, c.parent_body, c.parent_author,
       c.answer_source, c.answer_sources,
       c.gen_cost_usd, c.gen_duration_ms, c.gen_model_used,
       c.gen_confidence, c.gen_tools_called, c.gen_warnings, c.gen_log_id,
@@ -59,6 +60,11 @@ export async function GET(req: Request) {
     bodyTarget: String(r.body_target ?? ''),
     bodyReview: String(r.body_review ?? ''),
     title: String(r.title ?? ''),
+    // Parent context ext ĐÃ DETECT lúc gen — để debug "detect sai" (xem AI nhận text gì).
+    parentUrl: r.parent_url ? String(r.parent_url) : null,
+    parentTitle: r.parent_title ? String(r.parent_title) : null,
+    parentBody: r.parent_body ? String(r.parent_body) : null,
+    parentAuthor: r.parent_author ? String(r.parent_author) : null,
     answerSource: r.answer_source ? String(r.answer_source) : null,
     answerSources: Array.isArray(r.answer_sources) ? r.answer_sources : [],
     cost: r.gen_cost_usd != null ? Number(r.gen_cost_usd) : null,

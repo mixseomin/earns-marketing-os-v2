@@ -2,6 +2,7 @@ import { RefreshGscBtn } from './refresh-gsc-btn';
 import { SeoSitesTable } from './seo-sites-table';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
+import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
 
@@ -21,10 +22,12 @@ type GscPayload = {
   sites: Record<string, GscSiteStats>;
 };
 
-// Map domain → MOS2 project id + visual label + GA4 property (nếu có)
-const SITE_META: Record<string, { project?: string; emoji: string; ga4?: string }> = {
+// Map domain → MOS2 project id + visual label.
+// GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
+// (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
+const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
-  'cities.gg': { project: 'cities-gg', emoji: '🏙️', ga4: '477242613' },
+  'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },
@@ -32,7 +35,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; ga4?: string 
   'wenoted.com': { emoji: '📝' },
   'loginwiz.com': { emoji: '🔐' },
   'steamsolo.com': { emoji: '🎮' },
-  'on.tc': { emoji: '🛠️', ga4: '279810823' },
+  'on.tc': { emoji: '🛠️' },
   'scriptinstant.blogspot.com': { emoji: '📜' },
   'chatlt.com': { emoji: '💬' },
   'bestweightlosspills.reviews': { emoji: '💊' },
@@ -80,6 +83,7 @@ export async function SeoSitesPanel() {
     if (r.ok) payload = (await r.json()) as GscPayload;
   } catch { /* fall through */ }
   const tsPayload = await loadGscTimeSeries();
+  const ga4Payload = await loadGa4Properties();
 
   if (!payload) {
     return (
@@ -120,7 +124,7 @@ export async function SeoSitesPanel() {
             domain: r.domain,
             emoji: meta.emoji,
             project: meta.project,
-            ga4PropertyId: meta.ga4,
+            ga4PropertyId: pickGa4(ga4Payload, r.domain),
             impressions_7d: r.stats.impressions_7d,
             clicks_7d: r.stats.clicks_7d,
             avg_position_7d: r.stats.avg_position_7d,

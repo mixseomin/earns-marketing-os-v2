@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { normalizeParentUrl } from '@/lib/parent-url';
 
 // POST /api/ext/seeding/insights
 // Body: {
@@ -26,6 +27,9 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({})) as {
     cardId?: number;
+    // Forum: ext không biết cardId → resolve theo (parentUrl thread + accountHandle).
+    parentUrl?: string;
+    accountHandle?: string;
     views?: number;
     score?: number;
     upvoteRatio?: number;
@@ -33,17 +37,35 @@ export async function POST(req: Request) {
     shareCount?: number;
     awardCount?: number;
     topCountries?: Array<{ country: string; pct: number }>;
-    topReplies?: Array<{ author: string; ago?: string; body: string; score?: number | null }>;
+    // Reply detail (chi tiết): author/ago/body/score + (forum) permalink/postNum/repliedToYou.
+    topReplies?: Array<{ author: string; ago?: string; body: string; score?: number | null; permalink?: string; postNum?: string; repliedToYou?: boolean }>;
     rawJson?: unknown;
   };
 
-  const cardId = Number(body.cardId ?? 0);
-  if (!cardId) {
-    return NextResponse.json({ ok: false, error: 'cardId required' }, { status: 400 });
-  }
-
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+
+  // Resolve cardId: trực tiếp hoặc (parentUrl + accountHandle) cho forum reply-tracking.
+  let cardId = Number(body.cardId ?? 0);
+  if (!cardId && body.parentUrl) {
+    const np = normalizeParentUrl(body.parentUrl);
+    const handle = (body.accountHandle ?? '').replace(/^[@u]\/?/, '').trim().toLowerCase();
+    const rows = await db.execute(sql`
+      SELECT c.id FROM cards c
+        JOIN community_briefs b ON b.id = c.brief_id
+        LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+       WHERE rtrim(split_part(c.parent_url, '?', 1), '/') = ${np}
+         AND c.post_url IS NOT NULL
+         AND c.archived_at IS NULL
+         ${handle ? sql`AND lower(pa.handle) = ${handle}` : sql``}
+       ORDER BY c.posted_at DESC NULLS LAST, c.created_at DESC
+       LIMIT 1`);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (r) cardId = Number(r.id);
+  }
+  if (!cardId) {
+    return NextResponse.json({ ok: false, error: 'cardId (hoặc parentUrl+accountHandle khớp 1 card đã đăng) required', reason: 'card_not_found' }, { status: body.parentUrl ? 200 : 400 });
+  }
 
   // Verify card exists + đã post (insights chỉ make sense cho card đã đăng)
   const checkRows = await db.execute(sql`
@@ -71,7 +93,17 @@ export async function POST(req: Request) {
     sets.push(sql`insights_top_countries = ${JSON.stringify(body.topCountries.slice(0, 10))}::jsonb`);
   }
   if (Array.isArray(body.topReplies)) {
-    sets.push(sql`insights_top_replies = ${JSON.stringify(body.topReplies.slice(0, 5))}::jsonb`);
+    // Cap 15 (chi tiết nhất). Sanitize: cắt body, giữ field detail.
+    const cleaned = body.topReplies.slice(0, 15).map((r) => ({
+      author: String(r.author ?? '').slice(0, 80),
+      ago: r.ago ? String(r.ago).slice(0, 40) : undefined,
+      body: String(r.body ?? '').slice(0, 600),
+      score: r.score != null ? Number(r.score) : undefined,
+      permalink: r.permalink ? String(r.permalink).slice(0, 400) : undefined,
+      postNum: r.postNum ? String(r.postNum).slice(0, 12) : undefined,
+      repliedToYou: r.repliedToYou === true ? true : undefined,
+    }));
+    sets.push(sql`insights_top_replies = ${JSON.stringify(cleaned)}::jsonb`);
   }
   if (body.rawJson) sets.push(sql`insights_raw_json = ${JSON.stringify(body.rawJson)}::jsonb`);
   sets.push(sql`insights_fetched_at = NOW()`);

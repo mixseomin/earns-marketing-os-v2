@@ -89,7 +89,7 @@ function InsightsDeepDive({
   topCountries, topReplies, views, score, ratio, replyCount,
 }: {
   topCountries: Array<{ country: string; pct: number }> | null;
-  topReplies: Array<{ author: string; ago?: string; body: string; score?: number | null }> | null;
+  topReplies: Array<{ author: string; ago?: string; body: string; score?: number | null; permalink?: string; postNum?: string; repliedToYou?: boolean }> | null;
   views: number | null;
   score: number | null;
   ratio: number | null;
@@ -139,21 +139,27 @@ function InsightsDeepDive({
             💬 Top replies ({topReplies.length})
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {topReplies.slice(0, 5).map((r, i) => (
+            {topReplies.slice(0, 15).map((r, i) => (
               <div key={i} style={{
                 padding: '5px 7px', background: 'var(--bg-1)',
-                border: '1px solid var(--line)', borderRadius: 4,
+                border: `1px solid ${r.repliedToYou ? 'rgba(74,222,128,.4)' : 'var(--line)'}`, borderRadius: 4,
                 fontSize: 11, color: 'var(--fg-2)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--fg-1)' }}>
                     @{r.author}
                   </span>
+                  {r.postNum && <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{r.postNum}</span>}
                   {r.ago && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>{r.ago}</span>}
                   {r.score != null && (
-                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                       ↑ {r.score}
                     </span>
+                  )}
+                  {r.permalink && (
+                    <a href={wrapExternalUrl(r.permalink)} target="_blank" rel="noopener noreferrer"
+                       onClick={(e) => e.stopPropagation()} title="Mở reply trên platform"
+                       style={{ marginLeft: 'auto', color: 'var(--accent)', textDecoration: 'none' }}>↗</a>
                   )}
                 </div>
                 <div style={{ color: 'var(--fg-2)', lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>

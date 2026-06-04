@@ -13,7 +13,28 @@ import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, clampDraftLength, type HumanizerOpts } from './humanizer';
+import { buildHumanizerBlock, clampDraftLength, sentenceCount, maxSentencesFor, type HumanizerOpts } from './humanizer';
+
+// Condense bodyTarget về đúng N câu khi model viết quá dài (chip 1-câu/2-3-câu).
+// KHÁC clamp (cắt câu đầu, hay giữ câu mở ngớ ngẩn): rewrite GIỮ Ý MẠNH NHẤT,
+// giọng casual. gpt-4o-mini rẻ, chỉ chạy khi vượt. Lỗi → fallback clamp.
+async function condenseToSentences(
+  client: ReturnType<typeof getOpenAI>,
+  text: string, maxN: number, lang: string, hasStyle: boolean,
+): Promise<string> {
+  if (!client) return text;
+  const styleHint = hasStyle ? 'Giữ giọng casual forum-reply (slang/viết tắt/typo nhẹ OK nếu input có).' : '';
+  const sys = `Rewrite the text into AT MOST ${maxN} sentence${maxN > 1 ? 's' : ''}, in ${lang}. `
+    + `Pick the SINGLE strongest, most specific/opinionated point — do NOT just keep the first sentence (it may be a weak opener). `
+    + `Sound like a real person reacting, not a summary. ${styleHint} No preamble, no quotes, output ONLY the rewritten text.`;
+  const r = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'system', content: sys }, { role: 'user', content: text }],
+    temperature: 0.5,
+    max_tokens: maxN === 1 ? 90 : 200,
+  });
+  return (r.choices[0]?.message?.content ?? '').trim().replace(/^["']+|["']+$/g, '');
+}
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
   type FewShotExample, type VoiceProfile,
@@ -633,8 +654,17 @@ export async function generateFullDraft(
     const newTitleTarget = String(parsed.titleTarget ?? parsed.titleReview ?? ctx.cardTitle);
     const newTitleReview = String(parsed.titleReview ?? parsed.titleTarget ?? ctx.cardTitle);
     const newBodyReview = String(parsed.bodyReview ?? '');
-    // Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu (model hay phớt prompt). bodyReview giữ nguyên.
-    const newBodyTarget = clampDraftLength(String(parsed.bodyTarget ?? parsed.bodyReview ?? ''), opts?.humanizer);
+    // Độ dài (chip 1-câu/2-3-câu): model hay phớt → condense LLM GIỮ Ý MẠNH NHẤT
+    // (không phải cắt câu đầu ngớ ngẩn); clamp chỉ là lưới an toàn cuối. bodyReview giữ nguyên.
+    let newBodyTarget = String(parsed.bodyTarget ?? parsed.bodyReview ?? '');
+    const maxN = maxSentencesFor(opts?.humanizer);
+    if (maxN > 0 && sentenceCount(newBodyTarget) > maxN) {
+      try {
+        const c = await condenseToSentences(client, newBodyTarget, maxN, ctx.targetLang, (opts?.humanizer?.knobs?.length ?? 0) > 0);
+        if (c) newBodyTarget = c;
+      } catch { /* giữ bản gốc, clamp lo bên dưới */ }
+    }
+    newBodyTarget = clampDraftLength(newBodyTarget, opts?.humanizer);
     await db.update(cards).set({
       title: newTitleTarget,
       titleReview: newTitleReview,

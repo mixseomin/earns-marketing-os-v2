@@ -89,6 +89,19 @@ function knobLine(key: string, targetLang: string, intensity: HumanizerIntensity
 // ép. Đây là safety net deterministic: one-sentence → giữ 1 câu đầu; two-three →
 // 3 câu đầu. CHỈ áp bodyTarget (bodyReview giữ đầy đủ để review). No-op nếu model
 // đã tuân thủ (slice >= số câu hiện có).
+// Số câu (xấp xỉ) — để quyết định có cần condense không.
+export function sentenceCount(text: string): number {
+  const t = (text || '').replace(/\s*\n+\s*/g, ' ').trim();
+  if (!t) return 0;
+  const parts = t.match(/.*?[.!?]+(?=\s|$)|.+$/g);
+  return parts ? parts.length : 1;
+}
+// Số câu tối đa theo knob (0 = không giới hạn).
+export function maxSentencesFor(opts: HumanizerOpts | null | undefined): number {
+  if (!opts || !Array.isArray(opts.knobs)) return 0;
+  return opts.knobs.includes('one-sentence') ? 1 : opts.knobs.includes('two-three') ? 3 : 0;
+}
+
 export function clampDraftLength(bodyTarget: string, opts: HumanizerOpts | null | undefined): string {
   if (!opts || !Array.isArray(opts.knobs)) return bodyTarget;
   const max = opts.knobs.includes('one-sentence') ? 1 : opts.knobs.includes('two-three') ? 3 : 0;

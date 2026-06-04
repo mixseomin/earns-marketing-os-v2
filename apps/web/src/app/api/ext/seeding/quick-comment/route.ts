@@ -5,6 +5,7 @@ import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { generateFullDraft } from '@/lib/ai/post-draft';
 import { normalizeParentUrl } from '@/lib/parent-url';
+import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 
 // POST /api/ext/seeding/quick-comment
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
       narrative_md?: string;
     };
     humanizer?: { knobs?: string[]; intensity?: 'light' | 'medium' | 'heavy' };
+    channelUrl?: string;    // URL sub-forum (từ breadcrumb thread) → gắn channel_id
+    channelName?: string;
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -78,8 +81,9 @@ export async function POST(req: Request) {
   const phase = (briefRows as unknown as Array<Record<string, unknown>>)[0]?.current_phase as Phase | undefined;
   const useFallbackPhase: Phase = (phase ?? 'warm-up') as Phase;
 
-  // 1. Tạo card với content_type comment/reply
-  const create = await createPostForBriefPhase(projectId, briefId, useFallbackPhase, contentType);
+  // 1. Tạo card với content_type comment/reply (+ gắn channel_id sub-forum nếu có).
+  const channelDbId = await resolveForumChannelId(db, habitatId, body.channelUrl, body.channelName);
+  const create = await createPostForBriefPhase(projectId, briefId, useFallbackPhase, contentType, undefined, channelDbId);
   if (!create.ok || !create.id) {
     return NextResponse.json({ ok: false, error: create.error ?? 'createPost failed' }, { status: 500 });
   }

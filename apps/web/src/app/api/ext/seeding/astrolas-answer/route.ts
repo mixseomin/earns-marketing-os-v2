@@ -4,6 +4,7 @@ import { getDb, cards } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
+import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 import { buildHumanizerBlock, clampDraftLength } from '@/lib/ai/humanizer';
 
@@ -49,6 +50,8 @@ export async function POST(req: Request) {
       narrative_md?: string;
     };
     humanizer?: { knobs?: string[]; intensity?: 'light' | 'medium' | 'heavy' };
+    channelUrl?: string;
+    channelName?: string;
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -120,8 +123,9 @@ export async function POST(req: Request) {
   const dominantTopics = Array.isArray(ctx.dominant_topics) ? (ctx.dominant_topics as string[]) : [];
   const forbiddenTopics = Array.isArray(ctx.forbidden_topics) ? (ctx.forbidden_topics as string[]) : [];
 
-  // 2. Tạo card + fill parent_*
-  const create = await createPostForBriefPhase(projectId, briefId, phase, contentType);
+  // 2. Tạo card + fill parent_* (+ gắn channel_id sub-forum nếu ext gửi breadcrumb).
+  const channelDbId = await resolveForumChannelId(db, habitatId, body.channelUrl, body.channelName);
+  const create = await createPostForBriefPhase(projectId, briefId, phase, contentType, undefined, channelDbId);
   if (!create.ok || !create.id) {
     return NextResponse.json({ ok: false, error: create.error ?? 'createPost failed' }, { status: 500 });
   }

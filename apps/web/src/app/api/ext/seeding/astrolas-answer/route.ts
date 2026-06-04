@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import type { Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock } from '@/lib/ai/humanizer';
+import { buildHumanizerBlock, clampDraftLength } from '@/lib/ai/humanizer';
 
 // POST /api/ext/seeding/astrolas-answer
 // Body giống /quick-comment nhưng dùng Astrolas API (data-backed) thay vì
@@ -260,9 +260,11 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
     }, { status: 200 });
   }
 
-  // 5. Save answer + sources + meta vào card
+  // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
+  const answerClamped = clampDraftLength(data.answer_md, body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
+    ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined);
   await db.update(cards).set({
-    bodyTarget: data.answer_md,
+    bodyTarget: answerClamped,
     bodyReview: '',         // Astrolas trả 1 language; nếu cần VN review, dịch sau
     answerSource: 'astrolas',
     answerSources: data.sources ?? [],
@@ -280,7 +282,7 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
     ok: true,
     cardId,
     cardRef: create.cardRef,
-    bodyTarget: data.answer_md,
+    bodyTarget: answerClamped,
     bodyReview: '',
     targetLang: data.answer_lang ?? habitatLang,
     sources: data.sources ?? [],

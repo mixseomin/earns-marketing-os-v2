@@ -13,7 +13,7 @@ import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, type HumanizerOpts } from './humanizer';
+import { buildHumanizerBlock, clampDraftLength, type HumanizerOpts } from './humanizer';
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
   type FewShotExample, type VoiceProfile,
@@ -633,7 +633,8 @@ export async function generateFullDraft(
     const newTitleTarget = String(parsed.titleTarget ?? parsed.titleReview ?? ctx.cardTitle);
     const newTitleReview = String(parsed.titleReview ?? parsed.titleTarget ?? ctx.cardTitle);
     const newBodyReview = String(parsed.bodyReview ?? '');
-    const newBodyTarget = String(parsed.bodyTarget ?? parsed.bodyReview ?? '');
+    // Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu (model hay phớt prompt). bodyReview giữ nguyên.
+    const newBodyTarget = clampDraftLength(String(parsed.bodyTarget ?? parsed.bodyReview ?? ''), opts?.humanizer);
     await db.update(cards).set({
       title: newTitleTarget,
       titleReview: newTitleReview,

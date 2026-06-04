@@ -85,6 +85,22 @@ function knobLine(key: string, targetLang: string, intensity: HumanizerIntensity
   }
 }
 
+// CẮT CỨNG độ dài sau gen — model (đb gpt-4o-mini) hay phớt lờ "1 câu" dù prompt
+// ép. Đây là safety net deterministic: one-sentence → giữ 1 câu đầu; two-three →
+// 3 câu đầu. CHỈ áp bodyTarget (bodyReview giữ đầy đủ để review). No-op nếu model
+// đã tuân thủ (slice >= số câu hiện có).
+export function clampDraftLength(bodyTarget: string, opts: HumanizerOpts | null | undefined): string {
+  if (!opts || !Array.isArray(opts.knobs)) return bodyTarget;
+  const max = opts.knobs.includes('one-sentence') ? 1 : opts.knobs.includes('two-three') ? 3 : 0;
+  if (max === 0) return bodyTarget;
+  const t = (bodyTarget || '').replace(/\s*\n+\s*/g, ' ').trim();
+  if (!t) return bodyTarget;
+  // Tách câu: cụm tới khi gặp . ! ? (gồm "..."/"?!"), hoặc cụm cuối không dấu.
+  const parts = t.match(/.*?[.!?]+(?=\s|$)|.+$/g);
+  if (!parts || parts.length <= max) return t;
+  return parts.slice(0, max).map((s) => s.trim()).join(' ').trim();
+}
+
 // Build block prompt từ opts. Trả '' nếu không bật knob nào.
 export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targetLang: string): string {
   if (!opts || !Array.isArray(opts.knobs) || opts.knobs.length === 0) return '';

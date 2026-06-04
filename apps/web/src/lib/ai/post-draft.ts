@@ -13,6 +13,7 @@ import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
+import { buildHumanizerBlock, type HumanizerOpts } from './humanizer';
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
   type FewShotExample, type VoiceProfile,
@@ -281,7 +282,8 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
   };
 }
 
-function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string): string {
+function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string, humanizer?: HumanizerOpts): string {
+  const humanizerBlock = buildHumanizerBlock(humanizer, ctx.targetLang);
   // Voice block (per-profile prompt với length/emoji/hook/forbidden rules).
   // Resolution: channel override > pillar > habitat > 'regular'. Notes gộp
   // habitat + pillar nếu cả 2 có để AI nhận đủ context.
@@ -421,6 +423,8 @@ ${ctx.pillarForbiddenMsgs.map((m) => `  ✗ ${m}`).join('\n')}` : null,
     customInstruction?.trim()
       ? `\n═══════════════════════════════════════════════════════════\n🎙 OPERATOR CUSTOM INSTRUCTION (HIGH PRIORITY — apply on top of everything above):\n  ${customInstruction.trim()}\n═══════════════════════════════════════════════════════════\n`
       : null,
+    // 🧬 Human authenticity layer (chip ext) — giả-người cho bodyTarget. HIGH PRIORITY.
+    humanizerBlock || null,
     // 🚨 Habitat AI-detection flag — community có mod tool / auto-mod rule
     // detect AI content (vd r/Astrology_Vedic). Phải né strict các pattern AI:
     ctx.habitatAiDetection
@@ -569,6 +573,7 @@ export async function generateFullDraft(
     hookChoice?: string;
     modelId?: string;
     customInstruction?: string;
+    humanizer?: HumanizerOpts;
     briefOverride?: {
       approach_md?: string;
       tone?: string;
@@ -599,7 +604,7 @@ export async function generateFullDraft(
       ...(typeof ov.narrative_md === 'string' ? { briefNarrativeMd: ov.narrative_md } : {}),
     };
 
-    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction);
+    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction, opts?.humanizer);
 
     // Model resolution: user override (whitelist) > REASONING_MODEL default.
     const chosenModel = opts?.modelId && isValidTextModel(opts.modelId)

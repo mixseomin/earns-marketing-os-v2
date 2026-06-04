@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import type { Phase } from '@/lib/phase-plan';
+import { buildHumanizerBlock } from '@/lib/ai/humanizer';
 
 // POST /api/ext/seeding/astrolas-answer
 // Body giống /quick-comment nhưng dùng Astrolas API (data-backed) thay vì
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       dont_md?: string;
       narrative_md?: string;
     };
+    humanizer?: { knobs?: string[]; intensity?: 'light' | 'medium' | 'heavy' };
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -187,6 +189,10 @@ AVOID ABSOLUTELY:
 - AI opening: "As an AI", "Great question!", "Certainly!"
 - 3+ same-length sentences in a row
 ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
+      : null,
+    // 🧬 Human authenticity (chip ext) — best-effort cho answer Astrolas (seed/direct).
+    (body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0)
+      ? buildHumanizerBlock({ knobs: body.humanizer.knobs, intensity: body.humanizer.intensity }, habitatLang)
       : null,
     '',
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,

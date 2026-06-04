@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       dont_md?: string;
       narrative_md?: string;
     };
+    humanizer?: { knobs?: string[]; intensity?: 'light' | 'medium' | 'heavy' };
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -100,6 +101,9 @@ export async function POST(req: Request) {
     modelId: body.modelId || 'gpt-4.1-mini',
     customInstruction: body.customPrompt,
     briefOverride: body.briefOverride,
+    humanizer: body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0
+      ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity }
+      : undefined,
   });
   const genDurationMs = Date.now() - genStart;
 

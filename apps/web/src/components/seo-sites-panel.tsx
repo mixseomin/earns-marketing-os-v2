@@ -21,10 +21,10 @@ type GscPayload = {
   sites: Record<string, GscSiteStats>;
 };
 
-// Map domain → MOS2 project id + visual label
-const SITE_META: Record<string, { project?: string; emoji: string }> = {
+// Map domain → MOS2 project id + visual label + GA4 property (nếu có)
+const SITE_META: Record<string, { project?: string; emoji: string; ga4?: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
-  'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
+  'cities.gg': { project: 'cities-gg', emoji: '🏙️', ga4: '477242613' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },
@@ -32,7 +32,7 @@ const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'wenoted.com': { emoji: '📝' },
   'loginwiz.com': { emoji: '🔐' },
   'steamsolo.com': { emoji: '🎮' },
-  'on.tc': { emoji: '🛠️' },
+  'on.tc': { emoji: '🛠️', ga4: '279810823' },
   'scriptinstant.blogspot.com': { emoji: '📜' },
   'chatlt.com': { emoji: '💬' },
   'bestweightlosspills.reviews': { emoji: '💊' },
@@ -120,6 +120,7 @@ export async function SeoSitesPanel() {
             domain: r.domain,
             emoji: meta.emoji,
             project: meta.project,
+            ga4PropertyId: meta.ga4,
             impressions_7d: r.stats.impressions_7d,
             clicks_7d: r.stats.clicks_7d,
             avg_position_7d: r.stats.avg_position_7d,

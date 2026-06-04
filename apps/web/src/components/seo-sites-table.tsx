@@ -11,6 +11,7 @@ interface RowData {
   domain: string;
   emoji: string;
   project?: string;
+  ga4PropertyId?: string;
   impressions_7d: number;
   clicks_7d: number;
   avg_position_7d: number;
@@ -72,6 +73,17 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                   >
                     GSC&nbsp;↗
                   </a>
+                  {r.ga4PropertyId && (
+                    <a
+                      href={wrapExternalUrl(`https://analytics.google.com/analytics/web/#/p${r.ga4PropertyId}/reports/intelligenthome`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Open ${r.domain} in Google Analytics (GA4)`}
+                      style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
+                    >
+                      GA&nbsp;↗
+                    </a>
+                  )}
                 </td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.impressions_7d > 0) }}>{r.impressions_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'center', padding: '2px 6px' }}>

@@ -55,9 +55,9 @@ function knobLine(key: string, targetLang: string, intensity: HumanizerIntensity
     case 'profanity':
       return '- CHỬI NHẸ/SLANG: OK dùng nếu cộng đồng vậy (bullshit, shit, damn, lol, ngl, kinda) — tự nhiên, không gượng, không quá đà.';
     case 'one-sentence':
-      return '- ĐỘ DÀI: viết ĐÚNG 1 câu. Không xuống dòng, không liệt kê.';
+      return '- ĐỘ DÀI (RULE CỨNG, ĐÈ MỌI hướng dẫn độ dài khác — voice/platform/reply rules): bodyTarget = ĐÚNG 1 CÂU, ≤ 30 từ. 1 mệnh đề duy nhất, KHÔNG xuống dòng, KHÔNG liệt kê, KHÔNG 2 câu, KHÔNG mở rồi giải thích thêm. Nếu lỡ viết dài hơn PHẢI rút lại còn 1 câu trước khi trả.';
     case 'two-three':
-      return '- ĐỘ DÀI: giữ 2-3 câu ngắn, không hơn.';
+      return '- ĐỘ DÀI (RULE CỨNG, ĐÈ MỌI hướng dẫn độ dài khác): bodyTarget = 2-3 câu NGẮN, tổng ≤ 60 từ. KHÔNG đoạn văn, KHÔNG hơn 3 câu.';
     case 'spoken':
       return '- VĂN NÓI (không phải văn viết): dùng contraction, rút chủ ngữ ("watching this rn"), câu cụt, bắt đầu bằng "and/but/so" cũng được. Như gõ vội trên điện thoại.';
     case 'typos':
@@ -91,6 +91,12 @@ export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targ
   const intensity: HumanizerIntensity = opts.intensity || 'medium';
   const lines = opts.knobs.map((k) => knobLine(k, targetLang, intensity)).filter(Boolean) as string[];
   if (lines.length === 0) return '';
+  // Enforce độ dài lần cuối (model hay phớt lờ 1-câu vì các length hint khác).
+  const lenEnforce = opts.knobs.includes('one-sentence')
+    ? '\n⛔ KIỂM TRA CUỐI: bodyTarget PHẢI đúng 1 câu ≤ 30 từ. Đếm lại — nếu >1 câu hoặc >30 từ, VIẾT LẠI ngắn hơn. Đây là rule không thể bỏ qua.'
+    : opts.knobs.includes('two-three')
+      ? '\n⛔ KIỂM TRA CUỐI: bodyTarget tối đa 3 câu, ≤ 60 từ. Nếu dài hơn, cắt bớt.'
+      : '';
   return [
     '',
     '═══════════════════════════════════════════════════════════',
@@ -102,6 +108,7 @@ export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targ
     '- KHÔNG dùng em dash "—", luôn dùng "-" (human-voice rule).',
     '- Vẫn phải đọc hiểu + đúng ý; "messy" có chủ đích, đừng phá nội dung.',
     '- Đây là tín hiệu giả-người ƯU TIÊN CAO: nếu xung đột với rule "văn phong chuẩn" ở trên, ưu tiên block này cho bodyTarget.',
+    ...(lenEnforce ? [lenEnforce] : []),
     '═══════════════════════════════════════════════════════════',
     '',
   ].join('\n');

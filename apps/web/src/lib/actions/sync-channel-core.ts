@@ -92,13 +92,13 @@ Trả JSON shape:
   "do": ["best practice 1", ...],
   "dont": ["anti-pattern 1", ...],
   "voiceHint": "tone style ngắn (1-2 sentences)",
-  "commonTopics": ["chủ đề chính 1", ...],
+  "commonTopics": ["chủ đề CỤ THỂ đang được thảo luận, paraphrase từ thread/message thật (vd 'Tranh luận phim hay nhất của Schwarzenegger', 'OT về series AppleTV')", ...],
   "contentTypes": ["loại bài phù hợp ở đây (vd: discussion, question, showcase, news, guide, meme)", ...],
-  "exampleStyles": ["1 ví dụ tiêu biểu (paraphrase)", ...],
+  "postIdeas": ["2-4 ĐỀ XUẤT bài/góc tiếp cận CỤ THỂ mình có thể đăng vào đây — actionable, hợp rules + contentTypes + giọng, ăn theo chủ đề đang hot (vd 'Hỏi cộng đồng top 3 phim action thập niên 80', 'Chia sẻ trải nghiệm xem series mới + mời thảo luận')", ...],
   "language": "ISO 2 ký tự ngôn ngữ chính (en/vi/...). Empty nếu không rõ."
 }
 
-KHÔNG bịa rule không có trong source. Nếu không có rules rõ → rules rỗng (vẫn suy contentTypes/voiceHint từ chủ đề).`;
+KHÔNG bịa rule không có trong source. commonTopics PHẢI lấy từ thread/message thật ở trên (không bịa chủ đề). postIdeas suy từ chủ đề+rules thật. Nếu không có rules rõ → rules rỗng (vẫn suy contentTypes/voiceHint/commonTopics/postIdeas từ chủ đề).`;
     try {
       const completion = await openai.chat.completions.create({
         model: DEFAULT_MODEL,
@@ -119,7 +119,8 @@ KHÔNG bịa rule không có trong source. Nếu không có rules rõ → rules 
       };
       contentTypes = Array.isArray(parsed.contentTypes) ? (parsed.contentTypes as unknown[]).map(String).filter(Boolean).slice(0, 8) : [];
       recentSummary = {
-        commonTopics: Array.isArray(parsed.commonTopics) ? parsed.commonTopics : [],
+        commonTopics: Array.isArray(parsed.commonTopics) ? (parsed.commonTopics as unknown[]).map(String).filter(Boolean).slice(0, 8) : [],
+        postIdeas: Array.isArray(parsed.postIdeas) ? (parsed.postIdeas as unknown[]).map(String).filter(Boolean).slice(0, 6) : [],
         exampleStyles: Array.isArray(parsed.exampleStyles) ? parsed.exampleStyles : [],
         contentTypes,
       };
@@ -133,10 +134,13 @@ KHÔNG bịa rule không có trong source. Nếu không có rules rõ → rules 
   }
 
   const ps = (pinnedSummary as { rules?: string[]; banned?: string[]; do?: string[]; dont?: string[]; voiceHint?: string } | null) || {};
+  const rs = (recentSummary as { commonTopics?: string[]; postIdeas?: string[] } | null) || {};
   const rulesMarkdown = [
     topic ? `**${isForum ? 'Mô tả' : 'Topic'}:** ${topic}` : '',
     Array.isArray(ps.rules) && ps.rules.length > 0 ? `**Rules:**\n${ps.rules.map((r) => `- ${r}`).join('\n')}` : '',
     contentTypes.length > 0 ? `**Loại nội dung phù hợp:** ${contentTypes.join(', ')}` : '',
+    Array.isArray(rs.commonTopics) && rs.commonTopics.length > 0 ? `**Đang thảo luận (ví dụ):**\n${rs.commonTopics.map((t) => `- ${t}`).join('\n')}` : '',
+    Array.isArray(rs.postIdeas) && rs.postIdeas.length > 0 ? `**Gợi ý bài để đăng:**\n${rs.postIdeas.map((t) => `- ${t}`).join('\n')}` : '',
     Array.isArray(ps.do) && ps.do.length > 0 ? `**Do:**\n${ps.do.map((d) => `- ${d}`).join('\n')}` : '',
     Array.isArray(ps.dont) && ps.dont.length > 0 ? `**Don't:**\n${ps.dont.map((d) => `- ${d}`).join('\n')}` : '',
     Array.isArray(ps.banned) && ps.banned.length > 0 ? `**Banned topics:** ${ps.banned.join(', ')}` : '',

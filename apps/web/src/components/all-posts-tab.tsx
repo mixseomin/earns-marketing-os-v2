@@ -634,11 +634,7 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
     <tr style={{ borderTop: '1px solid var(--line)' }}
         onMouseEnter={() => { if (c.briefId != null) prefetchBriefModal(projectId, c.briefId); }}>
       <td style={td()}>
-        {c.platformKey ? (
-          <img src={`https://cdn.simpleicons.org/${c.platformKey}/d4d4d8`}
-               alt={c.platformLabel} width={14} height={14} />
-        ) : <span style={{ width: 14, height: 14, display: 'inline-block',
-                            background: 'var(--bg-3)', borderRadius: 3 }} />}
+        <PlatformIcon platformKey={c.platformKey} label={c.platformLabel} />
       </td>
       <td style={td()}>
         <button type="button" onClick={openBrief} disabled={c.briefId == null}
@@ -728,6 +724,21 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
       </td>
     </tr>
   );
+}
+
+// PlatformIcon — simpleicons by platformKey; nhiều platform (resetera/forum custom)
+// KHÔNG có trên simpleicons → ảnh vỡ + browser render alt text tràn đè title. Fallback
+// ô xám khi lỗi/không có key. alt="" để mid-load không hiện chữ.
+function PlatformIcon({ platformKey, label }: { platformKey: string | null; label?: string | null }) {
+  const [err, setErr] = useState(false);
+  if (!platformKey || err) {
+    return <span title={label || platformKey || ''}
+                 style={{ width: 14, height: 14, display: 'inline-block', flex: '0 0 auto',
+                          background: 'var(--bg-3)', borderRadius: 3 }} />;
+  }
+  return <img src={`https://cdn.simpleicons.org/${platformKey}/d4d4d8`} alt="" title={label || platformKey}
+              width={14} height={14} onError={() => setErr(true)}
+              style={{ display: 'block', flex: '0 0 auto' }} />;
 }
 
 // ── Subcomponents ─────────────────────────────────────────────────────

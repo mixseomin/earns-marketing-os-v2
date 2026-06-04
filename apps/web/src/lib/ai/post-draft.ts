@@ -13,28 +13,7 @@ import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, clampDraftLength, sentenceCount, maxSentencesFor, type HumanizerOpts } from './humanizer';
-
-// Condense bodyTarget về đúng N câu khi model viết quá dài (chip 1-câu/2-3-câu).
-// KHÁC clamp (cắt câu đầu, hay giữ câu mở ngớ ngẩn): rewrite GIỮ Ý MẠNH NHẤT,
-// giọng casual. gpt-4o-mini rẻ, chỉ chạy khi vượt. Lỗi → fallback clamp.
-async function condenseToSentences(
-  client: ReturnType<typeof getOpenAI>,
-  text: string, maxN: number, lang: string, hasStyle: boolean,
-): Promise<string> {
-  if (!client) return text;
-  const styleHint = hasStyle ? 'Giữ giọng casual forum-reply (slang/viết tắt/typo nhẹ OK nếu input có).' : '';
-  const sys = `Rewrite the text into AT MOST ${maxN} sentence${maxN > 1 ? 's' : ''}, in ${lang}. `
-    + `Pick the SINGLE strongest, most specific/opinionated point — do NOT just keep the first sentence (it may be a weak opener). `
-    + `Sound like a real person reacting, not a summary. ${styleHint} No preamble, no quotes, output ONLY the rewritten text.`;
-  const r = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'system', content: sys }, { role: 'user', content: text }],
-    temperature: 0.5,
-    max_tokens: maxN === 1 ? 90 : 200,
-  });
-  return (r.choices[0]?.message?.content ?? '').trim().replace(/^["']+|["']+$/g, '');
-}
+import { buildHumanizerBlock, clampDraftLength, maxSentencesFor, type HumanizerOpts } from './humanizer';
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
   type FewShotExample, type VoiceProfile,
@@ -305,6 +284,11 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
 
 function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string, humanizer?: HumanizerOpts): string {
   const humanizerBlock = buildHumanizerBlock(humanizer, ctx.targetLang);
+  // Chip 1-câu/2-3-câu = giới hạn câu cứng → tắt các hint độ dài mâu thuẫn bên dưới
+  // (reply rule "1-4 câu", voice/platform length) để model tuân thủ trong 1 call.
+  const hardLen = maxSentencesFor(humanizer);
+  const hardLenText = hardLen === 1 ? 'ĐÚNG 1 câu, ≤ 30 từ (rule CỨNG, không hơn)'
+    : hardLen === 3 ? 'tối đa 3 câu ngắn, ≤ 60 từ (rule CỨNG)' : '';
   // Voice block (per-profile prompt với length/emoji/hook/forbidden rules).
   // Resolution: channel override > pillar > habitat > 'regular'. Notes gộp
   // habitat + pillar nếu cả 2 có để AI nhận đủ context.
@@ -371,7 +355,7 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
       ? `Quy tắc reply:
   - KHÔNG mở bài lại bằng greeting / "Hello" / "Tôi là..." — nhảy thẳng vào câu trả lời
   - Bám vào nội dung thread/post gốc (giả định reader đã đọc parent)
-  - Ngắn gọn (1-4 câu cho comment, 3-8 câu cho reply Q&A)
+  - ${hardLenText ? `ĐỘ DÀI: ${hardLenText}` : 'Ngắn gọn (1-4 câu cho comment, 3-8 câu cho reply Q&A)'}
   - Nếu là reply câu hỏi: trả lời trực tiếp + 1 insight có giá trị + (optional) câu hỏi mở rộng
   - Nếu là comment trong thread discussion: đóng góp 1 góc nhìn / kinh nghiệm / nuance
   - KHÔNG link / pitch / self-promo trừ khi phase=Seed/Direct VÀ rules cho phép`
@@ -546,8 +530,8 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
       ? `  "bodyReview":   "...",  // 🇻🇳 TIẾNG VIỆT - body markdown để review`
       : `  "bodyReview":   "...",  // body markdown tiếng Việt`,
     ctx.isBilingual
-      ? `  "bodyTarget":   "...",  // 🌐 ${ctx.targetLang.toUpperCase()} - body markdown native, đăng thật`
-      : `  "bodyTarget":   "...",  // copy = bodyReview`,
+      ? `  "bodyTarget":   "...",  // 🌐 ${ctx.targetLang.toUpperCase()} - body native, đăng thật${hardLenText ? ` — BẮT BUỘC ${hardLenText}` : ''}`
+      : `  "bodyTarget":   "...",  // copy = bodyReview${hardLenText ? ` — BẮT BUỘC ${hardLenText}` : ''}`,
     `  "hookUsed":     "...",  // hook nào đã chọn (1 dòng)`,
     `  "rationale":    "..."   // 2-3 câu giải thích vì sao approach này fit phase + community`,
     `}`,
@@ -580,7 +564,9 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
     `- Nếu phase là Bridge: chỉ chart watermark, không link sống`,
     `- Nếu phase là Seed/Direct: 1 link contextual nếu rules cho phép`,
     `- Tone match VOICE PROFILE + persona voice + phase tone (priority: voice > persona > phase)`,
-    lengthHint
+    hardLen
+      ? `- ĐỘ DÀI (ƯU TIÊN TỐI THƯỢNG, đè voice/platform): bodyTarget = ${hardLenText}.`
+      : lengthHint
       ? `- Length: ${lengthHint} (VOICE PROFILE overrides platform default)`
       : `- Length phù hợp platform (Reddit: 200-800w; Forum: 500-1500w; FB: 100-300w; Discord: 50-200w)`,
     `- KHÔNG được tự ký tên cuối bài. Reddit không cần signature.`,
@@ -654,17 +640,9 @@ export async function generateFullDraft(
     const newTitleTarget = String(parsed.titleTarget ?? parsed.titleReview ?? ctx.cardTitle);
     const newTitleReview = String(parsed.titleReview ?? parsed.titleTarget ?? ctx.cardTitle);
     const newBodyReview = String(parsed.bodyReview ?? '');
-    // Độ dài (chip 1-câu/2-3-câu): model hay phớt → condense LLM GIỮ Ý MẠNH NHẤT
-    // (không phải cắt câu đầu ngớ ngẩn); clamp chỉ là lưới an toàn cuối. bodyReview giữ nguyên.
-    let newBodyTarget = String(parsed.bodyTarget ?? parsed.bodyReview ?? '');
-    const maxN = maxSentencesFor(opts?.humanizer);
-    if (maxN > 0 && sentenceCount(newBodyTarget) > maxN) {
-      try {
-        const c = await condenseToSentences(client, newBodyTarget, maxN, ctx.targetLang, (opts?.humanizer?.knobs?.length ?? 0) > 0);
-        if (c) newBodyTarget = c;
-      } catch { /* giữ bản gốc, clamp lo bên dưới */ }
-    }
-    newBodyTarget = clampDraftLength(newBodyTarget, opts?.humanizer);
+    // Độ dài (chip 1-câu/2-3-câu) ép trong prompt (schema bodyTarget + tắt hint mâu
+    // thuẫn). clamp = lưới an toàn 0-cost, gần như không kích hoạt. bodyReview giữ nguyên.
+    const newBodyTarget = clampDraftLength(String(parsed.bodyTarget ?? parsed.bodyReview ?? ''), opts?.humanizer);
     await db.update(cards).set({
       title: newTitleTarget,
       titleReview: newTitleReview,

@@ -53,7 +53,8 @@ async function detectOne(card: { id: number; post_url: string; posted_at: Date |
     return { cardId: card.id, thingId: '', lifecycle: null, reason: 'not-reddit-or-no-thingid' };
   }
   try {
-    const res = await fetch(`https://www.reddit.com/comments/by-id/t1_${thingId}.json?raw_json=1`, {
+    // /api/info hợp lệ cho comment fullname; /comments/by-id chỉ cho link t3 → 404.
+    const res = await fetch(`https://www.reddit.com/api/info.json?id=t1_${thingId}&raw_json=1`, {
       headers: { 'Accept': 'application/json', 'User-Agent': REDDIT_USER_AGENT },
       signal: AbortSignal.timeout(8000),
     });
@@ -65,7 +66,9 @@ async function detectOne(card: { id: number; post_url: string; posted_at: Date |
       return { cardId: card.id, thingId, lifecycle: null, reason: `reddit-${res.status}` };
     }
     const json = await res.json();
-    const d = json?.[0]?.data?.children?.[0]?.data;
+    // /api/info trả Listing object {data:{children}}; phòng shape mảng cũ.
+    const listing = Array.isArray(json) ? json[0] : json;
+    const d = listing?.data?.children?.[0]?.data;
     if (!d) {
       return { cardId: card.id, thingId, lifecycle: 'ghosted', reason: 'reddit-empty-data' };
     }

@@ -13,6 +13,9 @@ export interface HumanizerOpts {
 
 // Key canonical — ext gửi đúng các key này. Label để UI ext tự render (ext hardcode).
 export const HUMANIZER_KEYS = [
+  // STANCE/VOICE (cái làm post "thật" nhất — quan trọng hơn typo bề mặt)
+  'opinion', 'react-specific', 'no-corporate', 'profanity',
+  // FORM (bề mặt)
   'one-sentence', 'two-three', 'spoken', 'typos', 'abbrev', 'lowercase',
   'no-end-punct', 'humor', 'filler', 'reaction-first', 'mundane', 'emoji',
 ] as const;
@@ -43,6 +46,14 @@ function abbrevCount(intensity: HumanizerIntensity): string {
 // Mỗi knob → 1 dòng chỉ thị. targetLang/intensity cho các knob cần.
 function knobLine(key: string, targetLang: string, intensity: HumanizerIntensity): string | null {
   switch (key) {
+    case 'opinion':
+      return '- QUAN ĐIỂM RÕ: nêu lập trường THẬT (đồng tình / phản đối / hoài nghi / cà khịa). KHÔNG tóm tắt trung lập, KHÔNG cân bằng 2 phía kiểu báo chí. Người thật có ý kiến.';
+    case 'react-specific':
+      return '- BẮT 1 Ý: phản ứng vào 1 CHI TIẾT/câu cụ thể trong thread gốc (vd "that line about X has me raising eyebrows"), KHÔNG bao quát toàn chủ đề, KHÔNG nhắc lại nội dung gốc kiểu tóm tắt.';
+    case 'no-corporate':
+      return '- CẤM GIỌNG PR/MARKETING: tuyệt đối không "is a significant step", "ensures", "is essential", "plays a key role", "aims to", "comprehensive", "exciting initiative". Không khen sáo, không liệt kê lợi ích. Nói như 1 người bình thường, hoài nghi/critical cũng được.';
+    case 'profanity':
+      return '- CHỬI NHẸ/SLANG: OK dùng nếu cộng đồng vậy (bullshit, shit, damn, lol, ngl, kinda) — tự nhiên, không gượng, không quá đà.';
     case 'one-sentence':
       return '- ĐỘ DÀI: viết ĐÚNG 1 câu. Không xuống dòng, không liệt kê.';
     case 'two-three':
@@ -85,6 +96,7 @@ export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targ
     '═══════════════════════════════════════════════════════════',
     `🧬 HUMAN AUTHENTICITY (HIGH PRIORITY) — làm bodyTarget giống NGƯỜI THẬT đăng (mức: ${intensity})`,
     'CHỈ áp dụng cho bodyTarget (bản đăng thật). bodyReview giữ tiếng Việt CHUẨN — KHÔNG áp các rule dưới.',
+    'MINDSET: viết như 1 thành viên forum THẬT đang lướt thấy thread này và buột miệng phản ứng — ngắn, có cảm xúc/quan điểm, đậm chất cá nhân. KHÔNG phải thông cáo báo chí, KHÔNG phải bài luận cân bằng, KHÔNG tóm tắt lại nội dung gốc. Ví dụ giọng thật: "all the protections will prob be bullshit that doesnt stop deepfakes lol", "that line about AI agents for students has me raising eyebrows i didnt know i had", "the fact that this guy was the best we could do...".',
     ...lines,
     'RÀNG BUỘC CHUNG:',
     '- KHÔNG dùng em dash "—", luôn dùng "-" (human-voice rule).',

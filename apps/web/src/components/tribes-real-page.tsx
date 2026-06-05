@@ -83,7 +83,7 @@ export function TribesRealPage({ projectId, project, tribes, habitats, platforms
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [view, setView] = useUrlParam('view', 'grid'); // grid | tree
-  const [activeTribe, setActiveTribe] = useState<number | 'all'>(tribes[0]?.id ?? 'all');
+  const [activeTribe, setActiveTribe] = useState<number | 'all'>('all');
   const [search, setSearch] = useState('');
   const [showDefunct, setShowDefunct] = useState(false);
   // URL-synced modal state (DEFAULT pattern, xem lib/use-modal-param.ts).

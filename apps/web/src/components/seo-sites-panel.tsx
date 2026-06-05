@@ -42,6 +42,7 @@ const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'scriptinstant.blogspot.com': { emoji: '📜' },
   'chatlt.com': { emoji: '💬' },
   'bestweightlosspills.reviews': { emoji: '💊' },
+  'hljournal.xyz': { emoji: '📓' },
 };
 
 function normalize(key: string): string {

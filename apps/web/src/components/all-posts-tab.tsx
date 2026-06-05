@@ -87,6 +87,15 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
   const [filters, setFilters] = useState<AllPostedFilters>(initialFilters);
   const [data, setData] = useState<AllPostedResult>(initial);
   const [pending, startTransition] = useTransition();
+  // Deep-link focus 1 card (?fc=<id>): scroll + highlight row (badge ext "📊 MOS2 #N ↗").
+  const [focusId] = useState<number | null>(() => { try { const v = Number(new URLSearchParams(window.location.search).get('fc')); return v || null; } catch { return null; } });
+
+  // Scroll + highlight card focus khi data sẵn sàng.
+  useEffect(() => {
+    if (!focusId) return;
+    const t = setTimeout(() => { document.getElementById(`post-row-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
+    return () => clearTimeout(t);
+  }, [focusId, data]);
 
   // Fetch khi filter đổi (skip lần đầu — dùng initial).
   const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
@@ -107,7 +116,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
     const qs = serializeSeedingTabUrl('posts', filters);
     // Giữ params khác ngoài scope tab (vd ?m=brief&mId=...) — merge.
     const cur = new URLSearchParams(window.location.search);
-    const preserved = ['m', 'mId', 'bfc', 'bfp', 'acct', 'acctId', 'hab', 'habId'];
+    const preserved = ['m', 'mId', 'bfc', 'bfp', 'acct', 'acctId', 'hab', 'habId', 'fc'];
     for (const k of preserved) {
       const v = cur.get(k);
       if (v != null) qs.set(k, v);
@@ -562,7 +571,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
             </thead>
             <tbody>
               {rows.map((c) => (
-                <Row key={c.id} c={c} projectId={projectId} onOpenBrief={onOpenBrief}
+                <Row key={c.id} c={c} projectId={projectId} onOpenBrief={onOpenBrief} focused={c.id === focusId}
                      onLifecycleSaved={(lc) => setData((prev) => ({
                        ...prev,
                        rows: prev.rows.map((r) => r.id === c.id ? { ...r, postLifecycle: lc } : r),
@@ -609,11 +618,12 @@ function buildMetricsRefreshUrl(c: AllPostedCard): string {
   return c.postUrl;
 }
 
-function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
+function Row({ c, projectId, onOpenBrief, onLifecycleSaved, focused }: {
   c: AllPostedCard;
   projectId: string;
   onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
   onLifecycleSaved: (lc: string) => void;
+  focused?: boolean;
 }) {
   const v = c.insightsViewsCount;
   const r = c.insightsUpvoteRatio;
@@ -631,7 +641,8 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved }: {
   const openBrief = () => { if (c.briefId != null) onOpenBrief(c.briefId, c.id, c.briefPhase); };
 
   return (
-    <tr style={{ borderTop: '1px solid var(--line)' }}
+    <tr id={`post-row-${c.id}`}
+        style={{ borderTop: '1px solid var(--line)', ...(focused ? { outline: '2px solid var(--accent)', background: 'var(--accent-soft)' } : {}) }}
         onMouseEnter={() => { if (c.briefId != null) prefetchBriefModal(projectId, c.briefId); }}>
       <td style={td()}>
         <PlatformIcon platformKey={c.platformKey} label={c.platformLabel} />

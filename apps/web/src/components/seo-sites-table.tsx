@@ -65,11 +65,20 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
                   <a
+                    href={wrapExternalUrl(`https://${r.domain}/`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Open ${r.domain} homepage`}
+                    style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
+                  >
+                    Web&nbsp;↗
+                  </a>
+                  <a
                     href={wrapExternalUrl(gscUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Open ${r.domain} in Google Search Console`}
-                    style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
+                    style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
                   >
                     GSC&nbsp;↗
                   </a>

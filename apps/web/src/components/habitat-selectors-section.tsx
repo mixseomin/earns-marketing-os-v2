@@ -91,6 +91,9 @@ export function HabitatSelectorsSection({
     return s;
   };
   const isEditMode = !!(editScope && editKey);
+  // page_kind switcher nội bộ (xem/sửa nhiều nhóm selector: about / composer / signup).
+  const [pk, setPk] = useState(pageKind);
+  useEffect(() => { setPk(pageKind); }, [pageKind]);
   const [resolved, setResolved] = useState<ResolvedMap>({});
   const [editRows, setEditRows] = useState<Array<{ field: string; spec: SelectorSpec; source: string; updatedAt: string }>>([]);
   const [resolvedPlatform, setResolvedPlatform] = useState<string | null>(null);
@@ -104,10 +107,10 @@ export function HabitatSelectorsSection({
     setLoading(true);
     (async () => {
       if (isEditMode && editScope && editKey) {
-        const rows = await listScope({ scopeKind: editScope, scopeKey: editKey, pageKind });
+        const rows = await listScope({ scopeKind: editScope, scopeKey: editKey, pageKind: pk });
         if (!cancelled) { setEditRows(rows); setLoading(false); }
       } else if (habitatId != null) {
-        const r = await resolveSelectorsForHabitat(habitatId, pageKind);
+        const r = await resolveSelectorsForHabitat(habitatId, pk);
         if (!cancelled) {
           setResolved(r.resolved);
           setResolvedPlatform(r.platformKey);
@@ -118,7 +121,7 @@ export function HabitatSelectorsSection({
         const r = await resolveSelectors({
           platformKey: platformKey ?? null,
           technologyKey: technologyKey ?? null,
-          pageKind,
+          pageKind: pk,
         });
         if (!cancelled) {
           setResolved(r);
@@ -129,7 +132,7 @@ export function HabitatSelectorsSection({
       }
     })();
     return () => { cancelled = true; };
-  }, [habitatId, platformKey, technologyKey, editScope, editKey, pageKind, reload, isEditMode]);
+  }, [habitatId, platformKey, technologyKey, editScope, editKey, pk, reload, isEditMode]);
 
   const showMsg = (msg: string) => {
     setActionMsg(msg);
@@ -207,9 +210,19 @@ export function HabitatSelectorsSection({
                          textTransform: 'uppercase', letterSpacing: '.06em' }}>
           {headerTitle}
         </strong>
-        <span style={{ padding: '1px 5px', background: 'var(--bg-2)', borderRadius: 3,
-                       fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-          {pageKind}
+        {/* page_kind switcher: xem/sửa nhiều nhóm selector cùng scope */}
+        <span style={{ display: 'inline-flex', gap: 3 }}>
+          {['composer', 'subreddit-about', 'signup'].map((k) => (
+            <button key={k} type="button" onClick={() => setPk(k)}
+                    title={k === 'composer' ? 'Selector reply-assist (editor/post/nút đăng…)' : k === 'subreddit-about' ? 'Selector scrape thông tin community' : 'Selector form đăng ký'}
+                    style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, cursor: 'pointer',
+                             fontFamily: 'var(--font-mono)',
+                             border: `1px solid ${pk === k ? 'var(--accent)' : 'var(--line)'}`,
+                             background: pk === k ? 'var(--accent-soft)' : 'var(--bg-2)',
+                             color: pk === k ? 'var(--accent)' : 'var(--fg-3)' }}>
+              {k}
+            </button>
+          ))}
         </span>
         {!isEditMode && resolvedPlatform && (
           <span style={{ fontSize: 9, color: 'var(--fg-4)' }}>

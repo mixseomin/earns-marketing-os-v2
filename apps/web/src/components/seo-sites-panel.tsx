@@ -22,6 +22,9 @@ type GscPayload = {
   sites: Record<string, GscSiteStats>;
 };
 
+// Domain ẩn khỏi panel (vẫn trong GSC nhưng không hiển thị MOS2).
+const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com']);
+
 // Map domain → MOS2 project id + visual label.
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
@@ -94,7 +97,7 @@ export async function SeoSitesPanel() {
     );
   }
 
-  const rows = mergeAndDedupe(payload);
+  const rows = mergeAndDedupe(payload).filter((r) => !HIDDEN_DOMAINS.has(r.domain));
   const totalImps = rows.reduce((s, r) => s + r.stats.impressions_7d, 0);
   const totalClicks = rows.reduce((s, r) => s + r.stats.clicks_7d, 0);
   const totalPages = rows.reduce((s, r) => s + r.stats.pages_with_impressions_7d, 0);

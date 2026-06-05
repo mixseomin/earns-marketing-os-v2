@@ -25,6 +25,7 @@ import { AITribesModal } from './ai-tribes-modal';
 import { AIHabitatTribesModal } from './ai-habitat-tribes-modal';
 import { ScheduleEditModal } from './schedule-edit-modal';
 import { HabitatFormModal } from './habitat-form-modal';
+import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { AccountFormModal } from './accounts-vault';
 import { syncHabitatPlatformsFromDirectus, updateHabitat, updateTribe } from '@/lib/actions/tribes-crud';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -611,6 +612,21 @@ function HabitatBriefsDrawer({
         </div>
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* 🎯 Selectors DOM (cascade engine>platform>habitat) — tab composer = reply-assist ext. */}
+          <details>
+            <summary style={{ cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', userSelect: 'none' }}>
+              🎯 Selectors (DOM) — composer / about / signup
+            </summary>
+            <div style={{ marginTop: 6 }}>
+              <HabitatSelectorsSection
+                habitatId={habitat.id}
+                platformKey={habitat.platformKey}
+                technologyKey={(habitat as { technologyKey?: string | null }).technologyKey ?? null}
+                habitat={habitat}
+                pageKind="composer"
+              />
+            </div>
+          </details>
           {/* Default phase strategy for this habitat archetype - reference
               card shown REGARDLESS of brief count. Helps user understand the
               recommended approach for the community type before customizing. */}

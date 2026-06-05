@@ -1055,18 +1055,20 @@ function TribeHierarchyTree({
                       : null;
                     return (
                       <div key={hKey} style={{ marginTop: 3 }}>
-                        {/* Habitat row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px',
-                                      borderRadius: 5, opacity: hDefunct ? 0.55 : 1 }}>
-                          <span onClick={() => toggle(hKey)}
+                        {/* Habitat row — click cả hàng → mở drawer (detail + selectors) */}
+                        <div onClick={() => onOpenHabitat(h.id)}
+                             title="Mở chi tiết habitat (brief + 🎯 selectors)"
+                             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px',
+                                      borderRadius: 5, opacity: hDefunct ? 0.55 : 1, cursor: 'pointer' }}
+                             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <span onClick={(e) => { e.stopPropagation(); toggle(hKey); }}
                                 style={{ width: 12, color: 'var(--fg-3)', fontSize: 10, cursor: 'pointer' }}
                                 title={hCollapsed ? 'Mở account' : 'Gập account'}>
                             {h.accounts.length ? (hCollapsed ? '▸' : '▾') : '·'}
                           </span>
                           <SiteFavicon url={h.url} kind={h.kind} glyph={KIND_GLYPH[h.kind] || '📎'} size={15} title={h.kind} />
-                          <span onClick={() => onOpenHabitat(h.id)}
-                                title="Mở brief drawer cho habitat này"
-                                style={{ fontSize: 12, color: 'var(--fg-0)', cursor: 'pointer',
+                          <span style={{ fontSize: 12, color: 'var(--fg-0)',
                                          textDecoration: hDefunct ? 'line-through' : 'none' }}>
                             {h.name}
                           </span>

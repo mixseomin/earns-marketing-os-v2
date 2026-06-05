@@ -15,6 +15,14 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const DEFAULT_SQUAD = 'wf-writer';
 const DEFAULT_COL = 'backlog';
 
+// 🧵 ×N = số bài ĐÃ ĐĂNG cùng thread (thread_key) trong project — KHÔNG tính draft
+// nháp. Subquery tham chiếu alias `c` (main cards). Dùng chung mọi list query.
+const PARENT_ATTEMPT_COUNT_SQL = sql`
+  (SELECT COUNT(*) FROM cards c2
+     WHERE c2.project_id = c.project_id
+       AND c2.thread_key = c.thread_key AND c2.thread_key IS NOT NULL
+       AND c2.post_url IS NOT NULL) AS parent_attempt_count`;
+
 function ensureDb() {
   const db = getDb();
   if (!db) throw new Error('DATABASE_URL not configured.');
@@ -483,12 +491,7 @@ export async function listRecentPostedCards(
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle, pa.account_kind AS account_kind,
            hc.name AS channel_name,
-           -- COUNT bài ĐÃ ĐĂNG cùng parent_url (post_url not null) — số lần thực sự
-           -- engage thread, KHÔNG tính draft nháp. project-scoped để cross-brief OK.
-           (SELECT COUNT(*) FROM cards c2
-              WHERE c2.project_id = c.project_id
-                AND c2.thread_key = c.thread_key AND c2.thread_key IS NOT NULL
-                AND c2.post_url IS NOT NULL) AS parent_attempt_count
+           ${PARENT_ATTEMPT_COUNT_SQL}
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
@@ -1036,10 +1039,7 @@ export async function listAllPostedCards(
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle, pa.account_kind AS account_kind,
            hc.name AS channel_name,
-           (SELECT COUNT(*) FROM cards c2
-              WHERE c2.project_id = c.project_id
-                AND c2.thread_key = c.thread_key AND c2.thread_key IS NOT NULL
-                AND c2.post_url IS NOT NULL) AS parent_attempt_count
+           ${PARENT_ATTEMPT_COUNT_SQL}
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id

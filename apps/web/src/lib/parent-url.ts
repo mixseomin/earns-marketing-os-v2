@@ -1,10 +1,9 @@
-// normalizeParentUrl — key ổn định cho 1 thread/comment để match engagement + drafts
-// history. URL trình duyệt có query đổi MỖI LẦN xem (vd Reddit `?context=1&
-// screen_view_count=N`) → exact-match `parent_url` ko bao giờ trúng khi mở lại →
-// ext "như mới". Strip query (?...) + fragment (#...) + trailing slash. Dùng cả khi
-// LƯU (card.parent_url) và khi ĐỌC (engagements/list-drafts). Read còn strip cột stored
-// trong SQL (rtrim(split_part(parent_url,'?',1),'/')) để khớp card cũ lưu raw.
-// Regex Reddit thread canonical — phải KHỚP với backfill SQL trong DB.
+// normalizeParentUrl — canonical key cho 1 thread để match version/track/engagement.
+// URL trình duyệt đổi mỗi lần xem (Reddit `?screen_view_count=N`, forum `/page-N`,
+// permalink `/post-N`, slug) → exact-match parent_url ko trúng. Strip query/fragment/
+// trailing-slash + canonical Reddit thread (`/r/<sub>/comments/<id>`) + forum suffix.
+// NGUỒN SỰ THẬT DUY NHẤT: kết quả lưu vào cột cards.thread_key (set ở updatePost);
+// MỌI read so BẰNG thread_key (ko còn regexp SQL phân kỳ). Migration 0088.
 const REDDIT_THREAD_RE = /^https?:\/\/(?:[a-z0-9-]+\.)?reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]+/i;
 
 export function normalizeParentUrl(url: string | null | undefined): string | null {

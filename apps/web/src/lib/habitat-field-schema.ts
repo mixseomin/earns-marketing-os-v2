@@ -94,6 +94,23 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
     { key: 'display_name', label: 'Display name', hint: 'Tên hiển thị / nickname (nếu khác username).' },
     { key: 'bio', label: 'Bio', hint: 'Giới thiệu / about (textarea).' },
   ],
+  // Composer (reply-assist in-page widget) — selector cho widget soạn/đăng reply +
+  // đọc thread/post + ngữ cảnh reply. Cascade engine>platform>habitat. Field `_adapter`
+  // (spec jsonb) chứa behavior flags: float, noPost, quoteFormat, insert, postAuthorAttr...
+  'composer': [
+    { key: 'composer.anchor', label: 'Neo widget', hint: 'Element để gắn thanh assist (dưới/trên editor). Vd .formButtonGroup (XenForo), reddit-rte.' },
+    { key: 'composer.editor', label: 'Ô soạn (WRITE)', hint: 'Ô nhập reply: textarea / contenteditable. Vd .fr-element, reddit-rte [contenteditable].' },
+    { key: 'composer.postBtn', label: 'Nút Đăng', hint: 'Nút submit reply (forum). Reddit để trống (noPost).' },
+    { key: 'thread.title', label: 'Tiêu đề thread', hint: 'h1 tiêu đề bài/thread.' },
+    { key: 'post.item', label: 'Post (1 bài)', hint: 'Element bao 1 post/comment. Vd article.message, shreddit-comment.' },
+    { key: 'post.author', label: 'Author post', hint: 'Tên người đăng trong 1 post.' },
+    { key: 'post.permalink', label: 'Permalink post', hint: 'Link tới 1 post (post-NNN / /comments/...).' },
+    { key: 'parent.container', label: 'Bài đang reply', hint: 'Comment/post mà reply nhắm tới (Reddit: ancestor comment).' },
+    { key: 'reactions', label: 'Reactions', hint: 'Số like/reaction của 1 post (track metrics).' },
+    { key: 'replyAction', label: 'Nút Reply', hint: 'Action "Reply"/quote trên 1 post (follow-up).' },
+    { key: 'breadcrumb', label: 'Breadcrumb sub-forum', hint: 'Link sub-forum trong breadcrumb (forum).' },
+    { key: '_adapter', label: 'Behavior (JSON)', hint: 'Cấu hình: { float, noPost, quoteFormat:bbcode|reddit-parent, insert:append, postAuthorAttr }.' },
+  ],
   // Future: subreddit-rules, fb-group-about, discord-server-about ...
 };
 

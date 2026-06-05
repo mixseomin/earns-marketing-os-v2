@@ -294,7 +294,7 @@ export async function listEngagementsByParentUrl(
       LEFT JOIN community_briefs b ON b.id = c.brief_id
       LEFT JOIN habitats h ON h.id = b.habitat_id
       LEFT JOIN platform_accounts pa ON pa.id = b.account_id
-     WHERE c.project_id = ${projectId} AND rtrim(split_part(c.parent_url, '?', 1), '/') = ${np}
+     WHERE c.project_id = ${projectId} AND c.thread_key = ${np}
      ORDER BY
        (c.archived_at IS NOT NULL) ASC,
        c.posted_at DESC NULLS LAST,
@@ -487,8 +487,7 @@ export async function listRecentPostedCards(
            -- engage thread, KHÔNG tính draft nháp. project-scoped để cross-brief OK.
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
-                AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
-                AND c2.parent_url IS NOT NULL
+                AND c2.thread_key = c.thread_key AND c2.thread_key IS NOT NULL
                 AND c2.post_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -721,7 +720,8 @@ export async function updatePost(
       ...(patch.bodyReview != null ? { bodyReview: patch.bodyReview } : {}),
       ...(patch.bodyTarget != null ? { bodyTarget: patch.bodyTarget } : {}),
       ...(patch.targetLang != null ? { targetLang: patch.targetLang } : {}),
-      ...(patch.parentUrl !== undefined ? { parentUrl: patch.parentUrl } : {}),
+      // Set parent_url + thread_key (canonical) cùng lúc — write point DUY NHẤT, ko thể quên.
+      ...(patch.parentUrl !== undefined ? { parentUrl: patch.parentUrl, threadKey: normalizeParentUrl(patch.parentUrl) } : {}),
       ...(patch.parentTitle !== undefined ? { parentTitle: patch.parentTitle } : {}),
       ...(patch.parentBody !== undefined ? { parentBody: patch.parentBody } : {}),
       ...(patch.parentAuthor !== undefined ? { parentAuthor: patch.parentAuthor } : {}),
@@ -1038,8 +1038,7 @@ export async function listAllPostedCards(
            hc.name AS channel_name,
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
-                AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
-                AND c2.parent_url IS NOT NULL
+                AND c2.thread_key = c.thread_key AND c2.thread_key IS NOT NULL
                 AND c2.post_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -1281,7 +1280,7 @@ export async function listCostVersions(
                answer_source, post_url, created_at
         FROM cards
         WHERE project_id = ${projectId}
-          AND rtrim(split_part(parent_url, '?', 1), '/') = ${parentUrl}
+          AND thread_key = ${parentUrl}
           AND archived_at IS NULL
         ORDER BY created_at ASC
       `)

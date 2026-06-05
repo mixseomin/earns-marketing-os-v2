@@ -221,6 +221,9 @@ export const cards = pgTable(
     // 0068: URL thread/post gốc cho comment/reply (interaction types).
     // NULL = standalone post. AI prompt nạp parent context khi present.
     parentUrl: text('parent_url'),
+    // 0088: canonical thread key = normalizeParentUrl(parent_url). Set tự động ở
+    // updatePost → read match BẰNG cột này (bỏ regexp SQL phân kỳ). Version/track ổn định.
+    threadKey: text('thread_key'),
     // 0069: parent thread/post content cho AI gen reply có context.
     // 4 fields nullable, chỉ dùng khi content_type IN ('comment','reply').
     parentTitle: text('parent_title'),

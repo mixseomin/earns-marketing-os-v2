@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
-    WHERE regexp_replace(rtrim(split_part(c.parent_url, '?', 1), '/'), '/(page-[0-9]+|post-[0-9]+|unread|latest|reply)$', '') = ${np}
+    WHERE c.thread_key = ${np}
       AND c.archived_at IS NULL
       ${habitatId > 0 ? sql`AND b.habitat_id = ${habitatId}` : sql``}
     ORDER BY c.created_at DESC

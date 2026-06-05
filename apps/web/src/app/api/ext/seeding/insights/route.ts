@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       SELECT c.id FROM cards c
         JOIN community_briefs b ON b.id = c.brief_id
         LEFT JOIN platform_accounts pa ON pa.id = b.account_id
-       WHERE regexp_replace(rtrim(split_part(c.parent_url, '?', 1), '/'), '/(page-[0-9]+|post-[0-9]+|unread|latest|reply)$', '') = ${np}
+       WHERE c.thread_key = ${np}
          AND c.post_url IS NOT NULL
          AND c.archived_at IS NULL
          ${handle ? sql`AND lower(pa.handle) = ${handle}` : sql``}

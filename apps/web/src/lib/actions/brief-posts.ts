@@ -483,12 +483,13 @@ export async function listRecentPostedCards(
            p.label AS platform_label, p.key AS platform_key,
            pa.handle AS account_handle, pa.account_kind AS account_kind,
            hc.name AS channel_name,
-           -- COUNT attempts cùng parent_url (>= 1, include self). Window function
-           -- để tránh subquery; project-scoped để cross-brief OK.
+           -- COUNT bài ĐÃ ĐĂNG cùng parent_url (post_url not null) — số lần thực sự
+           -- engage thread, KHÔNG tính draft nháp. project-scoped để cross-brief OK.
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
                 AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
-                AND c2.parent_url IS NOT NULL) AS parent_attempt_count
+                AND c2.parent_url IS NOT NULL
+                AND c2.post_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
@@ -1038,7 +1039,8 @@ export async function listAllPostedCards(
            (SELECT COUNT(*) FROM cards c2
               WHERE c2.project_id = c.project_id
                 AND rtrim(split_part(c2.parent_url, '?', 1), '/') = rtrim(split_part(c.parent_url, '?', 1), '/')
-                AND c2.parent_url IS NOT NULL) AS parent_attempt_count
+                AND c2.parent_url IS NOT NULL
+                AND c2.post_url IS NOT NULL) AS parent_attempt_count
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id

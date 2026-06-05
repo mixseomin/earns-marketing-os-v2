@@ -39,7 +39,7 @@ export async function GET(req: Request) {
       c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
       c.insights_reply_count, c.insights_share_count, c.insights_award_count,
       c.insights_fetched_at,
-      c.created_at, c.updated_at,
+      c.created_at, c.updated_at, c.brief_phase,
       b.id AS brief_id, b.habitat_id,
       h.name AS habitat_name
     FROM cards c
@@ -86,6 +86,7 @@ export async function GET(req: Request) {
     createdAt: String(r.created_at ?? ''),
     updatedAt: String(r.updated_at ?? ''),
     briefId: r.brief_id ? Number(r.brief_id) : null,
+    briefPhase: r.brief_phase ? String(r.brief_phase) : null,
     habitatId: r.habitat_id ? Number(r.habitat_id) : null,
     habitatName: r.habitat_name ? String(r.habitat_name) : null,
   }));

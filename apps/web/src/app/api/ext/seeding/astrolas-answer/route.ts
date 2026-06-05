@@ -7,6 +7,7 @@ import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 import { buildHumanizerBlock, clampDraftLength } from '@/lib/ai/humanizer';
+import { normalizeParentUrl } from '@/lib/parent-url';
 
 // POST /api/ext/seeding/astrolas-answer
 // Body giống /quick-comment nhưng dùng Astrolas API (data-backed) thay vì
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
   const cardId = create.id;
 
   await updatePost(projectId, cardId, {
-    parentUrl: body.parentUrl ?? null,
+    parentUrl: normalizeParentUrl(body.parentUrl),   // canonical (như quick-comment) → list-drafts/version khớp
     parentTitle: body.parentTitle ?? null,
     parentBody: body.parentBody ?? null,
     parentAuthor: body.parentAuthor ?? null,

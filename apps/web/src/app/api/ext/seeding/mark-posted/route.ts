@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     cardId?: number;
     postUrl?: string;
     note?: string;
+    bodyFinal?: string;   // bản user ĐÃ SỬA trước khi gửi → lưu lại để tracking đúng thực tế
   };
   const cardId = Number(body.cardId ?? 0);
   const postUrl = String(body.postUrl ?? '').trim();
@@ -25,6 +26,12 @@ export async function POST(req: Request) {
 
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+
+  // Lưu bản cuối (đã sửa tay) vào body_target → card phản ánh đúng cái đã đăng.
+  const bf = (body.bodyFinal ?? '').trim();
+  if (bf) {
+    await db.execute(sql`UPDATE cards SET body_target = ${bf.slice(0, 8000)}, updated_at = NOW() WHERE id = ${cardId}`);
+  }
 
   // Lookup project_id + brief_id từ card
   const rows = await db.execute(sql`

@@ -353,6 +353,8 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
       : null,
     (ctx.contentType === 'comment' || ctx.contentType === 'reply')
       ? `Quy tắc reply:
+  - 🈯 NGÔN NGỮ (ƯU TIÊN CAO NHẤT): nếu CÓ parent body → viết bodyTarget BẰNG CHÍNH NGÔN NGỮ của parent (reply ai thì dùng ngôn ngữ của họ). Parent tiếng Trung → reply tiếng Trung; tiếng Anh → tiếng Anh; tiếng Việt → tiếng Việt. TUYỆT ĐỐI KHÔNG dịch sang ngôn ngữ khác / trộn ngôn ngữ. (bodyReview vẫn tiếng Việt cho operator.) Parent trống → dùng ngôn ngữ chính của community.
+  - 🎯 Bám SÁT luận điểm/câu hỏi chính của parent — phản hồi trực tiếp ý đó, KHÔNG generic / lạc đề.
   - KHÔNG mở bài lại bằng greeting / "Hello" / "Tôi là..." — nhảy thẳng vào câu trả lời
   - Bám vào nội dung thread/post gốc (giả định reader đã đọc parent)
   - ${hardLenText ? `ĐỘ DÀI: ${hardLenText}` : 'Ngắn gọn (1-4 câu cho comment, 3-8 câu cho reply Q&A)'}

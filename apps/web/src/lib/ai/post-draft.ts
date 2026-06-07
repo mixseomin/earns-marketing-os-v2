@@ -81,6 +81,10 @@ interface PostContext {
   personaVoiceSummary: string;
   personaNarrativeStyle: string;
   personaBackstory: string;
+  personaName: string;
+  personaGender: string;
+  personaLocation: string;
+  personaInterests: string[];
   briefApproachMd: string;
   briefNarrativeMd: string;
   briefTone: string;
@@ -255,6 +259,10 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     personaVoiceSummary: typeof persona.voice_summary === 'string' ? persona.voice_summary : '',
     personaNarrativeStyle: typeof persona.narrative_style === 'string' ? persona.narrative_style : '',
     personaBackstory: typeof persona.backstory === 'string' ? persona.backstory : '',
+    personaName: [persona.name_first, persona.name_last].filter((x) => typeof x === 'string' && x).join(' '),
+    personaGender: typeof persona.gender === 'string' ? persona.gender : '',
+    personaLocation: [persona.city, persona.country].filter((x) => typeof x === 'string' && x).join(', '),
+    personaInterests: Array.isArray(persona.interests) ? (persona.interests as unknown[]).filter((x): x is string => typeof x === 'string') : [],
     briefApproachMd: String(r.approach_md ?? ''),
     briefNarrativeMd: String(r.narrative_md ?? ''),
     briefTone: String(r.tone ?? ''),
@@ -335,10 +343,11 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
     `  Platform: ${ctx.platformLabel}`,
     `  Community: ${ctx.habitatName} (${ctx.habitatKind}, ngôn ngữ chính: ${ctx.habitatLanguage})`,
     ctx.channelName ? `  Channel: #${ctx.channelName}${ctx.channelDescription ? ` — ${ctx.channelDescription}` : ''}` : null,
-    `  Account/Persona: @${ctx.accountHandle ?? '?'}`,
+    `  Account/Persona: @${ctx.accountHandle ?? '?'}` + (ctx.personaName ? ` (${ctx.personaName}${ctx.personaGender ? ', ' + ctx.personaGender : ''}${ctx.personaLocation ? ', ' + ctx.personaLocation : ''})` : ''),
     `  Content type: ${ctx.contentType}`,
-    ctx.personaVoiceSummary ? `  Persona voice: ${ctx.personaVoiceSummary}` : null,
+    ctx.personaVoiceSummary ? `  Persona voice (GIỌNG/TONE — viết ĐÚNG giọng này): ${ctx.personaVoiceSummary}` : null,
     ctx.personaNarrativeStyle ? `  Narrative style: ${ctx.personaNarrativeStyle}` : null,
+    ctx.personaInterests.length ? `  Quan tâm/chuyên môn (bám góc nhìn này): ${ctx.personaInterests.join(', ')}` : null,
     ctx.personaBackstory ? `  Backstory: ${ctx.personaBackstory}` : null,
     '',
     // INTERACTION CONTEXT — khi content_type là comment/reply, bài này không

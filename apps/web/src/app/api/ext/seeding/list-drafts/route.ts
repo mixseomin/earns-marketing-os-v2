@@ -18,8 +18,10 @@ export async function GET(req: Request) {
   const np = normalizeParentUrl(url.searchParams.get('parentUrl'));
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
 
-  if (!np) {
-    return NextResponse.json({ ok: false, error: 'parentUrl required' }, { status: 400 });
+  // Cho phép habitat-only (parentUrl optional) → passive tracker X load card theo
+  // habitat rồi match theo BODY (URL post≠URL gen thread → ko match được theo thread_key).
+  if (!np && !(habitatId > 0)) {
+    return NextResponse.json({ ok: false, error: 'parentUrl or habitatId required' }, { status: 400 });
   }
 
   const db = getDb();
@@ -45,8 +47,8 @@ export async function GET(req: Request) {
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
     LEFT JOIN habitats h ON h.id = b.habitat_id
-    WHERE c.thread_key = ${np}
-      AND c.archived_at IS NULL
+    WHERE c.archived_at IS NULL
+      ${np ? sql`AND c.thread_key = ${np}` : sql``}
       ${habitatId > 0 ? sql`AND b.habitat_id = ${habitatId}` : sql``}
     ORDER BY c.created_at DESC
     LIMIT 50

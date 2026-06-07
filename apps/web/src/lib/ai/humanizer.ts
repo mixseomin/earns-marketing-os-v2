@@ -16,7 +16,7 @@ export const HUMANIZER_KEYS = [
   // STANCE/VOICE (cái làm post "thật" nhất — quan trọng hơn typo bề mặt)
   'opinion', 'react-specific', 'no-corporate', 'profanity',
   // FORM (bề mặt)
-  'one-sentence', 'two-three', 'spoken', 'typos', 'abbrev', 'lowercase',
+  'one-sentence', 'two-three', 'spoken', 'typos', 'abbrev', 'lowercase', 'lazy-caps',
   'no-end-punct', 'humor', 'filler', 'reaction-first', 'mundane', 'emoji',
 ] as const;
 export type HumanizerKey = typeof HUMANIZER_KEYS[number];
@@ -68,6 +68,12 @@ function knobLine(key: string, targetLang: string, intensity: HumanizerIntensity
     }
     case 'lowercase':
       return '- LOWERCASE: viết thường toàn bộ, KHÔNG viết hoa đầu câu (trừ "I" trong tiếng Anh nếu thấy tự nhiên). Tell casual của Reddit/Discord.';
+    case 'lazy-caps':
+      return '- LƯỜI VIẾT HOA (NGẪU NHIÊN, KHÔNG đều): phần lớn vẫn hoa đầu câu bình thường, NHƯNG thỉnh thoảng (1-2 chỗ, KHÔNG mọi câu) quên hoa đầu câu sau dấu chấm, hoặc dùng "i" thường thay "I". Lỗi rải rác như gõ vội — KHÁC lowercase (thường toàn bộ).';
+    case 'no-apostrophe':
+      return '- BỎ DẤU NHÁY (casual): bỏ apostrophe trong contraction — "dont, cant, im, youre, its, thats, ive, dont" thay vì don\'t/can\'t/I\'m… Tự nhiên kiểu gõ nhanh.';
+    case 'homophone':
+      return '- LẪN ĐỒNG ÂM (thỉnh thoảng, 1 chỗ): lỗi người hay mắc — your↔you\'re, their↔there↔they\'re, its↔it\'s, to↔too, then↔than. Chỉ 1 chỗ, ko nhiều (vẫn đọc hiểu được).';
     case 'no-end-punct':
       return '- DẤU CÂU: bỏ dấu chấm ở câu cuối; có thể dùng "..." lửng hoặc "?!" thay cho dấu chuẩn.';
     case 'humor':
@@ -197,4 +203,33 @@ export function injectTypos(text: string, opts: HumanizerOpts | null | undefined
   for (let k = eligible.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); const tmp = eligible[k]!; eligible[k] = eligible[j]!; eligible[j] = tmp; }
   eligible.slice(0, need).forEach((i) => { const tw = toks[i]; if (tw != null) toks[i] = typoWord(tw); });
   return toks.join('');
+}
+
+// Post-process LỖI NGƯỜI THẬT (lazy-caps / no-apostrophe / homophone). CHỈ bodyTarget,
+// bỏ qua CJK. Deterministic (model hay tự "sửa sạch" nên ép bằng code).
+const _CJK_RE = /[一-鿿぀-ヿ가-힯Ѐ-ӿ؀-ۿ฀-๿]/;
+export function applyHumanErrors(text: string, opts: HumanizerOpts | null | undefined): string {
+  if (!opts || !Array.isArray(opts.knobs) || !text || _CJK_RE.test(text)) return text;
+  const has = (k: string) => opts.knobs.includes(k);
+  let out = text;
+  // BỎ DẤU NHÁY — người bỏ thì bỏ hết contraction (don't→dont, I'm→im, it's→its).
+  if (has('no-apostrophe')) out = out.replace(/\b([A-Za-z]+)['’]([A-Za-z]+)\b/g, (_m, a, b) => a + b);
+  // LƯỜI HOA (ngẫu nhiên, ko đều) — chỉ khi KHÔNG bật lowercase.
+  if (has('lazy-caps') && !has('lowercase')) {
+    out = out.replace(/([.!?]["')\]]?\s+)([A-Z])/g, (m, sep, ch) => (Math.random() < 0.38 ? sep + (ch as string).toLowerCase() : m));
+    out = out.replace(/\bI\b/g, (m) => (Math.random() < 0.25 ? 'i' : m));
+    if (/^[A-Z]/.test(out) && Math.random() < 0.18) out = (out[0] ?? '').toLowerCase() + out.slice(1);
+  }
+  // LẪN ĐỒNG ÂM — 1 chỗ ngẫu nhiên (~45% có lỗi).
+  if (has('homophone') && Math.random() < 0.45) {
+    const swaps: Array<[RegExp, string]> = [
+      [/\byou're\b/i, 'your'], [/\byour\b/, "you're"], [/\bthey're\b/i, 'their'],
+      [/\btheir\b/, 'there'], [/\bit's\b/i, 'its'], [/\btoo\b/, 'to'], [/\bthen\b/, 'than'],
+    ];
+    for (const i of swaps.map((_, j) => j).sort(() => Math.random() - 0.5)) {
+      const pair = swaps[i]; if (!pair) continue; const [re, rep] = pair;
+      if (re.test(out)) { out = out.replace(re, (mm) => (mm[0] === (mm[0] ?? '').toUpperCase() ? rep.charAt(0).toUpperCase() + rep.slice(1) : rep)); break; }
+    }
+  }
+  return out;
 }

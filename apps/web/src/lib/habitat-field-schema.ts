@@ -103,6 +103,7 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
     { key: 'composer.postBtn', label: 'Nút Đăng', hint: 'Nút submit reply (forum). Reddit để trống (noPost).' },
     { key: 'thread.title', label: 'Tiêu đề thread', hint: 'h1 tiêu đề bài/thread.' },
     { key: 'post.item', label: 'Post (1 bài)', hint: 'Element bao 1 post/comment. Vd article.message, shreddit-comment.' },
+    { key: 'post.body', label: 'Nội dung post', hint: 'Text 1 post/comment (match card đã đăng → đánh dấu trên trang). Vd [data-testid=tweetText], .bbWrapper.' },
     { key: 'post.author', label: 'Author post', hint: 'Tên người đăng trong 1 post.' },
     { key: 'post.permalink', label: 'Permalink post', hint: 'Link tới 1 post (post-NNN / /comments/...).' },
     { key: 'parent.container', label: 'Bài đang reply', hint: 'Comment/post mà reply nhắm tới (Reddit: ancestor comment).' },

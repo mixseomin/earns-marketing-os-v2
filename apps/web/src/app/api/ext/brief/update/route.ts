@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     briefId?: number;
     approach_md?: string;
     tone?: string;
+    humanizer?: { knobs?: string[]; intensity?: string } | null;   // override per-habitat; null = inherit account
     do_md?: string;
     dont_md?: string;
     narrative_md?: string;
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
   const sets: ReturnType<typeof sql>[] = [];
   if (typeof body.approach_md === 'string') sets.push(sql`approach_md = ${body.approach_md}`);
   if (typeof body.tone === 'string') sets.push(sql`tone = ${body.tone}`);
+  if (body.humanizer !== undefined) sets.push(sql`humanizer = ${body.humanizer == null ? null : JSON.stringify(body.humanizer)}::jsonb`);
   if (typeof body.do_md === 'string') sets.push(sql`do_md = ${body.do_md}`);
   if (typeof body.dont_md === 'string') sets.push(sql`dont_md = ${body.dont_md}`);
   if (typeof body.narrative_md === 'string') sets.push(sql`narrative_md = ${body.narrative_md}`);

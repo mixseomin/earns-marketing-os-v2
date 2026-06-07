@@ -124,6 +124,7 @@ export async function GET(req: Request) {
     const briefRows = await db.execute(sql`
       SELECT
         b.id, b.current_phase, b.approach_md, b.narrative_md, b.tone, b.do_md, b.dont_md,
+        b.humanizer,
         b.join_status, b.join_note, b.join_url, b.join_checklist, b.follow_up_at,
         h.id AS habitat_id, h.name AS habitat_name, h.language AS habitat_language,
         h.voice_profile AS habitat_voice, h.voice_notes AS habitat_voice_notes
@@ -140,6 +141,7 @@ export async function GET(req: Request) {
         approachMd: String(br.approach_md ?? ''),
         narrativeMd: String(br.narrative_md ?? ''),
         tone: String(br.tone ?? ''),
+        humanizer: br.humanizer ?? null,   // override per-habitat (null = kế thừa account)
         doMd: String(br.do_md ?? ''),
         dontMd: String(br.dont_md ?? ''),
         joinStatus: String(br.join_status ?? ''),

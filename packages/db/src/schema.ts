@@ -897,6 +897,8 @@ export const communityBriefs = pgTable(
     // content (story arc, hooks, narrative voice) as opposed to approachMd
     // which is WHERE/WHEN to engage.
     narrativeMd: text('narrative_md').notNull().default(''),
+    // Humanizer override per-habitat (cặp account×habitat). NULL = kế thừa account.persona.humanizer.
+    humanizer: jsonb('humanizer'),
     // Default content pillar cho brief — mọi card tạo trong brief inherit.
     // Override per-card qua cards.pillar_id.
     primaryPillarId: bigint('primary_pillar_id', { mode: 'number' }),

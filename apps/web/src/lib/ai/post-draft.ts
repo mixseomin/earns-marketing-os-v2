@@ -282,7 +282,26 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
   };
 }
 
+// Nhận diện ngôn ngữ thô từ script (để reply BẰNG ngôn ngữ parent). Trả ISO code hoặc null.
+function detectScriptLang(text: string): string | null {
+  const s = text || '';
+  if (/[一-鿿]/.test(s)) return 'zh';
+  if (/[぀-ヿ]/.test(s)) return 'ja';
+  if (/[가-힯]/.test(s)) return 'ko';
+  if (/[Ѐ-ӿ]/.test(s)) return 'ru';
+  if (/[؀-ۿ]/.test(s)) return 'ar';
+  if (/[฀-๿]/.test(s)) return 'th';
+  if (/[֐-׿]/.test(s)) return 'he';
+  if (/[ăâđêôơưĂÂĐÊÔƠƯàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗùúụủũừứựửữỳýỵỷỹ]/.test(s)) return 'vi';
+  return null;   // Latin/English/unknown → KHÔNG override
+}
+
 function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string, humanizer?: HumanizerOpts): string {
+  // REPLY: bodyTarget PHẢI cùng ngôn ngữ parent → override targetLang TỪ GỐC (output-format
+  // bên dưới ép "bodyTarget → targetLang", nếu ko sửa gốc thì rule reply bị đè → ra sai ngôn ngữ).
+  const isReplyType = ctx.contentType === 'comment' || ctx.contentType === 'reply';
+  const parentLang = isReplyType && ctx.parentBody ? detectScriptLang(ctx.parentBody) : null;
+  if (parentLang && parentLang !== ctx.targetLang) ctx = { ...ctx, targetLang: parentLang, isBilingual: parentLang !== 'vi' };
   const humanizerBlock = buildHumanizerBlock(humanizer, ctx.targetLang);
   // Chip 1-câu/2-3-câu = giới hạn câu cứng → tắt các hint độ dài mâu thuẫn bên dưới
   // (reply rule "1-4 câu", voice/platform length) để model tuân thủ trong 1 call.

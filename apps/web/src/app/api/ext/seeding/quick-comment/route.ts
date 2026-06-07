@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     parentBody?: string;
     parentAuthor?: string;
     modelId?: string;
+    lang?: string;   // 'auto' | 'community' | code ('en','zh','vi'…)
     customPrompt?: string;
     briefOverride?: {
       approach_md?: string;
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
   const draft = await generateFullDraft(cardId, {
     modelId: body.modelId || 'gpt-4.1-mini',
     customInstruction: body.customPrompt,
+    lang: body.lang,
     briefOverride: body.briefOverride,
     humanizer: body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0
       ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity }

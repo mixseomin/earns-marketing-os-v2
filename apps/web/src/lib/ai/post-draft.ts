@@ -304,12 +304,20 @@ function detectScriptLang(text: string): string | null {
   return null;   // Latin/English/unknown → KHÔNG override
 }
 
-function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string, humanizer?: HumanizerOpts): string {
-  // REPLY: bodyTarget PHẢI cùng ngôn ngữ parent → override targetLang TỪ GỐC (output-format
-  // bên dưới ép "bodyTarget → targetLang", nếu ko sửa gốc thì rule reply bị đè → ra sai ngôn ngữ).
+function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customInstruction?: string, humanizer?: HumanizerOpts, langPref?: string): string {
+  // Ngôn ngữ bodyTarget — override targetLang TỪ GỐC (output-format bên dưới ép theo
+  // targetLang). Ưu tiên: (1) explicit code (zh/en/vi…) · (2) 'community' = giữ ngôn ngữ
+  // habitat · (3) 'auto'/trống = detect ngôn ngữ COMMENT đang reply → fallback habitat.
   const isReplyType = ctx.contentType === 'comment' || ctx.contentType === 'reply';
-  const parentLang = isReplyType && ctx.parentBody ? detectScriptLang(ctx.parentBody) : null;
-  if (parentLang && parentLang !== ctx.targetLang) ctx = { ...ctx, targetLang: parentLang, isBilingual: parentLang !== 'vi' };
+  const pref = (langPref || 'auto').toLowerCase();
+  let effLang = ctx.targetLang;
+  if (pref && pref !== 'auto' && pref !== 'community') {
+    effLang = pref;
+  } else if (pref !== 'community') {   // auto
+    const parentLang = isReplyType && ctx.parentBody ? detectScriptLang(ctx.parentBody) : null;
+    if (parentLang) effLang = parentLang;
+  }
+  if (effLang !== ctx.targetLang) ctx = { ...ctx, targetLang: effLang, isBilingual: effLang !== 'vi' };
   const humanizerBlock = buildHumanizerBlock(humanizer, ctx.targetLang);
   // Chip 1-câu/2-3-câu = giới hạn câu cứng → tắt các hint độ dài mâu thuẫn bên dưới
   // (reply rule "1-4 câu", voice/platform length) để model tuân thủ trong 1 call.
@@ -611,6 +619,7 @@ export async function generateFullDraft(
     modelId?: string;
     customInstruction?: string;
     humanizer?: HumanizerOpts;
+    lang?: string;   // 'auto'(default) | 'community' | code ('en','zh','vi'…)
     briefOverride?: {
       approach_md?: string;
       tone?: string;
@@ -641,7 +650,7 @@ export async function generateFullDraft(
       ...(typeof ov.narrative_md === 'string' ? { briefNarrativeMd: ov.narrative_md } : {}),
     };
 
-    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction, opts?.humanizer);
+    const userPrompt = buildDraftPrompt(ctx, opts?.hookChoice ?? null, opts?.customInstruction, opts?.humanizer, opts?.lang);
 
     // Model resolution: user override (whitelist) > REASONING_MODEL default.
     const chosenModel = opts?.modelId && isValidTextModel(opts.modelId)

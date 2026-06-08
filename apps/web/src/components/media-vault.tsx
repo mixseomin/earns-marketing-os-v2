@@ -22,6 +22,7 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
   const modal = useModalParam();
   const editing = modal.is("edit") ? items.find((x) => x.id === modal.numId) ?? null : null;
   const creating = modal.is("new");
+  const [zoom, setZoom] = useState<MediaRow | null>(null);
 
   const stats: StatCard[] = [
     { key: 'total', label: 'Total', value: items.length, color: 'var(--fg-0)' },
@@ -45,19 +46,24 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
           {items.map((m) => (
             <div key={m.id} className="panel" style={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => modal.open("edit", m.id)}>
               {m.kind === 'image' && (
-                <div style={{ aspectRatio: '16 / 10', background: 'var(--bg-2)', overflow: 'hidden' }}>
+                <div
+                  style={{ aspectRatio: '16 / 10', background: 'var(--bg-2)', overflow: 'hidden', position: 'relative', cursor: 'zoom-in' }}
+                  onClick={(e) => { e.stopPropagation(); setZoom(m); }}
+                  title="Click to zoom"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={m.url} alt={m.notes?.trim() || m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,.55)', color: '#fff', borderRadius: 4, fontSize: 11, padding: '1px 5px', lineHeight: 1.4 }}>🔍</span>
                 </div>
               )}
               <div style={{ padding: '6px 10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 14 }}>{KIND_ICON[m.kind] ?? '🗂'}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{m.filename}</span>
+                  <span title={m.notes?.trim() || m.filename} style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{m.notes?.trim() || m.filename}</span>
                   {m.hot && <span style={{ fontSize: 10, color: 'var(--neon-amber)' }}>🔥</span>}
                 </div>
-                <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2 }}>
-                  {m.kind} · {fmtSize(m.sizeBytes)}{m.width && m.height ? ` · ${m.width}×${m.height}` : ''}
+                <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {m.kind} · {fmtSize(m.sizeBytes)}{m.width && m.height ? ` · ${m.width}×${m.height}` : ''}{m.notes?.trim() ? ` · ${m.filename}` : ''}
                 </div>
                 {m.tags.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
@@ -72,7 +78,40 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
       {(editing || creating) && (
         <MediaFormModal asset={editing} projectId={projectId} onClose={() => modal.close()} />
       )}
+      {zoom && <Lightbox media={zoom} onClose={() => setZoom(null)} />}
     </>
+  );
+}
+
+// Fullscreen image/video preview. Click backdrop or Esc to close.
+function Lightbox({ media, onClose }: { media: MediaRow; onClose: () => void }) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(4,6,12,.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}>
+      {media.kind === 'video'
+        ? <video src={media.url} controls autoPlay onClick={(e) => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '80vh', borderRadius: 8 }} />
+        // eslint-disable-next-line @next/next/no-img-element
+        : <img src={media.url} alt={media.notes?.trim() || media.filename} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 10px 50px rgba(0,0,0,.6)' }} />}
+      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 14, maxWidth: '82vw', textAlign: 'center', color: '#e8ecf4' }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{media.notes?.trim() || media.filename}</div>
+        <div style={{ fontSize: 11, color: '#9aa2b4', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+          {media.filename}{media.width && media.height ? ` · ${media.width}×${media.height}` : ''} · {fmtSize(media.sizeBytes)}
+        </div>
+        {media.tags.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
+            {media.tags.map((t) => <span key={t} className="chip" style={{ fontSize: 10 }}>{t}</span>)}
+          </div>
+        )}
+      </div>
+      <button onClick={onClose} aria-label="Close"
+              style={{ position: 'absolute', top: 18, right: 22, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.25)', color: '#fff', borderRadius: 6, padding: '4px 11px', cursor: 'pointer', fontSize: 16 }}>✕</button>
+    </div>
   );
 }
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
-import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, type MediaInput } from '@/lib/actions/vaults';
+import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, uploadMediaAsset, type MediaInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, StatsStrip, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
@@ -34,8 +34,9 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
   return (
     <>
       <StatsStrip cards={stats} />
+      <QuickPasteUpload projectId={projectId} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
-        <button className="btn primary" onClick={() => modal.open("new")}>+ New asset</button>
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New asset (URL)</button>
       </div>
       {items.length === 0 ? (
         <EmptyState icon="🎬" title="No media" description="Upload hoặc external link asset đầu tiên." compact />
@@ -72,6 +73,139 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
         <MediaFormModal asset={editing} projectId={projectId} onClose={() => modal.close()} />
       )}
     </>
+  );
+}
+
+// Paste a screenshot (⌘V), describe it, save — straight to R2 + library.
+// Built for fast screenshot capture: stays open, clears after each save.
+function QuickPasteUpload({ projectId }: { projectId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const [desc, setDesc] = useState('');
+  const [tags, setTags] = useState('');
+  const [hot, setHot] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  const accept = (f: File) => {
+    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) { setErr('Chỉ nhận ảnh hoặc video'); return; }
+    setErr(null); setOkMsg(null);
+    setFile(f);
+    const u = URL.createObjectURL(f);
+    setPreview(u);
+    setDims(null);
+    if (f.type.startsWith('image/')) {
+      const img = new window.Image();
+      img.onload = () => setDims({ w: img.naturalWidth, h: img.naturalHeight });
+      img.src = u;
+    }
+  };
+
+  const onPaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items; if (!items) return;
+    for (const it of items) if (it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { e.preventDefault(); accept(f); return; } }
+  };
+  const onDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) accept(f); };
+
+  // Global paste: copy a screenshot, hit ⌘V anywhere on the page (unless an
+  // edit modal is open, which has its own paste handling).
+  useEffect(() => {
+    const h = (e: ClipboardEvent) => {
+      if (document.querySelector('.modal-backdrop')) return;       // edit modal open
+      const items = e.clipboardData?.items; if (!items) return;
+      for (const it of items) if (it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { accept(f); return; } }
+    };
+    document.addEventListener('paste', h);
+    return () => document.removeEventListener('paste', h);
+  }, []);
+
+  const clear = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null); setPreview(null); setDims(null); setDesc(''); setTags(''); setHot(false);
+  };
+
+  const save = () => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.set('file', file);
+    fd.set('projectId', projectId);
+    fd.set('description', desc);
+    fd.set('tags', tags);
+    fd.set('hot', hot ? '1' : '0');
+    if (dims) { fd.set('width', String(dims.w)); fd.set('height', String(dims.h)); }
+    start(async () => {
+      const r = await uploadMediaAsset(fd);
+      if (!r.ok) { setErr(r.error || 'Upload failed'); return; }
+      clear();
+      setOkMsg('Saved ✓ — paste the next one');
+      router.refresh();
+      setTimeout(() => setOkMsg(null), 2500);
+    });
+  };
+
+  const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
+  const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
+
+  return (
+    <div
+      className="panel"
+      tabIndex={0}
+      onPaste={onPaste}
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
+      style={{ padding: 12, marginBottom: 8, border: `1px dashed ${file ? 'var(--line)' : 'var(--neon-cyan)'}`, outline: 'none' }}
+    >
+      <input ref={fileInput} type="file" accept="image/*,video/*" hidden
+             onChange={(e) => { const f = e.target.files?.[0]; if (f) accept(f); e.target.value = ''; }} />
+
+      {!file ? (
+        <div onClick={() => fileInput.current?.click()} style={{ cursor: 'pointer', textAlign: 'center', padding: '14px 8px' }}>
+          <div style={{ fontSize: 20, marginBottom: 4 }}>📋</div>
+          <div style={{ fontSize: 13, color: 'var(--fg-1)', fontWeight: 600 }}>Dán screenshot (⌘V) để thêm nhanh vào thư viện</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 3 }}>hoặc kéo-thả ảnh/video · hoặc bấm để chọn file</div>
+          {okMsg && <div style={{ fontSize: 11, color: 'var(--ok)', marginTop: 6 }}>{okMsg}</div>}
+          {err && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 6 }}>⚠ {err}</div>}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: '0 0 180px' }}>
+            {file.type.startsWith('image/')
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={preview!} alt="paste preview" style={{ width: '100%', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+              : <video src={preview!} controls style={{ width: '100%', borderRadius: 6, border: '1px solid var(--line)' }} />}
+            <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 4 }}>
+              {fmtSize(file.size)}{dims ? ` · ${dims.w}×${dims.h}` : ''} · {file.type || 'unknown'}
+            </div>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>
+              <span style={lbl}>Mô tả (kèm theo ảnh)</span>
+              <textarea autoFocus style={{ ...fld, minHeight: 56, resize: 'vertical' }}
+                        placeholder="VD: Panel overview — 3 mode + lock% + status READY"
+                        value={desc} onChange={(e) => setDesc(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <span style={lbl}>Tags (phẩy)</span>
+                <input style={fld} placeholder="screenshot, mql5, hedge-panel" value={tags} onChange={(e) => setTags(e.target.value)} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, cursor: 'pointer', paddingBottom: 6, whiteSpace: 'nowrap' }}>
+                <input type="checkbox" checked={hot} onChange={(e) => setHot(e.target.checked)} /> 🔥 Hot
+              </label>
+            </div>
+            {err && <div style={{ fontSize: 11, color: 'var(--bad)' }}>⚠ {err}</div>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn ghost" onClick={clear} disabled={pending}>Clear</button>
+              <button className="btn primary" onClick={save} disabled={pending}>{pending ? '⟲ Uploading…' : 'Save to library'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

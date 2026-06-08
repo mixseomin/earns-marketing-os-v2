@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { getDb, mediaAssets, infraResources, budgetEntries } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { uploadToR2 } from '@/lib/r2';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -49,6 +50,50 @@ export async function createMediaAsset(input: MediaInput, projectIdScope?: strin
   });
   if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
   return { ok: true };
+}
+
+// Upload a pasted/dropped file straight to R2 + insert a media_assets row.
+// Browser sends FormData (file + projectId + optional description/tags/dims).
+// Lets users build a screenshot library fast: copy → paste → describe → save.
+export async function uploadMediaAsset(form: FormData): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const file = form.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: 'no file' };
+  if (file.size > 20 * 1024 * 1024) return { ok: false, error: 'file too large (max 20MB)' };
+
+  const projectId = String(form.get('projectId') || '').trim() || null;
+  const description = (form.get('description') as string)?.trim() || null;
+  const tagsStr = (form.get('tags') as string) || '';
+  const hot = form.get('hot') === '1';
+  const widthRaw = form.get('width');
+  const heightRaw = form.get('height');
+  const width = widthRaw ? Number(widthRaw) || null : null;
+  const height = heightRaw ? Number(heightRaw) || null : null;
+
+  const type = file.type || 'application/octet-stream';
+  const kind: MediaInput['kind'] =
+    type.startsWith('video') ? 'video' :
+    type.startsWith('audio') ? 'audio' :
+    type.startsWith('image') ? 'image' :
+    type.includes('pdf') || type.includes('document') ? 'doc' : 'other';
+
+  const ts = Date.now();
+  const ext = (type.split('/')[1] || 'bin').split('+')[0];
+  const rawName = file.name && file.name !== 'image.png' ? file.name : `paste-${ts}.${ext}`;
+  const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
+  const key = `vault/${projectId || 'unfiled'}/${ts}-${safeName}`;
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const url = await uploadToR2(key, buf, type);
+  if (!url) return { ok: false, error: 'R2 upload failed (check R2_* env on server)' };
+
+  const res = await createMediaAsset({
+    projectId, kind, filename: safeName, url, mimeType: type,
+    sizeBytes: buf.length, width, height,
+    notes: description, source: 'upload', hot,
+    tags: tagsStr.split(',').map((s) => s.trim()).filter(Boolean),
+  }, projectId ?? undefined);
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, url };
 }
 
 export async function updateMediaAsset(id: number, patch: Partial<MediaInput>, projectIdScope?: string): Promise<{ ok: boolean; error?: string }> {

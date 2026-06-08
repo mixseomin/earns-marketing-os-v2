@@ -113,11 +113,13 @@ export async function POST(req: Request) {
   });
   const genDurationMs = Date.now() - genStart;
 
-  // Save meta cho draft AI generic (không có cost từ OpenAI response).
+  // Save meta cho draft AI generic — cost ƯỚC LƯỢNG từ token usage (estimateCostUsd).
+  const draftCost = (draft && typeof (draft as { costUsd?: number }).costUsd === 'number') ? (draft as { costUsd?: number }).costUsd : null;
   await db.update(cards).set({
     answerSource: 'ai',
-    genModelUsed: body.modelId || 'gpt-4.1-mini',
+    genModelUsed: (draft as { modelUsed?: string }).modelUsed || body.modelId || 'gpt-4.1-mini',
     genDurationMs,
+    genCostUsd: draftCost != null ? String(draftCost) : null,
     updatedAt: new Date(),
   }).where(eq(cards.id, cardId));
 

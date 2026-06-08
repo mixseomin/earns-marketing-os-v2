@@ -314,7 +314,10 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
   if (pref && pref !== 'auto' && pref !== 'community') {
     effLang = pref;
   } else if (pref !== 'community') {   // auto
-    const parentLang = isReplyType && ctx.parentBody ? detectScriptLang(ctx.parentBody) : null;
+    // CHỈ detect ngôn ngữ phần COMMENT (trước marker [IMAGES EXTRACTED]) — vision context có thể
+    // là tiếng Việt (prompt vision viết VN) → nếu detect cả vision sẽ bắt nhầm 'vi' → reply sai ngôn ngữ.
+    const commentOnly = ctx.parentBody ? ctx.parentBody.split(/\n*\[IMAGES? EXTRACTED/i)[0] : '';
+    const parentLang = isReplyType && commentOnly.trim() ? detectScriptLang(commentOnly) : null;
     if (parentLang) effLang = parentLang;
   }
   if (effLang !== ctx.targetLang) ctx = { ...ctx, targetLang: effLang, isBilingual: effLang !== 'vi' };

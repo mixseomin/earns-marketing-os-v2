@@ -181,6 +181,8 @@ tên website/URL (vd "www.astro-seek.com", "Astro-Seek", "Online Horoscopes", "A
 "Co-Star"), tên app/brand nguồn, dòng "powered by", copyright/©, hay tagline quảng cáo in trên
 ảnh. Đó là nhiễu — chỉ extract DỮ LIỆU/nội dung thực chất. Watermark che dữ liệu → bỏ qua
 watermark, đọc dữ liệu phía sau.
+NGÔN NGỮ OUTPUT = ENGLISH (tiếng Anh), thuật ngữ chuẩn. Đây là context cho AI reply (cộng đồng
+English) — output VN sẽ làm reply bị lệch sang tiếng Việt. Số/độ/ký hiệu giữ nguyên.
 Trả về plain text (không markdown header), dùng bullet/section ngắn. Cap ~800 từ.`;
 }
 

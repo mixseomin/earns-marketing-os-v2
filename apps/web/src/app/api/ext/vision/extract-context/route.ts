@@ -102,7 +102,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      contextText: text.trim(),
+      contextText: stripBrand(text),
       imageCount: capped.length,
       imagesSkipped: urls.length - capped.length,
       costUsd: Number(costUsd.toFixed(5)),
@@ -176,5 +176,21 @@ Output dạng structured text, factual, KHÔNG opinion/interpretation.`;
 QUY TẮC CHỐNG BỊA (mọi domain): chỉ ghi cái ĐỌC RÕ trong ảnh. Số liệu/nhãn/placement mờ
 hoặc không chắc → "[không đọc được]". KHÔNG suy đoán, KHÔNG mô tả chung chung thay cho giá
 trị cụ thể. Sai 1 con số có thể làm AI phân tích sai toàn bộ.
+QUY TẮC LOẠI BRAND/WEBSITE (BẮT BUỘC): TUYỆT ĐỐI KHÔNG đưa vào output bất kỳ watermark, logo,
+tên website/URL (vd "www.astro-seek.com", "Astro-Seek", "Online Horoscopes", "Astro.com",
+"Co-Star"), tên app/brand nguồn, dòng "powered by", copyright/©, hay tagline quảng cáo in trên
+ảnh. Đó là nhiễu — chỉ extract DỮ LIỆU/nội dung thực chất. Watermark che dữ liệu → bỏ qua
+watermark, đọc dữ liệu phía sau.
 Trả về plain text (không markdown header), dùng bullet/section ngắn. Cap ~800 từ.`;
+}
+
+// Belt-and-suspenders: dù prompt đã cấm, vẫn strip URL + watermark/brand thường gặp khỏi
+// output (phòng model lọt). Inline (ko xoá cả dòng dữ liệu lỡ có chứa brand token).
+function stripBrand(t: string): string {
+  return (t || '')
+    .replace(/\b(?:https?:\/\/|www\.)[^\s)]+/gi, '')
+    .replace(/\b(astro[\s-]?seek(?:\.com)?|cafe ?astrology|astro\.com|co[\s-]?star|timepassages|online horoscopes?|powered by [^\n.]+|all rights reserved|©\s*\d{0,4})\b/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }

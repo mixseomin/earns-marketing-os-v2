@@ -13,7 +13,7 @@ import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, maxSentencesFor, type HumanizerOpts } from './humanizer';
+import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, stripAITells, maxSentencesFor, type HumanizerOpts } from './humanizer';
 import {
   resolveVoiceProfile, voicePromptBlock, voiceLengthHint, fewShotPromptBlock,
   type FewShotExample, type VoiceProfile,
@@ -579,6 +579,10 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
     '',
     `YÊU CẦU CHẤT LƯỢNG (BẮT BUỘC):`,
     ``,
+    `bodyTarget = PLAIN TEXT như người gõ tay trên điện thoại — TUYỆT ĐỐI KHÔNG markdown:`,
+    `- KHÔNG header (#, ##), KHÔNG bold/italic (**, *), KHÔNG blockquote (>), KHÔNG bullet (-, *, 1.), KHÔNG horizontal rule (---).`,
+    `- KHÔNG em-dash "—"/"–" (dùng "-" hoặc viết lại). KHÔNG ký tự cấu trúc ❌✅⚠📌. Văn xuôi trôi chảy, ko chia mục.`,
+    ``,
     `OPENING - TUYỆT ĐỐI CẤM:`,
     `- KHÔNG được mở bài bằng greeting kiểu "Hello everyone", "Hi fellow X", "Hey r/astrology", "Xin chào mọi người"`,
     `- KHÔNG được tự giới thiệu kiểu "I'm Lithervard", "I'm @<handle>", "Tôi là <name>"`,
@@ -699,7 +703,7 @@ export async function generateFullDraft(
     const newBodyReview = String(parsed.bodyReview ?? '');
     // Độ dài (chip 1-câu/2-3-câu) ép trong prompt (schema bodyTarget + tắt hint mâu
     // thuẫn). clamp = lưới an toàn 0-cost, gần như không kích hoạt. bodyReview giữ nguyên.
-    const newBodyTarget = applyHumanErrors(injectTypos(clampDraftLength(String(parsed.bodyTarget ?? parsed.bodyReview ?? ''), opts?.humanizer), opts?.humanizer), opts?.humanizer);
+    const newBodyTarget = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(String(parsed.bodyTarget ?? parsed.bodyReview ?? '')), opts?.humanizer), opts?.humanizer), opts?.humanizer);
     await db.update(cards).set({
       title: newTitleTarget,
       titleReview: newTitleReview,

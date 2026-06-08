@@ -108,6 +108,29 @@ export function maxSentencesFor(opts: HumanizerOpts | null | undefined): number 
   return opts.knobs.includes('one-sentence') ? 1 : opts.knobs.includes('two-three') ? 3 : 0;
 }
 
+// Biến markdown / ký tự AI-tell → prose phẳng giống người gõ tay. Áp TRƯỚC injectTypos.
+// human-voice skill: KHÔNG em dash, KHÔNG markdown (#/**/>/bullet/header), KHÔNG emoji-cấu-trúc.
+// Người thật reply forum/Reddit KHÔNG bao giờ gõ "## Heading" hay "- bullet" hay "—".
+export function stripAITells(s: string): string {
+  return (s || '')
+    .replace(/```[\s\S]*?```/g, ' ')                         // code fence
+    .replace(/`([^`]+)`/g, '$1')                             // inline code
+    .replace(/^\s{0,3}#{1,6}\s*/gm, '')                      // # headers
+    .replace(/^\s{0,3}>\s?/gm, '')                           // > blockquote
+    .replace(/^\s*[-*+]\s+/gm, '')                           // - * + bullets
+    .replace(/^\s*\d+[.)]\s+/gm, '')                         // 1. / 1) numbered
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')                      // --- *** hr
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')                     // **bold**
+    .replace(/(^|[^*])\*([^*\n]+)\*([^*]|$)/g, '$1$2$3')     // *italic*
+    .replace(/(^|[^_])__([^_\n]+)__([^_]|$)/g, '$1$2$3')     // __bold__
+    .replace(/[—–]/g, '-')                                   // em/en dash → hyphen
+    .replace(/[ \t]*[❌✅⚠️📌🔴🟢▶️➡️➤»«•◦‣]️?[ \t]*/g, ' ')  // marker/bullet emoji cấu trúc (giữ emoji cảm xúc)
+    .replace(/[ \t]{2,}/g, ' ')                              // double space
+    .replace(/[ \t]+\n/g, '\n')                              // trailing space
+    .replace(/\n{3,}/g, '\n\n')                              // 3+ newline
+    .trim();
+}
+
 export function clampDraftLength(bodyTarget: string, opts: HumanizerOpts | null | undefined): string {
   if (!opts || !Array.isArray(opts.knobs)) return bodyTarget;
   const max = opts.knobs.includes('one-sentence') ? 1 : opts.knobs.includes('two-three') ? 3 : 0;

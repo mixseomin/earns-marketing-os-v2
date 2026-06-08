@@ -6,7 +6,7 @@ import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors } from '@/lib/ai/humanizer';
+import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
 import { normalizeParentUrl } from '@/lib/parent-url';
 
 // POST /api/ext/seeding/astrolas-answer
@@ -268,7 +268,8 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
   const _hzOpts = body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
     ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined;
-  const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(data.answer_md, _hzOpts), _hzOpts), _hzOpts);
+  // stripAITells TRƯỚC: Astrolas trả answer_md = markdown (## > * - — ❌) → lộ AI. Phẳng hoá thành prose.
+  const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(data.answer_md), _hzOpts), _hzOpts), _hzOpts);
   await db.update(cards).set({
     bodyTarget: answerClamped,
     bodyReview: '',         // Astrolas trả 1 language; nếu cần VN review, dịch sau

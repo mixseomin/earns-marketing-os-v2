@@ -3399,11 +3399,21 @@ function PostRow({
         {/* SEED-XX + Channel + Pillar: chỉ hiện khi EXPANDED. Collapsed = gọn,
             chỉ format chip + title + lang + status. */}
         {expanded && (
-          <span style={{
-            padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
-            background: 'var(--bg-1)', color: 'var(--fg-3)', borderRadius: 3, border: '1px solid var(--line)',
-            flexShrink: 0,
-          }}>{post.cardRef}</span>
+          <>
+            {/* ID bài (#891) = ID THẬT dùng chung: badge ext (✅ #id) + URL (?fc=id) + API.
+                Hiện trước để cross-ref với tweet đã track. card_ref (SEED-N) = nhãn per-project
+                dễ đọc cho AI/agent — giữ nhưng làm phụ (mờ) để khỏi nhầm 2 hệ ID. */}
+            <span style={{
+              padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+              background: 'var(--bg-1)', color: 'var(--fg-1)', borderRadius: 3, border: '1px solid var(--line)',
+              flexShrink: 0,
+            }} title="ID bài — khớp badge ext (#id), URL (?fc=id), API. Dùng cái này để tra cứu chéo.">#{post.id}</span>
+            <span style={{
+              padding: '1px 5px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 600,
+              background: 'transparent', color: 'var(--fg-4)', borderRadius: 3, border: '1px solid var(--line)',
+              flexShrink: 0,
+            }} title="card_ref — số thứ tự dễ đọc per-project (dùng trong prompt AI/agent). KHÔNG phải ID tra cứu chéo với ext.">{post.cardRef}</span>
+          </>
         )}
         <span style={{ display: 'inline-flex', flexShrink: 0 }}
               onClick={(e) => e.stopPropagation()}>

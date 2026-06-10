@@ -1009,7 +1009,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   browserProfiles?: BrowserProfileRow[];
 }) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Track pending toggle: which key + the value we sent. Cleared only after
   // the refreshed `account` prop reflects that value (router.refresh is
@@ -1209,7 +1209,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     });
   };
 
-  const handleSave = () => {
+  const handleSave = (keepOpen = false) => {
     if (!form.platformKey) { setError('Platform required'); return; }
     startTransition(async () => {
       const payload = {
@@ -1246,9 +1246,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
 
       router.refresh();
       if (isCreate && accId != null) onCreated?.(accId);
+      // keepOpen: lưu xong GIỮ modal (sửa tiếp nhiều field) → chỉ nháy "đã lưu". Create luôn đóng
+      // (cần chuyển sang edit-mode với id mới — ko hỗ trợ keepOpen lúc tạo).
+      if (keepOpen && !isCreate) { setError(null); setJustSaved(true); setTimeout(() => setJustSaved(false), 1600); return; }
       onClose();
     });
   };
+  const [justSaved, setJustSaved] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const handleDelete = () => {
@@ -2291,10 +2295,17 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               </button>
             )}
             <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={handleSave}
+            {!isCreate && (
+              <button className="btn" onClick={() => handleSave(true)}
+                      disabled={!form.platformKey || isPending}
+                      title="Lưu nhưng GIỮ modal mở (sửa tiếp)">
+                {justSaved ? '✓ Đã lưu' : '💾 Save'}
+              </button>
+            )}
+            <button className="btn primary" onClick={() => handleSave(false)}
                     disabled={!form.platformKey}
-                    title={!form.platformKey ? 'Phải chọn platform trước' : undefined}>
-              {isCreate ? 'Create account' : 'Save'}
+                    title={!form.platformKey ? 'Phải chọn platform trước' : 'Lưu + đóng modal'}>
+              {isCreate ? 'Create account' : 'Save & close'}
             </button>
           </div>
         </div>

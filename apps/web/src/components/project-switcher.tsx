@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
+import { projectSearchHaystack, projectTags } from '@/lib/project-tags';
 
 // Known sub-pages under /p/[id]/
 const PROJECT_TABS = new Set([
@@ -34,6 +35,12 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
   const mode = p ? MODES[p.mode] : undefined;
   const isPortfolioFallback = !p;
 
+  const haystacks = useMemo(() => {
+    const map = new Map<string, string>();
+    PROJECTS.forEach((x) => map.set(x.id, projectSearchHaystack(x)));
+    return map;
+  }, [PROJECTS]);
+
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return PROJECTS.filter((x) => {
@@ -41,12 +48,12 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
       if (kindFilter === 'real' && x.isDemo) return false;
       if (kindFilter === 'demo' && !x.isDemo) return false;
       if (ql) {
-        const hay = `${x.name} ${x.id} ${x.website ?? ''}`.toLowerCase();
+        const hay = haystacks.get(x.id) || '';
         if (!hay.includes(ql)) return false;
       }
       return true;
     });
-  }, [PROJECTS, q, healthFilter, kindFilter]);
+  }, [PROJECTS, q, healthFilter, kindFilter, haystacks]);
 
   const grouped = useMemo(() => {
     if (!groupByMode) return [{ key: '', label: '', items: filtered }];
@@ -137,6 +144,11 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
                   {!isFolded && g.items.map((proj) => {
                     const m = MODES[proj.mode];
                     const isActive = proj.id === currentProjectId;
+                    const tagPreview = projectTags(proj)
+                      .filter((t) => t !== proj.mode.toLowerCase())
+                      .slice(0, 3)
+                      .map((t) => `#${t}`)
+                      .join(' ');
                     return (
                       <div key={proj.id} onClick={() => { router.push(navigateTo(proj.id)); setOpen(false); }} style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
@@ -147,7 +159,10 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
                         <span style={{ fontSize: 15 }}>{proj.emoji}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 500, color: isActive ? 'var(--accent)' : 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{proj.name}</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m?.label || proj.mode} · {proj.agents.core + proj.agents.shared}ag</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m?.label || proj.mode} · {proj.agents.core + proj.agents.shared}ag
+                            {tagPreview && <span style={{ color: 'var(--fg-4)' }}> · {tagPreview}</span>}
+                          </div>
                         </div>
                         {proj.alerts > 0 && (
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bad)', color: '#fff', flexShrink: 0 }}>{proj.alerts}</span>

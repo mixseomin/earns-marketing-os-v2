@@ -1910,7 +1910,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       if (!nk || nk === k) return;
                       const p = { ...(form.persona as Record<string, string>) };
                       if (p[nk] !== undefined) return;   // tránh ghi đè key khác
-                      const val = p[k]; delete p[k]; p[nk] = val; setF('persona', p);
+                      const val = p[k] ?? ''; delete p[k]; p[nk] = val; setF('persona', p);
                     };
                     const delKey = () => { const p = { ...(form.persona as Record<string, string>) }; delete p[k]; setF('persona', p); };
                     return (

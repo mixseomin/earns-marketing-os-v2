@@ -78,7 +78,7 @@ export function NewsCopilotUsage() {
   const clients = Object.entries(d.byClient).sort((a, b) => b[1].requests - a[1].requests).slice(0, 10);
 
   return (
-    <div style={{ margin: '12px 0 24px' }}>
+    <div className="page" style={{ paddingBottom: 24 }}>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>📰 News Co-pilot — Usage &amp; Cost <span style={{ color: muted, fontWeight: 400, fontSize: 12 }}>· live · fxnewsapi.on.tc</span></div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 16 }}>

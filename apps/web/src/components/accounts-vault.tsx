@@ -1903,9 +1903,22 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   {entries.map(([k, v]) => {
                     const sval = String(v ?? '');
                     const long = sval.length > 60;
+                    // Rename key (vd 'field' → 'about'): normalize lowercase_underscore, giữ value,
+                    // bỏ key cũ. Collision (key mới đã tồn tại) → bỏ qua. Commit on blur (ko mất focus).
+                    const renameKey = (raw: string) => {
+                      const nk = (raw || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+                      if (!nk || nk === k) return;
+                      const p = { ...(form.persona as Record<string, unknown>) };
+                      if (p[nk] !== undefined) return;   // tránh ghi đè key khác
+                      const val = p[k]; delete p[k]; p[nk] = val; setF('persona', p);
+                    };
+                    const delKey = () => { const p = { ...(form.persona as Record<string, unknown>) }; delete p[k]; setF('persona', p); };
                     return (
                       <div key={k} style={{ display: 'flex', gap: 8, alignItems: long ? 'flex-start' : 'center' }}>
-                        <span title={k} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', minWidth: 130, maxWidth: 130, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: long ? 6 : 0 }}>{k}</span>
+                        <input title={`Tên field (key persona). Sửa → đổi tên, rời ô để lưu. Vd 'field' → 'about'.`} defaultValue={k}
+                          onBlur={(e) => renameKey(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                          style={{ ...fld, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', minWidth: 130, maxWidth: 130, flexShrink: 0, paddingTop: long ? 6 : undefined, alignSelf: long ? 'flex-start' : 'center' }} />
                         {long ? (
                           <textarea style={{ ...fld, flex: 1, minHeight: 48, resize: 'vertical' }} value={sval}
                             onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
@@ -1913,6 +1926,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                           <input style={{ ...fld, flex: 1 }} value={sval}
                             onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
                         )}
+                        <button type="button" title="Xoá field này khỏi persona" onClick={delKey}
+                          style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, lineHeight: 1, alignSelf: long ? 'flex-start' : 'center' }}>✕</button>
                       </div>
                     );
                   })}

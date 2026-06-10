@@ -134,6 +134,8 @@ async function providerUrls(query: string): Promise<Array<{ url: string; provide
 
 async function webSearchImage(query: string): Promise<{ buf: Buffer; mime: string; provider: string } | null> {
   const cands = await providerUrls(query);
+  // Shuffle → bấm 🔍 lại ra ảnh KHÁC (đỡ lặp), vẫn dừng ở ảnh tải được đầu tiên.
+  for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cands[i], cands[j]] = [cands[j]!, cands[i]!]; }
   for (const c of cands) {
     const dl = await downloadImage(c.url);
     if (dl) return { ...dl, provider: c.provider };

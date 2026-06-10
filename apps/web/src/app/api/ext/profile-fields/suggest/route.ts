@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
-import { getDb, identities } from '@mos2/db';
+import { getDb, identities, projects, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+
+// Field hồ sơ trỏ tới WEBSITE chính của dự án → fill thẳng project.website (canonical,
+// ko để LLM bịa / bỏ trống). Account đại diện dự án nên dùng web chính thức.
+const WEBSITE_FIELD = /(^|_)(website|url|site|homepage|link|web)($|_)?/i;
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +23,26 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   if (!openai) return NextResponse.json({ ok: false, error: 'AI unavailable' }, { status: 503 });
 
-  const body = await req.json().catch(() => ({})) as { identityId?: number; fields?: Array<{ key?: string; label?: string; current?: string }> };
+  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; fields?: Array<{ key?: string; label?: string; current?: string }> };
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
   if (!fields.length) return NextResponse.json({ ok: false, error: 'fields required' }, { status: 400 });
+
+  // Brand DỰ ÁN = nguồn sự thật cho profile (account đại diện dự án). Load qua projectId
+  // hoặc accountId → project. website/oneLiner/bio/hashtags dùng để fill + làm ngữ cảnh.
+  let proj: { name: string; website: string; oneLiner: string; bio: string; hashtags: string; persona: string } | undefined;
+  const db0 = getDb();
+  if (db0) {
+    let pid = (body.projectId || '').trim();
+    if (!pid && body.accountId) {
+      const [a] = await db0.select({ projectId: platformAccounts.projectId }).from(platformAccounts).where(eq(platformAccounts.id, Number(body.accountId))).limit(1);
+      pid = a?.projectId || '';
+    }
+    if (pid) {
+      const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })
+        .from(projects).where(eq(projects.id, pid)).limit(1);
+      proj = pr;
+    }
+  }
 
   // Context identity (persona) để AI điền cho khớp giọng/nhân vật.
   let idn: { name: string; handleBase: string; displayName: string; bio: string; persona: unknown; customFields: unknown } | undefined;
@@ -49,17 +70,39 @@ export async function POST(req: Request) {
       + `- persona (raw): ${JSON.stringify(idn.persona).slice(0, 400)}\n`
       + `- giá trị ĐÃ LƯU (canonical — TÁI DÙNG y hệt nếu khớp field): ${JSON.stringify(cf).slice(0, 400)}`
     : 'Persona: (chưa gắn identity — điền trung tính, tự nhiên)';
-  const list = fields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}`).join('\n');
-  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản theo NHÂN VẬT persona dưới đây.\n${ctx}\n\n`
-    + `Các field cần điền:\n${list}\n\n`
-    + `Quy tắc DERIVE (suy từ persona, KHÔNG chế dữ liệu mới để giữ NHẤT QUÁN mọi site):\n`
-    + `- location/place/từ địa lý → ghép "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
-    + `- about/bio/intro/description/summary → từ bio + backstory (1-2 câu, English tự nhiên, KHÔNG markdown/em-dash).\n`
+  // Ngữ cảnh DỰ ÁN (account đại diện dự án) — fill về brand chính thức.
+  const brand = proj
+    ? `\nDỰ ÁN account đại diện (DÙNG brand này, KHÔNG bịa):\n`
+      + `- name: ${proj.name}\n- website CHÍNH THỨC: ${proj.website || '(chưa có)'}\n`
+      + `- one-liner: ${proj.oneLiner}\n- bio: ${proj.bio}\n- hashtags: ${proj.hashtags}\n`
+      + `- brand persona: ${proj.persona.slice(0, 300)}`
+    : '\nDỰ ÁN: (chưa load brand)';
+
+  // Website chính chủ → fill THẲNG từ project.website (canonical), bỏ qua LLM cho field này.
+  const forced: Record<string, string> = {};
+  if (proj?.website) {
+    for (const f of fields) {
+      const k = (f.key || '').toLowerCase(); const lb = (f.label || '').toLowerCase();
+      if (WEBSITE_FIELD.test(k) || WEBSITE_FIELD.test(lb)) forced[f.key || ''] = proj.website;
+    }
+  }
+  const llmFields = fields.filter((f) => !(f.key && forced[f.key]));
+
+  const list = llmFields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}`).join('\n');
+  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}\n\n`
+    + `Các field cần điền:\n${list || '(không có — đã fill hết)'}\n\n`
+    + `Quy tắc DERIVE (ưu tiên brand dự án → persona; KHÔNG chế dữ liệu mới để NHẤT QUÁN mọi site):\n`
+    + `- website/url/link/homepage → website CHÍNH THỨC của dự án ("${proj?.website || ''}"). Trống thì "".\n`
+    + `- about/bio/intro/description/summary → từ one-liner + bio của DỰ ÁN (account quảng bá dự án), pha giọng persona; 1-2 câu English tự nhiên, KHÔNG markdown/em-dash.\n`
+    + `- location/place → "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
     + `- gender → đúng gender persona. pronoun/pronouns → suy từ gender (he / she / they).\n`
-    + `- occupation/job/work → suy hợp lý từ backstory/interests (1 nghề ngắn). website/url → "" trừ khi persona ngụ ý có.\n`
-    + `- Nếu field trùng "giá trị ĐÃ LƯU" → trả ĐÚNG giá trị đó (canonical, không đổi). Giữ "đang có" nếu đã hợp lý.\n`
-    + `- Field cần DỮ LIỆU THẬT/định danh ngoài (Steam ID, Friend Code, phone, ID số, ngày sinh nếu persona không có) → trả chuỗi RỖNG "" (user điền tay).\n`
+    + `- occupation/job/headline/tagline → suy từ vai trò với dự án (vd founder/maker) + brand, ngắn gọn.\n`
+    + `- Nếu field trùng "giá trị ĐÃ LƯU" → trả ĐÚNG giá trị đó. Giữ "đang có" nếu đã hợp lý.\n`
+    + `- Field cần DỮ LIỆU THẬT/định danh ngoài (Steam ID, Friend Code, phone, ID số, dob nếu thiếu) → "" (user điền tay).\n`
     + `Trả JSON: {"values":{"<key>":"<value>"}}. CHỈ JSON, không giải thích.`;
+
+  // Nếu LLM ko còn field nào (chỉ có website forced) → trả luôn forced.
+  if (!llmFields.length) return NextResponse.json({ ok: true, values: forced });
 
   try {
     const res = await openai.chat.completions.create({
@@ -70,9 +113,9 @@ export async function POST(req: Request) {
     });
     const txt = res.choices?.[0]?.message?.content || '{}';
     const parsed = JSON.parse(txt) as { values?: Record<string, unknown> };
-    const values: Record<string, string> = {};
+    const values: Record<string, string> = { ...forced };   // website canonical luôn thắng
     for (const f of fields) {
-      const k = f.key || ''; if (!k) continue;
+      const k = f.key || ''; if (!k || values[k]) continue;
       const v = parsed.values?.[k];
       if (typeof v === 'string' && v.trim()) values[k] = v.trim().slice(0, 600);
     }

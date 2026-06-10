@@ -25,6 +25,29 @@ export interface ProjectMediaItem {
   width: number | null; height: number | null; source: string | null; createdAt: string;
 }
 
+// Media gắn với 1 account: rows tag `acct:<id>` hoặc `account:<handle>` (do
+// on-page profile assist tạo/lưu khi sinh avatar/banner). Hiện trong account modal.
+export async function listAccountMedia(
+  accountId: number, handle?: string,
+): Promise<ProjectMediaItem[]> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT id, filename, url, kind, width, height, source, created_at
+    FROM media_assets
+    WHERE tags @> ${JSON.stringify([`acct:${accountId}`])}::jsonb
+       OR (${handle ?? ''} <> '' AND tags @> ${JSON.stringify([`account:${handle ?? ''}`])}::jsonb)
+    ORDER BY created_at DESC LIMIT 40
+  `);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id), filename: String(r.filename ?? ''), url: String(r.url ?? ''),
+    kind: String(r.kind ?? 'image'),
+    width: r.width != null ? Number(r.width) : null,
+    height: r.height != null ? Number(r.height) : null,
+    source: r.source ? String(r.source) : null,
+    createdAt: r.created_at ? new Date(String(r.created_at)).toISOString() : '',
+  }));
+}
+
 export async function listProjectMedia(
   projectId: string, kind: string = 'image',
 ): Promise<ProjectMediaItem[]> {

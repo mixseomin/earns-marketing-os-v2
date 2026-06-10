@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
+import { listAccountMedia } from '@/lib/actions/post-media';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
 import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
 import { PhasePill } from './phase-pill';
@@ -947,6 +948,35 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
 // Account form modal (create + edit + warmup checklist)
 // ──────────────────────────────────────────────────────────────────────
 
+// Media gắn account (avatar/banner do on-page assist sinh, tag acct:<id>). Hiện
+// thumbnail trong account modal → biết account này đã có ảnh hồ sơ nào.
+function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: string | null }) {
+  const [media, setMedia] = useState<Array<{ id: number; url: string; filename: string; source: string | null }>>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    listAccountMedia(accountId, handle ?? undefined)
+      .then((m) => { if (alive) setMedia(m.map((x) => ({ id: x.id, url: x.url, filename: x.filename, source: x.source }))); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [accountId, handle]);
+  if (loading || media.length === 0) return null;
+  return (
+    <div>
+      <span style={labelStyle}>🖼 Profile media · {media.length}</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+        {media.map((m) => (
+          <a key={m.id} href={m.url} target="_blank" rel="noopener" title={`${m.filename}${m.source ? ` · ${m.source}` : ''} — mở ảnh`}
+             style={{ width: 56, height: 56, borderRadius: 7, overflow: 'hidden', border: '1px solid var(--line)', background: '#000', flexShrink: 0 }}>
+            <img src={m.url} alt={m.filename} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief }: {
   account: AccountRow | null;
   project: Project;
@@ -1392,6 +1422,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             flex: '0 0 420px', display: 'flex', flexDirection: 'column', gap: 12,
             overflowY: 'auto', minHeight: 0, paddingRight: 8,
           }}>
+            {account?.id != null && <AccountMediaStrip accountId={account.id} handle={account.handle} />}
             <div>
               <span style={lbl} title="user = manual login (cần warming + persona). bot = Discord/Slack bot có bot_token (auto-post API). app = OAuth integration (Reddit script-app).">
                 Account kind *

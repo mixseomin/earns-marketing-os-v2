@@ -73,25 +73,70 @@ async function persist(opts: {
   return { url, id: row?.id ?? 0 };
 }
 
-async function webSearchImage(query: string): Promise<{ buf: Buffer; mime: string } | null> {
-  const key = process.env.GOOGLE_CSE_KEY || process.env.GOOGLE_SEARCH_KEY;
-  const cx = process.env.GOOGLE_CSE_CX || process.env.GOOGLE_CSE_ID;
-  if (!key || !cx) return null;
-  const u = `https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cx}&searchType=image&num=3&safe=active&q=${encodeURIComponent(query)}`;
-  const r = await fetch(u); if (!r.ok) return null;
-  const j = await r.json();
-  const items: Array<{ link?: string }> = j?.items || [];
-  for (const it of items) {
-    if (!it.link) continue;
-    try {
-      const ir = await fetch(it.link, { signal: AbortSignal.timeout(8000) });
-      if (!ir.ok) continue;
-      const mime = ir.headers.get('content-type') || 'image/jpeg';
-      if (!/^image\//.test(mime)) continue;
-      const buf = Buffer.from(await ir.arrayBuffer());
-      if (buf.length < 800 || buf.length > 8 * 1024 * 1024) continue;
-      return { buf, mime };
-    } catch { /* next */ }
+// Download 1 image URL → buffer (validate mime/size). Trả null nếu hỏng.
+async function downloadImage(link: string): Promise<{ buf: Buffer; mime: string } | null> {
+  try {
+    const ir = await fetch(link, { signal: AbortSignal.timeout(9000), redirect: 'follow' });
+    if (!ir.ok) return null;
+    const mime = ir.headers.get('content-type') || 'image/jpeg';
+    if (!/^image\//.test(mime)) return null;
+    const buf = Buffer.from(await ir.arrayBuffer());
+    if (buf.length < 800 || buf.length > 8 * 1024 * 1024) return null;
+    return { buf, mime };
+  } catch { return null; }
+}
+
+// Trả list candidate image URL từ 1 provider (nếu có key). Thử nhiều provider →
+// dùng provider nào sẵn key. Openverse KHÔNG cần key (CC commercial) → luôn có web.
+async function providerUrls(query: string): Promise<Array<{ url: string; provider: string }>> {
+  const out: Array<{ url: string; provider: string }> = [];
+  const q = encodeURIComponent(query);
+  const safe = async (fn: () => Promise<void>) => { try { await fn(); } catch { /* skip provider */ } };
+
+  // 1) Pexels
+  const pexels = process.env.PEXELS_KEY || process.env.PEXELS_API_KEY;
+  if (pexels) await safe(async () => {
+    const r = await fetch(`https://api.pexels.com/v1/search?per_page=5&query=${q}`, { headers: { Authorization: pexels }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return; const j = await r.json();
+    for (const p of (j.photos || [])) { const u = p?.src?.large2x || p?.src?.large || p?.src?.original; if (u) out.push({ url: u, provider: 'pexels' }); }
+  });
+  // 2) Pixabay
+  const pixabay = process.env.PIXABAY_KEY || process.env.PIXABAY_API_KEY;
+  if (pixabay) await safe(async () => {
+    const r = await fetch(`https://pixabay.com/api/?key=${pixabay}&image_type=photo&safesearch=true&per_page=5&q=${q}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return; const j = await r.json();
+    for (const h of (j.hits || [])) { const u = h?.largeImageURL || h?.webformatURL; if (u) out.push({ url: u, provider: 'pixabay' }); }
+  });
+  // 3) Unsplash
+  const unsplash = process.env.UNSPLASH_KEY || process.env.UNSPLASH_ACCESS_KEY;
+  if (unsplash) await safe(async () => {
+    const r = await fetch(`https://api.unsplash.com/search/photos?per_page=5&query=${q}`, { headers: { Authorization: `Client-ID ${unsplash}` }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return; const j = await r.json();
+    for (const p of (j.results || [])) { const u = p?.urls?.regular || p?.urls?.full; if (u) out.push({ url: u, provider: 'unsplash' }); }
+  });
+  // 4) Google CSE
+  const gkey = process.env.GOOGLE_CSE_KEY || process.env.GOOGLE_SEARCH_KEY;
+  const gcx = process.env.GOOGLE_CSE_CX || process.env.GOOGLE_CSE_ID;
+  if (gkey && gcx) await safe(async () => {
+    const r = await fetch(`https://www.googleapis.com/customsearch/v1?key=${gkey}&cx=${gcx}&searchType=image&num=5&safe=active&q=${q}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return; const j = await r.json();
+    for (const it of (j.items || [])) { if (it?.link) out.push({ url: it.link, provider: 'google-cse' }); }
+  });
+  // 5) Openverse — KHÔNG cần key (CC, dùng thương mại). Luôn chạy (fallback đảm bảo web có ảnh).
+  await safe(async () => {
+    const tok = process.env.OPENVERSE_TOKEN ? { Authorization: `Bearer ${process.env.OPENVERSE_TOKEN}` } : undefined;
+    const r = await fetch(`https://api.openverse.org/v1/images/?license_type=commercial&page_size=8&q=${q}`, { headers: { 'User-Agent': 'mos2-crew/1.0', ...(tok || {}) }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return; const j = await r.json();
+    for (const im of (j.results || [])) { const u = im?.url; if (u) out.push({ url: u, provider: 'openverse' }); }
+  });
+  return out;
+}
+
+async function webSearchImage(query: string): Promise<{ buf: Buffer; mime: string; provider: string } | null> {
+  const cands = await providerUrls(query);
+  for (const c of cands) {
+    const dl = await downloadImage(c.url);
+    if (dl) return { ...dl, provider: c.provider };
   }
   return null;
 }

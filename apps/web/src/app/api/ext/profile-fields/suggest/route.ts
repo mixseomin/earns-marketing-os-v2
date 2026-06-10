@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     + `Các field cần điền:\n${list || '(không có — đã fill hết)'}\n\n`
     + `Quy tắc DERIVE (ưu tiên brand dự án → persona; KHÔNG chế dữ liệu mới để NHẤT QUÁN mọi site):\n`
     + `- website/url/link/homepage → website CHÍNH THỨC của dự án ("${proj?.website || ''}"). Trống thì "".\n`
-    + `- about/bio/intro/description/summary → từ one-liner + bio của DỰ ÁN (account quảng bá dự án), pha giọng persona; 1-2 câu English tự nhiên, KHÔNG markdown/em-dash.\n`
+    + `- about/bio/intro/description/summary/headline/tagline → 1-2 câu English tự nhiên, KHÔNG markdown/em-dash. ƯU TIÊN one-liner + bio DỰ ÁN; nếu brand dự án THIẾU/RỖNG thì derive từ persona nhân vật (bio/backstory/interests). LUÔN sinh ra nội dung — KHÔNG để trống các field giới thiệu này.\n`
     + `- location/place → "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
     + `- gender → đúng gender persona. pronoun/pronouns → suy từ gender (he / she / they).\n`
     + `- occupation/job/headline/tagline → suy từ vai trò với dự án (vd founder/maker) + brand, ngắn gọn.\n`

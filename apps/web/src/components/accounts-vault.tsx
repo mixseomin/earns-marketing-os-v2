@@ -3053,7 +3053,7 @@ function AccountBriefsSection({
   return (
     <Collapsible
       title="🎯 Habitats engaging"
-      defaultOpen={true}
+      defaultOpen={false}
       badge={
         <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: briefs.length > 0 ? 'var(--accent)' : 'var(--fg-3)', padding: '1px 6px', borderRadius: 3, background: briefs.length > 0 ? 'var(--accent-soft)' : 'var(--bg-2)' }}>
           {briefs.length}

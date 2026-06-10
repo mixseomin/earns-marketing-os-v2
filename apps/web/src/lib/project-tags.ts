@@ -34,6 +34,8 @@ export const PROJECT_ALIAS_OVERRIDES: Record<string, string[]> = {
   'arbscan':           ['arbitrage', 'scanner', 'crypto', 'mev'],
   'chatlt':            ['chat', 'group-chat', 'pwa'],
   'mt5-tools':         ['mt5', 'metatrader', 'forex', 'ea', 'indicator'],
+  'hedge-manager-pro': ['mql5', 'mt5', 'forex', 'trading', 'ea', 'metatrader', 'hedge', 'risk-mgmt'],
+  'market-regime-radar': ['mql5', 'mt5', 'forex', 'trading', 'indicator', 'metatrader', 'regime', 'scanner'],
   'news-copilot':      ['ai', 'news', 'forex', 'trading-news'],
   'mailjet':           ['email', 'smtp'],
   'codecrate':         ['gumroad', 'digital-product', 'template'],

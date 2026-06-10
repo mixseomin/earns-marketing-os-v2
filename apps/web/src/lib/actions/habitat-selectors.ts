@@ -11,6 +11,33 @@
 import { getDb, selectorOverrides, habitats } from '@mos2/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { canonField } from '../selector-field-canon';
+
+// CSS-identity guard: if a row at the same (scope, page_kind) already holds
+// this exact css under a DIFFERENT field_name, that existing field IS this
+// field (same element). Return its name so the writer adopts it instead of
+// spawning a parallel duplicate. Catches "same element, different name" that
+// alias maps can't predict. Returns null when no collision.
+async function adoptExistingField(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  scopeKind: string, scopeKey: string, pageKind: string,
+  fieldName: string, css: string,
+): Promise<string | null> {
+  if (!css) return null;
+  const rows = await db
+    .select({ field: selectorOverrides.fieldName })
+    .from(selectorOverrides)
+    .where(and(
+      eq(selectorOverrides.tenantId, TENANT),
+      eq(selectorOverrides.scopeKind, scopeKind),
+      eq(selectorOverrides.scopeKey, scopeKey),
+      eq(selectorOverrides.pageKind, pageKind),
+      sql`${selectorOverrides.spec}->>'css' = ${css}`,
+      sql`${selectorOverrides.fieldName} <> ${fieldName}`,
+    ))
+    .limit(1);
+  return rows[0]?.field ?? null;
+}
 
 export type ScopeKind = 'engine' | 'platform' | 'habitat';
 
@@ -136,22 +163,28 @@ export async function setOverride(opts: {
   fieldName: string;
   spec: SelectorSpec;
   source?: 'llm' | 'manual' | 'promoted';
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; error?: string; canonicalField?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'DB unavailable' };
   if (!opts.spec.css) return { ok: false, error: 'spec.css required' };
+  // 1) Normalize field name (bracket/case/alias) so variants converge.
+  let field = canonField(opts.fieldName, opts.pageKind);
+  if (!field) return { ok: false, error: 'field_name empty after normalize' };
+  // 2) CSS-identity guard: same css under another name → adopt it (no dup).
+  const adopted = await adoptExistingField(db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, opts.spec.css);
+  if (adopted) field = adopted;
   try {
     await db.execute(sql`
       INSERT INTO selector_overrides
         (tenant_id, scope_kind, scope_key, page_kind, field_name, spec, source, updated_at)
       VALUES (${TENANT}, ${opts.scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
-              ${opts.fieldName}, ${JSON.stringify(opts.spec)}::jsonb,
+              ${field}, ${JSON.stringify(opts.spec)}::jsonb,
               ${opts.source ?? 'manual'}, NOW())
       ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
       DO UPDATE SET spec = EXCLUDED.spec, source = EXCLUDED.source, updated_at = NOW()
     `);
     revalidatePath('/platforms');
-    return { ok: true };
+    return { ok: true, canonicalField: field };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
@@ -174,9 +207,22 @@ export async function setMap(opts: {
   const source = opts.source ?? 'llm';
   let saved = 0;
   let skipped = 0;
+  // Within-batch css dedup: first field to claim a css wins; later fields with
+  // the same css fold onto it (prevents the LLM emitting two names for one node).
+  const cssClaimed = new Map<string, string>();
   try {
-    for (const [field, spec] of Object.entries(opts.selectors)) {
+    for (const [rawField, spec] of Object.entries(opts.selectors)) {
       if (!spec?.css) continue;
+      let field = canonField(rawField, opts.pageKind);
+      if (!field) { skipped++; continue; }
+      // In-batch claim, then DB-wide CSS-identity guard (adopt existing name).
+      const claimed = cssClaimed.get(spec.css);
+      if (claimed && claimed !== field) field = claimed;
+      else {
+        const adopted = await adoptExistingField(db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, spec.css);
+        if (adopted) field = adopted;
+        cssClaimed.set(spec.css, field);
+      }
       // Skip nếu LLM cố ghi đè spec đã có source='manual'.
       // ON CONFLICT WHERE clause: chỉ update khi current source != 'manual'
       // OR new source IS 'manual' (manual luôn được set).
@@ -295,6 +341,127 @@ export async function listScope(opts: {
     source: r.source,
     updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : String(r.updatedAt),
   }));
+}
+
+// ── Duplicate detection + merge (catch what slips past write-time guards) ──
+// A duplicate = ≥2 fields at the same (scope, page_kind) that resolve to the
+// SAME element: identical css, OR field names that canonicalize to the same
+// key. Surfaced on /engines for one-click merge so dups never pile up silently.
+export interface DupGroup {
+  scopeKind: string;
+  scopeKey: string;
+  pageKind: string;
+  reason: 'same-css' | 'same-canon';
+  /** key the group collides on (the css string, or the canonical field). */
+  on: string;
+  fields: Array<{ field: string; css: string; source: string; updatedAt: string }>;
+  /** suggested keeper = most-specific/newest (callers may override). */
+  suggestedKeep: string;
+}
+
+export async function findDuplicateSelectors(opts?: {
+  scopeKind?: ScopeKind;
+  scopeKey?: string;
+}): Promise<DupGroup[]> {
+  const db = getDb();
+  if (!db) return [];
+  const conds = [eq(selectorOverrides.tenantId, TENANT)];
+  if (opts?.scopeKind) conds.push(eq(selectorOverrides.scopeKind, opts.scopeKind));
+  if (opts?.scopeKey) conds.push(eq(selectorOverrides.scopeKey, opts.scopeKey));
+  const rows = await db
+    .select({
+      scopeKind: selectorOverrides.scopeKind,
+      scopeKey: selectorOverrides.scopeKey,
+      pageKind: selectorOverrides.pageKind,
+      field: selectorOverrides.fieldName,
+      spec: selectorOverrides.spec,
+      source: selectorOverrides.source,
+      updatedAt: selectorOverrides.updatedAt,
+    })
+    .from(selectorOverrides)
+    .where(and(...conds));
+
+  type Row = (typeof rows)[number] & { css: string };
+  const norm = rows.map((r) => ({ ...r, css: ((r.spec as SelectorSpec)?.css ?? '').trim() })) as Row[];
+  const groups: DupGroup[] = [];
+  // bucket per (scope, key, page) → then by css and by canon-field
+  const byScope = new Map<string, Row[]>();
+  for (const r of norm) {
+    const k = `${r.scopeKind} ${r.scopeKey} ${r.pageKind}`;
+    (byScope.get(k) ?? byScope.set(k, []).get(k)!).push(r);
+  }
+  const tsStr = (d: unknown) => (d instanceof Date ? d.toISOString() : String(d));
+  const mkField = (r: Row) => ({ field: r.field, css: r.css, source: r.source, updatedAt: tsStr(r.updatedAt) });
+  // keeper = manual beats llm, then newest, then longest (most specific) css
+  const pickKeep = (fs: Row[]) => ([...fs].sort((a, b) => {
+    if ((a.source === 'manual') !== (b.source === 'manual')) return a.source === 'manual' ? -1 : 1;
+    const t = tsStr(b.updatedAt).localeCompare(tsStr(a.updatedAt));
+    if (t !== 0) return t;
+    return b.css.length - a.css.length;
+  })[0]!).field;
+
+  for (const list of byScope.values()) {
+    const seen = new Set<string>();
+    // same-css groups
+    const byCss = new Map<string, Row[]>();
+    for (const r of list) { if (r.css) (byCss.get(r.css) ?? byCss.set(r.css, []).get(r.css)!).push(r); }
+    for (const [css, fs] of byCss) {
+      const head = fs[0];
+      if (fs.length < 2 || !head) continue;
+      fs.forEach((f) => seen.add(f.field));
+      groups.push({
+        scopeKind: head.scopeKind, scopeKey: head.scopeKey, pageKind: head.pageKind,
+        reason: 'same-css', on: css, fields: fs.map(mkField), suggestedKeep: pickKeep(fs),
+      });
+    }
+    // same-canon groups (different css but names fold together) — skip rows
+    // already flagged by css to avoid double-report.
+    const byCanon = new Map<string, Row[]>();
+    for (const r of list) {
+      if (seen.has(r.field)) continue;
+      const c = canonField(r.field, r.pageKind);
+      (byCanon.get(c) ?? byCanon.set(c, []).get(c)!).push(r);
+    }
+    for (const [canon, fs] of byCanon) {
+      const head = fs[0];
+      if (fs.length < 2 || !head) continue;
+      groups.push({
+        scopeKind: head.scopeKind, scopeKey: head.scopeKey, pageKind: head.pageKind,
+        reason: 'same-canon', on: canon, fields: fs.map(mkField), suggestedKeep: pickKeep(fs),
+      });
+    }
+  }
+  return groups;
+}
+
+// mergeSelectorField: keep one field, drop the others in a dup group.
+// Selectors only (persona is not touched here). Returns rows removed.
+export async function mergeSelectorField(opts: {
+  scopeKind: ScopeKind;
+  scopeKey: string;
+  pageKind: string;
+  keep: string;
+  drop: string[];
+}): Promise<{ ok: boolean; removed: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, removed: 0, error: 'DB unavailable' };
+  const drop = opts.drop.filter((d) => d && d !== opts.keep);
+  if (drop.length === 0) return { ok: true, removed: 0 };
+  try {
+    const res = await db.delete(selectorOverrides).where(and(
+      eq(selectorOverrides.tenantId, TENANT),
+      eq(selectorOverrides.scopeKind, opts.scopeKind),
+      eq(selectorOverrides.scopeKey, opts.scopeKey),
+      eq(selectorOverrides.pageKind, opts.pageKind),
+      inArray(selectorOverrides.fieldName, drop),
+    ));
+    revalidatePath('/engines');
+    revalidatePath('/platforms');
+    const removed = (res as { rowCount?: number }).rowCount ?? drop.length;
+    return { ok: true, removed };
+  } catch (e) {
+    return { ok: false, removed: 0, error: (e as Error).message };
+  }
 }
 
 // listFieldSamples — đọc giá trị thực tế đã scrape từ habitats khác cho

@@ -390,8 +390,12 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
 
           {/* ── Technology engine section ── */}
           <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
-            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6 }}>
+            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               ⚙ Engine / CMS / framework
+              {form.technologyKey && (
+                <Link href={`/engines?e=${form.technologyKey}`} title={`Open engine “${form.technologyKey}” → selectors + sites using it`}
+                      style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 400 }}>↗ manage</Link>
+              )}
             </span>
             <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>

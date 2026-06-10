@@ -10,6 +10,7 @@
 //     CSS/parse inline, delete.
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   resolveSelectorsForHabitat, resolveSelectors, listScope,
   setOverride, clearOverride, promoteToScope,
@@ -227,7 +228,12 @@ export function HabitatSelectorsSection({
         {!isEditMode && resolvedPlatform && (
           <span style={{ fontSize: 9, color: 'var(--fg-4)' }}>
             cascade: site#{habitatId ?? '?'} → platform:{resolvedPlatform}
-            {resolvedTech ? ` → engine:${resolvedTech}` : ''}
+            {resolvedTech ? (
+              <> → engine:
+                <Link href={`/engines?e=${resolvedTech}`} title={`Open engine “${resolvedTech}” → manage all its selectors`}
+                      style={{ color: 'var(--accent)', textDecoration: 'none' }}>{resolvedTech} ↗</Link>
+              </>
+            ) : ''}
           </span>
         )}
         <span style={{ flex: 1 }} />

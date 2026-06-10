@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 import { projectSearchHaystack, projectTags } from '@/lib/project-tags';
@@ -26,6 +26,23 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
 
   const router = useRouter();
   const pathname = usePathname();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click + Escape. Pointerdown beats click so the popup
+  // disappears before the underlying element fires its own onClick.
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   const pathParts = pathname.split('/');
   const currentTab = pathParts[3] && PROJECT_TABS.has(pathParts[3]) ? pathParts[3] : null;
@@ -94,7 +111,7 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
   const chipActive: React.CSSProperties = { ...chipBase, background: 'var(--accent)', color: 'var(--bg-0)', borderColor: 'var(--accent)', fontWeight: 600 };
 
   return (
-    <div style={{ position: 'relative', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
+    <div ref={rootRef} style={{ position: 'relative', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
       <button onClick={() => setOpen((o) => !o)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8,
         background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 7,

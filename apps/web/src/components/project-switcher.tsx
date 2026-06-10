@@ -56,16 +56,35 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
   }, [PROJECTS, q, healthFilter, kindFilter, haystacks]);
 
   const grouped = useMemo(() => {
-    if (!groupByMode) return [{ key: '', label: '', items: filtered }];
-    const map = new Map<string, Project[]>();
-    filtered.forEach((proj) => {
-      const arr = map.get(proj.mode);
-      if (arr) arr.push(proj);
-      else map.set(proj.mode, [proj]);
-    });
-    return Array.from(map.entries())
-      .sort((a, b) => b[1].length - a[1].length)
-      .map(([key, items]) => ({ key, label: MODES[key]?.label ?? key, items }));
+    const real = filtered.filter((x) => !x.isDemo);
+    const demo = filtered.filter((x) => x.isDemo);
+
+    type Group = { key: string; label: string; items: Project[]; isDemoGroup?: boolean };
+    const out: Group[] = [];
+
+    const byMode = (items: Project[]): Group[] => {
+      const map = new Map<string, Project[]>();
+      items.forEach((proj) => {
+        const arr = map.get(proj.mode);
+        if (arr) arr.push(proj);
+        else map.set(proj.mode, [proj]);
+      });
+      return Array.from(map.entries())
+        .sort((a, b) => b[1].length - a[1].length)
+        .map(([key, items]) => ({ key, label: MODES[key]?.label ?? key, items }));
+    };
+
+    if (groupByMode) {
+      // real projects split by mode (each gets its own labeled group)
+      out.push(...byMode(real));
+      // all demos lumped together at the bottom under one DEMO header
+      if (demo.length) out.push({ key: '__demo__', label: `DEMO · ${demo.length}`, items: demo, isDemoGroup: true });
+    } else {
+      // flat real block (no header) + flat demo block (always headered)
+      if (real.length) out.push({ key: '', label: '', items: real });
+      if (demo.length) out.push({ key: '__demo__', label: `DEMO · ${demo.length}`, items: demo, isDemoGroup: true });
+    }
+    return out;
   }, [filtered, groupByMode]);
 
   const chipBase: React.CSSProperties = {
@@ -129,16 +148,29 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
           <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
             {grouped.map((g) => {
               const isFolded = foldedModes.has(g.key);
+              const isDemoGroup = g.isDemoGroup;
+              const showHeader = !!g.label;
               return (
                 <div key={g.key || 'flat'}>
-                  {g.label && (
+                  {showHeader && (
                     <div
                       onClick={() => setFoldedModes((s) => { const n = new Set(s); if (n.has(g.key)) n.delete(g.key); else n.add(g.key); return n; })}
-                      style={{ padding: '6px 10px 4px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'var(--bg-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--line)' }}
+                      style={{
+                        padding: '6px 10px 4px',
+                        fontFamily: 'var(--font-mono)', fontSize: 9,
+                        color: isDemoGroup ? 'var(--fg-4)' : 'var(--fg-3)',
+                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                        background: isDemoGroup ? 'var(--bg-3)' : 'var(--bg-2)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                        borderTop: isDemoGroup ? '1px dashed var(--line)' : 'none',
+                        borderBottom: '1px solid var(--line)',
+                      }}
+                      title={isDemoGroup ? 'Mock projects for design preview' : undefined}
                     >
                       <span style={{ fontSize: 8 }}>{isFolded ? '▸' : '▾'}</span>
+                      {isDemoGroup && <span style={{ fontSize: 10 }}>🎨</span>}
                       {g.label}
-                      <span style={{ color: 'var(--fg-4)', marginLeft: 4 }}>{g.items.length}</span>
+                      {!isDemoGroup && <span style={{ color: 'var(--fg-4)', marginLeft: 4 }}>{g.items.length}</span>}
                     </div>
                   )}
                   {!isFolded && g.items.map((proj) => {
@@ -155,6 +187,7 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
                         background: isActive ? 'var(--accent-soft)' : 'transparent',
                         borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
                         cursor: 'pointer',
+                        opacity: proj.isDemo && !isActive ? 0.55 : 1,
                       }}>
                         <span style={{ fontSize: 15 }}>{proj.emoji}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>

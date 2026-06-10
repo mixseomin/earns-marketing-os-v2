@@ -1908,11 +1908,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                     const renameKey = (raw: string) => {
                       const nk = (raw || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
                       if (!nk || nk === k) return;
-                      const p = { ...(form.persona as Record<string, unknown>) };
+                      const p = { ...(form.persona as Record<string, string>) };
                       if (p[nk] !== undefined) return;   // tránh ghi đè key khác
                       const val = p[k]; delete p[k]; p[nk] = val; setF('persona', p);
                     };
-                    const delKey = () => { const p = { ...(form.persona as Record<string, unknown>) }; delete p[k]; setF('persona', p); };
+                    const delKey = () => { const p = { ...(form.persona as Record<string, string>) }; delete p[k]; setF('persona', p); };
                     return (
                       <div key={k} style={{ display: 'flex', gap: 8, alignItems: long ? 'flex-start' : 'center' }}>
                         <input title={`Tên field (key persona). Sửa → đổi tên, rời ô để lưu. Vd 'field' → 'about'.`} defaultValue={k}

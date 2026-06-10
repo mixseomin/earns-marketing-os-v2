@@ -1,8 +1,10 @@
 'use server';
 
-import { getDb, platformTechnologies, platforms, habitats } from '@mos2/db';
-import { eq } from 'drizzle-orm';
+import { getDb, platformTechnologies, platforms, habitats, selectorOverrides } from '@mos2/db';
+import { eq, and, isNotNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
 export interface SignupField {
   key: string;
@@ -51,6 +53,51 @@ export async function listTechnologies(): Promise<TechnologyRow[]> {
   if (!db) return [];
   const rows = await db.select().from(platformTechnologies).orderBy(platformTechnologies.label);
   return rows.map(mapRow);
+}
+
+// ── Engine management page: each engine + who applies it + selector coverage ──
+export interface TechnologyWithUsage extends TechnologyRow {
+  platforms: Array<{ key: string; label: string }>;
+  habitats: Array<{ id: number; name: string; projectId: string }>;
+  // selector_overrides at engine scope, count per page_kind ('signup': 12, ...)
+  selectorCounts: Record<string, number>;
+}
+
+export async function listTechnologiesWithUsage(): Promise<TechnologyWithUsage[]> {
+  const db = getDb();
+  if (!db) return [];
+  const [techs, plats, habs, sels] = await Promise.all([
+    db.select().from(platformTechnologies).orderBy(platformTechnologies.label),
+    db.select({ key: platforms.key, label: platforms.label, tech: platforms.technologyKey })
+      .from(platforms).where(isNotNull(platforms.technologyKey)),
+    db.select({ id: habitats.id, name: habitats.name, projectId: habitats.projectId, tech: habitats.technologyKey })
+      .from(habitats).where(isNotNull(habitats.technologyKey)),
+    db.select({ key: selectorOverrides.scopeKey, pageKind: selectorOverrides.pageKind, n: sql<number>`count(*)::int` })
+      .from(selectorOverrides)
+      .where(and(eq(selectorOverrides.tenantId, TENANT), eq(selectorOverrides.scopeKind, 'engine')))
+      .groupBy(selectorOverrides.scopeKey, selectorOverrides.pageKind),
+  ]);
+  const platBy = new Map<string, Array<{ key: string; label: string }>>();
+  for (const p of plats) {
+    if (!p.tech) continue;
+    (platBy.get(p.tech) ?? platBy.set(p.tech, []).get(p.tech)!).push({ key: p.key, label: p.label });
+  }
+  const habBy = new Map<string, Array<{ id: number; name: string; projectId: string }>>();
+  for (const h of habs) {
+    if (!h.tech) continue;
+    (habBy.get(h.tech) ?? habBy.set(h.tech, []).get(h.tech)!).push({ id: h.id, name: h.name, projectId: h.projectId });
+  }
+  const selBy = new Map<string, Record<string, number>>();
+  for (const s of sels) {
+    const m = selBy.get(s.key) ?? selBy.set(s.key, {}).get(s.key)!;
+    m[s.pageKind] = (m[s.pageKind] ?? 0) + Number(s.n);
+  }
+  return techs.map((r) => ({
+    ...mapRow(r),
+    platforms: platBy.get(r.key) ?? [],
+    habitats: habBy.get(r.key) ?? [],
+    selectorCounts: selBy.get(r.key) ?? {},
+  }));
 }
 
 export async function getTechnology(key: string): Promise<TechnologyRow | null> {

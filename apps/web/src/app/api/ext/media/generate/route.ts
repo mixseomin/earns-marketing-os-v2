@@ -146,7 +146,7 @@ async function webSearchImage(query: string): Promise<{ buf: Buffer; mime: strin
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
-  let body: { projectId?: string; accountId?: number; handle?: string; field?: string; source?: string; prompt?: string };
+  let body: { projectId?: string; accountId?: number; handle?: string; field?: string; source?: string; prompt?: string; url?: string; dataUrl?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }); }
 
   const field = (body.field || 'avatar').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'avatar';
@@ -159,6 +159,22 @@ export async function POST(req: Request) {
   const [w, h] = size.split('x').map(Number) as [number, number];
 
   try {
+    // CAPTURE: ảnh đang hiển thị TRÊN SITE (user đổi avatar trực tiếp) → import vào
+    // MOS2 để khớp thực tế. dataUrl (ext fetch sẵn, ưu tiên) hoặc url (server tải).
+    if (body.source === 'capture') {
+      let buf: Buffer | null = null; let mime = 'image/png';
+      if (body.dataUrl) {
+        const m = /^data:([^;]+);base64,(.*)$/s.exec(body.dataUrl);
+        if (m) { mime = m[1]!; buf = Buffer.from(m[2]!, 'base64'); }
+      } else if (body.url) {
+        const dl = await downloadImage(body.url); if (dl) { buf = dl.buf; mime = dl.mime; }
+      }
+      if (!buf || buf.length < 200) return NextResponse.json({ ok: false, error: 'không lấy được ảnh hiện tại' }, { status: 200 });
+      const saved = await persist({ projectId, field, buf, mime, width: w, height: h, source: 'captured', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: 'captured from site' });
+      if (!saved) return NextResponse.json({ ok: false, error: 'persist fail' }, { status: 500 });
+      return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'captured' });
+    }
+
     if (wantWeb) {
       const q = body.prompt?.trim() || [personaDesc(persona), banner ? 'banner background' : 'portrait avatar photo'].filter(Boolean).join(' ');
       const found = await webSearchImage(q);

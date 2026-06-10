@@ -30,12 +30,16 @@ export async function POST(req: Request) {
   // Brand DỰ ÁN = nguồn sự thật cho profile (account đại diện dự án). Load qua projectId
   // hoặc accountId → project. website/oneLiner/bio/hashtags dùng để fill + làm ngữ cảnh.
   let proj: { name: string; website: string; oneLiner: string; bio: string; hashtags: string; persona: string } | undefined;
+  // Giá trị ĐÃ LƯU trên account (cột email + persona jsonb) → AI TÁI DÙNG y hệt, ko sinh mới /
+  // ko để trống (vd email đã lưu → điền lại đúng nó).
+  let acctEmail = ''; let acctPersona: Record<string, unknown> = {};
   const db0 = getDb();
   if (db0) {
     let pid = (body.projectId || '').trim();
-    if (!pid && body.accountId) {
-      const [a] = await db0.select({ projectId: platformAccounts.projectId }).from(platformAccounts).where(eq(platformAccounts.id, Number(body.accountId))).limit(1);
-      pid = a?.projectId || '';
+    if (body.accountId) {
+      const [a] = await db0.select({ projectId: platformAccounts.projectId, email: platformAccounts.email, persona: platformAccounts.persona })
+        .from(platformAccounts).where(eq(platformAccounts.id, Number(body.accountId))).limit(1);
+      if (a) { if (!pid) pid = a.projectId || ''; acctEmail = a.email || ''; acctPersona = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {}; }
     }
     if (pid) {
       const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })
@@ -78,13 +82,19 @@ export async function POST(req: Request) {
       + `- brand persona: ${proj.persona.slice(0, 300)}`
     : '\nDỰ ÁN: (chưa load brand)';
 
-  // Website chính chủ → fill THẲNG từ project.website (canonical), bỏ qua LLM cho field này.
+  // Forced = giá trị CANONICAL, fill thẳng, bỏ qua LLM. Ưu tiên: giá trị account đã lưu
+  // (email cột / persona) → website dự án. AI ko sinh lại / ko để trống cái đã có.
+  const EMAIL_FIELD = /(^|_)e?mail($|_)/i;
   const forced: Record<string, string> = {};
-  if (proj?.website) {
-    for (const f of fields) {
-      const k = (f.key || '').toLowerCase(); const lb = (f.label || '').toLowerCase();
-      if (WEBSITE_FIELD.test(k) || WEBSITE_FIELD.test(lb)) forced[f.key || ''] = proj.website;
-    }
+  for (const f of fields) {
+    const key = f.key || ''; if (!key) continue;
+    const k = key.toLowerCase(); const lb = (f.label || '').toLowerCase();
+    // 1) account.persona đã có key này → tái dùng y hệt (nhất quán mọi site).
+    const pv = acctPersona[key]; if (typeof pv === 'string' && pv.trim()) { forced[key] = pv.trim(); continue; }
+    // 2) email field + account.email đã lưu → điền lại.
+    if ((EMAIL_FIELD.test(k) || EMAIL_FIELD.test(lb)) && acctEmail) { forced[key] = acctEmail; continue; }
+    // 3) website field → website chính thức dự án.
+    if ((WEBSITE_FIELD.test(k) || WEBSITE_FIELD.test(lb)) && proj?.website) { forced[key] = proj.website; continue; }
   }
   const llmFields = fields.filter((f) => !(f.key && forced[f.key]));
 

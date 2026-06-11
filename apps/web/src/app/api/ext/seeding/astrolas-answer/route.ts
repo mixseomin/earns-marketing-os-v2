@@ -239,10 +239,22 @@ export async function POST(req: Request) {
     ...(selfChart ? [{ name: 'querent', ...selfChart }] : []),
     ...celebNames.map((name) => ({ name })),
   ];
-  // Parse được self-chart → BỎ block ảnh khỏi question_body (chart đi qua entities). Block ảnh
-  // chứa "Location: …, Coordinates: …" khiến engine GEOCODE text đó → loop tới safety-valve dù
-  // entities đã có coords (probe 2026-06-12). Non-chart image (selfChart=null) → giữ nguyên.
-  const questionContent = selfChart ? (discussionText.trim() || body.parentBody) : body.parentBody;
+  // Chart-reading detect: ảnh CÓ placements (Sun/Mars…: độ Sign House, Ascendant, House System)
+  // DÙ không parse được DOB (vd "Date of Birth: Not specified, year 2006") → vẫn là đọc lá số →
+  // ép tier deep (Sonnet) + giữ placements cho engine đọc. Tránh tụt về economy/mini → sơ sài.
+  const hasChartVision = /\b(?:ascendant|midheaven|house system|\d(?:st|nd|rd|th)\s+house|(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto)\s*:\s*\d)\b/i.test(visionBlock);
+  // Vision sạch để đưa vào question_body khi KHÔNG có entities: bỏ dòng Location/Coordinates
+  // (geocode bait → loop) nhưng GIỮ planet/house/aspect.
+  const sanitizedVision = visionBlock
+    ? visionBlock.split('\n').filter((l) => !/\b(?:location|coordinate)\b|°\s*\d+['′]?\s*[NSEW]/i.test(l)).join('\n').trim()
+    : '';
+  // question_body:
+  //  - có entities (dob/coords) → engine TỰ dựng chart → bỏ vision (tránh geocode loop + trùng).
+  //  - không entities nhưng có placements → GIỮ placements (đã bỏ Location/Coordinates).
+  //  - còn lại → giữ nguyên parentBody.
+  const questionContent = selfChart
+    ? (discussionText.trim() || body.parentBody)
+    : (hasChartVision ? `${discussionText.trim()}\n\n[CHART DATA — đọc trực tiếp các placements dưới đây]\n${sanitizedVision}` : body.parentBody);
 
   const questionBodyEnriched = [
     `[STRICT OUTPUT LANGUAGE: ${langName} (${habitatLang}) — MUST reply ENTIRELY in ${langName}. Brief context below may be in Vietnamese (operator notes) but YOUR ANSWER must be ${langName}. DO NOT mix languages.]`,
@@ -324,7 +336,7 @@ export async function POST(req: Request) {
   // Depth tier: hard case (self-chart/celeb = chart reading, hay hỏi "khi nào") → 'deep'
   // (Sonnet + timing + patterns + dignities). Casual → 'economy' (mini, rẻ). Override: body.depth.
   const DEPTH_ORDER = ['economy', 'standard', 'deep', 'max'];
-  const hardCase = !!selfChart || celebNames.length > 0;
+  const hardCase = !!selfChart || celebNames.length > 0 || hasChartVision;
   const initialDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
 
   const first = await callAstrolas(initialDepth);

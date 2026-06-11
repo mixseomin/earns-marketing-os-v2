@@ -223,10 +223,30 @@ export async function POST(req: Request) {
   };
   const langName = LANG_NAMES[habitatLang] || habitatLang.toUpperCase();
   const customPromptClean = (body.customPrompt ?? '').trim().slice(0, 1500);
+
+  // Celebrity-astrology: detect tên public-figure CHỈ trên text thảo luận thật — cắt block
+  // ảnh ([IMAGES EXTRACTED]) vì mô tả natal chart toàn cụm Title-Case (Sun Conjunct Mercury,
+  // House System…) làm NER đẻ entities rác (Astrolas báo).
+  const parts = (body.parentBody || '').split(/\[IMAGES?\s+EXTRACTED/i);
+  const discussionText = parts[0] ?? '';
+  const visionBlock = parts.slice(1).join('\n');
+  const celebNames = extractNameCandidates(body.parentTitle, discussionText);
+  // Querent self-chart: birth-data parse từ block ảnh (coords-only, KHÔNG place → tránh
+  // geocode loop). Có dob → engine dựng transient chart, không cần public name.
+  const selfChart = parseSelfChart(visionBlock);
+  const entities: Array<{ name: string; dob?: string; birth_time?: string; birth_coords?: { lat: number; lon: number } }> = [
+    ...(selfChart ? [{ name: 'querent', ...selfChart }] : []),
+    ...celebNames.map((name) => ({ name })),
+  ];
+  // Parse được self-chart → BỎ block ảnh khỏi question_body (chart đi qua entities). Block ảnh
+  // chứa "Location: …, Coordinates: …" khiến engine GEOCODE text đó → loop tới safety-valve dù
+  // entities đã có coords (probe 2026-06-12). Non-chart image (selfChart=null) → giữ nguyên.
+  const questionContent = selfChart ? (discussionText.trim() || body.parentBody) : body.parentBody;
+
   const questionBodyEnriched = [
     `[STRICT OUTPUT LANGUAGE: ${langName} (${habitatLang}) — MUST reply ENTIRELY in ${langName}. Brief context below may be in Vietnamese (operator notes) but YOUR ANSWER must be ${langName}. DO NOT mix languages.]`,
     '',
-    body.parentBody,
+    questionContent,
     '',
     '---',
     '[OPERATOR CONTEXT — KHÔNG phải nội dung user hỏi, chỉ là instruction cho engine. Reply language vẫn phải là ' + langName + ']',
@@ -246,21 +266,6 @@ export async function POST(req: Request) {
     '',
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');
-
-  // Celebrity-astrology: detect tên public-figure CHỈ trên text thảo luận thật —
-  // cắt block ảnh ([IMAGES EXTRACTED]) vì mô tả natal chart toàn cụm Title-Case
-  // (Sun Conjunct Mercury, House System…) làm NER đẻ entities rác (Astrolas báo).
-  const parts = (body.parentBody || '').split(/\[IMAGES?\s+EXTRACTED/i);
-  const discussionText = parts[0] ?? '';
-  const visionBlock = parts.slice(1).join('\n');
-  const celebNames = extractNameCandidates(body.parentTitle, discussionText);
-  // Querent self-chart: birth-data parse từ block ảnh (coords-only, KHÔNG place → tránh
-  // geocode loop). Có dob → engine dựng transient chart, không cần public name.
-  const selfChart = parseSelfChart(visionBlock);
-  const entities: Array<{ name: string; dob?: string; birth_time?: string; birth_coords?: { lat: number; lon: number } }> = [
-    ...(selfChart ? [{ name: 'querent', ...selfChart }] : []),
-    ...celebNames.map((name) => ({ name })),
-  ];
 
   const astrolasPayload = {
     question_title: body.parentTitle.slice(0, 500),

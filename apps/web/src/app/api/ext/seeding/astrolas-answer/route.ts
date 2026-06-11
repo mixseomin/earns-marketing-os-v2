@@ -343,13 +343,23 @@ export async function POST(req: Request) {
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
   const _hzOpts = body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
     ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined;
-  // Astrolas default_chat đính kèm <details>🔮 Astrology basis</details> (citation để operator
-  // verify, KHÔNG đăng) + đôi khi mở đầu thinking "I'll build your full chart…" → tách khỏi bản đăng.
-  const answerClean = data.answer_md
+  // Astrolas default_chat hay leak 2 thứ vào answer_md (đều ko nên đăng):
+  //  (a) appendix "🔮 Astrolog* basis (verify)" — citation operator-verify (dạng <details> HOẶC plain header)
+  //  (b) thinking-preamble ở đầu: "STEP 1… running Steps 2-5 in parallel… batch lookup…"
+  // → bóc cả 2. (Đã báo Astrolas: answer_md nên CHỈ là reply.)
+  let answerClean = data.answer_md
     .replace(/<details>[\s\S]*?<\/details>/gi, '')
+    .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')   // appendix basis tới hết
     .replace(/<\/?(?:details|summary)>/gi, '')
-    .replace(/^\s*I['’]?ll build your (?:full )?chart[^.\n]*\.\s*/i, '')
     .trim();
+  // Thinking-preamble: cắt từ đầu tới hết câu chứa marker thinking CUỐI CÙNG (trong ~500 ký tự đầu).
+  const head = answerClean.slice(0, 500);
+  const mk = [...head.matchAll(/\b(?:STEP\s*\d|Step\s*\d|running steps?|in parallel|batch[-\s]?lookup|building (?:the|your) (?:full )?chart|create_seeding|analyze_house|get_natal|I['’]?ll build)\b/gi)];
+  const last = mk.length ? mk[mk.length - 1] : null;
+  if (last) {
+    const dot = answerClean.indexOf('.', (last.index ?? 0) + last[0].length);
+    if (dot > -1 && dot < 600) answerClean = answerClean.slice(dot + 1).trim();
+  }
   // stripAITells TRƯỚC: Astrolas trả answer_md = markdown (## > * - — ❌) → lộ AI. Phẳng hoá thành prose.
   const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(answerClean), _hzOpts), _hzOpts), _hzOpts);
   await db.update(cards).set({

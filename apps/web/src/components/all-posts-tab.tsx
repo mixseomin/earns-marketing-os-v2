@@ -653,6 +653,8 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved, focused }: {
                          color: 'var(--fg-1)', textAlign: 'left', width: '100%',
                          display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', fontWeight: 700, flexShrink: 0 }}
+                  title={`Card ID — khớp ?fc=${c.id} và badge #${c.id} trên post`}>#{c.id}</span>
             <span style={{ fontWeight: 700, color: 'var(--fg-0)', whiteSpace: 'nowrap' }}>
               {c.habitatIsOwn && (
                 <span title="Own — habitat brand mình quản lý"

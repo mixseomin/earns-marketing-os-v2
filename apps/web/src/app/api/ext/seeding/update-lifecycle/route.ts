@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { updateCardLifecycle } from '@/lib/actions/brief-posts';
+import { VALID_LIFECYCLE_VALUES } from '@/lib/lifecycle';
 
 // POST /api/ext/seeding/update-lifecycle
 // Body: { cardId, lifecycle, note? }
@@ -9,9 +10,7 @@ import { updateCardLifecycle } from '@/lib/actions/brief-posts';
 // User mark manual khi xem post Reddit thấy bị remove/ghost; hoặc cron
 // auto-detect (Phase D) gọi với context "anon fetch returned [removed]".
 
-const VALID_LIFECYCLES = new Set([
-  null, 'live', 'ghosted', 'removed-by-mod', 'self-deleted', 'low-engagement',
-]);
+const VALID_LIFECYCLES = new Set<string | null>(VALID_LIFECYCLE_VALUES);   // 1 source: lib/lifecycle.ts
 
 export async function POST(req: Request) {
   const authErr = checkAuth(req);

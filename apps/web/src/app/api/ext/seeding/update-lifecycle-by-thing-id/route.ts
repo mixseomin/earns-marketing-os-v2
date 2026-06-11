@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { updateCardLifecycle } from '@/lib/actions/brief-posts';
+import { LIFECYCLE_VALUES } from '@/lib/lifecycle';
 
 // POST /api/ext/seeding/update-lifecycle-by-thing-id
 // Body: { thingId, lifecycle, note? }
@@ -13,9 +14,7 @@ import { updateCardLifecycle } from '@/lib/actions/brief-posts';
 //
 // Server: tìm card có post_url ILIKE '%/<thingId>/%' → updateCardLifecycle.
 
-const VALID_LIFECYCLES = new Set([
-  'live', 'ghosted', 'removed-by-mod', 'self-deleted', 'low-engagement',
-]);
+const VALID_LIFECYCLES = new Set<string>(LIFECYCLE_VALUES);   // 1 source: lib/lifecycle.ts
 
 export async function POST(req: Request) {
   const authErr = checkAuth(req);

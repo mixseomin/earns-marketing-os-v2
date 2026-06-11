@@ -28,6 +28,7 @@ import {
   type CostBreakdown,
 } from '@/lib/actions/brief-posts';
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
+import { LIFECYCLE_META } from '@/lib/lifecycle';
 import { fmtCompactNum } from '@/lib/format';
 import { MultiSelect as SharedMultiSelect } from './ui';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
@@ -45,14 +46,7 @@ interface Props {
   onOpenBrief: (briefId: number, cardId?: number, phase?: string | null) => void;
 }
 
-const LIFECYCLE_META: Record<string, { icon: string; label: string; color: string; bg: string }> = {
-  live:             { icon: '✅', label: 'Live',          color: 'var(--ok)',   bg: 'rgba(74,222,128,.15)' },
-  ghosted:          { icon: '👻', label: 'Ghosted',       color: '#a78bfa',     bg: 'rgba(167,139,250,.15)' },
-  'removed-by-mod': { icon: '🗑', label: 'Mod removed',   color: 'var(--bad)',  bg: 'rgba(248,113,113,.15)' },
-  'self-deleted':   { icon: '🗑', label: 'Self deleted',  color: 'var(--fg-3)', bg: 'var(--bg-3)' },
-  'low-engagement': { icon: '💤', label: 'Low engage',    color: 'var(--warn)', bg: 'rgba(251,191,36,.15)' },
-  _none:            { icon: '⏳', label: 'Chưa đánh dấu', color: 'var(--fg-4)', bg: 'var(--bg-2)' },
-};
+// LIFECYCLE_META → 1 source: @/lib/lifecycle (dùng chung route + LifecycleBadge).
 
 const SORT_OPTIONS: Array<{ value: PostedSortKey; label: string }> = [
   { value: 'posted_desc',  label: 'Mới nhất' },

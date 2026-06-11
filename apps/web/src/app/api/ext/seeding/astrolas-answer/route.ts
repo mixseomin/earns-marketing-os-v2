@@ -101,7 +101,8 @@ export async function POST(req: Request) {
     parentAuthor?: string;
     maxLength?: number;
     topicsHint?: string[];
-    llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — Astrolas tự validate
+    llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — override model của tier
+    depth?: string;      // 'economy'|'standard'|'deep'|'max' — Astrolas depth tier (tự điều chỉnh model + reasoning layers)
     customPrompt?: string;  // Operator instruction kèm theo brief context
     briefOverride?: {       // User edit brief tại side panel — override field-by-field
       approach_md?: string;
@@ -291,15 +292,16 @@ export async function POST(req: Request) {
   type AstrolasData = {
     ok: boolean; answer_md?: string; answer_lang?: string;
     sources?: Array<{ title: string; url: string; snippet?: string; type?: string }>;
-    voice_signals?: { confidence?: number; data_backed?: boolean; model_used?: string; tools_called?: string[]; warnings?: string[]; quality_flags?: string[] };
+    voice_signals?: { confidence?: number; data_backed?: boolean; model_used?: string; tools_called?: string[]; warnings?: string[]; quality_flags?: string[]; depth?: string; depth_layers?: string[]; claim_confidence?: Array<{ claim?: string; confidence?: number }> };
     // Celebrity-astrology: chart engine THỰC SỰ dùng (resolved=false ⇒ skip, no claim).
     entities_used?: Array<{ name: string; sun_sign?: string | null; moon_sign?: string | null; rising?: string | null; dob?: string | null; birth_time?: string | null; birth_place?: string | null; source?: string | null; resolved?: boolean }>;
     cost_estimate_usd?: number; duration_ms?: number; log_id?: string; error?: string;
   };
   const astrolasEndpoint = `${apiUrl.replace(/\/+$/, '')}/api/v1/qa/answer`;
   const astrolasAuth = `Bearer ${apiKey}`;
-  async function callAstrolas(llmCfg: string | undefined): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
-    const payload = { ...astrolasPayload, ...(llmCfg ? { llm_config: llmCfg } : {}) };
+  async function callAstrolas(depth: string): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
+    // depth = tier (model + reasoning layers tự điều chỉnh). llm_config (nếu ext gửi) override model của tier.
+    const payload = { ...astrolasPayload, depth, ...(body.llmConfig ? { llm_config: body.llmConfig } : {}) };
     let res: Response;
     try {
       res = await fetch(astrolasEndpoint, {
@@ -319,18 +321,21 @@ export async function POST(req: Request) {
   }
   const lowQuality = (d: AstrolasData) => [...(d.voice_signals?.warnings ?? []), ...(d.voice_signals?.quality_flags ?? [])]
     .some((f) => f === 'shallow_reasoning' || f === 'system_message_leak');
-  // Hard case = cần reasoning sâu (chart data-backed) → mở thẳng model mạnh. Tôn trọng override ext.
+  // Depth tier: hard case (self-chart/celeb = chart reading, hay hỏi "khi nào") → 'deep'
+  // (Sonnet + timing + patterns + dignities). Casual → 'economy' (mini, rẻ). Override: body.depth.
+  const DEPTH_ORDER = ['economy', 'standard', 'deep', 'max'];
   const hardCase = !!selfChart || celebNames.length > 0;
-  const initialLlm = body.llmConfig || (hardCase ? 'default_chat' : undefined);
+  const initialDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
 
-  const first = await callAstrolas(initialLlm);
+  const first = await callAstrolas(initialDepth);
   if (!first.ok) return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 });
   let data = first.data;
-  let llmUsed = initialLlm ?? 'engine_default';
-  // Escalate-on-flag: chưa dùng model mạnh + engine báo quality thấp → retry default_chat 1 lần.
-  if (data.ok && data.answer_md && initialLlm !== 'default_chat' && lowQuality(data)) {
-    const retry = await callAstrolas('default_chat');
-    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; llmUsed = 'default_chat'; }
+  let depthUsed = initialDepth;
+  // Escalate-on-flag: quality thấp → nâng ÍT NHẤT 'deep' (nếu đang dưới) hoặc 'max' (nếu đã ≥deep). 1 lần.
+  if (data.ok && data.answer_md && depthUsed !== 'max' && lowQuality(data)) {
+    const target = DEPTH_ORDER.indexOf(depthUsed) < DEPTH_ORDER.indexOf('deep') ? 'deep' : 'max';
+    const retry = await callAstrolas(target);
+    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; depthUsed = target; }
   }
 
   if (!data.ok || !data.answer_md) {
@@ -351,6 +356,7 @@ export async function POST(req: Request) {
     .replace(/<details>[\s\S]*?<\/details>/gi, '')
     .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')   // appendix basis tới hết
     .replace(/<\/?(?:details|summary)>/gi, '')
+    .replace(/\s*\[conf:\s*[\d.]+\]/gi, '')                       // per-claim conf tag (max tier) → đã ở claim_confidence[]
     .trim();
   // Thinking-preamble: cắt từ đầu tới hết câu chứa marker thinking CUỐI CÙNG (trong ~500 ký tự đầu).
   const head = answerClean.slice(0, 500);
@@ -402,8 +408,10 @@ export async function POST(req: Request) {
       // Celebrity-astrology transparency: tên đã detect + chart engine grounded.
       celebNamesSent: celebNames.length ? celebNames : null,
       celebEntities: (data.entities_used && data.entities_used.length) ? data.entities_used : null,
-      // Model escalation transparency: model nào đã dùng + có escalate không.
-      llmConfigUsed: llmUsed,
+      // Depth-tier transparency: mức depth đã dùng + reasoning layers engine chạy + #claim confidence.
+      depthUsed,
+      depthLayers: data.voice_signals?.depth_layers ?? null,
+      claimConfidenceN: Array.isArray(data.voice_signals?.claim_confidence) ? data.voice_signals?.claim_confidence.length : 0,
       selfChartSent: selfChart ? { dob: selfChart.dob, birth_time: selfChart.birth_time ?? null, hasCoords: !!selfChart.birth_coords } : null,
     },
   });

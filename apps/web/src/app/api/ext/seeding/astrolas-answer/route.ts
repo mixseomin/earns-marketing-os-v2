@@ -6,7 +6,7 @@ import { checkAuth } from '../../_auth';
 import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
-import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
+import { clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
 import { normalizeParentUrl } from '@/lib/parent-url';
 
 // NER-lite: rút tên người (public-figure candidate) từ text — chuỗi 2-3 từ
@@ -15,6 +15,10 @@ import { normalizeParentUrl } from '@/lib/parent-url';
 // capture vô hại, engine là gatekeeper (resolved=false ⇒ no sign claim). Không
 // thấy tên ⇒ bỏ angle ⇒ answer chiêm tinh thường.
 const NAME_STOP = new Set(['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'I', 'We', 'You', 'He', 'She', 'It', 'They', 'But', 'And', 'So', 'Or', 'My', 'Our', 'Your', 'His', 'Her', 'Its', 'Their', 'In', 'On', 'At', 'Of', 'For', 'To', 'With', 'As', 'If', 'When', 'While', 'Why', 'How', 'What', 'Who', 'Whom', 'Where', 'Which', 'Then', 'Now', 'Here', 'There', 'Yes', 'No', 'Not', 'Just', 'Also', 'Only', 'Even', 'Some', 'Many', 'Most', 'Each', 'Every', 'More', 'Less', 'Both', 'All', 'Any', 'Such', 'New', 'Old', 'Edit', 'Reddit', 'OP']);
+// Thuật ngữ chiêm tinh / cấu trúc chart — loại candidate chứa bất kỳ từ nào trong đây
+// (mô tả ảnh natal chart toàn cụm Title-Case: "Sun Conjunct Mercury", "House System",
+// "Chart Layout", "General Information"…). Bên Astrolas báo entities rác 2026-06-11.
+const ASTRO_TERMS = new Set(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Node', 'Chiron', 'Lilith', 'Ascendant', 'Descendant', 'Midheaven', 'Rising', 'Conjunct', 'Conjunction', 'Trine', 'Square', 'Opposition', 'Opposite', 'Sextile', 'Quincunx', 'Aspect', 'Aspects', 'House', 'Houses', 'Chart', 'Natal', 'Birth', 'Zodiac', 'Placidus', 'Cusp', 'Degree', 'Retrograde', 'North', 'South', 'General', 'Information', 'Layout', 'Section', 'Wheel', 'System', 'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces', 'Horoscope', 'Astrology', 'Transit', 'Transits', 'Synastry', 'Placement', 'Placements']);
 function extractNameCandidates(title?: string, bodyText?: string): string[] {
   const text = `${title ?? ''}\n${bodyText ?? ''}`;
   const re = /\b([A-Z][a-z]+(?:['’.-][A-Za-z]+)?(?:\s+[A-Z][a-z]+(?:['’.-][A-Za-z]+)?){1,2})\b/g;
@@ -26,6 +30,7 @@ function extractNameCandidates(title?: string, bodyText?: string): string[] {
     for (let f = words[0]; f && NAME_STOP.has(f); f = words[0]) words = words.slice(1);
     for (let l = words[words.length - 1]; l && NAME_STOP.has(l); l = words[words.length - 1]) words = words.slice(0, -1);
     if (words.length < 2) continue;            // cần ≥2 từ → giảm false positive
+    if (words.some((w) => ASTRO_TERMS.has(w))) continue;   // bỏ cụm thuật ngữ chart
     const name = words.join(' ');
     const key = name.toLowerCase();
     if (seen.has(key)) continue;
@@ -206,34 +211,19 @@ export async function POST(req: Request) {
     ctx.dont_md ? `DON'T:\n${String(ctx.dont_md).slice(0, 500)}` : null,
     forbiddenTopics.length > 0 ? `FORBIDDEN TOPICS: ${forbiddenTopics.join(', ')}` : null,
     customPromptClean ? `\n[OPERATOR INSTRUCTION — ưu tiên cao, áp dụng cho answer này]\n${customPromptClean}` : null,
-    // 🚨 Habitat dùng AI-content detector → enforce strict anti-AI patterns.
-    ctx.ai_content_detection
-      ? `\n[🚨 ANTI-AI-DETECTION ACTIVE for this habitat — community has AI-detect mod tools]
-MUST:
-- Write like a real human: rare typos OK, hesitation words ("hmm", "tbh", "honestly")
-- Mix short/long sentences, not uniform length
-- Use contractions (don't, it's, I've)
-- Concrete personal anecdote with year/place/name
-- Natural ending, NO "Hope this helps!" / "Let me know if..."
-AVOID ABSOLUTELY:
-- Em dash '—' (use '-' or '...')
-- Markdown bullets/headers/bold (**, #, "- ")
-- AI opening: "As an AI", "Great question!", "Certainly!"
-- 3+ same-length sentences in a row
-${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
-      : null,
-    // 🧬 Human authenticity (chip ext) — best-effort cho answer Astrolas (seed/direct).
-    (body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0)
-      ? buildHumanizerBlock({ knobs: body.humanizer.knobs, intensity: body.humanizer.intensity }, habitatLang)
-      : null,
+    // ❌ KHÔNG inject anti-AI block + 🧬 humanizer rules (typo guide / "60 từ" / kết "?!")
+    // vào question_body cho Astrolas: đó là writer-mechanics → engine reasoning hiểu nhầm
+    // phải viết NGẮN kiểu Reddit reply thay vì grounded reading (Astrolas báo 2026-06-11).
+    // Humanize chạy Ở OUTPUT (stripAITells/injectTypos/applyHumanErrors post-process) — input sạch.
     '',
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');
 
-  // Celebrity-astrology: detect tên public-figure trong title+body gốc (KHÔNG
-  // enrich từ questionBodyEnriched để tránh bắt tên trong operator-context).
-  // Có tên → bật angle + gửi entities (chỉ name; Astrolas tự lo birth-data).
-  const celebNames = extractNameCandidates(body.parentTitle, body.parentBody);
+  // Celebrity-astrology: detect tên public-figure CHỈ trên text thảo luận thật —
+  // cắt block ảnh ([IMAGES EXTRACTED]) vì mô tả natal chart toàn cụm Title-Case
+  // (Sun Conjunct Mercury, House System…) làm NER đẻ entities rác (Astrolas báo).
+  const discussionText = (body.parentBody || '').split(/\[IMAGES?\s+EXTRACTED/i)[0];
+  const celebNames = extractNameCandidates(body.parentTitle, discussionText);
 
   const astrolasPayload = {
     question_title: body.parentTitle.slice(0, 500),

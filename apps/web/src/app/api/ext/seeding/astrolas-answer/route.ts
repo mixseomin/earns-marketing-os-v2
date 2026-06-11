@@ -9,6 +9,33 @@ import type { Phase } from '@/lib/phase-plan';
 import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
 import { normalizeParentUrl } from '@/lib/parent-url';
 
+// NER-lite: rút tên người (public-figure candidate) từ text — chuỗi 2-3 từ
+// Title-Case liền nhau. KHÔNG LLM. Engine Astrolas tự resolve (Profile DB tag=
+// celebrity → Wikidata P569) + REJECT khi DOB precision<day / không có → over-
+// capture vô hại, engine là gatekeeper (resolved=false ⇒ no sign claim). Không
+// thấy tên ⇒ bỏ angle ⇒ answer chiêm tinh thường.
+const NAME_STOP = new Set(['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'I', 'We', 'You', 'He', 'She', 'It', 'They', 'But', 'And', 'So', 'Or', 'My', 'Our', 'Your', 'His', 'Her', 'Its', 'Their', 'In', 'On', 'At', 'Of', 'For', 'To', 'With', 'As', 'If', 'When', 'While', 'Why', 'How', 'What', 'Who', 'Whom', 'Where', 'Which', 'Then', 'Now', 'Here', 'There', 'Yes', 'No', 'Not', 'Just', 'Also', 'Only', 'Even', 'Some', 'Many', 'Most', 'Each', 'Every', 'More', 'Less', 'Both', 'All', 'Any', 'Such', 'New', 'Old', 'Edit', 'Reddit', 'OP']);
+function extractNameCandidates(title?: string, bodyText?: string): string[] {
+  const text = `${title ?? ''}\n${bodyText ?? ''}`;
+  const re = /\b([A-Z][a-z]+(?:['’.-][A-Za-z]+)?(?:\s+[A-Z][a-z]+(?:['’.-][A-Za-z]+)?){1,2})\b/g;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    let words = (m[1] ?? '').split(/\s+/);
+    for (let f = words[0]; f && NAME_STOP.has(f); f = words[0]) words = words.slice(1);
+    for (let l = words[words.length - 1]; l && NAME_STOP.has(l); l = words[words.length - 1]) words = words.slice(0, -1);
+    if (words.length < 2) continue;            // cần ≥2 từ → giảm false positive
+    const name = words.join(' ');
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 // POST /api/ext/seeding/astrolas-answer
 // Body giống /quick-comment nhưng dùng Astrolas API (data-backed) thay vì
 // AI generic. Endpoint contract Astrolas:
@@ -203,6 +230,11 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');
 
+  // Celebrity-astrology: detect tên public-figure trong title+body gốc (KHÔNG
+  // enrich từ questionBodyEnriched để tránh bắt tên trong operator-context).
+  // Có tên → bật angle + gửi entities (chỉ name; Astrolas tự lo birth-data).
+  const celebNames = extractNameCandidates(body.parentTitle, body.parentBody);
+
   const astrolasPayload = {
     question_title: body.parentTitle.slice(0, 500),
     question_body: questionBodyEnriched.slice(0, 10000),
@@ -216,6 +248,9 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
     // Optional Astrolas llm_config override (Claude Opus / Sonnet / Haiku /
     // OpenAI mini variants). null/missing → Astrolas skill default.
     ...(body.llmConfig ? { llm_config: body.llmConfig } : {}),
+    // Celebrity-astrology angle — chỉ gửi khi thấy tên. Engine self-resolve +
+    // reject fake (resolved=false ⇒ không bịa cung).
+    ...(celebNames.length ? { angle: 'celebrity_astrology', entities: celebNames.map((name) => ({ name })) } : {}),
   };
 
   // 4. Call Astrolas
@@ -252,6 +287,8 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
     answer_lang?: string;
     sources?: Array<{ title: string; url: string; snippet?: string; type?: string }>;
     voice_signals?: { confidence?: number; data_backed?: boolean; model_used?: string; tools_called?: string[]; warnings?: string[] };
+    // Celebrity-astrology: chart engine THỰC SỰ dùng (resolved=false ⇒ skip, no claim).
+    entities_used?: Array<{ name: string; sun_sign?: string | null; moon_sign?: string | null; rising?: string | null; dob?: string | null; birth_time?: string | null; birth_place?: string | null; source?: string | null; resolved?: boolean }>;
     cost_estimate_usd?: number;
     duration_ms?: number;
     log_id?: string;
@@ -307,6 +344,9 @@ ${ctx.ai_detection_note ? `ADMIN NOTE: ${ctx.ai_detection_note}` : ''}`
       topicsSent: topics,
       customPromptApplied: customPromptClean ? customPromptClean.slice(0, 200) : null,
       briefOverridden,
+      // Celebrity-astrology transparency: tên đã detect + chart engine grounded.
+      celebNamesSent: celebNames.length ? celebNames : null,
+      celebEntities: (data.entities_used && data.entities_used.length) ? data.entities_used : null,
     },
   });
 }

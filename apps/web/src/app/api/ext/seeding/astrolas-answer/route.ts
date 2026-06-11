@@ -343,8 +343,15 @@ export async function POST(req: Request) {
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
   const _hzOpts = body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
     ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined;
+  // Astrolas default_chat đính kèm <details>🔮 Astrology basis</details> (citation để operator
+  // verify, KHÔNG đăng) + đôi khi mở đầu thinking "I'll build your full chart…" → tách khỏi bản đăng.
+  const answerClean = data.answer_md
+    .replace(/<details>[\s\S]*?<\/details>/gi, '')
+    .replace(/<\/?(?:details|summary)>/gi, '')
+    .replace(/^\s*I['’]?ll build your (?:full )?chart[^.\n]*\.\s*/i, '')
+    .trim();
   // stripAITells TRƯỚC: Astrolas trả answer_md = markdown (## > * - — ❌) → lộ AI. Phẳng hoá thành prose.
-  const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(data.answer_md), _hzOpts), _hzOpts), _hzOpts);
+  const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(answerClean), _hzOpts), _hzOpts), _hzOpts);
   await db.update(cards).set({
     bodyTarget: answerClamped,
     bodyReview: '',         // Astrolas trả 1 language; nếu cần VN review, dịch sau

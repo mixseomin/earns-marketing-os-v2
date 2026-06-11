@@ -41,6 +41,34 @@ function extractNameCandidates(title?: string, bodyText?: string): string[] {
   return out;
 }
 
+// Querent self-chart: parse birth-data từ text mô tả ảnh natal chart (Astro-Seek:
+// "Date and Time: 23 February 1992, 11:08 am", "Coordinates: 1°17'N, 103°51'E").
+// → {dob, birth_time?, birth_coords?} gửi entities cho engine dựng transient chart.
+// ⚠ KHÔNG kèm birth_place text: engine geocode place bị loop tới safety-valve dù đã có
+// coords (probe 2026-06-12) → CHỈ gửi coords; engine suy tz từ coords.
+const MONTHS: Record<string, number> = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+interface SelfChart { dob: string; birth_time?: string; birth_coords?: { lat: number; lon: number } }
+function parseSelfChart(visionText?: string): SelfChart | null {
+  const text = visionText ?? ''; if (!text.trim()) return null;
+  let dob = '';
+  let m = text.match(/\b(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})\b/);              // 23 February 1992
+  if (m && MONTHS[(m[2] ?? '').toLowerCase()]) dob = `${m[3]}-${String(MONTHS[(m[2] ?? '').toLowerCase()]).padStart(2, '0')}-${(m[1] ?? '').padStart(2, '0')}`;
+  if (!dob) { m = text.match(/\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b/); if (m && MONTHS[(m[1] ?? '').toLowerCase()]) dob = `${m[3]}-${String(MONTHS[(m[1] ?? '').toLowerCase()]).padStart(2, '0')}-${(m[2] ?? '').padStart(2, '0')}`; }   // February 23, 1992
+  if (!dob) { m = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/); if (m) dob = `${m[1]}-${m[2]}-${m[3]}`; }
+  if (!dob || isNaN(new Date(`${dob}T00:00:00Z`).getTime())) return null;
+  const out: SelfChart = { dob };
+  const tap = text.match(/\b(\d{1,2}):(\d{2})\s*([ap]m)\b/i);
+  if (tap) { let h = parseInt(tap[1] ?? '0', 10); const ap = (tap[3] ?? '').toLowerCase(); if (ap === 'pm' && h < 12) h += 12; if (ap === 'am' && h === 12) h = 0; out.birth_time = `${String(h).padStart(2, '0')}:${tap[2]}`; }
+  else { const t24 = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/); if (t24) out.birth_time = `${(t24[1] ?? '').padStart(2, '0')}:${t24[2]}`; }
+  const c = text.match(/(\d{1,3})°\s*(\d{1,2})?['′]?\s*([NS])[,\s]+(\d{1,3})°\s*(\d{1,2})?['′]?\s*([EW])/i);
+  if (c) {
+    const lat = (parseInt(c[1] ?? '0', 10) + parseInt(c[2] ?? '0', 10) / 60) * ((c[3] ?? '').toUpperCase() === 'S' ? -1 : 1);
+    const lon = (parseInt(c[4] ?? '0', 10) + parseInt(c[5] ?? '0', 10) / 60) * ((c[6] ?? '').toUpperCase() === 'W' ? -1 : 1);
+    out.birth_coords = { lat: Math.round(lat * 1e4) / 1e4, lon: Math.round(lon * 1e4) / 1e4 };
+  }
+  return out;
+}
+
 // POST /api/ext/seeding/astrolas-answer
 // Body giống /quick-comment nhưng dùng Astrolas API (data-backed) thay vì
 // AI generic. Endpoint contract Astrolas:
@@ -222,8 +250,17 @@ export async function POST(req: Request) {
   // Celebrity-astrology: detect tên public-figure CHỈ trên text thảo luận thật —
   // cắt block ảnh ([IMAGES EXTRACTED]) vì mô tả natal chart toàn cụm Title-Case
   // (Sun Conjunct Mercury, House System…) làm NER đẻ entities rác (Astrolas báo).
-  const discussionText = (body.parentBody || '').split(/\[IMAGES?\s+EXTRACTED/i)[0];
+  const parts = (body.parentBody || '').split(/\[IMAGES?\s+EXTRACTED/i);
+  const discussionText = parts[0] ?? '';
+  const visionBlock = parts.slice(1).join('\n');
   const celebNames = extractNameCandidates(body.parentTitle, discussionText);
+  // Querent self-chart: birth-data parse từ block ảnh (coords-only, KHÔNG place → tránh
+  // geocode loop). Có dob → engine dựng transient chart, không cần public name.
+  const selfChart = parseSelfChart(visionBlock);
+  const entities: Array<{ name: string; dob?: string; birth_time?: string; birth_coords?: { lat: number; lon: number } }> = [
+    ...(selfChart ? [{ name: 'querent', ...selfChart }] : []),
+    ...celebNames.map((name) => ({ name })),
+  ];
 
   const astrolasPayload = {
     question_title: body.parentTitle.slice(0, 500),
@@ -238,9 +275,11 @@ export async function POST(req: Request) {
     // Optional Astrolas llm_config override (Claude Opus / Sonnet / Haiku /
     // OpenAI mini variants). null/missing → Astrolas skill default.
     ...(body.llmConfig ? { llm_config: body.llmConfig } : {}),
-    // Celebrity-astrology angle — chỉ gửi khi thấy tên. Engine self-resolve +
-    // reject fake (resolved=false ⇒ không bịa cung).
-    ...(celebNames.length ? { angle: 'celebrity_astrology', entities: celebNames.map((name) => ({ name })) } : {}),
+    // Celebrity-astrology angle: chỉ khi có tên public-figure (engine resolve theo tên).
+    ...(celebNames.length ? { angle: 'celebrity_astrology' } : {}),
+    // entities = querent self-chart (dob/coords từ ảnh) + celeb names. Engine dựng chart
+    // từ dob (self) hoặc resolve tên (celeb); reject fake ⇒ không bịa cung.
+    ...(entities.length ? { entities } : {}),
   };
 
   // 4. Call Astrolas

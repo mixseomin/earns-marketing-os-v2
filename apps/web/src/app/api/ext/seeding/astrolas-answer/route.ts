@@ -277,9 +277,7 @@ export async function POST(req: Request) {
     max_length: body.maxLength ?? 2000,
     topics_hint: topics,
     request_id: `mos2-card-${cardId}`,
-    // Optional Astrolas llm_config override (Claude Opus / Sonnet / Haiku /
-    // OpenAI mini variants). null/missing → Astrolas skill default.
-    ...(body.llmConfig ? { llm_config: body.llmConfig } : {}),
+    // llm_config gắn per-call ở callAstrolas (model escalation) — KHÔNG để ở base.
     // Celebrity-astrology angle: chỉ khi có tên public-figure (engine resolve theo tên).
     ...(celebNames.length ? { angle: 'celebrity_astrology' } : {}),
     // entities = querent self-chart (dob/coords từ ảnh) + celeb names. Engine dựng chart
@@ -287,47 +285,53 @@ export async function POST(req: Request) {
     ...(entities.length ? { entities } : {}),
   };
 
-  // 4. Call Astrolas
-  let astrolasRes: Response;
-  try {
-    astrolasRes = await fetch(`${apiUrl.replace(/\/+$/, '')}/api/v1/qa/answer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(astrolasPayload),
-      signal: AbortSignal.timeout(120000),  // 120s — Astrolas reasoning có thể chạy 60-90s + buffer
-    });
-  } catch (e) {
-    return NextResponse.json({
-      ok: false, cardId,
-      error: `Astrolas API timeout/network: ${(e as Error).message}`,
-    }, { status: 200 });
-  }
-
-  if (!astrolasRes.ok) {
-    const errText = await astrolasRes.text().catch(() => '');
-    return NextResponse.json({
-      ok: false, cardId,
-      error: `Astrolas API ${astrolasRes.status}: ${errText.slice(0, 300)}`,
-    }, { status: 200 });
-  }
-
-  const data = await astrolasRes.json() as {
-    ok: boolean;
-    answer_md?: string;
-    answer_lang?: string;
+  // 4. Call Astrolas — model escalation (Astrolas đề xuất 2026-06-12): small model nhanh cho
+  // casual; default_chat (Sonnet) cho HARD case = self-chart / celeb (data-backed reasoning).
+  // + retry escalate nếu engine báo quality thấp (shallow_reasoning / system_message_leak).
+  type AstrolasData = {
+    ok: boolean; answer_md?: string; answer_lang?: string;
     sources?: Array<{ title: string; url: string; snippet?: string; type?: string }>;
-    voice_signals?: { confidence?: number; data_backed?: boolean; model_used?: string; tools_called?: string[]; warnings?: string[] };
+    voice_signals?: { confidence?: number; data_backed?: boolean; model_used?: string; tools_called?: string[]; warnings?: string[]; quality_flags?: string[] };
     // Celebrity-astrology: chart engine THỰC SỰ dùng (resolved=false ⇒ skip, no claim).
     entities_used?: Array<{ name: string; sun_sign?: string | null; moon_sign?: string | null; rising?: string | null; dob?: string | null; birth_time?: string | null; birth_place?: string | null; source?: string | null; resolved?: boolean }>;
-    cost_estimate_usd?: number;
-    duration_ms?: number;
-    log_id?: string;
-    error?: string;
+    cost_estimate_usd?: number; duration_ms?: number; log_id?: string; error?: string;
   };
+  const astrolasEndpoint = `${apiUrl.replace(/\/+$/, '')}/api/v1/qa/answer`;
+  const astrolasAuth = `Bearer ${apiKey}`;
+  async function callAstrolas(llmCfg: string | undefined): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
+    const payload = { ...astrolasPayload, ...(llmCfg ? { llm_config: llmCfg } : {}) };
+    let res: Response;
+    try {
+      res = await fetch(astrolasEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': astrolasAuth },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(120000),  // 120s — reasoning 60-90s + buffer
+      });
+    } catch (e) {
+      return { ok: false, error: `Astrolas API timeout/network: ${(e as Error).message}` };
+    }
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      return { ok: false, error: `Astrolas API ${res.status}: ${errText.slice(0, 300)}` };
+    }
+    return { ok: true, data: await res.json() as AstrolasData };
+  }
+  const lowQuality = (d: AstrolasData) => [...(d.voice_signals?.warnings ?? []), ...(d.voice_signals?.quality_flags ?? [])]
+    .some((f) => f === 'shallow_reasoning' || f === 'system_message_leak');
+  // Hard case = cần reasoning sâu (chart data-backed) → mở thẳng model mạnh. Tôn trọng override ext.
+  const hardCase = !!selfChart || celebNames.length > 0;
+  const initialLlm = body.llmConfig || (hardCase ? 'default_chat' : undefined);
+
+  const first = await callAstrolas(initialLlm);
+  if (!first.ok) return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 });
+  let data = first.data;
+  let llmUsed = initialLlm ?? 'engine_default';
+  // Escalate-on-flag: chưa dùng model mạnh + engine báo quality thấp → retry default_chat 1 lần.
+  if (data.ok && data.answer_md && initialLlm !== 'default_chat' && lowQuality(data)) {
+    const retry = await callAstrolas('default_chat');
+    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; llmUsed = 'default_chat'; }
+  }
 
   if (!data.ok || !data.answer_md) {
     return NextResponse.json({
@@ -351,7 +355,7 @@ export async function POST(req: Request) {
     genModelUsed: data.voice_signals?.model_used ?? 'astrolas',
     genConfidence: data.voice_signals?.confidence != null ? String(data.voice_signals.confidence) : null,
     genToolsCalled: data.voice_signals?.tools_called ?? [],
-    genWarnings: data.voice_signals?.warnings ?? [],
+    genWarnings: [...(data.voice_signals?.warnings ?? []), ...(data.voice_signals?.quality_flags ?? [])],
     genLogId: data.log_id ?? null,
     updatedAt: new Date(),
   }).where(eq(cards.id, cardId));
@@ -381,6 +385,9 @@ export async function POST(req: Request) {
       // Celebrity-astrology transparency: tên đã detect + chart engine grounded.
       celebNamesSent: celebNames.length ? celebNames : null,
       celebEntities: (data.entities_used && data.entities_used.length) ? data.entities_used : null,
+      // Model escalation transparency: model nào đã dùng + có escalate không.
+      llmConfigUsed: llmUsed,
+      selfChartSent: selfChart ? { dob: selfChart.dob, birth_time: selfChart.birth_time ?? null, hasCoords: !!selfChart.birth_coords } : null,
     },
   });
 }

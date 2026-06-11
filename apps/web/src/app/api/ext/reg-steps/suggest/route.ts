@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { mechCanon } from '@/lib/selector-field-canon';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     const steps = Array.isArray(parsed.steps)
       ? parsed.steps
         .filter((s) => s && s.label)
-        .map((s) => ({ key: String(s.key || s.label).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 28) || 'step', label: String(s.label).slice(0, 80) }))
+        .map((s) => ({ key: mechCanon(String(s.key || s.label)).slice(0, 28) || 'step', label: String(s.label).slice(0, 80) }))
         .slice(0, 8)
       : [];
     return NextResponse.json({ ok: true, scope, steps });

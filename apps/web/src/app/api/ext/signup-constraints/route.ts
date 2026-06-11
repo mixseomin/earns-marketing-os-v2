@@ -4,6 +4,7 @@ import { getDb, platforms } from '@mos2/db';
 import { checkAuth } from '../_auth';
 import { getEffectiveSignupFields, type SignupField } from '@/lib/actions/technologies';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { mechCanon } from '@/lib/selector-field-canon';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
       const parsed = JSON.parse(res.choices?.[0]?.message?.content || '{}') as Partial<SignupField> & { key?: string };
       if (!parsed.key) return NextResponse.json({ ok: false, error: 'AI không bóc được field' }, { status: 422 });
       const field = {
-        key: String(parsed.key).toLowerCase().replace(/[^a-z0-9_]+/g, '_').slice(0, 28),
+        key: mechCanon(String(parsed.key)).slice(0, 28),
         label: String(parsed.label || parsed.key).slice(0, 60),
         type: (parsed.type || 'text') as SignupField['type'],
         required: !!parsed.required,

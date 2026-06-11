@@ -4,6 +4,7 @@ import { getDb, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { encryptValue, decryptValue } from '@/lib/crypto';
 import { upsertDirectusAccountByHandle, deleteDirectusAccountByHandle } from '@/lib/bridge/directus';
+import { canonField } from '@/lib/selector-field-canon';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,7 +123,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .limit(1);
     const current = (existing?.persona as Record<string, string>) ?? {};
     const merged: Record<string, string> = { ...current };
-    for (const [k, v] of Object.entries(body.personaUpdates)) {
+    for (const [rawK, v] of Object.entries(body.personaUpdates)) {
+      // Canon key through the ONE normalizer so persona['About']/'about' converge with
+      // selector field_names — kills persona['field'] vs ['about'] drift at the write
+      // boundary. identityId is config (camelCase), not a profile field → keep as-is.
+      const k = rawK === 'identityId' ? rawK : canonField(rawK, 'signup');
+      if (!k) continue;
       if (v === null || v === '') delete merged[k]; // null = remove override
       else merged[k] = v;
     }

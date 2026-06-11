@@ -4,6 +4,8 @@ import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { listAccountMedia } from '@/lib/actions/post-media';
+import { renameProfileField, listProfileFields } from '@/lib/actions/profile-fields';
+import { canonField } from '@/lib/selector-field-canon';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
 import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
 import { PhasePill } from './phase-pill';
@@ -1063,6 +1065,21 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     return () => { cancelled = true; };
   }, [srcIdentityId]);
 
+  // 🧩 Joined profile-field map — selector (scope/css) per field for THIS account's
+  // platform, so the persona list shows selector + value as ONE field (not two
+  // disconnected stores) and a rename can move both. Refetch on fieldsTrigger (post-rename).
+  const [selFields, setSelFields] = useState<Record<string, Awaited<ReturnType<typeof listProfileFields>>[number]>>({});
+  const [fieldMsg, setFieldMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (account?.id && form.platformKey) {
+      listProfileFields({ platformKey: form.platformKey, accountId: account.id, pageKind: 'signup' })
+        .then((rows) => { if (!cancelled) setSelFields(Object.fromEntries(rows.map((r) => [r.field, r]))); })
+        .catch(() => { if (!cancelled) setSelFields({}); });
+    } else setSelFields({});
+    return () => { cancelled = true; };
+  }, [account?.id, form.platformKey, fieldsTrigger]);
+
   // Sync localTechKey when platform changes
   const platform = platforms.find((p) => p.key === form.platformKey);
   useEffect(() => {
@@ -1893,44 +1910,72 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               "female" của persona với gender thật trên site). ── */}
           {account && (() => {
             const HIDE = new Set(['identityId', 'name_first', 'name_last', 'gender', 'country', 'city', 'interests', 'backstory', 'voice_summary', 'narrative_style', 'display_name', 'email', 'bio']);
-            const entries = Object.entries((form.persona ?? {}) as Record<string, unknown>)
-              .filter(([k, v]) => !HIDE.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'));
-            if (!entries.length) return null;
+            const personaKeys = Object.entries((form.persona ?? {}) as Record<string, unknown>)
+              .filter(([k, v]) => !HIDE.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))
+              .map(([k]) => k);
+            // JOINED: persona keys ∪ selector field_names → 1 list (selector + value cùng chỗ).
+            const fieldNames = Array.from(new Set([...personaKeys, ...Object.keys(selFields)])).sort();
+            if (!fieldNames.length) return null;
+            const SCOPE_LTR: Record<string, { l: string; c: string }> = {
+              engine: { l: 'E', c: '#a78bfa' }, platform: { l: 'P', c: '#38bdf8' }, habitat: { l: 'S', c: '#34d399' },
+            };
             return (
               <Collapsible
-                title="🧩 Profile fields (đã lưu)"
+                title="🧩 Profile fields"
                 defaultOpen
-                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{entries.length}</span>}
-                hint="persona tự lưu từ ext / signup — sửa rồi Save"
+                badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{fieldNames.length}</span>}
+                hint="selector + giá trị = 1 field; đổi tên đồng bộ cả selector lẫn persona"
               >
+                {fieldMsg && (
+                  <div style={{ fontSize: 10.5, marginBottom: 6, lineHeight: 1.4, color: fieldMsg.ok ? '#34d399' : '#f87171' }}>{fieldMsg.text}</div>
+                )}
                 <div style={{ display: 'grid', gap: 6 }}>
-                  {entries.map(([k, v]) => {
-                    const sval = String(v ?? '');
+                  {fieldNames.map((k) => {
+                    const v = (form.persona as Record<string, unknown> | undefined)?.[k];
+                    const sval = v == null ? '' : String(v);
                     const long = sval.length > 60;
-                    // Rename key (vd 'field' → 'about'): normalize lowercase_underscore, giữ value,
-                    // bỏ key cũ. Collision (key mới đã tồn tại) → bỏ qua. Commit on blur (ko mất focus).
+                    const sel = selFields[k];
+                    // Rename = 1 đường ĐỒNG BỘ (renameProfileField): đổi selector_overrides row +
+                    // persona key cho MỌI account của platform. Trùng tên → CẢNH BÁO, KHÔNG im.
                     const renameKey = (raw: string) => {
-                      const nk = (raw || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+                      const nk = canonField(raw, 'signup');
                       if (!nk || nk === k) return;
-                      const p = { ...(form.persona as Record<string, string>) };
-                      if (p[nk] !== undefined) return;   // tránh ghi đè key khác
-                      const val = p[k] ?? ''; delete p[k]; p[nk] = val; setF('persona', p);
+                      if (personaKeys.includes(nk) || selFields[nk]) { setFieldMsg({ text: `Field "${nk}" đã tồn tại — chọn tên khác.`, ok: false }); return; }
+                      const scope = sel?.scope ?? 'platform';
+                      const scopeKey = scope === 'engine' ? (platform?.technologyKey ?? '') : form.platformKey;
+                      if (!scopeKey) { setFieldMsg({ text: 'Thiếu scope key để đổi tên.', ok: false }); return; }
+                      startTransition(async () => {
+                        const res = await renameProfileField({ platformKey: form.platformKey, pageKind: 'signup', scopeKind: scope, scopeKey, oldName: k, newName: nk });
+                        if (!res.ok) { setFieldMsg({ text: res.error ?? 'Đổi tên thất bại', ok: false }); return; }
+                        const saved = res.savedName ?? nk;
+                        const p = { ...(form.persona as Record<string, string>) };
+                        if (p[k] !== undefined) { p[saved] = p[k]; delete p[k]; setF('persona', p); }
+                        setFieldsTrigger((x) => x + 1);
+                        setFieldMsg(res.folded
+                          ? { text: `Đã GỘP "${k}" → "${saved}" (trùng selector field khác — chống trùng).`, ok: false }
+                          : { text: `Đổi tên "${k}" → "${saved}" (selector + ${res.accountsTouched ?? 0} account theo cùng).`, ok: true });
+                      });
                     };
                     const delKey = () => { const p = { ...(form.persona as Record<string, string>) }; delete p[k]; setF('persona', p); };
                     return (
                       <div key={k} style={{ display: 'flex', gap: 8, alignItems: long ? 'flex-start' : 'center' }}>
-                        <input title={`Tên field (key persona). Sửa → đổi tên, rời ô để lưu. Vd 'field' → 'about'.`} defaultValue={k}
+                        <input title={"Tên field. Sửa → đổi tên ĐỒNG BỘ selector + persona (mọi account của platform). Vd 'field' → 'about'."} defaultValue={k}
                           onBlur={(e) => renameKey(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                          style={{ ...fld, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', minWidth: 130, maxWidth: 130, flexShrink: 0, paddingTop: long ? 6 : undefined, alignSelf: long ? 'flex-start' : 'center' }} />
+                          style={{ ...fld, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', minWidth: 116, maxWidth: 116, flexShrink: 0, paddingTop: long ? 6 : undefined, alignSelf: long ? 'flex-start' : 'center' }} />
+                        <span title={sel?.hasSelector ? `Selector scope: ${sel.scope}${sel.css ? `\n${sel.css}` : ''}` : 'Chưa có selector (chỉ có giá trị persona)'}
+                          style={{ flexShrink: 0, width: 16, height: 16, lineHeight: '15px', textAlign: 'center', fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', borderRadius: 4, border: '1px solid', alignSelf: long ? 'flex-start' : 'center',
+                            color: sel?.hasSelector && sel.scope ? SCOPE_LTR[sel.scope]?.c : 'var(--fg-3)', borderColor: sel?.hasSelector && sel.scope ? SCOPE_LTR[sel.scope]?.c : 'var(--border)' }}>
+                          {sel?.hasSelector && sel.scope ? (SCOPE_LTR[sel.scope]?.l ?? '?') : '·'}
+                        </span>
                         {long ? (
                           <textarea style={{ ...fld, flex: 1, minHeight: 48, resize: 'vertical' }} value={sval}
                             onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
                         ) : (
-                          <input style={{ ...fld, flex: 1 }} value={sval}
+                          <input style={{ ...fld, flex: 1 }} value={sval} placeholder={sel?.hasSelector && !sval ? '(chưa có giá trị)' : ''}
                             onChange={(e) => setF('persona', { ...form.persona, [k]: e.target.value })} />
                         )}
-                        <button type="button" title="Xoá field này khỏi persona" onClick={delKey}
+                        <button type="button" title="Xoá giá trị field này khỏi persona" onClick={delKey}
                           style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, lineHeight: 1, alignSelf: long ? 'flex-start' : 'center' }}>✕</button>
                       </div>
                     );

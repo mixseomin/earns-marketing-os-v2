@@ -17,6 +17,9 @@ interface SaveReq {
   platform_key: string;
   page_kind: string;
   field_name: string;
+  // Explicit rename: the field_name this element was saved under before (editor).
+  // Lets setOverride rename the row instead of the CSS-guard folding new→old.
+  rename_from?: string;
   css: string;
   kind?: 'css' | 'xpath';
   attr?: string;
@@ -122,14 +125,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}` }, { status: 400 });
   }
 
-  await setOverride({
+  const saveRes = await setOverride({
     scopeKind: targetScope,
     scopeKey: targetKey,
     pageKind: body.page_kind,
     fieldName: body.field_name,
     spec: spec as unknown as Parameters<typeof setOverride>[0]['spec'],
     source: 'manual',
+    renameFrom: body.rename_from,
   });
+  if (!saveRes.ok) {
+    return NextResponse.json({ ok: false, error: saveRes.error || 'save failed' }, { status: 500 });
+  }
+  // Real saved name — canon/adopt/rename may differ from input. Return it so the ext
+  // shows the truth (no silent divergence) + can carry the persona value over.
+  const savedField = saveRes.canonicalField ?? body.field_name;
 
   await logExtCall({
     endpoint: 'save-selector', method: 'POST',
@@ -138,13 +148,16 @@ export async function POST(req: Request) {
       field_name: body.field_name, css: body.css, attr, parse,
       target_scope: targetScope, target_key: targetKey,
     },
-    responseMeta: { ok: true, spec },
+    responseMeta: { ok: true, spec, saved_field: savedField, adopted: !!saveRes.adopted },
     status: 200, durationMs: Date.now() - startedAt,
   });
 
   return NextResponse.json({
     ok: true,
-    field: body.field_name,
+    field: savedField,
+    requested: body.field_name,
+    adopted: !!saveRes.adopted,
+    ...(body.rename_from ? { renamed_from: body.rename_from } : {}),
     spec,
     saved_to: { scope: targetScope, key: targetKey },
   });

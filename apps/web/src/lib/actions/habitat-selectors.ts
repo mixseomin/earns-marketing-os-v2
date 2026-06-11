@@ -22,19 +22,24 @@ async function adoptExistingField(
   db: NonNullable<ReturnType<typeof getDb>>,
   scopeKind: string, scopeKey: string, pageKind: string,
   fieldName: string, css: string,
+  ignoreField?: string | null,
 ): Promise<string | null> {
   if (!css) return null;
+  const conds = [
+    eq(selectorOverrides.tenantId, TENANT),
+    eq(selectorOverrides.scopeKind, scopeKind),
+    eq(selectorOverrides.scopeKey, scopeKey),
+    eq(selectorOverrides.pageKind, pageKind),
+    sql`${selectorOverrides.spec}->>'css' = ${css}`,
+    sql`${selectorOverrides.fieldName} <> ${fieldName}`,
+  ];
+  // Explicit rename: exclude the row we're renaming FROM (same element, the user
+  // is intentionally giving it a new name) so the guard doesn't pull it straight back.
+  if (ignoreField) conds.push(sql`${selectorOverrides.fieldName} <> ${ignoreField}`);
   const rows = await db
     .select({ field: selectorOverrides.fieldName })
     .from(selectorOverrides)
-    .where(and(
-      eq(selectorOverrides.tenantId, TENANT),
-      eq(selectorOverrides.scopeKind, scopeKind),
-      eq(selectorOverrides.scopeKey, scopeKey),
-      eq(selectorOverrides.pageKind, pageKind),
-      sql`${selectorOverrides.spec}->>'css' = ${css}`,
-      sql`${selectorOverrides.fieldName} <> ${fieldName}`,
-    ))
+    .where(and(...conds))
     .limit(1);
   return rows[0]?.field ?? null;
 }
@@ -163,16 +168,32 @@ export async function setOverride(opts: {
   fieldName: string;
   spec: SelectorSpec;
   source?: 'llm' | 'manual' | 'promoted';
-}): Promise<{ ok: boolean; error?: string; canonicalField?: string }> {
+  // Explicit rename from the editor: the field_name this element was saved under
+  // before. When set and the name actually changed, rename the existing row (drop
+  // the old name) instead of letting the CSS-identity guard adopt the new name
+  // straight back onto it. Without this, renames silently no-op.
+  renameFrom?: string;
+}): Promise<{ ok: boolean; error?: string; canonicalField?: string; adopted?: boolean }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'DB unavailable' };
   if (!opts.spec.css) return { ok: false, error: 'spec.css required' };
   // 1) Normalize field name (bracket/case/alias) so variants converge.
   let field = canonField(opts.fieldName, opts.pageKind);
   if (!field) return { ok: false, error: 'field_name empty after normalize' };
-  // 2) CSS-identity guard: same css under another name → adopt it (no dup).
-  const adopted = await adoptExistingField(db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, opts.spec.css);
-  if (adopted) field = adopted;
+  const renameFrom = opts.renameFrom ? canonField(opts.renameFrom, opts.pageKind) : null;
+  const isRename = !!renameFrom && renameFrom !== field;
+  // 2) CSS-identity guard: same css under another name → adopt it (no dup). On an
+  //    explicit rename, exclude the old-name row so we rename it (step 3) instead
+  //    of folding the new name back onto it.
+  const requested = field;
+  const adoptedName = await adoptExistingField(
+    db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, opts.spec.css,
+    isRename ? renameFrom : undefined,
+  );
+  if (adoptedName) field = adoptedName;
+  // adopted = the guard folded the requested name onto a DIFFERENT existing field
+  // (a silent collision the caller must surface — NOT a rename, NOT a pure re-save).
+  const adopted = !!adoptedName && adoptedName !== requested;
   try {
     await db.execute(sql`
       INSERT INTO selector_overrides
@@ -183,8 +204,19 @@ export async function setOverride(opts: {
       ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
       DO UPDATE SET spec = EXCLUDED.spec, source = EXCLUDED.source, updated_at = NOW()
     `);
+    // 3) Explicit rename committed: the new name now holds the spec, so drop the
+    //    old-name row (same scope/page). Skip if the guard re-folded onto it.
+    if (isRename && renameFrom && field !== renameFrom) {
+      await db.delete(selectorOverrides).where(and(
+        eq(selectorOverrides.tenantId, TENANT),
+        eq(selectorOverrides.scopeKind, opts.scopeKind),
+        eq(selectorOverrides.scopeKey, opts.scopeKey),
+        eq(selectorOverrides.pageKind, opts.pageKind),
+        eq(selectorOverrides.fieldName, renameFrom),
+      ));
+    }
     revalidatePath('/platforms');
-    return { ok: true, canonicalField: field };
+    return { ok: true, canonicalField: field, adopted };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

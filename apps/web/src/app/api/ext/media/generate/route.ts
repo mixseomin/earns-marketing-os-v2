@@ -4,6 +4,7 @@ import { getDb, platformAccounts, mediaAssets } from '@mos2/db';
 import { and, eq } from 'drizzle-orm';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { uploadToR2, r2Enabled } from '@/lib/r2';
+import { mechCanon } from '@/lib/selector-field-canon';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -149,7 +150,7 @@ export async function POST(req: Request) {
   let body: { projectId?: string; accountId?: number; handle?: string; field?: string; source?: string; prompt?: string; url?: string; dataUrl?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }); }
 
-  const field = (body.field || 'avatar').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'avatar';
+  const field = mechCanon(body.field || 'avatar') || 'avatar';
   const wantWeb = body.source === 'web';
   const acc = await loadAccount(body.projectId || '', body.accountId ? Number(body.accountId) : undefined, body.handle);
   const projectId = body.projectId || acc?.projectId || '';

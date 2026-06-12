@@ -389,6 +389,14 @@ export async function POST(req: Request) {
       const r = useAsync ? await callOnceAsync(payload) : await callOnce(payload);
       if (r.kind === 'ok') return { ok: true, data: r.data };
       lastErr = r.error;
+      // Async submit rate-limit (429) → thử SYNC /qa/answer (quota/endpoint có thể khác). Có bản còn hơn fail.
+      if (useAsync && /\b429\b|rate.?limit/i.test(r.error)) {
+        console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} async 429 → thử sync fallback`);
+        const sync = await callOnce(payload);
+        if (sync.kind === 'ok') return { ok: true, data: sync.data };
+        lastErr = sync.error;
+        break;
+      }
       if (r.kind === 'fail') break;                       // lỗi cứng (4xx) → ko retry
       if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} transient → retry ${attempt + 1}/${MAX_ATTEMPTS}`); await new Promise((ok) => setTimeout(ok, 1500)); }
     }
@@ -416,8 +424,15 @@ export async function POST(req: Request) {
     try { await db.update(cards).set({ genWarnings: ['gen_failed', errMsg.slice(0, 200)], updatedAt: new Date() }).where(eq(cards.id, cardId)); } catch { /* best-effort */ }
   };
 
+  // Lỗi raw → message thân thiện (rate-limit hay gặp): parse retry_in → phút.
+  const friendlyErr = (e: string): string => {
+    const m = e.match(/retry_in["\s:]*(\d+)/i);
+    if (/\b429\b|rate.?limit/i.test(e)) return `Astrolas đang rate-limit (quota tạm hết)${m ? ` — thử lại sau ~${Math.ceil(Number(m[1]) / 60)} phút` : ' — thử lại sau ít phút'}.`;
+    return e;
+  };
+
   const first = await callAstrolas(initialDepth);
-  if (!first.ok) { await markFailed(first.error); return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 }); }
+  if (!first.ok) { await markFailed(first.error); return NextResponse.json({ ok: false, cardId, error: friendlyErr(first.error), rateLimited: /\b429\b|rate.?limit/i.test(first.error) }, { status: 200 }); }
   let data = first.data;
   let depthUsed = initialDepth;
   // cleanAnswer: bóc <details>/basis/conf + LEADING process-preamble ("I'll work from… Let me

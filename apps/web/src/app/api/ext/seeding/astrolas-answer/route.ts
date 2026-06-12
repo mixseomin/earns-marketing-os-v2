@@ -346,7 +346,20 @@ export async function POST(req: Request) {
   // (Sonnet + timing + patterns + dignities). Casual → 'economy' (mini, rẻ). Override: body.depth.
   const DEPTH_ORDER = ['economy', 'standard', 'deep', 'max'];
   const hardCase = !!selfChart || celebNames.length > 0 || hasChartVision;
-  const initialDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
+  const requestedDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
+
+  // ── Astrolas tier-health override (FIX 2026-06-12) ──────────────────────────
+  // BUG ENGINE: tier 'standard' (mini+patterns) & 'deep' (Sonnet) trả `{ok:false,
+  // code:EMPTY_ANSWER}` cho CÙNG input mà 'economy' (mini) & 'max' (Opus) ra bài
+  // bình thường (probe card 951: log_id qa-…-Vi9UrPHx / -1EbVC5lQ). → engine post-
+  // process 2 path đó rỗng. Né TRƯỚC khi gọi (khỏi phí ~70s/call hỏng): map sang
+  // tier-tương-đương ĐANG CHẠY. GIỮ ý định user: deep(quality)→max(Opus), standard→economy.
+  // GỠ map này khi Astrolas báo đã fix (xem wiki astrolas-qa-* request).
+  const BROKEN_DEPTHS: Record<string, string> = { standard: 'economy', deep: 'max' };
+  const initialDepth = BROKEN_DEPTHS[requestedDepth] ?? requestedDepth;
+  if (initialDepth !== requestedDepth) {
+    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth REMAP ${requestedDepth}→${initialDepth} (engine EMPTY_ANSWER bug né trước)`);
+  }
 
   const markFailed = async (errMsg: string) => {
     // Đánh dấu card để recovery-poll (F5) DỪNG SỚM thay vì chờ tới cap. genWarnings = chỗ rẻ (ko migration).
@@ -358,23 +371,18 @@ export async function POST(req: Request) {
   let data = first.data;
   let depthUsed = initialDepth;
   const isEmpty = (d: AstrolasData) => !d.ok || !d.answer_md;
-  // Escalate-on-flag: quality thấp → nâng ÍT NHẤT 'deep'/'max'. 1 lần.
+  // Escalate-on-flag: quality thấp → nâng thẳng 'max' (Opus). 'deep' đang BROKEN nên ko nhắm tới.
   if (data.ok && data.answer_md && depthUsed !== 'max' && lowQuality(data)) {
-    const target = DEPTH_ORDER.indexOf(depthUsed) < DEPTH_ORDER.indexOf('deep') ? 'deep' : 'max';
-    const retry = await callAstrolas(target);
-    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; depthUsed = target; }
+    const retry = await callAstrolas('max');
+    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; depthUsed = 'max'; }
   }
-  // Empty answer (engine trả OK nhưng answer_md rỗng — lỗi engine hay gặp ở tier thấp) →
-  // tự nâng 1 tier (tới max) 1 LẦN để cứu (đỡ phí 70s vừa chạy). Log full để báo engine team.
-  if (isEmpty(data)) {
-    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} EMPTY → escalate. resp keys=${Object.keys(data).join(',')} error=${JSON.stringify(data.error ?? null)} warnings=${JSON.stringify(data.voice_signals?.warnings ?? [])}`);
-    if (depthUsed !== 'max') {
-      const idx = DEPTH_ORDER.indexOf(depthUsed);
-      const target = DEPTH_ORDER[Math.min(idx + 1, DEPTH_ORDER.length - 1)] ?? 'max';
-      const retry = await callAstrolas(target);
-      if (retry.ok && !isEmpty(retry.data)) { data = retry.data; depthUsed = target; }
-      else if (retry.ok) console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${target} VẪN EMPTY error=${JSON.stringify(retry.data.error ?? null)}`);
-    }
+  // Empty answer (engine trả {ok:false,EMPTY_ANSWER} — bug 2 path standard/deep, hoặc bất ngờ) →
+  // cứu bằng 'max' (tier ĐANG CHẠY cao nhất), 1 LẦN. Log full để báo engine team.
+  if (isEmpty(data) && depthUsed !== 'max') {
+    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} EMPTY (code=${(data as { code?: string }).code ?? '?'} log=${(data as { log_id?: string }).log_id ?? '?'}) → retry max`);
+    const retry = await callAstrolas('max');
+    if (retry.ok && !isEmpty(retry.data)) { data = retry.data; depthUsed = 'max'; }
+    else if (retry.ok) console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} max VẪN EMPTY error=${JSON.stringify(retry.data.error ?? null)}`);
   }
 
   if (isEmpty(data)) {

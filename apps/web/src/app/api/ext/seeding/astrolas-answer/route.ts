@@ -370,7 +370,7 @@ export async function POST(req: Request) {
     console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} EMPTY → escalate. resp keys=${Object.keys(data).join(',')} error=${JSON.stringify(data.error ?? null)} warnings=${JSON.stringify(data.voice_signals?.warnings ?? [])}`);
     if (depthUsed !== 'max') {
       const idx = DEPTH_ORDER.indexOf(depthUsed);
-      const target = DEPTH_ORDER[Math.min(idx + 1, DEPTH_ORDER.length - 1)];
+      const target = DEPTH_ORDER[Math.min(idx + 1, DEPTH_ORDER.length - 1)] ?? 'max';
       const retry = await callAstrolas(target);
       if (retry.ok && !isEmpty(retry.data)) { data = retry.data; depthUsed = target; }
       else if (retry.ok) console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${target} VẪN EMPTY error=${JSON.stringify(retry.data.error ?? null)}`);

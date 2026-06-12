@@ -397,24 +397,44 @@ export async function POST(req: Request) {
     return false;
   };
   const isBad = (d: AstrolasData) => isEmpty(d) || looksIncomplete(d.answer_md);
-  // Escalate-on-flag: quality thấp → thử 'max' (Opus) 1 lần (đôi khi ra bài đầy đủ).
-  if (!isBad(data) && depthUsed !== 'max' && lowQuality(data)) {
-    const retry = await callAstrolas('max');
-    if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'max'; }
-  }
-  // BAD (empty: standard/deep · preamble-leak: max) → fallback 'economy' = tier DUY NHẤT
-  // hiện ổn định + trả bài HOÀN CHỈNH. Đảm bảo user luôn có 1 bản dùng được. Log để báo engine.
-  if (isBad(data) && depthUsed !== 'economy') {
-    const reason = isEmpty(data) ? `EMPTY(code=${(data as { code?: string }).code ?? '?'} log=${(data as { log_id?: string }).log_id ?? '?'})` : 'INCOMPLETE/preamble-leak';
-    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} ${reason} → fallback economy`);
-    const retry = await callAstrolas('economy');
-    if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'economy'; }
+  const badReason = (d: AstrolasData) => isEmpty(d) ? `EMPTY(code=${(d as { code?: string }).code ?? '?'} log=${(d as { log_id?: string }).log_id ?? '?'})` : 'INCOMPLETE/preamble-leak';
+
+  // Chế độ theo Ý NGƯỜI DÙNG chọn (requestedDepth, TRƯỚC remap):
+  //  • 'deep'/'max' = QUALITY → cố lấy bản Opus ĐẦY ĐỦ (retry max, max bấp bênh nhưng khi chạy = xịn).
+  //    KHÔNG tự tụt economy (giữ option chất lượng cho user — họ chủ động gen lại nếu muốn).
+  //  • 'economy' = nhanh. · Auto (ko chọn) = BALANCED: cố max nhẹ, hỏng mới tụt economy cho "luôn có bản".
+  const qualityMode = requestedDepth === 'deep' || requestedDepth === 'max';
+  let downgraded = false;
+
+  if (qualityMode) {
+    // retry max 1 lần (tổng 2 lần gọi max ≈230s < proxy 300s). Vẫn bad → user gen lại (mỗi lần=version).
+    let tries = 1;
+    while (isBad(data) && tries < 2) {
+      tries++;
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → QUALITY retry max ${tries}/2`);
+      const retry = await callAstrolas('max');
+      if (retry.ok) { data = retry.data; depthUsed = 'max'; if (!isBad(retry.data)) break; }
+    }
+    // KHÔNG fallback economy ở quality mode — nếu vẫn bad, trả lỗi RETRYABLE để user gen lại (giữ option).
+  } else {
+    // Auto/balanced: shallow flag → thử max 1 lần; bad → economy 1 lần (đảm bảo có bản hoàn chỉnh).
+    if (!isBad(data) && depthUsed !== 'max' && lowQuality(data)) {
+      const retry = await callAstrolas('max');
+      if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'max'; }
+    }
+    if (isBad(data) && depthUsed !== 'economy') {
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → fallback economy (balanced)`);
+      const retry = await callAstrolas('economy');
+      if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'economy'; downgraded = true; }
+    }
   }
 
   if (isBad(data)) {
-    const err = isEmpty(data) ? (data.error ?? 'Astrolas empty answer') : 'Astrolas trả preamble/incomplete (engine ko hoàn tất answer)';
+    const base = isEmpty(data) ? (data.error ?? 'Astrolas empty answer') : 'Astrolas trả nháp/incomplete (engine ko hoàn tất)';
+    // Quality mode: engine max bấp bênh → để user CHỦ ĐỘNG gen lại (giữ option chất lượng), ko ép economy.
+    const err = qualityMode ? `${base} · max engine bấp bênh — bấm Gen lại để thử bản chất lượng (mỗi lần = 1 version), hoặc chọn depth 'eco' cho bản nhanh.` : base;
     await markFailed(err);
-    return NextResponse.json({ ok: false, cardId, error: err, depthUsed }, { status: 200 });
+    return NextResponse.json({ ok: false, cardId, error: err, depthUsed, retryable: qualityMode }, { status: 200 });
   }
 
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
@@ -461,6 +481,7 @@ export async function POST(req: Request) {
     cardRef: create.cardRef,
     bodyTarget: answerClamped,
     bodyReview: '',
+    downgraded,   // Auto/balanced phải tụt economy (max engine lỗi) → ext cảnh báo để user gen lại nếu cần chất lượng
     targetLang: data.answer_lang ?? habitatLang,
     sources: data.sources ?? [],
     voiceSignals: data.voice_signals ?? {},

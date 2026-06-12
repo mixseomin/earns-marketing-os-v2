@@ -387,22 +387,32 @@ export async function POST(req: Request) {
   let data = first.data;
   let depthUsed = initialDepth;
   const isEmpty = (d: AstrolasData) => !d.ok || !d.answer_md;
-  // Escalate-on-flag: quality thấp → nâng thẳng 'max' (Opus). 'deep' đang BROKEN nên ko nhắm tới.
-  if (data.ok && data.answer_md && depthUsed !== 'max' && lowQuality(data)) {
+  // "Preamble leak": engine (max/Opus) ĐÔI KHI trả narration tiền-tool-call ("I'll work from…
+  // Let me pull the library content…") rồi DỪNG — không có câu trả lời thật (card 956). Coi như BAD.
+  const looksIncomplete = (t?: string): boolean => {
+    const s = (t ?? '').trim();
+    if (!s) return true;
+    if (/\b(?:let me|i'?ll|i will|i'?m going to|let's|now i'?ll|next i'?ll)\s+(?:pull|check|look|build|gather|compute|calculate|run|grab|fetch|review|examine|consult|search|retrieve|construct|map|cross-reference)\b[\s\S]{0,80}[.?!]?\s*$/i.test(s)) return true;
+    if (s.length < 350 && /^(?:i'?ll work|working from|let me (?:start|pull|gather|check|build)|first,? i|to answer this,? i|i'?ll (?:start|build|pull|gather))/i.test(s)) return true;
+    return false;
+  };
+  const isBad = (d: AstrolasData) => isEmpty(d) || looksIncomplete(d.answer_md);
+  // Escalate-on-flag: quality thấp → thử 'max' (Opus) 1 lần (đôi khi ra bài đầy đủ).
+  if (!isBad(data) && depthUsed !== 'max' && lowQuality(data)) {
     const retry = await callAstrolas('max');
-    if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; depthUsed = 'max'; }
+    if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'max'; }
   }
-  // Empty answer (engine trả {ok:false,EMPTY_ANSWER} — bug 2 path standard/deep, hoặc bất ngờ) →
-  // cứu bằng 'max' (tier ĐANG CHẠY cao nhất), 1 LẦN. Log full để báo engine team.
-  if (isEmpty(data) && depthUsed !== 'max') {
-    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} EMPTY (code=${(data as { code?: string }).code ?? '?'} log=${(data as { log_id?: string }).log_id ?? '?'}) → retry max`);
-    const retry = await callAstrolas('max');
-    if (retry.ok && !isEmpty(retry.data)) { data = retry.data; depthUsed = 'max'; }
-    else if (retry.ok) console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} max VẪN EMPTY error=${JSON.stringify(retry.data.error ?? null)}`);
+  // BAD (empty: standard/deep · preamble-leak: max) → fallback 'economy' = tier DUY NHẤT
+  // hiện ổn định + trả bài HOÀN CHỈNH. Đảm bảo user luôn có 1 bản dùng được. Log để báo engine.
+  if (isBad(data) && depthUsed !== 'economy') {
+    const reason = isEmpty(data) ? `EMPTY(code=${(data as { code?: string }).code ?? '?'} log=${(data as { log_id?: string }).log_id ?? '?'})` : 'INCOMPLETE/preamble-leak';
+    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} ${reason} → fallback economy`);
+    const retry = await callAstrolas('economy');
+    if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'economy'; }
   }
 
-  if (isEmpty(data)) {
-    const err = data.error ?? 'Astrolas trả empty answer (engine OK nhưng answer_md rỗng)';
+  if (isBad(data)) {
+    const err = isEmpty(data) ? (data.error ?? 'Astrolas empty answer') : 'Astrolas trả preamble/incomplete (engine ko hoàn tất answer)';
     await markFailed(err);
     return NextResponse.json({ ok: false, cardId, error: err, depthUsed }, { status: 200 });
   }

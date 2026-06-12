@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     thingId?: string;
     lifecycle?: string;
     note?: string;
+    commentUrl?: string;   // full permalink comment đang xem → fallback match theo thread + backfill post_url
+    handle?: string;       // viewer handle → thu hẹp đúng account khi fallback
   };
 
   const thingId = String(body.thingId ?? '').trim().replace(/^t1_/, '');
@@ -49,11 +51,44 @@ export async function POST(req: Request) {
     ORDER BY posted_at DESC NULLS LAST
     LIMIT 1
   `);
-  const card = (rows as unknown as Array<Record<string, unknown>>)[0];
+  let card = (rows as unknown as Array<Record<string, unknown>>)[0];
+
+  // FALLBACK: không card nào có post_url chứa thingId (comment đăng tay, hoặc track bắt nhầm
+  // comment khác) → match theo THREAD (parent_url) + account (handle nếu có), rồi BACKFILL
+  // post_url = comment permalink thật. Để lifecycle chạy trên mọi comment của thread đã seed.
+  let backfilled = false;
+  if (!card && body.commentUrl) {
+    const tm = String(body.commentUrl).match(/\/comments\/([a-z0-9]+)/i);
+    const threadId = tm?.[1];
+    const handle = (body.handle ?? '').replace(/^u\//i, '').replace(/^@/, '').toLowerCase();
+    if (threadId) {
+      const threadPat = `%/comments/${threadId}%`;
+      const rows2 = await db.execute(sql`
+        SELECT c.id FROM cards c
+        LEFT JOIN community_briefs b ON b.id = c.brief_id
+        LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+        WHERE c.archived_at IS NULL
+          AND c.parent_url ILIKE ${threadPat}
+          ${handle ? sql`AND lower(pa.handle) = ${handle}` : sql``}
+        ORDER BY (c.post_url IS NOT NULL) DESC, c.posted_at DESC NULLS LAST, c.id DESC
+        LIMIT 1
+      `);
+      const c2 = (rows2 as unknown as Array<Record<string, unknown>>)[0];
+      if (c2) {
+        await db.execute(sql`
+          UPDATE cards SET post_url = ${body.commentUrl}, posted_at = COALESCE(posted_at, now()), updated_at = now()
+          WHERE id = ${Number(c2.id)}
+        `);
+        card = c2;
+        backfilled = true;
+      }
+    }
+  }
+
   if (!card) {
     return NextResponse.json({
       ok: false,
-      error: `Không tìm thấy card khớp /${thingId}/`,
+      error: `Không tìm thấy card khớp /${thingId}/ (và không có card nào cho thread này). Comment này chưa được seed qua MOS2?`,
     }, { status: 404 });
   }
 
@@ -64,5 +99,5 @@ export async function POST(req: Request) {
     body.note ?? null,
   );
   if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 500 });
-  return NextResponse.json({ ok: true, cardId, lifecycle: body.lifecycle });
+  return NextResponse.json({ ok: true, cardId, lifecycle: body.lifecycle, backfilled });
 }

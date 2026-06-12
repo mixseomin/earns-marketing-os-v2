@@ -474,21 +474,14 @@ export async function POST(req: Request) {
   let downgraded = false;
 
   if (qualityMode) {
-    // retry max 1 lần (tổng 2 lần gọi max). Vẫn bad → fallback economy ĐỂ LUÔN CÓ BẢN HOÀN CHỈNH.
+    // Bấm max = PHẢI ra max. retry max 1 lần (preamble intermittent). KHÔNG tự tụt economy
+    // (user ghét bị hạ mini). Vẫn bad → trả lỗi retryable, user chủ động Gen lại (mỗi lần=version).
     let tries = 1;
     while (isBad(data) && tries < 2) {
       tries++;
       console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → QUALITY retry max ${tries}/2`);
       const retry = await callAstrolas('max');
       if (retry.ok) { data = retry.data; depthUsed = 'max'; if (!isBad(retry.data)) break; }
-    }
-    // LAST RESORT: input mà MỌI tier quality bất lực (vd self-chart làm deep thinking-loop + max
-    // preamble) → vẫn cho economy (hoàn chỉnh) thay vì để user trắng tay. FLAG downgraded → user
-    // biết đây là bản tạm + chủ động Gen lại để thử quality (mỗi lần = 1 version).
-    if (isBad(data) && depthUsed !== 'economy') {
-      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → QUALITY last-resort economy`);
-      const retry = await callAstrolas('economy');
-      if (retry.ok && !isBad(retry.data)) { data = retry.data; depthUsed = 'economy'; downgraded = true; }
     }
   } else {
     // Auto/balanced: shallow flag → thử max 1 lần; bad → economy 1 lần (đảm bảo có bản hoàn chỉnh).

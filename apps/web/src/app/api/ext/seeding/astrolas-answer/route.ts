@@ -315,30 +315,46 @@ export async function POST(req: Request) {
   };
   const astrolasEndpoint = `${apiUrl.replace(/\/+$/, '')}/api/v1/qa/answer`;
   const astrolasAuth = `Bearer ${apiKey}`;
-  async function callAstrolas(depth: string): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
-    // depth = tier (model + reasoning layers tự điều chỉnh). llm_config (nếu ext gửi) override model của tier.
-    const payload = { ...astrolasPayload, depth, ...(body.llmConfig ? { llm_config: body.llmConfig } : {}) };
+  // astrolas.com đứng sau Cloudflare → call Opus/Sonnet 70-115s đôi khi vượt giới hạn CF
+  // proxy → CF trả 52x (524 timeout / 520 / 522). Là transient (probe lại thường 70s OK) →
+  // RETRY tier đó tối đa 2 lần (tổng 3) với backoff ngắn. (Cũng retry network-timeout.)
+  const CF_RETRYABLE = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
+  async function callOnce(payload: unknown): Promise<{ kind: 'ok'; data: AstrolasData } | { kind: 'retry' | 'fail'; error: string }> {
     const t0 = Date.now();
-    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} → CALL Astrolas (${astrolasEndpoint})`);
     let res: Response;
     try {
       res = await fetch(astrolasEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': astrolasAuth },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(240000),  // 240s — deep/max (Sonnet/Opus) có thể >120s; nginx đã nâng 300s
+        signal: AbortSignal.timeout(240000),  // 240s — deep/max (Sonnet/Opus) >120s; nginx 300s
       });
     } catch (e) {
-      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} TIMEOUT/NET sau ${Date.now() - t0}ms: ${(e as Error).message}`);
-      return { ok: false, error: `Astrolas API timeout/network (${Math.round((Date.now() - t0) / 1000)}s): ${(e as Error).message}` };
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} TIMEOUT/NET sau ${Date.now() - t0}ms: ${(e as Error).message}`);
+      return { kind: 'retry', error: `timeout/network (${Math.round((Date.now() - t0) / 1000)}s): ${(e as Error).message}` };
     }
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} HTTP ${res.status} sau ${Date.now() - t0}ms`);
-      return { ok: false, error: `Astrolas API ${res.status}: ${errText.slice(0, 300)}` };
+      const retry = CF_RETRYABLE.has(res.status);
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} HTTP ${res.status} sau ${Date.now() - t0}ms${retry ? ' (CF transient → retry)' : ''}`);
+      return { kind: retry ? 'retry' : 'fail', error: `Astrolas API ${res.status}: ${errText.slice(0, 200)}` };
     }
-    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} OK sau ${Date.now() - t0}ms`);
-    return { ok: true, data: await res.json() as AstrolasData };
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} OK sau ${Date.now() - t0}ms`);
+    return { kind: 'ok', data: await res.json() as AstrolasData };
+  }
+  async function callAstrolas(depth: string): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
+    const payload = { ...astrolasPayload, depth, ...(body.llmConfig ? { llm_config: body.llmConfig } : {}) };
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} → CALL Astrolas (${astrolasEndpoint})`);
+    let lastErr = 'unknown';
+    const MAX_ATTEMPTS = 2;   // 1 retry — 2×~120s vẫn < nginx/maxDuration 300s
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const r = await callOnce(payload);
+      if (r.kind === 'ok') return { ok: true, data: r.data };
+      lastErr = r.error;
+      if (r.kind === 'fail') break;                       // lỗi cứng (4xx/empty) → ko retry
+      if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} CF transient → retry ${attempt + 1}/${MAX_ATTEMPTS}`); await new Promise((ok) => setTimeout(ok, 1500)); }
+    }
+    return { ok: false, error: lastErr };
   }
   const lowQuality = (d: AstrolasData) => [...(d.voice_signals?.warnings ?? []), ...(d.voice_signals?.quality_flags ?? [])]
     .some((f) => f === 'shallow_reasoning' || f === 'system_message_leak');

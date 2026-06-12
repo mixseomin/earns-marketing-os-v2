@@ -86,9 +86,13 @@ function parseSelfChart(visionText?: string): SelfChart | null {
 //      - Save answer + sources → body_target + answer_source='astrolas'
 //      - Return body + sources cho ext show
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;   // Astrolas deep/max (Sonnet/Opus) + retry: cần > 60s mặc định
+
 export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
+  const extVer = req.headers.get('x-ext-version') || '?';
 
   const body = await req.json().catch(() => ({})) as {
     habitatId?: number;
@@ -314,21 +318,26 @@ export async function POST(req: Request) {
   async function callAstrolas(depth: string): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
     // depth = tier (model + reasoning layers tự điều chỉnh). llm_config (nếu ext gửi) override model của tier.
     const payload = { ...astrolasPayload, depth, ...(body.llmConfig ? { llm_config: body.llmConfig } : {}) };
+    const t0 = Date.now();
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} → CALL Astrolas (${astrolasEndpoint})`);
     let res: Response;
     try {
       res = await fetch(astrolasEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': astrolasAuth },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(120000),  // 120s — reasoning 60-90s + buffer
+        signal: AbortSignal.timeout(240000),  // 240s — deep/max (Sonnet/Opus) có thể >120s; nginx đã nâng 300s
       });
     } catch (e) {
-      return { ok: false, error: `Astrolas API timeout/network: ${(e as Error).message}` };
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} TIMEOUT/NET sau ${Date.now() - t0}ms: ${(e as Error).message}`);
+      return { ok: false, error: `Astrolas API timeout/network (${Math.round((Date.now() - t0) / 1000)}s): ${(e as Error).message}` };
     }
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} HTTP ${res.status} sau ${Date.now() - t0}ms`);
       return { ok: false, error: `Astrolas API ${res.status}: ${errText.slice(0, 300)}` };
     }
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} OK sau ${Date.now() - t0}ms`);
     return { ok: true, data: await res.json() as AstrolasData };
   }
   const lowQuality = (d: AstrolasData) => [...(d.voice_signals?.warnings ?? []), ...(d.voice_signals?.quality_flags ?? [])]

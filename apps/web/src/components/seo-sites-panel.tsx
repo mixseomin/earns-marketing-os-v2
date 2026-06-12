@@ -120,7 +120,12 @@ export async function SeoSitesPanel() {
           SEO Sites Overview
           <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// GSC live · {rows.length} sites · last sync {updated}</small>
         </h2>
-        <RefreshGscBtn />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href="/seo/keyword-research" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-2)', textDecoration: 'none', background: 'var(--bg-2)' }}>
+            🔍 Keyword Research
+          </a>
+          <RefreshGscBtn />
+        </div>
       </div>
 
       <SeoSitesTable

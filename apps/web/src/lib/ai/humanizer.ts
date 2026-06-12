@@ -167,6 +167,11 @@ export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targ
     ...lines,
     'RÀNG BUỘC CHUNG:',
     '- KHÔNG dùng em dash "—", luôn dùng "-" (human-voice rule).',
+    // CHƯA bật lowercase/lazy-caps mà các knob casual (spoken/abbrev/no-apostrophe…) + ví dụ
+    // giọng lowercase ở trên hay khiến model TỰ viết thường toàn bộ → ép giữ hoa chuẩn.
+    ...((!opts.knobs.includes('lowercase') && !opts.knobs.includes('lazy-caps'))
+      ? ['- VIẾT HOA CHUẨN (BẮT BUỘC): hoa chữ đầu câu + "I" (tiếng Anh) như bình thường. Casual/typo/viết tắt KHÔNG đồng nghĩa viết thường toàn bộ — CHƯA bật lowercase thì PHẢI giữ hoa chuẩn. Các ví dụ lowercase phía trên CHỈ minh hoạ giọng, KHÔNG phải bỏ viết hoa.']
+      : []),
     '- Vẫn phải đọc hiểu + đúng ý; "messy" có chủ đích, đừng phá nội dung.',
     '- Đây là tín hiệu giả-người ƯU TIÊN CAO: nếu xung đột với rule "văn phong chuẩn" ở trên, ưu tiên block này cho bodyTarget.',
     ...(lenEnforce ? [lenEnforce] : []),

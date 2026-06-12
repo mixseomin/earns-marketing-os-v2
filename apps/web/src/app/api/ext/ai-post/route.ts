@@ -3,7 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects, habitats, contentPieces } from '@mos2/db';
 import { eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
-import { getProjectPostFacts } from '@/lib/ai/project-post-facts';
+import { getProjectPost } from '@/lib/ai/project-post-facts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -91,9 +91,10 @@ export async function POST(req: Request) {
 
   const format = pickFormat(body.hostHostname || '');
 
-  // Project-specific REAL DATA (data-backed): HyperJournal → ví thật từ scoreboard; project khác
-  // → provider riêng (single source ở lib/ai/project-post-facts). Rỗng = generic LLM.
-  const projectFacts = project ? await getProjectPostFacts(project.id) : '';
+  // Project-specific REAL DATA + FIX (data-backed): HyperJournal → ví thật + ép link /w/<addr>;
+  // project khác → provider riêng (single source ở lib/ai/project-post-facts). Rỗng = generic LLM.
+  const projectPost = project ? await getProjectPost(project.id) : { facts: '' };
+  const projectFacts = projectPost.facts;
 
   // Reference URL — fetch first 4KB of text content
   let referenceSummary = '';
@@ -201,6 +202,11 @@ Write the post. Output STRICT JSON only.`;
     if (!parsed.body) throw new Error('No body in AI response');
   } catch (e) {
     return NextResponse.json({ ok: false, error: `AI error: ${(e as Error).message}` }, { status: 500 });
+  }
+
+  // FIX deterministic per-project (vd HJ ép link /w/<addr> đúng ví được dẫn) — KHÔNG tin LLM tự đúng.
+  if (projectPost.fix && parsed.body) {
+    try { parsed.body = projectPost.fix(parsed.body); } catch { /* keep original */ }
   }
 
   // Save draft to content_pieces

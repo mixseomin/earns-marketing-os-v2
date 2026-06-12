@@ -364,14 +364,12 @@ export async function POST(req: Request) {
   const hardCase = !!selfChart || celebNames.length > 0 || hasChartVision;
   const requestedDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
 
-  // ── Astrolas tier-health override (FIX 2026-06-12) ──────────────────────────
-  // BUG ENGINE: tier 'standard' (mini+patterns) & 'deep' (Sonnet) trả `{ok:false,
-  // code:EMPTY_ANSWER}` cho CÙNG input mà 'economy' (mini) & 'max' (Opus) ra bài
-  // bình thường (probe card 951: log_id qa-…-Vi9UrPHx / -1EbVC5lQ). → engine post-
-  // process 2 path đó rỗng. Né TRƯỚC khi gọi (khỏi phí ~70s/call hỏng): map sang
-  // tier-tương-đương ĐANG CHẠY. GIỮ ý định user: deep(quality)→max(Opus), standard→economy.
-  // GỠ map này khi Astrolas báo đã fix (xem wiki astrolas-qa-* request).
-  const BROKEN_DEPTHS: Record<string, string> = { standard: 'economy', deep: 'max' };
+  // ── Astrolas tier-health override ───────────────────────────────────────────
+  // UPDATE 2026-06-13: team fix 'standard' (đã chạy, mini) → BỎ khỏi remap. CÒN 'deep'
+  // (Sonnet) vẫn `EMPTY_ANSWER`: debug engine cho thấy thinking_len~5459 nhưng raw_len=0
+  // (reason: model_produced_no_text) — Sonnet cạn budget thinking, ko xuất answer.
+  // → vẫn né deep→max (Opus). GỠ khi engine báo fix deep (xem wiki astrolas-qa-*).
+  const BROKEN_DEPTHS: Record<string, string> = { deep: 'max' };
   const initialDepth = BROKEN_DEPTHS[requestedDepth] ?? requestedDepth;
   if (initialDepth !== requestedDepth) {
     console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth REMAP ${requestedDepth}→${initialDepth} (engine EMPTY_ANSWER bug né trước)`);

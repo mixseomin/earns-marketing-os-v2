@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects, habitats, contentPieces } from '@mos2/db';
 import { eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { getProjectPostFacts } from '@/lib/ai/project-post-facts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -90,6 +91,10 @@ export async function POST(req: Request) {
 
   const format = pickFormat(body.hostHostname || '');
 
+  // Project-specific REAL DATA (data-backed): HyperJournal → ví thật từ scoreboard; project khác
+  // → provider riêng (single source ở lib/ai/project-post-facts). Rỗng = generic LLM.
+  const projectFacts = project ? await getProjectPostFacts(project.id) : '';
+
   // Reference URL — fetch first 4KB of text content
   let referenceSummary = '';
   if (body.referenceUrl?.trim()) {
@@ -145,7 +150,7 @@ ${format.notes}
 
 VOICE: persona "${project?.persona || 'authentic indie maker'}". Match it. Sound human, not corporate.
 DO: hook attention, share a concrete insight or experience, invite engagement.
-DON'T: use AI tells ("Let's dive in", "It's important to note"), em-dashes (—), generic praise, sales pitches.
+${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T: use AI tells ("Let's dive in", "It's important to note"), em-dashes (—), generic praise, sales pitches.
 ${habitatRules.length > 0 ? '\nCOMMUNITY HARD RULES (violation = post deleted):\n' + habitatRules.map((r) => `- ${r}`).join('\n') : ''}
 Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.`;
 
@@ -166,7 +171,7 @@ ${contextLines}
 # Topic / what I want to share
 ${body.topic}
 
-${referenceSummary ? `# Reference material (extracted from URL)\n${referenceSummary.slice(0, 2500)}\n\n` : ''}# Style / approach
+${referenceSummary ? `# Reference material (extracted from URL)\n${referenceSummary.slice(0, 2500)}\n\n` : ''}${projectFacts ? projectFacts + '\n\n' : ''}# Style / approach
 ${body.style || '(natural)'}
 
 # Task

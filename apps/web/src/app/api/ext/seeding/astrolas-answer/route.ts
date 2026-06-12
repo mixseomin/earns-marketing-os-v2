@@ -390,7 +390,7 @@ export async function POST(req: Request) {
   //  (a) appendix "🔮 Astrolog* basis (verify)" — citation operator-verify (dạng <details> HOẶC plain header)
   //  (b) thinking-preamble ở đầu: "STEP 1… running Steps 2-5 in parallel… batch lookup…"
   // → bóc cả 2. (Đã báo Astrolas: answer_md nên CHỈ là reply.)
-  let answerClean = data.answer_md
+  let answerClean = (data.answer_md ?? '')
     .replace(/<details>[\s\S]*?<\/details>/gi, '')
     .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')   // appendix basis tới hết
     .replace(/<\/?(?:details|summary)>/gi, '')

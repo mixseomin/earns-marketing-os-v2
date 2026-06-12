@@ -93,6 +93,15 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                       GA&nbsp;↗
                     </a>
                   )}
+                  <a
+                    href={wrapExternalUrl(`https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Open ${r.domain} in Bing Webmaster Tools`}
+                    style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}
+                  >
+                    Bing&nbsp;↗
+                  </a>
                 </td>
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.impressions_7d > 0) }}>{r.impressions_7d.toLocaleString()}</td>
                 <td style={{ ...cell, textAlign: 'center', padding: '2px 6px' }}>

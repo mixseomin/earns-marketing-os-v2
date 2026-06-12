@@ -420,17 +420,35 @@ export async function POST(req: Request) {
   if (!first.ok) { await markFailed(first.error); return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 }); }
   let data = first.data;
   let depthUsed = initialDepth;
-  const isEmpty = (d: AstrolasData) => !d.ok || !d.answer_md;
-  // "Preamble leak": engine (max/Opus) ĐÔI KHI trả narration tiền-tool-call ("I'll work from…
-  // Let me pull the library content…") rồi DỪNG — không có câu trả lời thật (card 956). Coi như BAD.
-  const looksIncomplete = (t?: string): boolean => {
+  // cleanAnswer: bóc <details>/basis/conf + LEADING process-preamble ("I'll work from… Let me
+  // pull the interpretations.") → giữ phần trả lời thật. Card 957 = preamble + bài XỊN → strip
+  // preamble là ra bài tốt. Dùng CHUNG cho cả isBad lẫn save → check trên bản ĐÃ SẠCH (ko retry thừa).
+  const cleanAnswer = (raw?: string): string => {
+    let s = (raw ?? '')
+      .replace(/<details>[\s\S]*?<\/details>/gi, '')
+      .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')
+      .replace(/<\/?(?:details|summary)>/gi, '')
+      .replace(/\s*\[conf:\s*[\d.]+\]/gi, '')
+      .trim();
+    const head = s.slice(0, 600);
+    const mk = [...head.matchAll(/\b(?:STEP\s*\d|Step\s*\d|running steps?|in parallel|batch[-\s]?lookup|building (?:the|your) (?:full )?chart|create_seeding|analyze_house|get_natal|I['’]?ll (?:build|work|start|pull|gather)|working from|let me (?:pull|build|gather|check|start|look)|looking at (?:this|your) chart|before I (?:start|begin|dive)|pull the (?:library|interpretive|relevant))\b/gi)];
+    const last = mk.length ? mk[mk.length - 1] : null;
+    if (last) {
+      const dot = s.indexOf('.', (last.index ?? 0) + last[0].length);
+      if (dot > -1 && dot < 700) s = s.slice(dot + 1).trim();
+    }
+    return s;
+  };
+  // BAD = check trên bản ĐÃ SẠCH: rỗng sau strip (chỉ-preamble như 956), hoặc kết bằng lời hứa quy trình.
+  const isEmpty = (d: AstrolasData) => !d.ok || !cleanAnswer(d.answer_md).trim();
+  const looksIncomplete = (t: string): boolean => {
     const s = (t ?? '').trim();
     if (!s) return true;
     if (/\b(?:let me|i'?ll|i will|i'?m going to|let's|now i'?ll|next i'?ll)\s+(?:pull|check|look|build|gather|compute|calculate|run|grab|fetch|review|examine|consult|search|retrieve|construct|map|cross-reference)\b[\s\S]{0,80}[.?!]?\s*$/i.test(s)) return true;
-    if (s.length < 350 && /^(?:i'?ll work|working from|let me (?:start|pull|gather|check|build)|first,? i|to answer this,? i|i'?ll (?:start|build|pull|gather))/i.test(s)) return true;
+    if (s.length < 250 && /^(?:i'?ll work|working from|let me (?:start|pull|gather|check|build)|first,? i|to answer this,? i)/i.test(s)) return true;
     return false;
   };
-  const isBad = (d: AstrolasData) => isEmpty(d) || looksIncomplete(d.answer_md);
+  const isBad = (d: AstrolasData) => isEmpty(d) || looksIncomplete(cleanAnswer(d.answer_md));
   const badReason = (d: AstrolasData) => isEmpty(d) ? `EMPTY(code=${(d as { code?: string }).code ?? '?'} log=${(d as { log_id?: string }).log_id ?? '?'})` : 'INCOMPLETE/preamble-leak';
 
   // Chế độ theo Ý NGƯỜI DÙNG chọn (requestedDepth, TRƯỚC remap):
@@ -481,24 +499,8 @@ export async function POST(req: Request) {
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
   const _hzOpts = body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
     ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined;
-  // Astrolas default_chat hay leak 2 thứ vào answer_md (đều ko nên đăng):
-  //  (a) appendix "🔮 Astrolog* basis (verify)" — citation operator-verify (dạng <details> HOẶC plain header)
-  //  (b) thinking-preamble ở đầu: "STEP 1… running Steps 2-5 in parallel… batch lookup…"
-  // → bóc cả 2. (Đã báo Astrolas: answer_md nên CHỈ là reply.)
-  let answerClean = (data.answer_md ?? '')
-    .replace(/<details>[\s\S]*?<\/details>/gi, '')
-    .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')   // appendix basis tới hết
-    .replace(/<\/?(?:details|summary)>/gi, '')
-    .replace(/\s*\[conf:\s*[\d.]+\]/gi, '')                       // per-claim conf tag (max tier) → đã ở claim_confidence[]
-    .trim();
-  // Thinking-preamble: cắt từ đầu tới hết câu chứa marker thinking CUỐI CÙNG (trong ~500 ký tự đầu).
-  const head = answerClean.slice(0, 500);
-  const mk = [...head.matchAll(/\b(?:STEP\s*\d|Step\s*\d|running steps?|in parallel|batch[-\s]?lookup|building (?:the|your) (?:full )?chart|create_seeding|analyze_house|get_natal|I['’]?ll build)\b/gi)];
-  const last = mk.length ? mk[mk.length - 1] : null;
-  if (last) {
-    const dot = answerClean.indexOf('.', (last.index ?? 0) + last[0].length);
-    if (dot > -1 && dot < 600) answerClean = answerClean.slice(dot + 1).trim();
-  }
+  // cleanAnswer (định nghĩa trên): bóc <details>/basis/conf + leading process-preamble.
+  const answerClean = cleanAnswer(data.answer_md);
   // stripAITells TRƯỚC: Astrolas trả answer_md = markdown (## > * - — ❌) → lộ AI. Phẳng hoá thành prose.
   const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(answerClean), _hzOpts), _hzOpts), _hzOpts);
   await db.update(cards).set({

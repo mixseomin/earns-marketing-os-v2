@@ -3,6 +3,7 @@ import { SeoSitesTable } from './seo-sites-table';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
+import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
 
@@ -88,6 +89,7 @@ export async function SeoSitesPanel() {
   } catch { /* fall through */ }
   const tsPayload = await loadGscTimeSeries();
   const ga4Payload = await loadGa4Properties();
+  const bingPayload = await loadBingStats();
 
   if (!payload) {
     return (
@@ -124,6 +126,7 @@ export async function SeoSitesPanel() {
       <SeoSitesTable
         rows={rows.map((r) => {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
+          const bing = pickBing(bingPayload, r.domain);
           return {
             domain: r.domain,
             emoji: meta.emoji,
@@ -134,6 +137,9 @@ export async function SeoSitesPanel() {
             avg_position_7d: r.stats.avg_position_7d,
             pages_with_impressions_7d: r.stats.pages_with_impressions_7d,
             sitemap_urls_submitted: r.stats.sitemap_urls_submitted,
+            bing_impressions_7d: bing?.impressions_7d ?? null,
+            bing_clicks_7d: bing?.clicks_7d ?? null,
+            bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
           };
         })}
         timeseries={Object.fromEntries(

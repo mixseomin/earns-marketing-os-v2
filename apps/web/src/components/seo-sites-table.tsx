@@ -17,6 +17,9 @@ interface RowData {
   avg_position_7d: number;
   pages_with_impressions_7d: number;
   sitemap_urls_submitted: number;
+  bing_impressions_7d?: number | null;
+  bing_clicks_7d?: number | null;
+  bing_feeds_indexed?: number | null;
 }
 
 interface Props {
@@ -47,6 +50,7 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
             <th style={head}>Avg Pos</th>
             <th style={head}>Pages</th>
             <th style={head}>Sitemap URLs</th>
+            <th style={head} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>
           </tr>
         </thead>
         <tbody>
@@ -112,6 +116,12 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                 <td style={{ ...cell, textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) }}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
                 <td style={{ ...cell, textAlign: 'right' }}>{r.pages_with_impressions_7d}</td>
                 <td style={{ ...cell, textAlign: 'right' }}>{r.sitemap_urls_submitted.toLocaleString()}</td>
+                <td
+                  style={{ ...cell, textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) }}
+                  title={r.bing_clicks_7d != null ? `${r.bing_clicks_7d.toLocaleString()} clicks · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} indexed via sitemap` : 'No Bing data yet — daily cron pulls from BWT'}
+                >
+                  {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
+                </td>
               </tr>
             );
           })}
@@ -124,6 +134,9 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.avgPos > 0 ? totals.avgPos.toFixed(1) : '—'}</td>
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.pages}</td>
             <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.sitemap.toLocaleString()}</td>
+            <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>
+              {rows.reduce((s, r) => s + (r.bing_impressions_7d ?? 0), 0).toLocaleString()}
+            </td>
           </tr>
         </tbody>
       </table>

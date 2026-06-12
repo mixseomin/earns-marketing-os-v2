@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -424,6 +424,30 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
     },
     [],
     'listAccounts',
+  );
+}
+
+export interface UnmappedAccountRow { id: number; platformKey: string; handle: string | null; email: string | null; status: string | null; createdAt: string | null; }
+
+// Account "mồ côi" — có row nhưng thiếu junction project_accounts → vô hình mọi
+// project. Inbox /unmapped (admin) để gán project. Không scope theo operator
+// (account chưa thuộc ai), chỉ admin xem.
+export async function listUnmappedAccounts(): Promise<UnmappedAccountRow[]> {
+  return tryDb(
+    async () => {
+      const rows = await dbListUnmappedAccounts();
+      if (!rows) return [];
+      return rows.map((r) => ({
+        id: r.id,
+        platformKey: r.platformKey,
+        handle: r.handle,
+        email: r.email,
+        status: r.status,
+        createdAt: r.createdAt ? new Date(r.createdAt as unknown as string).toISOString() : null,
+      }));
+    },
+    [],
+    'listUnmappedAccounts',
   );
 }
 

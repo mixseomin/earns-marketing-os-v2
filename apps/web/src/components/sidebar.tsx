@@ -173,6 +173,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/team',          icon: '👥', color: 'var(--neon-lime)',   label: 'Team',             sub: 'members · roles · assignment', role: 'admin' },
         { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers', role: 'admin' },
         { href: '/platforms',     icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',        sub: 'catalog · 59 entries' },
+        { href: '/unmapped',      icon: '⚠',  color: 'var(--neon-amber)',  label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
         { href: '/engines',       icon: '⚙',  color: 'var(--neon-amber)',  label: 'Engines',          sub: 'selectors · signup fields', role: 'admin' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },

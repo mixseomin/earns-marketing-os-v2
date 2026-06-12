@@ -170,6 +170,26 @@ export async function listAccountsByProject(projectId: string) {
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 
+// Account "mồ côi" — có row nhưng KHÔNG có junction project_accounts nào → vô hình
+// trên mọi dashboard project-scoped. Inbox /unmapped để gán project.
+export async function listUnmappedAccounts() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select({
+      id: platformAccounts.id,
+      platformKey: platformAccounts.platformKey,
+      handle: platformAccounts.handle,
+      email: platformAccounts.email,
+      status: platformAccounts.status,
+      createdAt: platformAccounts.createdAt,
+    })
+    .from(platformAccounts)
+    .leftJoin(projectAccounts, eq(projectAccounts.accountId, platformAccounts.id))
+    .where(and(eq(platformAccounts.tenantId, TENANT), isNull(projectAccounts.accountId)))
+    .orderBy(desc(platformAccounts.createdAt));
+}
+
 // ── Use cases ──────────────────────────────────────────────────
 export async function listAllUseCases() {
   const db = getDb();

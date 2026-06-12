@@ -348,22 +348,39 @@ export async function POST(req: Request) {
   const hardCase = !!selfChart || celebNames.length > 0 || hasChartVision;
   const initialDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
 
+  const markFailed = async (errMsg: string) => {
+    // Đánh dấu card để recovery-poll (F5) DỪNG SỚM thay vì chờ tới cap. genWarnings = chỗ rẻ (ko migration).
+    try { await db.update(cards).set({ genWarnings: ['gen_failed', errMsg.slice(0, 200)], updatedAt: new Date() }).where(eq(cards.id, cardId)); } catch { /* best-effort */ }
+  };
+
   const first = await callAstrolas(initialDepth);
-  if (!first.ok) return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 });
+  if (!first.ok) { await markFailed(first.error); return NextResponse.json({ ok: false, cardId, error: first.error }, { status: 200 }); }
   let data = first.data;
   let depthUsed = initialDepth;
-  // Escalate-on-flag: quality thấp → nâng ÍT NHẤT 'deep' (nếu đang dưới) hoặc 'max' (nếu đã ≥deep). 1 lần.
+  const isEmpty = (d: AstrolasData) => !d.ok || !d.answer_md;
+  // Escalate-on-flag: quality thấp → nâng ÍT NHẤT 'deep'/'max'. 1 lần.
   if (data.ok && data.answer_md && depthUsed !== 'max' && lowQuality(data)) {
     const target = DEPTH_ORDER.indexOf(depthUsed) < DEPTH_ORDER.indexOf('deep') ? 'deep' : 'max';
     const retry = await callAstrolas(target);
     if (retry.ok && retry.data.ok && retry.data.answer_md) { data = retry.data; depthUsed = target; }
   }
+  // Empty answer (engine trả OK nhưng answer_md rỗng — lỗi engine hay gặp ở tier thấp) →
+  // tự nâng 1 tier (tới max) 1 LẦN để cứu (đỡ phí 70s vừa chạy). Log full để báo engine team.
+  if (isEmpty(data)) {
+    console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depthUsed} EMPTY → escalate. resp keys=${Object.keys(data).join(',')} error=${JSON.stringify(data.error ?? null)} warnings=${JSON.stringify(data.voice_signals?.warnings ?? [])}`);
+    if (depthUsed !== 'max') {
+      const idx = DEPTH_ORDER.indexOf(depthUsed);
+      const target = DEPTH_ORDER[Math.min(idx + 1, DEPTH_ORDER.length - 1)];
+      const retry = await callAstrolas(target);
+      if (retry.ok && !isEmpty(retry.data)) { data = retry.data; depthUsed = target; }
+      else if (retry.ok) console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${target} VẪN EMPTY error=${JSON.stringify(retry.data.error ?? null)}`);
+    }
+  }
 
-  if (!data.ok || !data.answer_md) {
-    return NextResponse.json({
-      ok: false, cardId,
-      error: data.error ?? 'Astrolas trả empty answer',
-    }, { status: 200 });
+  if (isEmpty(data)) {
+    const err = data.error ?? 'Astrolas trả empty answer (engine OK nhưng answer_md rỗng)';
+    await markFailed(err);
+    return NextResponse.json({ ok: false, cardId, error: err, depthUsed }, { status: 200 });
   }
 
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.

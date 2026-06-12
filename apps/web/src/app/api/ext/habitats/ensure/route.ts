@@ -21,6 +21,8 @@ export async function POST(req: Request) {
   const b = (await req.json()) as {
     projectId?: string; platformKey?: string; kind?: string;
     name?: string; externalId?: string; url?: string; title?: string;
+    members?: number; description?: string; weeklyVisitors?: number;
+    weeklyContributions?: number; iconUrl?: string;
   };
   const projectId = (b.projectId || '').trim();
   const platformKey = (b.platformKey || '').trim();
@@ -28,6 +30,13 @@ export async function POST(req: Request) {
   const kind = (b.kind || 'profile').trim();
   const externalId = (b.externalId || '').trim();
   if (!projectId || !name) return NextResponse.json({ ok: false, error: 'projectId + name required' }, { status: 400 });
+
+  // Metadata bắt từ trang search communities (DOM logged-in). Chỉ điền field còn trống (COALESCE).
+  const members = Number.isFinite(b.members as number) ? Math.round(b.members as number) : null;
+  const description = (b.description || '').trim() || null;
+  const weeklyVisitors = Number.isFinite(b.weeklyVisitors as number) ? Math.round(b.weeklyVisitors as number) : null;
+  const weeklyContributions = Number.isFinite(b.weeklyContributions as number) ? Math.round(b.weeklyContributions as number) : null;
+  const iconUrl = (b.iconUrl || '').trim() || null;
 
   // platform FK guard (mirror /habitats POST)
   if (platformKey) {
@@ -53,6 +62,19 @@ export async function POST(req: Request) {
   `);
   const hit = (found as unknown as Array<Record<string, unknown>>)[0];
   if (hit) {
+    // Backfill chỉ field còn trống — không ghi đè data đã có.
+    if (members != null || description || weeklyVisitors != null || weeklyContributions != null || iconUrl) {
+      await db.execute(sql`
+        UPDATE habitats SET
+          members = COALESCE(members, ${members}),
+          description = COALESCE(NULLIF(description, ''), ${description}),
+          weekly_visitors = COALESCE(weekly_visitors, ${weeklyVisitors}),
+          weekly_contributions = COALESCE(weekly_contributions, ${weeklyContributions}),
+          icon_url = COALESCE(NULLIF(icon_url, ''), ${iconUrl}),
+          updated_at = NOW()
+        WHERE id = ${Number(hit.id)}
+      `);
+    }
     return NextResponse.json({
       ok: true, created: false,
       habitat: {
@@ -66,9 +88,11 @@ export async function POST(req: Request) {
   // Create minimal — chỉ field bắt buộc + externalId vào scraped_meta để resolve sau.
   const meta = externalId ? { ext_external_id: externalId } : {};
   const ins = await db.execute(sql`
-    INSERT INTO habitats (project_id, platform_key, kind, name, url, scraped_meta, imported_from)
+    INSERT INTO habitats (project_id, platform_key, kind, name, url, scraped_meta, imported_from,
+                          members, description, weekly_visitors, weekly_contributions, icon_url)
     VALUES (${projectId}, ${platformKey || null}, ${kind}, ${name}, ${b.url || null},
-            ${JSON.stringify(meta)}::jsonb, 'ext-widget')
+            ${JSON.stringify(meta)}::jsonb, 'ext-widget',
+            ${members}, ${description}, ${weeklyVisitors}, ${weeklyContributions}, ${iconUrl})
     RETURNING id, name, kind, project_id, platform_key
   `);
   const row = (ins as unknown as Array<Record<string, unknown>>)[0];

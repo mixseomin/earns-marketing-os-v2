@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   const lowered = names.map((n) => n.toLowerCase());
   const rows = await db.execute(sql`
-    SELECT h.id, h.name, h.project_id, h.platform_key,
+    SELECT h.id, h.name, h.project_id, h.platform_key, h.status, h.mod_strictness, h.members, h.icon_url,
            (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
     FROM habitats h
     WHERE LOWER(h.name) IN (${sql.join(lowered.map((n) => sql`${n}`), sql`, `)})
@@ -32,6 +32,10 @@ export async function GET(req: Request) {
   const matches = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id), name: String(r.name), projectId: String(r.project_id),
     platformKey: r.platform_key ? String(r.platform_key) : null,
+    status: r.status ? String(r.status) : null,
+    modStrictness: r.mod_strictness ? String(r.mod_strictness) : null,
+    members: r.members != null ? Number(r.members) : null,
+    iconUrl: r.icon_url ? String(r.icon_url) : null,
     briefId: r.brief_id ? Number(r.brief_id) : null,
     hasBrief: !!r.brief_id,
   }));

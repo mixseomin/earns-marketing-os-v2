@@ -163,7 +163,7 @@ export function buildHumanizerBlock(opts: HumanizerOpts | null | undefined, targ
     '═══════════════════════════════════════════════════════════',
     `🧬 HUMAN AUTHENTICITY (HIGH PRIORITY) — làm bodyTarget giống NGƯỜI THẬT đăng (mức: ${intensity})`,
     'CHỈ áp dụng cho bodyTarget (bản đăng thật). bodyReview giữ tiếng Việt CHUẨN — KHÔNG áp các rule dưới.',
-    'MINDSET: viết như 1 thành viên forum THẬT đang lướt thấy thread này và buột miệng phản ứng — ngắn, có cảm xúc/quan điểm, đậm chất cá nhân. KHÔNG phải thông cáo báo chí, KHÔNG phải bài luận cân bằng, KHÔNG tóm tắt lại nội dung gốc. Ví dụ giọng thật: "all the protections will prob be bullshit that doesnt stop deepfakes lol", "that line about AI agents for students has me raising eyebrows i didnt know i had", "the fact that this guy was the best we could do...".',
+    'MINDSET: viết như 1 thành viên forum THẬT đang lướt thấy thread này và buột miệng phản ứng — ngắn, có cảm xúc/quan điểm, đậm chất cá nhân. KHÔNG phải thông cáo báo chí, KHÔNG phải bài luận cân bằng, KHÔNG tóm tắt lại nội dung gốc. Ví dụ giọng thật (GIỮ HOA chuẩn đầu câu + tên riêng — casual KHÔNG nghĩa là viết thường): "All the protections will prob be bullshit that doesnt stop deepfakes lol", "That line about AI agents for students has me raising eyebrows I didnt know I had", "The fact that this guy was the best we could do...".',
     ...lines,
     'RÀNG BUỘC CHUNG:',
     '- KHÔNG dùng em dash "—", luôn dùng "-" (human-voice rule).',
@@ -242,6 +242,15 @@ export function applyHumanErrors(text: string, opts: HumanizerOpts | null | unde
   let out = text;
   // BỎ DẤU NHÁY — người bỏ thì bỏ hết contraction (don't→dont, I'm→im, it's→its).
   if (has('no-apostrophe')) out = out.replace(/\b([A-Za-z]+)['’]([A-Za-z]+)\b/g, (_m, a, b) => a + b);
+  // VIẾT HOA CHUẨN (DETERMINISTIC) — KHÔNG bật lowercase/lazy-caps thì ÉP hoa đầu câu + "I", kể cả
+  // khi model lỡ viết thường TOÀN BỘ (knob casual spoken/abbrev/typos hay kéo gpt-4.1-mini xuống
+  // lowercase dù prompt cấm). Không tin LLM. (Text đã hoa đúng → no-op.)
+  if (!has('lowercase') && !has('lazy-caps')) {
+    out = out
+      .replace(/(^|[.!?]["')\]]?\s+)([a-z])/g, (_m, sep, ch) => sep + (ch as string).toUpperCase())   // hoa đầu câu
+      .replace(/\bi\b/g, 'I')                                                                          // đại từ i → I
+      .replace(/\bi(m|ve)\b/g, (m) => 'I' + m.slice(1));                                               // im/ive (sau bỏ-nháy) → Im/Ive
+  }
   // LƯỜI HOA (ngẫu nhiên, ko đều) — chỉ khi KHÔNG bật lowercase.
   if (has('lazy-caps') && !has('lowercase')) {
     out = out.replace(/([.!?]["')\]]?\s+)([A-Z])/g, (m, sep, ch) => (Math.random() < 0.38 ? sep + (ch as string).toLowerCase() : m));

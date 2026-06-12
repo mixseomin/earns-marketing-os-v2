@@ -313,7 +313,8 @@ export async function POST(req: Request) {
     entities_used?: Array<{ name: string; sun_sign?: string | null; moon_sign?: string | null; rising?: string | null; dob?: string | null; birth_time?: string | null; birth_place?: string | null; source?: string | null; resolved?: boolean }>;
     cost_estimate_usd?: number; duration_ms?: number; log_id?: string; error?: string;
   };
-  const astrolasEndpoint = `${apiUrl.replace(/\/+$/, '')}/api/v1/qa/answer`;
+  const apiBase = apiUrl.replace(/\/+$/, '');
+  const astrolasEndpoint = `${apiBase}/api/v1/qa/answer`;
   const astrolasAuth = `Bearer ${apiKey}`;
   // astrolas.com đứng sau Cloudflare → call Opus/Sonnet 70-115s đôi khi vượt giới hạn CF
   // proxy → CF trả 52x (524 timeout / 520 / 522). Là transient (probe lại thường 70s OK) →
@@ -342,17 +343,54 @@ export async function POST(req: Request) {
     console.log(`[astrolas-answer extv=${extVer}] card=${cardId} OK sau ${Date.now() - t0}ms`);
     return { kind: 'ok', data: await res.json() as AstrolasData };
   }
+  // ── ASYNC path (deep/max chậm >100s) — submit + poll. Né CF 524 vì mỗi poll là call NGẮN.
+  // Contract: POST /qa/submit → 202 {job_id, poll_url}. GET poll_url → {status, ...}. Terminal
+  // (status ∉ queued/processing/pending/running) → trả NGUYÊN payload (ok:true+answer_md HOẶC
+  // ok:false+error). EMPTY/failed chảy vào isBad y như sync. (Async submit/poll: team built.)
+  const submitEndpoint = `${apiBase}/api/v1/qa/submit`;
+  const PENDING = new Set(['queued', 'processing', 'pending', 'running', 'started']);
+  async function callOnceAsync(payload: unknown): Promise<{ kind: 'ok'; data: AstrolasData } | { kind: 'retry' | 'fail'; error: string }> {
+    const t0 = Date.now();
+    let sub: Response;
+    try {
+      sub = await fetch(submitEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': astrolasAuth }, body: JSON.stringify(payload), signal: AbortSignal.timeout(30000) });
+    } catch (e) { return { kind: 'retry', error: `submit timeout/net: ${(e as Error).message}` }; }
+    if (!sub.ok) { const t = await sub.text().catch(() => ''); return { kind: CF_RETRYABLE.has(sub.status) ? 'retry' : 'fail', error: `submit ${sub.status}: ${t.slice(0, 160)}` }; }
+    const subJson = await sub.json().catch(() => null) as { job_id?: string; poll_url?: string } | null;
+    const jobId = subJson?.job_id;
+    if (!jobId) return { kind: 'fail', error: 'submit: no job_id' };
+    const pollUrl = subJson?.poll_url || `${apiBase}/api/v1/qa/result/${jobId}`;
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} async job=${jobId} → poll`);
+    const deadline = Date.now() + 240000;   // 240s/job < maxDuration 300s
+    let consecErr = 0;
+    while (Date.now() < deadline) {
+      await new Promise((ok) => setTimeout(ok, 5000));
+      let pr: Response;
+      try { pr = await fetch(pollUrl, { headers: { 'Accept': 'application/json', 'Authorization': astrolasAuth }, signal: AbortSignal.timeout(20000) }); }
+      catch { if (++consecErr > 5) return { kind: 'retry', error: 'async poll net errors' }; continue; }
+      if (!pr.ok) { if (++consecErr > 5) return { kind: CF_RETRYABLE.has(pr.status) ? 'retry' : 'fail', error: `async poll ${pr.status}` }; continue; }
+      consecErr = 0;
+      const j = await pr.json().catch(() => null) as (AstrolasData & { status?: string }) | null;
+      if (!j) continue;
+      if (j.status && PENDING.has(j.status)) continue;
+      console.log(`[astrolas-answer extv=${extVer}] card=${cardId} async job=${jobId} terminal=${j.status ?? '?'} sau ${Date.now() - t0}ms`);
+      return { kind: 'ok', data: j as AstrolasData };   // ok:true+answer HOẶC ok:false+error → isBad lo tiếp
+    }
+    return { kind: 'retry', error: `async poll timeout (${Math.round((Date.now() - t0) / 1000)}s) job=${jobId}` };
+  }
+  const ASYNC_DEPTHS = new Set(['deep', 'max']);   // chậm → async; economy/standard → sync /qa/answer
   async function callAstrolas(depth: string): Promise<{ ok: true; data: AstrolasData } | { ok: false; error: string }> {
     const payload = { ...astrolasPayload, depth, ...(body.llmConfig ? { llm_config: body.llmConfig } : {}) };
-    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} → CALL Astrolas (${astrolasEndpoint})`);
+    const useAsync = ASYNC_DEPTHS.has(depth);
+    console.log(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} mode=${useAsync ? 'async' : 'sync'} → CALL Astrolas`);
     let lastErr = 'unknown';
-    const MAX_ATTEMPTS = 2;   // 1 retry — 2×~120s vẫn < nginx/maxDuration 300s
+    const MAX_ATTEMPTS = 2;   // 1 retry transient
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const r = await callOnce(payload);
+      const r = useAsync ? await callOnceAsync(payload) : await callOnce(payload);
       if (r.kind === 'ok') return { ok: true, data: r.data };
       lastErr = r.error;
-      if (r.kind === 'fail') break;                       // lỗi cứng (4xx/empty) → ko retry
-      if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} CF transient → retry ${attempt + 1}/${MAX_ATTEMPTS}`); await new Promise((ok) => setTimeout(ok, 1500)); }
+      if (r.kind === 'fail') break;                       // lỗi cứng (4xx) → ko retry
+      if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} transient → retry ${attempt + 1}/${MAX_ATTEMPTS}`); await new Promise((ok) => setTimeout(ok, 1500)); }
     }
     return { ok: false, error: lastErr };
   }
@@ -365,11 +403,9 @@ export async function POST(req: Request) {
   const requestedDepth = (body.depth && DEPTH_ORDER.includes(body.depth)) ? body.depth : (hardCase ? 'deep' : 'economy');
 
   // ── Astrolas tier-health override ───────────────────────────────────────────
-  // UPDATE 2026-06-13: team fix 'standard' (đã chạy, mini) → BỎ khỏi remap. CÒN 'deep'
-  // (Sonnet) vẫn `EMPTY_ANSWER`: debug engine cho thấy thinking_len~5459 nhưng raw_len=0
-  // (reason: model_produced_no_text) — Sonnet cạn budget thinking, ko xuất answer.
-  // → vẫn né deep→max (Opus). GỠ khi engine báo fix deep (xem wiki astrolas-qa-*).
-  const BROKEN_DEPTHS: Record<string, string> = { deep: 'max' };
+  // UPDATE 2026-06-13: team fix 'standard' + 'deep'. deep/max chậm (>100s) → đi ASYNC
+  // (submit+poll, né CF 524) thay vì remap. economy/standard nhanh → sync. KHÔNG remap nữa.
+  const BROKEN_DEPTHS: Record<string, string> = {};
   const initialDepth = BROKEN_DEPTHS[requestedDepth] ?? requestedDepth;
   if (initialDepth !== requestedDepth) {
     console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth REMAP ${requestedDepth}→${initialDepth} (engine EMPTY_ANSWER bug né trước)`);

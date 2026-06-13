@@ -65,13 +65,18 @@ Generate the brand fields. Output STRICT JSON only.`;
     });
     const raw = completion.choices[0]?.message?.content?.trim() ?? '';
     const s = JSON.parse(raw) as Record<string, unknown>;
-    const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+    // LLM có thể trả contentStrategy/hashtags dạng ARRAY (vì prompt nói "bullets") → join.
+    const str = (v: unknown): string => {
+      if (Array.isArray(v)) return v.map((x) => (typeof x === 'string' ? x : String(x ?? ''))).filter(Boolean).map((x) => (x.startsWith('- ') ? x : '- ' + x)).join('\n');
+      return typeof v === 'string' ? v.trim() : '';
+    };
+    const strFlat = (v: unknown): string => (Array.isArray(v) ? v.map((x) => String(x ?? '')).filter(Boolean).join(' ') : (typeof v === 'string' ? v.trim() : ''));
     return NextResponse.json({
       ok: true,
       grounded: !!siteText,
       suggestion: {
-        persona: str(s.persona), bio: str(s.bio), oneLiner: str(s.oneLiner),
-        hashtags: str(s.hashtags), contentStrategy: str(s.contentStrategy),
+        persona: strFlat(s.persona), bio: strFlat(s.bio), oneLiner: strFlat(s.oneLiner),
+        hashtags: strFlat(s.hashtags), contentStrategy: str(s.contentStrategy),
       },
     });
   } catch (e) {

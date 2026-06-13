@@ -287,6 +287,8 @@ Write the post. Output STRICT JSON only.`;
           ts: new Date().toISOString(),
           kind: 'ext-post-gen',
           accountId: acc.id,
+          model: useModel,
+          pillarId: body.pillarId ?? null,
           platform: platform.label,
           host: body.hostHostname,
           habitatId: habitat?.id ?? null,

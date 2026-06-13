@@ -83,6 +83,10 @@ export const projects = pgTable(
     // ai_enabled = false để tắt OpenAI calls cho project này (kill switch
     // per-project). Default true cho real projects; demos không gọi AI dù flag true.
     aiEnabled: boolean('ai_enabled').notNull().default(true),
+    // capabilities = feature flags config-driven (thay literal project-id hardcode).
+    // Shape: { engines: ['astrolas'|'hyperjournal'] } → ext bật engine button theo đây.
+    // Thêm project mới = set capabilities (data), KHÔNG sửa code ext.
+    capabilities: jsonb('capabilities').notNull().default({}),
     // ── Brand fields (used by content snippet templates per-account) ──
     // These centralize the per-project values that snippet placeholders
     // {{website}} {{one-liner}} {{bio}} {{persona}} {{hashtags}} pull from.

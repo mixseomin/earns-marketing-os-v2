@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   if (!db) return NextResponse.json({ projects: [] });
 
   const rows = await db
-    .select({ id: projects.id, name: projects.name, emoji: projects.emoji })
+    .select({ id: projects.id, name: projects.name, emoji: projects.emoji, capabilities: projects.capabilities })
     .from(projects)
     .where(eq(projects.isDemo, false))
     .orderBy(projects.name);

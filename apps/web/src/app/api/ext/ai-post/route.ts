@@ -139,6 +139,17 @@ export async function POST(req: Request) {
     } catch { referenceSummary = ''; }
   }
 
+  // Auto-grounding: bài gốc thường KHÔNG có referenceUrl → fetch trang project để có
+  // chất liệu THẬT (brand/deal/tên cụ thể) → gpt viết concrete thay vì chung chung.
+  let projectSiteText = '';
+  if (!referenceSummary && project?.website) {
+    try {
+      const res = await fetch(project.website, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-Post/1.0)' }, signal: AbortSignal.timeout(6000) });
+      const html = await res.text();
+      projectSiteText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3000);
+    } catch { projectSiteText = ''; }
+  }
+
   const habitatRules: string[] = [];
   if (habitat) {
     if (habitat.postingRules) habitatRules.push(`Posting rules: ${habitat.postingRules}`);
@@ -171,15 +182,15 @@ export async function POST(req: Request) {
   const sysPrompt = `You write an ORIGINAL post (not a reply) on a social platform.
 Output STRICT JSON: { "title": "...", "body": "...", "hashtags": ["..."] }
 - "title": ${format.hasTitle ? `required string ≤${format.titleMaxLen ?? 300} chars` : 'omit (use empty string "")'}
-- "body": required, plain text or markdown. ${lengthDirective}
+- "body": required, PLAIN TEXT only (NO markdown — no [text](url), no **bold**, no #). Links as bare URLs. ${lengthDirective}
 - "hashtags": array of strings without # prefix; 0-3 items; omit on platforms where hashtags aren't customary
 
 PLATFORM FORMAT NOTES:
 ${format.notes}
 
-VOICE: persona "${project?.persona || 'authentic indie maker'}". Match it. Sound human, not corporate.
-DO: hook attention, share a concrete insight or experience, invite engagement.
-${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T: use AI tells ("Let's dive in", "It's important to note"), em-dashes (—), generic praise, sales pitches.
+VOICE: persona "${project?.persona || 'a real person who genuinely uses/runs this, casual and specific'}". Write in FIRST PERSON, like a human typing fast. Sound human, not corporate, not a brand account.
+DO: open with a SPECIFIC concrete detail (a named brand/product, a real number, a specific situation) from the context below — never a generic announcement. One clear idea. Invite a real reply.
+${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T (these make it boring/AI-sounding — AVOID): generic openers ("Attention", "Calling all", "Did you know", "Looking to..."), "let's ... together", "save smart", vague praise, hashtag-stuffing, emoji at the start, "More info:" + link dumps, em-dashes (—), markdown, sales-pitch tone.
 ${project?.contentStrategy ? `\nCONTENT STRATEGY / RULES (project — BÁM SÁT khi viết bài gốc):\n${project.contentStrategy}` : ''}${pillarBlock}
 ${habitatRules.length > 0 ? '\nCOMMUNITY HARD RULES (violation = post deleted):\n' + habitatRules.map((r) => `- ${r}`).join('\n') : ''}
 Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.`;
@@ -201,11 +212,11 @@ ${contextLines}
 # Topic / what I want to share
 ${body.topic}
 
-${referenceSummary ? `# Reference material (extracted from URL)\n${referenceSummary.slice(0, 2500)}\n\n` : ''}${projectFacts ? projectFacts + '\n\n' : ''}# Style / approach
-${body.style || '(natural)'}
+${referenceSummary ? `# Reference material (extracted from URL)\n${referenceSummary.slice(0, 2500)}\n\n` : ''}${projectSiteText ? `# REAL CONTEXT — what this project actually offers (mine for SPECIFICS: real brand/product names, categories, numbers. Mention concrete ones, do NOT invent.)\n${projectSiteText}\n\n` : ''}${projectFacts ? projectFacts + '\n\n' : ''}# Style / approach
+${body.style || '(natural, specific, first-person)'}
 
 # Task
-Write the post. Output STRICT JSON only.`;
+Write the post — lead with a concrete specific, not a generic announcement. Output STRICT JSON only.`;
 
   let parsed: { title?: string; body: string; hashtags?: string[] };
   try {
@@ -238,9 +249,13 @@ Write the post. Output STRICT JSON only.`;
     try { parsed.body = projectPost.fix(parsed.body); } catch { /* keep original */ }
   }
 
-  // Em-dash strip (rule human-voice: dùng '-', không em/en-dash) — deterministic.
-  if (parsed.body) parsed.body = parsed.body.replace(/\s*[—–]\s*/g, ' - ');
-  if (parsed.title) parsed.title = parsed.title.replace(/\s*[—–]\s*/g, ' - ');
+  // Strip markdown ([text](url)→url, **bold**, #, `code`) + em-dash → '-' (human-voice, X plain).
+  const cleanPost = (s: string) => s
+    .replace(/\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '$2')   // [label](url) → url (X ko render md link)
+    .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1').replace(/`([^`]+)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '').replace(/\s*[—–]\s*/g, ' - ').replace(/[ \t]{2,}/g, ' ').trim();
+  if (parsed.body) parsed.body = cleanPost(parsed.body);
+  if (parsed.title) parsed.title = cleanPost(parsed.title);
 
   // ÉP HARD limit (vd X 280) — model hay overshoot. Shorten 1 lần (giữ hook+brand+CTA),
   // fallback truncate ở biên từ. KHÔNG để bài vượt quy định.

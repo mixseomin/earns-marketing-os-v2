@@ -276,6 +276,69 @@ export async function listAccountProjects(accountId: number): Promise<Array<{
   }));
 }
 
+// Panel "Projects tham gia" cho account editor: participations (primary=profile-target)
+// + danh sách project có thể tham gia thêm.
+export async function accountProjectsPanel(accountId: number): Promise<{
+  participations: Array<{ projectId: string; name: string; emoji: string; role: string }>;
+  allProjects: Array<{ id: string; name: string; emoji: string }>;
+}> {
+  const db = ensureDb();
+  const parts = await db.execute(sql`
+    SELECT pj.project_id, pj.role, p.name, p.emoji
+    FROM project_accounts pj LEFT JOIN projects p ON p.id = pj.project_id
+    WHERE pj.account_id = ${accountId}
+    ORDER BY (pj.role = 'primary') DESC, p.name
+  `);
+  const all = await db.execute(sql`
+    SELECT id, name, emoji FROM projects WHERE is_demo = false AND archived_at IS NULL ORDER BY name
+  `);
+  return {
+    participations: (parts as unknown as Array<Record<string, unknown>>).map((r) => ({
+      projectId: String(r['project_id']), name: String(r['name'] ?? r['project_id']), emoji: r['emoji'] ? String(r['emoji']) : '', role: String(r['role'] ?? 'shared'),
+    })),
+    allProjects: (all as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r['id']), name: String(r['name'] ?? r['id']), emoji: r['emoji'] ? String(r['emoji']) : '',
+    })),
+  };
+}
+
+// Đổi PROFILE-TARGET (project chính) — NON-DESTRUCTIVE: primary cũ tụt 'shared' (giữ tham gia).
+export async function setAccountPrimaryProject(accountId: number, newProjectId: string): Promise<{ ok: boolean; error?: string; oldPrimary?: string }> {
+  const db = ensureDb();
+  const cur = await db.execute(sql`SELECT project_id FROM project_accounts WHERE account_id = ${accountId} AND role = 'primary' LIMIT 1`);
+  const oldPrimary = (cur as unknown as Array<{ project_id: string }>)[0]?.project_id || '';
+  if (oldPrimary === newProjectId) return { ok: true, oldPrimary };
+  await db.transaction(async (tx) => {
+    if (oldPrimary) await tx.execute(sql`UPDATE project_accounts SET role = 'shared' WHERE account_id = ${accountId} AND project_id = ${oldPrimary}`);
+    await tx.execute(sql`INSERT INTO project_accounts (project_id, account_id, role, content_ratio) VALUES (${newProjectId}, ${accountId}, 'primary', 100) ON CONFLICT (project_id, account_id) DO UPDATE SET role = 'primary'`);
+    await tx.execute(sql`UPDATE platform_accounts SET project_id = ${newProjectId} WHERE id = ${accountId}`);
+  });
+  for (const p of [oldPrimary, newProjectId]) { if (p) { revalidatePath(`/p/${p}/resources`); revalidatePath(`/p/${p}/seeding`); } }
+  return { ok: true, oldPrimary };
+}
+
+// Tham gia thêm project (shared; primary nếu account chưa có primary nào).
+export async function joinAccountProjectShared(accountId: number, projectId: string): Promise<{ ok: boolean; role: string }> {
+  const db = ensureDb();
+  const cur = await db.execute(sql`SELECT 1 FROM project_accounts WHERE account_id = ${accountId} AND role = 'primary' LIMIT 1`);
+  const role = (cur as unknown as Array<unknown>).length > 0 ? 'shared' : 'primary';
+  await db.execute(sql`INSERT INTO project_accounts (project_id, account_id, role, content_ratio) VALUES (${projectId}, ${accountId}, ${role}, ${role === 'primary' ? 100 : 0}) ON CONFLICT (project_id, account_id) DO NOTHING`);
+  if (role === 'primary') await db.execute(sql`UPDATE platform_accounts SET project_id = ${projectId} WHERE id = ${accountId}`);
+  revalidatePath(`/p/${projectId}/resources`); revalidatePath(`/p/${projectId}/seeding`);
+  return { ok: true, role };
+}
+
+// Rời project (chỉ 'shared'; primary phải đổi project chính trước).
+export async function leaveAccountProject(accountId: number, projectId: string): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const cur = await db.execute(sql`SELECT role FROM project_accounts WHERE account_id = ${accountId} AND project_id = ${projectId} LIMIT 1`);
+  const role = (cur as unknown as Array<{ role: string }>)[0]?.role;
+  if (role === 'primary') return { ok: false, error: 'Không thể rời project chính — đặt project khác làm chính trước.' };
+  await db.execute(sql`DELETE FROM project_accounts WHERE account_id = ${accountId} AND project_id = ${projectId}`);
+  revalidatePath(`/p/${projectId}/resources`); revalidatePath(`/p/${projectId}/seeding`);
+  return { ok: true };
+}
+
 export async function updateAccount(projectId: string, id: number, patch: Partial<AccountInput>): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   const acc = await findById(projectId, id);

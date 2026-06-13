@@ -18,6 +18,7 @@ import {
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
   syncAccountFromPlatform,
   listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
+  accountProjectsPanel, setAccountPrimaryProject, joinAccountProjectShared, leaveAccountProject,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
 } from '@/lib/actions/accounts';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
@@ -979,6 +980,68 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
   );
 }
 
+// Projects tham gia của account: ★ chính (profile-target=primary) + tham gia (shared) +
+// đặt-làm-chính (set-primary, non-destructive, inline confirm) + tham gia thêm + rời.
+function AccountProjectsSection({ accountId }: { accountId: number }) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof accountProjectsPanel>> | null>(null);
+  const [pending, setPending] = useState<{ kind: 'primary' | 'leave'; pid: string } | null>(null);
+  const [addPid, setAddPid] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, startT] = useTransition();
+  const load = () => startT(async () => { try { setData(await accountProjectsPanel(accountId)); } catch { setMsg('⚠ Lỗi tải projects'); } });
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [accountId]);
+  const parts = data?.participations ?? [];
+  const joined = new Set(parts.map((p) => p.projectId));
+  const addable = (data?.allProjects ?? []).filter((p) => !joined.has(p.id));
+  const isP = (k: 'primary' | 'leave', pid: string) => pending?.kind === k && pending.pid === pid;
+  const doPrimary = (pid: string) => startT(async () => { setMsg(''); const r = await setAccountPrimaryProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã đặt làm chính'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
+  const doLeave = (pid: string) => startT(async () => { setMsg(''); const r = await leaveAccountProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã rời'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
+  const doJoin = () => { if (!addPid) return; startT(async () => { setMsg(''); const r = await joinAccountProjectShared(accountId, addPid); if (r.ok) { setMsg(`✅ Đã tham gia (${r.role})`); setAddPid(''); load(); } else setMsg('⚠ lỗi'); }); };
+  return (
+    <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 8 }}>
+        Projects tham gia <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--fg-4)' }}>· profile target = ★ chính</span>
+      </div>
+      {!data ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>Đang tải…</span> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {parts.map((p) => {
+            const isPrimary = p.role === 'primary';
+            return (
+              <div key={p.projectId} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <span style={{ fontWeight: 600 }}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</span>
+                {isPrimary
+                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#0a0a0a', background: 'var(--neon-lime,#84cc16)', borderRadius: 8, padding: '1px 7px' }}>★ CHÍNH</span>
+                  : <span style={{ fontSize: 10, color: 'var(--fg-4)', border: '1px solid var(--line)', borderRadius: 8, padding: '1px 7px' }}>tham gia</span>}
+                <span style={{ flex: 1 }} />
+                {!isPrimary && (
+                  <>
+                    <button type="button" disabled={busy} onClick={() => isP('primary', p.projectId) ? doPrimary(p.projectId) : setPending({ kind: 'primary', pid: p.projectId })}
+                      style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--line)', background: isP('primary', p.projectId) ? 'var(--neon-lime,#84cc16)' : 'transparent', color: isP('primary', p.projectId) ? '#0a0a0a' : 'var(--fg-2)' }}>
+                      {isP('primary', p.projectId) ? 'Xác nhận?' : 'đặt làm chính'}</button>
+                    <button type="button" disabled={busy} onClick={() => isP('leave', p.projectId) ? doLeave(p.projectId) : setPending({ kind: 'leave', pid: p.projectId })}
+                      style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--line)', background: isP('leave', p.projectId) ? 'var(--bad,#ef4444)' : 'transparent', color: isP('leave', p.projectId) ? '#fff' : 'var(--fg-4)' }}>
+                      {isP('leave', p.projectId) ? 'Xác nhận rời?' : 'rời'}</button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {addable.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+              <select value={addPid} onChange={(e) => setAddPid(e.target.value)} style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', flex: 1 }}>
+                <option value="">+ tham gia project khác…</option>
+                {addable.map((p) => <option key={p.id} value={p.id}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</option>)}
+              </select>
+              <button type="button" disabled={busy || !addPid} onClick={doJoin} style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 5, border: 'none', cursor: addPid ? 'pointer' : 'default', background: 'var(--accent,#7c3aed)', color: '#fff', opacity: addPid ? 1 : .5 }}>+ Tham gia</button>
+            </div>
+          )}
+          {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? 'var(--good,#22c55e)' : 'var(--warn,#f59e0b)' }}>{msg}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief }: {
   account: AccountRow | null;
   project: Project;
@@ -1397,6 +1460,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           <SyncBanner projectId={projectId} accountId={account.id}
                       platformLabel={platform?.label ?? form.platformKey} />
         )}
+
+        {!isCreate && account && <AccountProjectsSection accountId={account.id} />}
 
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>

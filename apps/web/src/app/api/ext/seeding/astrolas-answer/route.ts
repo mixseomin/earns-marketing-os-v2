@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       h.language AS habitat_lang, h.voice_profile AS habitat_voice, h.voice_notes,
       h.dominant_topics, h.forbidden_topics,
       h.ai_content_detection, h.ai_detection_note,
-      pa.handle AS account_handle, pa.persona
+      pa.handle AS account_handle, pa.persona, pa.project_id AS account_project_id
     FROM community_briefs b
     LEFT JOIN habitats h ON h.id = b.habitat_id
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
@@ -183,6 +183,10 @@ export async function POST(req: Request) {
   };
   const briefOverridden = Object.values(ov).some((v) => typeof v === 'string');
   const persona = (ctx.persona as Record<string, unknown> | null) ?? {};
+  // Off-primary: account dùng project khác làm chính → bỏ giọng persona (brand primary),
+  // bám giọng cộng đồng. project_id mirror primary (migration 0091).
+  const _accProj = ctxRaw.account_project_id ? String(ctxRaw.account_project_id) : '';
+  const offPrimary = !!(_accProj && projectId && _accProj !== String(projectId));
   const phase = (ctx.current_phase ?? 'warm-up') as Phase;
   const habitatLang = String(ctx.habitat_lang ?? 'en');
   const voiceProfile = String(ctx.habitat_voice ?? 'regular');
@@ -267,8 +271,9 @@ export async function POST(req: Request) {
     '',
     '---',
     '[OPERATOR CONTEXT — KHÔNG phải nội dung user hỏi, chỉ là instruction cho engine. Reply language vẫn phải là ' + langName + ']',
-    persona.voice_summary ? `Persona voice: ${persona.voice_summary}` : null,
-    persona.narrative_style ? `Persona narrative: ${persona.narrative_style}` : null,
+    (!offPrimary && persona.voice_summary) ? `Persona voice: ${persona.voice_summary}` : null,
+    (!offPrimary && persona.narrative_style) ? `Persona narrative: ${persona.narrative_style}` : null,
+    offPrimary ? `⚠ Account dùng project khác làm chính — KHÔNG dùng giọng brand project chính, bám giọng cộng đồng (habitat voice + brief tone).` : null,
     persona.backstory ? `Persona backstory: ${String(persona.backstory).slice(0, 300)}` : null,
     ctx.approach_md ? `Brief approach (${phase}):\n${String(ctx.approach_md).slice(0, 800)}` : null,
     tonePart ? `Brief tone: ${tonePart}` : null,

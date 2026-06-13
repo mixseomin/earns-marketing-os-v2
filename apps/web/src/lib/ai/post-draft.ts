@@ -78,6 +78,7 @@ interface PostContext {
   pillarExemplars: Array<{ title?: string; body: string; whyItWorks?: string }> | null;
   accountHandle: string | null;
   platformLabel: string;
+  offPrimary: boolean;   // account seed vào project KHÁC project chính → bám giọng cộng đồng
   personaVoiceSummary: string;
   personaNarrativeStyle: string;
   personaBackstory: string;
@@ -143,7 +144,7 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
       cp.voice_profile AS pillar_voice_profile,
       cp.voice_notes AS pillar_voice_notes,
       cp.exemplars AS pillar_exemplars,
-      pa.handle AS account_handle, pa.persona,
+      pa.handle AS account_handle, pa.persona, pa.project_id AS account_project_id,
       p.label AS platform_label
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -159,6 +160,13 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
   if (!r) return { error: 'card not found' };
 
   const persona = (r.persona as Record<string, unknown> | null) ?? {};
+  // Off-primary: account tham gia project này nhưng project CHÍNH (profile-target,
+  // = pa.project_id mirror primary) khác → giọng persona là brand của project chính,
+  // KHÔNG hợp cộng đồng này → bỏ voice_summary/narrative_style, bám habitat/pillar/brief.
+  // Giữ tên/interests/backstory (danh tính account không đổi).
+  const _accProj = r.account_project_id ? String(r.account_project_id) : '';
+  const _briefProj = r.project_id ? String(r.project_id) : '';
+  const offPrimary = !!(_accProj && _briefProj && _accProj !== _briefProj);
   const phase = r.brief_phase ? (String(r.brief_phase) as Phase) : null;
   const plan = (r.phase_plan as Array<Record<string, unknown>> | null) ?? [];
   const phaseEntry = plan.find((p) => p.phase === phase) as
@@ -256,8 +264,9 @@ async function loadPostContext(cardId: number): Promise<PostContext | { error: s
     })(),
     accountHandle: r.account_handle ? String(r.account_handle) : null,
     platformLabel: String(r.platform_label ?? ''),
-    personaVoiceSummary: typeof persona.voice_summary === 'string' ? persona.voice_summary : '',
-    personaNarrativeStyle: typeof persona.narrative_style === 'string' ? persona.narrative_style : '',
+    offPrimary,
+    personaVoiceSummary: offPrimary ? '' : (typeof persona.voice_summary === 'string' ? persona.voice_summary : ''),
+    personaNarrativeStyle: offPrimary ? '' : (typeof persona.narrative_style === 'string' ? persona.narrative_style : ''),
     personaBackstory: typeof persona.backstory === 'string' ? persona.backstory : '',
     personaName: [persona.name_first, persona.name_last].filter((x) => typeof x === 'string' && x).join(' '),
     personaGender: typeof persona.gender === 'string' ? persona.gender : '',
@@ -358,6 +367,7 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
     `  Content type: ${ctx.contentType}`,
     ctx.personaVoiceSummary ? `  Persona voice (GIỌNG/TONE — viết ĐÚNG giọng này): ${ctx.personaVoiceSummary}` : null,
     ctx.personaNarrativeStyle ? `  Narrative style: ${ctx.personaNarrativeStyle}` : null,
+    ctx.offPrimary ? `  ⚠ Account này dùng project KHÁC làm chính — ở cộng đồng này KHÔNG dùng giọng thương hiệu project chính; bám GIỌNG CỘNG ĐỒNG (community voice + brief tone bên dưới), viết tự nhiên như thành viên bản địa.` : null,
     ctx.personaInterests.length ? `  Quan tâm/chuyên môn (bám góc nhìn này): ${ctx.personaInterests.join(', ')}` : null,
     ctx.personaBackstory ? `  Backstory: ${ctx.personaBackstory}` : null,
     '',

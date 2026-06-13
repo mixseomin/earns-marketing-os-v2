@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, platformAccounts, platforms, projects, habitats, contentPieces } from '@mos2/db';
-import { eq, ilike } from 'drizzle-orm';
+import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats, contentPieces } from '@mos2/db';
+import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
 
   const body = await req.json() as {
     accountId: number;
+    projectId?: string;   // gen-target project (chọn ở composer) — voice/facts theo project NÀY
     topic: string;
     referenceUrl?: string;
     style?: string;
@@ -74,7 +75,19 @@ export async function POST(req: Request) {
 
   if (!row || !row.platform) return NextResponse.json({ ok: false, error: 'Account not found' }, { status: 404 });
 
-  const project = row.project;
+  // Project gen-target: ưu tiên projectId truyền vào (composer chọn) — validate account
+  // THAM GIA project đó (junction) → dùng voice/facts/persona của project NÀY, không leak primary.
+  let project = row.project;
+  if (body.projectId && body.projectId !== project?.id) {
+    const [chk] = await db.select({ pid: projectAccounts.projectId })
+      .from(projectAccounts)
+      .where(and(eq(projectAccounts.accountId, body.accountId), eq(projectAccounts.projectId, body.projectId)))
+      .limit(1);
+    if (chk?.pid) {
+      const [pj] = await db.select().from(projects).where(eq(projects.id, body.projectId)).limit(1);
+      if (pj) project = pj;
+    }
+  }
   const acc = row.account;
   const platform = row.platform;
   const personaJson = (acc.persona as Record<string, string>) ?? {};

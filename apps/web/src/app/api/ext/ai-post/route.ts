@@ -238,6 +238,32 @@ Write the post. Output STRICT JSON only.`;
     try { parsed.body = projectPost.fix(parsed.body); } catch { /* keep original */ }
   }
 
+  // ÉP HARD limit (vd X 280) — model hay overshoot. Shorten 1 lần (giữ hook+brand+CTA),
+  // fallback truncate ở biên từ. KHÔNG để bài vượt quy định.
+  if (format.bodyHardLimit && parsed.body && parsed.body.length > format.bodyHardLimit) {
+    const lim = format.bodyHardLimit;
+    try {
+      const ai2 = getOpenAI();
+      if (ai2) {
+        const comp = await ai2.chat.completions.create({
+          model: useModel, temperature: 0.4, max_tokens: 500, response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: `Rewrite the social post to fit ≤${lim} characters HARD (count chars, not words). Keep the hook, the real brand/entity mention, and the CTA/link. Cut filler, not substance. No em-dashes, no AI tells. Output STRICT JSON {"body":"..."}.` },
+            { role: 'user', content: parsed.body },
+          ],
+        });
+        const r2 = JSON.parse(comp.choices[0]?.message?.content?.trim() ?? '{}') as { body?: string };
+        if (r2.body && r2.body.trim()) parsed.body = r2.body.trim();
+      }
+    } catch { /* fall through to truncate */ }
+    if (parsed.body.length > lim) {
+      let t = parsed.body.slice(0, lim);
+      const cut = t.lastIndexOf(' ');
+      if (cut > lim * 0.6) t = t.slice(0, cut);
+      parsed.body = t.replace(/[\s,;:.!-]+$/, '').trim();
+    }
+  }
+
   // Save draft to content_pieces
   let contentPieceId: number | null = null;
   if (project) {

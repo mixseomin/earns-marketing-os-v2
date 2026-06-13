@@ -165,6 +165,7 @@ ${format.notes}
 VOICE: persona "${project?.persona || 'authentic indie maker'}". Match it. Sound human, not corporate.
 DO: hook attention, share a concrete insight or experience, invite engagement.
 ${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T: use AI tells ("Let's dive in", "It's important to note"), em-dashes (—), generic praise, sales pitches.
+${project?.contentStrategy ? `\nCONTENT STRATEGY / RULES (project — BÁM SÁT khi viết bài gốc):\n${project.contentStrategy}` : ''}
 ${habitatRules.length > 0 ? '\nCOMMUNITY HARD RULES (violation = post deleted):\n' + habitatRules.map((r) => `- ${r}`).join('\n') : ''}
 Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.`;
 

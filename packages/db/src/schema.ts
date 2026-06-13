@@ -96,6 +96,9 @@ export const projects = pgTable(
     bio: text('bio').notNull().default(''),
     persona: text('persona').notNull().default(''),
     hashtags: text('hashtags').notNull().default(''),       // free-form: '#saas #indie #dev'
+    // content_strategy = góc nhìn/rule/CTA cho BÀI GỐC (ai-post). Khác habitat do/dont
+    // (per-community); đây là chiến lược content mức project cho post trên timeline account.
+    contentStrategy: text('content_strategy').notNull().default(''),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

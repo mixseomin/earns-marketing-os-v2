@@ -238,6 +238,10 @@ Write the post. Output STRICT JSON only.`;
     try { parsed.body = projectPost.fix(parsed.body); } catch { /* keep original */ }
   }
 
+  // Em-dash strip (rule human-voice: dùng '-', không em/en-dash) — deterministic.
+  if (parsed.body) parsed.body = parsed.body.replace(/\s*[—–]\s*/g, ' - ');
+  if (parsed.title) parsed.title = parsed.title.replace(/\s*[—–]\s*/g, ' - ');
+
   // ÉP HARD limit (vd X 280) — model hay overshoot. Shorten 1 lần (giữ hook+brand+CTA),
   // fallback truncate ở biên từ. KHÔNG để bài vượt quy định.
   if (format.bodyHardLimit && parsed.body && parsed.body.length > format.bodyHardLimit) {

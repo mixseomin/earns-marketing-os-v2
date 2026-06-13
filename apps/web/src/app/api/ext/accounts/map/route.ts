@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
+import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,5 +82,14 @@ export async function POST(req: Request) {
     .values({ projectId, accountId, role: 'primary' })
     .onConflictDoNothing();
 
-  return NextResponse.json({ ok: true, accountId, projectId, created });
+  // Reverse-sync → Directus inventory (dedupe theo handle, non-blocking) — account
+  // map từ ext cũng vào inventory chính. Chỉ cần khi account vừa tạo.
+  let directus: { ok: boolean; created?: boolean } | undefined;
+  if (created) {
+    try {
+      directus = await upsertDirectusAccountByHandle({ platformKey: platformSlug, handle: rawHandle, email: null, status: 'active', notes: null });
+    } catch { /* non-blocking */ }
+  }
+
+  return NextResponse.json({ ok: true, accountId, projectId, created, directus });
 }

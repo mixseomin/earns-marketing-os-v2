@@ -184,6 +184,18 @@ export async function POST(req: Request) {
     }
   }
 
+  // Auto-join: account seed vào project này → đảm bảo THAM GIA (junction 'shared',
+  // ON CONFLICT giữ nguyên primary). Profile-target (primary) chỉ đổi qua /set-primary.
+  try {
+    await db.execute(sql`
+      INSERT INTO project_accounts (project_id, account_id, role, content_ratio)
+      VALUES (${targetHabitat.projectId}, ${accountId}, 'shared', 0)
+      ON CONFLICT (project_id, account_id) DO NOTHING
+    `);
+  } catch (e) {
+    console.error('[ext briefs POST] auto-join fail:', e);
+  }
+
   await logExtCall({
     endpoint: 'briefs', method: 'POST',
     extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl,

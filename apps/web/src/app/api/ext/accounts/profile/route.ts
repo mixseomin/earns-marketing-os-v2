@@ -97,6 +97,21 @@ export async function GET(req: Request) {
 
   const persona = (acc.persona as Record<string, unknown> | null) ?? {};
 
+  // Participations: MỌI project account tham gia (primary = profile-target). Account
+  // tham gia nhiều project; ext hiện chips + biết project chính.
+  const partRows = await db.execute(sql`
+    SELECT pj.project_id, pj.role, p.name AS project_name, p.emoji
+    FROM project_accounts pj LEFT JOIN projects p ON p.id = pj.project_id
+    WHERE pj.account_id = ${Number(acc.id)}
+    ORDER BY (pj.role = 'primary') DESC, p.name
+  `);
+  const participations = (partRows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    projectId: String(r.project_id),
+    role: String(r.role ?? 'shared'),
+    name: String(r.project_name ?? r.project_id),
+    emoji: r.emoji ? String(r.emoji) : '',
+  }));
+
   // 2. Brief context — pass habitatId từ ext. Brief = pair (account, habitat).
   // Nếu pair chưa có → null. UI side panel sẽ hiển thị nút tạo brief.
   let brief: Record<string, unknown> | null = null;
@@ -163,6 +178,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: true,
     otherBriefs,
+    participations,
     account: {
       id: Number(acc.id),
       projectId: String(acc.project_id),

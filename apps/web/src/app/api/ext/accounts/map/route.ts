@@ -6,12 +6,14 @@ import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/ext/accounts/map — gán account đang login vào 1 project (idempotent).
+// POST /api/ext/accounts/map — JOIN account vào 1 project (idempotent).
 // Body: { platformKey | platform, handle, projectId }
 //
-// Khác /api/ext/accounts POST (luôn insert account MỚI): endpoint này UPSERT theo
-// (platform_key, lower(handle)) → tồn tại thì reuse + chỉ thêm junction. Dùng cho
-// "account đang login chưa map project nào" → 1 click map từ widget/popup.
+// Model: account THAM GIA nhiều project (junction), profile-target = ĐÚNG 1 primary.
+//  - account chưa có primary nào (mới / chưa map) → junction này = 'primary' (profile-target) + set project_id.
+//  - đã có primary ở project khác → junction 'shared' (tham gia thêm), KHÔNG đổi primary.
+//  - cùng project đã primary → idempotent.
+// Đổi profile-target dùng /accounts/set-primary (non-destructive).
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
@@ -58,10 +60,6 @@ export async function POST(req: Request) {
   let created = false;
   if (existing?.id) {
     accountId = existing.id;
-    // Set project_id (legacy owner) nếu đang trống — không ghi đè owner cũ.
-    if (!existing.projectId) {
-      await db.update(platformAccounts).set({ projectId }).where(eq(platformAccounts.id, accountId));
-    }
   } else {
     const [row] = await db
       .insert(platformAccounts)
@@ -77,9 +75,25 @@ export async function POST(req: Request) {
     created = true;
   }
 
+  // Role JOIN: account chưa có primary → project này = primary (profile-target);
+  // đã có primary ở project khác → 'shared' (tham gia thêm). Single-primary đảm bảo
+  // bởi partial unique index project_accounts_one_primary.
+  let role: 'primary' | 'shared' = 'primary';
+  if (!created) {
+    const [prim] = await db
+      .select({ pid: projectAccounts.projectId })
+      .from(projectAccounts)
+      .where(and(eq(projectAccounts.accountId, accountId), eq(projectAccounts.role, 'primary')))
+      .limit(1);
+    if (prim?.pid) role = prim.pid === projectId ? 'primary' : 'shared';
+  }
+  // project_id (legacy) = mirror profile-target → chỉ set khi role primary.
+  if (role === 'primary') {
+    await db.update(platformAccounts).set({ projectId }).where(eq(platformAccounts.id, accountId));
+  }
   // Ensure junction — bắt buộc để account hiện trên dashboard (INNER JOIN).
   await db.insert(projectAccounts)
-    .values({ projectId, accountId, role: 'primary' })
+    .values({ projectId, accountId, role, contentRatio: role === 'primary' ? 100 : 0 })
     .onConflictDoNothing();
 
   // Reverse-sync → Directus inventory (dedupe theo handle, non-blocking) — account
@@ -91,5 +105,5 @@ export async function POST(req: Request) {
     } catch { /* non-blocking */ }
   }
 
-  return NextResponse.json({ ok: true, accountId, projectId, created, directus });
+  return NextResponse.json({ ok: true, accountId, projectId, role, created, directus });
 }

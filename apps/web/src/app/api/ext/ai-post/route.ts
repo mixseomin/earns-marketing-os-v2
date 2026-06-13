@@ -4,7 +4,7 @@ import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats
 import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
-import { estimateCostUsd } from '@/lib/ai/post-draft';
+import { estimateCostUsd } from '@/lib/ai/cost';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;

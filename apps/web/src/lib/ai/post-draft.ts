@@ -11,6 +11,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { getDb, cards } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, REASONING_MODEL, aiEnabled } from './openai';
+import { estimateCostUsd } from './cost';
 import { isValidTextModel } from './model-options';
 import { PHASE_LABEL, type Phase } from '@/lib/phase-plan';
 import { buildHumanizerBlock, clampDraftLength, injectTypos, applyHumanErrors, stripAITells, maxSentencesFor, type HumanizerOpts } from './humanizer';
@@ -626,19 +627,6 @@ NẾU MODEL THẤY MÌNH SẮP TRẢ ${ctx.targetLang} vào "bodyReview" → STO
       : `- Length phù hợp platform (Reddit: 200-800w; Forum: 500-1500w; FB: 100-300w; Discord: 50-200w)`,
     `- KHÔNG được tự ký tên cuối bài. Reddit không cần signature.`,
   ].filter(Boolean).join('\n');
-}
-
-// Ước tính chi phí gen (USD) từ usage + bảng giá /1M token (in/out). Giá ~2025, ƯỚC LƯỢNG.
-// Longest-match prefix (gpt-4.1-mini thắng gpt-4.1) để model có suffix ngày (…-2025-04-14) vẫn đúng.
-const MODEL_PRICE: Record<string, [number, number]> = {
-  'gpt-4.1': [2, 8], 'gpt-4.1-mini': [0.4, 1.6], 'gpt-4.1-nano': [0.1, 0.4],
-  'gpt-4o': [2.5, 10], 'gpt-4o-mini': [0.15, 0.6], 'o3-mini': [1.1, 4.4], 'o1-mini': [1.1, 4.4],
-};
-export function estimateCostUsd(model: string, usage?: { prompt_tokens?: number; completion_tokens?: number } | null): number | null {
-  if (!usage) return null;
-  const key = Object.keys(MODEL_PRICE).filter((k) => model.startsWith(k)).sort((a, b) => b.length - a.length)[0] || 'gpt-4.1-mini';
-  const [pin, pout] = MODEL_PRICE[key]!;
-  return Number((((usage.prompt_tokens ?? 0) * pin + (usage.completion_tokens ?? 0) * pout) / 1_000_000).toFixed(6));
 }
 
 // ── generateFullDraft (reasoning) ──────────────────────────────────

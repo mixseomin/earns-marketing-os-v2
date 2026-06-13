@@ -167,15 +167,18 @@ export async function POST(req: Request) {
 
   const lengthDirective = (() => {
     if (format.bodyHardLimit) {
-      if (targetWords && approxChars && approxChars > format.bodyHardLimit) {
-        return `Target ${targetWords} words BUT platform HARD limit is ${format.bodyHardLimit} chars — fit within ${format.bodyHardLimit} chars (truncate scope to fit).`;
+      const lim = format.bodyHardLimit;
+      // targetWords muốn dài hơn limit → LẤP ĐẦY space (đừng cụt), pack specifics.
+      if (targetWords && approxChars && approxChars >= lim) {
+        return `Write a FULL, rich post that USES MOST of the ${lim} chars (aim ${lim - 30}-${lim} chars). HARD max ${lim}. Pack 2-3 concrete specifics; do NOT stop early or leave it abrupt.`;
       }
-      return targetWords
-        ? `Target ~${targetWords} words (~${approxChars} chars), HARD max ${format.bodyHardLimit} chars.`
-        : `Body ≤${format.bodyHardLimit} chars (HARD limit).`;
+      if (targetWords && approxChars) {
+        return `Aim ~${targetWords} words (~${approxChars} chars, target ${Math.max(0, approxChars - 25)}-${Math.min(lim, approxChars + 25)}). HARD max ${lim}.`;
+      }
+      return `Aim ${Math.round(lim * 0.75)}-${lim} chars (use the space, pack specifics). HARD max ${lim}.`;
     }
     return targetWords
-      ? `Target ~${targetWords} words. Hit close to this length, don't pad fluff.`
+      ? `Aim ~${targetWords} words. Hit close to this length WITH substance (real specifics), don't pad fluff.`
       : 'Body length flexible — match topic depth.';
   })();
 

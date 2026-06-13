@@ -4,6 +4,7 @@ import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats
 import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
+import { estimateCostUsd } from '@/lib/ai/post-draft';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -222,6 +223,7 @@ ${body.style || '(natural, specific, first-person)'}
 Write the post — lead with a concrete specific, not a generic announcement. Output STRICT JSON only.`;
 
   let parsed: { title?: string; body: string; hashtags?: string[] };
+  let promptTok = 0, complTok = 0;   // gom usage qua các lần gọi → ước tính cost lưu vào aiNotes
   try {
     const ai = getOpenAI();
     if (!ai) return NextResponse.json({ ok: false, error: 'AI client unavailable' }, { status: 503 });
@@ -240,6 +242,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
       ],
     });
 
+    promptTok += completion.usage?.prompt_tokens ?? 0; complTok += completion.usage?.completion_tokens ?? 0;
     const raw = completion.choices[0]?.message?.content?.trim() ?? '';
     parsed = JSON.parse(raw);
     if (!parsed.body) throw new Error('No body in AI response');
@@ -274,6 +277,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
             { role: 'user', content: parsed.body },
           ],
         });
+        promptTok += comp.usage?.prompt_tokens ?? 0; complTok += comp.usage?.completion_tokens ?? 0;
         const r2 = JSON.parse(comp.choices[0]?.message?.content?.trim() ?? '{}') as { body?: string };
         if (r2.body && r2.body.trim()) parsed.body = r2.body.trim();
       }
@@ -287,6 +291,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
   }
 
   // Save draft to content_pieces
+  const costUsd = estimateCostUsd(useModel, { prompt_tokens: promptTok, completion_tokens: complTok });
   let contentPieceId: number | null = null;
   if (project) {
     try {
@@ -317,6 +322,8 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
           aiTitle: parsed.title ?? null,
           aiHashtags: parsed.hashtags ?? [],
           model: useModel,
+          costUsd,
+          tokens: { prompt: promptTok, completion: complTok },
         }],
         tags: [
           'post', 'ext',
@@ -338,6 +345,8 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
     title: parsed.title ?? '',
     body: parsed.body,
     hashtags: parsed.hashtags ?? [],
+    model: useModel,
+    cost: costUsd,
     // Compat shape for extension UI char counter
     format: {
       hasTitle: format.hasTitle,

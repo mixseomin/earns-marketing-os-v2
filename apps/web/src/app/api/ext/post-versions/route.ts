@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       body: String(r.body_md ?? ''),
       title: String(r.title ?? ''),
       model: n0.model ? String(n0.model) : '',
+      cost: n0.costUsd != null ? Number(n0.costUsd) : null,
       pillarId: n0.pillarId != null ? Number(n0.pillarId) : null,
       createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : null,
     };

@@ -634,7 +634,7 @@ const MODEL_PRICE: Record<string, [number, number]> = {
   'gpt-4.1': [2, 8], 'gpt-4.1-mini': [0.4, 1.6], 'gpt-4.1-nano': [0.1, 0.4],
   'gpt-4o': [2.5, 10], 'gpt-4o-mini': [0.15, 0.6], 'o3-mini': [1.1, 4.4], 'o1-mini': [1.1, 4.4],
 };
-function estimateCostUsd(model: string, usage?: { prompt_tokens?: number; completion_tokens?: number } | null): number | null {
+export function estimateCostUsd(model: string, usage?: { prompt_tokens?: number; completion_tokens?: number } | null): number | null {
   if (!usage) return null;
   const key = Object.keys(MODEL_PRICE).filter((k) => model.startsWith(k)).sort((a, b) => b.length - a.length)[0] || 'gpt-4.1-mini';
   const [pin, pout] = MODEL_PRICE[key]!;

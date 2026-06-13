@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats, contentPieces } from '@mos2/db';
+import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats, contentPieces, contentPillars } from '@mos2/db';
 import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
   const body = await req.json() as {
     accountId: number;
     projectId?: string;   // gen-target project (chọn ở composer) — voice/facts theo project NÀY
+    pillarId?: number;    // content pillar (nhóm chủ đề) — bám khung nội dung
     topic: string;
     referenceUrl?: string;
     style?: string;
@@ -109,6 +110,20 @@ export async function POST(req: Request) {
   const projectPost = project ? await getProjectPost(project.id) : { facts: '' };
   const projectFacts = projectPost.facts;
 
+  // Content pillar (nhóm chủ đề) — bài bám khung nội dung của pillar được chọn.
+  let pillarBlock = '';
+  if (body.pillarId && project) {
+    const [pl] = await db.select({ name: contentPillars.name, tagline: contentPillars.tagline, positioningMd: contentPillars.positioningMd, keyMessages: contentPillars.keyMessages, voiceNotes: contentPillars.voiceNotes })
+      .from(contentPillars).where(and(eq(contentPillars.id, body.pillarId), eq(contentPillars.projectId, project.id))).limit(1);
+    if (pl) {
+      const km = Array.isArray(pl.keyMessages) ? (pl.keyMessages as string[]) : [];
+      pillarBlock = `\nCONTENT PILLAR (bài thuộc nhóm chủ đề này — BÁM khung):\n- Pillar: ${pl.name}${pl.tagline ? ' — ' + pl.tagline : ''}`
+        + (km.length ? `\n- Angles: ${km.join('; ')}` : '')
+        + (pl.positioningMd ? `\n- Positioning: ${String(pl.positioningMd).slice(0, 400)}` : '')
+        + (pl.voiceNotes ? `\n- Voice notes: ${pl.voiceNotes}` : '');
+    }
+  }
+
   // Reference URL — fetch first 4KB of text content
   let referenceSummary = '';
   if (body.referenceUrl?.trim()) {
@@ -165,7 +180,7 @@ ${format.notes}
 VOICE: persona "${project?.persona || 'authentic indie maker'}". Match it. Sound human, not corporate.
 DO: hook attention, share a concrete insight or experience, invite engagement.
 ${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T: use AI tells ("Let's dive in", "It's important to note"), em-dashes (—), generic praise, sales pitches.
-${project?.contentStrategy ? `\nCONTENT STRATEGY / RULES (project — BÁM SÁT khi viết bài gốc):\n${project.contentStrategy}` : ''}
+${project?.contentStrategy ? `\nCONTENT STRATEGY / RULES (project — BÁM SÁT khi viết bài gốc):\n${project.contentStrategy}` : ''}${pillarBlock}
 ${habitatRules.length > 0 ? '\nCOMMUNITY HARD RULES (violation = post deleted):\n' + habitatRules.map((r) => `- ${r}`).join('\n') : ''}
 Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.`;
 

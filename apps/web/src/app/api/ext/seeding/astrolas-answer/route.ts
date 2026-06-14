@@ -394,12 +394,11 @@ export async function POST(req: Request) {
       const r = useAsync ? await callOnceAsync(payload) : await callOnce(payload);
       if (r.kind === 'ok') return { ok: true, data: r.data };
       lastErr = r.error;
-      // Async submit rate-limit (429) → thử SYNC /qa/answer (quota/endpoint có thể khác). Có bản còn hơn fail.
+      // Async submit rate-limit (429): KHÔNG fallback sync — max/deep BẮT BUỘC async (/qa/submit). Sync
+      // /qa/answer cap 88s (CF cắt ~100s) → Opus ko bao giờ fit → timeout vô ích. Retry async backoff dài
+      // hơn rồi fail sạch. (Rule Astrolas Team 2026-06-14.)
       if (useAsync && /\b429\b|rate.?limit/i.test(r.error)) {
-        console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} async 429 → thử sync fallback`);
-        const sync = await callOnce(payload);
-        if (sync.kind === 'ok') return { ok: true, data: sync.data };
-        lastErr = sync.error;
+        if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} async 429 → retry async ${attempt + 1}/${MAX_ATTEMPTS} (backoff)`); await new Promise((ok) => setTimeout(ok, 5000)); continue; }
         break;
       }
       if (r.kind === 'fail') break;                       // lỗi cứng (4xx) → ko retry

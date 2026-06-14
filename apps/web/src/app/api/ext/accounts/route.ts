@@ -137,6 +137,9 @@ export async function POST(req: Request) {
     }).onConflictDoNothing();
   }
 
+  // Idempotent: account có thể ĐÃ tồn tại (unique tenant+platform+handle). onConflictDoNothing → ko
+  // throw 500; nếu trùng thì ko trả row → tra account sẵn có để vẫn link junction + trả id (Setup gọi
+  // lại / account đã map từ trước). (Sự cố: ext "Setup ngay" 500 vì INSERT trùng handle.)
   const [row] = await db
     .insert(platformAccounts)
     .values({
@@ -148,16 +151,28 @@ export async function POST(req: Request) {
       notes: body.notes ?? null,
       tags: ['ext-detected'],
     })
+    .onConflictDoNothing()
     .returning({ id: platformAccounts.id });
+
+  let accountId: number | null = row?.id ?? null;
+  const existed = !row;
+  if (!accountId) {
+    const [ex] = await db
+      .select({ id: platformAccounts.id })
+      .from(platformAccounts)
+      .where(and(eq(platformAccounts.platformKey, platformSlug), eq(platformAccounts.handle, body.handle)))
+      .limit(1);
+    accountId = ex?.id ?? null;
+  }
 
   // Link account → project qua junction `project_accounts`. BẮT BUỘC: dashboard
   // listAccountsByProject INNER JOIN bảng này → thiếu junction = account VÔ HÌNH
   // trên dashboard (modal deep-link ko mở) dù platform_accounts.project_id đã set.
   // (Sự cố #28: ext tạo account nhưng quên junction → ko thấy trong vault.)
-  if (row?.id && body.projectId) {
+  if (accountId && body.projectId) {
     try {
       await db.insert(projectAccounts)
-        .values({ projectId: body.projectId, accountId: row.id, role: 'primary' })
+        .values({ projectId: body.projectId, accountId, role: 'primary' })
         .onConflictDoNothing();
     } catch { /* non-blocking — account vẫn tạo, chỉ thiếu link */ }
   }
@@ -165,7 +180,7 @@ export async function POST(req: Request) {
   // Reverse-sync → Directus (await, non-fatal) — account tạo ở ext cũng vào
   // inventory Directus. Dedupe theo handle trong upsertDirectusAccountByHandle.
   let directus: { ok: boolean; created?: boolean } | undefined;
-  if (row?.id) {
+  if (accountId) {
     try {
       directus = await upsertDirectusAccountByHandle({
         platformKey: platformSlug, handle: body.handle,
@@ -174,5 +189,5 @@ export async function POST(req: Request) {
     } catch { /* non-blocking */ }
   }
 
-  return NextResponse.json({ ok: true, id: row?.id, directus });
+  return NextResponse.json({ ok: true, id: accountId, existed, directus });
 }

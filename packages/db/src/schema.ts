@@ -343,6 +343,27 @@ export const cardInsightsSnapshots = pgTable(
   ],
 );
 
+// 0095: engine SPEC catalog (gen engines: astrolas QA, hyperjournal wallet-grade, …). Config that used to
+// be hardcoded in the ext ENGINES registry. GATING stays on projects.capabilities.engines (per-project
+// allow-list); BEHAVIOR (payload/fmt/preCheck) stays in the ext keyed by `key`. Ext fetches this to
+// override its defaults → endpoint/label/flags become dashboard-editable without an ext rebuild.
+export const engines = pgTable('engines', {
+  key: text('key').primaryKey(),
+  label: text('label').notNull(),
+  endpoint: text('endpoint').notNull(),
+  color: text('color').notNull().default('#6366f1'),
+  title: text('title').notNull().default(''),
+  working: text('working').notNull().default(''),
+  needsDepth: boolean('needs_depth').notNull().default(false),
+  needsVision: boolean('needs_vision').notNull().default(false),
+  defaultModel: text('default_model'),
+  monthlyCost: integer('monthly_cost').notNull().default(0),
+  enabled: boolean('enabled').notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── alerts ───────────────────────────────────────────────────────
 export const alerts = pgTable(
   'alerts',

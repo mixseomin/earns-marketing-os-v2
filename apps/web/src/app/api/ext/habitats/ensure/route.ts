@@ -92,7 +92,7 @@ export async function POST(req: Request) {
                           members, description, weekly_visitors, weekly_contributions, icon_url)
     VALUES (${projectId}, ${platformKey || null}, ${kind}, ${name}, ${b.url || null},
             ${JSON.stringify(meta)}::jsonb, 'ext-widget',
-            ${members ?? 0}, ${description}, ${weeklyVisitors}, ${weeklyContributions}, ${iconUrl})
+            ${members ?? 0}, ${description ?? ''}, ${weeklyVisitors ?? 0}, ${weeklyContributions ?? 0}, ${iconUrl})
     RETURNING id, name, kind, project_id, platform_key
   `);
   const row = (ins as unknown as Array<Record<string, unknown>>)[0];

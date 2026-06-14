@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, exists, ilike, or } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +20,11 @@ export async function GET(req: Request) {
   const handle = searchParams.get('handle');
   const host = searchParams.get('host');
   const projectId = searchParams.get('projectId');
+  // project↔account scoping = JUNCTION project_accounts (single source of truth, khớp readers.
+  // listAccountsByProject). KHÔNG đọc scalar platform_accounts.project_id (vestigial → bug #28 khi 2 lệch).
+  const inProject = (pid: string) => exists(db.select().from(projectAccounts).where(and(
+    eq(projectAccounts.accountId, platformAccounts.id), eq(projectAccounts.projectId, pid),
+  )));
 
   // Duplicate check
   if (platform && handle) {
@@ -48,7 +53,7 @@ export async function GET(req: Request) {
       .from(platformAccounts)
       .where(and(
         eq(platformAccounts.platformKey, slug),
-        projectId ? eq(platformAccounts.projectId, projectId) : undefined,
+        projectId ? inProject(projectId) : undefined,
       ))
       .orderBy(desc(platformAccounts.updatedAt))
       .limit(100);
@@ -87,7 +92,7 @@ export async function GET(req: Request) {
       .leftJoin(platforms, eq(platformAccounts.platformKey, platforms.key))
       .where(
         and(
-          projectId ? eq(platformAccounts.projectId, projectId) : undefined,
+          projectId ? inProject(projectId) : undefined,
           or(
             ilike(platforms.signupUrl, `%${host}%`),
             ilike(platformAccounts.notes, `%${host}%`),
@@ -137,45 +142,40 @@ export async function POST(req: Request) {
     }).onConflictDoNothing();
   }
 
-  // Idempotent: account có thể ĐÃ tồn tại (unique tenant+platform+handle). onConflictDoNothing → ko
-  // throw 500; nếu trùng thì ko trả row → tra account sẵn có để vẫn link junction + trả id (Setup gọi
-  // lại / account đã map từ trước). (Sự cố: ext "Setup ngay" 500 vì INSERT trùng handle.)
-  const [row] = await db
-    .insert(platformAccounts)
-    .values({
-      platformKey: platformSlug,
-      projectId: body.projectId ?? null,
-      handle: body.handle,
-      email: body.email?.trim() || null,
-      status: body.status?.trim() || 'todo',
-      notes: body.notes ?? null,
-      tags: ['ext-detected'],
-    })
-    .onConflictDoNothing()
-    .returning({ id: platformAccounts.id });
-
-  let accountId: number | null = row?.id ?? null;
-  const existed = !row;
-  if (!accountId) {
-    const [ex] = await db
-      .select({ id: platformAccounts.id })
-      .from(platformAccounts)
-      .where(and(eq(platformAccounts.platformKey, platformSlug), eq(platformAccounts.handle, body.handle)))
-      .limit(1);
-    accountId = ex?.id ?? null;
-  }
-
-  // Link account → project qua junction `project_accounts`. BẮT BUỘC: dashboard
-  // listAccountsByProject INNER JOIN bảng này → thiếu junction = account VÔ HÌNH
-  // trên dashboard (modal deep-link ko mở) dù platform_accounts.project_id đã set.
-  // (Sự cố #28: ext tạo account nhưng quên junction → ko thấy trong vault.)
-  if (accountId && body.projectId) {
-    try {
-      await db.insert(projectAccounts)
-        .values({ projectId: body.projectId, accountId, role: 'primary' })
+  // Account + junction ATOMIC trong 1 TRANSACTION. Junction project_accounts = SOURCE OF TRUTH cho
+  // project↔account (dashboard listAccountsByProject INNER JOIN nó). Thiếu junction = account VÔ HÌNH ở
+  // vault (bug #28). Trước đây 2 await rời → account tạo xong nhưng junction lỗi = orphan. Giờ cùng tx →
+  // hoặc cả hai, hoặc không gì. Idempotent: onConflictDoNothing (trùng handle ko 500) + tra account sẵn có.
+  const { accountId, existed } = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(platformAccounts)
+      .values({
+        platformKey: platformSlug,
+        projectId: body.projectId ?? null,   // scalar = display/home only; junction là truth
+        handle: body.handle,
+        email: body.email?.trim() || null,
+        status: body.status?.trim() || 'todo',
+        notes: body.notes ?? null,
+        tags: ['ext-detected'],
+      })
+      .onConflictDoNothing()
+      .returning({ id: platformAccounts.id });
+    let id: number | null = row?.id ?? null;
+    if (!id) {
+      const [ex] = await tx
+        .select({ id: platformAccounts.id })
+        .from(platformAccounts)
+        .where(and(eq(platformAccounts.platformKey, platformSlug), eq(platformAccounts.handle, body.handle)))
+        .limit(1);
+      id = ex?.id ?? null;
+    }
+    if (id && body.projectId) {
+      await tx.insert(projectAccounts)
+        .values({ projectId: body.projectId, accountId: id, role: 'primary' })
         .onConflictDoNothing();
-    } catch { /* non-blocking — account vẫn tạo, chỉ thiếu link */ }
-  }
+    }
+    return { accountId: id, existed: !row };
+  });
 
   // Reverse-sync → Directus (await, non-fatal) — account tạo ở ext cũng vào
   // inventory Directus. Dedupe theo handle trong upsertDirectusAccountByHandle.

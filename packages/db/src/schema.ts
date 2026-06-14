@@ -179,6 +179,15 @@ export const agentMessages = pgTable(
 
 // ── cards ────────────────────────────────────────────────────────
 // Command Board cards. cardRef like 'OFR-2891'. col is column key from mode.columns.
+// cards = ONE post's full lifecycle in 4 cohesive column-groups (deliberately wide — do NOT split:
+// the extension reads cards via raw-SQL column-lists across ~13 seeding routes; a split = rewrite all).
+//   (a) KANBAN/workflow: col, level, squad_key, due, urgent, money, agent_*, dispatch_ready, workflow_*
+//   (b) CONTENT draft:   title(+review), body(_review/_target), target_lang, content_type/kind, pillar/media
+//   (c) REPLY context:   parent_url/title/body/author/snippets, thread_key, answer_source(s)
+//   (d) PUBLISHED+analytics: scheduled_at, post_url/posted_at/lifecycle*, gen_*, insights_* (LATEST snapshot;
+//       per-fetch TIME-SERIES lives in card_insights_snapshots).
+// IDENTITY: account+habitat resolve THROUGH brief_id (cards carry no account_id/habitat_id). brief.project_id
+// is immutable (only account is reassigned) → cards.project_id never desyncs from the brief.
 export const cards = pgTable(
   'cards',
   {
@@ -273,6 +282,9 @@ export const cards = pgTable(
     // postedAt = timestamp khi bài đăng (auto-fill now() nhưng có thể override).
     // postScreenshotUrl = ảnh chụp pin làm bằng chứng (optional).
     // postNote = ghi chú free-text (vd "mod approved x mins", "shadow ban").
+    // 0094: intended publish time (≠ kanban `due`, which is a deadline). Post-queue cron picks
+    // dispatch_ready cards WHERE scheduled_at <= now() AND posted_at IS NULL. NULL = post-now / manual.
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     postUrl: text('post_url'),
     postedAt: timestamp('posted_at', { withTimezone: true }),
     postScreenshotUrl: text('post_screenshot_url'),
@@ -305,6 +317,29 @@ export const cards = pgTable(
     index('cards_tenant_idx').on(t.tenantId),
     index('cards_project_col_idx').on(t.projectId, t.col),
     index('cards_agent_kind_idx').on(t.agentKind),         // worker daemon filter
+  ],
+);
+
+// 0093: per-fetch insights TIME-SERIES (append-only). cards.insights_* hold only the LATEST snapshot
+// (the stale>24h cron overwrites them), so a post's view-curve / velocity (views/hr in first 24h) was
+// unrecoverable. Each insights write appends one row here (server-throttled ~15min). Flat cols stay the
+// fast "latest" cache → existing readers unchanged; charts read this table.
+export const cardInsightsSnapshots = pgTable(
+  'card_insights_snapshots',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    cardId: bigint('card_id', { mode: 'number' }).notNull().references(() => cards.id, { onDelete: 'cascade' }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    viewsCount: integer('views_count'),
+    score: integer('score'),
+    upvoteRatio: decimal('upvote_ratio', { precision: 4, scale: 3 }),
+    replyCount: integer('reply_count'),
+    shareCount: integer('share_count'),
+    awardCount: integer('award_count'),
+  },
+  (t) => [
+    index('card_insights_snap_card_idx').on(t.cardId, t.fetchedAt),
   ],
 );
 

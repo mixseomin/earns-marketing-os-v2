@@ -29,14 +29,18 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Body;
 
   const handle = String(body.handle ?? '').replace(/^@/, '').trim();
-  const platformKey = String(body.platformKey ?? '').trim() || 'x';
+  // Canon platform_key server-side — KHÔNG default 'x'. Ext gửi canonPk()||PLATFORM_KEY||'x'; khi canonPk()
+  // rỗng (race load) sẽ ra 'x' → trước đây tạo habitat platform_key='x' LỆCH catalog 'twitter'. Map mirror
+  // core/platform.js CANON; rỗng → 400 (ko đoán).
+  const rawPk = String(body.platformKey ?? '').trim().toLowerCase();
+  const platformKey = ({ x: 'twitter', twitter: 'twitter', bsky: 'bluesky' } as Record<string, string>)[rawPk] || rawPk;
   const projectId = String(body.projectId ?? '').trim();
   const postUrl = String(body.postUrl ?? '').trim();
   const postId = String(body.postId ?? '').trim();
   const bodyFinal = String(body.bodyFinal ?? '').trim();
   const contentType = String(body.contentType ?? 'text').trim() || 'text';
-  if (!handle || !projectId || !postUrl || !postId) {
-    return NextResponse.json({ ok: false, error: 'handle, projectId, postUrl, postId required' }, { status: 400 });
+  if (!handle || !platformKey || !projectId || !postUrl || !postId) {
+    return NextResponse.json({ ok: false, error: 'handle, platformKey, projectId, postUrl, postId required' }, { status: 400 });
   }
 
   // 1. Resolve account (id truyền vào, hoặc handle + platform).

@@ -117,6 +117,18 @@ export async function POST(req: Request) {
   const setClause = sql.join(sets, sql`, `);
   await db.execute(sql`UPDATE cards SET ${setClause} WHERE id = ${cardId}`);
 
+  // 0093: append 1 time-series snapshot của state insights SAU update (full latest) → chart velocity/
+  // growth. Throttle ~15min/card (NOT EXISTS) tránh spam từ scan ext (ext đã throttle 60s/card). Phụ —
+  // lỗi snapshot KHÔNG được làm hỏng response insights (try/catch).
+  try {
+    await db.execute(sql`
+      INSERT INTO card_insights_snapshots (card_id, fetched_at, views_count, score, upvote_ratio, reply_count, share_count, award_count)
+      SELECT id, NOW(), insights_views_count, insights_score, insights_upvote_ratio, insights_reply_count, insights_share_count, insights_award_count
+      FROM cards
+      WHERE id = ${cardId}
+        AND NOT EXISTS (SELECT 1 FROM card_insights_snapshots s WHERE s.card_id = ${cardId} AND s.fetched_at > NOW() - INTERVAL '15 minutes')`);
+  } catch (e) { console.warn('[insights] snapshot append fail:', (e as Error).message); }
+
   return NextResponse.json({
     ok: true,
     cardId,

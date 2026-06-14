@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       c.answer_source, c.answer_sources,
       c.gen_cost_usd, c.gen_duration_ms, c.gen_model_used,
       c.gen_confidence, c.gen_tools_called, c.gen_warnings, c.gen_log_id,
-      c.post_url, c.posted_at,
+      c.post_url, c.posted_at, c.scheduled_at,
       c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
       c.insights_reply_count, c.insights_share_count, c.insights_award_count,
       c.insights_fetched_at,
@@ -78,6 +78,7 @@ export async function GET(req: Request) {
     logId: r.gen_log_id ? String(r.gen_log_id) : null,
     postUrl: r.post_url ? String(r.post_url) : null,
     postedAt: r.posted_at ? String(r.posted_at) : null,
+    scheduledAt: r.scheduled_at ? String(r.scheduled_at) : null,   // post-queue (0094)
     insightsViewsCount: r.insights_views_count != null ? Number(r.insights_views_count) : null,
     insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
     insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,

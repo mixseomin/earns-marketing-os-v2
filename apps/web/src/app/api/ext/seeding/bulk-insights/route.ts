@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 
 // POST /api/ext/seeding/bulk-insights
 // Body: { items: [{ thingId, score?, replyCount?, views?, upvoteRatio?, postUrl? }, ...] }
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
     sets.push(sql`updated_at = NOW()`);
     const setClause = sql.join(sets, sql`, `);
     await db.execute(sql`UPDATE cards SET ${setClause} WHERE id = ${cardRow.id}`);
+    await appendInsightsSnapshot(db, Number(cardRow.id));   // 0093: time-series (throttled, non-fatal)
     results.push({ thingId, status: 'updated', cardId: cardRow.id });
   }
 

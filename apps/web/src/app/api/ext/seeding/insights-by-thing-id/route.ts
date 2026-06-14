@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 
 // POST /api/ext/seeding/insights-by-thing-id
 // Body: {
@@ -240,6 +241,7 @@ export async function POST(req: Request) {
   if (sets.length > 2) {
     const setClause = sql.join(sets, sql`, `);
     await db.execute(sql`UPDATE cards SET ${setClause} WHERE id = ${cardId}`);
+    await appendInsightsSnapshot(db, cardId);   // 0093: time-series (throttled, non-fatal)
   }
 
   return NextResponse.json({

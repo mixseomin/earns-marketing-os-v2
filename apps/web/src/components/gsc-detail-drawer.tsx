@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
+
+type Q = { query: string; clicks: number; impressions: number; position: number; ctr?: number };
 
 interface Props {
   domain: string;
@@ -13,6 +15,20 @@ type Range = 7 | 30 | 90;
 
 export function GscDetailDrawer({ domain, points, onClose }: Props) {
   const [range, setRange] = useState<Range>(30);
+  const [queries, setQueries] = useState<{ google: Q[]; bing: Q[] } | null>(null);
+  const [qLoading, setQLoading] = useState(true);
+  const [tab, setTab] = useState<'google' | 'bing'>('google');
+
+  useEffect(() => {
+    let alive = true;
+    setQLoading(true);
+    fetch(`/api/seo/queries?domain=${encodeURIComponent(domain)}&days=${range}`)
+      .then((r) => r.json())
+      .then((j) => { if (alive) setQueries({ google: j.google || [], bing: j.bing || [] }); })
+      .catch(() => { if (alive) setQueries({ google: [], bing: [] }); })
+      .finally(() => { if (alive) setQLoading(false); });
+    return () => { alive = false; };
+  }, [domain, range]);
 
   const filtered = points.slice(-range);
   const totalClicks = filtered.reduce((s, p) => s + p.clicks, 0);
@@ -86,7 +102,74 @@ export function GscDetailDrawer({ domain, points, onClose }: Props) {
         <div style={{ marginTop: 12, color: 'var(--fg-4)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
           impressions (cyan) · clicks (lime) · position right-axis (amber, lower=better)
         </div>
+
+        {/* Top queries */}
+        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h3 style={{ fontSize: 13, fontFamily: 'var(--font-sans)', margin: 0, fontWeight: 600 }}>Top queries</h3>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['google', 'bing'] as const).map((t) => {
+                const n = queries?.[t]?.length ?? 0;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    style={{
+                      ...btnStyle,
+                      background: tab === t ? 'var(--accent)' : 'var(--bg-2)',
+                      color: tab === t ? 'var(--bg-0)' : 'var(--fg-1)',
+                      fontWeight: tab === t ? 700 : 400,
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {t} {n > 0 && <span style={{ opacity: 0.7, marginLeft: 4 }}>{n}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <QueryTable rows={queries?.[tab] ?? []} loading={qLoading} source={tab} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function QueryTable({ rows, loading, source }: { rows: Q[]; loading: boolean; source: 'google' | 'bing' }) {
+  if (loading) return <div style={{ color: 'var(--fg-3)', fontSize: 11, padding: 16, textAlign: 'center' }}>loading…</div>;
+  if (!rows.length) return (
+    <div style={{ color: 'var(--fg-3)', fontSize: 11, padding: 16, textAlign: 'center' }}>
+      no query data yet {source === 'bing' ? '— Bing needs ~2 weeks of data per site' : ''}
+    </div>
+  );
+  const head: React.CSSProperties = { fontSize: 9, color: 'var(--fg-3)', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, padding: '4px 8px', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)' };
+  const cell: React.CSSProperties = { fontSize: 11, padding: '4px 8px', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)' };
+  return (
+    <div style={{ maxHeight: 360, overflowY: 'auto', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', zIndex: 1 }}>
+          <tr>
+            <th style={{ ...head, textAlign: 'left' }}>Query</th>
+            <th style={head}>Impr</th>
+            <th style={head}>Clicks</th>
+            <th style={head}>CTR</th>
+            <th style={head}>Pos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.query}>
+              <td style={{ ...cell, textAlign: 'left', color: 'var(--fg-1)' }}>{r.query}</td>
+              <td style={{ ...cell, textAlign: 'right' }}>{r.impressions.toLocaleString()}</td>
+              <td style={{ ...cell, textAlign: 'right', color: r.clicks > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{r.clicks}</td>
+              <td style={{ ...cell, textAlign: 'right', color: 'var(--fg-2)' }}>
+                {r.ctr != null ? (r.ctr * 100).toFixed(1) + '%' : (r.impressions ? ((r.clicks / r.impressions) * 100).toFixed(1) + '%' : '—')}
+              </td>
+              <td style={{ ...cell, textAlign: 'right', color: r.position > 0 && r.position < 20 ? 'var(--ok)' : 'var(--fg-2)' }}>{r.position?.toFixed(1) ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

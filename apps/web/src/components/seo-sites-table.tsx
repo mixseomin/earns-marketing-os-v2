@@ -63,9 +63,9 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>;
             return (
-              <tr key={r.domain} style={{ cursor: pts.length > 1 ? 'pointer' : 'default' }}
-                  onClick={() => pts.length > 1 && setOpenDomain(r.domain)}
-                  title={pts.length > 1 ? `Click → mở chart 30/90d cho ${r.domain}` : ''}>
+              <tr key={r.domain} style={{ cursor: 'pointer' }}
+                  onClick={() => setOpenDomain(r.domain)}
+                  title={`Click → mở chart + top queries cho ${r.domain}`}>
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
                   <a

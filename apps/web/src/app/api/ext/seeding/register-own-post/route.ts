@@ -90,13 +90,13 @@ export async function POST(req: Request) {
   const title = (bodyFinal || `Post ${postId}`).replace(/\s+/g, ' ').slice(0, 80);
   const insC = await db.execute(sql`
     INSERT INTO cards (
-      tenant_id, project_id, brief_id, card_ref, squad_key,
+      tenant_id, project_id, brief_id, account_id, habitat_id, card_ref, squad_key,
       title, body_target, content_type, target_lang,
       post_url, posted_at, answer_source,
       col, level, brief_phase, agent_kind,
       post_lifecycle, post_lifecycle_at, post_lifecycle_note
     ) VALUES (
-      'self', ${projectId}, ${briefId}, ${`EXT-${postId}`}, 'wf-writer',
+      'self', ${projectId}, ${briefId}, ${accountId}, ${habitatId}, ${`EXT-${postId}`}, 'wf-writer',
       ${title}, ${bodyFinal.slice(0, 4000)}, ${contentType}, 'en',
       ${postUrl}, NOW(), 'external',
       'production', 2, 'warm-up', 'community-seed',

@@ -159,36 +159,19 @@ export async function POST(req: Request) {
       ORDER BY updated_at DESC
       LIMIT 1
     `);
-    let brief = (briefRows as unknown as Array<Record<string, unknown>>)[0];
+    const brief = (briefRows as unknown as Array<Record<string, unknown>>)[0];
 
-    // Step 3: không có brief → tạo ghost brief trong '_orphan' project
-    if (!brief) {
-      const ghostRows = await db.execute(sql`
-        INSERT INTO community_briefs (
-          tenant_id, project_id, account_id, habitat_id,
-          current_phase, join_status, tone,
-          approach_md, do_md, dont_md
-        )
-        VALUES (
-          'self', '_orphan', ${accountId}, ${habitatId},
-          'warm-up', 'joined', '',
-          '(auto-created from Reddit insights — assign sang project thật khi user xác nhận)',
-          '', ''
-        )
-        RETURNING id, project_id
-      `);
-      brief = (ghostRows as unknown as Array<Record<string, unknown>>)[0]!;
-      createdInOrphan = true;
-    }
-
-    const briefId = Number(brief.id);
-    const projectId = String(brief.project_id);
+    // Step 3: KHÔNG còn tạo ghost brief (0096). Card carry account_id+habitat_id TRỰC TIẾP, brief_id NULL.
+    // Orphan (chưa có brief thật) → project_id '_orphan' bucket, brief_id NULL — readers COALESCE(card,brief).
+    const briefId: number | null = brief ? Number(brief.id) : null;
+    const projectId = brief ? String(brief.project_id) : '_orphan';
+    if (!brief) createdInOrphan = true;
 
     // Tạo card. card_ref dùng convention EXT-<thingId> tránh đụng SEED-N.
     // squad_key NOT NULL → fallback 'wf-writer' (default seeding squad).
     const newCardRows = await db.execute(sql`
       INSERT INTO cards (
-        tenant_id, project_id, brief_id, card_ref, squad_key,
+        tenant_id, project_id, brief_id, account_id, habitat_id, card_ref, squad_key,
         title, body_target, content_type, target_lang,
         post_url, posted_at,
         parent_url, parent_title, parent_author,
@@ -197,7 +180,7 @@ export async function POST(req: Request) {
         post_lifecycle, post_lifecycle_at, post_lifecycle_note
       )
       VALUES (
-        'self', ${projectId}, ${briefId}, ${`EXT-${thingId}`}, 'wf-writer',
+        'self', ${projectId}, ${briefId}, ${accountId}, ${habitatId}, ${`EXT-${thingId}`}, 'wf-writer',
         ${`Reddit comment ${thingId}`},
         ${String(body.bodyText ?? '').slice(0, 4000)},
         'comment', ${habitatLang},

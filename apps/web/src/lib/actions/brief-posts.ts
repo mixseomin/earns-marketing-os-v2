@@ -494,7 +494,7 @@ export async function listRecentPostedCards(
            ${PARENT_ATTEMPT_COUNT_SQL}
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN habitat_channels hc ON hc.id = c.channel_id
     LEFT JOIN platforms p ON p.key = h.platform_key
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
@@ -617,7 +617,7 @@ export async function createPostForBriefPhase(
   // membership ready). Bug 2026-05-22: brief 11 có account=todo nhưng
   // joinStatus=joined → impossible. Bây giờ gate cả 2 tầng.
   const briefCheck = await db.execute(sql`
-    SELECT b.id, b.habitat_id, b.join_status, pa.status AS account_status, h.platform_key
+    SELECT b.id, b.habitat_id, b.account_id, b.join_status, pa.status AS account_status, h.platform_key
       FROM community_briefs b
       LEFT JOIN habitats h ON h.id = b.habitat_id
       LEFT JOIN platform_accounts pa ON pa.id = b.account_id
@@ -648,6 +648,7 @@ export async function createPostForBriefPhase(
     };
   }
   const habitatId = briefRow.habitat_id ? Number(briefRow.habitat_id) : null;
+  const accountId = briefRow.account_id ? Number(briefRow.account_id) : null;   // 0096: forward-fill direct identity on the card
   // Channel auto-pick = DATA-DRIVEN (suggestChannelForNewPost query habitat_channels →
   // null nếu ko có). KHÔNG gate platformKey → forum có sub-forum cũng auto-pick. Xem channel-support.ts.
 
@@ -683,6 +684,8 @@ export async function createPostForBriefPhase(
     tags: ['community-seed', `brief:${briefId}`, `phase:${phase}`, `lang:${targetLang}`, `type:${ct}`],
     briefId,
     briefPhase: phase,
+    ...(accountId != null ? { accountId } : {}),   // 0096: direct identity (≈ brief's, forward-filled)
+    ...(habitatId != null ? { habitatId } : {}),
     ...(resolvedChannelId != null ? { channelId: resolvedChannelId } : {}),
     // Pillar override per-card (vd từ distribute pillarMix). NULL = inherit brief.primary_pillar_id.
     ...(pillarIdOverride != null ? { pillarId: pillarIdOverride } : {}),
@@ -1033,7 +1036,7 @@ export async function listAllPostedCards(
            c.brief_id, c.channel_id, c.gen_cost_usd, c.gen_duration_ms,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
-           b.habitat_id, b.account_id, b.current_phase AS brief_phase_now,
+           COALESCE(c.habitat_id, b.habitat_id) AS habitat_id, COALESCE(c.account_id, b.account_id) AS account_id, b.current_phase AS brief_phase_now,
            h.name AS habitat_name, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
            COALESCE(h.is_own, FALSE) AS habitat_is_own,
            p.label AS platform_label, p.key AS platform_key,
@@ -1042,10 +1045,10 @@ export async function listAllPostedCards(
            ${PARENT_ATTEMPT_COUNT_SQL}
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN habitat_channels hc ON hc.id = c.channel_id
     LEFT JOIN platforms p ON p.key = h.platform_key
-    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    LEFT JOIN platform_accounts pa ON pa.id = COALESCE(c.account_id, b.account_id)
     WHERE ${where}
     ORDER BY ${order}
     LIMIT ${f.limit} OFFSET ${f.offset}
@@ -1055,7 +1058,7 @@ export async function listAllPostedCards(
     SELECT COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platforms p ON p.key = h.platform_key
     WHERE ${where}
   `);
@@ -1067,7 +1070,7 @@ export async function listAllPostedCards(
     SELECT COALESCE(c.post_lifecycle, '_none') AS k, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platforms p ON p.key = h.platform_key
     WHERE ${where}
     GROUP BY 1
@@ -1079,7 +1082,7 @@ export async function listAllPostedCards(
     SELECT COALESCE(p.key, '_none') AS k, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platforms p ON p.key = h.platform_key
     WHERE ${where}
     GROUP BY 1
@@ -1091,7 +1094,7 @@ export async function listAllPostedCards(
     SELECT COALESCE(c.content_type, 'text') AS k, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platforms p ON p.key = h.platform_key
     WHERE ${where}
     GROUP BY 1
@@ -1163,7 +1166,7 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
     SELECT p.key, p.label, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platforms p ON p.key = h.platform_key
     WHERE ${baseWhere} AND p.key IS NOT NULL
     GROUP BY p.key, p.label
@@ -1174,7 +1177,7 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
            COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     WHERE ${baseWhere} AND h.id IS NOT NULL
     GROUP BY h.id, h.name, h.platform_key, h.ai_content_detection
     ORDER BY n DESC
@@ -1183,7 +1186,7 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
     SELECT pa.id, pa.handle, pa.platform_key, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+    LEFT JOIN platform_accounts pa ON pa.id = COALESCE(c.account_id, b.account_id)
     WHERE ${baseWhere} AND pa.id IS NOT NULL
     GROUP BY pa.id, pa.handle, pa.platform_key
     ORDER BY n DESC
@@ -1194,7 +1197,7 @@ export async function getPostedFilterOptions(projectId: string): Promise<PostedF
     SELECT b.id, h.name AS habitat_name, pa.handle AS account_handle, COUNT(*)::int AS n
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
     WHERE ${baseWhere} AND b.id IS NOT NULL
     GROUP BY b.id, h.name, pa.handle

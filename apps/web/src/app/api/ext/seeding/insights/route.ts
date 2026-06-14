@@ -53,8 +53,8 @@ export async function POST(req: Request) {
     const handle = (body.accountHandle ?? '').replace(/^[@u]\/?/, '').trim().toLowerCase();
     const rows = await db.execute(sql`
       SELECT c.id FROM cards c
-        JOIN community_briefs b ON b.id = c.brief_id
-        LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+        LEFT JOIN community_briefs b ON b.id = c.brief_id
+        LEFT JOIN platform_accounts pa ON pa.id = COALESCE(c.account_id, b.account_id)
        WHERE c.thread_key = ${np}
          AND c.post_url IS NOT NULL
          AND c.archived_at IS NULL

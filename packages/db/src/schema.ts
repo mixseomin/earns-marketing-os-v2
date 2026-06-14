@@ -228,6 +228,11 @@ export const cards = pgTable(
     // có thể list + tạo card từ context phase. NULL khi card không thuộc brief.
     briefId: bigint('brief_id', { mode: 'number' }),
     briefPhase: text('brief_phase'),
+    // 0096: DIRECT identity (nullable). card.account_id/habitat_id let a card resolve its account+habitat
+    // WITHOUT a brief (own/orphan posts). Backfilled from brief; brief_id stays an optional strategy
+    // pointer. Readers use COALESCE(card, brief) so legacy brief-bound + new direct cards both resolve.
+    accountId: bigint('account_id', { mode: 'number' }),
+    habitatId: bigint('habitat_id', { mode: 'number' }),
     // 0052: bilingual posts. body_review luôn vi-VN (review). body_target
     // theo target_lang (= habitat.language) - đăng thật. Khi target_lang='vi'
     // thì 2 trường merge thành 1 (chỉ dùng body_target).

@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       const rows2 = await db.execute(sql`
         SELECT c.id FROM cards c
         LEFT JOIN community_briefs b ON b.id = c.brief_id
-        LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+        LEFT JOIN platform_accounts pa ON pa.id = COALESCE(c.account_id, b.account_id)
         WHERE c.archived_at IS NULL
           AND c.parent_url ILIKE ${threadPat}
           ${handle ? sql`AND lower(pa.handle) = ${handle}` : sql``}

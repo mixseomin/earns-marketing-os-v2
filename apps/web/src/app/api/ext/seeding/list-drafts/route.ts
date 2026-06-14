@@ -42,14 +42,14 @@ export async function GET(req: Request) {
       c.insights_reply_count, c.insights_share_count, c.insights_award_count,
       c.insights_fetched_at,
       c.created_at, c.updated_at, c.brief_phase, c.post_lifecycle,
-      b.id AS brief_id, b.habitat_id,
+      b.id AS brief_id, COALESCE(c.habitat_id, b.habitat_id) AS habitat_id,
       h.name AS habitat_name
     FROM cards c
     LEFT JOIN community_briefs b ON b.id = c.brief_id
-    LEFT JOIN habitats h ON h.id = b.habitat_id
+    LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
     WHERE c.archived_at IS NULL
       ${np ? sql`AND c.thread_key = ${np}` : sql``}
-      ${habitatId > 0 ? sql`AND b.habitat_id = ${habitatId}` : sql``}
+      ${habitatId > 0 ? sql`AND COALESCE(c.habitat_id, b.habitat_id) = ${habitatId}` : sql``}
     ORDER BY c.created_at DESC
     LIMIT 50
   `);

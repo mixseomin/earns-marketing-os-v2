@@ -147,6 +147,8 @@ export async function SeoSitesPanel() {
             bing_impressions_7d: bing?.impressions_7d ?? null,
             bing_clicks_7d: bing?.clicks_7d ?? null,
             bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
+            adsense_earnings_today: adsenseByDomain[r.domain]?.earnings_today_usd ?? null,
+            adsense_impressions_today: adsenseByDomain[r.domain]?.impressions_today ?? null,
             adsense_earnings_7d: adsenseByDomain[r.domain]?.earnings_usd ?? null,
             adsense_impressions_7d: adsenseByDomain[r.domain]?.impressions ?? null,
             adsense_rpm_7d: adsenseByDomain[r.domain]?.rpm_usd ?? null,

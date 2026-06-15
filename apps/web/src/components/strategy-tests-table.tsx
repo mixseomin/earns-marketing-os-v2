@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import type { StrategyTestRow } from '@/lib/data';
 
 const VERDICT_COLOR: Record<string, string> = {
-  dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', queued: '#7a8699', testing: '#00b8d4',
+  dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4',
 };
-const VERDICT_ORDER = ['edge', 'gold-only', 'marginal', 'dead', 'testing', 'queued'];
+const VERDICT_ORDER = ['edge', 'gold-only', 'marginal', 'dead', 'discretionary', 'testing', 'queued'];
 const dash = (v: string | number | null | undefined) => (v === null || v === '' || v === undefined ? '—' : String(v));
 const wrap = (url: string) => `https://href.li/?${url}`;
 

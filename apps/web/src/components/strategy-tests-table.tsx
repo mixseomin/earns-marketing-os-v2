@@ -25,6 +25,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   const [groupBy, setGroupBy] = useState<'none' | 'verdict' | 'klass'>('verdict');
   const [sortKey, setSortKey] = useState<SortKey>('pf');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [showTags, setShowTags] = useState(true);
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -115,6 +116,12 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
             </button>
           ))}
         </div>
+        <button type="button" onClick={() => setShowTags((v) => !v)}
+          title={showTags ? 'Hide row tags' : 'Show row tags'}
+          style={{ fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)',
+            background: 'transparent', color: showTags ? 'var(--fg)' : 'var(--muted)', fontWeight: 500 }}>
+          {showTags ? '🏷 Tags on' : '🏷 Tags off'}
+        </button>
       </div>
 
       {/* tag chips */}
@@ -158,7 +165,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
               <tr><td colSpan={13} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
@@ -173,9 +180,9 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   );
 }
 
-function GroupBlock({ g, groupBy, TD, NUM }: {
+function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass';
-  TD: React.CSSProperties; NUM: React.CSSProperties;
+  showTags: boolean; TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
   return (
     <>
@@ -198,10 +205,10 @@ function GroupBlock({ g, groupBy, TD, NUM }: {
                 : r.name}
             </div>
             {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
-            {(r.tags ?? []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+            {showTags && (r.tags ?? []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, opacity: 0.55 }}>
                 {(r.tags ?? []).map((t) => (
-                  <span key={t} style={{ fontSize: 9, color: 'var(--muted)', border: '1px solid var(--line)', borderRadius: 6, padding: '0 5px' }}>{t}</span>
+                  <span key={t} style={{ fontSize: 9, lineHeight: '14px', color: 'var(--muted)', background: 'rgba(127,140,160,0.10)', borderRadius: 4, padding: '0 5px' }}>{t}</span>
                 ))}
               </div>
             )}

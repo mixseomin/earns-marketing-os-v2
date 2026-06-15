@@ -3,6 +3,7 @@ import { SeoSitesTable } from './seo-sites-table';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
+import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
@@ -90,6 +91,7 @@ export async function SeoSitesPanel() {
   } catch { /* fall through */ }
   const tsPayload = await loadGscTimeSeries();
   const ga4Payload = await loadGa4Properties();
+  const ga4Realtime = await loadGa4Realtime();
   const bingPayload = await loadBingStats();
   const adsenseByDomain = await loadAdsenseByDomain(7);
 
@@ -134,11 +136,14 @@ export async function SeoSitesPanel() {
         rows={rows.map((r) => {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
           const bing = pickBing(bingPayload, r.domain);
+          const rt = pickGa4Realtime(ga4Realtime, r.domain);
           return {
             domain: r.domain,
             emoji: meta.emoji,
             project: meta.project,
             ga4PropertyId: pickGa4(ga4Payload, r.domain),
+            ga4_active_5min: rt?.last5min ?? null,
+            ga4_active_30min: rt?.last30min ?? null,
             impressions_7d: r.stats.impressions_7d,
             clicks_7d: r.stats.clicks_7d,
             avg_position_7d: r.stats.avg_position_7d,

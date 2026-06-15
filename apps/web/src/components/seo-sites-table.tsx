@@ -12,6 +12,9 @@ interface RowData {
   emoji: string;
   project?: string;
   ga4PropertyId?: string;
+  // Live (GA4 realtime)
+  ga4_active_5min?: number | null;
+  ga4_active_30min?: number | null;
   // GSC group
   impressions_7d: number;
   clicks_7d: number;
@@ -38,9 +41,9 @@ interface Props {
   totals: { imps: number; clicks: number; pages: number; sitemap: number; avgPos: number };
 }
 
-type ColGroup = 'gsc' | 'adsense' | 'bing';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { gsc: true, adsense: true, bing: true };
-const STORAGE_KEY = 'seo-table-cols-v1';
+type ColGroup = 'live' | 'gsc' | 'adsense' | 'bing';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, gsc: true, adsense: true, bing: true };
+const STORAGE_KEY = 'seo-table-cols-v2';
 
 export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -71,6 +74,8 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const totalAdsenseImpr = rows.reduce((s, r) => s + (r.adsense_impressions_7d ?? 0), 0);
   const totalAdsensePV = rows.reduce((s, r) => s + (r.adsense_page_views_7d ?? 0), 0);
   const totalBingImpr = rows.reduce((s, r) => s + (r.bing_impressions_7d ?? 0), 0);
+  const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
+  const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
@@ -81,7 +86,7 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
       {/* Column-group toggles */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['gsc', 'adsense', 'bing'] as ColGroup[]).map(g => (
+        {(['live', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => (
           <button key={g} type="button" onClick={() => toggle(g)}
             style={{
               padding: '3px 9px', borderRadius: 4,
@@ -100,6 +105,10 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
         <thead>
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Site</th>
+            {cols.live && <>
+              <th style={head} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">● Live</th>
+              <th style={head} title="GA4 Realtime: active users in the last 30 minutes">30m</th>
+            </>}
             {cols.gsc && <>
               <th style={head}>Impr 7d</th>
               <th style={{ ...head, padding: '5px 4px' }}>30d trend</th>
@@ -153,6 +162,14 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                     title={`Open ${r.domain} in Bing Webmaster Tools`}
                     style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Bing&nbsp;↗</a>
                 </td>
+                {cols.live && <>
+                  <td style={{ ...cell, textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }}>
+                    {r.ga4_active_5min == null ? '—' : r.ga4_active_5min > 0 ? r.ga4_active_5min.toLocaleString() : '0'}
+                  </td>
+                  <td style={{ ...cell, textAlign: 'right', ...tone((r.ga4_active_30min ?? 0) > 0) }}>
+                    {r.ga4_active_30min == null ? '—' : r.ga4_active_30min > 0 ? r.ga4_active_30min.toLocaleString() : '0'}
+                  </td>
+                </>}
                 {cols.gsc && <>
                   <td style={{ ...cell, textAlign: 'right', ...tone(r.impressions_7d > 0) }}>{r.impressions_7d.toLocaleString()}</td>
                   <td style={{ ...cell, textAlign: 'center', padding: '2px 4px', width: 70 }}>
@@ -199,6 +216,10 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           })}
           <tr style={{ background: 'var(--bg-2)' }}>
             <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>TOTAL ({rows.length})</td>
+            {cols.live && <>
+              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalLive5.toLocaleString()}</td>
+              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalLive30.toLocaleString()}</td>
+            </>}
             {cols.gsc && <>
               <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.imps.toLocaleString()}</td>
               <td style={{ ...cell }} />

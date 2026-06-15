@@ -12,7 +12,7 @@ export function RefreshGscBtn() {
   const onClick = async () => {
     if (busy) return;
     setBusy(true);
-    setMsg('Đang gọi GSC API…');
+    setMsg('Refreshing GSC + AdSense + GA4 + Bing…');
     try {
       const r = await fetch('/api/admin/refresh-gsc', { method: 'POST' });
       const data = await r.json();
@@ -21,9 +21,11 @@ export function RefreshGscBtn() {
         setBusy(false);
         return;
       }
-      setMsg(`✓ ${data.updated_at ? `cập nhật ${new Date(data.updated_at).toLocaleTimeString()}` : 'xong'}`);
+      const okCount = (data.results || []).filter((x: { ok: boolean }) => x.ok).length;
+      const total = (data.results || []).length;
+      setMsg(`✓ ${okCount}/${total} sources · ${data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : 'done'}`);
       startTransition(() => router.refresh());
-      setTimeout(() => setMsg(null), 4000);
+      setTimeout(() => setMsg(null), 6000);
     } catch (e) {
       setMsg(`Lỗi: ${e instanceof Error ? e.message : 'unknown'}`);
     } finally {
@@ -42,7 +44,7 @@ export function RefreshGscBtn() {
         type="button"
         onClick={onClick}
         disabled={busy}
-        title="Force pull GSC data ngay (bỏ qua daily cron + cache 10 phút)"
+        title="Force-pull tất cả: GSC + Bing + AdSense + GA4 views + GA4 realtime"
         style={{
           background: 'var(--bg-2)',
           border: '1px solid var(--line)',
@@ -59,7 +61,7 @@ export function RefreshGscBtn() {
         }}
       >
         <span style={{ display: 'inline-block', transition: 'transform .4s', transform: busy ? 'rotate(360deg)' : 'none' }}>↻</span>
-        {busy ? 'Refreshing…' : 'Refresh'}
+        {busy ? 'Refreshing…' : 'Refresh All'}
       </button>
     </div>
   );

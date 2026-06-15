@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import type { StrategyTestRow, StrategyAssetRow } from '@/lib/data';
+import type { StrategyTestRow, StrategyAssetRow, StrategyForwardRow } from '@/lib/data';
 
 const VERDICT_COLOR: Record<string, string> = {
   dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4',
@@ -51,7 +51,20 @@ const COLUMNS: Col[] = [
   { key: 'rt', group: 'robust', label: 'Real-tick', title: 'MT5 Model=4 real-tick PF', sort: 'realtickPf', num: true, bold: true, render: (r) => dash(r.realtickPf), color: (r) => pfColor(r.realtickPf) },
 ];
 
-export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]> }) {
+const FWD_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };
+// aggregate live forward rows for a strategy (may run on >1 symbol): sum trades/wins, trade-weighted PF
+function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: number; status: string; symbols: number } | null {
+  if (!list || !list.length) return null;
+  let trades = 0, pfw = 0; const statuses: string[] = [];
+  for (const f of list) {
+    const t = Number(f.trades) || 0; trades += t;
+    pfw += (Number(f.fwdPf) || 0) * t; if (f.status) statuses.push(f.status);
+  }
+  const status = statuses.includes('BELOW') ? 'BELOW' : statuses.includes('HOLDING') ? 'HOLDING' : (statuses[0] ?? 'warming');
+  return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length };
+}
+
+export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]> }) {
   const [q, setQ] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) => setExpanded((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -65,9 +78,12 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
   const hideTip = () => setTip(null);
+  const hasForward = Object.keys(forwardByStrategy).length > 0;
+  const [showForward, setShowForward] = useState(true);
+  const fwdOn = showForward; // forward columns visible (toggle); shows '—' until live data flows
 
   const cols = COLUMNS.filter((c) => visGroups[c.group]);
-  const colSpan = cols.length + 2;
+  const colSpan = cols.length + 2 + (fwdOn ? 3 : 0);
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -157,6 +173,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
         {GROUPS.map((g) => (
           <button key={g.key} type="button" onClick={() => setVisGroups((p) => ({ ...p, [g.key]: !p[g.key] }))} style={{ ...chip(visGroups[g.key]), fontSize: 10.5 }}>{g.label}</button>
         ))}
+        <button type="button" onClick={() => setShowForward((v) => !v)} title="Live forward-test results (StrategyLab demo) joined by strategy name" style={{ ...chip(fwdOn), fontSize: 10.5 }}>📡 Forward (live){hasForward ? '' : ' — no data yet'}</button>
       </div>
 
       {/* tag chips */}
@@ -189,11 +206,14 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
                   onClick={c.sort ? () => toggleSort(c.sort!) : undefined}>{c.label}{c.sort ? caret(c.sort) : ''}</th>
               ))}
               <th style={TH}>Verdict</th>
+              {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)' }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward trades since forward start">Live N</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
             </tr>
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} fwdOn={fwdOn} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
               <tr><td colSpan={colSpan} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
@@ -202,7 +222,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
         </table>
       </div>
       <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. The ↗ on a strategy name links its <b>canonical published source</b> (book / paper / Turtle rules); the numbers here are this lab&apos;s own cost-subtracted, IS/OOS-split backtest (harness file in the notes tooltip), not the source&apos;s. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
+        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. The ↗ on a strategy name links its <b>canonical published source</b> (book / paper / Turtle rules); the numbers here are this lab&apos;s own cost-subtracted, IS/OOS-split backtest (harness file in the notes tooltip), not the source&apos;s. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups. <b>📡 Forward (live)</b> = real demo forward-test from StrategyLab (MT5), joined by name: <i>warming</i> → <i>HOLDING</i> (live PF ≥ backtest base) → <i>BELOW</i>. Watch Live PF vs backtest PF as N grows — that is the real out-of-sample proof.
       </p>
 
       {tip && (
@@ -223,9 +243,9 @@ function childCell(key: string, a: StrategyAssetRow, spanMonths: number | null, 
   return '';
 }
 
-function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
+function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, forwardByStrategy, fwdOn, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass'; showTags: boolean;
-  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; expanded: Set<number>; toggleExpand: (id: number) => void;
+  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; forwardByStrategy: Record<string, StrategyForwardRow[]>; fwdOn: boolean; expanded: Set<number>; toggleExpand: (id: number) => void;
   onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
@@ -286,6 +306,15 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
               <td style={TD}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
               </td>
+              {fwdOn && (() => {
+                const fw = fwdAgg(forwardByStrategy[r.name]);
+                if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', color: 'var(--muted)' }}>—</td><td style={NUM}>—</td><td style={NUM}>—</td></>);
+                return (<>
+                  <td style={{ ...TD, borderLeft: '2px solid var(--line)' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_COLOR[fw.status] ?? '#7a8699' }}>{fw.status}</span>{fw.symbols > 1 ? <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>×{fw.symbols}</span> : null}</td>
+                  <td style={NUM}>{fw.trades || '—'}</td>
+                  <td style={{ ...NUM, fontWeight: 700, color: fw.trades ? pfColor(String(fw.pf)) : 'var(--muted)' }}>{fw.trades ? fw.pf.toFixed(2) : '—'}</td>
+                </>);
+              })()}
             </tr>
             {isOpen && kids.map((a, idx) => (
               <tr key={`${r.id}-${idx}`} style={{ background: 'rgba(127,140,160,0.05)' }}>
@@ -298,6 +327,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
                   return <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(color ? { color } : {}), ...(bold ? { fontWeight: 700 } : {}) }}>{childCell(c.key, a, r.spanMonths, r.netUnit ?? undefined)}</td>;
                 })}
                 <td style={TD} />
+                {fwdOn && <><td style={{ ...TD, borderLeft: '2px solid var(--line)' }} /><td style={TD} /><td style={TD} /></>}
               </tr>
             ))}
           </Fragment>

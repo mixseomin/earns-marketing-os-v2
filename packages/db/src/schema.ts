@@ -1132,6 +1132,27 @@ export const strategyTestAssets = pgTable(
   (t) => [index('sta_strat_idx').on(t.strategyName)],
 );
 
+// ── strategy_forward (live demo forward-test, ingested from StrategyLab CSVs) ──
+export const strategyForward = pgTable(
+  'strategy_forward',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    projectId: text('project_id').notNull(),
+    strategy: text('strategy').notNull(),
+    symbol: text('symbol').notNull(),
+    days: integer('days'),
+    trades: integer('trades'),
+    wins: integer('wins'),
+    winPct: decimal('win_pct'),
+    net: decimal('net'),
+    fwdPf: decimal('fwd_pf'),
+    basePf: decimal('base_pf'),
+    status: text('status'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+  },
+  (t) => [index('strategy_forward_strat_idx').on(t.strategy)],
+);
+
 // ── selector_overrides (mig 0061) ────────────────────────────────
 // 3-tier inheritance cho LLM-discovered CSS selectors. Ext MOS2 Crew
 // fetch resolved map (cascade habitat > platform > engine) khi scrape

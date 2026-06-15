@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -861,6 +861,14 @@ export async function listStrategyTestAssets(): Promise<StrategyAssetRow[]> {
     const rows = await dbListStrategyTestAssets();
     return (rows ?? []).map((r) => ({ strategyName: r.strategyName, asset: r.asset, trades: r.trades, winPct: r.winPct, pf: r.pf, net: r.net, maxDd: r.maxDd }));
   }, [], 'listStrategyTestAssets');
+}
+
+export interface StrategyForwardRow { strategy: string; symbol: string; days: number | null; trades: number | null; winPct: string | null; net: string | null; fwdPf: string | null; basePf: string | null; status: string | null }
+export async function listStrategyForward(): Promise<StrategyForwardRow[]> {
+  return tryDb(async () => {
+    const rows = await dbListStrategyForward();
+    return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, days: r.days, trades: r.trades, winPct: r.winPct, net: r.net, fwdPf: r.fwdPf, basePf: r.basePf, status: r.status }));
+  }, [], 'listStrategyForward');
 }
 
 // ── Media / Infra / Budget vault rows ──────────────────────────

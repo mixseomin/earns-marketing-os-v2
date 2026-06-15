@@ -5,14 +5,15 @@ import { checkAuth } from '../../_auth';
 
 export const dynamic = 'force-dynamic';
 
-// PATCH /api/ext/habitats/[id] { platform_key?, kind? }
+// PATCH /api/ext/habitats/[id] { platform_key?, kind?, isOwn? }
 // Đổi platform map cho habitat đã tồn tại (Req#1 — habitat đã map muốn chọn
 // platform khác). Ensure platform tồn tại trước (FK), create nếu mới.
+// isOwn = đánh dấu "site của tôi" → tắt tracking (scene/WHO-THEM/scanner).
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const err = checkAuth(req);
   if (err) return err;
   const { id } = await params;
-  const body = await req.json().catch(() => ({})) as { platform_key?: string; kind?: string };
+  const body = await req.json().catch(() => ({})) as { platform_key?: string; kind?: string; isOwn?: boolean };
 
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
@@ -34,6 +35,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.platformKey = pk;
   }
   if (body.kind) patch.kind = body.kind.trim();
+  if (typeof body.isOwn === 'boolean') patch.isOwn = body.isOwn;
 
   if (Object.keys(patch).length <= 1) {
     return NextResponse.json({ ok: false, error: 'nothing to update' }, { status: 400 });

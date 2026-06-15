@@ -4,6 +4,7 @@ import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { normalizeParentUrl } from '@/lib/parent-url';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
+import { recordReplierInteractions } from '@/lib/scene-people';
 
 // POST /api/ext/seeding/insights
 // Body: {
@@ -120,6 +121,11 @@ export async function POST(req: Request) {
 
   // 0093: append 1 time-series snapshot (throttled ~15min/card) → chart velocity/growth. Phụ, non-fatal.
   await appendInsightsSnapshot(db, cardId);
+
+  // 0099: forward-fill WHO-THEM — replier handles → people/interactions. Non-fatal.
+  if (Array.isArray(body.topReplies) && body.topReplies.length) {
+    await recordReplierInteractions(db, cardId, body.topReplies);
+  }
 
   return NextResponse.json({
     ok: true,

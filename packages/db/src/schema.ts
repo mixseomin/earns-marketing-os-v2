@@ -1207,6 +1207,62 @@ export const contacts = pgTable(
   ],
 );
 
+// ── people / interactions (WHO-THEM) ─────────────────────────────
+// The interaction-network axis: people we engage with on the OTHER side
+// (forum repliers, X reply-guy scene). Distinct from `contacts` (KOC vault).
+// Populated forward from cards.insights_top_replies via /seeding/insights.
+// Spec: earns-strategy wiki/mos/crew-scene-layer.md (migration 0099).
+export const people = pgTable(
+  'people',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    platformKey: text('platform_key').notNull().default(''),
+    handle: text('handle').notNull(),                          // stored lowercased
+    displayName: text('display_name'),
+    sceneTag: text('scene_tag'),
+    habitatId: bigint('habitat_id', { mode: 'number' }).references(() => habitats.id, { onDelete: 'set null' }),
+    familiarityScore: integer('familiarity_score').notNull().default(0),  // 0..100
+    interactionCount: integer('interaction_count').notNull().default(0),
+    theyRepliedBack: boolean('they_replied_back').notNull().default(false),
+    lastEngagedAt: timestamp('last_engaged_at', { withTimezone: true }),
+    status: text('status').notNull().default('observed'),       // observed|engaging|warm|bridged|ignore
+    notes: text('notes'),
+    scrapedMeta: jsonb('scraped_meta').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('people_proj_plat_handle_uidx').on(t.projectId, t.platformKey, t.handle),
+    index('people_project_idx').on(t.projectId),
+    index('people_habitat_idx').on(t.habitatId),
+    index('people_scene_idx').on(t.sceneTag),
+  ],
+);
+
+export const interactions = pgTable(
+  'interactions',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    peopleId: bigint('people_id', { mode: 'number' }).notNull().references(() => people.id, { onDelete: 'cascade' }),
+    cardId: bigint('card_id', { mode: 'number' }).references(() => cards.id, { onDelete: 'set null' }),
+    accountId: bigint('account_id', { mode: 'number' }),
+    threadUrl: text('thread_url'),
+    kind: text('kind').notNull().default('reply'),              // reply|quote|mention|like
+    direction: text('direction').notNull().default('theirs'),   // theirs|ours
+    bodyExcerpt: text('body_excerpt'),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('interactions_dedup_uidx').on(t.peopleId, t.cardId, t.direction, t.kind),
+    index('interactions_people_idx').on(t.peopleId),
+    index('interactions_thread_idx').on(t.threadUrl),
+    index('interactions_card_idx').on(t.cardId),
+  ],
+);
+
 // ── use_cases ────────────────────────────────────────────────────
 // Test cases / use cases registry. Spec columns are seed-managed (AI
 // appends when shipping a feature) and idempotent-upserted on every

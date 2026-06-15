@@ -122,7 +122,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
     else { setSortKey(k); setSortDir(k === 'name' ? 'asc' : 'desc'); }
   };
 
-  const TH: React.CSSProperties = { padding: '7px 10px', fontSize: 11, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--bg)' };
+  const TH: React.CSSProperties = { padding: '7px 10px', fontSize: 11, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 3, background: 'var(--panel,#0e1420)', boxShadow: 'inset 0 -1px 0 var(--line)' };
   const TD: React.CSSProperties = { padding: '7px 10px', fontSize: 12, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const NUM: React.CSSProperties = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
   const caret = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
@@ -167,7 +167,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
             const on = activeTags.includes(t);
             return (
               <button key={t} type="button" onClick={() => toggleTag(t)}
-                style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent,#00e5ff)' : 'var(--line)'}`, background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 }}>{t}</button>
+                style={{ fontSize: 10.5, padding: '3px 10px', borderRadius: 11, cursor: 'pointer', border: '1px solid transparent', background: on ? 'var(--accent,#00e5ff)' : 'rgba(127,140,160,0.16)', color: on ? '#001018' : 'var(--fg)', fontWeight: on ? 700 : 500 }}>{t}</button>
             );
           });
         })()}
@@ -179,7 +179,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
         )}
       </div>
 
-      <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
+      <div style={{ overflow: 'auto', maxHeight: '72vh', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: 'auto', minWidth: 560 }}>
           <thead>
             <tr>

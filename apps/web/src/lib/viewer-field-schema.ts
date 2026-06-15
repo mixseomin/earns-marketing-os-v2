@@ -17,7 +17,7 @@ export interface ViewerFieldSchemaEntry {
   /** Mô tả LLM dùng để discover + UI tooltip. */
   hint: string;
   /** Parse hint. */
-  parse?: 'bool' | 'text' | 'enum';
+  parse?: 'bool' | 'text' | 'enum' | 'number' | 'date';
   enumValues?: string[];
 }
 
@@ -34,6 +34,35 @@ export const VIEWER_FIELD_SCHEMAS: Record<string, ViewerFieldSchemaEntry[]> = {
       label: 'Viewer handle',
       hint: 'Selector trỏ tới element chứa username viewer logged-in. Ext extract qua href (regex /@?([A-Za-z0-9_]+)/) hoặc textContent. KHÔNG match handle của OP/post author.',
       parse: 'text',
+    },
+  ],
+  // Account-level profile stats — scrape KHI viewer xem profile CỦA CHÍNH MÌNH
+  // (account_handle == viewer handle). Lưu vào platform_accounts.account_stats (jsonb).
+  // page_kind='account-profile', scope='platform'. Field key = stat name (karma/created/…).
+  'account-profile': [
+    {
+      key: 'account_handle',
+      label: 'Profile owner handle',
+      hint: 'Handle của CHỦ trang profile đang xem — để xác nhận đúng profile của viewer (chỉ lưu stats khi khớp). Vd HN: //td[="user:"]/following-sibling::td//a[hnuser].',
+      parse: 'text',
+    },
+    {
+      key: 'karma',
+      label: 'Karma / reputation',
+      hint: 'Điểm karma / reputation của account (số). Vd HN: //td[="karma:"]/following-sibling::td. parse=number.',
+      parse: 'number',
+    },
+    {
+      key: 'created',
+      label: 'Account created (age)',
+      hint: 'Ngày tạo account (tuổi account). Chuỗi ngày, vd "September 8, 2011". parse=text/date.',
+      parse: 'text',
+    },
+    {
+      key: 'followers',
+      label: 'Followers',
+      hint: 'Số follower của account (nếu platform có). parse=number.',
+      parse: 'number',
     },
   ],
 };

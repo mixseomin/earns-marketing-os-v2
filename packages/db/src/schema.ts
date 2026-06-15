@@ -514,6 +514,9 @@ export const platformAccounts = pgTable(
     apiTokenEnc: text('api_token_enc'),       // encrypted at rest (pgcrypto, phase 3)
     monthlyCost: integer('monthly_cost').notNull().default(0),
     collectStats: boolean('collect_stats').notNull().default(false),
+    // Profile stats scraped per-platform (mig 0098): { karma, created, followers, … , fetched_at }.
+    // Generic jsonb — keys tuỳ platform. Ext scrape qua trained account-profile selectors → POST /accounts/stats.
+    accountStats: jsonb('account_stats').notNull().default({}),
     blockReason: text('block_reason'),
     notes: text('notes'),
     tags: jsonb('tags').notNull().default([]),

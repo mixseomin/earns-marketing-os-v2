@@ -202,7 +202,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
         </table>
       </div>
       <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
+        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. The ↗ on a strategy name links its <b>canonical published source</b> (book / paper / Turtle rules); the numbers here are this lab&apos;s own cost-subtracted, IS/OOS-split backtest (harness file in the notes tooltip), not the source&apos;s. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
       </p>
 
       {tip && (

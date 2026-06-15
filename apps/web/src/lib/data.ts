@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -853,6 +853,14 @@ export async function listStrategyTests(projectId: string): Promise<StrategyTest
       verdict: r.verdict, klass: r.klass, tags: (r.tags as string[]) ?? [], status: r.status, harnessFile: r.harnessFile, notes: r.notes,
     }));
   }, [], 'listStrategyTests');
+}
+
+export interface StrategyAssetRow { strategyName: string; asset: string; trades: number | null; winPct: string | null; pf: string | null; net: string | null; maxDd: string | null }
+export async function listStrategyTestAssets(): Promise<StrategyAssetRow[]> {
+  return tryDb(async () => {
+    const rows = await dbListStrategyTestAssets();
+    return (rows ?? []).map((r) => ({ strategyName: r.strategyName, asset: r.asset, trades: r.trades, winPct: r.winPct, pf: r.pf, net: r.net, maxDd: r.maxDd }));
+  }, [], 'listStrategyTestAssets');
 }
 
 // ── Media / Infra / Budget vault rows ──────────────────────────

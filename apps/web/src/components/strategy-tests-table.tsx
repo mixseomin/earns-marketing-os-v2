@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { StrategyTestRow } from '@/lib/data';
+import { Fragment, useMemo, useState } from 'react';
+import type { StrategyTestRow, StrategyAssetRow } from '@/lib/data';
 
 const VERDICT_COLOR: Record<string, string> = {
   dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4',
@@ -50,8 +50,10 @@ const COLUMNS: Col[] = [
   { key: 'rt', group: 'robust', label: 'Real-tick', title: 'MT5 Model=4 real-tick PF', sort: 'realtickPf', num: true, bold: true, render: (r) => dash(r.realtickPf), color: (r) => pfColor(r.realtickPf) },
 ];
 
-export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
+export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]> }) {
   const [q, setQ] = useState('');
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpand = (id: number) => setExpanded((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [groupBy, setGroupBy] = useState<'none' | 'verdict' | 'klass'>('verdict');
   const [sortKey, setSortKey] = useState<SortKey>('pf');
@@ -190,7 +192,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
               <tr><td colSpan={colSpan} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
@@ -209,9 +211,19 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   );
 }
 
-function GroupBlock({ g, groupBy, showTags, cols, colSpan, onTip, onTipEnd, TD, NUM }: {
+function childCell(key: string, a: StrategyAssetRow): React.ReactNode {
+  if (key === 'trades') return dash(a.trades);
+  if (key === 'win') return dash(a.winPct);
+  if (key === 'pf') return dash(a.pf);
+  if (key === 'net') return a.net != null && a.net !== '' ? a.net : '—';
+  if (key === 'dd') return a.maxDd != null && a.maxDd !== '' ? a.maxDd : '—';
+  return '';
+}
+
+function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass'; showTags: boolean;
-  cols: Col[]; colSpan: number; onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
+  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; expanded: Set<number>; toggleExpand: (id: number) => void;
+  onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
   return (
@@ -224,30 +236,54 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, onTip, onTipEnd, TD, 
           </td>
         </tr>
       )}
-      {g.rows.map((r) => (
-        <tr key={r.id}>
-          <td style={TD}>
-            <div style={{ fontWeight: 600, cursor: 'help', display: 'inline-block' }} onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
-              {r.sourceUrl
-                ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
-                : r.name}
-            </div>
-            {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
-            {showTags && (r.tags ?? []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, opacity: 0.55 }}>
-                {(r.tags ?? []).map((t) => (<span key={t} style={{ fontSize: 9, lineHeight: '14px', color: 'var(--muted)', background: 'rgba(127,140,160,0.10)', borderRadius: 4, padding: '0 5px' }}>{t}</span>))}
-              </div>
-            )}
-          </td>
-          {cols.map((c) => {
-            const col = c.color ? c.color(r) : undefined;
-            return <td key={c.key} style={{ ...(c.num ? NUM : TD), ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
-          })}
-          <td style={TD}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
-          </td>
-        </tr>
-      ))}
+      {g.rows.map((r) => {
+        const kids = assetsByStrategy[r.name] ?? [];
+        const isOpen = expanded.has(r.id);
+        return (
+          <Fragment key={r.id}>
+            <tr>
+              <td style={TD}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                  {kids.length > 0 ? (
+                    <button type="button" onClick={() => toggleExpand(r.id)} title={`${kids.length} per-asset results`}
+                      style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--accent,#00e5ff)', fontSize: 11, padding: 0, lineHeight: 1, width: 10 }}>{isOpen ? '▾' : '▸'}</button>
+                  ) : <span style={{ width: 10, display: 'inline-block' }} />}
+                  <span>
+                    <span style={{ fontWeight: 600, cursor: 'help' }} onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
+                      {r.sourceUrl
+                        ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
+                        : r.name}
+                    </span>
+                    {kids.length > 0 ? <span style={{ fontSize: 9.5, color: 'var(--muted)', marginLeft: 6 }}>({kids.length} assets)</span> : null}
+                    {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
+                    {showTags && (r.tags ?? []).length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, opacity: 0.55 }}>
+                        {(r.tags ?? []).map((t) => (<span key={t} style={{ fontSize: 9, lineHeight: '14px', color: 'var(--muted)', background: 'rgba(127,140,160,0.10)', borderRadius: 4, padding: '0 5px' }}>{t}</span>))}
+                      </div>
+                    )}
+                  </span>
+                </div>
+              </td>
+              {cols.map((c) => {
+                const col = c.color ? c.color(r) : undefined;
+                return <td key={c.key} style={{ ...(c.num ? NUM : TD), ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
+              })}
+              <td style={TD}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
+              </td>
+            </tr>
+            {isOpen && kids.map((a, idx) => (
+              <tr key={`${r.id}-${idx}`} style={{ background: 'rgba(127,140,160,0.05)' }}>
+                <td style={{ ...TD, paddingLeft: 28, color: 'var(--muted)', fontSize: 11.5 }}>↳ {a.asset}</td>
+                {cols.map((c) => (
+                  <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(c.key === 'pf' ? { color: pfColor(a.pf), fontWeight: 700 } : { color: 'var(--muted)' }) }}>{childCell(c.key, a)}</td>
+                ))}
+                <td style={TD} />
+              </tr>
+            ))}
+          </Fragment>
+        );
+      })}
     </>
   );
 }

@@ -1113,6 +1113,22 @@ export const strategyTests = pgTable(
   (t) => [index('strategy_tests_project_idx').on(t.projectId)],
 );
 
+// ── strategy_test_assets (per-asset drill-down for strategy_tests) ──
+export const strategyTestAssets = pgTable(
+  'strategy_test_assets',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    strategyName: text('strategy_name').notNull(),
+    asset: text('asset').notNull(),
+    trades: integer('trades'),
+    winPct: decimal('win_pct'),
+    pf: decimal('pf'),
+    net: decimal('net'),
+    maxDd: decimal('max_dd'),
+  },
+  (t) => [index('sta_strat_idx').on(t.strategyName)],
+);
+
 // ── selector_overrides (mig 0061) ────────────────────────────────
 // 3-tier inheritance cho LLM-discovered CSS selectors. Ext MOS2 Crew
 // fetch resolved map (cascade habitat > platform > engine) khi scrape

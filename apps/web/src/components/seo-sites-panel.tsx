@@ -4,6 +4,7 @@ import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
+import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
 
@@ -90,6 +91,7 @@ export async function SeoSitesPanel() {
   const tsPayload = await loadGscTimeSeries();
   const ga4Payload = await loadGa4Properties();
   const bingPayload = await loadBingStats();
+  const adsenseByDomain = await loadAdsenseByDomain(7);
 
   if (!payload) {
     return (
@@ -145,6 +147,10 @@ export async function SeoSitesPanel() {
             bing_impressions_7d: bing?.impressions_7d ?? null,
             bing_clicks_7d: bing?.clicks_7d ?? null,
             bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
+            adsense_earnings_7d: adsenseByDomain[r.domain]?.earnings_usd ?? null,
+            adsense_impressions_7d: adsenseByDomain[r.domain]?.impressions ?? null,
+            adsense_rpm_7d: adsenseByDomain[r.domain]?.rpm_usd ?? null,
+            adsense_page_views_7d: adsenseByDomain[r.domain]?.page_views ?? null,
           };
         })}
         timeseries={Object.fromEntries(

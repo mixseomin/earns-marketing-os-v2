@@ -83,6 +83,14 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
 
   return (
     <>
+      <style>{`
+        @keyframes live-pulse {
+          0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+          70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+          100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+        .live-dot { animation: live-pulse 1.6s infinite; }
+      `}</style>
       {/* Column-group toggles */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
@@ -106,7 +114,9 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Site</th>
             {cols.live && <>
-              <th style={head} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">● Live</th>
+              <th style={{ ...head, textAlign: 'center' }} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">
+                <span className="live-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
+              </th>
               <th style={head} title="GA4 Realtime: active users in the last 30 minutes">30m</th>
             </>}
             {cols.gsc && <>

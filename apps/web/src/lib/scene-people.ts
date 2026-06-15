@@ -15,6 +15,7 @@ export async function recordReplierInteractions(db: Executor, cardId: number, re
     // Scope: card → brief → habitat → project. No project → can't place a person.
     const ctxRes = await db.execute(sql`
       SELECT h.project_id AS project_id, h.platform_key AS platform_key, b.habitat_id AS habitat_id,
+             h.is_own AS is_own,
              COALESCE(c.account_id, b.account_id) AS account_id, c.post_url AS post_url
       FROM cards c
       LEFT JOIN community_briefs b ON b.id = c.brief_id
@@ -22,6 +23,9 @@ export async function recordReplierInteractions(db: Executor, cardId: number, re
       WHERE c.id = ${cardId} LIMIT 1`);
     const ctx = (ctxRes as unknown as Array<Record<string, unknown>>)[0];
     if (!ctx || ctx.project_id == null) return;
+    // Owned habitat (isOwn) = sân nhà, KHÔNG track WHO-THEM (repliers = customer/lead,
+    // không phải scene-to-bridge). Gate theo habitat (cover mọi platform, không chỉ domain).
+    if (ctx.is_own === true) return;
     const projectId = String(ctx.project_id);
     const platformKey = String(ctx.platform_key ?? '');
     const habitatId = ctx.habitat_id != null ? Number(ctx.habitat_id) : null;

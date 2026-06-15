@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   if (host.endsWith('reddit.com') && pathParts[0] === 'r' && pathParts[1]) {
     const subName = `r/${pathParts[1]}`;
     const rows = await db.execute(sql`
-      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url,
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url, h.is_own,
              (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
       FROM habitats h
       WHERE LOWER(h.name) = LOWER(${subName})
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
           platformKey: r.platform_key ? String(r.platform_key) : null,
           technologyKey: r.technology_key ? String(r.technology_key) : null,
           url: r.url ? String(r.url) : null,
-          briefId: r.brief_id ? Number(r.brief_id) : null,
+          briefId: r.brief_id ? Number(r.brief_id) : null, isOwn: r.is_own === true,
         },
       }, { headers: noStoreHeaders });
     }
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
             platformKey: r.platform_key ? String(r.platform_key) : null,
           technologyKey: r.technology_key ? String(r.technology_key) : null,
             url: r.url ? String(r.url) : null,
-            briefId: r.brief_id ? Number(r.brief_id) : null,
+            briefId: r.brief_id ? Number(r.brief_id) : null, isOwn: r.is_own === true,
           },
         });
       }
@@ -147,7 +147,7 @@ export async function GET(req: Request) {
                 platformKey: c.platform_key ? String(c.platform_key) : null,
                 technologyKey: c.technology_key ? String(c.technology_key) : null,
                 url: inviteUrl,
-                briefId: c.brief_id ? Number(c.brief_id) : null,
+                briefId: c.brief_id ? Number(c.brief_id) : null, isOwn: c.is_own === true,
               },
             }, { headers: noStoreHeaders });
           } else if (resolvedGuildId) {
@@ -190,7 +190,7 @@ export async function GET(req: Request) {
   })();
   if (discrim) {
     const drows = await db.execute(sql`
-      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url,
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url, h.is_own,
              (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
       FROM habitats h
       WHERE h.url ILIKE ${'%' + discrim + '%'}
@@ -206,7 +206,7 @@ export async function GET(req: Request) {
           platformKey: dr.platform_key ? String(dr.platform_key) : null,
           technologyKey: dr.technology_key ? String(dr.technology_key) : null,
           url: dr.url ? String(dr.url) : null,
-          briefId: dr.brief_id ? Number(dr.brief_id) : null,
+          briefId: dr.brief_id ? Number(dr.brief_id) : null, isOwn: dr.is_own === true,
         },
       }, { headers: noStoreHeaders });
     }
@@ -236,7 +236,7 @@ export async function GET(req: Request) {
         platformKey: r.platform_key ? String(r.platform_key) : null,
         technologyKey: r.technology_key ? String(r.technology_key) : null,
         url: r.url ? String(r.url) : null,
-        briefId: r.brief_id ? Number(r.brief_id) : null,
+        briefId: r.brief_id ? Number(r.brief_id) : null, isOwn: r.is_own === true,
       },
     }, { headers: noStoreHeaders });
   }

@@ -840,7 +840,7 @@ export interface StrategyTestRow {
   asset: string | null; timeframe: string | null; codability: string | null;
   trades: number | null; winPct: string | null; pf: string | null; net: string | null; netUnit: string | null;
   isPf: string | null; oosPf: string | null; realtickPf: string | null;
-  verdict: string | null; status: string; harnessFile: string | null; notes: string | null;
+  verdict: string | null; klass: string; tags: string[]; status: string; harnessFile: string | null; notes: string | null;
 }
 export async function listStrategyTests(projectId: string): Promise<StrategyTestRow[]> {
   return tryDb(async () => {
@@ -850,7 +850,7 @@ export async function listStrategyTests(projectId: string): Promise<StrategyTest
       asset: r.asset, timeframe: r.timeframe, codability: r.codability,
       trades: r.trades, winPct: r.winPct, pf: r.pf, net: r.net, netUnit: r.netUnit,
       isPf: r.isPf, oosPf: r.oosPf, realtickPf: r.realtickPf,
-      verdict: r.verdict, status: r.status, harnessFile: r.harnessFile, notes: r.notes,
+      verdict: r.verdict, klass: r.klass, tags: (r.tags as string[]) ?? [], status: r.status, harnessFile: r.harnessFile, notes: r.notes,
     }));
   }, [], 'listStrategyTests');
 }

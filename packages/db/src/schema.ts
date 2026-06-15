@@ -1101,6 +1101,8 @@ export const strategyTests = pgTable(
     oosPf: decimal('oos_pf'),
     realtickPf: decimal('realtick_pf'),
     verdict: text('verdict').default(''),
+    klass: text('klass').notNull().default(''),
+    tags: jsonb('tags').notNull().default([]),
     status: text('status').notNull().default('tested'),
     harnessFile: text('harness_file').default(''),
     notes: text('notes').default(''),

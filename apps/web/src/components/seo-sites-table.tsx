@@ -117,7 +117,10 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               <th style={{ ...head, textAlign: 'center' }} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">
                 <span className="live-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
               </th>
-              <th style={head} title="GA4 Realtime: active users in the last 30 minutes">30m</th>
+              <th style={head} title="GA4 Realtime: active users in the last 30 minutes">
+                <span className="live-dot" style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle', marginRight: 4, boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
+                30m
+              </th>
             </>}
             {cols.gsc && <>
               <th style={head}>Impr 7d</th>

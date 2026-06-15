@@ -226,6 +226,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
   onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
+  const assetColVisible = cols.some((c) => c.key === 'asset');
   return (
     <>
       {groupBy !== 'none' && (
@@ -244,17 +245,17 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
             <tr>
               <td style={TD}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  {kids.length > 0 ? (
+                  {!assetColVisible && kids.length > 0 ? (
                     <button type="button" onClick={() => toggleExpand(r.id)} title={`${kids.length} per-asset results`}
                       style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--accent,#00e5ff)', fontSize: 11, padding: 0, lineHeight: 1, width: 10 }}>{isOpen ? '▾' : '▸'}</button>
-                  ) : <span style={{ width: 10, display: 'inline-block' }} />}
+                  ) : null}
                   <span>
                     <span style={{ fontWeight: 600, cursor: 'help' }} onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
                       {r.sourceUrl
                         ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
                         : r.name}
                     </span>
-                    {kids.length > 0 ? <span style={{ fontSize: 9.5, color: 'var(--muted)', marginLeft: 6 }}>({kids.length} assets)</span> : null}
+                    {!assetColVisible && kids.length > 0 ? <span onClick={() => toggleExpand(r.id)} style={{ fontSize: 9.5, color: 'var(--accent,#00e5ff)', marginLeft: 6, cursor: 'pointer' }}>({kids.length} assets)</span> : null}
                     {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
                     {showTags && (r.tags ?? []).length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, opacity: 0.55 }}>
@@ -265,6 +266,17 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
                 </div>
               </td>
               {cols.map((c) => {
+                if (c.key === 'asset' && kids.length > 0) {
+                  return (
+                    <td key={c.key} style={TD}>
+                      <span onClick={() => toggleExpand(r.id)} title={`${kids.length} per-asset results`}
+                        style={{ cursor: 'pointer', color: 'var(--accent,#00e5ff)', borderBottom: '1px dotted', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {dash(r.asset)} <span style={{ fontSize: 9 }}>{isOpen ? '▾' : '▸'}</span>
+                        <span style={{ fontSize: 9.5, color: 'var(--muted)' }}>{kids.length}</span>
+                      </span>
+                    </td>
+                  );
+                }
                 const col = c.color ? c.color(r) : undefined;
                 return <td key={c.key} style={{ ...(c.num ? NUM : TD), ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
               })}

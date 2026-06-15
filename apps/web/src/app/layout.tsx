@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { RootProviders } from '@/components/root-providers';
+
+// Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
+const GA_ID = 'G-GBENC4P7CB';
 
 export const metadata: Metadata = {
   title: 'MOS — Mission Orchestration System',
@@ -45,6 +49,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_ID}');`}
+            </Script>
+          </>
+        )}
         <RootProviders>{children}</RootProviders>
       </body>
     </html>

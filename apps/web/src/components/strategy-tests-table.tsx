@@ -122,8 +122,8 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
     else { setSortKey(k); setSortDir(k === 'name' ? 'asc' : 'desc'); }
   };
 
-  const TH: React.CSSProperties = { padding: '8px 9px', fontSize: 11, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--bg)' };
-  const TD: React.CSSProperties = { padding: '8px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+  const TH: React.CSSProperties = { padding: '7px 10px', fontSize: 11, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--bg)' };
+  const TD: React.CSSProperties = { padding: '7px 10px', fontSize: 12, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const NUM: React.CSSProperties = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
   const caret = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
   const chip = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)', background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 });
@@ -180,7 +180,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
       </div>
 
       <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 680 + cols.length * 62 }}>
+        <table style={{ borderCollapse: 'collapse', width: 'auto', minWidth: 560 }}>
           <thead>
             <tr>
               <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>

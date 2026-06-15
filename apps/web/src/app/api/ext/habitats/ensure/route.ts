@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     projectId?: string; platformKey?: string; kind?: string;
     name?: string; externalId?: string; url?: string; title?: string;
     members?: number; description?: string; weeklyVisitors?: number;
-    weeklyContributions?: number; iconUrl?: string;
+    weeklyContributions?: number; iconUrl?: string; isOwn?: boolean;
   };
   const projectId = (b.projectId || '').trim();
   const platformKey = (b.platformKey || '').trim();
@@ -62,6 +62,10 @@ export async function POST(req: Request) {
   `);
   const hit = (found as unknown as Array<Record<string, unknown>>)[0];
   if (hit) {
+    // Owned toggle (mark "site của tôi") — set thẳng nếu gửi.
+    if (typeof b.isOwn === 'boolean') {
+      await db.execute(sql`UPDATE habitats SET is_own = ${b.isOwn}, updated_at = NOW() WHERE id = ${Number(hit.id)}`);
+    }
     // Backfill chỉ field còn trống — không ghi đè data đã có.
     if (members != null || description || weeklyVisitors != null || weeklyContributions != null || iconUrl) {
       await db.execute(sql`
@@ -89,10 +93,10 @@ export async function POST(req: Request) {
   const meta = externalId ? { ext_external_id: externalId } : {};
   const ins = await db.execute(sql`
     INSERT INTO habitats (project_id, platform_key, kind, name, url, scraped_meta, imported_from,
-                          members, description, weekly_visitors, weekly_contributions, icon_url)
+                          members, description, weekly_visitors, weekly_contributions, icon_url, is_own)
     VALUES (${projectId}, ${platformKey || null}, ${kind}, ${name}, ${b.url || null},
             ${JSON.stringify(meta)}::jsonb, 'ext-widget',
-            ${members ?? 0}, ${description ?? ''}, ${weeklyVisitors ?? 0}, ${weeklyContributions ?? 0}, ${iconUrl})
+            ${members ?? 0}, ${description ?? ''}, ${weeklyVisitors ?? 0}, ${weeklyContributions ?? 0}, ${iconUrl}, ${b.isOwn === true})
     RETURNING id, name, kind, project_id, platform_key
   `);
   const row = (ins as unknown as Array<Record<string, unknown>>)[0];

@@ -44,7 +44,7 @@ const COLUMNS: Col[] = [
   { key: 'win', group: 'perf', label: 'Win%', sort: 'winPct', num: true, render: (r) => dash(r.winPct) },
   { key: 'pf', group: 'perf', label: 'PF', title: 'Profit factor', sort: 'pf', num: true, bold: true, render: (r) => dash(r.pf), color: (r) => pfColor(r.pf) },
   { key: 'net', group: 'perf', label: 'Net', num: true, render: (r) => (r.net != null && r.net !== '' ? `${r.net}${r.netUnit ? ' ' + r.netUnit : ''}` : '—') },
-  { key: 'dd', group: 'perf', label: 'DD %net', title: 'Max drawdown as % of net profit (peak-to-trough of cumulative PnL ÷ net). Lower = smoother. Raw points on hover. True %-of-balance needs an assumed capital + position sizing, which the lab avoids — CAGR* already normalizes to a 20% max-DD budget.', sort: 'maxDd', num: true, render: (r) => { const dd = Number(r.maxDd), net = Number(r.net); if (r.maxDd == null || r.maxDd === '' || !net) return '—'; const pct = (dd / Math.abs(net)) * 100; return <span title={`${r.maxDd}${r.netUnit ? ' ' + r.netUnit : ''} raw`}>{pct.toFixed(0)}%</span>; }, color: () => 'var(--muted)' },
+  { key: 'dd', group: 'perf', label: 'Max DD', title: 'Max drawdown (peak-to-trough of equity ÷ peak). For edges: standard %DD on a $10k account, fixed notional, NO leverage (MT5 fixed-lot style). Other rows in raw instrument points.', sort: 'maxDd', num: true, render: (r) => (r.maxDd != null && r.maxDd !== '' ? `${r.maxDd}${r.netUnit ? ' ' + r.netUnit : ''}` : '—'), color: () => 'var(--muted)' },
   { key: 'cagr', group: 'perf', label: 'CAGR*', title: 'Risk-normalized CAGR at a 20% max-drawdown budget (indicative)', sort: 'cagr', num: true, bold: true, render: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }, color: (r) => cagrColor(cagrPct(r)) },
   { key: 'is', group: 'robust', label: 'IS', title: 'In-sample PF', sort: 'isPf', num: true, render: (r) => dash(r.isPf), color: (r) => pfColor(r.isPf) },
   { key: 'oos', group: 'robust', label: 'OOS', title: 'Out-of-sample PF', sort: 'oosPf', num: true, render: (r) => dash(r.oosPf), color: (r) => pfColor(r.oosPf) },
@@ -202,7 +202,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
         </table>
       </div>
       <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). <b>DD %net</b> = max drawdown as % of net profit (lower = smoother; raw points on hover). True %-of-balance needs an assumed capital + sizing, which the lab avoids. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative only. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
+        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
       </p>
 
       {tip && (
@@ -217,7 +217,7 @@ function childCell(key: string, a: StrategyAssetRow, spanMonths: number | null):
   if (key === 'win') return dash(a.winPct);
   if (key === 'pf') return dash(a.pf);
   if (key === 'net') return a.net != null && a.net !== '' ? a.net : '—';
-  if (key === 'dd') { const dd = Number(a.maxDd), net = Number(a.net); if (a.maxDd == null || a.maxDd === '' || !net) return '—'; return `${((dd / Math.abs(net)) * 100).toFixed(0)}%`; }
+  if (key === 'dd') return a.maxDd != null && a.maxDd !== '' ? a.maxDd : '—';
   if (key === 'cagr') { const v = cagrCalc(Number(a.net), Number(a.maxDd), spanMonths); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }
   return '';
 }

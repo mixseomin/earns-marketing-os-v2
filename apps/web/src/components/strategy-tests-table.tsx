@@ -206,7 +206,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
       </p>
 
       {tip && (
-        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 380), top: tip.y + 16, zIndex: 9999, maxWidth: 360, padding: '9px 12px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fg)', pointerEvents: 'none' }}>{tip.text}</div>
+        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 400), top: tip.y + 16, zIndex: 9999, maxWidth: 380, padding: '10px 13px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.6, color: 'var(--fg)', pointerEvents: 'none', whiteSpace: 'pre-wrap' }}>{tip.text}</div>
       )}
     </div>
   );

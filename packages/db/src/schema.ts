@@ -1093,6 +1093,7 @@ export const strategyTests = pgTable(
     timeframe: text('timeframe').default(''),
     codability: text('codability').default(''),
     trades: integer('trades'),
+    spanMonths: integer('span_months'),
     winPct: decimal('win_pct'),
     pf: decimal('pf'),
     net: decimal('net'),
@@ -1695,5 +1696,34 @@ export const skillSnippets = pgTable(
   ],
 );
 
+// ── adsense_daily ────────────────────────────────────────────────
+// Daily AdSense revenue snapshots. /opt/cgg-report/adsense_check.mjs cron pulls
+// last 7d from AdSense Reports API and upserts (handles retroactive adjustments).
+export const adsenseDaily = pgTable(
+  'adsense_daily',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    accountId: bigint('account_id', { mode: 'number' }).notNull().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    pubId: text('pub_id').notNull(),
+    date: text('date').notNull(),
+    siteDomain: text('site_domain').notNull().default(''),
+    earningsUsd: text('earnings_usd').notNull().default('0'),
+    impressions: integer('impressions').notNull().default(0),
+    clicks: integer('clicks').notNull().default(0),
+    pageViews: integer('page_views').notNull().default(0),
+    rpmUsd: text('rpm_usd').notNull().default('0'),
+    cpcUsd: text('cpc_usd').notNull().default('0'),
+    raw: jsonb('raw'),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('adsense_daily_uniq').on(t.accountId, t.date, t.siteDomain),
+    index('adsense_daily_date_idx').on(t.date),
+    index('adsense_daily_project_idx').on(t.projectId, t.date),
+    index('adsense_daily_site_idx').on(t.siteDomain, t.date),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily };

@@ -10,7 +10,9 @@ const VERDICT_ORDER = ['edge', 'gold-only', 'marginal', 'dead', 'discretionary',
 const dash = (v: string | number | null | undefined) => (v === null || v === '' || v === undefined ? '—' : String(v));
 const wrap = (url: string) => `https://href.li/?${url}`;
 
-type SortKey = 'name' | 'trades' | 'winPct' | 'pf' | 'isPf' | 'oosPf' | 'realtickPf';
+type SortKey = 'name' | 'trades' | 'permo' | 'winPct' | 'pf' | 'isPf' | 'oosPf' | 'realtickPf';
+
+const perMo = (r: StrategyTestRow): number => (r.trades && r.spanMonths ? r.trades / r.spanMonths : NaN);
 
 function pfColor(v: string | null): string | undefined {
   if (v == null || v === '') return undefined;
@@ -48,9 +50,11 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
         .filter(Boolean).some((s) => String(s).toLowerCase().includes(ql));
     });
     const dir = sortDir === 'asc' ? 1 : -1;
+    const val = (r: StrategyTestRow): number =>
+      sortKey === 'permo' ? perMo(r) : Number((r as unknown as Record<string, unknown>)[sortKey] ?? NaN);
     out = [...out].sort((a, b) => {
       if (sortKey === 'name') return dir * String(a.name).localeCompare(String(b.name));
-      const av = Number(a[sortKey] ?? NaN), bv = Number(b[sortKey] ?? NaN);
+      const av = val(a), bv = val(b);
       const aNan = Number.isNaN(av), bNan = Number.isNaN(bv);
       if (aNan && bNan) return 0;
       if (aNan) return 1;          // nulls last
@@ -153,6 +157,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
               <th style={TH}>TF</th>
               <th style={TH}>Code</th>
               <th style={THn} onClick={() => toggleSort('trades')}>Trades{caret('trades')}</th>
+              <th style={THn} onClick={() => toggleSort('permo')} title="Trades per month (trades ÷ test span)">Tr/mo{caret('permo')}</th>
               <th style={THn} onClick={() => toggleSort('winPct')}>Win%{caret('winPct')}</th>
               <th style={THn} onClick={() => toggleSort('pf')}>PF{caret('pf')}</th>
               <th style={{ ...TH, textAlign: 'right' }}>Net</th>
@@ -168,7 +173,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
               <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={13} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
+              <tr><td colSpan={14} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
             )}
           </tbody>
         </table>
@@ -188,7 +193,7 @@ function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
     <>
       {groupBy !== 'none' && (
         <tr>
-          <td colSpan={13} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
+          <td colSpan={14} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: groupBy === 'verdict' ? (VERDICT_COLOR[g.key] ?? '#7a8699') : '#3a4660' }}>
               {g.key}
             </span>
@@ -217,6 +222,7 @@ function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
           <td style={TD}>{dash(r.timeframe)}</td>
           <td style={{ ...TD, color: r.codability === 'none' ? '#ff5470' : r.codability === 'partial' ? '#f5a623' : 'var(--muted)' }}>{dash(r.codability)}</td>
           <td style={NUM}>{dash(r.trades)}</td>
+          <td style={{ ...NUM, color: 'var(--muted)' }}>{Number.isNaN(perMo(r)) ? '—' : perMo(r).toFixed(1)}</td>
           <td style={NUM}>{dash(r.winPct)}</td>
           <td style={{ ...NUM, color: pfColor(r.pf), fontWeight: 700 }}>{dash(r.pf)}</td>
           <td style={NUM}>{r.net != null && r.net !== '' ? `${r.net}${r.netUnit ? ' ' + r.netUnit : ''}` : '—'}</td>

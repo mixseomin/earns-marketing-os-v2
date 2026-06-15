@@ -838,7 +838,7 @@ export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]>
 export interface StrategyTestRow {
   id: number; name: string; variant: string | null; sourceUrl: string | null;
   asset: string | null; timeframe: string | null; codability: string | null;
-  trades: number | null; winPct: string | null; pf: string | null; net: string | null; netUnit: string | null;
+  trades: number | null; spanMonths: number | null; winPct: string | null; pf: string | null; net: string | null; netUnit: string | null;
   isPf: string | null; oosPf: string | null; realtickPf: string | null;
   verdict: string | null; klass: string; tags: string[]; status: string; harnessFile: string | null; notes: string | null;
 }
@@ -848,7 +848,7 @@ export async function listStrategyTests(projectId: string): Promise<StrategyTest
     return (rows ?? []).map((r) => ({
       id: r.id, name: r.name, variant: r.variant, sourceUrl: r.sourceUrl,
       asset: r.asset, timeframe: r.timeframe, codability: r.codability,
-      trades: r.trades, winPct: r.winPct, pf: r.pf, net: r.net, netUnit: r.netUnit,
+      trades: r.trades, spanMonths: r.spanMonths, winPct: r.winPct, pf: r.pf, net: r.net, netUnit: r.netUnit,
       isPf: r.isPf, oosPf: r.oosPf, realtickPf: r.realtickPf,
       verdict: r.verdict, klass: r.klass, tags: (r.tags as string[]) ?? [], status: r.status, harnessFile: r.harnessFile, notes: r.notes,
     }));

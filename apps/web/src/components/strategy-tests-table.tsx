@@ -295,7 +295,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
                   if (c.key === 'pf') color = pfColor(a.pf);
                   else if (c.key === 'cagr') color = cagrColor(cagrCalc(Number(a.net), Number(a.maxDd), r.spanMonths));
                   const bold = c.key === 'pf' || c.key === 'cagr';
-                  return <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(color ? { color } : {}), ...(bold ? { fontWeight: 700 } : {}) }}>{childCell(c.key, a, r.spanMonths, r.netUnit)}</td>;
+                  return <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(color ? { color } : {}), ...(bold ? { fontWeight: 700 } : {}) }}>{childCell(c.key, a, r.spanMonths, r.netUnit ?? undefined)}</td>;
                 })}
                 <td style={TD} />
               </tr>

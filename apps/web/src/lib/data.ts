@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -833,6 +833,26 @@ export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]>
       importedFrom: r.importedFrom, updatedAt: r.updatedAt,
     }));
   }, [], 'listKnowledge');
+}
+
+export interface StrategyTestRow {
+  id: number; name: string; variant: string | null; sourceUrl: string | null;
+  asset: string | null; timeframe: string | null; codability: string | null;
+  trades: number | null; winPct: string | null; pf: string | null; net: string | null; netUnit: string | null;
+  isPf: string | null; oosPf: string | null; realtickPf: string | null;
+  verdict: string | null; status: string; harnessFile: string | null; notes: string | null;
+}
+export async function listStrategyTests(projectId: string): Promise<StrategyTestRow[]> {
+  return tryDb(async () => {
+    const rows = await dbListStrategyTests(projectId);
+    return (rows ?? []).map((r) => ({
+      id: r.id, name: r.name, variant: r.variant, sourceUrl: r.sourceUrl,
+      asset: r.asset, timeframe: r.timeframe, codability: r.codability,
+      trades: r.trades, winPct: r.winPct, pf: r.pf, net: r.net, netUnit: r.netUnit,
+      isPf: r.isPf, oosPf: r.oosPf, realtickPf: r.realtickPf,
+      verdict: r.verdict, status: r.status, harnessFile: r.harnessFile, notes: r.notes,
+    }));
+  }, [], 'listStrategyTests');
 }
 
 // ── Media / Infra / Budget vault rows ──────────────────────────

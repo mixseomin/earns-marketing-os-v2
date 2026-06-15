@@ -1079,6 +1079,35 @@ export const knowledgeItems = pgTable(
   ],
 );
 
+// ── strategy_tests (Strategy Lab — backtest results, incl. failures) ──
+// Table already exists in Postgres (mos2_prod.strategy_tests); declared for type-safety.
+export const strategyTests = pgTable(
+  'strategy_tests',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    variant: text('variant').default(''),
+    sourceUrl: text('source_url').default(''),
+    asset: text('asset').default(''),
+    timeframe: text('timeframe').default(''),
+    codability: text('codability').default(''),
+    trades: integer('trades'),
+    winPct: decimal('win_pct'),
+    pf: decimal('pf'),
+    net: decimal('net'),
+    netUnit: text('net_unit').default(''),
+    isPf: decimal('is_pf'),
+    oosPf: decimal('oos_pf'),
+    realtickPf: decimal('realtick_pf'),
+    verdict: text('verdict').default(''),
+    status: text('status').notNull().default('tested'),
+    harnessFile: text('harness_file').default(''),
+    notes: text('notes').default(''),
+  },
+  (t) => [index('strategy_tests_project_idx').on(t.projectId)],
+);
+
 // ── selector_overrides (mig 0061) ────────────────────────────────
 // 3-tier inheritance cho LLM-discovered CSS selectors. Ext MOS2 Crew
 // fetch resolved map (cascade habitat > platform > engine) khi scrape

@@ -179,6 +179,7 @@ export function TopBar({
             { label: 'Infra',        href: `/p/${pid}/resources?vault=infra`,      icon: '🌐' },
             { label: 'Budget',       href: `/p/${pid}/resources?vault=budget`,     icon: '💰' },
             { label: 'Knowledge',    href: `/p/${pid}/resources?vault=knowledge`,  icon: '🧠' },
+            ...(pid === 'strategy-lab' ? [{ label: 'Strategy Tests', href: `/p/${pid}/strategy-tests`, icon: '🔬' }] : []),
             { label: 'Publications', href: `/p/${pid}/publications`,               icon: '📡' },
           ],
     },

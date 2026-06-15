@@ -110,13 +110,13 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               <th style={head}>Sitemap</th>
             </>}
             {cols.adsense && <>
-              <th style={head} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ Today</th>
-              <th style={head} title="AdSense ad impressions today">Impr Today</th>
-              <th style={head} title="AdSense clicks today">Clk Today</th>
+              <th style={head} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ TD</th>
+              <th style={head} title="AdSense ad impressions today">Impr TD</th>
+              <th style={head} title="AdSense clicks today">Clk TD</th>
               <th style={head} title="AdSense earnings last 7 days (USD)">$ 7d</th>
-              <th style={head} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM 7d</th>
-              <th style={head} title="AdSense ad impressions last 7 days">Impr 7d</th>
-              <th style={head} title="AdSense page views last 7 days">PV 7d</th>
+              <th style={head} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM</th>
+              <th style={head} title="AdSense ad impressions last 7 days">Impr</th>
+              <th style={head} title="AdSense page views last 7 days">PV</th>
             </>}
             {cols.bing && <>
               <th style={head} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>

@@ -3,6 +3,8 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
+import { canonPlatformKey, detectPlatformKeyFromUrl } from '@/lib/habitat-platform-map';
+import { parsePostUrl, normalizeThingId, isValidThingId, postUrlSearchPattern } from '@/lib/platform-url-parsers';
 
 // POST /api/ext/seeding/insights-by-thing-id
 // Body: {
@@ -15,15 +17,15 @@ import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 //   rawJson?: unknown,
 // }
 //
-// Flow:
-//   1. Tìm card có post_url ILIKE '%/<thingId>/%' → update insights.
+// Flow (platform-neutral — URL-parse dispatch ở @/lib/platform-url-parsers):
+//   1. Tìm card có post_url khớp thingId (pattern theo platform) → update insights.
 //   2. Miss → nếu có postUrl + authorHandle: resolve account_id (handle match)
-//      và habitat_id (parse subreddit từ URL, match h.name = 'r/X'
+//      và habitat_id (parse container từ URL, vd subreddit 'r/X', match h.name
 //      case-insensitive). Tìm community_brief khớp (account_id, habitat_id)
-//      cross-project. Auto-create card mới attach brief đó.
-//   3. Account/habitat OK nhưng KHÔNG có brief → tạo ghost brief thuộc project
-//      '_orphan' (seed migration 0075) để vẫn track metrics. Sau user assign
-//      sang project thật qua MOS2 UI.
+//      cross-project. Auto-create card mới.
+//   3. Account/habitat OK nhưng KHÔNG có brief (0096) → card carry account_id+
+//      habitat_id TRỰC TIẾP, brief_id NULL, project '_orphan' bucket. Readers
+//      COALESCE(card,brief). Sau user assign sang project thật qua MOS2 UI.
 //   4. Thiếu account/habitat → trả ok:false + reason để ext biết action.
 
 interface InsightsBody {
@@ -37,45 +39,32 @@ interface InsightsBody {
   postUrl?: string;
   authorHandle?: string;
   bodyText?: string;
+  platformKey?: string;            // ext gửi (x/reddit/bsky…); thiếu → suy từ postUrl host, mặc định reddit
   topCountries?: Array<{ country: string; pct: number }>;
   topReplies?: Array<{ author: string; ago?: string; body: string; score?: number | null }>;
   rawJson?: unknown;
 }
 
-// Parse Reddit comment URL: /r/Astrology_Vedic/comments/1to8wdg/astrology_reading/oo53o90/
-// → { subreddit: 'r/Astrology_Vedic', postId: '1to8wdg', slug: 'astrology_reading', commentId: 'oo53o90' }
-function parseRedditCommentUrl(url: string): {
-  subredditPath: string; postId: string; slug: string; commentId: string;
-} | null {
-  try {
-    const u = new URL(url);
-    if (!u.host.includes('reddit.com')) return null;
-    const m = u.pathname.match(/^\/r\/([^/]+)\/comments\/([^/]+)\/([^/]*)\/([a-z0-9]+)\/?$/i);
-    if (!m) return null;
-    return {
-      subredditPath: `r/${m[1]}`,
-      postId: m[2]!,
-      slug: m[3] ?? '',
-      commentId: m[4]!,
-    };
-  } catch { return null; }
-}
+// URL-parse per-platform sống ở @/lib/platform-url-parsers (parsePostUrl/normalizeThingId/…).
+// Endpoint này chỉ dispatch theo platform_key → thêm platform = thêm spec ở module đó.
 
 export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as InsightsBody;
-  const thingId = String(body.thingId ?? '').trim().replace(/^t1_/, '');
-  if (!thingId || !/^[a-z0-9]{4,12}$/i.test(thingId)) {
-    return NextResponse.json({ ok: false, error: 'thingId required (alphanum)' }, { status: 400 });
+  // Platform suy từ body.platformKey → postUrl host → mặc định reddit (back-compat).
+  const pk = canonPlatformKey(body.platformKey) || detectPlatformKeyFromUrl(String(body.postUrl ?? '')) || 'reddit';
+  const thingId = normalizeThingId(pk, String(body.thingId ?? ''));
+  if (!thingId || !isValidThingId(pk, thingId)) {
+    return NextResponse.json({ ok: false, error: 'thingId required (valid id for platform)' }, { status: 400 });
   }
 
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
 
   // Step 1: tìm card existing match thingId
-  const pattern = `%/${thingId}/%`;
+  const pattern = postUrlSearchPattern(pk, thingId);
   const existingRows = await db.execute(sql`
     SELECT id, post_url FROM cards
     WHERE post_url ILIKE ${pattern}
@@ -98,26 +87,26 @@ export async function POST(req: Request) {
         error: 'Card chưa exist + ext không gửi postUrl/authorHandle → không thể auto-create. Cần postUrl + authorHandle.',
       }, { status: 200 });
     }
-    const parsed = parseRedditCommentUrl(postUrl);
+    const parsed = parsePostUrl(postUrl, pk);
     if (!parsed) {
       return NextResponse.json({
         ok: false,
         reason: 'invalid_post_url',
-        error: `Không parse được Reddit URL: ${postUrl}`,
+        error: `Không parse được URL (${pk}): ${postUrl}`,
       }, { status: 200 });
     }
-    if (parsed.commentId.toLowerCase() !== thingId.toLowerCase()) {
+    if (parsed.leafId.toLowerCase() !== thingId.toLowerCase()) {
       return NextResponse.json({
         ok: false,
         reason: 'thing_id_mismatch',
-        error: `thingId (${thingId}) khác commentId trong URL (${parsed.commentId})`,
+        error: `thingId (${thingId}) khác id trong URL (${parsed.leafId})`,
       }, { status: 200 });
     }
 
     // Resolve account_id (handle case-sensitive — Reddit usernames case-preserving)
     const accountRows = await db.execute(sql`
       SELECT id FROM platform_accounts
-      WHERE platform_key = 'reddit'
+      WHERE platform_key = ${pk}
         AND LOWER(handle) = LOWER(${authorHandle})
       LIMIT 1
     `);
@@ -135,8 +124,8 @@ export async function POST(req: Request) {
     // Resolve habitat_id (name match case-insensitive)
     const habitatRows = await db.execute(sql`
       SELECT id, project_id, language FROM habitats
-      WHERE platform_key = 'reddit'
-        AND LOWER(name) = LOWER(${parsed.subredditPath})
+      WHERE platform_key = ${pk}
+        AND LOWER(name) = LOWER(${parsed.containerName})
       LIMIT 1
     `);
     const hab = (habitatRows as unknown as Array<Record<string, unknown>>)[0];
@@ -144,8 +133,8 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: false,
         reason: 'habitat_not_found',
-        error: `Habitat ${parsed.subredditPath} chưa tồn tại trong MOS2. Tạo habitat trước.`,
-        hint: { subreddit: parsed.subredditPath },
+        error: `Habitat ${parsed.containerName} chưa tồn tại trong MOS2. Tạo habitat trước.`,
+        hint: { container: parsed.containerName },
       }, { status: 200 });
     }
     const habitatId = Number(hab.id);
@@ -181,13 +170,13 @@ export async function POST(req: Request) {
       )
       VALUES (
         'self', ${projectId}, ${briefId}, ${accountId}, ${habitatId}, ${`EXT-${thingId}`}, 'wf-writer',
-        ${`Reddit comment ${thingId}`},
+        ${`${parsed.containerName || pk} ${thingId}`},
         ${String(body.bodyText ?? '').slice(0, 4000)},
         'comment', ${habitatLang},
         ${postUrl}, NOW(),
-        ${`https://www.reddit.com/r/${parsed.subredditPath.slice(2)}/comments/${parsed.postId}/${parsed.slug}/`},
-        ${`r/${parsed.subredditPath.slice(2)} thread ${parsed.postId}`},
-        ${`u/${authorHandle}`},
+        ${parsed.threadUrl},
+        ${`${parsed.containerName} thread ${parsed.postId}`},
+        ${`${parsed.authorPrefix}${authorHandle}`},
         'external',
         'production', 1, 'warm-up', 'community-seed',
         'live', NOW(), 'auto-imported from Reddit insights page'

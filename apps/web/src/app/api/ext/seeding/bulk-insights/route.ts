@@ -3,6 +3,8 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { normalizeThingId, isValidThingId, postUrlSearchPattern } from '@/lib/platform-url-parsers';
 
 // POST /api/ext/seeding/bulk-insights
 // Body: { items: [{ thingId, score?, replyCount?, views?, upvoteRatio?, postUrl? }, ...] }
@@ -33,7 +35,9 @@ export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
-  const body = await req.json().catch(() => ({})) as { items?: BulkItem[] };
+  const body = await req.json().catch(() => ({})) as { items?: BulkItem[]; platformKey?: string };
+  // Batch theo 1 platform (profile scrape). Thiếu → reddit (back-compat: dùng case duy nhất hiện tại).
+  const pk = canonPlatformKey(body.platformKey) || 'reddit';
   const items = Array.isArray(body.items) ? body.items : [];
   if (items.length === 0) {
     return NextResponse.json({ ok: false, error: 'items array required' }, { status: 400 });
@@ -48,12 +52,12 @@ export async function POST(req: Request) {
   const results: Array<{ thingId: string; status: 'updated' | 'not_found' | 'skipped'; cardId?: number; error?: string }> = [];
 
   for (const it of items) {
-    const thingId = String(it.thingId ?? '').trim().replace(/^t1_/, '').replace(/^t3_/, '');
-    if (!thingId || !/^[a-z0-9]{4,12}$/i.test(thingId)) {
+    const thingId = normalizeThingId(pk, String(it.thingId ?? ''));
+    if (!thingId || !isValidThingId(pk, thingId)) {
       results.push({ thingId: String(it.thingId ?? ''), status: 'skipped', error: 'invalid thingId' });
       continue;
     }
-    const pattern = `%/${thingId}/%`;
+    const pattern = postUrlSearchPattern(pk, thingId);
     const rows = await db.execute(sql`
       SELECT id FROM cards
       WHERE post_url ILIKE ${pattern}

@@ -4,6 +4,8 @@ import { getDb, habitats, platformAccounts, communityBriefs, platforms } from '@
 import { and, eq, sql } from 'drizzle-orm';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { detectLang } from '@/lib/lang-detect';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { postingRulesUrl as platformPostingRulesUrl } from '@/lib/platform-url-parsers';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,10 +153,8 @@ export async function POST(req: Request) {
   else if (desc.includes('news') || desc.includes('update')) communityType = 'news';
   else if (desc.includes('share') || desc.includes('showcase') || desc.includes('portfolio')) communityType = 'sharing';
 
-  // Posting rules URL canonical (Reddit-specific)
-  const postingRulesUrl = body.platform_key === 'reddit'
-    ? `${body.url.replace(/\/$/, '')}/about/rules`
-    : '';
+  // Posting rules URL canonical (per-platform; Reddit /about/rules, khác → '').
+  const postingRulesUrl = platformPostingRulesUrl(canonPlatformKey(body.platform_key), body.url || '');
 
   // Upsert match priority:
   //   1. Discord: scraped_meta.discord_guild_id (1 guild = 1 habitat, dù channel

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,7 @@ export async function POST(req: Request) {
   // Canon platform_key server-side — KHÔNG default 'x'. Ext gửi canonPk()||PLATFORM_KEY||'x'; khi canonPk()
   // rỗng (race load) sẽ ra 'x' → trước đây tạo habitat platform_key='x' LỆCH catalog 'twitter'. Map mirror
   // core/platform.js CANON; rỗng → 400 (ko đoán).
-  const rawPk = String(body.platformKey ?? '').trim().toLowerCase();
-  const platformKey = ({ x: 'twitter', twitter: 'twitter', bsky: 'bluesky' } as Record<string, string>)[rawPk] || rawPk;
+  const platformKey = canonPlatformKey(body.platformKey);
   const projectId = String(body.projectId ?? '').trim();
   const postUrl = String(body.postUrl ?? '').trim();
   const postId = String(body.postId ?? '').trim();

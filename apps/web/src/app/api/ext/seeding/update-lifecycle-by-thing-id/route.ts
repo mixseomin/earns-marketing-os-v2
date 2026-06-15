@@ -4,6 +4,8 @@ import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { updateCardLifecycle } from '@/lib/actions/brief-posts';
 import { LIFECYCLE_VALUES } from '@/lib/lifecycle';
+import { canonPlatformKey, detectPlatformKeyFromUrl } from '@/lib/habitat-platform-map';
+import { normalizeThingId, isValidThingId, postUrlSearchPattern, threadFallback } from '@/lib/platform-url-parsers';
 
 // POST /api/ext/seeding/update-lifecycle-by-thing-id
 // Body: { thingId, lifecycle, note? }
@@ -26,11 +28,14 @@ export async function POST(req: Request) {
     note?: string;
     commentUrl?: string;   // full permalink comment đang xem → fallback match theo thread + backfill post_url
     handle?: string;       // viewer handle → thu hẹp đúng account khi fallback
+    platformKey?: string;  // x/reddit/bsky…; thiếu → suy từ commentUrl host, mặc định reddit
   };
 
-  const thingId = String(body.thingId ?? '').trim().replace(/^t1_/, '');
-  if (!thingId || !/^[a-z0-9]{4,12}$/i.test(thingId)) {
-    return NextResponse.json({ ok: false, error: 'thingId required (alphanum)' }, { status: 400 });
+  // Platform suy từ body.platformKey → commentUrl host → mặc định reddit (back-compat).
+  const pk = canonPlatformKey(body.platformKey) || detectPlatformKeyFromUrl(String(body.commentUrl ?? '')) || 'reddit';
+  const thingId = normalizeThingId(pk, String(body.thingId ?? ''));
+  if (!thingId || !isValidThingId(pk, thingId)) {
+    return NextResponse.json({ ok: false, error: 'thingId required (valid id for platform)' }, { status: 400 });
   }
   if (!body.lifecycle || !VALID_LIFECYCLES.has(body.lifecycle)) {
     return NextResponse.json({
@@ -42,8 +47,8 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
 
-  // Tìm card khớp thingId. Pattern .../comments/<post>/<slug>/<thingId>/
-  const pattern = `%/${thingId}/%`;
+  // Tìm card khớp thingId. Pattern theo platform (Reddit: .../<thingId>/; X: /status/<id>).
+  const pattern = postUrlSearchPattern(pk, thingId);
   const rows = await db.execute(sql`
     SELECT id, post_url FROM cards
     WHERE post_url ILIKE ${pattern}
@@ -58,11 +63,10 @@ export async function POST(req: Request) {
   // post_url = comment permalink thật. Để lifecycle chạy trên mọi comment của thread đã seed.
   let backfilled = false;
   if (!card && body.commentUrl) {
-    const tm = String(body.commentUrl).match(/\/comments\/([a-z0-9]+)/i);
-    const threadId = tm?.[1];
+    const tf = threadFallback(pk, String(body.commentUrl));
     const handle = (body.handle ?? '').replace(/^u\//i, '').replace(/^@/, '').toLowerCase();
-    if (threadId) {
-      const threadPat = `%/comments/${threadId}%`;
+    if (tf) {
+      const threadPat = tf.pattern;
       const rows2 = await db.execute(sql`
         SELECT c.id FROM cards c
         LEFT JOIN community_briefs b ON b.id = c.brief_id

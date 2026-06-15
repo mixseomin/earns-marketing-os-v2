@@ -106,3 +106,18 @@ export function detectPlatformKeyFromUrl(url: string): string | null {
   } catch { /* invalid URL */ }
   return null;
 }
+
+// Alias → canonical platform_key. Ext gửi key của NÓ (x, bsky) — catalog dùng
+// canonical (twitter, bluesky). 1 nguồn sự thật cho mọi write-route (trước nằm
+// inline ở register-own-post). Mirror core/platform.js CANON bên ext. Key lạ →
+// trả nguyên (lowercased) để platform mới ko cần đăng ký trước.
+const PLATFORM_ALIAS: Record<string, string> = {
+  x: 'twitter',
+  twitter: 'twitter',
+  bsky: 'bluesky',
+  bluesky: 'bluesky',
+};
+export function canonPlatformKey(raw?: string | null): string {
+  const k = String(raw ?? '').trim().toLowerCase();
+  return PLATFORM_ALIAS[k] ?? k;
+}

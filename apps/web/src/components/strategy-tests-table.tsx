@@ -10,16 +10,45 @@ const VERDICT_ORDER = ['edge', 'gold-only', 'marginal', 'dead', 'discretionary',
 const dash = (v: string | number | null | undefined) => (v === null || v === '' || v === undefined ? '—' : String(v));
 const wrap = (url: string) => `https://href.li/?${url}`;
 
-type SortKey = 'name' | 'trades' | 'permo' | 'winPct' | 'pf' | 'isPf' | 'oosPf' | 'realtickPf';
+type SortKey = 'name' | 'trades' | 'permo' | 'winPct' | 'pf' | 'maxDd' | 'cagr' | 'isPf' | 'oosPf' | 'realtickPf';
+type GroupKey = 'setup' | 'sample' | 'perf' | 'robust';
 
 const perMo = (r: StrategyTestRow): number => (r.trades && r.spanMonths ? r.trades / r.spanMonths : NaN);
-
+// CAGR risk-normalized to a 20% max-drawdown budget (uses real net + maxDD; no fabricated capital).
+const cagrPct = (r: StrategyTestRow): number => {
+  const net = Number(r.net), dd = Number(r.maxDd), m = r.spanMonths;
+  if (!r.net || !r.maxDd || !m || Number.isNaN(net) || Number.isNaN(dd) || dd <= 0 || net <= 0) return NaN;
+  return (Math.pow(1 + 0.2 * net / dd, 12 / m) - 1) * 100;
+};
 function pfColor(v: string | null): string | undefined {
   if (v == null || v === '') return undefined;
   const n = Number(v);
   if (Number.isNaN(n)) return undefined;
   return n >= 1.3 ? '#2ecc71' : n >= 1.0 ? '#f5a623' : '#ff5470';
 }
+
+type Col = { key: string; group: GroupKey; label: string; title?: string; sort?: SortKey; num?: boolean; bold?: boolean; render: (r: StrategyTestRow) => React.ReactNode; color?: (r: StrategyTestRow) => string | undefined };
+
+const GROUPS: { key: GroupKey; label: string }[] = [
+  { key: 'setup', label: 'Setup' }, { key: 'sample', label: 'Sample' }, { key: 'perf', label: 'Performance' }, { key: 'robust', label: 'Robustness' },
+];
+
+const COLUMNS: Col[] = [
+  { key: 'asset', group: 'setup', label: 'Asset', render: (r) => dash(r.asset) },
+  { key: 'tf', group: 'setup', label: 'TF', render: (r) => dash(r.timeframe) },
+  { key: 'period', group: 'setup', label: 'Period', title: 'Test window · years', render: (r) => (r.period ? <span>{r.period}{r.spanMonths ? <span style={{ color: 'var(--muted)' }}> · {(r.spanMonths / 12).toFixed(1)}y</span> : null}</span> : '—') },
+  { key: 'code', group: 'setup', label: 'Code', title: 'Codability: full / partial / none', render: (r) => dash(r.codability), color: (r) => (r.codability === 'none' ? '#ff5470' : r.codability === 'partial' ? '#f5a623' : 'var(--muted)') },
+  { key: 'trades', group: 'sample', label: 'Trades', title: 'Sample size', sort: 'trades', num: true, render: (r) => dash(r.trades) },
+  { key: 'permo', group: 'sample', label: 'Tr/mo', title: 'Trades per month', sort: 'permo', num: true, render: (r) => (Number.isNaN(perMo(r)) ? '—' : perMo(r).toFixed(1)), color: () => 'var(--muted)' },
+  { key: 'win', group: 'perf', label: 'Win%', sort: 'winPct', num: true, render: (r) => dash(r.winPct) },
+  { key: 'pf', group: 'perf', label: 'PF', title: 'Profit factor', sort: 'pf', num: true, bold: true, render: (r) => dash(r.pf), color: (r) => pfColor(r.pf) },
+  { key: 'net', group: 'perf', label: 'Net', num: true, render: (r) => (r.net != null && r.net !== '' ? `${r.net}${r.netUnit ? ' ' + r.netUnit : ''}` : '—') },
+  { key: 'dd', group: 'perf', label: 'Max DD', title: 'Max drawdown (peak-to-trough of cumulative PnL)', sort: 'maxDd', num: true, render: (r) => (r.maxDd != null && r.maxDd !== '' ? `${r.maxDd}${r.netUnit ? ' ' + r.netUnit : ''}` : '—'), color: () => 'var(--muted)' },
+  { key: 'cagr', group: 'perf', label: 'CAGR*', title: 'Risk-normalized CAGR at a 20% max-drawdown budget (indicative)', sort: 'cagr', num: true, bold: true, render: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }, color: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? undefined : v >= 10 ? '#2ecc71' : v >= 4 ? '#f5a623' : '#ff5470'; } },
+  { key: 'is', group: 'robust', label: 'IS', title: 'In-sample PF', sort: 'isPf', num: true, render: (r) => dash(r.isPf), color: (r) => pfColor(r.isPf) },
+  { key: 'oos', group: 'robust', label: 'OOS', title: 'Out-of-sample PF', sort: 'oosPf', num: true, render: (r) => dash(r.oosPf), color: (r) => pfColor(r.oosPf) },
+  { key: 'rt', group: 'robust', label: 'Real-tick', title: 'MT5 Model=4 real-tick PF', sort: 'realtickPf', num: true, bold: true, render: (r) => dash(r.realtickPf), color: (r) => pfColor(r.realtickPf) },
+];
 
 export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   const [q, setQ] = useState('');
@@ -29,9 +58,13 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [showTags, setShowTags] = useState(true);
   const [showAllTags, setShowAllTags] = useState(false);
+  const [visGroups, setVisGroups] = useState<Record<GroupKey, boolean>>({ setup: true, sample: true, perf: true, robust: false });
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
   const hideTip = () => setTip(null);
+
+  const cols = COLUMNS.filter((c) => visGroups[c.group]);
+  const colSpan = cols.length + 2;
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -55,13 +88,13 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
     });
     const dir = sortDir === 'asc' ? 1 : -1;
     const val = (r: StrategyTestRow): number =>
-      sortKey === 'permo' ? perMo(r) : Number((r as unknown as Record<string, unknown>)[sortKey] ?? NaN);
+      sortKey === 'permo' ? perMo(r) : sortKey === 'cagr' ? cagrPct(r) : Number((r as unknown as Record<string, unknown>)[sortKey] ?? NaN);
     out = [...out].sort((a, b) => {
       if (sortKey === 'name') return dir * String(a.name).localeCompare(String(b.name));
       const av = val(a), bv = val(b);
       const aNan = Number.isNaN(av), bNan = Number.isNaN(bv);
       if (aNan && bNan) return 0;
-      if (aNan) return 1;          // nulls last
+      if (aNan) return 1;
       if (bNan) return -1;
       return dir * (av - bv);
     });
@@ -76,10 +109,7 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
       if (!m.has(k)) m.set(k, []);
       m.get(k)!.push(r);
     });
-    const keys = [...m.keys()].sort((a, b) => {
-      if (groupBy === 'verdict') return VERDICT_ORDER.indexOf(a) - VERDICT_ORDER.indexOf(b);
-      return a.localeCompare(b);
-    });
+    const keys = [...m.keys()].sort((a, b) => (groupBy === 'verdict' ? VERDICT_ORDER.indexOf(a) - VERDICT_ORDER.indexOf(b) : a.localeCompare(b)));
     return keys.map((k) => ({ key: k, rows: m.get(k)! }));
   }, [filtered, groupBy]);
 
@@ -90,10 +120,10 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   };
 
   const TH: React.CSSProperties = { padding: '8px 9px', fontSize: 11, textAlign: 'left', color: 'var(--muted)', fontWeight: 600, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--bg)' };
-  const THn: React.CSSProperties = { ...TH, textAlign: 'right', cursor: 'pointer', userSelect: 'none' };
   const TD: React.CSSProperties = { padding: '8px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const NUM: React.CSSProperties = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
   const caret = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+  const chip = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)', background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 });
 
   return (
     <div>
@@ -101,123 +131,95 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>{rows.length} methods tested:</span>
         {VERDICT_ORDER.filter((v) => counts[v]).map((v) => (
-          <span key={v} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, color: '#fff', background: VERDICT_COLOR[v] }}>
-            {counts[v]} {v}
-          </span>
+          <span key={v} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, color: '#fff', background: VERDICT_COLOR[v] }}>{counts[v]} {v}</span>
         ))}
       </div>
 
       {/* controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-        <input
-          value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search strategy, asset, notes…"
-          autoComplete="off"
-          style={{ flex: '1 1 240px', minWidth: 180, padding: '7px 11px', fontSize: 12.5, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)' }}
-        />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search strategy, asset, notes…" autoComplete="off"
+          style={{ flex: '1 1 220px', minWidth: 170, padding: '7px 11px', fontSize: 12.5, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)' }} />
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>Group:</span>
           {(['verdict', 'klass', 'none'] as const).map((g) => (
-            <button key={g} type="button" onClick={() => setGroupBy(g)}
-              style={{ fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)',
-                background: groupBy === g ? 'var(--accent,#00e5ff)' : 'transparent', color: groupBy === g ? '#001018' : 'var(--muted)', fontWeight: groupBy === g ? 700 : 500 }}>
-              {g === 'klass' ? 'class' : g}
-            </button>
+            <button key={g} type="button" onClick={() => setGroupBy(g)} style={chip(groupBy === g)}>{g === 'klass' ? 'class' : g}</button>
           ))}
         </div>
-        <button type="button" onClick={() => setShowTags((v) => !v)}
-          title={showTags ? 'Hide row tags' : 'Show row tags'}
-          style={{ fontSize: 11, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)',
-            background: 'transparent', color: showTags ? 'var(--fg)' : 'var(--muted)', fontWeight: 500 }}>
-          {showTags ? '🏷 Tags on' : '🏷 Tags off'}
-        </button>
+        <button type="button" onClick={() => setShowTags((v) => !v)} style={{ ...chip(false), color: showTags ? 'var(--fg)' : 'var(--muted)' }}>{showTags ? '🏷 Tags on' : '🏷 Tags off'}</button>
       </div>
 
-      {/* tag chips (collapsed by default — active tags always shown) */}
+      {/* column group toggles */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Columns:</span>
+        {GROUPS.map((g) => (
+          <button key={g.key} type="button" onClick={() => setVisGroups((p) => ({ ...p, [g.key]: !p[g.key] }))} style={{ ...chip(visGroups[g.key]), fontSize: 10.5 }}>{g.label}</button>
+        ))}
+      </div>
+
+      {/* tag chips */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
         {(() => {
-          const LIMIT = 14;
-          const visible = showAllTags ? allTags : [...new Set([...activeTags, ...allTags])].slice(0, Math.max(LIMIT, activeTags.length));
+          const visible = showAllTags ? allTags : [...new Set([...activeTags, ...allTags])].slice(0, Math.max(14, activeTags.length));
           return visible.map((t) => {
             const on = activeTags.includes(t);
             return (
               <button key={t} type="button" onClick={() => toggleTag(t)}
-                style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer',
-                  border: `1px solid ${on ? 'var(--accent,#00e5ff)' : 'var(--line)'}`,
-                  background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 }}>
-                {t}
-              </button>
+                style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent,#00e5ff)' : 'var(--line)'}`, background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 }}>{t}</button>
             );
           });
         })()}
         {allTags.length > 14 && (
-          <button type="button" onClick={() => setShowAllTags((v) => !v)}
-            style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px dashed var(--line)', background: 'transparent', color: 'var(--accent,#00e5ff)' }}>
-            {showAllTags ? '− less' : `+${allTags.length - 14} tags`}
-          </button>
+          <button type="button" onClick={() => setShowAllTags((v) => !v)} style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px dashed var(--line)', background: 'transparent', color: 'var(--accent,#00e5ff)' }}>{showAllTags ? '− less' : `+${allTags.length - 14} tags`}</button>
         )}
         {activeTags.length > 0 && (
-          <button type="button" onClick={() => setActiveTags([])} style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: '#ff5470' }}>
-            clear ✕
-          </button>
+          <button type="button" onClick={() => setActiveTags([])} style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: '#ff5470' }}>clear ✕</button>
         )}
       </div>
 
-
       <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1120 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 680 + cols.length * 62 }}>
           <thead>
             <tr>
               <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
-              <th style={TH}>Asset</th>
-              <th style={TH}>TF</th>
-              <th style={TH}>Code</th>
-              <th style={THn} onClick={() => toggleSort('trades')}>Trades{caret('trades')}</th>
-              <th style={THn} onClick={() => toggleSort('permo')} title="Trades per month (trades ÷ test span)">Tr/mo{caret('permo')}</th>
-              <th style={THn} onClick={() => toggleSort('winPct')}>Win%{caret('winPct')}</th>
-              <th style={THn} onClick={() => toggleSort('pf')}>PF{caret('pf')}</th>
-              <th style={{ ...TH, textAlign: 'right' }}>Net</th>
-              <th style={THn} onClick={() => toggleSort('isPf')}>IS{caret('isPf')}</th>
-              <th style={THn} onClick={() => toggleSort('oosPf')}>OOS{caret('oosPf')}</th>
-              <th style={THn} onClick={() => toggleSort('realtickPf')}>Real-tick{caret('realtickPf')}</th>
+              {cols.map((c) => (
+                <th key={c.key} title={c.title} style={c.sort ? { ...TH, textAlign: c.num ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' } : { ...TH, textAlign: c.num ? 'right' : 'left' }}
+                  onClick={c.sort ? () => toggleSort(c.sort!) : undefined}>{c.label}{c.sort ? caret(c.sort) : ''}</th>
+              ))}
               <th style={TH}>Verdict</th>
             </tr>
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={13} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
+              <tr><td colSpan={colSpan} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
             )}
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). IS/OOS = in-/out-of-sample. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; click to open the source.
+      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
+        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). DD = max drawdown of cumulative PnL. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative only. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups.
       </p>
 
       {tip && (
-        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 380), top: tip.y + 16, zIndex: 9999, maxWidth: 360, padding: '9px 12px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fg)', pointerEvents: 'none' }}>
-          {tip.text}
-        </div>
+        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 380), top: tip.y + 16, zIndex: 9999, maxWidth: 360, padding: '9px 12px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fg)', pointerEvents: 'none' }}>{tip.text}</div>
       )}
     </div>
   );
 }
 
-function GroupBlock({ g, groupBy, showTags, onTip, onTipEnd, TD, NUM }: {
-  g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass';
-  showTags: boolean; onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
+function GroupBlock({ g, groupBy, showTags, cols, colSpan, onTip, onTipEnd, TD, NUM }: {
+  g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass'; showTags: boolean;
+  cols: Col[]; colSpan: number; onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
   return (
     <>
       {groupBy !== 'none' && (
         <tr>
-          <td colSpan={13} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: groupBy === 'verdict' ? (VERDICT_COLOR[g.key] ?? '#7a8699') : '#3a4660' }}>
-              {g.key}
-            </span>
+          <td colSpan={colSpan} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: groupBy === 'verdict' ? (VERDICT_COLOR[g.key] ?? '#7a8699') : '#3a4660' }}>{g.key}</span>
             <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>{g.rows.length}</span>
           </td>
         </tr>
@@ -225,8 +227,7 @@ function GroupBlock({ g, groupBy, showTags, onTip, onTipEnd, TD, NUM }: {
       {g.rows.map((r) => (
         <tr key={r.id}>
           <td style={TD}>
-            <div style={{ fontWeight: 600, cursor: 'help', display: 'inline-block' }}
-                 onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
+            <div style={{ fontWeight: 600, cursor: 'help', display: 'inline-block' }} onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
               {r.sourceUrl
                 ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
                 : r.name}
@@ -234,23 +235,14 @@ function GroupBlock({ g, groupBy, showTags, onTip, onTipEnd, TD, NUM }: {
             {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
             {showTags && (r.tags ?? []).length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, opacity: 0.55 }}>
-                {(r.tags ?? []).map((t) => (
-                  <span key={t} style={{ fontSize: 9, lineHeight: '14px', color: 'var(--muted)', background: 'rgba(127,140,160,0.10)', borderRadius: 4, padding: '0 5px' }}>{t}</span>
-                ))}
+                {(r.tags ?? []).map((t) => (<span key={t} style={{ fontSize: 9, lineHeight: '14px', color: 'var(--muted)', background: 'rgba(127,140,160,0.10)', borderRadius: 4, padding: '0 5px' }}>{t}</span>))}
               </div>
             )}
           </td>
-          <td style={TD}>{dash(r.asset)}</td>
-          <td style={TD}>{dash(r.timeframe)}</td>
-          <td style={{ ...TD, color: r.codability === 'none' ? '#ff5470' : r.codability === 'partial' ? '#f5a623' : 'var(--muted)' }}>{dash(r.codability)}</td>
-          <td style={NUM}>{dash(r.trades)}</td>
-          <td style={{ ...NUM, color: 'var(--muted)' }}>{Number.isNaN(perMo(r)) ? '—' : perMo(r).toFixed(1)}</td>
-          <td style={NUM}>{dash(r.winPct)}</td>
-          <td style={{ ...NUM, color: pfColor(r.pf), fontWeight: 700 }}>{dash(r.pf)}</td>
-          <td style={NUM}>{r.net != null && r.net !== '' ? `${r.net}${r.netUnit ? ' ' + r.netUnit : ''}` : '—'}</td>
-          <td style={{ ...NUM, color: pfColor(r.isPf) }}>{dash(r.isPf)}</td>
-          <td style={{ ...NUM, color: pfColor(r.oosPf) }}>{dash(r.oosPf)}</td>
-          <td style={{ ...NUM, color: pfColor(r.realtickPf), fontWeight: 700 }}>{dash(r.realtickPf)}</td>
+          {cols.map((c) => {
+            const col = c.color ? c.color(r) : undefined;
+            return <td key={c.key} style={{ ...(c.num ? NUM : TD), ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
+          })}
           <td style={TD}>
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
           </td>

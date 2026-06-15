@@ -28,6 +28,10 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('pf');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [showTags, setShowTags] = useState(true);
+  const [showAllTags, setShowAllTags] = useState(false);
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
+  const hideTip = () => setTip(null);
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -128,25 +132,36 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
         </button>
       </div>
 
-      {/* tag chips */}
+      {/* tag chips (collapsed by default — active tags always shown) */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-        {allTags.map((t) => {
-          const on = activeTags.includes(t);
-          return (
-            <button key={t} type="button" onClick={() => toggleTag(t)}
-              style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer',
-                border: `1px solid ${on ? 'var(--accent,#00e5ff)' : 'var(--line)'}`,
-                background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 }}>
-              {t}
-            </button>
-          );
-        })}
+        {(() => {
+          const LIMIT = 14;
+          const visible = showAllTags ? allTags : [...new Set([...activeTags, ...allTags])].slice(0, Math.max(LIMIT, activeTags.length));
+          return visible.map((t) => {
+            const on = activeTags.includes(t);
+            return (
+              <button key={t} type="button" onClick={() => toggleTag(t)}
+                style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer',
+                  border: `1px solid ${on ? 'var(--accent,#00e5ff)' : 'var(--line)'}`,
+                  background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: on ? 700 : 500 }}>
+                {t}
+              </button>
+            );
+          });
+        })()}
+        {allTags.length > 14 && (
+          <button type="button" onClick={() => setShowAllTags((v) => !v)}
+            style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px dashed var(--line)', background: 'transparent', color: 'var(--accent,#00e5ff)' }}>
+            {showAllTags ? '− less' : `+${allTags.length - 14} tags`}
+          </button>
+        )}
         {activeTags.length > 0 && (
           <button type="button" onClick={() => setActiveTags([])} style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: '#ff5470' }}>
             clear ✕
           </button>
         )}
       </div>
+
 
       <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1120 }}>
@@ -165,35 +180,41 @@ export function StrategyTestsTable({ rows }: { rows: StrategyTestRow[] }) {
               <th style={THn} onClick={() => toggleSort('oosPf')}>OOS{caret('oosPf')}</th>
               <th style={THn} onClick={() => toggleSort('realtickPf')}>Real-tick{caret('realtickPf')}</th>
               <th style={TH}>Verdict</th>
-              <th style={TH}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={14} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
+              <tr><td colSpan={13} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
             )}
           </tbody>
         </table>
       </div>
       <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). IS/OOS = in-/out-of-sample. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Click a strategy name for its source thread.
+        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). IS/OOS = in-/out-of-sample. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; click to open the source.
       </p>
+
+      {tip && (
+        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 380), top: tip.y + 16, zIndex: 9999, maxWidth: 360, padding: '9px 12px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fg)', pointerEvents: 'none' }}>
+          {tip.text}
+        </div>
+      )}
     </div>
   );
 }
 
-function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
+function GroupBlock({ g, groupBy, showTags, onTip, onTipEnd, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass';
-  showTags: boolean; TD: React.CSSProperties; NUM: React.CSSProperties;
+  showTags: boolean; onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
+  TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
   return (
     <>
       {groupBy !== 'none' && (
         <tr>
-          <td colSpan={14} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
+          <td colSpan={13} style={{ padding: '7px 9px', background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: groupBy === 'verdict' ? (VERDICT_COLOR[g.key] ?? '#7a8699') : '#3a4660' }}>
               {g.key}
             </span>
@@ -204,9 +225,10 @@ function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
       {g.rows.map((r) => (
         <tr key={r.id}>
           <td style={TD}>
-            <div style={{ fontWeight: 600 }}>
+            <div style={{ fontWeight: 600, cursor: 'help', display: 'inline-block' }}
+                 onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
               {r.sourceUrl
-                ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }} title="Open source thread">{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
+                ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
                 : r.name}
             </div>
             {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}
@@ -232,7 +254,6 @@ function GroupBlock({ g, groupBy, showTags, TD, NUM }: {
           <td style={TD}>
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
           </td>
-          <td style={{ ...TD, whiteSpace: 'normal', maxWidth: 260, color: 'var(--muted)', fontSize: 11 }}>{dash(r.notes)}</td>
         </tr>
       ))}
     </>

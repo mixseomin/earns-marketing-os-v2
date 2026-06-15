@@ -15,11 +15,12 @@ type GroupKey = 'setup' | 'sample' | 'perf' | 'robust';
 
 const perMo = (r: StrategyTestRow): number => (r.trades && r.spanMonths ? r.trades / r.spanMonths : NaN);
 // CAGR risk-normalized to a 20% max-drawdown budget (uses real net + maxDD; no fabricated capital).
-const cagrPct = (r: StrategyTestRow): number => {
-  const net = Number(r.net), dd = Number(r.maxDd), m = r.spanMonths;
-  if (!r.net || !r.maxDd || !m || Number.isNaN(net) || Number.isNaN(dd) || dd <= 0 || net <= 0) return NaN;
+const cagrCalc = (net: number, dd: number, m: number | null): number => {
+  if (!m || Number.isNaN(net) || Number.isNaN(dd) || dd <= 0 || net <= 0) return NaN;
   return (Math.pow(1 + 0.2 * net / dd, 12 / m) - 1) * 100;
 };
+const cagrPct = (r: StrategyTestRow): number => cagrCalc(Number(r.net), Number(r.maxDd), r.spanMonths);
+const cagrColor = (v: number): string | undefined => (Number.isNaN(v) ? undefined : v >= 10 ? '#2ecc71' : v >= 4 ? '#f5a623' : '#ff5470');
 function pfColor(v: string | null): string | undefined {
   if (v == null || v === '') return undefined;
   const n = Number(v);
@@ -44,7 +45,7 @@ const COLUMNS: Col[] = [
   { key: 'pf', group: 'perf', label: 'PF', title: 'Profit factor', sort: 'pf', num: true, bold: true, render: (r) => dash(r.pf), color: (r) => pfColor(r.pf) },
   { key: 'net', group: 'perf', label: 'Net', num: true, render: (r) => (r.net != null && r.net !== '' ? `${r.net}${r.netUnit ? ' ' + r.netUnit : ''}` : '—') },
   { key: 'dd', group: 'perf', label: 'Max DD', title: 'Max drawdown (peak-to-trough of cumulative PnL)', sort: 'maxDd', num: true, render: (r) => (r.maxDd != null && r.maxDd !== '' ? `${r.maxDd}${r.netUnit ? ' ' + r.netUnit : ''}` : '—'), color: () => 'var(--muted)' },
-  { key: 'cagr', group: 'perf', label: 'CAGR*', title: 'Risk-normalized CAGR at a 20% max-drawdown budget (indicative)', sort: 'cagr', num: true, bold: true, render: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }, color: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? undefined : v >= 10 ? '#2ecc71' : v >= 4 ? '#f5a623' : '#ff5470'; } },
+  { key: 'cagr', group: 'perf', label: 'CAGR*', title: 'Risk-normalized CAGR at a 20% max-drawdown budget (indicative)', sort: 'cagr', num: true, bold: true, render: (r) => { const v = cagrPct(r); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }, color: (r) => cagrColor(cagrPct(r)) },
   { key: 'is', group: 'robust', label: 'IS', title: 'In-sample PF', sort: 'isPf', num: true, render: (r) => dash(r.isPf), color: (r) => pfColor(r.isPf) },
   { key: 'oos', group: 'robust', label: 'OOS', title: 'Out-of-sample PF', sort: 'oosPf', num: true, render: (r) => dash(r.oosPf), color: (r) => pfColor(r.oosPf) },
   { key: 'rt', group: 'robust', label: 'Real-tick', title: 'MT5 Model=4 real-tick PF', sort: 'realtickPf', num: true, bold: true, render: (r) => dash(r.realtickPf), color: (r) => pfColor(r.realtickPf) },
@@ -211,12 +212,13 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {} }: { rows: Stra
   );
 }
 
-function childCell(key: string, a: StrategyAssetRow): React.ReactNode {
+function childCell(key: string, a: StrategyAssetRow, spanMonths: number | null): React.ReactNode {
   if (key === 'trades') return dash(a.trades);
   if (key === 'win') return dash(a.winPct);
   if (key === 'pf') return dash(a.pf);
   if (key === 'net') return a.net != null && a.net !== '' ? a.net : '—';
   if (key === 'dd') return a.maxDd != null && a.maxDd !== '' ? a.maxDd : '—';
+  if (key === 'cagr') { const v = cagrCalc(Number(a.net), Number(a.maxDd), spanMonths); return Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`; }
   return '';
 }
 
@@ -287,9 +289,13 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, exp
             {isOpen && kids.map((a, idx) => (
               <tr key={`${r.id}-${idx}`} style={{ background: 'rgba(127,140,160,0.05)' }}>
                 <td style={{ ...TD, paddingLeft: 28, color: 'var(--muted)', fontSize: 11.5 }}>↳ {a.asset}</td>
-                {cols.map((c) => (
-                  <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(c.key === 'pf' ? { color: pfColor(a.pf), fontWeight: 700 } : { color: 'var(--muted)' }) }}>{childCell(c.key, a)}</td>
-                ))}
+                {cols.map((c) => {
+                  let color: string | undefined = 'var(--muted)';
+                  if (c.key === 'pf') color = pfColor(a.pf);
+                  else if (c.key === 'cagr') color = cagrColor(cagrCalc(Number(a.net), Number(a.maxDd), r.spanMonths));
+                  const bold = c.key === 'pf' || c.key === 'cagr';
+                  return <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(color ? { color } : {}), ...(bold ? { fontWeight: 700 } : {}) }}>{childCell(c.key, a, r.spanMonths)}</td>;
+                })}
                 <td style={TD} />
               </tr>
             ))}

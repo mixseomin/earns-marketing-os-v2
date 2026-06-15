@@ -21,6 +21,7 @@ interface RowData {
   // AdSense group
   adsense_earnings_today?: number | null;
   adsense_impressions_today?: number | null;
+  adsense_clicks_today?: number | null;
   adsense_earnings_7d?: number | null;
   adsense_impressions_7d?: number | null;
   adsense_rpm_7d?: number | null;
@@ -64,6 +65,8 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', fontWeight: 500 };
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
   const totalAdsenseToday = rows.reduce((s, r) => s + (r.adsense_earnings_today ?? 0), 0);
+  const totalAdsenseImprToday = rows.reduce((s, r) => s + (r.adsense_impressions_today ?? 0), 0);
+  const totalAdsenseClkToday = rows.reduce((s, r) => s + (r.adsense_clicks_today ?? 0), 0);
   const totalAdsenseEarnings = rows.reduce((s, r) => s + (r.adsense_earnings_7d ?? 0), 0);
   const totalAdsenseImpr = rows.reduce((s, r) => s + (r.adsense_impressions_7d ?? 0), 0);
   const totalAdsensePV = rows.reduce((s, r) => s + (r.adsense_page_views_7d ?? 0), 0);
@@ -108,10 +111,12 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
             </>}
             {cols.adsense && <>
               <th style={head} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ Today</th>
+              <th style={head} title="AdSense ad impressions today">Impr Today</th>
+              <th style={head} title="AdSense clicks today">Clk Today</th>
               <th style={head} title="AdSense earnings last 7 days (USD)">$ 7d</th>
-              <th style={head} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM</th>
-              <th style={head} title="AdSense impressions last 7 days">Ads Impr</th>
-              <th style={head} title="AdSense page views last 7 days">Ads PV</th>
+              <th style={head} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM 7d</th>
+              <th style={head} title="AdSense ad impressions last 7 days">Impr 7d</th>
+              <th style={head} title="AdSense page views last 7 days">PV 7d</th>
             </>}
             {cols.bing && <>
               <th style={head} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>
@@ -160,9 +165,14 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                   <td style={{ ...cell, textAlign: 'right' }}>{r.sitemap_urls_submitted.toLocaleString()}</td>
                 </>}
                 {cols.adsense && <>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) }}
-                      title={r.adsense_impressions_today != null ? `${(r.adsense_impressions_today || 0).toLocaleString()} impressions today (live estimate)` : 'No AdSense data today'}>
+                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) }}>
                     {r.adsense_earnings_today == null ? '—' : fmtUsd(r.adsense_earnings_today)}
+                  </td>
+                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_impressions_today ?? 0) > 0) }}>
+                    {r.adsense_impressions_today == null ? '—' : r.adsense_impressions_today.toLocaleString()}
+                  </td>
+                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_clicks_today ?? 0) > 0) }}>
+                    {r.adsense_clicks_today == null ? '—' : r.adsense_clicks_today.toLocaleString()}
                   </td>
                   <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_earnings_7d ?? 0) > 0) }}
                       title={r.adsense_earnings_7d != null ? `Last 7d AdSense earnings` : 'No AdSense data for this site (or not in cron map)'}>
@@ -200,6 +210,8 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
             </>}
             {cols.adsense && <>
               <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseToday > 0 ? fmtUsd(totalAdsenseToday) : '—'}</td>
+              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseImprToday.toLocaleString()}</td>
+              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseClkToday.toLocaleString()}</td>
               <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseEarnings > 0 ? fmtUsd(totalAdsenseEarnings) : '—'}</td>
               <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
               <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseImpr.toLocaleString()}</td>

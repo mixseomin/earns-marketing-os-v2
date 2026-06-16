@@ -42,6 +42,9 @@ export async function POST(req: Request) {
     // Nếu thread thuộc owned habitat (sân nhà) → đừng gắn người vào habitat đó → habitat_id = null.
     if (h && h.is_own === true) habitatId = null;
   }
+  // x/twitter duality: habitat lưu canonical 'twitter'. Profile-fallback (habitat=null) gửi 'x' →
+  // ép 'twitter' để ON CONFLICT(project,platform_key,handle) KHÔNG tách thành 2 row trùng người.
+  if (pk === 'x') pk = 'twitter';
   const threadUrl = body.threadUrl ? String(body.threadUrl).slice(0, 400) : null;
   const bodyExcerpt = body.bodyExcerpt ? String(body.bodyExcerpt).slice(0, 600) : null;
   const accountId = body.accountId != null ? (Number(body.accountId) || null) : null;

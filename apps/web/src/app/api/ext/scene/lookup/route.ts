@@ -20,9 +20,11 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
-  const list = rows(await db.execute(pk
+  // x/twitter duality: ext gửi 'x' nhưng habitat/feed lưu canonical 'twitter' → match CẢ HAI.
+  const pkList = pk === 'x' || pk === 'twitter' ? ['x', 'twitter'] : pk ? [pk] : null;
+  const list = rows(await db.execute(pkList
     ? sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE tenant_id = 'self' AND handle = ${handle} AND platform_key = ${pk}
+            FROM people WHERE tenant_id = 'self' AND handle = ${handle} AND platform_key = ANY(${pkList}::text[])
             ORDER BY familiarity_score DESC NULLS LAST`
     : sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
             FROM people WHERE tenant_id = 'self' AND handle = ${handle}

@@ -62,6 +62,9 @@ export interface ResolvedFormat {
 
 // Account replyStyle (free-text vd "2 câu, casual") → chỉ thị. Mềm "bám đúng" KHÔNG đủ (model ra 4
 // khi xin 2) → PARSE số câu/từ và ra lệnh CỨNG "CHÍNH XÁC N câu" + siết maxLength theo N (chặn vật lý).
+// CHỈ điều khiển bằng PROMPT (KHÔNG clamp/cắt output — clamp số trần từng gây "cụt" khó debug, xem
+// gotcha header). Parse "N câu/từ" → ra lệnh CỨNG trong prompt; maxLength để GENEROUS (an toàn runaway,
+// KHÔNG để engine truncate). Số câu thực thi bằng chỉ thị "CHÍNH XÁC N câu", model bám là chính.
 export function accountStyleDirective(style: string): { directive: string; directiveEn: string; maxLength: number; words: number } {
   const s = (style || '').trim();
   const mSent = s.match(/(\d+)\s*(?:-\s*\d+\s*)?(?:câu|cau|sentences?|sent)\b/i);
@@ -71,7 +74,7 @@ export function accountStyleDirective(style: string): { directive: string; direc
     return {
       directive: `Viết CHÍNH XÁC ${n} câu TỔNG CỘNG — đã GỒM cả câu CTA/link/mời reply (nếu có). KHÔNG thêm câu thứ ${n + 1}. Đếm lại; nếu quá ${n} thì GỘP, đừng thêm. Phong cách: ${s}.`,
       directiveEn: `Write EXACTLY ${n} sentence${n > 1 ? 's' : ''} TOTAL — this INCLUDES any CTA, link, or invite-to-reply sentence. NEVER add an extra sentence beyond ${n}; if a link is included, fold it into one of the ${n} sentences. Count before answering. Style: "${s}".`,
-      maxLength: Math.max(180, n * 170),
+      maxLength: 1700,   // generous — KHÔNG truncate; số câu do prompt lo
       words: Math.max(1, n * 14),
     };
   }
@@ -80,7 +83,7 @@ export function accountStyleDirective(style: string): { directive: string; direc
     return {
       directive: `~${n} từ (bám sát). Phong cách: ${s}. Không lan man, không cụt.`,
       directiveEn: `~${n} words (stay close). Style: "${s}". No rambling, no abrupt cut.`,
-      maxLength: Math.max(200, n * 9),
+      maxLength: Math.max(900, n * 9),
       words: n,
     };
   }

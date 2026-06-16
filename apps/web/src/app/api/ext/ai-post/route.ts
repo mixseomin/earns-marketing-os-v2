@@ -6,7 +6,7 @@ import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 import { estimateCostUsd } from '@/lib/ai/cost';
 import { errorResponse } from '@/lib/ext-route';
-import { FORMAT_PRESETS_BY_KEY, accountStyleDirective } from '@/lib/format-presets';
+import { FORMAT_PRESETS_BY_KEY, accountStyleDirective } from '@/lib/format-presets';   // accountStyleDirective = chỉ thị prompt (KHÔNG clamp/cắt — xem gotcha header format-presets)
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -175,9 +175,8 @@ export async function POST(req: Request) {
 
   const lengthDirective = (() => {
     if (acctStyle) {
-      const sd = accountStyleDirective(acctStyle);
-      const lim = Math.min(format.bodyHardLimit || 999999, sd.maxLength);   // siết char cap theo số câu (vd "2 câu" → ~340) → chặn vật lý đừng dài
-      return `${sd.directiveEn} HARD max ${lim} chars — do NOT exceed.`;
+      const sd = accountStyleDirective(acctStyle);   // chỉ thị prompt (số câu); char-cap = CHỈ platform limit thật (KHÔNG siết nhân tạo → tránh cụt)
+      return `${sd.directiveEn}${format.bodyHardLimit ? ` HARD max ${format.bodyHardLimit} chars.` : ''}`;
     }
     if (format.bodyHardLimit) {
       const lim = format.bodyHardLimit;

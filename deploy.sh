@@ -53,7 +53,7 @@ if [ -n "${DATABASE_URL:-}" ] && [ -d "packages/db/migrations" ]; then
       applied_at timestamptz NOT NULL DEFAULT now()
     );
   " >/dev/null
-  for sql_file in packages/db/migrations/00[0-9][0-9]_*.sql; do
+  for sql_file in packages/db/migrations/[0-9][0-9][0-9][0-9]_*.sql; do
     [ -f "$sql_file" ] || continue
     fname=$(basename "$sql_file")
     already=$(psql "$DATABASE_URL" -tAc "SELECT 1 FROM _file_migrations WHERE filename = '$fname' LIMIT 1")

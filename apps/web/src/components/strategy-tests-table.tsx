@@ -228,7 +228,13 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
       </p>
 
       {tip && (
-        <div style={{ position: 'fixed', left: Math.min(tip.x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 400), top: tip.y + 16, zIndex: 9999, maxWidth: 380, padding: '10px 13px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.55)', fontSize: 11.5, lineHeight: 1.6, color: 'var(--fg)', pointerEvents: 'none', whiteSpace: 'pre-wrap' }}>{tip.text}</div>
+        <>
+          <div onClick={hideTip} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.35)' }} />
+          <div style={{ position: 'fixed', left: Math.min(tip.x, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 480), top: Math.min(tip.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - 200), zIndex: 9999, width: 460, maxWidth: '92vw', maxHeight: '72vh', overflowY: 'auto', padding: '14px 16px 16px', background: '#0b1018', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 16px 44px rgba(0,0,0,.6)', fontSize: 12.5, lineHeight: 1.65, color: 'var(--fg)', whiteSpace: 'pre-wrap' }}>
+            <button type="button" onClick={hideTip} style={{ position: 'sticky', top: 0, float: 'right', cursor: 'pointer', background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--muted)', fontSize: 13, lineHeight: '18px', padding: '0 7px' }}>✕</button>
+            {tip.text}
+          </div>
+        </>
       )}
     </div>
   );
@@ -275,10 +281,12 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                       style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--accent,#00e5ff)', fontSize: 11, padding: 0, lineHeight: 1, width: 10 }}>{isOpen ? '▾' : '▸'}</button>
                   ) : null}
                   <span>
-                    <span style={{ fontWeight: 600, cursor: 'help' }} onMouseMove={(e) => onTip(r.notes ?? '', e)} onMouseLeave={onTipEnd}>
+                    <span style={{ fontWeight: 600 }}>
                       {r.sourceUrl
                         ? <a href={wrap(r.sourceUrl)} target="_blank" rel="noopener noreferrer nofollow" style={{ color: 'var(--fg)', textDecoration: 'none' }}>{r.name} <span style={{ color: 'var(--accent,#00e5ff)', fontSize: 10 }}>↗</span></a>
                         : r.name}
+                      {r.notes ? <button type="button" onClick={(e) => onTip(r.notes ?? '', e)} title="Read the strategy notes / methodology"
+                        style={{ marginLeft: 6, cursor: 'pointer', background: 'rgba(127,140,160,0.12)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--muted)', fontSize: 9.5, lineHeight: '14px', padding: '0 5px', verticalAlign: 'middle' }}>📄 notes</button> : null}
                     </span>
                     {!assetColVisible && kids.length > 0 ? <span onClick={() => toggleExpand(r.id)} style={{ fontSize: 9.5, color: 'var(--accent,#00e5ff)', marginLeft: 6, cursor: 'pointer' }}>({kids.length} assets)</span> : null}
                     {r.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{r.variant}</div> : null}

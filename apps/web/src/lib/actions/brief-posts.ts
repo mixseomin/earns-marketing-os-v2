@@ -897,6 +897,10 @@ export interface AllPostedCard extends RecentPostedCard {
   genCostUsd: number | null;
   // Thời gian gen AI version cuối (ms).
   genDurationMs: number | null;
+  // X (Twitter) Post Analytics — modal-only (migration 0100). Null cho platform khác.
+  insightsEngagements: number | null;
+  insightsDetailExpands: number | null;
+  insightsProfileVisits: number | null;
 }
 
 export interface AllPostedResult {
@@ -1036,6 +1040,7 @@ export async function listAllPostedCards(
            c.brief_id, c.channel_id, c.gen_cost_usd, c.gen_duration_ms,
            c.insights_views_count, c.insights_score, c.insights_upvote_ratio,
            c.insights_reply_count, c.insights_fetched_at,
+           c.insights_engagements, c.insights_detail_expands, c.insights_profile_visits,
            COALESCE(c.habitat_id, b.habitat_id) AS habitat_id, COALESCE(c.account_id, b.account_id) AS account_id, b.current_phase AS brief_phase_now,
            h.name AS habitat_name, COALESCE(h.ai_content_detection, FALSE) AS ai_detect,
            COALESCE(h.is_own, FALSE) AS habitat_is_own,
@@ -1130,6 +1135,9 @@ export async function listAllPostedCards(
     insightsScore: r.insights_score != null ? Number(r.insights_score) : null,
     insightsUpvoteRatio: r.insights_upvote_ratio != null ? Number(r.insights_upvote_ratio) : null,
     insightsReplyCount: r.insights_reply_count != null ? Number(r.insights_reply_count) : null,
+    insightsEngagements: r.insights_engagements != null ? Number(r.insights_engagements) : null,
+    insightsDetailExpands: r.insights_detail_expands != null ? Number(r.insights_detail_expands) : null,
+    insightsProfileVisits: r.insights_profile_visits != null ? Number(r.insights_profile_visits) : null,
     insightsFetchedAt: r.insights_fetched_at instanceof Date ? r.insights_fetched_at.toISOString() : (r.insights_fetched_at ? String(r.insights_fetched_at) : null),
     postLifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,
     channelName: r.channel_name ? String(r.channel_name) : null,

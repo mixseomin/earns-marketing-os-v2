@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   // Step 1: tìm card existing match thingId
   const pattern = postUrlSearchPattern(pk, thingId);
   const existingRows = await db.execute(sql`
-    SELECT id, post_url FROM cards
+    SELECT id, post_url, project_id FROM cards
     WHERE post_url ILIKE ${pattern}
       AND archived_at IS NULL
     ORDER BY posted_at DESC NULLS LAST
@@ -175,7 +175,7 @@ export async function POST(req: Request) {
         'production', 1, 'warm-up', 'community-seed',
         'live', NOW(), 'auto-imported from Reddit insights page'
       )
-      RETURNING id, post_url
+      RETURNING id, post_url, project_id
     `);
     card = firstRow(newCardRows)!;
     createdNew = true;
@@ -205,6 +205,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     cardId,
+    projectId: String(card!.project_id ?? ''),
     postUrl: String(card!.post_url ?? ''),
     createdNew,
     createdInOrphan,

@@ -509,6 +509,8 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
                 <SortableHeader label="% Ratio" sortKey="ratio_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })} />
+                <th style={{ ...th(), textAlign: 'center' }}
+                    title="X Post Analytics (modal-only): ⚡ Engagements · 🔎 Detail expands · 👤 Profile visits">⚡ Eng</th>
                 <SortableHeader label="💰 Cost" sortKey="cost_desc"
                                 current={filters.sort ?? 'posted_desc'}
                                 onSort={(s) => setF({ sort: s })}
@@ -623,6 +625,10 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved, focused }: {
   const r = c.insightsUpvoteRatio;
   const s = c.insightsScore;
   const rp = c.insightsReplyCount;
+  // X Post Analytics (modal-only): engagements + detail expands + profile visits.
+  const eng = c.insightsEngagements;
+  const de = c.insightsDetailExpands;
+  const pv = c.insightsProfileVisits;
   const hasStats = v != null || r != null || s != null || rp != null;
   const lc = c.postLifecycle ?? '_none';
   const m = LIFECYCLE_META[lc] ?? LIFECYCLE_META._none!;
@@ -714,6 +720,11 @@ function Row({ c, projectId, onOpenBrief, onLifecycleSaved, focused }: {
                   url={refreshUrl} />
       <MetricCell value={r != null ? `${Math.round(r * 100)}%` : null}
                   fullTitle={r != null ? `Upvote ratio ${Math.round(r * 100)}%` : `Chưa sync${isReddit ? ' — click để fetch' : ''}`}
+                  url={refreshUrl} />
+      <MetricCell value={eng != null ? fmtCompactNum(eng) : null}
+                  fullTitle={eng != null
+                    ? `X engagement: ⚡ ${eng} engagements · 🔎 ${de ?? 0} detail expands · 👤 ${pv ?? 0} profile visits`
+                    : 'X Post Analytics — chưa log (mở Post Analytics trên tweet → ext tự lấy)'}
                   url={refreshUrl} />
       <CostHoverCell cardId={c.id} currentCost={c.genCostUsd} />
       <DurationCell durationMs={c.genDurationMs} />

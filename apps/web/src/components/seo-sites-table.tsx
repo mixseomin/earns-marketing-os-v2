@@ -45,6 +45,17 @@ type ColGroup = 'live' | 'gsc' | 'adsense' | 'bing';
 const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, gsc: true, adsense: true, bing: true };
 const STORAGE_KEY = 'seo-table-cols-v2';
 
+// Per-group palette — same hue used for the toggle chip, the header band,
+// and the column's left-edge separator so the eye can scan a column straight
+// back to its group label.
+const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> = {
+  live:    { fg: '#22c55e', bg: 'rgba(34,197,94,0.22)',  bgSoft: 'rgba(34,197,94,0.06)' },   // green = realtime
+  gsc:     { fg: '#3c9bff', bg: 'rgba(60,155,255,0.22)', bgSoft: 'rgba(60,155,255,0.06)' },  // blue = Google
+  adsense: { fg: '#ffb03c', bg: 'rgba(255,176,60,0.22)', bgSoft: 'rgba(255,176,60,0.06)' },  // amber = money
+  bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
+};
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing' };
+
 export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   const [cols, setCols] = useState<Record<ColGroup, boolean>>(DEFAULT_COLS);
@@ -67,6 +78,22 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const cell: React.CSSProperties = { padding: '5px 8px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', fontWeight: 500 };
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
+
+  // Per-group styling helpers — feed the same color through chips, header band,
+  // and a subtle body tint so each group reads as one block.
+  const headOf = (g: ColGroup, first = false): React.CSSProperties => ({
+    ...head,
+    color: GROUP_COLOR[g].fg,
+    background: GROUP_COLOR[g].bg,
+    borderBottom: `2px solid ${GROUP_COLOR[g].fg}`,
+    borderLeft: first ? `2px solid ${GROUP_COLOR[g].fg}` : undefined,
+  });
+  const cellOf = (g: ColGroup, first = false, extra: React.CSSProperties = {}): React.CSSProperties => ({
+    ...cell,
+    background: GROUP_COLOR[g].bgSoft,
+    borderLeft: first ? `2px solid ${GROUP_COLOR[g].fg}` : undefined,
+    ...extra,
+  });
   const totalAdsenseToday = rows.reduce((s, r) => s + (r.adsense_earnings_today ?? 0), 0);
   const totalAdsenseImprToday = rows.reduce((s, r) => s + (r.adsense_impressions_today ?? 0), 0);
   const totalAdsenseClkToday = rows.reduce((s, r) => s + (r.adsense_clicks_today ?? 0), 0);
@@ -96,22 +123,26 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
         }
         .live-text { animation: live-text-pulse 1.6s ease-in-out infinite; }
       `}</style>
-      {/* Column-group toggles */}
+      {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => (
-          <button key={g} type="button" onClick={() => toggle(g)}
-            style={{
-              padding: '3px 9px', borderRadius: 4,
-              background: cols[g] ? 'var(--bg-2)' : 'transparent',
-              border: `1px solid ${cols[g] ? 'var(--line)' : 'transparent'}`,
-              color: cols[g] ? 'var(--fg-1)' : 'var(--fg-3)',
-              cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
-              textTransform: 'uppercase', letterSpacing: '0.04em',
-            }}>
-            {cols[g] ? '✓ ' : '+ '}{g}
-          </button>
-        ))}
+        {(['live', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => {
+          const c = GROUP_COLOR[g];
+          return (
+            <button key={g} type="button" onClick={() => toggle(g)}
+              style={{
+                padding: '3px 9px', borderRadius: 4,
+                background: cols[g] ? c.bg : 'transparent',
+                border: `1px solid ${cols[g] ? c.fg : 'transparent'}`,
+                color: cols[g] ? c.fg : 'var(--fg-3)',
+                cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                fontWeight: cols[g] ? 600 : 400,
+              }}>
+              {cols[g] ? '✓ ' : '+ '}{GROUP_LABEL[g]}
+            </button>
+          );
+        })}
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
@@ -119,33 +150,33 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Site</th>
             {cols.live && <>
-              <th style={{ ...head, textAlign: 'center' }} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">
-                <span className="live-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
+              <th style={{ ...headOf('live', true), textAlign: 'center' }} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">
+                <span className="live-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: GROUP_COLOR.live.fg, boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
               </th>
-              <th style={head} title="GA4 Realtime: active users in the last 30 minutes">
+              <th style={headOf('live')} title="GA4 Realtime: active users in the last 30 minutes">
                 <span className="live-text">30m</span>
               </th>
             </>}
             {cols.gsc && <>
-              <th style={head}>Impr 7d</th>
-              <th style={{ ...head, padding: '5px 4px' }}>30d trend</th>
-              <th style={head}>Clicks 7d</th>
-              <th style={head}>CTR</th>
-              <th style={head}>Avg Pos</th>
-              <th style={head}>Pages</th>
-              <th style={head}>Sitemap</th>
+              <th style={headOf('gsc', true)}>Impr 7d</th>
+              <th style={{ ...headOf('gsc'), padding: '5px 4px' }}>30d trend</th>
+              <th style={headOf('gsc')}>Clicks 7d</th>
+              <th style={headOf('gsc')}>CTR</th>
+              <th style={headOf('gsc')}>Avg Pos</th>
+              <th style={headOf('gsc')}>Pages</th>
+              <th style={headOf('gsc')}>Sitemap</th>
             </>}
             {cols.adsense && <>
-              <th style={head} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ TD</th>
-              <th style={head} title="AdSense ad impressions today">Impr TD</th>
-              <th style={head} title="AdSense clicks today">Clk TD</th>
-              <th style={head} title="AdSense earnings last 7 days (USD)">$ 7d</th>
-              <th style={head} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM</th>
-              <th style={head} title="AdSense ad impressions last 7 days">Impr</th>
-              <th style={head} title="AdSense page views last 7 days">PV</th>
+              <th style={headOf('adsense', true)} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ TD</th>
+              <th style={headOf('adsense')} title="AdSense ad impressions today">Impr TD</th>
+              <th style={headOf('adsense')} title="AdSense clicks today">Clk TD</th>
+              <th style={headOf('adsense')} title="AdSense earnings last 7 days (USD)">$ 7d</th>
+              <th style={headOf('adsense')} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM</th>
+              <th style={headOf('adsense')} title="AdSense ad impressions last 7 days">Impr</th>
+              <th style={headOf('adsense')} title="AdSense page views last 7 days">PV</th>
             </>}
             {cols.bing && <>
-              <th style={head} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>
+              <th style={headOf('bing', true)} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>
             </>}
           </tr>
         </thead>
@@ -180,50 +211,50 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                     style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Bing&nbsp;↗</a>
                 </td>
                 {cols.live && <>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }}>
+                  <td style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>
                     {r.ga4_active_5min == null ? '—' : r.ga4_active_5min > 0 ? r.ga4_active_5min.toLocaleString() : '0'}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.ga4_active_30min ?? 0) > 0) }}>
+                  <td style={{ ...cellOf('live', false, { textAlign: 'right', ...tone((r.ga4_active_30min ?? 0) > 0) }) }}>
                     {r.ga4_active_30min == null ? '—' : r.ga4_active_30min > 0 ? r.ga4_active_30min.toLocaleString() : '0'}
                   </td>
                 </>}
                 {cols.gsc && <>
-                  <td style={{ ...cell, textAlign: 'right', ...tone(r.impressions_7d > 0) }}>{r.impressions_7d.toLocaleString()}</td>
-                  <td style={{ ...cell, textAlign: 'center', padding: '2px 4px', width: 70 }}>
+                  <td style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={sparkValues} />
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone(r.clicks_7d > 0) }}>{r.clicks_7d.toLocaleString()}</td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone(ctr > 0) }}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) }}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
-                  <td style={{ ...cell, textAlign: 'right' }}>{r.pages_with_impressions_7d}</td>
-                  <td style={{ ...cell, textAlign: 'right' }}>{r.sitemap_urls_submitted.toLocaleString()}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(ctr > 0) })}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) })}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'right' })}>{r.pages_with_impressions_7d}</td>
+                  <td style={cellOf('gsc', false, { textAlign: 'right' })}>{r.sitemap_urls_submitted.toLocaleString()}</td>
                 </>}
                 {cols.adsense && <>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) }}>
+                  <td style={cellOf('adsense', true, { textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) })}>
                     {r.adsense_earnings_today == null ? '—' : fmtUsd(r.adsense_earnings_today)}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_impressions_today ?? 0) > 0) }}>
+                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_impressions_today ?? 0) > 0) })}>
                     {r.adsense_impressions_today == null ? '—' : r.adsense_impressions_today.toLocaleString()}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_clicks_today ?? 0) > 0) }}>
+                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_clicks_today ?? 0) > 0) })}>
                     {r.adsense_clicks_today == null ? '—' : r.adsense_clicks_today.toLocaleString()}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_earnings_7d ?? 0) > 0) }}
+                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_earnings_7d ?? 0) > 0) })}
                       title={r.adsense_earnings_7d != null ? `Last 7d AdSense earnings` : 'No AdSense data for this site (or not in cron map)'}>
                     {r.adsense_earnings_7d == null ? '—' : fmtUsd(r.adsense_earnings_7d)}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.adsense_rpm_7d ?? 0) > 0) }}>
+                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_rpm_7d ?? 0) > 0) })}>
                     {r.adsense_rpm_7d == null ? '—' : r.adsense_rpm_7d > 0 ? `$${r.adsense_rpm_7d.toFixed(2)}` : '—'}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right' }}>
+                  <td style={cellOf('adsense', false, { textAlign: 'right' })}>
                     {r.adsense_impressions_7d == null ? '—' : r.adsense_impressions_7d.toLocaleString()}
                   </td>
-                  <td style={{ ...cell, textAlign: 'right' }}>
+                  <td style={cellOf('adsense', false, { textAlign: 'right' })}>
                     {r.adsense_page_views_7d == null ? '—' : r.adsense_page_views_7d.toLocaleString()}
                   </td>
                 </>}
                 {cols.bing && <>
-                  <td style={{ ...cell, textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) }}
+                  <td style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}
                     title={r.bing_clicks_7d != null ? `${r.bing_clicks_7d.toLocaleString()} clicks · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} indexed via sitemap` : 'No Bing data yet — daily cron pulls from BWT'}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
                   </td>
@@ -234,29 +265,29 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           <tr style={{ background: 'var(--bg-2)' }}>
             <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>TOTAL ({rows.length})</td>
             {cols.live && <>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalLive5.toLocaleString()}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalLive30.toLocaleString()}</td>
+              <td style={cellOf('live', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.live.fg })}>{totalLive5.toLocaleString()}</td>
+              <td style={cellOf('live', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.live.fg })}>{totalLive30.toLocaleString()}</td>
             </>}
             {cols.gsc && <>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.imps.toLocaleString()}</td>
-              <td style={{ ...cell }} />
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.clicks.toLocaleString()}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.imps > 0 ? (totals.clicks / totals.imps * 100).toFixed(2) + '%' : '—'}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.avgPos > 0 ? totals.avgPos.toFixed(1) : '—'}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.pages}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totals.sitemap.toLocaleString()}</td>
+              <td style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>
+              <td style={cellOf('gsc', false)} />
+              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.clicks.toLocaleString()}</td>
+              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps > 0 ? (totals.clicks / totals.imps * 100).toFixed(2) + '%' : '—'}</td>
+              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.avgPos > 0 ? totals.avgPos.toFixed(1) : '—'}</td>
+              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.pages}</td>
+              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.sitemap.toLocaleString()}</td>
             </>}
             {cols.adsense && <>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseToday > 0 ? fmtUsd(totalAdsenseToday) : '—'}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseImprToday.toLocaleString()}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseClkToday.toLocaleString()}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseEarnings > 0 ? fmtUsd(totalAdsenseEarnings) : '—'}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsenseImpr.toLocaleString()}</td>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalAdsensePV.toLocaleString()}</td>
+              <td style={cellOf('adsense', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseToday > 0 ? fmtUsd(totalAdsenseToday) : '—'}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImprToday.toLocaleString()}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseClkToday.toLocaleString()}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseEarnings > 0 ? fmtUsd(totalAdsenseEarnings) : '—'}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImpr.toLocaleString()}</td>
+              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsensePV.toLocaleString()}</td>
             </>}
             {cols.bing && <>
-              <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{totalBingImpr.toLocaleString()}</td>
+              <td style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
             </>}
           </tr>
         </tbody>

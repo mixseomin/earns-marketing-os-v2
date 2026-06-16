@@ -69,8 +69,8 @@ export function accountStyleDirective(style: string): { directive: string; direc
   if (mSent) {
     const n = parseInt(mSent[1] ?? '0', 10);
     return {
-      directive: `Viết CHÍNH XÁC ${n} câu — KHÔNG nhiều hơn ${n} câu. Phong cách: ${s}. Đếm số câu trước khi trả.`,
-      directiveEn: `Write EXACTLY ${n} sentence${n > 1 ? 's' : ''} — never more than ${n}. Style: "${s}". Count the sentences before answering.`,
+      directive: `Viết CHÍNH XÁC ${n} câu TỔNG CỘNG — đã GỒM cả câu CTA/link/mời reply (nếu có). KHÔNG thêm câu thứ ${n + 1}. Đếm lại; nếu quá ${n} thì GỘP, đừng thêm. Phong cách: ${s}.`,
+      directiveEn: `Write EXACTLY ${n} sentence${n > 1 ? 's' : ''} TOTAL — this INCLUDES any CTA, link, or invite-to-reply sentence. NEVER add an extra sentence beyond ${n}; if a link is included, fold it into one of the ${n} sentences. Count before answering. Style: "${s}".`,
       maxLength: Math.max(180, n * 170),
       words: Math.max(1, n * 14),
     };

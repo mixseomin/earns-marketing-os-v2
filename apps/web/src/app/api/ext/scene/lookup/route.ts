@@ -21,10 +21,11 @@ export async function GET(req: Request) {
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // x/twitter duality: ext gửi 'x' nhưng habitat/feed lưu canonical 'twitter' → match CẢ HAI.
-  const pkList = pk === 'x' || pk === 'twitter' ? ['x', 'twitter'] : pk ? [pk] : null;
-  const list = rows(await db.execute(pkList
+  // (drizzle bind JS array thành RECORD → `ANY(${arr}::text[])` lỗi 42846 → dùng OR tường minh.)
+  const pkAlt = pk === 'x' ? 'twitter' : pk === 'twitter' ? 'x' : pk;
+  const list = rows(await db.execute(pk
     ? sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE tenant_id = 'self' AND handle = ${handle} AND platform_key = ANY(${pkList}::text[])
+            FROM people WHERE tenant_id = 'self' AND handle = ${handle} AND (platform_key = ${pk} OR platform_key = ${pkAlt})
             ORDER BY familiarity_score DESC NULLS LAST`
     : sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
             FROM people WHERE tenant_id = 'self' AND handle = ${handle}

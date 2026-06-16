@@ -6,6 +6,7 @@ import { createPostForBriefPhase, updatePost } from '@/lib/actions/brief-posts';
 import { generateFullDraft } from '@/lib/ai/post-draft';
 import { normalizeParentUrl } from '@/lib/parent-url';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 import type { Phase } from '@/lib/phase-plan';
 
 // POST /api/ext/seeding/quick-comment
@@ -54,11 +55,11 @@ export async function POST(req: Request) {
   const contentType = (ALLOWED_CT as readonly string[]).includes(body.contentType ?? '')
     ? (body.contentType as string) : 'comment';
   if (!habitatId || !projectId) {
-    return NextResponse.json({ ok: false, error: 'habitatId + projectId required' }, { status: 400 });
+    return errorResponse('habitatId + projectId required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Resolve briefId: nếu ext không pass → pick latest brief của habitat
   let briefId = body.briefId ?? null;
@@ -68,25 +69,25 @@ export async function POST(req: Request) {
       WHERE habitat_id = ${habitatId} AND project_id = ${projectId}
       ORDER BY updated_at DESC LIMIT 1
     `);
-    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const r = firstRow(rows);
     briefId = r ? Number(r.id) : null;
   }
   if (!briefId) {
-    return NextResponse.json({ ok: false, error: 'Habitat chưa có brief nào trong project. Vào MOS2 tạo brief trước.' }, { status: 400 });
+    return errorResponse('Habitat chưa có brief nào trong project. Vào MOS2 tạo brief trước.', 400);
   }
 
   // Default phase: lấy currentPhase từ brief (fallback 'warm-up').
   const briefRows = await db.execute(sql`
     SELECT current_phase FROM community_briefs WHERE id = ${briefId} LIMIT 1
   `);
-  const phase = (briefRows as unknown as Array<Record<string, unknown>>)[0]?.current_phase as Phase | undefined;
+  const phase = firstRow(briefRows)?.current_phase as Phase | undefined;
   const useFallbackPhase: Phase = (phase ?? 'warm-up') as Phase;
 
   // 1. Tạo card với content_type comment/reply (+ gắn channel_id sub-forum nếu có).
   const channelDbId = await resolveForumChannelId(db, habitatId, body.channelUrl, body.channelName);
   const create = await createPostForBriefPhase(projectId, briefId, useFallbackPhase, contentType, undefined, channelDbId);
   if (!create.ok || !create.id) {
-    return NextResponse.json({ ok: false, error: create.error ?? 'createPost failed' }, { status: 500 });
+    return errorResponse(create.error ?? 'createPost failed', 500);
   }
   const cardId = create.id;
 
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
     WHERE c.id = ${cardId}
     LIMIT 1
   `);
-  const f = (finalRows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  const f = firstRow(finalRows) ?? {};
   const persona = (f.persona as Record<string, unknown> | null) ?? {};
 
   return NextResponse.json({

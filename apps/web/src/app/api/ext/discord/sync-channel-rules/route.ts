@@ -4,6 +4,7 @@ import { getDb, habitats } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { aiEnabled } from '@/lib/ai/openai';
 import { summarizeAndSaveChannelRules, normalizeChannelName } from '@/lib/actions/sync-channel-core';
+import { errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/discord/sync-channel-rules
 // Body: {
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
   if (!aiEnabled()) {
-    return NextResponse.json({ ok: false, error: 'OpenAI chưa cấu hình' }, { status: 503 });
+    return errorResponse('OpenAI chưa cấu hình', 503);
   }
 
   const body = await req.json().catch(() => ({})) as {
@@ -37,11 +38,11 @@ export async function POST(req: Request) {
   const habitatId = Number(body.habitatId ?? 0);
   const channelId = String(body.channelId ?? '').trim();
   if (!habitatId || !channelId || !/^\d{15,25}$/.test(channelId)) {
-    return NextResponse.json({ ok: false, error: 'habitatId + channelId (snowflake) required' }, { status: 400 });
+    return errorResponse('habitatId + channelId (snowflake) required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // 1. Verify habitat
   const habRows = await db.select({
@@ -49,10 +50,10 @@ export async function POST(req: Request) {
     scrapedMeta: habitats.scrapedMeta,
   }).from(habitats).where(eq(habitats.id, habitatId)).limit(1);
   const hab = habRows[0];
-  if (!hab) return NextResponse.json({ ok: false, error: 'habitat not found' }, { status: 404 });
+  if (!hab) return errorResponse('habitat not found', 404);
   // Sau migration 0079: kind chuẩn hoá về 'discord' (1 từ).
   if (hab.kind !== 'discord') {
-    return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind}, không phải Discord` }, { status: 400 });
+    return errorResponse(`habitat kind=${hab.kind}, không phải Discord`, 400);
   }
   const guildId = (hab.scrapedMeta as Record<string, unknown> | null)?.discord_guild_id;
   const channelUrl = (typeof guildId === 'string' && guildId)
@@ -88,6 +89,6 @@ export async function POST(req: Request) {
       aiError: r.aiError,
     });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 503 });
+    return errorResponse((e as Error).message, 503);
   }
 }

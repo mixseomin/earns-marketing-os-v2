@@ -5,6 +5,7 @@ import { checkAuth } from '../../_auth';
 import { normalizeParentUrl } from '@/lib/parent-url';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 import { recordReplierInteractions } from '@/lib/scene-people';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/insights
 // Body: {
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   };
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Resolve cardId: trực tiếp hoặc (parentUrl + accountHandle) cho forum reply-tracking.
   let cardId = Number(body.cardId ?? 0);
@@ -62,21 +63,21 @@ export async function POST(req: Request) {
          ${handle ? sql`AND lower(pa.handle) = ${handle}` : sql``}
        ORDER BY c.posted_at DESC NULLS LAST, c.created_at DESC
        LIMIT 1`);
-    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const r = firstRow(rows);
     if (r) cardId = Number(r.id);
   }
   if (!cardId) {
-    return NextResponse.json({ ok: false, error: 'cardId (hoặc parentUrl+accountHandle khớp 1 card đã đăng) required', reason: 'card_not_found' }, { status: body.parentUrl ? 200 : 400 });
+    return errorResponse('cardId (hoặc parentUrl+accountHandle khớp 1 card đã đăng) required', body.parentUrl ? 200 : 400, { reason: 'card_not_found' });
   }
 
   // Verify card exists + đã post (insights chỉ make sense cho card đã đăng)
   const checkRows = await db.execute(sql`
     SELECT id, post_url FROM cards WHERE id = ${cardId} LIMIT 1
   `);
-  const card = (checkRows as unknown as Array<Record<string, unknown>>)[0];
-  if (!card) return NextResponse.json({ ok: false, error: 'Card not found' }, { status: 404 });
+  const card = firstRow(checkRows);
+  if (!card) return errorResponse('Card not found', 404);
   if (!card.post_url) {
-    return NextResponse.json({ ok: false, error: 'Card chưa post — không có insights' }, { status: 400 });
+    return errorResponse('Card chưa post — không có insights', 400);
   }
 
   // Build SET clause động — chỉ update field user gửi (cho phép partial sync,
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
   sets.push(sql`updated_at = NOW()`);
 
   if (sets.length === 2) {  // chỉ có fetched_at + updated_at = không có data sync
-    return NextResponse.json({ ok: false, error: 'Không có data insights nào để save' }, { status: 400 });
+    return errorResponse('Không có data insights nào để save', 400);
   }
 
   // Build UPDATE: sets join bằng ", "

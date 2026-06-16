@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // GET /api/ext/accounts/profile?handle=<h>&platformKey=<k>&habitatId=<id>
 //
@@ -37,11 +38,11 @@ export async function GET(req: Request) {
   const projectPref = projectId ? sql`(pa.project_id = ${projectId}) DESC, ` : sql``;
 
   if (!handle || !platformKey) {
-    return NextResponse.json({ ok: false, error: 'handle + platformKey required' }, { status: 400 });
+    return errorResponse('handle + platformKey required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // 1. Lookup account — case-insensitive + cross-project (1 handle dùng nhiều projects)
   // Reddit/FB preserve case nhưng login state có thể return lowercase trong API
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
     ORDER BY ${projectPref} pa.updated_at DESC NULLS LAST
     LIMIT 1
   `);
-  const acc = (accRows as unknown as Array<Record<string, unknown>>)[0];
+  const acc = firstRow(accRows);
 
   if (!acc) {
     // Debug: log để verify tại sao miss
@@ -148,7 +149,7 @@ export async function GET(req: Request) {
       WHERE b.account_id = ${Number(acc.id)} AND b.habitat_id = ${habitatId}
       LIMIT 1
     `);
-    const br = (briefRows as unknown as Array<Record<string, unknown>>)[0];
+    const br = firstRow(briefRows);
     if (br) {
       brief = {
         id: Number(br.id),

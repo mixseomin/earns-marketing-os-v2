@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ interface Body {
 
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json()) as Body;
 
   const handle = String(body.handle ?? '').replace(/^@/, '').trim();
@@ -40,21 +41,21 @@ export async function POST(req: Request) {
   const bodyFinal = String(body.bodyFinal ?? '').trim();
   const contentType = String(body.contentType ?? 'text').trim() || 'text';
   if (!handle || !platformKey || !projectId || !postUrl || !postId) {
-    return NextResponse.json({ ok: false, error: 'handle, platformKey, projectId, postUrl, postId required' }, { status: 400 });
+    return errorResponse('handle, platformKey, projectId, postUrl, postId required', 400);
   }
 
   // 1. Resolve account (id truyền vào, hoặc handle + platform).
   let accountId = body.accountId != null ? Number(body.accountId) : 0;
   if (!accountId) {
     const rows = await db.execute(sql`SELECT id FROM platform_accounts WHERE platform_key = ${platformKey} AND LOWER(handle) = LOWER(${handle}) LIMIT 1`);
-    const a = (rows as unknown as Array<Record<string, unknown>>)[0];
-    if (!a) return NextResponse.json({ ok: false, reason: 'account_not_found', error: `@${handle} chưa map trong MOS2` }, { status: 200 });
+    const a = firstRow(rows);
+    if (!a) return errorResponse(`@${handle} chưa map trong MOS2`, 200, { reason: 'account_not_found' });
     accountId = Number(a.id);
   }
 
   // 2. Idempotency: card đã tồn tại (card_ref EXT-<postId> hoặc cùng post_url) → trả luôn.
   const exist = await db.execute(sql`SELECT id, brief_id FROM cards WHERE card_ref = ${`EXT-${postId}`} OR post_url = ${postUrl} LIMIT 1`);
-  const ex = (exist as unknown as Array<Record<string, unknown>>)[0];
+  const ex = firstRow(exist);
   if (ex) return NextResponse.json({ ok: true, cardId: Number(ex.id), briefId: ex.brief_id != null ? Number(ex.brief_id) : null, existed: true });
 
   // 3. Resolve/ensure own-profile habitat (is_own=true, name='@handle').
@@ -62,11 +63,11 @@ export async function POST(req: Request) {
   let habitatId = 0;
   {
     const rows = await db.execute(sql`SELECT id FROM habitats WHERE project_id = ${projectId} AND platform_key = ${platformKey} AND is_own = true AND LOWER(name) = LOWER(${habName}) LIMIT 1`);
-    const h = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const h = firstRow(rows);
     if (h) habitatId = Number(h.id);
     else {
       const insH = await db.execute(sql`INSERT INTO habitats (tenant_id, project_id, name, platform_key, is_own, language) VALUES ('self', ${projectId}, ${habName}, ${platformKey}, true, 'en') RETURNING id`);
-      habitatId = Number((insH as unknown as Array<Record<string, unknown>>)[0]!.id);
+      habitatId = Number(firstRow(insH)!.id);
     }
   }
 
@@ -74,14 +75,14 @@ export async function POST(req: Request) {
   let briefId = 0;
   {
     const rows = await db.execute(sql`SELECT id FROM community_briefs WHERE account_id = ${accountId} AND habitat_id = ${habitatId} ORDER BY updated_at DESC LIMIT 1`);
-    const b = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const b = firstRow(rows);
     if (b) briefId = Number(b.id);
     else {
       const insB = await db.execute(sql`
         INSERT INTO community_briefs (tenant_id, project_id, account_id, habitat_id, current_phase, join_status, tone, approach_md, do_md, dont_md)
         VALUES ('self', ${projectId}, ${accountId}, ${habitatId}, 'warm-up', 'joined', '', 'Own-account posts — bài gốc trên profile chính chủ (auto-tracked).', '', '')
         RETURNING id`);
-      briefId = Number((insB as unknown as Array<Record<string, unknown>>)[0]!.id);
+      briefId = Number(firstRow(insB)!.id);
     }
   }
 
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
       'production', 2, 'warm-up', 'community-seed',
       'live', NOW(), 'auto-registered own-account post'
     ) RETURNING id`);
-  const cardId = Number((insC as unknown as Array<Record<string, unknown>>)[0]!.id);
+  const cardId = Number(firstRow(insC)!.id);
 
   return NextResponse.json({ ok: true, cardId, briefId, habitatId, existed: false });
 }

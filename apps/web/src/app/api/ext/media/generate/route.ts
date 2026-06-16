@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { uploadToR2, r2Enabled } from '@/lib/r2';
 import { mechCanon } from '@/lib/selector-field-canon';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -148,13 +149,13 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   let body: { projectId?: string; accountId?: number; handle?: string; field?: string; source?: string; prompt?: string; url?: string; dataUrl?: string };
-  try { body = await req.json(); } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }); }
+  try { body = await req.json(); } catch { return errorResponse('bad json', 400); }
 
   const field = mechCanon(body.field || 'avatar') || 'avatar';
   const wantWeb = body.source === 'web';
   const acc = await loadAccount(body.projectId || '', body.accountId ? Number(body.accountId) : undefined, body.handle);
   const projectId = body.projectId || acc?.projectId || '';
-  if (!projectId) return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+  if (!projectId) return errorResponse('projectId required', 400);
   const persona = (acc?.persona as Record<string, unknown>) || {};
   const { size, banner } = fieldShape(field);
   const [w, h] = size.split('x').map(Number) as [number, number];
@@ -170,32 +171,32 @@ export async function POST(req: Request) {
       } else if (body.url) {
         const dl = await downloadImage(body.url); if (dl) { buf = dl.buf; mime = dl.mime; }
       }
-      if (!buf || buf.length < 200) return NextResponse.json({ ok: false, error: 'không lấy được ảnh hiện tại' }, { status: 200 });
+      if (!buf || buf.length < 200) return errorResponse('không lấy được ảnh hiện tại', 200);
       const saved = await persist({ projectId, field, buf, mime, width: w, height: h, source: 'captured', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: 'captured from site' });
-      if (!saved) return NextResponse.json({ ok: false, error: 'persist fail' }, { status: 500 });
+      if (!saved) return errorResponse('persist fail', 500);
       return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'captured' });
     }
 
     if (wantWeb) {
       const q = body.prompt?.trim() || [personaDesc(persona), banner ? 'banner background' : 'portrait avatar photo'].filter(Boolean).join(' ');
       const found = await webSearchImage(q);
-      if (!found) return NextResponse.json({ ok: false, error: 'web search chưa cấu hình (GOOGLE_CSE_KEY/CX) hoặc không tìm thấy ảnh' }, { status: 200 });
+      if (!found) return errorResponse('web search chưa cấu hình (GOOGLE_CSE_KEY/CX) hoặc không tìm thấy ảnh', 200);
       const saved = await persist({ projectId, field, buf: found.buf, mime: found.mime, width: w, height: h, source: 'web', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: q });
-      if (!saved) return NextResponse.json({ ok: false, error: 'persist fail' }, { status: 500 });
+      if (!saved) return errorResponse('persist fail', 500);
       return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'web' });
     }
 
-    if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY chưa cấu hình' }, { status: 200 });
+    if (!aiEnabled()) return errorResponse('OPENAI_API_KEY chưa cấu hình', 200);
     const prompt = body.prompt?.trim() || buildPrompt(field, persona, banner);
     const client = getOpenAI()!;
     const res = await client.images.generate({ model: 'gpt-image-2', prompt, size, quality: 'medium', n: 1 });
     const b64 = res.data?.[0]?.b64_json;
-    if (!b64) return NextResponse.json({ ok: false, error: 'gpt-image-2 không trả ảnh' }, { status: 200 });
+    if (!b64) return errorResponse('gpt-image-2 không trả ảnh', 200);
     const buf = Buffer.from(b64, 'base64');
     const saved = await persist({ projectId, field, buf, mime: 'image/png', width: w, height: h, source: 'gen', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt });
-    if (!saved) return NextResponse.json({ ok: false, error: 'persist fail' }, { status: 500 });
+    if (!saved) return errorResponse('persist fail', 500);
     return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'gen' });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: `gen lỗi: ${(e as Error).message || String(e)}` }, { status: 200 });
+    return errorResponse(`gen lỗi: ${(e as Error).message || String(e)}`, 200);
   }
 }

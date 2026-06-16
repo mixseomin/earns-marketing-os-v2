@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDb, habitats, platforms } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json().catch(() => ({})) as { platform_key?: string; kind?: string; isOwn?: boolean };
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
 
@@ -38,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.isOwn === 'boolean') patch.isOwn = body.isOwn;
 
   if (Object.keys(patch).length <= 1) {
-    return NextResponse.json({ ok: false, error: 'nothing to update' }, { status: 400 });
+    return errorResponse('nothing to update', 400);
   }
 
   await db.update(habitats).set(patch).where(eq(habitats.id, Number(id)));

@@ -3,6 +3,7 @@ import { checkAuth } from '../../_auth';
 import { getDb } from '@mos2/db';
 import { listChannelsForHabitat, createChannel } from '@/lib/actions/habitat-channels';
 import { forumSubForumKey } from '@/lib/channel-support';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,15 +15,15 @@ export const runtime = 'nodejs';
 // → { ok, added, skipped, total, addedNames }
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = await req.json().catch(() => ({})) as {
     habitatId?: number;
     channels?: Array<{ name?: string; url?: string | null; description?: string }>;
   };
   const habitatId = Number(body.habitatId);
-  if (!habitatId) return NextResponse.json({ ok: false, error: 'habitatId required' }, { status: 400 });
+  if (!habitatId) return errorResponse('habitatId required', 400);
   const incoming = (body.channels || []).filter((c) => c && (c.name || '').trim()).slice(0, 80);
-  if (!incoming.length) return NextResponse.json({ ok: false, error: 'channels required' }, { status: 400 });
+  if (!incoming.length) return errorResponse('channels required', 400);
 
   const existing = await listChannelsForHabitat(habitatId);
   const seen = new Set(existing.map((e) => e.name.trim().toLowerCase()));

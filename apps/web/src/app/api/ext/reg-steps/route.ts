@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { getDb, platforms, habitats } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 
@@ -25,10 +26,10 @@ function normSteps(raw: unknown): Step[] {
 // GET /api/ext/reg-steps?scope=platform&key=resetera-com  |  scope=habitat&key=<id>
 export async function GET(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const sp = new URL(req.url).searchParams;
   const scope = sp.get('scope'); const key = (sp.get('key') ?? '').trim();
-  if (!key) return NextResponse.json({ ok: false, error: 'key required' }, { status: 400 });
+  if (!key) return errorResponse('key required', 400);
 
   if (scope === 'habitat') {
     const [h] = await db.select({ jc: habitats.joinChecklist }).from(habitats).where(eq(habitats.id, Number(key))).limit(1);
@@ -44,10 +45,10 @@ export async function GET(req: Request) {
 // POST /api/ext/reg-steps { scope, key, steps:[{key,label,tip?,actionUrl?}] }
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = await req.json() as { scope?: string; key?: string; steps?: unknown };
   const key = (body.key ?? '').trim();
-  if (!key) return NextResponse.json({ ok: false, error: 'key required' }, { status: 400 });
+  if (!key) return errorResponse('key required', 400);
   const steps = normSteps(body.steps);
 
   if (body.scope === 'habitat') {
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   }
   // platform: thay item phase='creating', GIỮ NGUYÊN các phase khác (warming/active).
   const [p] = await db.select({ cl: platforms.checklist }).from(platforms).where(eq(platforms.key, key)).limit(1);
-  if (!p) return NextResponse.json({ ok: false, error: 'platform not found' }, { status: 404 });
+  if (!p) return errorResponse('platform not found', 404);
   const existing = Array.isArray(p.cl) ? (p.cl as Array<Record<string, unknown>>) : [];
   const kept = existing.filter((it) => it.phase !== 'creating');
   const creating = steps.map((s) => ({ key: s.key, phase: 'creating', label: s.label, tip: s.tip, actionUrl: s.actionUrl, hidden: !!s.hidden }));

@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects, contentPieces } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -16,10 +17,10 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
 
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const body = await req.json() as {
     accountId: number;
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   };
 
   if (!body.accountId || !body.sourceText?.trim()) {
-    return NextResponse.json({ ok: false, error: 'Missing params' }, { status: 400 });
+    return errorResponse('Missing params', 400);
   }
 
   const [row] = await db
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     .where(eq(platformAccounts.id, body.accountId))
     .limit(1);
 
-  if (!row || !row.platform) return NextResponse.json({ ok: false, error: 'Account not found' }, { status: 404 });
+  if (!row || !row.platform) return errorResponse('Account not found', 404);
 
   const project = row.project;
   const acc = row.account;
@@ -88,7 +89,7 @@ Write the reply. Output ONLY the reply text.`;
 
   try {
     const ai = getOpenAI();
-    if (!ai) return NextResponse.json({ ok: false, error: 'AI client unavailable' }, { status: 503 });
+    if (!ai) return errorResponse('AI client unavailable', 503);
 
     const completion = await ai.chat.completions.create({
       model: DEFAULT_MODEL,
@@ -103,7 +104,7 @@ Write the reply. Output ONLY the reply text.`;
     let text = completion.choices[0]?.message?.content?.trim() ?? '';
     text = text.replace(/^["'`]|["'`]$/g, '').trim();
 
-    if (!text) return NextResponse.json({ ok: false, error: 'Empty AI response' }, { status: 502 });
+    if (!text) return errorResponse('Empty AI response', 502);
 
     // Save to content_pieces as a draft reply for later tracking + metrics.
     let contentPieceId: number | null = null;
@@ -145,6 +146,6 @@ Write the reply. Output ONLY the reply text.`;
       meta: { model: DEFAULT_MODEL, length: text.length },
     });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    return errorResponse((e as Error).message, 500);
   }
 }

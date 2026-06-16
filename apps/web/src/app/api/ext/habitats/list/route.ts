@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
   if (err) return err;
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB not configured' }, { status: 503 });
+  if (!db) return errorResponse('DB not configured', 503);
 
   const p = new URL(req.url).searchParams;
   const projectId = (p.get('projectId') || '').trim();
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
   const accountIdRaw = (p.get('accountId') || '').trim();
   const accountId = accountIdRaw && /^\d+$/.test(accountIdRaw) ? Number(accountIdRaw) : null;  // brief theo account này
   if (!projectId || !platformKey) {
-    return NextResponse.json({ ok: false, error: 'projectId + platformKey required' }, { status: 400 });
+    return errorResponse('projectId + platformKey required', 400);
   }
 
   const rows = await db.execute(sql`

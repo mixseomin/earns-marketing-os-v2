@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 // GET /api/ext/astrolas/models
 // Proxy GET https://astrolas.com/api/v1/qa/models — trả list llm_config
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
   const apiUrl = process.env.ASTROLAS_API_URL;
   const apiKey = process.env.ASTROLAS_QA_KEY;
   if (!apiUrl || !apiKey) {
-    return NextResponse.json({ ok: false, error: 'Astrolas chưa cấu hình (ASTROLAS_API_URL + ASTROLAS_QA_KEY)' }, { status: 503 });
+    return errorResponse('Astrolas chưa cấu hình (ASTROLAS_API_URL + ASTROLAS_QA_KEY)', 503);
   }
 
   if (cache && Date.now() - cache.ts < CACHE_TTL_MS) {
@@ -45,15 +46,15 @@ export async function GET(req: Request) {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      return NextResponse.json({ ok: false, error: `Astrolas ${res.status}: ${text.slice(0, 200)}` }, { status: 200 });
+      return errorResponse(`Astrolas ${res.status}: ${text.slice(0, 200)}`, 200);
     }
     const data = await res.json() as { ok?: boolean; models?: AstrolasModel[]; error?: string };
     if (!data.ok || !Array.isArray(data.models)) {
-      return NextResponse.json({ ok: false, error: data.error ?? 'Astrolas trả empty models' }, { status: 200 });
+      return errorResponse(data.error ?? 'Astrolas trả empty models', 200);
     }
     cache = { ts: Date.now(), models: data.models };
     return NextResponse.json({ ok: true, models: data.models });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 200 });
+    return errorResponse((e as Error).message, 200);
   }
 }

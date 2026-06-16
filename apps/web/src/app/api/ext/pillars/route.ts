@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { listContentPillars } from '@/lib/actions/content-pillars';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const err = checkAuth(req); if (err) return err;
   const projectId = (new URL(req.url).searchParams.get('projectId') ?? '').trim();
-  if (!projectId) return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+  if (!projectId) return errorResponse('projectId required', 400);
   const rows = await listContentPillars(projectId);
   const pillars = (rows || [])
     .filter((p) => (p as { status?: string }).status !== 'archived')

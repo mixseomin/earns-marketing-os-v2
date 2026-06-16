@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { addPublication } from '@/lib/actions/publications';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   };
 
   if (!body.projectId || !body.url?.trim()) {
-    return NextResponse.json({ ok: false, error: 'Missing projectId or url' }, { status: 400 });
+    return errorResponse('Missing projectId or url', 400);
   }
 
   const res = await addPublication({

@@ -4,6 +4,7 @@ import { getDb, projects } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { createContentPillar, listContentPillars } from '@/lib/actions/content-pillars';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -12,17 +13,17 @@ export const maxDuration = 60;
 // thật vào content_pillars (bổ sung khi project chưa có pillar). Trả pillars hiện có.
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
 
   const body = (await req.json()) as { projectId?: string; save?: boolean };
   const projectId = (body.projectId ?? '').trim();
-  if (!projectId) return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+  if (!projectId) return errorResponse('projectId required', 400);
 
   const [p] = await db
     .select({ name: projects.name, oneLiner: projects.oneLiner, bio: projects.bio, persona: projects.persona, website: projects.website, contentStrategy: projects.contentStrategy })
     .from(projects).where(eq(projects.id, projectId)).limit(1);
-  if (!p) return NextResponse.json({ ok: false, error: 'project not found' }, { status: 404 });
+  if (!p) return errorResponse('project not found', 404);
 
   let siteText = '';
   if (p.website) {
@@ -56,7 +57,7 @@ Output STRICT JSON with 4-6 pillars.`;
   let suggested: Array<{ name: string; tagline: string; keyMessages: string[] }> = [];
   try {
     const ai = getOpenAI();
-    if (!ai) return NextResponse.json({ ok: false, error: 'AI client unavailable' }, { status: 503 });
+    if (!ai) return errorResponse('AI client unavailable', 503);
     const completion = await ai.chat.completions.create({
       model: DEFAULT_MODEL, temperature: 0.7, max_tokens: 1100,
       response_format: { type: 'json_object' },
@@ -72,7 +73,7 @@ Output STRICT JSON with 4-6 pillars.`;
       return { name: String(o.name ?? '').trim(), tagline: String(o.tagline ?? '').trim(), keyMessages: km };
     }).filter((x) => x.name);
   } catch (e) {
-    return NextResponse.json({ ok: false, error: `AI error: ${(e as Error).message}` }, { status: 500 });
+    return errorResponse(`AI error: ${(e as Error).message}`, 500);
   }
 
   let created = 0;

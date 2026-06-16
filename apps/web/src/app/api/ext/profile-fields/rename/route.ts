@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { renameProfileField } from '@/lib/actions/profile-fields';
 
 export const dynamic = 'force-dynamic';
@@ -22,14 +23,11 @@ export async function POST(req: Request) {
   };
 
   if (!body.platform_key || !body.page_kind || !body.scope_kind || !body.scope_key || !body.old_name || !body.new_name) {
-    return NextResponse.json({
-      ok: false,
-      error: 'platform_key + page_kind + scope_kind + scope_key + old_name + new_name required',
-    }, { status: 400 });
+    return errorResponse('platform_key + page_kind + scope_kind + scope_key + old_name + new_name required', 400);
   }
   const scopeKind = body.scope_kind;
   if (scopeKind !== 'engine' && scopeKind !== 'platform' && scopeKind !== 'habitat') {
-    return NextResponse.json({ ok: false, error: 'scope_kind must be engine|platform|habitat' }, { status: 400 });
+    return errorResponse('scope_kind must be engine|platform|habitat', 400);
   }
 
   const res = await renameProfileField({

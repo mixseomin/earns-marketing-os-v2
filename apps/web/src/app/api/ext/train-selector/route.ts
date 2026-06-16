@@ -7,6 +7,7 @@ import { getFieldSchema } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
 import { getViewerFieldSchema, parseViewerFieldName } from '@/lib/viewer-field-schema';
 import { validateSelector } from '@/lib/selector-validate';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) {
-    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+    return errorResponse('OPENAI_API_KEY not set', 503);
   }
 
   const startedAt = Date.now();
@@ -52,10 +53,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as TrainReq;
 
   if (!body.platform_key || !body.page_kind || !body.field_name || !body.element_html) {
-    return NextResponse.json({
-      ok: false,
-      error: 'platform_key + page_kind + field_name + element_html required',
-    }, { status: 400 });
+    return errorResponse('platform_key + page_kind + field_name + element_html required', 400);
   }
 
   // Field hint từ schema. 3 prefixes (brief.* / viewer.* / habitat field).
@@ -126,7 +124,7 @@ ${body.element_text ? `\nSample text content: "${body.element_text.slice(0, 200)
 Sinh selector trỏ chính xác element này.`;
 
   const ai = getOpenAI();
-  if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
+  if (!ai) return errorResponse('OpenAI client unavailable', 503);
   const model = 'gpt-4.1-mini';
 
   let spec: Record<string, unknown> | null = null;
@@ -156,11 +154,11 @@ Sinh selector trỏ chính xác element này.`;
       status: 502, durationMs: Date.now() - startedAt,
       errorMsg: (e as Error).message,
     });
-    return NextResponse.json({ ok: false, error: (e as Error).message, raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+    return errorResponse((e as Error).message, 502, { raw_llm: rawLlm.slice(0, 500) });
   }
 
   if (!spec || typeof spec.css !== 'string') {
-    return NextResponse.json({ ok: false, error: 'LLM returned no valid spec', raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+    return errorResponse('LLM returned no valid spec', 502, { raw_llm: rawLlm.slice(0, 500) });
   }
 
   // Server-side validation - reject selectors vi phạm rules (sub IDs,
@@ -175,12 +173,10 @@ Sinh selector trỏ chính xác element này.`;
       status: 422, durationMs: Date.now() - startedAt,
       errorMsg: validation.error,
     });
-    return NextResponse.json({
-      ok: false,
-      error: `Selector rejected: ${validation.error}`,
+    return errorResponse(`Selector rejected: ${validation.error}`, 422, {
       rejected_css: spec.css,
       hint: 'LLM sinh selector không stable. Thử click element khác (specific hơn) hoặc edit manual.',
-    }, { status: 422 });
+    });
   }
 
   // Save - source='trained' priority cao hơn 'llm' (user explicitly tag).
@@ -191,7 +187,7 @@ Sinh selector trỏ chính xác element này.`;
         body.platform_key);
 
   if (!targetKey) {
-    return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}` }, { status: 400 });
+    return errorResponse(`target_key required for scope ${targetScope}`, 400);
   }
 
   await setOverride({

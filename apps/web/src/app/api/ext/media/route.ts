@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { getDb, mediaAssets } from '@mos2/db';
 import { and, eq, desc } from 'drizzle-orm';
 
@@ -21,11 +22,11 @@ export async function GET(req: Request) {
   const kind = (searchParams.get('kind') ?? 'image').trim();
   const limit = Math.min(Number(searchParams.get('limit') ?? 60) || 60, 120);
   if (!projectId) {
-    return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+    return errorResponse('projectId required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const conds = [eq(mediaAssets.tenantId, TENANT), eq(mediaAssets.projectId, projectId)];
   if (kind && kind !== 'all') conds.push(eq(mediaAssets.kind, kind));

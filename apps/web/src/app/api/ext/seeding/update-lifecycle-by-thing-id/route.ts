@@ -6,6 +6,7 @@ import { updateCardLifecycle } from '@/lib/actions/brief-posts';
 import { LIFECYCLE_VALUES } from '@/lib/lifecycle';
 import { canonPlatformKey, detectPlatformKeyFromUrl } from '@/lib/habitat-platform-map';
 import { normalizeThingId, isValidThingId, postUrlSearchPattern, threadFallback } from '@/lib/platform-url-parsers';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/update-lifecycle-by-thing-id
 // Body: { thingId, lifecycle, note? }
@@ -35,17 +36,14 @@ export async function POST(req: Request) {
   const pk = canonPlatformKey(body.platformKey) || detectPlatformKeyFromUrl(String(body.commentUrl ?? '')) || 'reddit';
   const thingId = normalizeThingId(pk, String(body.thingId ?? ''));
   if (!thingId || !isValidThingId(pk, thingId)) {
-    return NextResponse.json({ ok: false, error: 'thingId required (valid id for platform)' }, { status: 400 });
+    return errorResponse('thingId required (valid id for platform)', 400);
   }
   if (!body.lifecycle || !VALID_LIFECYCLES.has(body.lifecycle)) {
-    return NextResponse.json({
-      ok: false,
-      error: `Invalid lifecycle. Valid: ${[...VALID_LIFECYCLES].join(', ')}`,
-    }, { status: 400 });
+    return errorResponse(`Invalid lifecycle. Valid: ${[...VALID_LIFECYCLES].join(', ')}`, 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Tìm card khớp thingId. Pattern theo platform (Reddit: .../<thingId>/; X: /status/<id>).
   const pattern = postUrlSearchPattern(pk, thingId);
@@ -56,7 +54,7 @@ export async function POST(req: Request) {
     ORDER BY posted_at DESC NULLS LAST
     LIMIT 1
   `);
-  let card = (rows as unknown as Array<Record<string, unknown>>)[0];
+  let card = firstRow(rows);
 
   // FALLBACK: không card nào có post_url chứa thingId (comment đăng tay, hoặc track bắt nhầm
   // comment khác) → match theo THREAD (parent_url) + account (handle nếu có), rồi BACKFILL
@@ -77,7 +75,7 @@ export async function POST(req: Request) {
         ORDER BY (c.post_url IS NOT NULL) DESC, c.posted_at DESC NULLS LAST, c.id DESC
         LIMIT 1
       `);
-      const c2 = (rows2 as unknown as Array<Record<string, unknown>>)[0];
+      const c2 = firstRow(rows2);
       if (c2) {
         await db.execute(sql`
           UPDATE cards SET post_url = ${body.commentUrl}, posted_at = COALESCE(posted_at, now()), updated_at = now()
@@ -90,10 +88,7 @@ export async function POST(req: Request) {
   }
 
   if (!card) {
-    return NextResponse.json({
-      ok: false,
-      error: `Không tìm thấy card khớp /${thingId}/ (và không có card nào cho thread này). Comment này chưa được seed qua MOS2?`,
-    }, { status: 404 });
+    return errorResponse(`Không tìm thấy card khớp /${thingId}/ (và không có card nào cho thread này). Comment này chưa được seed qua MOS2?`, 404);
   }
 
   const cardId = Number(card.id);
@@ -102,6 +97,6 @@ export async function POST(req: Request) {
     body.lifecycle as 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement',
     body.note ?? null,
   );
-  if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 500 });
+  if (!res.ok) return errorResponse(res.error, 500);
   return NextResponse.json({ ok: true, cardId, lifecycle: body.lifecycle, backfilled });
 }

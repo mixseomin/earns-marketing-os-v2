@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import {
   directusEnabled,
   fetchDirectusEmails,
@@ -16,14 +17,14 @@ export async function GET(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   if (!directusEnabled()) {
-    return NextResponse.json({ ok: false, error: 'Directus bridge disabled' }, { status: 503 });
+    return errorResponse('Directus bridge disabled', 503);
   }
   const status = (new URL(req.url).searchParams.get('status') ?? '').trim();
   try {
     const emails = await fetchDirectusEmails(status === 'active' || status === '');
     return NextResponse.json({ ok: true, emails });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'fetch fail' }, { status: 502 });
+    return errorResponse(e instanceof Error ? e.message : 'fetch fail', 502);
   }
 }
 
@@ -34,12 +35,12 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   if (!directusEnabled()) {
-    return NextResponse.json({ ok: false, error: 'Directus bridge disabled' }, { status: 503 });
+    return errorResponse('Directus bridge disabled', 503);
   }
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const email = String(body.email ?? '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
-    return NextResponse.json({ ok: false, error: 'email hợp lệ required' }, { status: 400 });
+    return errorResponse('email hợp lệ required', 400);
   }
   // Dedupe against the live Directus inventory (no separate table to drift).
   try {
@@ -58,6 +59,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, email, id: created?.id ?? null });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'insert fail' }, { status: 502 });
+    return errorResponse(e instanceof Error ? e.message : 'insert fail', 502);
   }
 }

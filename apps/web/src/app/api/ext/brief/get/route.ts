@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // GET /api/ext/brief/get?briefId=X
 // Trả nội dung 5 field text của brief để ext side panel render textarea
@@ -17,11 +18,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const briefId = Number(url.searchParams.get('briefId') ?? 0);
   if (!briefId) {
-    return NextResponse.json({ ok: false, error: 'briefId required' }, { status: 400 });
+    return errorResponse('briefId required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const rows = await db.execute(sql`
     SELECT
@@ -33,9 +34,9 @@ export async function GET(req: Request) {
     WHERE b.id = ${briefId}
     LIMIT 1
   `);
-  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  const r = firstRow(rows);
   if (!r) {
-    return NextResponse.json({ ok: false, error: 'Brief not found' }, { status: 404 });
+    return errorResponse('Brief not found', 404);
   }
 
   return NextResponse.json({

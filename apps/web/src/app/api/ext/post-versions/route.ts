@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,11 +10,11 @@ export const dynamic = 'force-dynamic';
 // GET ?accountId=&projectId=  → bản mới nhất trước.
 export async function GET(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const url = new URL(req.url);
   const accountId = Number(url.searchParams.get('accountId') || 0);
   const projectId = (url.searchParams.get('projectId') ?? '').trim();
-  if (!accountId) return NextResponse.json({ ok: false, error: 'accountId required' }, { status: 400 });
+  if (!accountId) return errorResponse('accountId required', 400);
 
   // ai_notes là array [{kind:'ext-post-gen', accountId, model, ...}] → containment lọc đúng account.
   const filter = sql`ai_notes @> ${JSON.stringify([{ kind: 'ext-post-gen', accountId }])}::jsonb`;

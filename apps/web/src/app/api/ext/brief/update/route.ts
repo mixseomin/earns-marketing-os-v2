@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/brief/update
 // Body: { briefId, approach_md?, tone?, do_md?, dont_md?, narrative_md? }
@@ -33,18 +34,18 @@ export async function POST(req: Request) {
 
   const briefId = Number(body.briefId ?? 0);
   if (!briefId) {
-    return NextResponse.json({ ok: false, error: 'briefId required' }, { status: 400 });
+    return errorResponse('briefId required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Verify brief tồn tại
   const checkRows = await db.execute(sql`
     SELECT id FROM community_briefs WHERE id = ${briefId} LIMIT 1
   `);
   if (!(checkRows as unknown as Array<unknown>)[0]) {
-    return NextResponse.json({ ok: false, error: 'Brief not found' }, { status: 404 });
+    return errorResponse('Brief not found', 404);
   }
 
   // Build SET clause động — chỉ update field user explicit gửi (typeof string).
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   sets.push(sql`updated_at = NOW()`);
 
   if (sets.length === 1) {
-    return NextResponse.json({ ok: false, error: 'Không có field nào để update' }, { status: 400 });
+    return errorResponse('Không có field nào để update', 400);
   }
 
   const setClause = sql.join(sets, sql`, `);

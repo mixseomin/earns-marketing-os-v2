@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { mechCanon } from '@/lib/selector-field-canon';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +13,9 @@ export const dynamic = 'force-dynamic';
 // platform/habitat MỚI": default có sẵn + nút này gợi ý đặc thù + sửa tay.
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
   const openai = getOpenAI();
-  if (!openai) return NextResponse.json({ ok: false, error: 'AI unavailable' }, { status: 503 });
+  if (!openai) return errorResponse('AI unavailable', 503);
 
   const body = await req.json().catch(() => ({})) as { scope?: string; context?: Record<string, unknown> };
   const scope = body.scope === 'habitat' ? 'habitat' : 'platform';
@@ -43,6 +44,6 @@ export async function POST(req: Request) {
       : [];
     return NextResponse.json({ ok: true, scope, steps });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    return errorResponse((e as Error).message, 500);
   }
 }

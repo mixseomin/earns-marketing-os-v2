@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { getDb, habitats } from '@mos2/db';
 import { and, eq, sql, isNotNull, ne } from 'drizzle-orm';
 
@@ -45,11 +46,11 @@ export async function GET(req: Request) {
   const fields = fieldsParam.split(',').map((s) => s.trim()).filter(Boolean);
 
   if (!fields.length) {
-    return NextResponse.json({ ok: false, error: 'fields query param required' }, { status: 400 });
+    return errorResponse('fields query param required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'db unavailable' }, { status: 503 });
+  if (!db) return errorResponse('db unavailable', 503);
 
   // Filter habitats theo platforms phù hợp page_kind (nếu có)
   const platformKeys = PAGE_KIND_PLATFORM[pageKind] || [];

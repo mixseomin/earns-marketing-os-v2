@@ -3,6 +3,7 @@ import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
   if (err) return err;
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const body = (await req.json()) as { platformKey?: string; platform?: string; handle?: string; projectId?: string };
   const rawHandle = (body.handle ?? '').trim().replace(/^\/+/, '').replace(/^u\//i, '').replace(/^user\//i, '').replace(/^@/, '').trim();
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   const projectId = (body.projectId ?? '').trim();
 
   if (!rawHandle || !platformSlug || !projectId) {
-    return NextResponse.json({ ok: false, error: 'platformKey + handle + projectId required' }, { status: 400 });
+    return errorResponse('platformKey + handle + projectId required', 400);
   }
 
   // Find-or-create platform (giống POST /accounts)

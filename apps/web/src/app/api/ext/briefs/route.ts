@@ -4,6 +4,7 @@ import { getDb, communityBriefs, platformAccounts, habitats } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getBriefFieldSchema } from '@/lib/brief-field-schema';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,14 +39,11 @@ export async function POST(req: Request) {
   const body = (await req.json()) as BriefReq;
 
   if (!body.platform_key || !body.habitat_name || !body.viewer_handle) {
-    return NextResponse.json({
-      ok: false,
-      error: 'platform_key + habitat_name + viewer_handle required',
-    }, { status: 400 });
+    return errorResponse('platform_key + habitat_name + viewer_handle required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'db unavailable' }, { status: 503 });
+  if (!db) return errorResponse('db unavailable', 503);
 
   const cleanHandle = body.viewer_handle.replace(/^u\//i, '').replace(/^@/, '');
 

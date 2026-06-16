@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { updateCardLifecycle } from '@/lib/actions/brief-posts';
 import { VALID_LIFECYCLE_VALUES } from '@/lib/lifecycle';
+import { errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/update-lifecycle
 // Body: { cardId, lifecycle, note? }
@@ -23,14 +24,11 @@ export async function POST(req: Request) {
   };
 
   const cardId = Number(body.cardId ?? 0);
-  if (!cardId) return NextResponse.json({ ok: false, error: 'cardId required' }, { status: 400 });
+  if (!cardId) return errorResponse('cardId required', 400);
 
   const lifecycle = body.lifecycle === undefined ? null : body.lifecycle;
   if (!VALID_LIFECYCLES.has(lifecycle as unknown as null)) {
-    return NextResponse.json({
-      ok: false,
-      error: `Invalid lifecycle '${lifecycle}'. Valid: ${[...VALID_LIFECYCLES].filter(Boolean).join(', ')}, or null.`,
-    }, { status: 400 });
+    return errorResponse(`Invalid lifecycle '${lifecycle}'. Valid: ${[...VALID_LIFECYCLES].filter(Boolean).join(', ')}, or null.`, 400);
   }
 
   const res = await updateCardLifecycle(
@@ -39,7 +37,7 @@ export async function POST(req: Request) {
     body.note ?? null,
   );
   if (!res.ok) {
-    return NextResponse.json({ ok: false, error: res.error }, { status: 404 });
+    return errorResponse(res.error, 404);
   }
   return NextResponse.json({ ok: true, cardId, lifecycle });
 }

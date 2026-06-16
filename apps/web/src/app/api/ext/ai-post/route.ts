@@ -5,6 +5,7 @@ import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 import { estimateCostUsd } from '@/lib/ai/cost';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -41,10 +42,10 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
 
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const body = await req.json() as {
     accountId: number;
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
   const useModel = body.model && ALLOWED_MODELS.includes(body.model) ? body.model : DEFAULT_MODEL;
 
   if (!body.accountId || !body.topic?.trim()) {
-    return NextResponse.json({ ok: false, error: 'Missing accountId or topic' }, { status: 400 });
+    return errorResponse('Missing accountId or topic', 400);
   }
 
   const [row] = await db
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     .where(eq(platformAccounts.id, body.accountId))
     .limit(1);
 
-  if (!row || !row.platform) return NextResponse.json({ ok: false, error: 'Account not found' }, { status: 404 });
+  if (!row || !row.platform) return errorResponse('Account not found', 404);
 
   // Project gen-target: ưu tiên projectId truyền vào (composer chọn) — validate account
   // THAM GIA project đó (junction) → dùng voice/facts/persona của project NÀY, không leak primary.
@@ -226,7 +227,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
   let promptTok = 0, complTok = 0;   // gom usage qua các lần gọi → ước tính cost lưu vào aiNotes
   try {
     const ai = getOpenAI();
-    if (!ai) return NextResponse.json({ ok: false, error: 'AI client unavailable' }, { status: 503 });
+    if (!ai) return errorResponse('AI client unavailable', 503);
 
     // Budget tokens to allow long-form when user asks for it.
     // Rough rule: 1 word ≈ 1.5 tokens; cap at 4000.
@@ -247,7 +248,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
     parsed = JSON.parse(raw);
     if (!parsed.body) throw new Error('No body in AI response');
   } catch (e) {
-    return NextResponse.json({ ok: false, error: `AI error: ${(e as Error).message}` }, { status: 500 });
+    return errorResponse(`AI error: ${(e as Error).message}`, 500);
   }
 
   // FIX deterministic per-project (vd HJ ép link /w/<addr> đúng ví được dẫn) — KHÔNG tin LLM tự đúng.

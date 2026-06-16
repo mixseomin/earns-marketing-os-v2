@@ -5,6 +5,7 @@ import { checkAuth } from '../../_auth';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 import { canonPlatformKey, detectPlatformKeyFromUrl } from '@/lib/habitat-platform-map';
 import { parsePostUrl, normalizeThingId, isValidThingId, postUrlSearchPattern } from '@/lib/platform-url-parsers';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/insights-by-thing-id
 // Body: {
@@ -57,11 +58,11 @@ export async function POST(req: Request) {
   const pk = canonPlatformKey(body.platformKey) || detectPlatformKeyFromUrl(String(body.postUrl ?? '')) || 'reddit';
   const thingId = normalizeThingId(pk, String(body.thingId ?? ''));
   if (!thingId || !isValidThingId(pk, thingId)) {
-    return NextResponse.json({ ok: false, error: 'thingId required (valid id for platform)' }, { status: 400 });
+    return errorResponse('thingId required (valid id for platform)', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Step 1: tìm card existing match thingId
   const pattern = postUrlSearchPattern(pk, thingId);
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
     ORDER BY posted_at DESC NULLS LAST
     LIMIT 1
   `);
-  let card = (existingRows as unknown as Array<Record<string, unknown>>)[0];
+  let card = firstRow(existingRows);
   let createdNew = false;
   let createdInOrphan = false;
 
@@ -81,26 +82,20 @@ export async function POST(req: Request) {
     const postUrl = String(body.postUrl ?? '').trim();
     const authorHandle = String(body.authorHandle ?? '').trim().replace(/^u\//i, '').replace(/^@/, '');
     if (!postUrl || !authorHandle) {
-      return NextResponse.json({
-        ok: false,
+      return errorResponse('Card chưa exist + ext không gửi postUrl/authorHandle → không thể auto-create. Cần postUrl + authorHandle.', 200, {
         reason: 'missing_context',
-        error: 'Card chưa exist + ext không gửi postUrl/authorHandle → không thể auto-create. Cần postUrl + authorHandle.',
-      }, { status: 200 });
+      });
     }
     const parsed = parsePostUrl(postUrl, pk);
     if (!parsed) {
-      return NextResponse.json({
-        ok: false,
+      return errorResponse(`Không parse được URL (${pk}): ${postUrl}`, 200, {
         reason: 'invalid_post_url',
-        error: `Không parse được URL (${pk}): ${postUrl}`,
-      }, { status: 200 });
+      });
     }
     if (parsed.leafId.toLowerCase() !== thingId.toLowerCase()) {
-      return NextResponse.json({
-        ok: false,
+      return errorResponse(`thingId (${thingId}) khác id trong URL (${parsed.leafId})`, 200, {
         reason: 'thing_id_mismatch',
-        error: `thingId (${thingId}) khác id trong URL (${parsed.leafId})`,
-      }, { status: 200 });
+      });
     }
 
     // Resolve account_id (handle case-sensitive — Reddit usernames case-preserving)
@@ -110,14 +105,12 @@ export async function POST(req: Request) {
         AND LOWER(handle) = LOWER(${authorHandle})
       LIMIT 1
     `);
-    const acct = (accountRows as unknown as Array<Record<string, unknown>>)[0];
+    const acct = firstRow(accountRows);
     if (!acct) {
-      return NextResponse.json({
-        ok: false,
+      return errorResponse(`Account @${authorHandle} chưa tồn tại trong MOS2. Tạo account trước.`, 200, {
         reason: 'account_not_found',
-        error: `Account @${authorHandle} chưa tồn tại trong MOS2. Tạo account trước.`,
         hint: { authorHandle },
-      }, { status: 200 });
+      });
     }
     const accountId = Number(acct.id);
 
@@ -128,14 +121,12 @@ export async function POST(req: Request) {
         AND LOWER(name) = LOWER(${parsed.containerName})
       LIMIT 1
     `);
-    const hab = (habitatRows as unknown as Array<Record<string, unknown>>)[0];
+    const hab = firstRow(habitatRows);
     if (!hab) {
-      return NextResponse.json({
-        ok: false,
+      return errorResponse(`Habitat ${parsed.containerName} chưa tồn tại trong MOS2. Tạo habitat trước.`, 200, {
         reason: 'habitat_not_found',
-        error: `Habitat ${parsed.containerName} chưa tồn tại trong MOS2. Tạo habitat trước.`,
         hint: { container: parsed.containerName },
-      }, { status: 200 });
+      });
     }
     const habitatId = Number(hab.id);
     const habitatLang = String(hab.language ?? 'en');
@@ -148,7 +139,7 @@ export async function POST(req: Request) {
       ORDER BY updated_at DESC
       LIMIT 1
     `);
-    const brief = (briefRows as unknown as Array<Record<string, unknown>>)[0];
+    const brief = firstRow(briefRows);
 
     // Step 3: KHÔNG còn tạo ghost brief (0096). Card carry account_id+habitat_id TRỰC TIẾP, brief_id NULL.
     // Orphan (chưa có brief thật) → project_id '_orphan' bucket, brief_id NULL — readers COALESCE(card,brief).
@@ -183,7 +174,7 @@ export async function POST(req: Request) {
       )
       RETURNING id, post_url
     `);
-    card = (newCardRows as unknown as Array<Record<string, unknown>>)[0]!;
+    card = firstRow(newCardRows)!;
     createdNew = true;
   }
 

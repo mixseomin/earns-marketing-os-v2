@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'AI chưa cấu hình (OPENAI_API_KEY)' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('AI chưa cấu hình (OPENAI_API_KEY)', 503);
 
   const body = await req.json().catch(() => ({})) as { projectId?: string; kind?: string; hint?: string };
   const projectId = String(body.projectId ?? '').trim();
@@ -19,16 +20,16 @@ export async function POST(req: Request) {
   const hint = String(body.hint ?? '').trim();
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   let proj: Record<string, unknown> = {};
   if (projectId) {
     const rows = await db.execute(sql`SELECT name, bio, one_liner, persona, website FROM projects WHERE id = ${projectId} LIMIT 1`);
-    proj = (rows as unknown as Array<Record<string, unknown>>)[0] || {};
+    proj = firstRow(rows) || {};
   }
 
   const ai = getOpenAI();
-  if (!ai) return NextResponse.json({ ok: false, error: 'AI client unavailable' }, { status: 503 });
+  if (!ai) return errorResponse('AI client unavailable', 503);
   const sys = `You generate ONE realistic online persona for ${kind === 'brand'
     ? 'an OFFICIAL brand account'
     : 'a community seeding account (an anonymous-feeling regular member, NOT obviously promotional)'}. Output STRICT JSON only.`;
@@ -59,6 +60,6 @@ ${kind === 'seeding' ? 'Anonymous regular member vibe. Do NOT mention the brand.
     try { out = JSON.parse(completion.choices[0]?.message?.content || '{}'); } catch { /* ignore */ }
     return NextResponse.json({ ok: true, identity: out });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'AI gen fail' }, { status: 500 });
+    return errorResponse(e instanceof Error ? e.message : 'AI gen fail', 500);
   }
 }

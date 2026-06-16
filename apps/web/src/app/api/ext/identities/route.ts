@@ -3,6 +3,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { getDb, identities } from '@mos2/db';
 import { checkAuth } from '../_auth';
 import { encryptValue } from '@/lib/crypto';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +15,10 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const projectId = (sp.get('projectId') ?? '').trim();
   const kind = (sp.get('kind') ?? '').trim();
-  if (!projectId) return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+  if (!projectId) return errorResponse('projectId required', 400);
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const raw = await db
     .select({
@@ -45,10 +46,10 @@ export async function POST(req: Request) {
   const projectId = String(body.projectId ?? '').trim();
   const name = String(body.name ?? '').trim();
   if (!projectId || !name) {
-    return NextResponse.json({ ok: false, error: 'projectId + name required' }, { status: 400 });
+    return errorResponse('projectId + name required', 400);
   }
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const pw = body.password ? String(body.password) : '';
   const passwordEnc = pw ? await encryptValue(pw) : null;

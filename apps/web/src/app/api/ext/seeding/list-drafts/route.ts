@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { normalizeParentUrl } from '@/lib/parent-url';
+import { errorResponse } from '@/lib/ext-route';
 
 // GET /api/ext/seeding/list-drafts?parentUrl=<url>&habitatId=<id>
 //
@@ -21,11 +22,11 @@ export async function GET(req: Request) {
   // Cho phép habitat-only (parentUrl optional) → passive tracker X load card theo
   // habitat rồi match theo BODY (URL post≠URL gen thread → ko match được theo thread_key).
   if (!np && !(habitatId > 0)) {
-    return NextResponse.json({ ok: false, error: 'parentUrl or habitatId required' }, { status: 400 });
+    return errorResponse('parentUrl or habitatId required', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Filter theo parentUrl + (optional) habitatId — đảm bảo chỉ show drafts
   // của habitat hiện tại nếu pass.

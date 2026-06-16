@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { normalizeParentUrl } from '@/lib/parent-url';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'db unavailable' }, { status: 503 });
+  if (!db) return errorResponse('db unavailable', 503);
 
   const rows = await db.execute(sql`
     SELECT id, parent_url, thread_key FROM cards WHERE parent_url IS NOT NULL`);

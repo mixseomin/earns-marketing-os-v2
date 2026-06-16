@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/vision/extract-context
 // Body: { imageUrls: string[], habitatId?: number, briefId?: number, hint?: string }
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
   if (!aiEnabled()) {
-    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY chưa cấu hình' }, { status: 503 });
+    return errorResponse('OPENAI_API_KEY chưa cấu hình', 503);
   }
 
   const body = await req.json().catch(() => ({})) as {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
 
   const urls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((u) => typeof u === 'string' && /^https?:\/\//.test(u)) : [];
   if (urls.length === 0) {
-    return NextResponse.json({ ok: false, error: 'imageUrls required' }, { status: 400 });
+    return errorResponse('imageUrls required', 400);
   }
   const capped = urls.slice(0, MAX_IMAGES);
 
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
         WHERE h.id = ${Number(body.habitatId)}
         LIMIT 1
       `);
-      const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+      const r = firstRow(rows);
       if (r) {
         habitatName = String(r.habitat_name ?? '');
         tribeSlug = String(r.tribe_slug ?? '');
@@ -112,11 +113,9 @@ export async function POST(req: Request) {
       habitatName: habitatName || null,
     });
   } catch (e) {
-    return NextResponse.json({
-      ok: false,
-      error: (e as Error).message,
+    return errorResponse((e as Error).message, 200, {
       durationMs: Date.now() - startedAt,
-    }, { status: 200 });
+    });
   }
 }
 

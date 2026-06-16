@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/ext-route';
 import { checkAuth } from '../_auth';
 import { setOverride } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
@@ -58,10 +59,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as SaveReq;
 
   if (!body.platform_key || !body.page_kind || !body.field_name || !body.css) {
-    return NextResponse.json({
-      ok: false,
-      error: 'platform_key + page_kind + field_name + css required',
-    }, { status: 400 });
+    return errorResponse('platform_key + page_kind + field_name + css required', 400);
   }
 
   const kind = body.kind || 'css';
@@ -75,11 +73,7 @@ export async function POST(req: Request) {
       status: 422, durationMs: Date.now() - startedAt,
       errorMsg: validation.error,
     });
-    return NextResponse.json({
-      ok: false,
-      error: `Selector rejected: ${validation.error}`,
-      rejected_css: body.css,
-    }, { status: 422 });
+    return errorResponse(`Selector rejected: ${validation.error}`, 422, { rejected_css: body.css });
   }
 
   // Infer attr + parse từ schema nếu user không truyền. 3 prefixes:
@@ -122,7 +116,7 @@ export async function POST(req: Request) {
         body.platform_key);
 
   if (!targetKey) {
-    return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}` }, { status: 400 });
+    return errorResponse(`target_key required for scope ${targetScope}`, 400);
   }
 
   const saveRes = await setOverride({
@@ -135,7 +129,7 @@ export async function POST(req: Request) {
     renameFrom: body.rename_from,
   });
   if (!saveRes.ok) {
-    return NextResponse.json({ ok: false, error: saveRes.error || 'save failed' }, { status: 500 });
+    return errorResponse(saveRes.error || 'save failed', 500);
   }
   // Real saved name — canon/adopt/rename may differ from input. Return it so the ext
   // shows the truth (no silent divergence) + can carry the persona value over.

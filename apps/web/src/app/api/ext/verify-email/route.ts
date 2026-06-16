@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { execFile } from 'node:child_process';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
   const body = await req.json().catch(() => ({})) as { email?: string; click?: string };
   const email = (body.email || '').trim();
-  if (!email || !email.includes('@')) return NextResponse.json({ ok: false, error: 'email required' }, { status: 400 });
+  if (!email || !email.includes('@')) return errorResponse('email required', 400);
   // mode: 'detect' (default — chỉ tìm link, KHÔNG click) | 'click' (server GET ngầm).
   const mode = body.click === 'server' ? 'click' : 'detect';
   try {
@@ -28,6 +29,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(JSON.parse((stdout || '').trim() || '{"ok":false,"error":"empty output"}'));
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    return errorResponse((e as Error).message, 500);
   }
 }

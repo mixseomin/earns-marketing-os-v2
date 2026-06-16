@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { firstRow } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';   // disable static optimization
 export const revalidate = 0;              // disable ISR
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
       ORDER BY ${projectPref} h.id
       LIMIT 1
     `);
-    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const r = firstRow(rows);
     if (r) {
       return NextResponse.json({
         habitat: {
@@ -92,7 +93,7 @@ export async function GET(req: Request) {
         ORDER BY ${projectPref} h.id
         LIMIT 1
       `);
-      const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+      const r = firstRow(rows);
       if (r) {
         return NextResponse.json({
           habitat: {
@@ -197,7 +198,7 @@ export async function GET(req: Request) {
       ORDER BY ${projectPref} LENGTH(h.url) DESC
       LIMIT 1
     `);
-    const dr = (drows as unknown as Array<Record<string, unknown>>)[0];
+    const dr = firstRow(drows);
     if (dr) {
       return NextResponse.json({
         habitat: {
@@ -224,7 +225,7 @@ export async function GET(req: Request) {
     ORDER BY ${projectPref} LENGTH(h.url) DESC
     LIMIT 1
   `);
-  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  const r = firstRow(rows);
   if (r) {
     return NextResponse.json({
       habitat: {

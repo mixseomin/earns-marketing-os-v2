@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { listEngagementsByParentUrl } from '@/lib/actions/brief-posts';
 
 // GET /api/ext/seeding/engagements?projectId=X&parentUrl=https://...
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
   const projectId = (url.searchParams.get('projectId') ?? '').trim();
   const parentUrl = (url.searchParams.get('parentUrl') ?? '').trim();
   if (!projectId || !parentUrl) {
-    return NextResponse.json({ ok: false, error: 'projectId + parentUrl required' }, { status: 400 });
+    return errorResponse('projectId + parentUrl required', 400);
   }
   const summary = await listEngagementsByParentUrl(projectId, parentUrl);
   if (!summary) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,14 +13,14 @@ export const runtime = 'nodejs';
 export async function GET(req: Request) {
   const err = checkAuth(req); if (err) return err;
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const url = new URL(req.url);
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
   const externalId = (url.searchParams.get('externalId') ?? '').trim();
   const channelDbId = Number(url.searchParams.get('channelDbId') ?? 0);
   if (!channelDbId && !(habitatId && externalId)) {
-    return NextResponse.json({ ok: false, error: 'channelDbId hoặc (habitatId + externalId) required' }, { status: 400 });
+    return errorResponse('channelDbId hoặc (habitatId + externalId) required', 400);
   }
 
   // Resolve channel db id.
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
       SELECT id FROM habitat_channels
        WHERE habitat_id = ${habitatId} AND external_id = ${externalId}
        LIMIT 1`);
-    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const r = firstRow(rows);
     if (!r) return NextResponse.json({ ok: true, channelDbId: null, posts: [], postedCount: 0, draftCount: 0 });
     cid = Number(r.id);
   }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 // GET /api/ext/scene/people?projectId=X&handles=a,b,c
 // WHO-THEM familiarity lookup for the Crew ext — enrich replier rows in-context
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const projectId = (url.searchParams.get('projectId') ?? '').trim();
-  if (!projectId) return NextResponse.json({ ok: false, error: 'projectId required' }, { status: 400 });
+  if (!projectId) return errorResponse('projectId required', 400);
 
   const handlesRaw = (url.searchParams.get('handles') ?? '').trim();
   const handles = handlesRaw
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
     : [];
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const res = await db.execute(handles.length
     ? sql`SELECT handle, familiarity_score, status, interaction_count, they_replied_back

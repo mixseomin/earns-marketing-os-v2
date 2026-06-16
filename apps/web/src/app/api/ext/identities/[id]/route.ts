@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getDb, identities } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { encryptValue, decryptValue } from '@/lib/crypto';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +17,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const reveal = new URL(req.url).searchParams.get('reveal') === '1';
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const rows = await db.select().from(identities).where(eq(identities.id, Number(id))).limit(1);
   const r = rows[0];
-  if (!r) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  if (!r) return errorResponse('not found', 404);
 
   const password = reveal && r.passwordEnc ? await decryptValue(r.passwordEnc) : undefined;
   let passwordVariants: string[] = [];
@@ -47,7 +48,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = String(body.name);

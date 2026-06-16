@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { encryptValue, decryptValue } from '@/lib/crypto';
 import { upsertDirectusAccountByHandle, deleteDirectusAccountByHandle } from '@/lib/bridge/directus';
 import { canonField } from '@/lib/selector-field-canon';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +19,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
   const { id } = await params;
   const accountId = Number(id);
-  if (!Number.isFinite(accountId)) return NextResponse.json({ ok: false, error: 'bad id' }, { status: 400 });
+  if (!Number.isFinite(accountId)) return errorResponse('bad id', 400);
   // Lấy handle+platform TRƯỚC khi xoá để xoá đúng mirror Directus.
   const [acc] = await db
     .select({ platformKey: platformAccounts.platformKey, handle: platformAccounts.handle })
     .from(platformAccounts)
     .where(eq(platformAccounts.id, accountId))
     .limit(1);
-  if (!acc) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  if (!acc) return errorResponse('not found', 404);
   await db.delete(platformAccounts).where(eq(platformAccounts.id, accountId));
   let directusDeleted = 0;
   try { if (acc.handle) directusDeleted = (await deleteDirectusAccountByHandle(acc.platformKey, acc.handle)).deleted; } catch { /* non-blocking */ }
@@ -49,7 +50,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     .from(platformAccounts)
     .where(eq(platformAccounts.id, Number(id)))
     .limit(1);
-  if (!r) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  if (!r) return errorResponse('not found', 404);
   const password = reveal && r.passwordEnc ? await decryptValue(r.passwordEnc) : undefined;
   const { passwordEnc, ...rest } = r;
   return NextResponse.json({

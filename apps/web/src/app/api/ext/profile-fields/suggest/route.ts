@@ -3,6 +3,7 @@ import { checkAuth } from '../../_auth';
 import { getDb, identities, projects, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { errorResponse } from '@/lib/ext-route';
 
 // Field hồ sơ trỏ tới WEBSITE chính của dự án → fill thẳng project.website (canonical,
 // ko để LLM bịa / bỏ trống). Account đại diện dự án nên dùng web chính thức.
@@ -19,13 +20,13 @@ export const dynamic = 'force-dynamic';
 // account.persona (KHÔNG tự ghi đè — xem feedback_no_silent_overrides).
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
   const openai = getOpenAI();
-  if (!openai) return NextResponse.json({ ok: false, error: 'AI unavailable' }, { status: 503 });
+  if (!openai) return errorResponse('AI unavailable', 503);
 
   const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; fields?: Array<{ key?: string; label?: string; current?: string }> };
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
-  if (!fields.length) return NextResponse.json({ ok: false, error: 'fields required' }, { status: 400 });
+  if (!fields.length) return errorResponse('fields required', 400);
 
   // Brand DỰ ÁN = nguồn sự thật cho profile (account đại diện dự án). Load qua projectId
   // hoặc accountId → project. website/oneLiner/bio/hashtags dùng để fill + làm ngữ cảnh.
@@ -131,6 +132,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true, values });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    return errorResponse((e as Error).message, 500);
   }
 }

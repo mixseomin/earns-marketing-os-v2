@@ -5,6 +5,7 @@ import { checkAuth } from '../../_auth';
 import { aiEnabled } from '@/lib/ai/openai';
 import { summarizeAndSaveChannelRules } from '@/lib/actions/sync-channel-core';
 import { platformSupportsChannels, forumSubForumKey } from '@/lib/channel-support';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,8 +17,8 @@ export const runtime = 'nodejs';
 // Body: { habitatId, url, name, description?, stickyThreads?: string[], recentThreads?: string[], notice? }
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  if (!aiEnabled()) return NextResponse.json({ ok: false, error: 'OpenAI chưa cấu hình' }, { status: 503 });
-  const db = getDb(); if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!aiEnabled()) return errorResponse('OpenAI chưa cấu hình', 503);
+  const db = getDb(); if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const body = await req.json().catch(() => ({})) as {
     habitatId?: number; url?: string; name?: string; description?: string;
@@ -25,14 +26,14 @@ export async function POST(req: Request) {
   };
   const habitatId = Number(body.habitatId ?? 0);
   const url = (body.url ?? '').trim();
-  if (!habitatId || !url) return NextResponse.json({ ok: false, error: 'habitatId + url required' }, { status: 400 });
+  if (!habitatId || !url) return errorResponse('habitatId + url required', 400);
 
   // Verify habitat là forum-type (có sub-area).
   const [hab] = await db.select({ id: habitats.id, kind: habitats.kind, technologyKey: habitats.technologyKey, platformKey: habitats.platformKey })
     .from(habitats).where(eq(habitats.id, habitatId)).limit(1);
-  if (!hab) return NextResponse.json({ ok: false, error: 'habitat not found' }, { status: 404 });
+  if (!hab) return errorResponse('habitat not found', 404);
   if (!platformSupportsChannels({ kind: hab.kind, technologyKey: hab.technologyKey, platformKey: hab.platformKey })) {
-    return NextResponse.json({ ok: false, error: `habitat kind=${hab.kind} không hỗ trợ sub-forum/channel` }, { status: 400 });
+    return errorResponse(`habitat kind=${hab.kind} không hỗ trợ sub-forum/channel`, 400);
   }
 
   const externalId = forumSubForumKey(url) || url.slice(0, 120);
@@ -62,6 +63,6 @@ export async function POST(req: Request) {
       aiError: r.aiError,
     });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 503 });
+    return errorResponse((e as Error).message, 503);
   }
 }

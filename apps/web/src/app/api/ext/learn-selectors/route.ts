@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
 import { getFieldHint } from '@/lib/habitat-field-schema';
@@ -41,10 +42,7 @@ export async function GET(req: Request) {
   const technologyKey = searchParams.get('technology_key');
 
   if (!pageKind || (!platformKey && !habitatIdRaw && !technologyKey)) {
-    return NextResponse.json({
-      ok: false,
-      error: 'page_kind + at least one of platform_key/habitat_id/technology_key required',
-    }, { status: 400 });
+    return errorResponse('page_kind + at least one of platform_key/habitat_id/technology_key required', 400);
   }
 
   // Nếu chỉ có habitat_id → resolve via lookup (auto derive platform+tech).
@@ -85,14 +83,12 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) {
-    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+    return errorResponse('OPENAI_API_KEY not set', 503);
   }
 
   const body = (await req.json()) as LearnReq;
   if (!body.html || !body.platform_key || !body.page_kind || !body.fields?.length) {
-    return NextResponse.json({
-      ok: false, error: 'platform_key + page_kind + fields[] + html required',
-    }, { status: 400 });
+    return errorResponse('platform_key + page_kind + fields[] + html required', 400);
   }
 
   const startedAt = Date.now();
@@ -166,7 +162,7 @@ RULES:
 10. ⚠ Class selector LUÔN có dấu chấm "." trước: ".shreddit-subreddit-icon__icon" hoặc "img.shreddit-subreddit-icon__icon" — KHÔNG được "shreddit-subreddit-icon__icon" (cái này là tag selector, sẽ search custom element không tồn tại).`;
 
   const ai = getOpenAI();
-  if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
+  if (!ai) return errorResponse('OpenAI client unavailable', 503);
   const model = 'gpt-4.1-mini';
 
   let selectors: SelectorMap = {};
@@ -201,7 +197,7 @@ RULES:
       status: 502, durationMs: Date.now() - startedAt,
       errorMsg: (e as Error).message,
     });
-    return NextResponse.json({ ok: false, error: (e as Error).message, model, raw_llm: rawLlmResponse.slice(0, 500) }, { status: 502 });
+    return errorResponse((e as Error).message, 502, { model, raw_llm: rawLlmResponse.slice(0, 500) });
   }
 
   // Default scope = platform (broadest). Ext có thể override gửi 'habitat'
@@ -214,7 +210,7 @@ RULES:
         body.platform_key);
 
   if (!targetKey) {
-    return NextResponse.json({ ok: false, error: `target_key required for scope ${targetScope}`, selectors, model }, { status: 400 });
+    return errorResponse(`target_key required for scope ${targetScope}`, 400, { selectors, model });
   }
 
   // Validate từng selector trước khi save - reject bad ones.

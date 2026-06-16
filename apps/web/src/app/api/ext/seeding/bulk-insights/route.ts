@@ -5,6 +5,7 @@ import { checkAuth } from '../../_auth';
 import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { normalizeThingId, isValidThingId, postUrlSearchPattern } from '@/lib/platform-url-parsers';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/bulk-insights
 // Body: { items: [{ thingId, score?, replyCount?, views?, upvoteRatio?, postUrl? }, ...] }
@@ -40,14 +41,14 @@ export async function POST(req: Request) {
   const pk = canonPlatformKey(body.platformKey) || 'reddit';
   const items = Array.isArray(body.items) ? body.items : [];
   if (items.length === 0) {
-    return NextResponse.json({ ok: false, error: 'items array required' }, { status: 400 });
+    return errorResponse('items array required', 400);
   }
   if (items.length > 200) {
-    return NextResponse.json({ ok: false, error: 'max 200 items per batch' }, { status: 400 });
+    return errorResponse('max 200 items per batch', 400);
   }
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const results: Array<{ thingId: string; status: 'updated' | 'not_found' | 'skipped'; cardId?: number; error?: string }> = [];
 
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
       ORDER BY posted_at DESC NULLS LAST
       LIMIT 1
     `);
-    const cardRow = (rows as unknown as Array<{ id: number }>)[0];
+    const cardRow = firstRow<{ id: number }>(rows);
     if (!cardRow) {
       results.push({ thingId, status: 'not_found' });
       continue;

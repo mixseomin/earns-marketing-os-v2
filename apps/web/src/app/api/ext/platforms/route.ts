@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
+import { errorResponse } from '@/lib/ext-route';
 import { listPlatformsWithUsage, createPlatform } from '@/lib/actions/platforms';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
     category?: string;
   };
   if (!body.label?.trim()) {
-    return NextResponse.json({ ok: false, error: 'label required' }, { status: 400 });
+    return errorResponse('label required', 400);
   }
 
   const res = await createPlatform({
@@ -58,6 +59,6 @@ export async function POST(req: Request) {
     ...(body.category ? { category: body.category as never } : {}),
   });
 
-  if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 400 });
+  if (!res.ok) return errorResponse(res.error, 400);
   return NextResponse.json({ ok: true, key: res.key, directusWarning: res.directusWarning });
 }

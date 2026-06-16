@@ -8,6 +8,7 @@ import { normalizeParentUrl } from '@/lib/parent-url';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 import { extractWallet, fetchGrade, buildGradeInstruction, type GradeFacts } from '@/lib/ai/hyperjournal-facts';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/hyperjournal-answer
 // Same body contract as /quick-comment. HyperJournal data-backed: detect the
@@ -43,23 +44,19 @@ export async function POST(req: Request) {
   const contentType = (ALLOWED_CT as readonly string[]).includes(body.contentType ?? '')
     ? (body.contentType as string) : 'reply';
   if (!habitatId || !projectId) {
-    return NextResponse.json({ ok: false, error: 'habitatId + projectId required' }, { status: 400 });
+    return errorResponse('habitatId + projectId required', 400);
   }
 
   // Gate: need a full wallet address in the post to ground the reply.
   const wallet = extractWallet(body.parentBody);
   if (!wallet) {
-    return NextResponse.json({
-      ok: false,
-      noWallet: true,
-      error: 'Không phát hiện ví (0x...) đầy đủ trong bài đang reply. Dùng ✨ Gen reply thường, hoặc mở bài có địa chỉ ví đầy đủ.',
-    }, { status: 200 });
+    return errorResponse('Không phát hiện ví (0x...) đầy đủ trong bài đang reply. Dùng ✨ Gen reply thường, hoặc mở bài có địa chỉ ví đầy đủ.', 200, { noWallet: true });
   }
   // Facts from HL (fallback to minimal ungraded if the service is unreachable).
   const facts: GradeFacts = (await fetchGrade(wallet)) ?? { graded: false, addr: wallet, url: `https://hljournal.xyz/w/${wallet}` };
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+  if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // Resolve briefId (latest brief of habitat if not passed)
   let briefId = body.briefId ?? null;
@@ -68,22 +65,22 @@ export async function POST(req: Request) {
       SELECT id FROM community_briefs WHERE habitat_id = ${habitatId} AND project_id = ${projectId}
       ORDER BY updated_at DESC LIMIT 1
     `);
-    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    const r = firstRow(rows);
     briefId = r ? Number(r.id) : null;
   }
   if (!briefId) {
-    return NextResponse.json({ ok: false, error: 'Habitat chưa có brief nào trong project. Vào MOS2 tạo brief trước.' }, { status: 400 });
+    return errorResponse('Habitat chưa có brief nào trong project. Vào MOS2 tạo brief trước.', 400);
   }
 
   const briefRows = await db.execute(sql`SELECT current_phase FROM community_briefs WHERE id = ${briefId} LIMIT 1`);
-  const phase = (briefRows as unknown as Array<Record<string, unknown>>)[0]?.current_phase as Phase | undefined;
+  const phase = firstRow(briefRows)?.current_phase as Phase | undefined;
   const useFallbackPhase: Phase = (phase ?? 'warm-up') as Phase;
 
   // 1. Create card
   const channelDbId = await resolveForumChannelId(db, habitatId, body.channelUrl, body.channelName);
   const create = await createPostForBriefPhase(projectId, briefId, useFallbackPhase, contentType, undefined, channelDbId);
   if (!create.ok || !create.id) {
-    return NextResponse.json({ ok: false, error: create.error ?? 'createPost failed' }, { status: 500 });
+    return errorResponse(create.error ?? 'createPost failed', 500);
   }
   const cardId = create.id;
 
@@ -132,7 +129,7 @@ export async function POST(req: Request) {
     LEFT JOIN platform_accounts pa ON pa.id = b.account_id
     WHERE c.id = ${cardId} LIMIT 1
   `);
-  const f = (finalRows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  const f = firstRow(finalRows) ?? {};
   const persona = (f.persona as Record<string, unknown> | null) ?? {};
 
   return NextResponse.json({

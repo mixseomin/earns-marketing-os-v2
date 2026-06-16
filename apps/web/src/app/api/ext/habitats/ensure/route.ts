@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql, eq } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,7 +17,7 @@ export const revalidate = 0;
 export async function POST(req: Request) {
   const err = checkAuth(req); if (err) return err;
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB not configured' }, { status: 503 });
+  if (!db) return errorResponse('DB not configured', 503);
 
   const b = (await req.json()) as {
     projectId?: string; platformKey?: string; kind?: string;
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   const name = (b.name || '').trim();
   const kind = (b.kind || 'profile').trim();
   const externalId = (b.externalId || '').trim();
-  if (!projectId || !name) return NextResponse.json({ ok: false, error: 'projectId + name required' }, { status: 400 });
+  if (!projectId || !name) return errorResponse('projectId + name required', 400);
 
   // Metadata bắt từ trang search communities (DOM logged-in). Chỉ điền field còn trống (COALESCE).
   const members = Number.isFinite(b.members as number) ? Math.round(b.members as number) : null;
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
     ORDER BY (h.scraped_meta->>'ext_external_id' = ${externalId || '___none___'}) DESC, h.id
     LIMIT 1
   `);
-  const hit = (found as unknown as Array<Record<string, unknown>>)[0];
+  const hit = firstRow(found);
   if (hit) {
     // Owned toggle (mark "site của tôi") — set thẳng nếu gửi.
     if (typeof b.isOwn === 'boolean') {
@@ -99,8 +100,8 @@ export async function POST(req: Request) {
             ${members ?? 0}, ${description ?? ''}, ${weeklyVisitors ?? 0}, ${weeklyContributions ?? 0}, ${iconUrl}, ${b.isOwn === true})
     RETURNING id, name, kind, project_id, platform_key
   `);
-  const row = (ins as unknown as Array<Record<string, unknown>>)[0];
-  if (!row) return NextResponse.json({ ok: false, error: 'insert failed' }, { status: 500 });
+  const row = firstRow(ins);
+  if (!row) return errorResponse('insert failed', 500);
   return NextResponse.json({
     ok: true, created: true,
     habitat: {

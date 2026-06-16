@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { getDb, platformAccounts, projectAccounts } from '@mos2/db';
 import { checkAuth } from '../../_auth';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,13 @@ export async function POST(req: Request) {
   if (err) return err;
 
   const db = getDb();
-  if (!db) return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+  if (!db) return errorResponse('DB unavailable', 503);
 
   const body = (await req.json()) as { accountId?: number; newProjectId?: string; confirm?: boolean };
   const accountId = Number(body.accountId || 0);
   const newProjectId = (body.newProjectId ?? '').trim();
   if (!accountId || !newProjectId) {
-    return NextResponse.json({ ok: false, error: 'accountId + newProjectId required' }, { status: 400 });
+    return errorResponse('accountId + newProjectId required', 400);
   }
 
   const [acc] = await db
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     .from(platformAccounts)
     .where(eq(platformAccounts.id, accountId))
     .limit(1);
-  if (!acc) return NextResponse.json({ ok: false, error: 'account not found' }, { status: 404 });
+  if (!acc) return errorResponse('account not found', 404);
 
   const [prim] = await db
     .select({ projectId: projectAccounts.projectId })
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
   const oldPrimary = prim?.projectId || '';
 
   if (oldPrimary === newProjectId) {
-    return NextResponse.json({ ok: false, error: 'already-primary', message: 'Project này đã là project chính.' }, { status: 400 });
+    return errorResponse('already-primary', 400, { message: 'Project này đã là project chính.' });
   }
 
   // Account đã tham gia project mới chưa (junction tồn tại)?

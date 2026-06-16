@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { validateSelector } from '@/lib/selector-validate';
+import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
   const err = checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) {
-    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY not set' }, { status: 503 });
+    return errorResponse('OPENAI_API_KEY not set', 503);
   }
 
   const startedAt = Date.now();
@@ -47,10 +48,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as SuggestReq;
 
   if (!body.platform_key || !body.field_name || !body.element_html) {
-    return NextResponse.json({
-      ok: false,
-      error: 'platform_key + field_name + element_html required',
-    }, { status: 400 });
+    return errorResponse('platform_key + field_name + element_html required', 400);
   }
 
   const kind = body.kind || 'css';
@@ -131,7 +129,7 @@ ${anchorSummary ? `\nSTABLE ANCESTORS CHAIN (gốc → element) — dùng làm r
 Sinh ${kind === 'css' ? 'CSS selector' : 'XPath'} thoả intent + rules.`;
 
   const ai = getOpenAI();
-  if (!ai) return NextResponse.json({ ok: false, error: 'OpenAI client unavailable' }, { status: 503 });
+  if (!ai) return errorResponse('OpenAI client unavailable', 503);
   const model = 'gpt-4.1-mini';
 
   let spec: Record<string, unknown> | null = null;
@@ -163,11 +161,11 @@ Sinh ${kind === 'css' ? 'CSS selector' : 'XPath'} thoả intent + rules.`;
       status: 502, durationMs: Date.now() - startedAt,
       errorMsg: (e as Error).message,
     });
-    return NextResponse.json({ ok: false, error: (e as Error).message, raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+    return errorResponse((e as Error).message, 502, { raw_llm: rawLlm.slice(0, 500) });
   }
 
   if (!spec || typeof spec.css !== 'string') {
-    return NextResponse.json({ ok: false, error: 'LLM no valid spec', raw_llm: rawLlm.slice(0, 500) }, { status: 502 });
+    return errorResponse('LLM no valid spec', 502, { raw_llm: rawLlm.slice(0, 500) });
   }
 
   // Validate (CSS = full FORBIDDEN_PATTERNS, XPath = minimal — chỉ sub IDs).
@@ -182,21 +180,17 @@ Sinh ${kind === 'css' ? 'CSS selector' : 'XPath'} thoả intent + rules.`;
         status: 422, durationMs: Date.now() - startedAt,
         errorMsg: v.error,
       });
-      return NextResponse.json({
-        ok: false,
-        error: `Selector rejected: ${v.error}`,
+      return errorResponse(`Selector rejected: ${v.error}`, 422, {
         rejected_css: spec.css,
         raw_llm: rawLlm.slice(0, 500),
-      }, { status: 422 });
+      });
     }
   } else {
     const xp = spec.css as string;
     if (/\bt5_[a-z0-9]+/i.test(xp) || /styles\.redditmedia\.com\/t5_/i.test(xp)) {
-      return NextResponse.json({
-        ok: false,
-        error: 'XPath chứa sub ID t5_xxx (Reddit-specific)',
+      return errorResponse('XPath chứa sub ID t5_xxx (Reddit-specific)', 422, {
         rejected_css: xp,
-      }, { status: 422 });
+      });
     }
   }
 

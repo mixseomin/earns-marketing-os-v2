@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { normalizeParentUrl } from '@/lib/parent-url';
-import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
+import { appendInsightsSnapshot, insightsScalarSets } from '@/lib/insights-snapshot';
 import { recordReplierInteractions } from '@/lib/scene-people';
 import { firstRow, errorResponse } from '@/lib/ext-route';
 
@@ -83,15 +83,7 @@ export async function POST(req: Request) {
   // Build SET clause động — chỉ update field user gửi (cho phép partial sync,
   // vd Reddit ẩn views thì chỉ update upvote_ratio + reply_count).
   const sets: ReturnType<typeof sql>[] = [];
-  if (body.views != null) sets.push(sql`insights_views_count = ${Math.round(Number(body.views))}`);
-  if (body.score != null) sets.push(sql`insights_score = ${Math.round(Number(body.score))}`);
-  if (body.upvoteRatio != null) {
-    const r = Math.max(0, Math.min(1, Number(body.upvoteRatio)));
-    sets.push(sql`insights_upvote_ratio = ${r}`);
-  }
-  if (body.replyCount != null) sets.push(sql`insights_reply_count = ${Math.round(Number(body.replyCount))}`);
-  if (body.shareCount != null) sets.push(sql`insights_share_count = ${Math.round(Number(body.shareCount))}`);
-  if (body.awardCount != null) sets.push(sql`insights_award_count = ${Math.round(Number(body.awardCount))}`);
+  sets.push(...insightsScalarSets(body));
   if (Array.isArray(body.topCountries)) {
     sets.push(sql`insights_top_countries = ${JSON.stringify(body.topCountries.slice(0, 10))}::jsonb`);
   }

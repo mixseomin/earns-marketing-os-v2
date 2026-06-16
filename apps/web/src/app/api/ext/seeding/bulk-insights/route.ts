@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
-import { appendInsightsSnapshot } from '@/lib/insights-snapshot';
+import { appendInsightsSnapshot, insightsScalarSets } from '@/lib/insights-snapshot';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { normalizeThingId, isValidThingId, postUrlSearchPattern } from '@/lib/platform-url-parsers';
 import { firstRow, errorResponse } from '@/lib/ext-route';
@@ -73,14 +73,7 @@ export async function POST(req: Request) {
     }
 
     const sets: ReturnType<typeof sql>[] = [];
-    if (it.score != null) sets.push(sql`insights_score = ${Math.round(Number(it.score))}`);
-    if (it.replyCount != null) sets.push(sql`insights_reply_count = ${Math.round(Number(it.replyCount))}`);
-    if (it.views != null) sets.push(sql`insights_views_count = ${Math.round(Number(it.views))}`);
-    if (it.upvoteRatio != null) {
-      const r = Math.max(0, Math.min(1, Number(it.upvoteRatio)));
-      sets.push(sql`insights_upvote_ratio = ${r}`);
-    }
-    if (it.awardCount != null) sets.push(sql`insights_award_count = ${Math.round(Number(it.awardCount))}`);
+    sets.push(...insightsScalarSets(it));
     if (sets.length === 0) {
       results.push({ thingId, status: 'skipped', cardId: cardRow.id, error: 'no insight fields' });
       continue;

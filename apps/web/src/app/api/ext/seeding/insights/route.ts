@@ -39,6 +39,9 @@ export async function POST(req: Request) {
     replyCount?: number;
     shareCount?: number;
     awardCount?: number;
+    engagements?: number;       // X Post Analytics (modal-only): Engagements
+    detailExpands?: number;     // Detail expands
+    profileVisits?: number;     // Profile visits
     topCountries?: Array<{ country: string; pct: number }>;
     // Reply detail (chi tiết): author/ago/body/score + (forum) permalink/postNum/repliedToYou.
     topReplies?: Array<{ author: string; ago?: string; body: string; score?: number | null; permalink?: string; postNum?: string; repliedToYou?: boolean }>;

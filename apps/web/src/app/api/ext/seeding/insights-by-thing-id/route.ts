@@ -37,6 +37,9 @@ interface InsightsBody {
   replyCount?: number;
   shareCount?: number;
   awardCount?: number;
+  engagements?: number;       // X Post Analytics (modal-only): Engagements
+  detailExpands?: number;     // Detail expands
+  profileVisits?: number;     // Profile visits
   postUrl?: string;
   authorHandle?: string;
   bodyText?: string;

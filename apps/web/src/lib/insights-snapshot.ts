@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 export function insightsScalarSets(src: {
   views?: unknown; score?: unknown; upvoteRatio?: unknown;
   replyCount?: unknown; shareCount?: unknown; awardCount?: unknown;
+  engagements?: unknown; detailExpands?: unknown; profileVisits?: unknown;
 }): ReturnType<typeof sql>[] {
   const sets: ReturnType<typeof sql>[] = [];
   if (src.views != null) sets.push(sql`insights_views_count = ${Math.round(Number(src.views))}`);
@@ -15,6 +16,10 @@ export function insightsScalarSets(src: {
   if (src.replyCount != null) sets.push(sql`insights_reply_count = ${Math.round(Number(src.replyCount))}`);
   if (src.shareCount != null) sets.push(sql`insights_share_count = ${Math.round(Number(src.shareCount))}`);
   if (src.awardCount != null) sets.push(sql`insights_award_count = ${Math.round(Number(src.awardCount))}`);
+  // X (Twitter) Post Analytics — chỉ có trong modal Analytics (migration 0100).
+  if (src.engagements != null) sets.push(sql`insights_engagements = ${Math.round(Number(src.engagements))}`);
+  if (src.detailExpands != null) sets.push(sql`insights_detail_expands = ${Math.round(Number(src.detailExpands))}`);
+  if (src.profileVisits != null) sets.push(sql`insights_profile_visits = ${Math.round(Number(src.profileVisits))}`);
   return sets;
 }
 

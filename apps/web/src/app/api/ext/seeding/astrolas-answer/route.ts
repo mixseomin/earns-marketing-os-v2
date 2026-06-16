@@ -319,6 +319,9 @@ export async function POST(req: Request) {
     ...(entities.length ? { entities } : {}),
   };
 
+  // 🔎 DEBUG LOG (user yêu cầu 2026-06-16): ghi MỌI param độ dài thực gửi engine → đọc journalctl -u mos2-web.
+  console.log(`[astrolas-answer:SENT] card=${cardId} formatKey=${body.formatKey ?? '(none)'} bodyTargetWords=${body.targetWords ?? '(none)'} → resolvedWords=${fmt.words} target_words_to_engine=${astrolasPayload.target_words ?? '(NOT SENT)'} max_length=${astrolasPayload.max_length} depth=${body.depth ?? '(none)'}`);
+
   // 4. Call Astrolas — model escalation (Astrolas đề xuất 2026-06-12): small model nhanh cho
   // casual; default_chat (Sonnet) cho HARD case = self-chart / celeb (data-backed reasoning).
   // + retry escalate nếu engine báo quality thấp (shallow_reasoning / system_message_leak).

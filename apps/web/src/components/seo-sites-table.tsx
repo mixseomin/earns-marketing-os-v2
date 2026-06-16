@@ -79,19 +79,16 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', fontWeight: 500 };
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
 
-  // Per-group styling helpers — feed the same color through chips, header band,
-  // and a subtle body tint so each group reads as one block.
-  const headOf = (g: ColGroup, first = false): React.CSSProperties => ({
+  // Per-group styling helpers — bg tint only (no borders). Header bg is a
+  // touch stronger than body so the group reads as a vertical band.
+  const headOf = (g: ColGroup, _first = false): React.CSSProperties => ({
     ...head,
     color: GROUP_COLOR[g].fg,
     background: GROUP_COLOR[g].bg,
-    borderBottom: `2px solid ${GROUP_COLOR[g].fg}`,
-    borderLeft: first ? `2px solid ${GROUP_COLOR[g].fg}` : undefined,
   });
-  const cellOf = (g: ColGroup, first = false, extra: React.CSSProperties = {}): React.CSSProperties => ({
+  const cellOf = (g: ColGroup, _first = false, extra: React.CSSProperties = {}): React.CSSProperties => ({
     ...cell,
     background: GROUP_COLOR[g].bgSoft,
-    borderLeft: first ? `2px solid ${GROUP_COLOR[g].fg}` : undefined,
     ...extra,
   });
   const totalAdsenseToday = rows.reduce((s, r) => s + (r.adsense_earnings_today ?? 0), 0);

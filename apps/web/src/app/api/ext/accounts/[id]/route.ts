@@ -127,8 +127,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     for (const [rawK, v] of Object.entries(body.personaUpdates)) {
       // Canon key through the ONE normalizer so persona['About']/'about' converge with
       // selector field_names — kills persona['field'] vs ['about'] drift at the write
-      // boundary. identityId is config (camelCase), not a profile field → keep as-is.
-      const k = rawK === 'identityId' ? rawK : canonField(rawK, 'signup');
+      // boundary. identityId/replyStyle là config (camelCase), KHÔNG phải profile field → keep as-is.
+      const k = (rawK === 'identityId' || rawK === 'replyStyle') ? rawK : canonField(rawK, 'signup');
       if (!k) continue;
       if (v === null || v === '') delete merged[k]; // null = remove override
       else merged[k] = v;

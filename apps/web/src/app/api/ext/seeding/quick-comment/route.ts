@@ -105,7 +105,15 @@ export async function POST(req: Request) {
 
   // 3. AI gen draft — user chọn model qua side panel popover.
   // Default gpt-4.1-mini (cân bằng giá/chất); customPrompt + format preset nhúng vào prompt (HIGH PRIORITY).
-  const fmt = resolveFormatDirective(body.formatKey, body.targetWords);
+  // 'account' format → lấy persona.replyStyle của account (qua brief.account_id) làm chỉ thị độ dài/style.
+  let acctStyle = '';
+  if (body.formatKey === 'account' && briefId) {
+    const sr = firstRow(await db.execute(sql`
+      SELECT pa.persona->>'replyStyle' AS s FROM community_briefs b
+      JOIN platform_accounts pa ON pa.id = b.account_id WHERE b.id = ${briefId} LIMIT 1`));
+    acctStyle = sr?.s ? String(sr.s) : '';
+  }
+  const fmt = resolveFormatDirective(body.formatKey, body.targetWords, acctStyle);
   const customInstruction = [body.customPrompt, fmt.directive && `[FORMAT & ĐỘ DÀI bắt buộc] ${fmt.directive}`]
     .filter(Boolean).join('\n');
   const genStart = Date.now();

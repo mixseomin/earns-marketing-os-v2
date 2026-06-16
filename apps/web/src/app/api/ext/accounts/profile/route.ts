@@ -207,6 +207,7 @@ export async function GET(req: Request) {
       personaInterests: Array.isArray(persona.interests) ? (persona.interests as string[]) : [],
       personaVoiceSummary: persona.voice_summary ? String(persona.voice_summary) : null,
       personaNarrativeStyle: persona.narrative_style ? String(persona.narrative_style) : null,
+      personaReplyStyle: persona.replyStyle ? String(persona.replyStyle) : null,   // config độ dài/style output (free-text vd "2 câu")
       tags: Array.isArray(acc.tags) ? (acc.tags as string[]) : [],
       notes: acc.notes ? String(acc.notes) : null,
     },

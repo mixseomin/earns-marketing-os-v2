@@ -61,7 +61,15 @@ export interface ResolvedFormat {
 }
 
 // formatKey (authority) → directive VN + words + maxLength. targetWords chỉ dùng nếu thiếu preset (ext cũ).
-export function resolveFormatDirective(formatKey: string | undefined, targetWords?: number): ResolvedFormat {
+export function resolveFormatDirective(formatKey: string | undefined, targetWords?: number, accountStyle?: string): ResolvedFormat {
+  // 'account' = theo cấu hình account (persona.replyStyle, free-text vd "2 câu"). Mô tả CHÍNH là chỉ thị.
+  if (formatKey === 'account') {
+    const style = (accountStyle ?? '').trim();
+    if (style) {
+      return { directive: `[Theo cấu hình account] ${style}. Bám đúng yêu cầu này (vd số câu/độ dài), giữ chất, không lan man.`, words: 0, maxLength: 1700, preset: undefined };
+    }
+    formatKey = 'comment';   // account chưa cấu hình replyStyle → fallback preset reply hợp lý
+  }
   const preset = formatKey ? FORMAT_PRESETS_BY_KEY[formatKey] : undefined;
   const words = preset?.words ?? (Number(targetWords) > 0 ? Math.round(Number(targetWords)) : 0);
   const ld = lenDirectiveForWords(words);
@@ -83,5 +91,6 @@ export const LENGTH_CLAMP_KNOBS = ['one-sentence', 'two-three'];
 export function applyLengthPriority(knobs: string[] | undefined, formatKey?: string, targetWords?: number): string[] {
   const k = Array.isArray(knobs) ? knobs : [];
   const { words } = resolveFormatDirective(formatKey, targetWords);
-  return words > 0 ? k.filter((x) => !LENGTH_CLAMP_KNOBS.includes(x)) : k;
+  const formatControlsLength = words > 0 || formatKey === 'account';   // account = style text điều khiển độ dài
+  return formatControlsLength ? k.filter((x) => !LENGTH_CLAMP_KNOBS.includes(x)) : k;
 }

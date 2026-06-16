@@ -97,6 +97,8 @@ export async function POST(req: Request) {
   const platform = row.platform;
   const personaJson = (acc.persona as Record<string, string>) ?? {};
   const effectiveBio = personaJson['bio'] || project?.bio || '';
+  // 'account' format → persona.replyStyle (free-text vd "2 câu") làm chỉ thị độ dài/format.
+  const acctStyle = body.formatKey === 'account' ? String(personaJson['replyStyle'] || '').trim() : '';
 
   // Match habitat by hostname (project-scoped) for community rules
   let habitat: typeof habitats.$inferSelect | null = null;
@@ -172,6 +174,10 @@ export async function POST(req: Request) {
   const approxChars = targetWords ? targetWords * 6 : null;  // ~6 chars/word incl. space
 
   const lengthDirective = (() => {
+    if (acctStyle) {
+      const lim = format.bodyHardLimit;
+      return `Length & format per the account's own config: "${acctStyle}". Follow it exactly (e.g. sentence count). Substance over padding.${lim ? ` HARD max ${lim} chars.` : ''}`;
+    }
     if (format.bodyHardLimit) {
       const lim = format.bodyHardLimit;
       // targetWords muốn dài hơn limit → LẤP ĐẦY space (đừng cụt), pack specifics.

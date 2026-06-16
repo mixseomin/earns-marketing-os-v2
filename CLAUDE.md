@@ -1,5 +1,7 @@
 # MOS v2 — Claude Context
 
+> Map cấp hàm cho file component lớn (>1500d): `_NAV.md`.
+
 ## 🚨 CRITICAL DEPLOY RULE
 
 **NEVER rsync code directly to `/opt/earns-marketing-os-v2/` on server.**

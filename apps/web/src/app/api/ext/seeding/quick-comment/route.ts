@@ -7,6 +7,7 @@ import { generateFullDraft } from '@/lib/ai/post-draft';
 import { normalizeParentUrl } from '@/lib/parent-url';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import { firstRow, errorResponse } from '@/lib/ext-route';
+import { resolveFormatDirective } from '@/lib/format-presets';
 import type { Phase } from '@/lib/phase-plan';
 
 // POST /api/ext/seeding/quick-comment
@@ -44,6 +45,8 @@ export async function POST(req: Request) {
     humanizer?: { knobs?: string[]; intensity?: 'light' | 'medium' | 'heavy' };
     channelUrl?: string;    // URL sub-forum (từ breadcrumb thread) → gắn channel_id
     channelName?: string;
+    formatKey?: string;     // preset loại nội dung (lib/format-presets) — ghép vào customInstruction
+    targetWords?: number;   // fallback nếu ext cũ ko gửi formatKey
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -101,11 +104,14 @@ export async function POST(req: Request) {
   });
 
   // 3. AI gen draft — user chọn model qua side panel popover.
-  // Default gpt-4.1-mini (cân bằng giá/chất); customPrompt nhúng vào prompt.
+  // Default gpt-4.1-mini (cân bằng giá/chất); customPrompt + format preset nhúng vào prompt (HIGH PRIORITY).
+  const fmt = resolveFormatDirective(body.formatKey, body.targetWords);
+  const customInstruction = [body.customPrompt, fmt.directive && `[FORMAT & ĐỘ DÀI bắt buộc] ${fmt.directive}`]
+    .filter(Boolean).join('\n');
   const genStart = Date.now();
   const draft = await generateFullDraft(cardId, {
     modelId: body.modelId || 'gpt-4.1-mini',
-    customInstruction: body.customPrompt,
+    customInstruction: customInstruction || undefined,
     lang: body.lang,
     briefOverride: body.briefOverride,
     humanizer: body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0

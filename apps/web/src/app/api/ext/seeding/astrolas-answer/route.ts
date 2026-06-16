@@ -8,6 +8,7 @@ import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 import { clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
 import { normalizeParentUrl } from '@/lib/parent-url';
+import { resolveFormatDirective } from '@/lib/format-presets';
 
 // NER-lite: rút tên người (public-figure candidate) từ text — chuỗi 2-3 từ
 // Title-Case liền nhau. KHÔNG LLM. Engine Astrolas tự resolve (Profile DB tag=
@@ -104,7 +105,8 @@ export async function POST(req: Request) {
     parentBody?: string;
     parentAuthor?: string;
     maxLength?: number;
-    targetWords?: number;   // độ dài mong muốn (≤25 ngắn · ≤50 vừa · >50 chi tiết). Map → length directive.
+    formatKey?: string;     // preset loại nội dung (quote/chat/reply/comment/long/blog) — xem lib/format-presets.
+    targetWords?: number;   // fallback nếu ext cũ ko gửi formatKey. Map → length directive.
     topicsHint?: string[];
     llmConfig?: string;  // 'deep_reading' | 'default_chat' | 'intent_router' | 'openai_*' — override model của tier
     depth?: string;      // 'economy'|'standard'|'deep'|'max' — Astrolas depth tier (tự điều chỉnh model + reasoning layers)
@@ -265,14 +267,10 @@ export async function POST(req: Request) {
     ? (discussionText.trim() || body.parentBody)
     : (hasChartVision ? `${discussionText.trim()}\n\n[CHART DATA — đọc trực tiếp các placements dưới đây]\n${sanitizedVision}` : body.parentBody);
 
-  // Length directive — QUALITATIVE (ko nhồi "60 từ" số trần → engine hiểu nhầm = viết cụt, sự cố 2026-06-11).
-  // Map targetWords → chỉ thị độ dài rõ ràng; >50 nhấn "CHI TIẾT, DÀI, ko cụt" để có bài sâu.
-  const tw = Number(body.targetWords) > 0 ? Math.round(Number(body.targetWords)) : 0;
-  const lenDirective = tw
-    ? (tw <= 25 ? 'Trả lời NGẮN GỌN: 2-3 câu, đi thẳng ý.'
-      : tw <= 50 ? 'Trả lời VỪA PHẢI: 1 đoạn đủ ý, không lan man.'
-      : `Trả lời CHI TIẾT, DÀI (~${tw} từ): 2-3 đoạn, đào sâu insight + ví dụ/placement cụ thể. KHÔNG viết cụt ngắn kiểu 2-3 câu.`)
-    : '';
+  // FORMAT + ĐỘ DÀI — preset hoá ở lib/format-presets (formatKey authority, targetWords fallback ext cũ).
+  // Gói (kiểu bài + độ dài) → 1 chỉ thị: vd 'long' = chia phần có tiêu đề + tối thiểu ~380 từ.
+  const fmt = resolveFormatDirective(body.formatKey, body.targetWords);
+  const lenDirective = fmt.directive;
 
   const questionBodyEnriched = [
     `[STRICT OUTPUT LANGUAGE: ${langName} (${habitatLang}) — MUST reply ENTIRELY in ${langName}. Brief context below may be in Vietnamese (operator notes) but YOUR ANSWER must be ${langName}. DO NOT mix languages.]`,
@@ -295,7 +293,7 @@ export async function POST(req: Request) {
     // vào question_body cho Astrolas: đó là writer-mechanics → engine reasoning hiểu nhầm
     // phải viết NGẮN kiểu Reddit reply thay vì grounded reading (Astrolas báo 2026-06-11).
     // Humanize chạy Ở OUTPUT (stripAITells/injectTypos/applyHumanErrors post-process) — input sạch.
-    lenDirective ? `[OUTPUT LENGTH — bắt buộc: ${lenDirective}]` : null,
+    lenDirective ? `[OUTPUT FORMAT & ĐỘ DÀI — bắt buộc: ${lenDirective}]` : null,
     '',
     `[FINAL REMINDER: Output must be in ${langName} only. Output language: ${habitatLang}.]`,
   ].filter(Boolean).join('\n');
@@ -307,7 +305,7 @@ export async function POST(req: Request) {
     platform: 'reddit' as const,
     subreddit: undefined as string | undefined,
     tone_target: voiceProfile,
-    max_length: body.maxLength ?? (tw > 50 ? 2500 : tw > 0 ? Math.max(500, tw * 12) : 2000),
+    max_length: body.maxLength ?? fmt.maxLength,
     topics_hint: topics,
     request_id: `mos2-card-${cardId}`,
     // llm_config gắn per-call ở callAstrolas (model escalation) — KHÔNG để ở base.

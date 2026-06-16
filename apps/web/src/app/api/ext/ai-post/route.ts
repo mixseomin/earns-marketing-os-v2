@@ -6,6 +6,7 @@ import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 import { estimateCostUsd } from '@/lib/ai/cost';
 import { errorResponse } from '@/lib/ext-route';
+import { FORMAT_PRESETS_BY_KEY } from '@/lib/format-presets';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
     referenceUrl?: string;
     style?: string;
     hostHostname: string;
+    formatKey?: string;   // preset loại nội dung (lib/format-presets); words→targetWords, hintEn→structure note
     targetWords?: number;
     model?: string;
   };
@@ -161,9 +163,11 @@ export async function POST(req: Request) {
     if (habitat.modStrictness) habitatRules.push(`Mod strictness: ${habitat.modStrictness}`);
   }
 
-  // Resolve target length: user input → soft target; HARD limit always wins.
+  // Resolve target length: formatKey preset (authority) → words; fallback body.targetWords. HARD limit always wins.
   // Default ~120 words for short platforms (Twitter/Threads), else flexible.
-  const userTargetWords = typeof body.targetWords === 'number' && body.targetWords > 0 ? Math.min(2000, body.targetWords) : null;
+  const fmtPreset = body.formatKey ? FORMAT_PRESETS_BY_KEY[body.formatKey] : undefined;
+  const presetWords = fmtPreset?.words ?? (typeof body.targetWords === 'number' ? body.targetWords : 0);
+  const userTargetWords = presetWords > 0 ? Math.min(2000, presetWords) : null;
   const targetWords = userTargetWords ?? null;
   const approxChars = targetWords ? targetWords * 6 : null;  // ~6 chars/word incl. space
 
@@ -187,7 +191,7 @@ export async function POST(req: Request) {
   const sysPrompt = `You write an ORIGINAL post (not a reply) on a social platform.
 Output STRICT JSON: { "title": "...", "body": "...", "hashtags": ["..."] }
 - "title": ${format.hasTitle ? `required string ≤${format.titleMaxLen ?? 300} chars` : 'omit (use empty string "")'}
-- "body": required, PLAIN TEXT only (NO markdown — no [text](url), no **bold**, no #). Links as bare URLs. ${lengthDirective}
+- "body": required, PLAIN TEXT only (NO markdown — no [text](url), no **bold**, no #). Links as bare URLs. ${lengthDirective}${fmtPreset?.hintEn ? ` FORMAT: ${fmtPreset.hintEn}` : ''}
 - "hashtags": array of strings without # prefix; 0-3 items; omit on platforms where hashtags aren't customary
 
 PLATFORM FORMAT NOTES:

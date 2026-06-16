@@ -305,6 +305,9 @@ export async function POST(req: Request) {
     platform: 'reddit' as const,
     subreddit: undefined as string | undefined,
     tone_target: voiceProfile,
+    // target_words = đòn bẩy độ dài THẬT (Astrolas Team thêm 2026-06-16). Engine ép gen bám ~target,
+    // ko dừng sớm khi chart mỏng. max_length giữ làm hard cap an toàn. Xem astrolas-qa-length-control-request.
+    ...(fmt.words > 0 ? { target_words: fmt.words } : {}),
     max_length: body.maxLength ?? fmt.maxLength,
     topics_hint: topics,
     request_id: `mos2-card-${cardId}`,

@@ -460,10 +460,14 @@ export async function POST(req: Request) {
   const cleanAnswer = (raw?: string): string => {
     let s = (raw ?? '')
       .replace(/<details>[\s\S]*?<\/details>/gi, '')
-      .replace(/\n+\s*\S*\s*Astrolog\w*\s+basis\b[\s\S]*$/i, '')
       .replace(/<\/?(?:details|summary)>/gi, '')
       .replace(/\s*\[conf:\s*[\d.]+\]/gi, '')
       .trim();
+    // Strip footer "Astrological basis: …" CHỈ khi nó nằm ở ĐUÔI (>60% bài). BUG 2026-06-16: regex cũ
+    // [\s\S]*$ cắt tới hết chuỗi từ LẦN ĐẦU gặp "astrolog basis" → nếu cụm này ở giữa bài (vd heading/câu
+    // về "astrological basis") thì xoá sạch phần sau (415 từ → 72 từ). Giờ chỉ cắt khi thực sự là footer cuối.
+    const bm = s.match(/\n+\s*\S*\s*Astrolog\w*\s+basis\b/i);
+    if (bm && (bm.index ?? 0) > s.length * 0.6) s = s.slice(0, bm.index).trim();
     const head = s.slice(0, 600);
     const mk = [...head.matchAll(/\b(?:STEP\s*\d|Step\s*\d|running steps?|in parallel|batch[-\s]?lookup|building (?:the|your) (?:full )?chart|create_seeding|analyze_house|get_natal|I['’]?ll (?:build|work|start|pull|gather)|working from|let me (?:pull|build|gather|check|start|look)|looking at (?:this|your) chart|before I (?:start|begin|dive)|pull the (?:library|interpretive|relevant))\b/gi)];
     const last = mk.length ? mk[mk.length - 1] : null;
@@ -534,12 +538,33 @@ export async function POST(req: Request) {
   }
 
   // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
-  const _hzOpts = body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length
-    ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity } : undefined;
-  // cleanAnswer (định nghĩa trên): bóc <details>/basis/conf + leading process-preamble.
-  const answerClean = cleanAnswer(data.answer_md);
-  // stripAITells TRƯỚC: Astrolas trả answer_md = markdown (## > * - — ❌) → lộ AI. Phẳng hoá thành prose.
-  const answerClamped = applyHumanErrors(injectTypos(clampDraftLength(stripAITells(answerClean), _hzOpts), _hzOpts), _hzOpts);
+  // ⚠️ BUG 2026-06-16: humanizer "kế thừa" mang knob one-sentence/two-three → clampDraftLength cắt bài
+  // 380 từ (engine trả ĐÚNG) xuống 2-3 câu (~70 từ). FIX: preset độ dài (formatKey) là AUTHORITY — khi
+  // preset muốn dài (fmt.words ≥ 120 = comment/long/blog) thì BỎ knob cắt-ngắn (giữ các knob khác: typo/casual…).
+  const lenClampKnobs = new Set(['one-sentence', 'two-three']);
+  const rawKnobs = body.humanizer && Array.isArray(body.humanizer.knobs) ? body.humanizer.knobs : [];
+  const effKnobs = fmt.words >= 120 ? rawKnobs.filter((k) => !lenClampKnobs.has(k)) : rawKnobs;
+  const _hzOpts = effKnobs.length ? { knobs: effKnobs, intensity: body.humanizer?.intensity } : undefined;
+  // TRACER (user yêu cầu 2026-06-16): KHÔNG đoán mò hàm nào cắt output. Mỗi bước hậu xử lý làm ngắn
+  // ≥25% → log [TRANSFORM] + đẩy cảnh báo vào genWarnings (hiện ở side panel). engine→save minh bạch.
+  const transformWarnings: string[] = [];
+  const trace = (label: string, before: string, after: string): string => {
+    const b = before.length, a = after.length;
+    const drop = b > 0 ? Math.round((1 - a / b) * 100) : 0;
+    if (drop >= 25) {
+      const w = `⚠️ ${label} cắt ${drop}% (${b}→${a} ký tự)`;
+      console.warn(`[astrolas-answer:TRANSFORM] card=${cardId} ${w}`);
+      transformWarnings.push(w);
+    }
+    return after;
+  };
+  // Pipeline: cleanAnswer (bóc details/conf + preamble) → stripAITells (phẳng markdown) → clamp → typo → human-err.
+  const raw = data.answer_md ?? '';
+  const s1 = trace('cleanAnswer', raw, cleanAnswer(raw));
+  const s2 = trace('stripAITells', s1, stripAITells(s1));
+  const s3 = trace('clampDraftLength', s2, clampDraftLength(s2, _hzOpts));
+  const s4 = trace('injectTypos', s3, injectTypos(s3, _hzOpts));
+  const answerClamped = trace('applyHumanErrors', s4, applyHumanErrors(s4, _hzOpts));
   await db.update(cards).set({
     bodyTarget: answerClamped,
     bodyReview: '',         // Astrolas trả 1 language; nếu cần VN review, dịch sau
@@ -550,7 +575,7 @@ export async function POST(req: Request) {
     genModelUsed: data.voice_signals?.model_used ?? 'astrolas',
     genConfidence: data.voice_signals?.confidence != null ? String(data.voice_signals.confidence) : null,
     genToolsCalled: data.voice_signals?.tools_called ?? [],
-    genWarnings: [...(data.voice_signals?.warnings ?? []), ...(data.voice_signals?.quality_flags ?? [])],
+    genWarnings: [...(data.voice_signals?.warnings ?? []), ...(data.voice_signals?.quality_flags ?? []), ...transformWarnings],
     genLogId: data.log_id ?? null,
     updatedAt: new Date(),
   }).where(eq(cards.id, cardId));

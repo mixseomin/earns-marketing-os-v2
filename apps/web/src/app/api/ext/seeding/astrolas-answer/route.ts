@@ -488,10 +488,6 @@ export async function POST(req: Request) {
   };
   const isBad = (d: AstrolasData) => isEmpty(d) || looksIncomplete(cleanAnswer(d.answer_md));
   const badReason = (d: AstrolasData) => isEmpty(d) ? `EMPTY(code=${(d as { code?: string }).code ?? '?'} log=${(d as { log_id?: string }).log_id ?? '?'})` : 'INCOMPLETE/preamble-leak';
-  // Engine VẪN trả ngắn thất thường dù nhận target_words (vd target=380 → 72 từ; card khác cùng input=371 từ).
-  // TOO_SHORT = answer hợp lệ nhưng < 50% target → retry (chỉ khi target lớn ≥150; quote/chat cố tình ngắn thì bỏ qua).
-  const wordCount = (d: AstrolasData) => cleanAnswer(d.answer_md).trim().split(/\s+/).filter(Boolean).length;
-  const tooShort = (d: AstrolasData) => fmt.words >= 150 && !isEmpty(d) && wordCount(d) < fmt.words * 0.5;
 
   // Chế độ theo Ý NGƯỜI DÙNG chọn (requestedDepth, TRƯỚC remap):
   //  • 'deep'/'max' = QUALITY → cố lấy bản Opus ĐẦY ĐỦ (retry max, max bấp bênh nhưng khi chạy = xịn).
@@ -503,18 +499,12 @@ export async function POST(req: Request) {
   if (qualityMode) {
     // Bấm max = PHẢI ra max. retry max 1 lần (preamble intermittent). KHÔNG tự tụt economy
     // (user ghét bị hạ mini). Vẫn bad → trả lỗi retryable, user chủ động Gen lại (mỗi lần=version).
-    // Retry khi BAD (rỗng/cụt) HOẶC TOO_SHORT (engine under-deliver độ dài). Tối đa 2 retry cho short (flaky).
     let tries = 1;
-    while ((isBad(data) || tooShort(data)) && tries < 3) {
+    while (isBad(data) && tries < 2) {
       tries++;
-      const why = isBad(data) ? badReason(data) : `TOO_SHORT(${wordCount(data)}/${fmt.words})`;
-      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${why} → QUALITY retry max ${tries}/3`);
+      console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → QUALITY retry max ${tries}/2`);
       const retry = await callAstrolas('max');
-      if (retry.ok) {
-        // Giữ bản DÀI NHẤT giữa các lần (đỡ retry xong lại ngắn hơn).
-        if (isBad(data) || (!isBad(retry.data) && wordCount(retry.data) > wordCount(data))) { data = retry.data; depthUsed = 'max'; }
-        if (!isBad(data) && !tooShort(data)) break;
-      }
+      if (retry.ok) { data = retry.data; depthUsed = 'max'; if (!isBad(retry.data)) break; }
     }
   } else {
     // Auto/balanced: shallow flag → thử max 1 lần; bad → economy 1 lần (đảm bảo có bản hoàn chỉnh).

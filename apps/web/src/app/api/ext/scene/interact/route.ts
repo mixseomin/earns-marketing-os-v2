@@ -32,12 +32,15 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
 
-  const habitatId = Number(body.habitatId || 0) || null;
+  let habitatId = Number(body.habitatId || 0) || null;
   let pk = (body.platformKey || '').trim();
   if (habitatId) {
     const h = firstRow(await db.execute(sql`SELECT is_own, platform_key FROM habitats WHERE id = ${habitatId} LIMIT 1`));
-    if (h && h.is_own === true) return NextResponse.json({ ok: true, skipped: 'owned' });
     if (h && h.platform_key) pk = String(h.platform_key);
+    // KHÔNG skip owned: outbound = MÌNH chủ động tương tác với scene person → LUÔN log (mình→họ,
+    // xây hiện diện). Gate isOwn chỉ cho INBOUND forward-fill (repliers trên post của mình ≠ scene).
+    // Nếu thread thuộc owned habitat (sân nhà) → đừng gắn người vào habitat đó → habitat_id = null.
+    if (h && h.is_own === true) habitatId = null;
   }
   const threadUrl = body.threadUrl ? String(body.threadUrl).slice(0, 400) : null;
   const bodyExcerpt = body.bodyExcerpt ? String(body.bodyExcerpt).slice(0, 600) : null;

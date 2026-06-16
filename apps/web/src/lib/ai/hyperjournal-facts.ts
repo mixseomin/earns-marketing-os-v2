@@ -8,6 +8,7 @@ const HJ_API = process.env.HJ_API_URL || 'https://hljournal.xyz';
 
 export interface GradeFacts {
   graded: boolean;
+  noActivity?: boolean;   // ví KHÔNG có fills Hyperliquid (ko phải HL trader) → ko grade được
   addr: string;
   name?: string | null;
   grade?: string;

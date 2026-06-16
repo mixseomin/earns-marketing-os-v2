@@ -55,6 +55,12 @@ export async function POST(req: Request) {
   // Facts from HL (fallback to minimal ungraded if the service is unreachable).
   const facts: GradeFacts = (await fetchGrade(wallet)) ?? { graded: false, addr: wallet, url: `https://hljournal.xyz/w/${wallet}` };
 
+  // Ví KHÔNG có hoạt động Hyperliquid (ko fills) → ko grade được, ko có gì để nhận xét → KHÔNG gen generic.
+  // Báo để user dùng Gen reply thường (như noWallet). Tránh tốn 1 lượt gen + card rác.
+  if (facts.noActivity) {
+    return errorResponse(`Ví ${wallet.slice(0, 6)}…${wallet.slice(-4)} không có hoạt động Hyperliquid (không có fills on-chain) → không grade được. Dùng ✨ Gen reply thường.`, 200, { noWallet: false, noActivity: true, wallet });
+  }
+
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 

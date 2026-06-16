@@ -69,3 +69,19 @@ export function resolveFormatDirective(formatKey: string | undefined, targetWord
   const maxLength = preset?.maxLength ?? (words > 0 ? Math.max(300, Math.round(words * 9)) : 2000);
   return { directive, words, maxLength, preset };
 }
+
+// Knob humanizer điều khiển ĐỘ DÀI (cắt câu) — control lớp STYLE.
+export const LENGTH_CLAMP_KNOBS = ['one-sentence', 'two-three'];
+
+// ⭐ NGUYÊN TẮC ƯU TIÊN CONFIG: càng GẦN bước gen càng thắng.
+//   lớp BÀI (format preset / depth / lang — chọn ngay ở reply-bar)
+//     >  lớp PLATFORM (habitat voice, brief tone)
+//        >  lớp USER (account persona, account humanizer).
+// Khi 2 lớp đụng CÙNG 1 chiều, lớp gần gen hơn thắng. Áp cho chiều ĐỘ DÀI: format preset là control độ dài
+// chuyên trách (lớp BÀI) → khi có preset (words>0), LOẠI length-knob của humanizer để nó KHÔNG đè độ dài đã
+// chọn — dù humanizer đến từ account/habitat/template (lớp xa hơn). Giữ các knob khác (typo/casual…).
+export function applyLengthPriority(knobs: string[] | undefined, formatKey?: string, targetWords?: number): string[] {
+  const k = Array.isArray(knobs) ? knobs : [];
+  const { words } = resolveFormatDirective(formatKey, targetWords);
+  return words > 0 ? k.filter((x) => !LENGTH_CLAMP_KNOBS.includes(x)) : k;
+}

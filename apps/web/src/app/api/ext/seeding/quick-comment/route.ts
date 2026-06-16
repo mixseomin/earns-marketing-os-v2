@@ -7,7 +7,7 @@ import { generateFullDraft } from '@/lib/ai/post-draft';
 import { normalizeParentUrl } from '@/lib/parent-url';
 import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import { firstRow, errorResponse } from '@/lib/ext-route';
-import { resolveFormatDirective } from '@/lib/format-presets';
+import { resolveFormatDirective, applyLengthPriority } from '@/lib/format-presets';
 import type { Phase } from '@/lib/phase-plan';
 
 // POST /api/ext/seeding/quick-comment
@@ -109,14 +109,15 @@ export async function POST(req: Request) {
   const customInstruction = [body.customPrompt, fmt.directive && `[FORMAT & ĐỘ DÀI bắt buộc] ${fmt.directive}`]
     .filter(Boolean).join('\n');
   const genStart = Date.now();
+  // NGUYÊN TẮC ƯU TIÊN: format preset (lớp BÀI) đè length-knob humanizer (lớp style) — applyLengthPriority
+  // loại one-sentence/two-three khi có preset, kẻo prompt humanizer ép "≤3 câu" chọi với độ dài đã chọn.
+  const hzKnobs = applyLengthPriority(body.humanizer?.knobs, body.formatKey, body.targetWords);
   const draft = await generateFullDraft(cardId, {
     modelId: body.modelId || 'gpt-4.1-mini',
     customInstruction: customInstruction || undefined,
     lang: body.lang,
     briefOverride: body.briefOverride,
-    humanizer: body.humanizer && Array.isArray(body.humanizer.knobs) && body.humanizer.knobs.length > 0
-      ? { knobs: body.humanizer.knobs, intensity: body.humanizer.intensity }
-      : undefined,
+    humanizer: hzKnobs.length ? { knobs: hzKnobs, intensity: body.humanizer?.intensity } : undefined,
   });
   const genDurationMs = Date.now() - genStart;
 

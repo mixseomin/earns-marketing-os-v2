@@ -8,7 +8,7 @@ import { resolveForumChannelId } from '@/lib/actions/forum-channel';
 import type { Phase } from '@/lib/phase-plan';
 import { clampDraftLength, injectTypos, applyHumanErrors, stripAITells } from '@/lib/ai/humanizer';
 import { normalizeParentUrl } from '@/lib/parent-url';
-import { resolveFormatDirective } from '@/lib/format-presets';
+import { resolveFormatDirective, applyLengthPriority } from '@/lib/format-presets';
 
 // NER-lite: rút tên người (public-figure candidate) từ text — chuỗi 2-3 từ
 // Title-Case liền nhau. KHÔNG LLM. Engine Astrolas tự resolve (Profile DB tag=
@@ -527,13 +527,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, cardId, error: err, depthUsed, retryable: qualityMode }, { status: 200 });
   }
 
-  // 5. Save answer + sources + meta vào card. Cắt cứng độ dài nếu bật chip 1-câu/2-3-câu.
-  // ⚠️ BUG 2026-06-16: humanizer "kế thừa" mang knob one-sentence/two-three → clampDraftLength cắt bài
-  // 380 từ (engine trả ĐÚNG) xuống 2-3 câu (~70 từ). FIX: preset độ dài (formatKey) là AUTHORITY — khi
-  // preset muốn dài (fmt.words ≥ 120 = comment/long/blog) thì BỎ knob cắt-ngắn (giữ các knob khác: typo/casual…).
-  const lenClampKnobs = new Set(['one-sentence', 'two-three']);
-  const rawKnobs = body.humanizer && Array.isArray(body.humanizer.knobs) ? body.humanizer.knobs : [];
-  const effKnobs = fmt.words >= 120 ? rawKnobs.filter((k) => !lenClampKnobs.has(k)) : rawKnobs;
+  // 5. Save answer + sources + meta vào card.
+  // NGUYÊN TẮC ƯU TIÊN CONFIG (proximity-to-gen): format preset (lớp BÀI) đè length-knob humanizer (lớp style)
+  // → applyLengthPriority loại one-sentence/two-three khi có preset, kẻo clampDraftLength cắt bài dài engine
+  // trả về (bug 2026-06-16: 415 từ → 70 từ). Giữ các knob khác (typo/casual). Xem lib/format-presets.
+  const effKnobs = applyLengthPriority(body.humanizer?.knobs, body.formatKey, body.targetWords);
   const _hzOpts = effKnobs.length ? { knobs: effKnobs, intensity: body.humanizer?.intensity } : undefined;
   // TRACER (user yêu cầu 2026-06-16): KHÔNG đoán mò hàm nào cắt output. Mỗi bước hậu xử lý làm ngắn
   // ≥25% → log [TRANSFORM] + đẩy cảnh báo vào genWarnings (hiện ở side panel). engine→save minh bạch.

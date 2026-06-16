@@ -1148,6 +1148,7 @@ export const strategyForward = pgTable(
     fwdPf: decimal('fwd_pf'),
     basePf: decimal('base_pf'),
     status: text('status'),
+    openPos: integer('open_pos'),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
   },
   (t) => [index('strategy_forward_strat_idx').on(t.strategy)],

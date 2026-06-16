@@ -53,15 +53,16 @@ const COLUMNS: Col[] = [
 
 const FWD_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };
 // aggregate live forward rows for a strategy (may run on >1 symbol): sum trades/wins, trade-weighted PF
-function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: number; status: string; symbols: number } | null {
+function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: number; status: string; symbols: number; open: number } | null {
   if (!list || !list.length) return null;
-  let trades = 0, pfw = 0; const statuses: string[] = [];
+  let trades = 0, pfw = 0, open = 0; const statuses: string[] = [];
   for (const f of list) {
     const t = Number(f.trades) || 0; trades += t;
+    open += Number(f.openPos) || 0;
     pfw += (Number(f.fwdPf) || 0) * t; if (f.status) statuses.push(f.status);
   }
   const status = statuses.includes('BELOW') ? 'BELOW' : statuses.includes('HOLDING') ? 'HOLDING' : (statuses[0] ?? 'warming');
-  return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length };
+  return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length, open };
 }
 
 export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]> }) {
@@ -209,6 +210,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
               {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)' }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
               {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward trades since forward start">Live N</th>}
               {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Open positions right now (live demo)">Open</th>}
             </tr>
           </thead>
           <tbody>
@@ -308,11 +310,12 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
               </td>
               {fwdOn && (() => {
                 const fw = fwdAgg(forwardByStrategy[r.name]);
-                if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', color: 'var(--muted)' }}>—</td><td style={NUM}>—</td><td style={NUM}>—</td></>);
+                if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', color: 'var(--muted)' }}>—</td><td style={NUM}>—</td><td style={NUM}>—</td><td style={NUM}>—</td></>);
                 return (<>
                   <td style={{ ...TD, borderLeft: '2px solid var(--line)' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_COLOR[fw.status] ?? '#7a8699' }}>{fw.status}</span>{fw.symbols > 1 ? <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>×{fw.symbols}</span> : null}</td>
                   <td style={NUM}>{fw.trades || '—'}</td>
                   <td style={{ ...NUM, fontWeight: 700, color: fw.trades ? pfColor(String(fw.pf)) : 'var(--muted)' }}>{fw.trades ? fw.pf.toFixed(2) : '—'}</td>
+                  <td style={{ ...NUM, fontWeight: 700, color: fw.open > 0 ? 'var(--ok, #5ac882)' : 'var(--muted)' }}>{fw.open > 0 ? fw.open : '—'}</td>
                 </>);
               })()}
             </tr>
@@ -327,7 +330,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                   return <td key={c.key} style={{ ...(c.num ? NUM : TD), fontSize: 11.5, ...(color ? { color } : {}), ...(bold ? { fontWeight: 700 } : {}) }}>{childCell(c.key, a, r.spanMonths, r.netUnit ?? undefined)}</td>;
                 })}
                 <td style={TD} />
-                {fwdOn && <><td style={{ ...TD, borderLeft: '2px solid var(--line)' }} /><td style={TD} /><td style={TD} /></>}
+                {fwdOn && <><td style={{ ...TD, borderLeft: '2px solid var(--line)' }} /><td style={TD} /><td style={TD} /><td style={TD} /></>}
               </tr>
             ))}
           </Fragment>

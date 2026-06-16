@@ -6,7 +6,7 @@ import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 import { estimateCostUsd } from '@/lib/ai/cost';
 import { errorResponse } from '@/lib/ext-route';
-import { FORMAT_PRESETS_BY_KEY } from '@/lib/format-presets';
+import { FORMAT_PRESETS_BY_KEY, accountStyleDirective } from '@/lib/format-presets';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -175,8 +175,9 @@ export async function POST(req: Request) {
 
   const lengthDirective = (() => {
     if (acctStyle) {
-      const lim = format.bodyHardLimit;
-      return `Length & format per the account's own config: "${acctStyle}". Follow it exactly (e.g. sentence count). Substance over padding.${lim ? ` HARD max ${lim} chars.` : ''}`;
+      const sd = accountStyleDirective(acctStyle);
+      const lim = Math.min(format.bodyHardLimit || 999999, sd.maxLength);   // siết char cap theo số câu (vd "2 câu" → ~340) → chặn vật lý đừng dài
+      return `${sd.directiveEn} HARD max ${lim} chars — do NOT exceed.`;
     }
     if (format.bodyHardLimit) {
       const lim = format.bodyHardLimit;

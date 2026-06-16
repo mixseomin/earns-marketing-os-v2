@@ -60,13 +60,46 @@ export interface ResolvedFormat {
   preset?: FormatPreset;
 }
 
+// Account replyStyle (free-text vd "2 câu, casual") → chỉ thị. Mềm "bám đúng" KHÔNG đủ (model ra 4
+// khi xin 2) → PARSE số câu/từ và ra lệnh CỨNG "CHÍNH XÁC N câu" + siết maxLength theo N (chặn vật lý).
+export function accountStyleDirective(style: string): { directive: string; directiveEn: string; maxLength: number; words: number } {
+  const s = (style || '').trim();
+  const mSent = s.match(/(\d+)\s*(?:-\s*\d+\s*)?(?:câu|cau|sentences?|sent)\b/i);
+  const mWord = s.match(/(\d+)\s*(?:từ|tu|words?)\b/i);
+  if (mSent) {
+    const n = parseInt(mSent[1] ?? '0', 10);
+    return {
+      directive: `Viết CHÍNH XÁC ${n} câu — KHÔNG nhiều hơn ${n} câu. Phong cách: ${s}. Đếm số câu trước khi trả.`,
+      directiveEn: `Write EXACTLY ${n} sentence${n > 1 ? 's' : ''} — never more than ${n}. Style: "${s}". Count the sentences before answering.`,
+      maxLength: Math.max(180, n * 170),
+      words: Math.max(1, n * 14),
+    };
+  }
+  if (mWord) {
+    const n = parseInt(mWord[1] ?? '0', 10);
+    return {
+      directive: `~${n} từ (bám sát). Phong cách: ${s}. Không lan man, không cụt.`,
+      directiveEn: `~${n} words (stay close). Style: "${s}". No rambling, no abrupt cut.`,
+      maxLength: Math.max(200, n * 9),
+      words: n,
+    };
+  }
+  return {
+    directive: `Theo cấu hình account: ${s}. Bám đúng (vd số câu/độ dài), giữ chất, không lan man.`,
+    directiveEn: `Length & format per the account config: "${s}". Follow it exactly (e.g. sentence count). Substance over padding.`,
+    maxLength: 1700,
+    words: 0,
+  };
+}
+
 // formatKey (authority) → directive VN + words + maxLength. targetWords chỉ dùng nếu thiếu preset (ext cũ).
 export function resolveFormatDirective(formatKey: string | undefined, targetWords?: number, accountStyle?: string): ResolvedFormat {
   // 'account' = theo cấu hình account (persona.replyStyle, free-text vd "2 câu"). Mô tả CHÍNH là chỉ thị.
   if (formatKey === 'account') {
     const style = (accountStyle ?? '').trim();
     if (style) {
-      return { directive: `[Theo cấu hình account] ${style}. Bám đúng yêu cầu này (vd số câu/độ dài), giữ chất, không lan man.`, words: 0, maxLength: 1700, preset: undefined };
+      const sd = accountStyleDirective(style);
+      return { directive: sd.directive, words: sd.words, maxLength: sd.maxLength, preset: undefined };
     }
     formatKey = 'comment';   // account chưa cấu hình replyStyle → fallback preset reply hợp lý
   }

@@ -1,0 +1,82 @@
+import { NextResponse } from 'next/server';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
+import { checkAuth } from '../../_auth';
+import { firstRow, errorResponse } from '@/lib/ext-route';
+import { recomputeFamiliarity } from '@/lib/scene-people';
+
+// POST /api/ext/scene/interact
+// Tương tác OUTBOUND mình→họ (like/reply/follow/repost/bookmark) với 1 scene person →
+// upsert people + insert interaction (direction='ours') + recompute familiarity. Đây là
+// đường familiarity LÊN từ HÀNH ĐỘNG CỦA MÌNH (khác /seeding/insights = khi HỌ reply lại,
+// khác /scene/observe = passive, giữ nguyên familiarity). Skip owned habitat (sân nhà).
+// Dedup: like/follow KHÔNG có card_id → ON CONFLICT(people_id,card_id,dir,kind) không cover
+// (NULL distinct) → check tay theo (people_id, dir, kind, thread_url). Idempotent (re-like
+// cùng post = no-op). Recompute = CÙNG công thức scene-people.ts (cnt*20) → 2 đường nhất quán.
+// Body: { projectId, habitatId?, platformKey?, handle, kind?, threadUrl?, bodyExcerpt?, accountId? }
+const KINDS = new Set(['like', 'reply', 'follow', 'repost', 'bookmark', 'mention']);
+
+export async function POST(req: Request) {
+  const authErr = checkAuth(req);
+  if (authErr) return authErr;
+
+  const body = await req.json().catch(() => ({})) as {
+    projectId?: string; habitatId?: number; platformKey?: string; handle?: string;
+    kind?: string; threadUrl?: string; bodyExcerpt?: string; accountId?: number;
+  };
+  const projectId = (body.projectId || '').trim();
+  const handle = String(body.handle || '').replace(/^@/, '').trim().toLowerCase();
+  const kind = KINDS.has(String(body.kind)) ? String(body.kind) : 'like';
+  if (!projectId || !handle) return errorResponse('projectId + handle required', 400);
+
+  const db = getDb();
+  if (!db) return errorResponse('DB unavailable', 503);
+
+  const habitatId = Number(body.habitatId || 0) || null;
+  let pk = (body.platformKey || '').trim();
+  if (habitatId) {
+    const h = firstRow(await db.execute(sql`SELECT is_own, platform_key FROM habitats WHERE id = ${habitatId} LIMIT 1`));
+    if (h && h.is_own === true) return NextResponse.json({ ok: true, skipped: 'owned' });
+    if (h && h.platform_key) pk = String(h.platform_key);
+  }
+  const threadUrl = body.threadUrl ? String(body.threadUrl).slice(0, 400) : null;
+  const bodyExcerpt = body.bodyExcerpt ? String(body.bodyExcerpt).slice(0, 600) : null;
+  const accountId = body.accountId != null ? (Number(body.accountId) || null) : null;
+
+  // Upsert person (engaging tự lên qua recompute, KHÔNG ép status ở đây).
+  const upRes = await db.execute(sql`
+    INSERT INTO people (tenant_id, project_id, platform_key, handle, habitat_id, status, last_engaged_at, created_at, updated_at)
+    VALUES ('self', ${projectId}, ${pk}, ${handle}, ${habitatId}, 'observed', now(), now(), now())
+    ON CONFLICT (project_id, platform_key, handle) DO UPDATE SET updated_at = now(), last_engaged_at = now()
+    RETURNING id`);
+  const pid = Number(firstRow(upRes)?.id);
+  if (!pid) return errorResponse('person upsert failed', 500);
+
+  // Dedup tay (card_id NULL): cùng người + cùng kind + cùng thread = đã log → bỏ qua.
+  const dup = firstRow(await db.execute(sql`
+    SELECT id FROM interactions
+    WHERE people_id = ${pid} AND direction = 'ours' AND kind = ${kind}
+      AND thread_url IS NOT DISTINCT FROM ${threadUrl}
+    LIMIT 1`));
+  if (!dup) {
+    await db.execute(sql`
+      INSERT INTO interactions (tenant_id, people_id, card_id, account_id, thread_url, kind, direction, body_excerpt, at)
+      VALUES ('self', ${pid}, NULL, ${accountId}, ${threadUrl}, ${kind}, 'ours', ${bodyExcerpt}, now())`);
+  }
+
+  // Recompute (weighted) — 1 SOURCE dùng chung với forward-fill insights.
+  await recomputeFamiliarity(db, pid);
+
+  const row = firstRow(await db.execute(sql`
+    SELECT familiarity_score, status, interaction_count, they_replied_back FROM people WHERE id = ${pid}`));
+  return NextResponse.json({
+    ok: true, deduped: !!dup,
+    person: {
+      handle,
+      familiarity: Number(row?.familiarity_score ?? 0),
+      status: String(row?.status ?? 'observed'),
+      interactions: Number(row?.interaction_count ?? 0),
+      repliedBack: row?.they_replied_back === true,
+    },
+  });
+}

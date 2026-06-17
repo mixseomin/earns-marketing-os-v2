@@ -175,6 +175,30 @@ export async function objectMeta(objectKey: string): Promise<{ projectScoped: bo
   return { projectScoped: !!obj?.projectScoped, bindable: !!obj?.table };
 }
 
+// Refresh the display label of persisted bindings on load, so the canvas shows the
+// current meaningful label immediately (no click) — even if localStorage held an old one.
+export async function resolveBoundLabels(items: Array<{ key: string; id: string }>): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  const db = getDb();
+  if (!db) return out;
+  await Promise.all(items.map(async ({ key, id }) => {
+    const obj = BINDABLE_TABLES[key];
+    if (!obj?.table) return;
+    try {
+      const pkr = obj.picker;
+      const labelSel = pkr?.labelExpr ? `(${pkr.labelExpr})` : `t.${ident(obj.labelCol || obj.pk || 'id')}`;
+      const res = await db.execute(sql`
+        SELECT ${sql.raw(labelSel)}::text AS label
+        FROM ${sql.raw(ident(obj.table))} t
+        ${pkr?.join ? sql.raw(pkr.join) : sql``}
+        WHERE t.${sql.raw(ident(obj.pk || 'id'))}::text = ${id} LIMIT 1`);
+      const rows = res as unknown as Array<{ label: string | null }>;
+      if (rows[0]?.label) out[key] = rows[0].label;
+    } catch { /* */ }
+  }));
+  return out;
+}
+
 // Default the studio to the project with the most content, so project-scoped pickers
 // aren't empty on first load (the source of "many nodes have nothing to pick").
 export async function busiestProjectId(): Promise<string | null> {

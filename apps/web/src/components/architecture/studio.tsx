@@ -18,7 +18,7 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors,
+  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels,
   type InstanceRef, type Issue, type ScanResult, type SelRow,
 } from '@/lib/actions/architecture';
 
@@ -483,7 +483,18 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
 
   // restore persisted bindings + project once (survive F5); then keep them saved
   useEffect(() => {
-    const b = loadBound(); if (Object.keys(b).length) setBound(b);
+    const b = loadBound();
+    if (Object.keys(b).length) {
+      setBound(b);
+      // refresh stale labels to the current meaningful composite (no click needed)
+      resolveBoundLabels(Object.entries(b).map(([key, v]) => ({ key, id: v.id }))).then((fresh) => {
+        if (Object.keys(fresh).length) setBound((prev) => {
+          const next = { ...prev };
+          for (const k in fresh) { const cur = next[k]; const lbl = fresh[k]; if (cur && lbl) next[k] = { ...cur, label: lbl }; }
+          return next;
+        });
+      }).catch(() => { /* */ });
+    }
     const p = loadProj(); if (p) setProj(p);
     hydrated.current = true;
   }, []);

@@ -163,13 +163,13 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               </th>
             </>}
             {cols.gsc && <>
-              <th style={headOf('gsc', true)}>Impr 7d</th>
-              <th style={{ ...headOf('gsc'), padding: '5px 4px' }}>30d trend</th>
-              <th style={headOf('gsc')}>Clicks 7d</th>
-              <th style={headOf('gsc')}>CTR</th>
-              <th style={headOf('gsc')}>Avg Pos</th>
-              <th style={headOf('gsc')}>Pages</th>
-              <th style={headOf('gsc')}>Sitemap</th>
+              <th style={headOf('gsc', true)} title="GSC impressions last 7 days">Impr</th>
+              <th style={{ ...headOf('gsc'), padding: '5px 4px' }} title="30-day impressions trend sparkline">Trend</th>
+              <th style={headOf('gsc')} title="GSC clicks last 7 days">Clk</th>
+              <th style={headOf('gsc')} title="Click-through rate last 7 days">CTR</th>
+              <th style={headOf('gsc')} title="Average search position last 7 days">Pos</th>
+              <th style={headOf('gsc')} title="Pages with at least 1 impression last 7 days">Pages</th>
+              <th style={headOf('gsc')} title="URLs submitted via sitemap">Sites</th>
             </>}
             {cols.adsense && <>
               <th style={headOf('adsense', true)} title="AdSense earnings today (intra-day estimate, refreshed hourly)">$ TD</th>
@@ -181,11 +181,11 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               <th style={headOf('adsense')} title="AdSense page views last 7 days">PV</th>
             </>}
             {cols.bing && <>
-              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr 7d</th>
-              <th style={headOf('bing')} title="Bing clicks last 7 days">Clk 7d</th>
-              <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Indexed</th>
-              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Backlinks</th>
-              <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx 30d</th>
+              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr</th>
+              <th style={headOf('bing')} title="Bing clicks last 7 days">Clk</th>
+              <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
+              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
+              <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
             </>}
           </tr>
         </thead>

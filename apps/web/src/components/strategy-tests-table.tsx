@@ -33,6 +33,8 @@ type Col = { key: string; group: GroupKey; label: string; title?: string; sort?:
 const GROUPS: { key: GroupKey; label: string }[] = [
   { key: 'setup', label: 'Setup' }, { key: 'sample', label: 'Sample' }, { key: 'perf', label: 'Performance' }, { key: 'robust', label: 'Robustness' },
 ];
+const GROUP_COLOR: Record<GroupKey, string> = { setup: '#00e5ff', sample: '#b18cff', perf: '#5ac882', robust: '#ff9f43' };
+const FWD_BAND_COLOR = '#ffd166';
 
 const COLUMNS: Col[] = [
   { key: 'asset', group: 'setup', label: 'Asset', render: (r) => dash(r.asset) },
@@ -187,6 +189,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [showTags, setShowTags] = useState(true);
   const [showAllTags, setShowAllTags] = useState(false);
+  const [showTagFilter, setShowTagFilter] = useState(false);   // tag-chip filter row collapsed by default (saves a row)
   const [visGroups, setVisGroups] = useState<Record<GroupKey, boolean>>({ setup: true, sample: true, perf: true, robust: false });
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
@@ -196,7 +199,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const fwdOn = showForward; // forward columns visible (toggle); shows '—' until live data flows
 
   const cols = COLUMNS.filter((c) => visGroups[c.group]);
-  const colSpan = cols.length + 2 + (fwdOn ? 3 : 0);
+  const colSpan = cols.length + 2 + (fwdOn ? 4 : 0);
 
   const allTags = useMemo(() => {
     const m = new Map<string, number>();
@@ -259,37 +262,36 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
 
   return (
     <div>
-      {/* summary */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>{rows.length} methods tested:</span>
-        {VERDICT_ORDER.filter((v) => counts[v]).map((v) => (
-          <span key={v} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, color: '#fff', background: VERDICT_COLOR[v] }}>{counts[v]} {v}</span>
-        ))}
-      </div>
-
-      {/* controls */}
+      {/* row 1: search + summary pills */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 8 }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search strategy, asset, notes…" autoComplete="off"
           style={{ flex: '1 1 220px', minWidth: 170, padding: '7px 11px', fontSize: 12.5, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)' }} />
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)' }}>Group:</span>
-          {(['verdict', 'klass', 'none'] as const).map((g) => (
-            <button key={g} type="button" onClick={() => setGroupBy(g)} style={chip(groupBy === g)}>{g === 'klass' ? 'class' : g}</button>
-          ))}
-        </div>
-        <button type="button" onClick={() => setShowTags((v) => !v)} style={{ ...chip(false), color: showTags ? 'var(--fg)' : 'var(--muted)' }}>{showTags ? '🏷 Tags on' : '🏷 Tags off'}</button>
-      </div>
-
-      {/* column group toggles */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Columns:</span>
-        {GROUPS.map((g) => (
-          <button key={g.key} type="button" onClick={() => setVisGroups((p) => ({ ...p, [g.key]: !p[g.key] }))} style={{ ...chip(visGroups[g.key]), fontSize: 10.5 }}>{g.label}</button>
+        <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{rows.length} tested</span>
+        {VERDICT_ORDER.filter((v) => counts[v]).map((v) => (
+          <span key={v} style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 11, color: '#fff', background: VERDICT_COLOR[v] }}>{counts[v]} {v}</span>
         ))}
-        <button type="button" onClick={() => setShowForward((v) => !v)} title="Live forward-test results (StrategyLab demo) joined by strategy name" style={{ ...chip(fwdOn), fontSize: 10.5 }}>📡 Forward (live){hasForward ? '' : ' — no data yet'}</button>
       </div>
 
-      {/* tag chips */}
+      {/* row 2: all toggles (group · columns · forward · tags) on one line */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Group</span>
+        {(['verdict', 'klass', 'none'] as const).map((g) => (
+          <button key={g} type="button" onClick={() => setGroupBy(g)} style={{ ...chip(groupBy === g), fontSize: 10.5 }}>{g === 'klass' ? 'class' : g}</button>
+        ))}
+        <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Cols</span>
+        {GROUPS.map((g) => (
+          <button key={g.key} type="button" onClick={() => setVisGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
+            style={{ ...chip(visGroups[g.key]), fontSize: 10.5, ...(visGroups[g.key] ? { background: GROUP_COLOR[g.key], color: '#001018' } : { color: GROUP_COLOR[g.key], borderColor: `${GROUP_COLOR[g.key]}55` }) }}>{g.label}</button>
+        ))}
+        <button type="button" onClick={() => setShowForward((v) => !v)} title="Live forward-test results (StrategyLab demo)" style={{ ...chip(fwdOn), fontSize: 10.5, ...(fwdOn ? { background: FWD_BAND_COLOR, color: '#001018' } : { color: FWD_BAND_COLOR, borderColor: `${FWD_BAND_COLOR}55` }) }}>📡 Forward{hasForward ? '' : ' (no data)'}</button>
+        <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+        <button type="button" onClick={() => setShowTagFilter((v) => !v)} style={{ ...chip(showTagFilter || activeTags.length > 0), fontSize: 10.5 }}>🏷 Filter{activeTags.length ? ` (${activeTags.length})` : ''}</button>
+        <button type="button" onClick={() => setShowTags((v) => !v)} title="Show tag pills under each strategy name" style={{ ...chip(false), fontSize: 10.5, color: showTags ? 'var(--fg)' : 'var(--muted)' }}>{showTags ? 'row-tags ✓' : 'row-tags'}</button>
+      </div>
+
+      {/* tag chips (collapsed by default) */}
+      {showTagFilter && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
         {(() => {
           const visible = showAllTags ? allTags : [...new Set([...activeTags, ...allTags])].slice(0, Math.max(14, activeTags.length));
@@ -308,10 +310,22 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
           <button type="button" onClick={() => setActiveTags([])} style={{ fontSize: 10.5, padding: '3px 9px', borderRadius: 11, cursor: 'pointer', border: '1px solid var(--line)', background: 'transparent', color: '#ff5470' }}>clear ✕</button>
         )}
       </div>
+      )}
 
       <div style={{ overflow: 'auto', maxHeight: '72vh', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: 'auto', minWidth: 560 }}>
           <thead>
+            <tr>
+              <th style={{ background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }} />
+              {GROUPS.filter((g) => visGroups[g.key]).map((g) => {
+                const n = cols.filter((c) => c.group === g.key).length;
+                if (!n) return null;
+                const col = GROUP_COLOR[g.key];
+                return <th key={g.key} colSpan={n} style={{ textAlign: 'center', fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: col, background: `${col}1c`, borderBottom: `2px solid ${col}`, padding: '3px 6px' }}>{g.label}</th>;
+              })}
+              <th style={{ background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }} />
+              {fwdOn && <th colSpan={4} style={{ textAlign: 'center', fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: FWD_BAND_COLOR, background: `${FWD_BAND_COLOR}1c`, borderBottom: `2px solid ${FWD_BAND_COLOR}`, borderLeft: '2px solid var(--line)', padding: '3px 6px' }}>📡 Forward (live)</th>}
+            </tr>
             <tr>
               <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
               {cols.map((c) => (

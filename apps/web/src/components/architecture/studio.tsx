@@ -17,7 +17,10 @@ import {
   type ArchObject, type ArchFlow, type RelKind,
 } from './spec';
 import { Drawer } from '@/components/drawer';
-import { listInstances, getInstance, type InstanceRef, type Issue } from '@/lib/actions/architecture';
+import {
+  listInstances, getInstance, systemScan, listSelectors,
+  type InstanceRef, type Issue, type ScanResult, type SelRow,
+} from '@/lib/actions/architecture';
 
 type ViewKey = 'objects' | 'onpage' | 'backend';
 type Pos = { x: number; y: number };
@@ -65,7 +68,7 @@ function savePositions(view: ViewKey, pos: Record<string, Pos>) {
 }
 
 // ── node/edge builders ───────────────────────────────────────────────────────
-function buildObjectGraph(saved: Record<string, Pos>, bound: Record<string, Bound>): { nodes: Node[]; edges: Edge[] } {
+function buildObjectGraph(saved: Record<string, Pos>, bound: Record<string, Bound>, scan: ScanResult | null): { nodes: Node[]; edges: Edge[] } {
   const base = defaultObjectPositions();
   const at = (id: string): Pos => saved[id] || base[id] || { x: 0, y: 0 };
   const nodes: Node[] = [];
@@ -75,12 +78,17 @@ function buildObjectGraph(saved: Record<string, Pos>, bound: Record<string, Boun
   });
   OBJECTS.forEach((o) => {
     const b = bound[o.key];
+    const sc = scan?.[o.key];
+    const scanWorst: Bound['worst'] = sc ? (sc.errors > 0 ? 'error' : sc.warns > 0 ? 'warn' : 'ok') : null;
     nodes.push({
       id: o.key, type: 'objectNode', position: at(o.key),
       data: {
         label: o.label, groupLabel: groupLabel(o.group), color: groupColor(o.group),
         attrCount: o.attrs.length, bindable: !!o.table,
-        boundLabel: b?.label || null, worst: b?.worst || null,
+        boundLabel: b?.label || null,
+        worst: scanWorst || b?.worst || null,
+        rows: sc ? sc.rows : null,
+        issueCount: sc ? sc.errors + sc.warns : null,
       },
     });
   });
@@ -142,15 +150,25 @@ function IssueRow({ it }: { it: Issue }) {
   );
 }
 
-function ObjectDrawerBody({ obj, projects, bound, onBind }: {
-  obj: ArchObject; projects: { id: string; name: string }[];
+function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
+  obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
   bound?: Bound; onBind: (b: Bound | null) => void;
 }) {
-  const [projectId, setProjectId] = useState(projects[0]?.id || '');
+  const [projectId, setProjectId] = useState(defaultProject || projects[0]?.id || '');
   const [instances, setInstances] = useState<InstanceRef[]>([]);
   const [picked, setPicked] = useState(bound?.id || '');
   const [detail, setDetail] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sels, setSels] = useState<SelRow[] | null>(null);
+  const isScoped = obj.key === 'platform' || obj.key === 'engine' || obj.key === 'habitat';
+
+  // load the selector library for this scope once an instance is picked
+  useEffect(() => {
+    let dead = false;
+    if (!isScoped || !picked) { setSels(null); return; }
+    listSelectors(obj.key, picked).then((r) => { if (!dead) setSels(r); });
+    return () => { dead = true; };
+  }, [obj.key, isScoped, picked]);
 
   // load instance list when project changes (or for global objects, once)
   useEffect(() => {
@@ -251,6 +269,35 @@ function ObjectDrawerBody({ obj, projects, bound, onBind }: {
           )}
         </Section>
       )}
+
+      {/* selector library for this scope (per platform/engine/habitat × entity) */}
+      {isScoped && (
+        <Section title="Selectors (this scope)" sub={`// scope_kind='${obj.key}'`}>
+          {!picked ? (
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Bind a real {obj.label} above to view its extraction selectors.</div>
+          ) : sels == null ? (
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>
+          ) : sels.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained at this scope yet. Train on-page via the Crew picker (🎯) or fall back to the cascade (habitat → platform → engine).</div>
+          ) : (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+              {sels.map((s, i) => (
+                <div key={`${s.pageKind}.${s.fieldName}`} style={{ padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)' }}>@ {s.pageKind}</span>
+                    <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
+            The Crew extension resolves these at runtime via <code>MOS2.sel</code> (priority: DB → a.sel → platform → engine → generic) and lets you pick/edit them on the page. Manage at <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>.
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
@@ -285,22 +332,32 @@ function FlowDrawerBody({ flow, stepId }: { flow: ArchFlow; stepId: string }) {
 // ── main ─────────────────────────────────────────────────────────────────────
 function StudioInner({ projects }: { projects: { id: string; name: string }[] }) {
   const [view, setView] = useState<ViewKey>('objects');
+  const [proj, setProj] = useState(projects[0]?.id || '');
   const [bound, setBound] = useState<Record<string, Bound>>({});
+  const [scan, setScan] = useState<ScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [showScanPanel, setShowScanPanel] = useState(true);
   const [sel, setSel] = useState<{ kind: 'object'; key: string } | { kind: 'flow'; flow: string; step: string } | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const savedRef = useRef<Record<string, Pos>>({});
 
-  // (re)build graph when the view or bindings change
+  // (re)build graph when the view / bindings / scan change
   useEffect(() => {
     const saved = loadPositions(view);
     savedRef.current = saved;
     const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
-    const g = view === 'objects' || !flow ? buildObjectGraph(saved, bound)
+    const g = view === 'objects' || !flow ? buildObjectGraph(saved, bound, scan)
       : buildFlowGraph(flow, saved);
     setNodes(g.nodes);
     setEdges(g.edges);
-  }, [view, bound, setNodes, setEdges]);
+  }, [view, bound, scan, setNodes, setEdges]);
+
+  const runScan = useCallback(async () => {
+    setScanning(true);
+    try { setScan(await systemScan(proj || undefined)); setShowScanPanel(true); }
+    finally { setScanning(false); }
+  }, [proj]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
     if (node.type === 'objectNode') setSel({ kind: 'object', key: node.id });
@@ -318,9 +375,9 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
     savePositions(view, {});
     savedRef.current = {};
     const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
-    const g = view === 'objects' || !flow ? buildObjectGraph({}, bound) : buildFlowGraph(flow, {});
+    const g = view === 'objects' || !flow ? buildObjectGraph({}, bound, scan) : buildFlowGraph(flow, {});
     setNodes(g.nodes); setEdges(g.edges);
-  }, [view, bound, setNodes, setEdges]);
+  }, [view, bound, scan, setNodes, setEdges]);
 
   const selObj = sel?.kind === 'object' ? OBJ_BY_KEY[sel.key] : null;
   const selFlow = sel?.kind === 'flow' ? FLOW_BY_KEY[sel.flow] : null;
@@ -342,6 +399,16 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
           ))}
         </div>
         <div style={{ flex: 1 }} />
+        {view === 'objects' && (
+          <>
+            <select value={proj} onChange={(e) => { setProj(e.target.value); setScan(null); }} title="Project scope for counts/scan/bind" style={selStyle}>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <button onClick={runScan} disabled={scanning} style={{ ...btnStyle, borderColor: scan ? 'var(--accent)' : 'var(--line)', color: scan ? 'var(--accent)' : 'var(--fg-1)' }}>
+              {scanning ? '⏳ scanning…' : '⚕ Health scan'}
+            </button>
+          </>
+        )}
         <button onClick={resetLayout} style={btnStyle}>↺ Reset layout</button>
       </div>
 
@@ -354,6 +421,39 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
           : <span style={legendChip}>{FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend']?.label || ''}</span>}
       </div>
 
+      {/* scan summary panel */}
+      {view === 'objects' && scan && showScanPanel && (() => {
+        const entries = Object.entries(scan).filter(([, o]) => o.errors + o.warns > 0)
+          .sort((a, b) => (b[1].errors - a[1].errors) || (b[1].warns - a[1].warns));
+        const tot = Object.values(scan).reduce((a, o) => ({ e: a.e + o.errors, w: a.w + o.warns }), { e: 0, w: 0 });
+        return (
+          <div style={{ position: 'absolute', top: 58, right: 14, zIndex: 6, width: 286, maxHeight: '70vh', overflowY: 'auto', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 11px', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)' }}>
+                Health scan · <span style={{ color: 'var(--bad)' }}>{tot.e} err</span> · <span style={{ color: 'var(--warn)' }}>{tot.w} warn</span>
+              </div>
+              <button onClick={() => setShowScanPanel(false)} style={{ background: 'transparent', border: 0, color: 'var(--fg-3)', cursor: 'pointer', fontSize: 14 }}>✕</button>
+            </div>
+            {entries.length === 0 ? (
+              <div style={{ padding: 14, fontSize: 12, color: 'var(--ok)' }}>✓ No cross-layer inconsistencies found.</div>
+            ) : entries.map(([key, o]) => (
+              <button key={key} onClick={() => setSel({ kind: 'object', key })} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 0, borderBottom: '1px solid var(--line)', padding: '8px 11px', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: o.errors > 0 ? 'var(--bad)' : 'var(--warn)' }} />
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 600 }}>{OBJ_BY_KEY[key]?.label || key}</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{o.rows} rows</span>
+                </div>
+                {o.items.map((it, i) => (
+                  <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: it.level === 'error' ? 'var(--bad)' : 'var(--warn)', marginTop: 2, marginLeft: 14 }}>
+                    {it.count}× {it.msg}
+                  </div>
+                ))}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* canvas */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <ReactFlow
@@ -363,6 +463,8 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
           nodeTypes={NODE_TYPES}
           fitView fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2} maxZoom={2}
+          zoomOnScroll panOnScroll={false} zoomOnPinch preventScrolling
+          zoomActivationKeyCode={null}
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={22} size={1} color="var(--line)" />
@@ -383,7 +485,7 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
         width={620}
         footer={null}
       >
-        {selObj && <ObjectDrawerBody obj={selObj} projects={projects} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
+        {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
         {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
       </Drawer>
     </div>

@@ -162,3 +162,93 @@ export async function objectMeta(objectKey: string): Promise<{ projectScoped: bo
   const obj = OBJ_BY_KEY[objectKey];
   return { projectScoped: !!obj?.projectScoped, bindable: !!obj?.table };
 }
+
+// ── system-wide health scan (set-based anti-joins — scans ALL rows, finds every
+//    cross-layer inconsistency, not a sample). The QC payoff for "lỗi vặt do chồng chéo". ──
+export interface ScanItem { level: 'error' | 'warn'; msg: string; count: number }
+export interface ObjScan { rows: number; errors: number; warns: number; items: ScanItem[] }
+export type ScanResult = Record<string, ObjScan>;
+
+export async function systemScan(projectId?: string): Promise<ScanResult> {
+  const db = getDb();
+  if (!db) return {};
+  const P = projectId && /^[a-z0-9_-]+$/i.test(projectId) ? projectId : null;
+  const result: ScanResult = {};
+
+  const num = async (q: ReturnType<typeof sql>): Promise<number> => {
+    try {
+      const r = await db.execute(q);
+      const rows = r as unknown as Array<{ n: number | string }>;
+      return Number(rows[0]?.n || 0);
+    } catch { return 0; }
+  };
+
+  // row counts for every bindable object
+  for (const [key, obj] of Object.entries(BINDABLE_TABLES)) {
+    if (!obj.table) continue;
+    const table = ident(obj.table);
+    const rows = await num(sql`SELECT count(*)::int AS n FROM ${sql.raw(table)} ${obj.projectScoped && P ? sql`WHERE project_id = ${P}` : sql``}`);
+    result[key] = { rows, errors: 0, warns: 0, items: [] };
+  }
+
+  const add = async (key: string, level: 'error' | 'warn', msg: string, q: ReturnType<typeof sql>) => {
+    const c = await num(q);
+    const o = result[key];
+    if (c > 0 && o) { o.items.push({ level, msg, count: c }); if (level === 'error') o.errors += c; else o.warns += c; }
+  };
+  const fA = P ? sql` AND a.project_id = ${P}` : sql``;
+  const fPe = P ? sql` AND pe.project_id = ${P}` : sql``;
+  const fH = P ? sql` AND h.project_id = ${P}` : sql``;
+  const fC = P ? sql` AND c.project_id = ${P}` : sql``;
+  const fB = P ? sql` AND b.project_id = ${P}` : sql``;
+
+  await Promise.all([
+    // account
+    add('account', 'error', "platform_key not in platforms", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key IS NOT NULL AND a.platform_key <> '' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = a.platform_key)${fA}`),
+    add('account', 'warn', "platform_key='x' — use canonical 'twitter'", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key = 'x'${fA}`),
+    // people
+    add('people', 'warn', "platform_key='x' — scene stores 'twitter'", sql`SELECT count(*)::int AS n FROM people pe WHERE pe.platform_key = 'x'${fPe}`),
+    add('people', 'error', 'habitat_id dangling', sql`SELECT count(*)::int AS n FROM people pe WHERE pe.habitat_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id = pe.habitat_id)${fPe}`),
+    // habitat
+    add('habitat', 'error', 'platform_key not in platforms', sql`SELECT count(*)::int AS n FROM habitats h WHERE h.platform_key IS NOT NULL AND h.platform_key <> '' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = h.platform_key)${fH}`),
+    add('habitat', 'error', 'technology_key not in platform_technologies', sql`SELECT count(*)::int AS n FROM habitats h WHERE h.technology_key IS NOT NULL AND h.technology_key <> '' AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = h.technology_key)${fH}`),
+    // card
+    add('card', 'warn', 'identity unresolved (no brief, no direct acct+habitat)', sql`SELECT count(*)::int AS n FROM cards c WHERE c.brief_id IS NULL AND (c.account_id IS NULL OR c.habitat_id IS NULL)${fC}`),
+    add('card', 'error', 'brief_id dangling', sql`SELECT count(*)::int AS n FROM cards c WHERE c.brief_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM community_briefs b WHERE b.id = c.brief_id)${fC}`),
+    // brief
+    add('brief', 'error', 'account_id dangling', sql`SELECT count(*)::int AS n FROM community_briefs b WHERE b.account_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM platform_accounts a WHERE a.id = b.account_id)${fB}`),
+    add('brief', 'error', 'habitat_id dangling', sql`SELECT count(*)::int AS n FROM community_briefs b WHERE b.habitat_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id = b.habitat_id)${fB}`),
+    // selector (global)
+    add('selector', 'error', "platform scope not in platforms", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'platform' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = s.scope_key)`),
+    add('selector', 'error', "engine scope not in platform_technologies", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'engine' AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = s.scope_key)`),
+    add('selector', 'error', "habitat scope not in habitats", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'habitat' AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id::text = s.scope_key)`),
+    add('selector', 'warn', 'spec.css empty', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE COALESCE(s.spec->>'css','') = ''`),
+    // interaction (global)
+    add('interaction', 'error', 'people_id dangling', sql`SELECT count(*)::int AS n FROM interactions i WHERE NOT EXISTS (SELECT 1 FROM people pe WHERE pe.id = i.people_id)`),
+    // platform (global)
+    add('platform', 'error', 'technology_key not in platform_technologies', sql`SELECT count(*)::int AS n FROM platforms p WHERE p.technology_key IS NOT NULL AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = p.technology_key)`),
+  ]);
+
+  return result;
+}
+
+// ── selector library for a scope (per platform/engine/habitat × entity) ──
+export interface SelRow { pageKind: string; fieldName: string; css: string; attr: string | null; source: string; confidence: number }
+export async function listSelectors(scopeKind: string, scopeKey: string): Promise<SelRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  if (!['platform', 'engine', 'habitat'].includes(scopeKind)) return [];
+  try {
+    const r = await db.execute(sql`
+      SELECT page_kind, field_name, spec, source, confidence
+      FROM selector_overrides
+      WHERE scope_kind = ${scopeKind} AND scope_key = ${scopeKey}
+      ORDER BY page_kind, field_name`);
+    const rows = r as unknown as Array<{ page_kind: string; field_name: string; spec: { css?: string; attr?: string } | null; source: string; confidence: number }>;
+    return rows.map((x) => ({
+      pageKind: x.page_kind, fieldName: x.field_name,
+      css: x.spec?.css || '', attr: x.spec?.attr || null,
+      source: x.source, confidence: x.confidence,
+    }));
+  } catch { return []; }
+}

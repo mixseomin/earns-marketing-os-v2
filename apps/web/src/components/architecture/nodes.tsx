@@ -32,6 +32,8 @@ interface ObjectNodeData {
   bindable: boolean;
   boundLabel?: string | null;
   worst?: 'error' | 'warn' | 'ok' | null;
+  rows?: number | null;
+  issueCount?: number | null;
 }
 
 export function ObjectNode({ data, selected }: NodeProps) {
@@ -54,13 +56,15 @@ export function ObjectNode({ data, selected }: NodeProps) {
         {dot && <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 }} />}
       </div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>{d.groupLabel}</div>
-      {d.boundLabel ? (
+      {d.boundLabel && (
         <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: d.color, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>● {d.boundLabel}</div>
-      ) : (
-        <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>
-          {d.attrCount} attrs{d.bindable ? ' · bindable' : ' · doc'}
-        </div>
       )}
+      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>
+        {d.rows != null ? <span style={{ color: 'var(--fg-1)' }}>{d.rows} rows</span> : <span>{d.attrCount} attrs{d.bindable ? '' : ' · doc'}</span>}
+        {d.issueCount != null && d.issueCount > 0 && (
+          <span style={{ color: d.worst === 'error' ? 'var(--bad)' : 'var(--warn)', border: `1px solid ${d.worst === 'error' ? 'var(--bad)' : 'var(--warn)'}`, borderRadius: 3, padding: '0 4px' }}>⚠ {d.issueCount}</span>
+        )}
+      </div>
     </div>
   );
 }

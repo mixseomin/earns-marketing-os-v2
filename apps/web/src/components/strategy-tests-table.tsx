@@ -52,6 +52,27 @@ const COLUMNS: Col[] = [
 ];
 
 const FWD_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };
+// The EA/bot push forward rows under per-sleeve names; roll them up into the verified-edge row they belong to,
+// so an edge's Live columns aggregate all its sleeves instead of showing '—' on a name that never matches.
+const FWD_EDGE_ALIAS: Record<string, string> = {
+  'IBS mean-reversion': 'Index-MR portfolio',
+  'Connors RSI-2': 'Index-MR portfolio',
+  'Connors RSI-2 (<5)': 'Index-MR portfolio',
+  '5-day-low reversal': 'Index-MR portfolio',
+  'Double-7 low': 'Index-MR portfolio',
+  '3-down-days': 'Index-MR portfolio',
+  'FX NY-close reversion': 'FX NY-close reversion basket',
+  'FX London-breakout': 'FX London-breakout trend basket',
+};
+// re-key the per-sleeve forward map onto edge-row names (sleeves merge; non-aliased names pass through unchanged).
+function resolveForward(fbs: Record<string, StrategyForwardRow[]>): Record<string, StrategyForwardRow[]> {
+  const out: Record<string, StrategyForwardRow[]> = {};
+  for (const [name, list] of Object.entries(fbs)) {
+    const target = FWD_EDGE_ALIAS[name] ?? name;
+    (out[target] ||= []).push(...list);
+  }
+  return out;
+}
 // aggregate live forward rows for a strategy (may run on >1 symbol): sum trades/wins, trade-weighted PF
 function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: number; status: string; symbols: number; open: number } | null {
   if (!list || !list.length) return null;
@@ -65,7 +86,8 @@ function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: n
   return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length, open };
 }
 
-export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]> }) {
+export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy: forwardRaw = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]> }) {
+  const forwardByStrategy = useMemo(() => resolveForward(forwardRaw), [forwardRaw]);
   const [q, setQ] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) => setExpanded((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });

@@ -33,6 +33,10 @@ interface RowData {
   bing_impressions_7d?: number | null;
   bing_clicks_7d?: number | null;
   bing_feeds_indexed?: number | null;
+  bing_in_index?: number | null;
+  bing_in_links?: number | null;
+  bing_errors_4xx_30d?: number | null;
+  bing_crawled_30d?: number | null;
 }
 
 interface Props {
@@ -98,6 +102,10 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const totalAdsenseImpr = rows.reduce((s, r) => s + (r.adsense_impressions_7d ?? 0), 0);
   const totalAdsensePV = rows.reduce((s, r) => s + (r.adsense_page_views_7d ?? 0), 0);
   const totalBingImpr = rows.reduce((s, r) => s + (r.bing_impressions_7d ?? 0), 0);
+  const totalBingClk = rows.reduce((s, r) => s + (r.bing_clicks_7d ?? 0), 0);
+  const totalBingIndex = rows.reduce((s, r) => s + (r.bing_in_index ?? 0), 0);
+  const totalBingLinks = rows.reduce((s, r) => s + (r.bing_in_links ?? 0), 0);
+  const totalBing4xx = rows.reduce((s, r) => s + (r.bing_errors_4xx_30d ?? 0), 0);
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
   const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
@@ -173,7 +181,11 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
               <th style={headOf('adsense')} title="AdSense page views last 7 days">PV</th>
             </>}
             {cols.bing && <>
-              <th style={headOf('bing', true)} title="Bing Webmaster Tools — impressions last 7d">Bing 7d</th>
+              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr 7d</th>
+              <th style={headOf('bing')} title="Bing clicks last 7 days">Clk 7d</th>
+              <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Indexed</th>
+              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Backlinks</th>
+              <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx 30d</th>
             </>}
           </tr>
         </thead>
@@ -251,9 +263,22 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
                   </td>
                 </>}
                 {cols.bing && <>
-                  <td style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}
-                    title={r.bing_clicks_7d != null ? `${r.bing_clicks_7d.toLocaleString()} clicks · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} indexed via sitemap` : 'No Bing data yet — daily cron pulls from BWT'}>
+                  <td style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
+                  </td>
+                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
+                    {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
+                  </td>
+                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}
+                    title={`Indexed pages (latest snapshot) · ${(r.bing_crawled_30d ?? 0).toLocaleString()} crawled in 30d · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} via sitemap`}>
+                    {r.bing_in_index == null ? '—' : r.bing_in_index.toLocaleString()}
+                  </td>
+                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
+                    {r.bing_in_links == null ? '—' : r.bing_in_links.toLocaleString()}
+                  </td>
+                  <td style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
+                    title={(r.bing_errors_4xx_30d ?? 0) > 20 ? 'Many 4xx errors — check Bing Webmaster crawl report' : 'Bing crawler 4xx hits in last 30 days'}>
+                    {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
                   </td>
                 </>}
               </tr>
@@ -285,6 +310,10 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
             </>}
             {cols.bing && <>
               <td style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
+              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
+              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
+              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
+              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
             </>}
           </tr>
         </tbody>

@@ -3,6 +3,9 @@
 
 const URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/bing-latest.json';
 
+export type BingTrafficPoint = { date: string; clicks: number; imp: number };
+export type BingCrawlPoint   = { date: string; crawled: number; in_index: number; code4xx: number; code5xx: number; robots_blocked: number };
+
 export type BingSiteStats = {
   clicks_7d: number;
   impressions_7d: number;
@@ -12,7 +15,18 @@ export type BingSiteStats = {
   last_data_date: string | null;
   feeds_count: number;
   feeds_urls_indexed: number;
-  error?: string;
+  // NEW (2026-06-17) — rich crawl + timeseries
+  ts_30d?: BingTrafficPoint[];
+  crawl_30d?: BingCrawlPoint[];
+  crawled_pages_30d?: number;
+  errors_4xx_30d?: number;
+  errors_5xx_30d?: number;
+  robots_blocked_30d?: number;
+  in_index?: number;
+  in_links?: number;
+  last_crawled?: number;
+  error?: string | null;
+  crawl_error?: string;
 };
 
 export type BingPayload = {

@@ -150,6 +150,71 @@ function IssueRow({ it }: { it: Issue }) {
   );
 }
 
+// Searchable + grouped instance picker. Groups by `sub` (the parent context) when present.
+function SearchSelect({ value, options, placeholder, onChange, disabled, width }: {
+  value: string; options: InstanceRef[]; placeholder: string;
+  onChange: (id: string) => void; disabled?: boolean; width?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as globalThis.Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey, true);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey, true); };
+  }, [open]);
+
+  const selected = options.find((o) => o.id === value);
+  const ql = q.trim().toLowerCase();
+  const filtered = ql ? options.filter((o) => `${o.label} ${o.sub || ''} ${o.id}`.toLowerCase().includes(ql)) : options;
+  const doGroup = options.some((o) => o.sub);
+  const groups: [string, InstanceRef[]][] = (() => {
+    if (!doGroup) return [['', filtered]];
+    const m = new Map<string, InstanceRef[]>();
+    for (const o of filtered) { const k = o.sub || '—'; const a = m.get(k); if (a) a.push(o); else m.set(k, [o]); }
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  })();
+
+  return (
+    <div ref={ref} style={{ position: 'relative', ...(width ? { width } : { flex: 1, minWidth: 170 }) }}>
+      <button type="button" disabled={disabled} onClick={() => !disabled && setOpen((o) => !o)}
+        style={{ ...selStyle, width: '100%', textAlign: 'left', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: selected ? 'var(--fg-0)' : 'var(--fg-3)' }}>
+          {selected ? `${selected.label}${selected.sub ? ` · ${selected.sub}` : ''}` : placeholder}
+        </span>
+        <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}>▾</span>
+      </button>
+      {open && !disabled && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 60, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', maxHeight: 340, display: 'flex', flexDirection: 'column' }}>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${options.length}…`}
+            style={{ ...selStyle, margin: 6, marginBottom: 4 }} />
+          <div style={{ overflowY: 'auto' }}>
+            {filtered.length === 0 && <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--fg-3)' }}>no match</div>}
+            {groups.map(([g, items]) => (
+              <div key={g || '_'}>
+                {doGroup && g && (
+                  <div style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', padding: '3px 10px', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)' }}>{g} · {items.length}</div>
+                )}
+                {items.map((o) => (
+                  <button key={o.id} type="button" onClick={() => { onChange(o.id); setOpen(false); setQ(''); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: 0, borderBottom: '1px solid var(--line)', padding: '6px 10px', cursor: 'pointer', background: o.id === value ? 'var(--bg-3)' : 'transparent', color: 'var(--fg-0)' }}>
+                    <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{o.label}</span>
+                    {!doGroup && o.sub && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)' }}>{o.sub}</span>}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', flexShrink: 0 }}>#{o.id}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
   bound?: Bound; onBind: (b: Bound | null) => void;
@@ -271,15 +336,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
               </select>
             )}
             {parent && (
-              <select value={parentId} onChange={(e) => { setParentId(e.target.value); setDetail(null); setPicked(''); onBind(null); }} style={{ ...selStyle, flex: 1, minWidth: 150 }}>
-                <option value="">— {OBJ_BY_KEY[parent.object]?.label || parent.object} first —</option>
-                {parentInstances.map((x) => <option key={x.id} value={x.id}>{x.label}{x.sub ? ` · ${x.sub}` : ''}</option>)}
-              </select>
+              <SearchSelect value={parentId} options={parentInstances}
+                placeholder={`— ${OBJ_BY_KEY[parent.object]?.label || parent.object} first —`}
+                onChange={(idv) => { setParentId(idv); setDetail(null); setPicked(''); onBind(null); }} />
             )}
-            <select value={picked} onChange={(e) => inspect(e.target.value)} disabled={!!parent && !parentId} style={{ ...selStyle, flex: 1, minWidth: 160 }}>
-              <option value="">{parent && !parentId ? 'pick parent first' : loading ? 'loading…' : `— pick (${instances.length}) —`}</option>
-              {instances.map((x) => <option key={x.id} value={x.id}>{x.label}{x.sub ? ` · ${x.sub}` : ''} · #{x.id}</option>)}
-            </select>
+            <SearchSelect value={picked} options={instances}
+              placeholder={parent && !parentId ? 'pick parent first' : loading ? 'loading…' : `— pick (${instances.length}) —`}
+              onChange={inspect} disabled={!!parent && !parentId} />
           </div>
           {crossProject && (
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8, lineHeight: 1.5 }}>

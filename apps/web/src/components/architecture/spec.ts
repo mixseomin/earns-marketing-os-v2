@@ -66,6 +66,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'platform', label: 'Platform', group: 'platform',
     table: 'platforms', pk: 'key', labelCol: 'label',
     desc: 'Social platform catalog (x/reddit/fb/discord…). First-class rows, not hardcoded.',
+    picker: { subExpr: 't.category' },
     attrs: [
       { name: 'key', col: 'key', type: 'text', pk: true, note: "canonical 'twitter' (ext uses 'x')" },
       { name: 'label', col: 'label', type: 'text' },
@@ -325,6 +326,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'selector', label: 'Selector override', group: 'infra',
     table: 'selector_overrides', pk: 'id', labelCol: 'field_name', projectScoped: false,
     desc: 'Selector library row. Cascade habitat > platform > engine. Resolves DOM fields for detection/marking.',
+    picker: { subExpr: "concat(t.scope_kind,' · ',t.page_kind)" },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'scopeKind', col: 'scope_kind', type: 'text', note: 'engine|platform|habitat' },

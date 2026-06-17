@@ -99,6 +99,9 @@ export async function POST(req: Request) {
   const effectiveBio = personaJson['bio'] || project?.bio || '';
   // 'account' format → persona.replyStyle (free-text vd "2 câu") làm chỉ thị độ dài/format.
   const acctStyle = body.formatKey === 'account' ? String(personaJson['replyStyle'] || '').trim() : '';
+  // Account đặt SỐ CÂU cố định (vd "2 câu") → tắt directive đẩy thêm câu CTA/link/mời-reply (kẻo model
+  // đẻ câu thứ N+1). Prompt-only, KHÔNG clamp/cắt output.
+  const acctStrictCount = !!acctStyle && /\d+\s*(?:câu|cau|sentences?|sent)\b/i.test(acctStyle);
 
   // Match habitat by hostname (project-scoped) for community rules
   let habitat: typeof habitats.$inferSelect | null = null;
@@ -204,11 +207,11 @@ PLATFORM FORMAT NOTES:
 ${format.notes}
 
 VOICE: persona "${project?.persona || 'a real person who genuinely uses/runs this, casual and specific'}". Write in FIRST PERSON, like a human typing fast. Sound human, not corporate, not a brand account.
-DO: open with a SPECIFIC concrete detail (a named brand/product, a real number, a specific situation) from the context below — never a generic announcement. One clear idea. Invite a real reply.
+DO: open with a SPECIFIC concrete detail (a named brand/product, a real number, a specific situation) from the context below — never a generic announcement. One clear idea.${acctStrictCount ? '' : ' Invite a real reply.'}
 ${projectFacts ? 'DATA-BACKED (BẮT BUỘC): phần "# REAL ... DATA" bên dưới là số liệu THẬT — bài PHẢI dẫn các thực thể thật trong đó (tên/địa chỉ + chỉ số + LINK), chọn cái post-worthy nhất cho chủ đề. TUYỆT ĐỐI không bịa tên/số/ví ngoài danh sách.\n' : ''}DON'T (these make it boring/AI-sounding — AVOID): generic openers ("Attention", "Calling all", "Did you know", "Looking to..."), "let's ... together", "save smart", vague praise, hashtag-stuffing, emoji at the start, "More info:" + link dumps, em-dashes (—), markdown, sales-pitch tone.
 ${project?.contentStrategy ? `\nCONTENT STRATEGY / RULES (project — BÁM SÁT khi viết bài gốc):\n${project.contentStrategy}` : ''}${pillarBlock}
 ${habitatRules.length > 0 ? '\nCOMMUNITY HARD RULES (violation = post deleted):\n' + habitatRules.map((r) => `- ${r}`).join('\n') : ''}
-Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.`;
+${acctStrictCount ? 'KHÔNG thêm câu CTA/link riêng — sẽ vượt số câu yêu cầu; nếu cần link, NHÉT vào trong 1 câu đã có, đừng tách câu mới.' : 'Soft self-promo (link to website) ONLY if community rules allow. Otherwise pure value content.'}`;
 
   const contextLines = [
     `Platform: ${platform.label}`,

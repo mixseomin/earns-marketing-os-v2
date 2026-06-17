@@ -122,7 +122,7 @@ function tradeMetrics(list: StrategyTradeRow[] | undefined) {
 }
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-const holdH = (a: string | null, b: string | null) => (a && b ? (Date.parse(b) - Date.parse(a)) / 3.6e6 : null);
+const holdH = (a: string | null, b: string | null) => (a ? ((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 3.6e6 : null);
 function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', minWidth: 64 }}>
@@ -161,9 +161,9 @@ function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
                 <td style={cell}>{fmtDT(t.entryTime)}</td>
                 <td style={cell}>{t.entryPrice ?? '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>
-                <td style={cell}>{t.isOpen ? '—' : (t.exitPrice ?? '—')}</td>
+                <td style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
                 <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-                <td style={{ ...cell, fontWeight: 700, color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }}>{p == null ? '—' : f2(p)}</td>
+                <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L (gross; cost applied on close)' : undefined}>{p == null ? '—' : (t.isOpen ? `${f2(p)}*` : f2(p))}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
               </tr>
             );

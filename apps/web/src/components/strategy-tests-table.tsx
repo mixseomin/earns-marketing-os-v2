@@ -109,12 +109,57 @@ function tradeMetrics(list: StrategyTradeRow[] | undefined) {
   };
 }
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
+const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const holdH = (a: string | null, b: string | null) => (a && b ? (Date.parse(b) - Date.parse(a)) / 3.6e6 : null);
 function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', minWidth: 64 }}>
       <span style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</span>
       <span style={{ fontSize: 12, fontWeight: 700, color: color ?? 'var(--fg)' }}>{v}</span>
     </span>
+  );
+}
+function MetricGroup({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 12px', borderRadius: 8, background: `${color}14`, border: `1px solid ${color}33` }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: 0.6 }}>{title}</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px' }}>{children}</div>
+    </div>
+  );
+}
+// detail table of the actual live orders (per-trade), newest first
+function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
+  const cell: React.CSSProperties = { padding: '2px 8px', whiteSpace: 'nowrap' };
+  const sorted = [...trades].sort((a, b) => (b.entryTime ?? '').localeCompare(a.entryTime ?? ''));
+  const show = sorted.slice(0, 60);
+  return (
+    <div style={{ overflowX: 'auto', marginTop: 4 }}>
+      <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Live orders ({trades.length})</div>
+      <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
+        <thead><tr style={{ color: 'var(--muted)' }}>
+          {['Symbol', 'Dir', 'Entry', 'In px', 'Exit', 'Out px', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+        </tr></thead>
+        <tbody>
+          {show.map((t, i) => {
+            const h = holdH(t.entryTime, t.exitTime); const p = t.profit == null ? null : Number(t.profit);
+            return (
+              <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)' }}>
+                <td style={cell}>{t.symbol}</td>
+                <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
+                <td style={cell}>{fmtDT(t.entryTime)}</td>
+                <td style={cell}>{t.entryPrice ?? '—'}</td>
+                <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>
+                <td style={cell}>{t.isOpen ? '—' : (t.exitPrice ?? '—')}</td>
+                <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
+                <td style={{ ...cell, fontWeight: 700, color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }}>{p == null ? '—' : f2(p)}</td>
+                <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {trades.length > 60 ? <div style={{ fontSize: 10, color: 'var(--muted)', padding: '4px 8px' }}>showing 60 of {trades.length}</div> : null}
+    </div>
   );
 }
 // aggregate live forward rows for a strategy (may run on >1 symbol): sum trades/wins, trade-weighted PF
@@ -337,7 +382,8 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
       )}
       {g.rows.map((r) => {
         const kids = assetsByStrategy[r.name] ?? [];
-        const tm = tradeMetrics(tradesByStrategy[r.name]);
+        const trades = tradesByStrategy[r.name] ?? [];
+        const tm = tradeMetrics(trades);
         const canExpand = kids.length > 0 || !!tm;
         const isOpen = expanded.has(r.id);
         return (
@@ -397,25 +443,39 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
               })()}
             </tr>
             {isOpen && tm && (
-              <tr style={{ background: 'rgba(0,229,255,0.05)' }}>
+              <tr style={{ background: 'rgba(0,229,255,0.04)' }}>
                 <td colSpan={colSpan} style={{ padding: '9px 28px' }}>
                   {tm.n > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', alignItems: 'flex-end' }}>
-                      <Metric label="Closed" v={tm.n} />
-                      <Metric label="Open" v={tm.open || '—'} color={tm.open ? 'var(--ok,#5ac882)' : undefined} />
-                      <Metric label="Win rate" v={`${tm.winRate.toFixed(0)}%`} />
-                      <Metric label="Avg win" v={f2(tm.avgWin)} color="var(--ok,#5ac882)" />
-                      <Metric label="Avg loss" v={`-${f2(tm.avgLoss)}`} color="#ff5470" />
-                      <Metric label="Expectancy" v={f2(tm.expectancy)} color={tm.expectancy >= 0 ? 'var(--ok,#5ac882)' : '#ff5470'} />
-                      <Metric label="Live PF" v={tm.pf >= 999 ? '∞' : tm.pf.toFixed(2)} color={pfColor(String(tm.pf))} />
-                      <Metric label="Max DD" v={f2(tm.maxDD)} color="#ff9f43" />
-                      <Metric label="Largest win" v={f2(tm.largestWin)} />
-                      <Metric label="Largest loss" v={f2(tm.largestLoss)} />
-                      <Metric label="Avg hold" v={tm.avgHold != null ? `${tm.avgHold.toFixed(1)}h` : '—'} />
-                      <Metric label="Net" v={f2(tm.net)} color={tm.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470'} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'stretch' }}>
+                        <MetricGroup title="Outcome" color="#00e5ff">
+                          <Metric label="Closed" v={tm.n} />
+                          <Metric label="Open" v={tm.open || '—'} color={tm.open ? '#5ac882' : undefined} />
+                          <Metric label="Win rate" v={`${tm.winRate.toFixed(0)}%`} />
+                          <Metric label="Net" v={f2(tm.net)} color={tm.net >= 0 ? '#5ac882' : '#ff5470'} />
+                        </MetricGroup>
+                        <MetricGroup title="Trade quality" color="#5ac882">
+                          <Metric label="Avg win" v={f2(tm.avgWin)} color="#5ac882" />
+                          <Metric label="Avg loss" v={`-${f2(tm.avgLoss)}`} color="#ff5470" />
+                          <Metric label="Expectancy" v={f2(tm.expectancy)} color={tm.expectancy >= 0 ? '#5ac882' : '#ff5470'} />
+                          <Metric label="Largest win" v={f2(tm.largestWin)} />
+                          <Metric label="Largest loss" v={f2(tm.largestLoss)} />
+                        </MetricGroup>
+                        <MetricGroup title="Risk / timing" color="#ff9f43">
+                          <Metric label="Live PF" v={tm.pf >= 999 ? '∞' : tm.pf.toFixed(2)} color={pfColor(String(tm.pf))} />
+                          <Metric label="Max DD" v={f2(tm.maxDD)} color="#ff9f43" />
+                          <Metric label="Avg hold" v={tm.avgHold != null ? `${tm.avgHold.toFixed(1)}h` : '—'} />
+                        </MetricGroup>
+                      </div>
+                      {trades.length > 0 ? <TradesList trades={trades} /> : null}
+                    </div>
+                  ) : trades.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>{tm.open} open position{tm.open === 1 ? '' : 's'}, no closed trades yet — metrics appear once trades close.</span>
+                      <TradesList trades={trades} />
                     </div>
                   ) : (
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{tm.open} open position{tm.open === 1 ? '' : 's'}, no closed trades yet — metrics appear once trades close.</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>No live trades yet.</span>
                   )}
                 </td>
               </tr>

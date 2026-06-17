@@ -20,7 +20,7 @@ export const GROUPS: GroupDef[] = [
   { key: 'infra', label: 'Infra / detection', color: '#8a92a3' },
 ];
 
-export type RelKind = 'fk' | 'brief' | 'tracking' | 'm2m' | 'scope' | 'gen';
+export type RelKind = 'fk' | 'brief' | 'tracking' | 'm2m' | 'scope' | 'gen' | 'ref';
 
 export interface ObjAttr {
   name: string;          // display name
@@ -122,9 +122,9 @@ export const OBJECTS: ArchObject[] = [
   },
   {
     key: 'account', label: 'Account', group: 'identity',
-    table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: true,
-    desc: 'Owned social account. Persona + status + anti-detect (proxy/profile). Multi-brand via project_accounts.',
-    picker: { subExpr: 't.platform_key' },
+    table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: false,
+    desc: 'Owned social account = (platform, handle). Belongs to MANY projects via project_accounts (project_id is legacy owner only). May be based on an identity — optional, not fixed. Pick by PLATFORM.',
+    picker: { parent: { object: 'platform', col: 'platform_key' }, subExpr: 't.status' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk', note: 'legacy owner; multi-brand via project_accounts' },
@@ -138,6 +138,7 @@ export const OBJECTS: ArchObject[] = [
     ],
     relations: [
       { to: 'platform', kind: 'fk', via: 'platform_key' },
+      { to: 'identity', kind: 'ref', via: 'persona.identityId (optional, not fixed)' },
       { to: 'brief', kind: 'brief', via: 'community_briefs.account_id' },
       { to: 'card', kind: 'fk', via: 'card.account_id' },
       { to: 'interaction', kind: 'tracking', via: 'interactions.account_id' },
@@ -146,15 +147,19 @@ export const OBJECTS: ArchObject[] = [
   },
   {
     key: 'identity', label: 'Identity (signup)', group: 'identity',
-    table: 'identities', pk: 'id', labelCol: 'label', projectScoped: true,
-    desc: 'Reusable signup identity preset (persona template) used when creating accounts.',
+    table: 'identities', pk: 'id', labelCol: 'name', projectScoped: true,
+    desc: 'Reusable signup identity preset (persona template), defined per project. An account MAY be based on one — optional, not fixed.',
+    picker: { subExpr: 't.kind' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
-      { name: 'label', col: 'label', type: 'text' },
+      { name: 'name', col: 'name', type: 'text' },
+      { name: 'kind', col: 'kind', type: 'text' },
+      { name: 'handleBase', col: 'handle_base', type: 'text' },
+      { name: 'email', col: 'email', type: 'text' },
     ],
     relations: [
-      { to: 'account', kind: 'gen', via: 'account creation' },
+      { to: 'account', kind: 'ref', via: 'account.persona.identityId (optional)' },
     ],
     routes: ['/identities', '/identities/{id}', '/identities/generate'],
   },
@@ -227,12 +232,12 @@ export const OBJECTS: ArchObject[] = [
   },
   {
     key: 'pillar', label: 'Content pillar', group: 'content',
-    table: 'content_pillars', pk: 'id', labelCol: 'label', projectScoped: true,
+    table: 'content_pillars', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'Macro content theme/positioning. Carries voice profile + external tag (Astrolas sync).',
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
-      { name: 'label', col: 'label', type: 'text' },
+      { name: 'name', col: 'name', type: 'text' },
       { name: 'voiceProfile', col: 'voice_profile', type: 'text' },
       { name: 'externalTag', col: 'external_tag', type: 'text' },
     ],

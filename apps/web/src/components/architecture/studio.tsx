@@ -27,7 +27,7 @@ type Pos = { x: number; y: number };
 type Bound = { id: string; label: string; worst: 'error' | 'warn' | 'ok' | null };
 
 const REL_COLOR: Record<RelKind, string> = {
-  fk: '#5a6273', brief: '#ffb03c', tracking: '#ff7ab0', scope: '#5badff', gen: '#b48cff', m2m: '#3ce0c0',
+  fk: '#5a6273', brief: '#ffb03c', tracking: '#ff7ab0', scope: '#5badff', gen: '#b48cff', m2m: '#3ce0c0', ref: '#7d8694',
 };
 const groupColor = (k: string) => GROUPS.find((g) => g.key === k)?.color || '#8a92a3';
 const groupLabel = (k: string) => GROUPS.find((g) => g.key === k)?.label || k;
@@ -286,6 +286,11 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
               {obj.label} is an independent place — listed across ALL projects. It still carries a <code>project_id</code> today, so the same community can appear as several rows; the per-project approach really lives in the <b>brief</b> (account × habitat).
             </div>
           )}
+          {obj.projectScoped && !crossProject && !parent && !loading && instances.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8, lineHeight: 1.45 }}>
+              0 in <b>{projects.find((p) => p.id === projectId)?.name || projectId}</b> — this object is project-scoped; switch project to find instances.
+            </div>
+          )}
           {detail && (
             <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Consistency check</div>
@@ -355,9 +360,9 @@ function FlowDrawerBody({ flow, stepId }: { flow: ArchFlow; stepId: string }) {
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
-function StudioInner({ projects }: { projects: { id: string; name: string }[] }) {
+function StudioInner({ projects, defaultProjectId }: { projects: { id: string; name: string }[]; defaultProjectId: string }) {
   const [view, setView] = useState<ViewKey>('objects');
-  const [proj, setProj] = useState(projects[0]?.id || '');
+  const [proj, setProj] = useState(defaultProjectId || projects[0]?.id || '');
   const [bound, setBound] = useState<Record<string, Bound>>({});
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -517,10 +522,10 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
   );
 }
 
-export function ArchitectureStudio({ projects }: { projects: { id: string; name: string }[] }) {
+export function ArchitectureStudio({ projects, defaultProjectId }: { projects: { id: string; name: string }[]; defaultProjectId?: string }) {
   return (
     <ReactFlowProvider>
-      <StudioInner projects={projects} />
+      <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
     </ReactFlowProvider>
   );
 }

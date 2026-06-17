@@ -174,6 +174,18 @@ export async function objectMeta(objectKey: string): Promise<{ projectScoped: bo
   return { projectScoped: !!obj?.projectScoped, bindable: !!obj?.table };
 }
 
+// Default the studio to the project with the most content, so project-scoped pickers
+// aren't empty on first load (the source of "many nodes have nothing to pick").
+export async function busiestProjectId(): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const r = await db.execute(sql`SELECT project_id FROM cards WHERE project_id IS NOT NULL GROUP BY project_id ORDER BY count(*) DESC LIMIT 1`);
+    const rows = r as unknown as Array<{ project_id: string }>;
+    return rows[0]?.project_id || null;
+  } catch { return null; }
+}
+
 // ── system-wide health scan (set-based anti-joins — scans ALL rows, finds every
 //    cross-layer inconsistency, not a sample). The QC payoff for "lỗi vặt do chồng chéo". ──
 export interface ScanItem { level: 'error' | 'warn'; msg: string; count: number }
@@ -207,16 +219,15 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
     const o = result[key];
     if (c > 0 && o) { o.items.push({ level, msg, count: c }); if (level === 'error') o.errors += c; else o.warns += c; }
   };
-  const fA = P ? sql` AND a.project_id = ${P}` : sql``;
   const fPe = P ? sql` AND pe.project_id = ${P}` : sql``;
   const fH = P ? sql` AND h.project_id = ${P}` : sql``;
   const fC = P ? sql` AND c.project_id = ${P}` : sql``;
   const fB = P ? sql` AND b.project_id = ${P}` : sql``;
 
   await Promise.all([
-    // account
-    add('account', 'error', "platform_key not in platforms", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key IS NOT NULL AND a.platform_key <> '' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = a.platform_key)${fA}`),
-    add('account', 'warn', "platform_key='x' — use canonical 'twitter'", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key = 'x'${fA}`),
+    // account (shared across projects → global, no project filter)
+    add('account', 'error', "platform_key not in platforms", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key IS NOT NULL AND a.platform_key <> '' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = a.platform_key)`),
+    add('account', 'warn', "platform_key='x' — use canonical 'twitter'", sql`SELECT count(*)::int AS n FROM platform_accounts a WHERE a.platform_key = 'x'`),
     // people
     add('people', 'warn', "platform_key='x' — scene stores 'twitter'", sql`SELECT count(*)::int AS n FROM people pe WHERE pe.platform_key = 'x'${fPe}`),
     add('people', 'error', 'habitat_id dangling', sql`SELECT count(*)::int AS n FROM people pe WHERE pe.habitat_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id = pe.habitat_id)${fPe}`),

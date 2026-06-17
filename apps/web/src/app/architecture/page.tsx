@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { listProjects } from '@/lib/data';
 import { getCurrentUser } from '@/lib/auth';
+import { busiestProjectId } from '@/lib/actions/architecture';
 import { ArchitectureStudio } from '@/components/architecture/studio';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +13,9 @@ export default async function ArchitectureRoute() {
   if (!me) redirect('/login?next=/architecture');
   if (me.role !== 'admin') redirect('/?error=admin-only');
 
-  const projects = await listProjects();
+  const [projects, busiest] = await Promise.all([listProjects(), busiestProjectId()]);
   const lite = projects.map((p) => ({ id: p.id, name: p.name }));
+  const defaultProjectId = busiest && lite.some((p) => p.id === busiest) ? busiest : (lite[0]?.id || '');
 
-  return <ArchitectureStudio projects={lite} />;
+  return <ArchitectureStudio projects={lite} defaultProjectId={defaultProjectId} />;
 }

@@ -1,0 +1,403 @@
+// Architecture Studio — system model spec (source of truth for TYPES).
+// Each attribute points at a real DB column (`col`) so instance-binding can
+// pull live values and consistency-checks can validate. This file documents
+// HOW MOS2 is wired; keep it in sync with packages/db/src/schema.ts.
+
+export type ObjGroup = 'platform' | 'identity' | 'place' | 'content' | 'scene' | 'infra';
+
+export interface GroupDef {
+  key: ObjGroup;
+  label: string;
+  color: string; // accent for the group lane / node border
+}
+
+export const GROUPS: GroupDef[] = [
+  { key: 'platform', label: 'Platform layer', color: '#5badff' },
+  { key: 'identity', label: 'Identity layer', color: '#b48cff' },
+  { key: 'place', label: 'Place layer', color: '#3ce0c0' },
+  { key: 'content', label: 'Content layer', color: '#ffb03c' },
+  { key: 'scene', label: 'Scene layer (WHO-THEM)', color: '#ff7ab0' },
+  { key: 'infra', label: 'Infra / detection', color: '#8a92a3' },
+];
+
+export type RelKind = 'fk' | 'brief' | 'tracking' | 'm2m' | 'scope' | 'gen';
+
+export interface ObjAttr {
+  name: string;          // display name
+  col?: string;          // real DB column (snake_case) — enables instance binding
+  type: string;          // text | bigint | jsonb | bool | fk | ...
+  pk?: boolean;
+  fk?: string;           // target object key when this attr is a foreign key
+  note?: string;
+}
+
+export interface ObjRelation {
+  to: string;            // target object key
+  kind: RelKind;
+  via?: string;          // column / mechanism
+  note?: string;
+}
+
+export interface ArchObject {
+  key: string;
+  label: string;
+  group: ObjGroup;
+  table: string | null;  // real DB table (snake_case); null = doc-only (no instance binding)
+  pk?: string;           // PK column (default 'id')
+  labelCol?: string;     // column used as instance label in the picker
+  projectScoped?: boolean;
+  desc: string;
+  attrs: ObjAttr[];
+  relations: ObjRelation[];
+  routes: string[];      // /api/ext/* routes that read/write this object
+  deepLink?: string;     // app path to manage real instances
+}
+
+// ── Objects ────────────────────────────────────────────────────────────────
+export const OBJECTS: ArchObject[] = [
+  {
+    key: 'platform', label: 'Platform', group: 'platform',
+    table: 'platforms', pk: 'key', labelCol: 'label',
+    desc: 'Social platform catalog (x/reddit/fb/discord…). First-class rows, not hardcoded.',
+    attrs: [
+      { name: 'key', col: 'key', type: 'text', pk: true, note: "canonical 'twitter' (ext uses 'x')" },
+      { name: 'label', col: 'label', type: 'text' },
+      { name: 'priority', col: 'priority', type: 'text', note: 'critical|high|medium' },
+      { name: 'category', col: 'category', type: 'text' },
+      { name: 'region', col: 'region', type: 'text' },
+      { name: 'autoPostSupported', col: 'auto_post_supported', type: 'bool' },
+      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine', note: 'forum engine if applicable' },
+    ],
+    relations: [
+      { to: 'engine', kind: 'fk', via: 'technology_key' },
+      { to: 'account', kind: 'fk', via: 'account.platform_key' },
+      { to: 'habitat', kind: 'fk', via: 'habitat.platform_key' },
+      { to: 'selector', kind: 'scope', via: "scope_kind='platform'" },
+    ],
+    routes: ['/platforms', '/platform-info', '/platform-fields/{slug}', '/selectors/resolve'],
+    deepLink: '/platforms',
+  },
+  {
+    key: 'engine', label: 'Engine (forum tech)', group: 'platform',
+    table: 'platform_technologies', pk: 'key', labelCol: 'label',
+    desc: 'Forum/CMS engine (xenforo/discourse/vbulletin). Drives engine-scope selectors + signup fields.',
+    attrs: [
+      { name: 'key', col: 'key', type: 'text', pk: true },
+      { name: 'label', col: 'label', type: 'text' },
+      { name: 'description', col: 'description', type: 'text' },
+      { name: 'signupFields', col: 'signup_fields', type: 'jsonb' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform.technology_key' },
+      { to: 'habitat', kind: 'fk', via: 'habitat.technology_key' },
+      { to: 'selector', kind: 'scope', via: "scope_kind='engine'" },
+    ],
+    routes: ['/engines', '/selectors/resolve'],
+    deepLink: '/engines',
+  },
+  {
+    key: 'genEngine', label: 'Engine (gen/QA)', group: 'infra',
+    table: 'engines', pk: 'key', labelCol: 'label',
+    desc: 'Content/QA generation engine (Astrolas, HyperJournal). External endpoint per project capability.',
+    attrs: [
+      { name: 'key', col: 'key', type: 'text', pk: true },
+      { name: 'label', col: 'label', type: 'text' },
+      { name: 'endpoint', col: 'endpoint', type: 'text' },
+      { name: 'defaultModel', col: 'default_model', type: 'text' },
+      { name: 'enabled', col: 'enabled', type: 'bool' },
+    ],
+    relations: [
+      { to: 'card', kind: 'gen', via: "card.answer_source" },
+      { to: 'externalApi', kind: 'gen', via: 'endpoint' },
+    ],
+    routes: ['/engines', '/seeding/astrolas-answer', '/seeding/hyperjournal-answer', '/astrolas/models'],
+    deepLink: '/engines',
+  },
+  {
+    key: 'account', label: 'Account', group: 'identity',
+    table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: true,
+    desc: 'Owned social account. Persona + status + anti-detect (proxy/profile). Multi-brand via project_accounts.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk', note: 'legacy owner; multi-brand via project_accounts' },
+      { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform' },
+      { name: 'handle', col: 'handle', type: 'text' },
+      { name: 'status', col: 'status', type: 'text', note: 'todo→creating→warming→active; limited/blocked/banned' },
+      { name: 'accountKind', col: 'account_kind', type: 'text', note: 'user|bot|app' },
+      { name: 'persona', col: 'persona', type: 'jsonb', note: 'dob/gender/country/replyStyle…' },
+      { name: 'proxyId', col: 'proxy_id', type: 'fk' },
+      { name: 'ownerUserId', col: 'owner_user_id', type: 'fk' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform_key' },
+      { to: 'brief', kind: 'brief', via: 'community_briefs.account_id' },
+      { to: 'card', kind: 'fk', via: 'card.account_id' },
+      { to: 'interaction', kind: 'tracking', via: 'interactions.account_id' },
+    ],
+    routes: ['/accounts', '/accounts/profile', '/accounts/{id}', '/accounts/map', '/scene/interact'],
+  },
+  {
+    key: 'identity', label: 'Identity (signup)', group: 'identity',
+    table: 'identities', pk: 'id', labelCol: 'label', projectScoped: true,
+    desc: 'Reusable signup identity preset (persona template) used when creating accounts.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'label', col: 'label', type: 'text' },
+    ],
+    relations: [
+      { to: 'account', kind: 'gen', via: 'account creation' },
+    ],
+    routes: ['/identities', '/identities/{id}', '/identities/generate'],
+  },
+  {
+    key: 'habitat', label: 'Habitat', group: 'place',
+    table: 'habitats', pk: 'id', labelCol: 'name', projectScoped: true,
+    desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+engine+tribe.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'kind', col: 'kind', type: 'text', note: 'subreddit|fb-group|discord|forum|hashtag' },
+      { name: 'name', col: 'name', type: 'text' },
+      { name: 'url', col: 'url', type: 'text' },
+      { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform' },
+      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine' },
+      { name: 'tribeId', col: 'tribe_id', type: 'fk' },
+      { name: 'status', col: 'status', type: 'text', note: 'target|engaged|saturated|banned|dormant' },
+      { name: 'voiceProfile', col: 'voice_profile', type: 'text' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform_key' },
+      { to: 'engine', kind: 'fk', via: 'technology_key' },
+      { to: 'channel', kind: 'fk', via: 'habitat_channels.habitat_id' },
+      { to: 'brief', kind: 'brief', via: 'community_briefs.habitat_id' },
+      { to: 'card', kind: 'fk', via: 'card.habitat_id' },
+      { to: 'people', kind: 'fk', via: 'people.habitat_id' },
+      { to: 'selector', kind: 'scope', via: "scope_kind='habitat'" },
+    ],
+    routes: ['/habitats', '/habitats/resolve', '/habitats/list', '/habitats/channels'],
+  },
+  {
+    key: 'channel', label: 'Channel', group: 'place',
+    table: 'habitat_channels', pk: 'id', labelCol: 'name', projectScoped: false,
+    desc: 'Sub-channel/board inside a habitat (Discord channel, forum board, Slack channel).',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat' },
+      { name: 'name', col: 'name', type: 'text' },
+    ],
+    relations: [
+      { to: 'habitat', kind: 'fk', via: 'habitat_id' },
+      { to: 'card', kind: 'fk', via: 'card.channel_id' },
+    ],
+    routes: ['/habitats/channels', '/habitats/channel-info', '/channels/posts'],
+  },
+  {
+    key: 'brief', label: 'Brief (acc×habitat)', group: 'content',
+    table: 'community_briefs', pk: 'id', labelCol: 'id', projectScoped: true,
+    desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'accountId', col: 'account_id', type: 'fk', fk: 'account' },
+      { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat' },
+      { name: 'tone', col: 'tone', type: 'text' },
+      { name: 'currentPhase', col: 'current_phase', type: 'text', note: 'warm-up|value|bridge|seed|direct|cooldown' },
+      { name: 'joinStatus', col: 'join_status', type: 'text' },
+      { name: 'primaryPillarId', col: 'primary_pillar_id', type: 'fk', fk: 'pillar' },
+    ],
+    relations: [
+      { to: 'account', kind: 'brief', via: 'account_id' },
+      { to: 'habitat', kind: 'brief', via: 'habitat_id' },
+      { to: 'pillar', kind: 'fk', via: 'primary_pillar_id' },
+      { to: 'card', kind: 'fk', via: 'card.brief_id' },
+    ],
+    routes: ['/brief/get', '/brief/update', '/briefs', '/seeding/quick-comment'],
+  },
+  {
+    key: 'pillar', label: 'Content pillar', group: 'content',
+    table: 'content_pillars', pk: 'id', labelCol: 'label', projectScoped: true,
+    desc: 'Macro content theme/positioning. Carries voice profile + external tag (Astrolas sync).',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'label', col: 'label', type: 'text' },
+      { name: 'voiceProfile', col: 'voice_profile', type: 'text' },
+      { name: 'externalTag', col: 'external_tag', type: 'text' },
+    ],
+    relations: [
+      { to: 'brief', kind: 'fk', via: 'brief.primary_pillar_id' },
+      { to: 'card', kind: 'fk', via: 'card.pillar_id' },
+    ],
+    routes: ['/pillars', '/pillars/suggest'],
+  },
+  {
+    key: 'card', label: 'Card (content)', group: 'content',
+    table: 'cards', pk: 'id', labelCol: 'card_ref', projectScoped: true,
+    desc: 'Content unit through full lifecycle: draft → posted → insights. Identity via brief OR direct account/habitat.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'cardRef', col: 'card_ref', type: 'text' },
+      { name: 'col', col: 'col', type: 'text', note: 'kanban column' },
+      { name: 'contentType', col: 'content_type', type: 'text' },
+      { name: 'contentKind', col: 'content_kind', type: 'text', note: 'seed|blog|email|thread' },
+      { name: 'briefId', col: 'brief_id', type: 'fk', fk: 'brief', note: 'identity path A' },
+      { name: 'accountId', col: 'account_id', type: 'fk', fk: 'account', note: 'identity path B (direct)' },
+      { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat', note: 'identity path B (direct)' },
+      { name: 'pillarId', col: 'pillar_id', type: 'fk', fk: 'pillar' },
+      { name: 'postUrl', col: 'post_url', type: 'text' },
+      { name: 'postLifecycle', col: 'post_lifecycle', type: 'text' },
+      { name: 'answerSource', col: 'answer_source', type: 'text', note: 'astrolas|hyperjournal' },
+    ],
+    relations: [
+      { to: 'brief', kind: 'fk', via: 'brief_id' },
+      { to: 'account', kind: 'fk', via: 'account_id' },
+      { to: 'habitat', kind: 'fk', via: 'habitat_id' },
+      { to: 'pillar', kind: 'fk', via: 'pillar_id' },
+      { to: 'interaction', kind: 'tracking', via: 'interactions.card_id' },
+      { to: 'genEngine', kind: 'gen', via: 'answer_source' },
+    ],
+    routes: ['/seeding/quick-comment', '/seeding/mark-posted', '/seeding/insights', '/seeding/list-drafts'],
+  },
+  {
+    key: 'people', label: 'People (scene)', group: 'scene',
+    table: 'people', pk: 'id', labelCol: 'handle', projectScoped: true,
+    desc: 'WHO-THEM: a person the operator interacts with. Familiarity score + status.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'projectId', col: 'project_id', type: 'fk' },
+      { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform', note: "canonical 'twitter'" },
+      { name: 'handle', col: 'handle', type: 'text' },
+      { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat' },
+      { name: 'familiarityScore', col: 'familiarity_score', type: 'int', note: '0-100' },
+      { name: 'interactionCount', col: 'interaction_count', type: 'int' },
+      { name: 'theyRepliedBack', col: 'they_replied_back', type: 'bool' },
+      { name: 'status', col: 'status', type: 'text', note: 'observed|engaging|warm|bridged|ignore' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform_key' },
+      { to: 'habitat', kind: 'fk', via: 'habitat_id' },
+      { to: 'interaction', kind: 'tracking', via: 'interactions.people_id' },
+    ],
+    routes: ['/scene/people', '/scene/observe', '/scene/interact', '/scene/lookup'],
+  },
+  {
+    key: 'interaction', label: 'Interaction (tracking)', group: 'scene',
+    table: 'interactions', pk: 'id', labelCol: 'kind', projectScoped: false,
+    desc: 'THE tracking link: one engagement event between us (account/card) and a person.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'peopleId', col: 'people_id', type: 'fk', fk: 'people' },
+      { name: 'cardId', col: 'card_id', type: 'fk', fk: 'card' },
+      { name: 'accountId', col: 'account_id', type: 'fk', fk: 'account' },
+      { name: 'kind', col: 'kind', type: 'text', note: 'reply|quote|mention|like' },
+      { name: 'direction', col: 'direction', type: 'text', note: 'theirs|ours' },
+      { name: 'at', col: 'at', type: 'timestamp' },
+    ],
+    relations: [
+      { to: 'people', kind: 'tracking', via: 'people_id' },
+      { to: 'card', kind: 'tracking', via: 'card_id' },
+      { to: 'account', kind: 'tracking', via: 'account_id' },
+    ],
+    routes: ['/scene/interact', '/seeding/insights'],
+  },
+  {
+    key: 'selector', label: 'Selector override', group: 'infra',
+    table: 'selector_overrides', pk: 'id', labelCol: 'field_name', projectScoped: false,
+    desc: 'Selector library row. Cascade habitat > platform > engine. Resolves DOM fields for detection/marking.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'scopeKind', col: 'scope_kind', type: 'text', note: 'engine|platform|habitat' },
+      { name: 'scopeKey', col: 'scope_key', type: 'text' },
+      { name: 'pageKind', col: 'page_kind', type: 'text', note: 'composer|subreddit-about|forum-thread…' },
+      { name: 'fieldName', col: 'field_name', type: 'text', note: 'post.author|post.body|post.permalink…' },
+      { name: 'spec', col: 'spec', type: 'jsonb', note: '{css,attr?} — NESTED under spec' },
+      { name: 'source', col: 'source', type: 'text', note: 'llm|manual|promoted' },
+      { name: 'confidence', col: 'confidence', type: 'int' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'scope', via: "scope_kind='platform'" },
+      { to: 'engine', kind: 'scope', via: "scope_kind='engine'" },
+      { to: 'habitat', kind: 'scope', via: "scope_kind='habitat'" },
+    ],
+    routes: ['/selectors/resolve', '/selectors/set', '/learn-selectors', '/train-selector'],
+  },
+  {
+    key: 'externalApi', label: 'External API', group: 'infra',
+    table: null,
+    desc: 'External integration (no single table — creds in platform_accounts/engines). Doc-only catalogue.',
+    attrs: [
+      { name: 'Anthropic (Claude)', type: 'integration', note: 'AI gen — ANTHROPIC_API_KEY' },
+      { name: 'OpenAI (image)', type: 'integration', note: 'gpt-image-2 media gen' },
+      { name: 'Astrolas / HyperJournal', type: 'integration', note: 'engines.endpoint' },
+      { name: 'Platform tokens', type: 'integration', note: 'platform_accounts.api_token_enc / bot_token_enc' },
+      { name: 'GA4 / GSC / Cloudflare', type: 'integration', note: 'analytics + infra (server cron)' },
+    ],
+    relations: [
+      { to: 'genEngine', kind: 'gen', via: 'endpoint' },
+      { to: 'account', kind: 'gen', via: 'api_token_enc' },
+    ],
+    routes: ['/ai-post', '/seeding/quick-comment', '/media/generate'],
+  },
+];
+
+export const OBJ_BY_KEY: Record<string, ArchObject> = Object.fromEntries(OBJECTS.map((o) => [o.key, o]));
+
+// ── Flows ──────────────────────────────────────────────────────────────────
+export type FlowFamily = 'onpage' | 'backend';
+
+export interface FlowStep {
+  id: string;
+  label: string;
+  objects: string[];     // object keys touched
+  route?: string;
+  writes?: string[];     // tables written
+  note?: string;
+}
+
+export interface ArchFlow {
+  key: string;
+  family: FlowFamily;
+  label: string;
+  desc: string;
+  steps: FlowStep[];     // rendered left→right, linearly connected
+}
+
+export const FLOWS: ArchFlow[] = [
+  {
+    key: 'onpage', family: 'onpage', label: 'On-page (extension)',
+    desc: 'What the Crew extension does as the operator works a platform page.',
+    steps: [
+      { id: 'detect', label: 'Detect', objects: ['platform', 'engine', 'habitat'], note: 'crew-detector: platform/habitat detect + viewer resolve' },
+      { id: 'autosave', label: 'Auto-save', objects: ['habitat', 'brief'], route: 'POST /habitats · /briefs', writes: ['habitats', 'community_briefs'] },
+      { id: 'load', label: 'Load state', objects: ['account', 'brief', 'people', 'selector'], route: 'GET /habitats/resolve · /accounts/profile · /scene/people · /selectors/resolve' },
+      { id: 'mark', label: 'Mark', objects: ['people', 'card'], route: 'POST /scene/observe', note: 'markTrackedUsers WHO marker (◎ familiarity)' },
+      { id: 'reply', label: 'Reply-assist', objects: ['brief', 'account', 'card', 'externalApi'], route: 'POST /seeding/quick-comment', writes: ['cards'] },
+      { id: 'capture', label: 'Capture', objects: ['people', 'interaction'], route: 'POST /scene/interact', writes: ['people', 'interactions'], note: 'outbound always logged' },
+      { id: 'post', label: 'Post + track', objects: ['card'], route: 'POST /seeding/mark-posted', writes: ['cards'] },
+      { id: 'insights', label: 'Insights', objects: ['card', 'people', 'interaction'], route: 'POST /seeding/insights', writes: ['cards', 'interactions', 'people'] },
+    ],
+  },
+  {
+    key: 'backend', family: 'backend', label: 'Backend (AI reply + track)',
+    desc: 'Server chain for a typical AI reply: resolve → gen → post → track.',
+    steps: [
+      { id: 'auth', label: 'Auth', objects: [], note: 'checkAuth Bearer MOS2_EXT_KEY' },
+      { id: 'resolve', label: 'Resolve', objects: ['habitat', 'brief'], route: 'GET /habitats/resolve', note: 'reads habitat + active brief' },
+      { id: 'create', label: 'Create card', objects: ['card'], writes: ['cards'], note: "createPostForBriefPhase status='drafting'" },
+      { id: 'gen', label: 'Generate', objects: ['card', 'brief', 'account', 'genEngine', 'externalApi'], note: 'Claude/Astrolas w/ brief + persona + format preset' },
+      { id: 'respond', label: 'Respond', objects: ['card'], note: 'return draft to extension' },
+      { id: 'posted', label: 'Mark posted', objects: ['card'], route: 'POST /seeding/mark-posted', writes: ['cards'] },
+      { id: 'track', label: 'Track replies', objects: ['people', 'interaction'], writes: ['people', 'interactions'], note: 'replier → person, familiarity++' },
+      { id: 'insights', label: 'Insights', objects: ['card', 'interaction', 'people'], route: 'POST /seeding/insights', writes: ['cards', 'interactions', 'people'] },
+    ],
+  },
+];
+
+export const FLOW_BY_KEY: Record<string, ArchFlow> = Object.fromEntries(FLOWS.map((f) => [f.key, f]));
+
+// All object table names — allowlist for instance binding (guards SQL).
+export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
+  OBJECTS.filter((o) => o.table).map((o) => [o.key, o]),
+);

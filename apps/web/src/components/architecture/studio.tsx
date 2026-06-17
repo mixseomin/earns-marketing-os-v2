@@ -1,0 +1,427 @@
+'use client';
+
+// Architecture Studio — full-bleed canvas that CONSOLIDATES the existing MOS2
+// system (objects · links · flows) into one map. Read-only: it visualizes and
+// validates real data; it creates nothing. Layout persists in localStorage.
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
+  useNodesState, useEdgesState, MarkerType,
+  type Node, type Edge, type NodeMouseHandler,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { NODE_TYPES } from './nodes';
+import {
+  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY,
+  type ArchObject, type ArchFlow, type RelKind,
+} from './spec';
+import { Drawer } from '@/components/drawer';
+import { listInstances, getInstance, type InstanceRef, type Issue } from '@/lib/actions/architecture';
+
+type ViewKey = 'objects' | 'onpage' | 'backend';
+type Pos = { x: number; y: number };
+type Bound = { id: string; label: string; worst: 'error' | 'warn' | 'ok' | null };
+
+const REL_COLOR: Record<RelKind, string> = {
+  fk: '#5a6273', brief: '#ffb03c', tracking: '#ff7ab0', scope: '#5badff', gen: '#b48cff', m2m: '#3ce0c0',
+};
+const groupColor = (k: string) => GROUPS.find((g) => g.key === k)?.color || '#8a92a3';
+const groupLabel = (k: string) => GROUPS.find((g) => g.key === k)?.label || k;
+
+const COL_W = 250;
+const ROW_H = 104;
+
+// ── default layouts (overridden by saved localStorage positions) ─────────────
+function defaultObjectPositions(): Record<string, Pos> {
+  const pos: Record<string, Pos> = {};
+  GROUPS.forEach((g, gi) => {
+    pos[`group:${g.key}`] = { x: gi * COL_W, y: 0 };
+    const objs = OBJECTS.filter((o) => o.group === g.key);
+    objs.forEach((o, i) => { pos[o.key] = { x: gi * COL_W, y: 56 + i * ROW_H }; });
+  });
+  return pos;
+}
+function defaultFlowPositions(flow: ArchFlow): Record<string, Pos> {
+  const pos: Record<string, Pos> = {};
+  flow.steps.forEach((s, i) => { pos[s.id] = { x: i * 250, y: 160 + (i % 2) * 40 }; });
+  return pos;
+}
+
+function pickHandles(a: Pos, b: Pos): { sourceHandle: string; targetHandle: string } {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0 ? { sourceHandle: 's-r', targetHandle: 't-l' } : { sourceHandle: 's-l', targetHandle: 't-r' };
+  }
+  return dy >= 0 ? { sourceHandle: 's-b', targetHandle: 't-t' } : { sourceHandle: 's-t', targetHandle: 't-b' };
+}
+
+function lsKey(view: ViewKey) { return `mos2-arch-layout:${view}`; }
+function loadPositions(view: ViewKey): Record<string, Pos> {
+  try { return JSON.parse(localStorage.getItem(lsKey(view)) || '{}'); } catch { return {}; }
+}
+function savePositions(view: ViewKey, pos: Record<string, Pos>) {
+  try { localStorage.setItem(lsKey(view), JSON.stringify(pos)); } catch { /* ignore */ }
+}
+
+// ── node/edge builders ───────────────────────────────────────────────────────
+function buildObjectGraph(saved: Record<string, Pos>, bound: Record<string, Bound>): { nodes: Node[]; edges: Edge[] } {
+  const base = defaultObjectPositions();
+  const at = (id: string): Pos => saved[id] || base[id] || { x: 0, y: 0 };
+  const nodes: Node[] = [];
+
+  GROUPS.forEach((g) => {
+    nodes.push({ id: `group:${g.key}`, type: 'groupLabel', position: at(`group:${g.key}`), data: { label: g.label, color: g.color }, draggable: true, selectable: false });
+  });
+  OBJECTS.forEach((o) => {
+    const b = bound[o.key];
+    nodes.push({
+      id: o.key, type: 'objectNode', position: at(o.key),
+      data: {
+        label: o.label, groupLabel: groupLabel(o.group), color: groupColor(o.group),
+        attrCount: o.attrs.length, bindable: !!o.table,
+        boundLabel: b?.label || null, worst: b?.worst || null,
+      },
+    });
+  });
+
+  const seen = new Set<string>();
+  const edges: Edge[] = [];
+  OBJECTS.forEach((o) => {
+    o.relations.forEach((r) => {
+      if (!OBJ_BY_KEY[r.to]) return;
+      const key = `${o.key}->${r.to}:${r.kind}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const h = pickHandles(at(o.key), at(r.to));
+      const col = REL_COLOR[r.kind];
+      edges.push({
+        id: key, source: o.key, target: r.to, ...h,
+        label: r.kind, type: 'default', animated: r.kind === 'tracking',
+        style: { stroke: col, strokeWidth: 1.5, strokeDasharray: r.kind === 'scope' ? '4 3' : undefined },
+        labelStyle: { fill: col, fontSize: 9, fontFamily: 'var(--font-mono)' },
+        labelBgStyle: { fill: 'var(--bg-0)', fillOpacity: 0.85 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: col, width: 14, height: 14 },
+      });
+    });
+  });
+  return { nodes, edges };
+}
+
+function buildFlowGraph(flow: ArchFlow, saved: Record<string, Pos>): { nodes: Node[]; edges: Edge[] } {
+  const base = defaultFlowPositions(flow);
+  const at = (id: string): Pos => saved[id] || base[id] || { x: 0, y: 0 };
+  const color = flow.family === 'onpage' ? '#3ce0c0' : '#5badff';
+  const nodes: Node[] = flow.steps.map((s, i) => ({
+    id: s.id, type: 'flowStep', position: at(s.id),
+    data: { label: s.label, index: i, color, objects: s.objects, route: s.route, writes: s.writes, note: s.note },
+  }));
+  const edges: Edge[] = [];
+  for (let i = 1; i < flow.steps.length; i++) {
+    const prev = flow.steps[i - 1], cur = flow.steps[i];
+    if (!prev || !cur) continue;
+    edges.push({
+      id: `${prev.id}->${cur.id}`, source: prev.id, target: cur.id,
+      sourceHandle: 's-r', targetHandle: 't-l', type: 'default', animated: true,
+      style: { stroke: color, strokeWidth: 1.8 },
+      markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
+    });
+  }
+  return { nodes, edges };
+}
+
+// ── instance inspector (inside drawer) ───────────────────────────────────────
+function IssueRow({ it }: { it: Issue }) {
+  const c = it.level === 'error' ? 'var(--bad)' : it.level === 'warn' ? 'var(--warn)' : 'var(--ok)';
+  const icon = it.level === 'error' ? '✕' : it.level === 'warn' ? '⚠' : '✓';
+  return (
+    <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, color: 'var(--fg-1)', padding: '3px 0' }}>
+      <span style={{ color: c, fontWeight: 700, flexShrink: 0 }}>{icon}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{it.msg}</span>
+    </div>
+  );
+}
+
+function ObjectDrawerBody({ obj, projects, bound, onBind }: {
+  obj: ArchObject; projects: { id: string; name: string }[];
+  bound?: Bound; onBind: (b: Bound | null) => void;
+}) {
+  const [projectId, setProjectId] = useState(projects[0]?.id || '');
+  const [instances, setInstances] = useState<InstanceRef[]>([]);
+  const [picked, setPicked] = useState(bound?.id || '');
+  const [detail, setDetail] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // load instance list when project changes (or for global objects, once)
+  useEffect(() => {
+    let dead = false;
+    if (!obj.table) { setInstances([]); return; }
+    setLoading(true);
+    listInstances(obj.key, obj.projectScoped ? projectId : undefined)
+      .then((r) => { if (!dead) setInstances(r); })
+      .finally(() => { if (!dead) setLoading(false); });
+    return () => { dead = true; };
+  }, [obj.key, obj.table, obj.projectScoped, projectId]);
+
+  const inspect = useCallback(async (id: string) => {
+    setPicked(id);
+    if (!id) { setDetail(null); onBind(null); return; }
+    setLoading(true);
+    const d = await getInstance(obj.key, id);
+    setLoading(false);
+    if (!d) { setDetail(null); return; }
+    setDetail(d);
+    const worst: Bound['worst'] = d.issues.some((i) => i.level === 'error') ? 'error'
+      : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok';
+    const label = instances.find((x) => x.id === id)?.label || id;
+    onBind({ id, label, worst });
+  }, [obj.key, instances, onBind]);
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 14 }}>{obj.desc}</div>
+
+      {/* attribute schema */}
+      <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          {obj.attrs.map((a, i) => (
+            <div key={a.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'center' }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{a.name}</span>
+                {a.pk && <span style={chip('var(--accent)')}>PK</span>}
+                {a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}
+                {a.note && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 1 }}>{a.note}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                {a.col && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{a.col}</span>}
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)' }}>{a.type}</span>
+                {detail && a.col != null && (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {fmtVal(detail.row[a.col])}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* relations */}
+      <Section title="Links" sub={`// ${obj.relations.length}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {obj.relations.map((r) => (
+            <div key={`${r.to}:${r.kind}`} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+              <span style={{ ...chip(REL_COLOR[r.kind]), marginLeft: 0 }}>{r.kind}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{OBJ_BY_KEY[r.to]?.label || r.to}</span>
+              {r.via && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{r.via}</span>}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* routes */}
+      <Section title="API routes" sub="// /api/ext">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {obj.routes.map((rt) => (
+            <span key={rt} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 3, padding: '2px 6px' }}>{rt}</span>
+          ))}
+        </div>
+        {obj.deepLink && <a href={obj.deepLink} style={{ display: 'inline-block', marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>↗ manage real {obj.label}</a>}
+      </Section>
+
+      {/* instance binding */}
+      {obj.table && (
+        <Section title="Bind real instance" sub="// validates against the model">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {obj.projectScoped && (
+              <select value={projectId} onChange={(e) => { setProjectId(e.target.value); setDetail(null); setPicked(''); }} style={selStyle}>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+            <select value={picked} onChange={(e) => inspect(e.target.value)} style={{ ...selStyle, flex: 1, minWidth: 160 }}>
+              <option value="">{loading ? 'loading…' : `— pick (${instances.length}) —`}</option>
+              {instances.map((x) => <option key={x.id} value={x.id}>{x.label} · #{x.id}</option>)}
+            </select>
+          </div>
+          {detail && (
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Consistency check</div>
+              {detail.issues.map((it, i) => <IssueRow key={i} it={it} />)}
+            </div>
+          )}
+        </Section>
+      )}
+    </div>
+  );
+}
+
+function FlowDrawerBody({ flow, stepId }: { flow: ArchFlow; stepId: string }) {
+  const step = flow.steps.find((s) => s.id === stepId);
+  if (!step) return null;
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 6 }}>{flow.desc}</div>
+      {step.note && <div style={{ fontSize: 12.5, color: 'var(--fg-0)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px', marginBottom: 12 }}>{step.note}</div>}
+      {step.route && <Section title="Route"><div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', wordBreak: 'break-word' }}>{step.route}</div></Section>}
+      {step.writes && step.writes.length > 0 && <Section title="Writes"><div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ok)' }}>{step.writes.join(' · ')}</div></Section>}
+      <Section title="Objects touched" sub={`// ${step.objects.length}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {step.objects.map((ok) => {
+            const o = OBJ_BY_KEY[ok];
+            return (
+              <div key={ok} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: groupColor(o?.group || ''), flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{o?.label || ok}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{o?.table || ''}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
+function StudioInner({ projects }: { projects: { id: string; name: string }[] }) {
+  const [view, setView] = useState<ViewKey>('objects');
+  const [bound, setBound] = useState<Record<string, Bound>>({});
+  const [sel, setSel] = useState<{ kind: 'object'; key: string } | { kind: 'flow'; flow: string; step: string } | null>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const savedRef = useRef<Record<string, Pos>>({});
+
+  // (re)build graph when the view or bindings change
+  useEffect(() => {
+    const saved = loadPositions(view);
+    savedRef.current = saved;
+    const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
+    const g = view === 'objects' || !flow ? buildObjectGraph(saved, bound)
+      : buildFlowGraph(flow, saved);
+    setNodes(g.nodes);
+    setEdges(g.edges);
+  }, [view, bound, setNodes, setEdges]);
+
+  const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
+    if (node.type === 'objectNode') setSel({ kind: 'object', key: node.id });
+    else if (node.type === 'flowStep') setSel({ kind: 'flow', flow: view === 'onpage' ? 'onpage' : 'backend', step: node.id });
+  }, [view]);
+
+  const persist = useCallback(() => {
+    const pos: Record<string, Pos> = { ...savedRef.current };
+    nodes.forEach((n) => { pos[n.id] = n.position; });
+    savedRef.current = pos;
+    savePositions(view, pos);
+  }, [nodes, view]);
+
+  const resetLayout = useCallback(() => {
+    savePositions(view, {});
+    savedRef.current = {};
+    const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
+    const g = view === 'objects' || !flow ? buildObjectGraph({}, bound) : buildFlowGraph(flow, {});
+    setNodes(g.nodes); setEdges(g.edges);
+  }, [view, bound, setNodes, setEdges]);
+
+  const selObj = sel?.kind === 'object' ? OBJ_BY_KEY[sel.key] : null;
+  const selFlow = sel?.kind === 'flow' ? FLOW_BY_KEY[sel.flow] : null;
+
+  const drawerSub = selObj ? groupLabel(selObj.group) : selFlow ? selFlow.label : '';
+  let drawerTitle = '';
+  if (selObj) drawerTitle = selObj.label;
+  else if (sel && sel.kind === 'flow' && selFlow) drawerTitle = selFlow.steps.find((s) => s.id === sel.step)?.label || '';
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-0)', display: 'flex', flexDirection: 'column' }}>
+      {/* top bar */}
+      <div style={{ height: 48, flexShrink: 0, borderBottom: '1px solid var(--line)', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 14, padding: '0 14px' }}>
+        <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architecture Studio</div>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
+          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend']] as [ViewKey, string][]).map(([k, lbl]) => (
+            <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
+        <button onClick={resetLayout} style={btnStyle}>↺ Reset layout</button>
+      </div>
+
+      {/* legend */}
+      <div style={{ position: 'absolute', top: 58, left: 14, zIndex: 5, display: 'flex', flexWrap: 'wrap', gap: 8, pointerEvents: 'none' }}>
+        {view === 'objects'
+          ? (Object.keys(REL_COLOR) as RelKind[]).map((k) => (
+              <span key={k} style={legendChip}><span style={{ width: 14, height: 2, background: REL_COLOR[k], display: 'inline-block' }} /> {k}</span>
+            ))
+          : <span style={legendChip}>{FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend']?.label || ''}</span>}
+      </div>
+
+      {/* canvas */}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ReactFlow
+          nodes={nodes} edges={edges}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick} onNodeDragStop={persist}
+          nodeTypes={NODE_TYPES}
+          fitView fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.2} maxZoom={2}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={22} size={1} color="var(--line)" />
+          <Controls showInteractive={false} />
+          <MiniMap pannable zoomable nodeColor={(n) => {
+            const d = n.data as { color?: string };
+            return d?.color || '#5a6273';
+          }} maskColor="rgba(7,9,13,0.7)" style={{ background: 'var(--bg-1)' }} />
+        </ReactFlow>
+      </div>
+
+      {/* drawer */}
+      <Drawer
+        open={!!sel}
+        onClose={() => setSel(null)}
+        sub={drawerSub}
+        title={drawerTitle}
+        width={620}
+        footer={null}
+      >
+        {selObj && <ObjectDrawerBody obj={selObj} projects={projects} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
+        {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
+      </Drawer>
+    </div>
+  );
+}
+
+export function ArchitectureStudio({ projects }: { projects: { id: string; name: string }[] }) {
+  return (
+    <ReactFlowProvider>
+      <StudioInner projects={projects} />
+    </ReactFlowProvider>
+  );
+}
+
+// ── small style helpers ──────────────────────────────────────────────────────
+function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>{title}</span>
+        {sub && <span style={{ color: 'var(--fg-4)', textTransform: 'none', letterSpacing: '0.04em' }}>{sub}</span>}
+        <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+      </div>
+      {children}
+    </div>
+  );
+}
+function fmtVal(v: unknown): string {
+  if (v == null) return '∅';
+  if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
+  return String(v).slice(0, 60);
+}
+function chip(color: string): React.CSSProperties {
+  return { fontFamily: 'var(--font-mono)', fontSize: 9, color, border: `1px solid ${color}`, borderRadius: 3, padding: '0 4px', marginLeft: 6 };
+}
+const selStyle: React.CSSProperties = { background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, padding: '5px 8px', fontFamily: 'var(--font-mono)' };
+const btnStyle: React.CSSProperties = { background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', fontSize: 12, padding: '5px 10px', cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+const legendChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '3px 7px' };
+function tabStyle(active: boolean): React.CSSProperties {
+  return { background: active ? 'var(--bg-0)' : 'transparent', border: active ? '1px solid var(--line)' : '1px solid transparent', borderRadius: 5, color: active ? 'var(--fg-0)' : 'var(--fg-2)', fontSize: 12, padding: '5px 10px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: active ? 600 : 400 };
+}

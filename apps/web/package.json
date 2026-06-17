@@ -14,6 +14,7 @@
     "@anthropic-ai/sdk": "^0.91.1",
     "@mos2/db": "*",
     "@types/bcryptjs": "^2.4.6",
+    "@xyflow/react": "^12.3.5",
     "bcryptjs": "^3.0.3",
     "next": "^15.0.3",
     "openai": "^4.79.0",

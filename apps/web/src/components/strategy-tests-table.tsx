@@ -329,14 +329,14 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
             <tr>
               <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
               {cols.map((c) => (
-                <th key={c.key} title={c.title} style={c.sort ? { ...TH, textAlign: c.num ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' } : { ...TH, textAlign: c.num ? 'right' : 'left' }}
+                <th key={c.key} title={c.title} style={{ ...TH, textAlign: c.num ? 'right' : 'left', background: `${GROUP_COLOR[c.group]}14`, ...(c.sort ? { cursor: 'pointer', userSelect: 'none' } : {}) }}
                   onClick={c.sort ? () => toggleSort(c.sort!) : undefined}>{c.label}{c.sort ? caret(c.sort) : ''}</th>
               ))}
               <th style={TH}>Verdict</th>
-              {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)' }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward trades since forward start">Live N</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right' }} title="Open positions right now (live demo)">Open</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)', background: `${FWD_BAND_COLOR}14` }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Live forward trades since forward start">Live N</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Open positions right now (live demo)">Open</th>}
             </tr>
           </thead>
           <tbody>
@@ -428,9 +428,10 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                 </div>
               </td>
               {cols.map((c) => {
+                const cellBg = `${GROUP_COLOR[c.group]}0a`;
                 if (c.key === 'asset' && kids.length > 0) {
                   return (
-                    <td key={c.key} style={TD}>
+                    <td key={c.key} style={{ ...TD, background: cellBg }}>
                       <span onClick={() => toggleExpand(r.id)} title={`${kids.length} per-asset results`}
                         style={{ cursor: 'pointer', color: 'var(--accent,#00e5ff)', borderBottom: '1px dotted', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {dash(r.asset)} <span style={{ fontSize: 9 }}>{isOpen ? '▾' : '▸'}</span>
@@ -440,19 +441,20 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                   );
                 }
                 const col = c.color ? c.color(r) : undefined;
-                return <td key={c.key} style={{ ...(c.num ? NUM : TD), ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
+                return <td key={c.key} style={{ ...(c.num ? NUM : TD), background: cellBg, ...(col ? { color: col } : {}), ...(c.bold ? { fontWeight: 700 } : {}) }}>{c.render(r)}</td>;
               })}
               <td style={TD}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
               </td>
               {fwdOn && (() => {
+                const fb = `${FWD_BAND_COLOR}0a`;
                 const fw = fwdAgg(forwardByStrategy[r.name]);
-                if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', color: 'var(--muted)' }}>—</td><td style={NUM}>—</td><td style={NUM}>—</td><td style={NUM}>—</td></>);
+                if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', background: fb, color: 'var(--muted)' }}>—</td><td style={{ ...NUM, background: fb }}>—</td><td style={{ ...NUM, background: fb }}>—</td><td style={{ ...NUM, background: fb }}>—</td></>);
                 return (<>
-                  <td style={{ ...TD, borderLeft: '2px solid var(--line)' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_COLOR[fw.status] ?? '#7a8699' }}>{fw.status}</span>{fw.symbols > 1 ? <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>×{fw.symbols}</span> : null}</td>
-                  <td style={NUM}>{fw.trades || '—'}</td>
-                  <td style={{ ...NUM, fontWeight: 700, color: fw.trades ? pfColor(String(fw.pf)) : 'var(--muted)' }}>{fw.trades ? fw.pf.toFixed(2) : '—'}</td>
-                  <td style={{ ...NUM, fontWeight: 700, color: fw.open > 0 ? 'var(--ok, #5ac882)' : 'var(--muted)' }}>{fw.open > 0 ? fw.open : '—'}</td>
+                  <td style={{ ...TD, borderLeft: '2px solid var(--line)', background: fb }}><span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_COLOR[fw.status] ?? '#7a8699' }}>{fw.status}</span>{fw.symbols > 1 ? <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>×{fw.symbols}</span> : null}</td>
+                  <td style={{ ...NUM, background: fb }}>{fw.trades || '—'}</td>
+                  <td style={{ ...NUM, background: fb, fontWeight: 700, color: fw.trades ? pfColor(String(fw.pf)) : 'var(--muted)' }}>{fw.trades ? fw.pf.toFixed(2) : '—'}</td>
+                  <td style={{ ...NUM, background: fb, fontWeight: 700, color: fw.open > 0 ? 'var(--ok, #5ac882)' : 'var(--muted)' }}>{fw.open > 0 ? fw.open : '—'}</td>
                 </>);
               })()}
             </tr>

@@ -463,8 +463,8 @@ function StudioInner({ projects }: { projects: { id: string; name: string }[] })
           nodeTypes={NODE_TYPES}
           fitView fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2} maxZoom={2}
-          zoomOnScroll panOnScroll={false} zoomOnPinch preventScrolling
-          zoomActivationKeyCode={null}
+          panOnScroll zoomOnScroll={false} zoomOnPinch preventScrolling
+          panOnScrollSpeed={0.8}
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={22} size={1} color="var(--line)" />

@@ -67,6 +67,13 @@ function savePositions(view: ViewKey, pos: Record<string, Pos>) {
   try { localStorage.setItem(lsKey(view), JSON.stringify(pos)); } catch { /* ignore */ }
 }
 
+// Persisted bindings + project selection survive reload (F5) — restored on mount.
+const BOUND_KEY = 'mos2-arch-bound';
+const PROJ_KEY = 'mos2-arch-proj';
+function loadBound(): Record<string, Bound> { try { return JSON.parse(localStorage.getItem(BOUND_KEY) || '{}'); } catch { return {}; } }
+function loadProj(): string { try { return localStorage.getItem(PROJ_KEY) || ''; } catch { return ''; } }
+const pickRandom = <T,>(a: T[]): T | undefined => (a.length ? a[Math.floor(Math.random() * a.length)] : undefined);
+
 // ── node/edge builders ───────────────────────────────────────────────────────
 function buildObjectGraph(saved: Record<string, Pos>, bound: Record<string, Bound>, scan: ScanResult | null): { nodes: Node[]; edges: Edge[] } {
   const base = defaultObjectPositions();
@@ -230,6 +237,8 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const crossProject = !!obj.picker?.crossProject; // independent place, list across projects (habitat)
   const [parentId, setParentId] = useState('');
   const [parentInstances, setParentInstances] = useState<InstanceRef[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pendingRand, setPendingRand] = useState(false);
 
   // load the selector library for this scope once an instance is picked
   useEffect(() => {
@@ -273,6 +282,19 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
     const label = instances.find((x) => x.id === id)?.label || id;
     onBind({ id, label, worst });
   }, [obj.key, instances, onBind]);
+
+  // "Fill random": bind a random instance. For cascade objects, roll a random parent
+  // first, then pick a random child once it loads (pendingRand).
+  const randomFill = useCallback(() => {
+    if (instances.length) { const x = pickRandom(instances); if (x) inspect(x.id); return; }
+    if (parent && parentInstances.length) {
+      const p = pickRandom(parentInstances);
+      if (p) { setParentId(p.id); setPicked(''); setDetail(null); onBind(null); setPendingRand(true); }
+    }
+  }, [instances, parent, parentInstances, inspect, onBind]);
+  useEffect(() => {
+    if (pendingRand && instances.length) { setPendingRand(false); const x = pickRandom(instances); if (x) inspect(x.id); }
+  }, [pendingRand, instances, inspect]);
 
   return (
     <div>
@@ -343,6 +365,22 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
             <SearchSelect value={picked} options={instances}
               placeholder={parent && !parentId ? 'pick parent first' : loading ? 'loading…' : `— pick (${instances.length}) —`}
               onChange={inspect} disabled={!!parent && !parentId} />
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button type="button" onClick={() => setMenuOpen((o) => !o)} title="Actions" style={{ ...btnStyle, padding: '5px 9px' }}>⋯</button>
+              {menuOpen && (
+                <>
+                  <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 55 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 60, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.5)', minWidth: 152, padding: 4 }}>
+                    <button type="button" onClick={() => { randomFill(); setMenuOpen(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'transparent', border: 0, color: 'var(--fg-0)', fontSize: 12, padding: '6px 8px', borderRadius: 4, cursor: 'pointer' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                      🎲 Fill random
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           {crossProject && (
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8, lineHeight: 1.5 }}>
@@ -434,6 +472,16 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const savedRef = useRef<Record<string, Pos>>({});
+  const hydrated = useRef(false);
+
+  // restore persisted bindings + project once (survive F5); then keep them saved
+  useEffect(() => {
+    const b = loadBound(); if (Object.keys(b).length) setBound(b);
+    const p = loadProj(); if (p) setProj(p);
+    hydrated.current = true;
+  }, []);
+  useEffect(() => { if (hydrated.current) { try { localStorage.setItem(BOUND_KEY, JSON.stringify(bound)); } catch { /* */ } } }, [bound]);
+  useEffect(() => { if (hydrated.current && proj) { try { localStorage.setItem(PROJ_KEY, proj); } catch { /* */ } } }, [proj]);
 
   // (re)build graph when the view / bindings / scan change
   useEffect(() => {

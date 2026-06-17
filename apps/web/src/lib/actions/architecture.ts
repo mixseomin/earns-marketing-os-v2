@@ -42,9 +42,10 @@ export async function listInstances(objectKey: string, projectId?: string, paren
   const db = getDb();
   if (!db) return [];
   const table = ident(obj.table);
-  const pk = sql.raw(`t.${ident(obj.pk || 'id')}`);
-  const label = sql.raw(`t.${ident(obj.labelCol || obj.pk || 'id')}`);
   const pkr = obj.picker;
+  const pk = sql.raw(`t.${ident(obj.pk || 'id')}`);
+  // primary label: a meaningful composite (labelExpr) when defined, else the bare labelCol
+  const labelSel = pkr?.labelExpr ? sql.raw(`(${pkr.labelExpr})`) : sql.raw(`t.${ident(obj.labelCol || obj.pk || 'id')}`);
   const subSel = pkr?.subExpr ? sql`, (${sql.raw(pkr.subExpr)})::text AS sub` : sql``;
   const joinSql = pkr?.join ? sql.raw(pkr.join) : sql``;
 
@@ -55,7 +56,7 @@ export async function listInstances(objectKey: string, projectId?: string, paren
 
   try {
     const res = await db.execute(sql`
-      SELECT ${pk}::text AS id, ${label}::text AS label${subSel}
+      SELECT ${pk}::text AS id, ${labelSel}::text AS label${subSel}
       FROM ${sql.raw(table)} t
       ${joinSql}
       ${whereSql}

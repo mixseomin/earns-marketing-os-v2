@@ -56,6 +56,7 @@ export interface ArchObject {
     crossProject?: boolean;                    // ignore project filter — entity exists independent of project (habitat)
     parent?: { object: string; col: string };  // cascade: pick the parent first, then filter children (channel → habitat)
     join?: string;                             // STATIC sql join (alias `t` = main table) to resolve the context label
+    labelExpr?: string;                        // STATIC sql expr for a MEANINGFUL primary label (overrides labelCol — e.g. acct × habitat)
     subExpr?: string;                          // STATIC sql expr for the option's context sub-label
   };
 }
@@ -196,7 +197,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'channel', label: 'Channel', group: 'place',
     table: 'habitat_channels', pk: 'id', labelCol: 'name', projectScoped: false,
     desc: 'Sub-channel/board inside a habitat (Discord channel, forum board, Slack channel).',
-    picker: { parent: { object: 'habitat', col: 'habitat_id' }, join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
+    picker: { parent: { object: 'habitat', col: 'habitat_id' }, join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "concat(coalesce(h.name,'?'),' / ',t.name)" },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat' },
@@ -212,7 +213,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'brief', label: 'Brief (acc×habitat)', group: 'content',
     table: 'community_briefs', pk: 'id', labelCol: 'id', projectScoped: true,
     desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',
-    picker: { join: 'LEFT JOIN platform_accounts a ON a.id = t.account_id LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: "concat(coalesce(a.handle,'?'),' → ',coalesce(h.name,'?'))" },
+    picker: { join: 'LEFT JOIN platform_accounts a ON a.id = t.account_id LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "concat(coalesce(a.handle,'?'),' × ',coalesce(h.name,'?'))", subExpr: 't.current_phase' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -252,7 +253,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'card', label: 'Card (content)', group: 'content',
     table: 'cards', pk: 'id', labelCol: 'card_ref', projectScoped: true,
     desc: 'Content unit through full lifecycle: draft → posted → insights. Identity via brief OR direct account/habitat.',
-    picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
+    picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "t.card_ref || coalesce(' · ' || nullif(left(coalesce(t.title_review, t.title, ''), 26), ''), '')", subExpr: 'h.name' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -305,7 +306,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'interaction', label: 'Interaction (tracking)', group: 'scene',
     table: 'interactions', pk: 'id', labelCol: 'kind', projectScoped: false,
     desc: 'THE tracking link: one engagement event between us (account/card) and a person.',
-    picker: { join: 'LEFT JOIN people pe ON pe.id = t.people_id', subExpr: 'pe.handle' },
+    picker: { join: 'LEFT JOIN people pe ON pe.id = t.people_id LEFT JOIN platform_accounts a ON a.id = t.account_id', labelExpr: "concat(coalesce(pe.handle,'?'),' × ',coalesce(a.handle,'me'))", subExpr: "concat(t.kind,' · ',t.direction)" },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'peopleId', col: 'people_id', type: 'fk', fk: 'people' },

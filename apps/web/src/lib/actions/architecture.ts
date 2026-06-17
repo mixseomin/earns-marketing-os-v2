@@ -10,7 +10,7 @@ import { BINDABLE_TABLES, OBJ_BY_KEY } from '@/components/architecture/spec';
 
 type Row = Record<string, unknown>;
 
-export interface InstanceRef { id: string; label: string }
+export interface InstanceRef { id: string; label: string; sub?: string }
 export interface Issue { level: 'error' | 'warn' | 'ok'; msg: string }
 export interface InstanceDetail { row: Row; issues: Issue[] }
 
@@ -34,24 +34,35 @@ async function exists(table: string, col: string, val: unknown): Promise<boolean
 }
 
 // ── instance picker ──────────────────────────────────────────────────────────
-export async function listInstances(objectKey: string, projectId?: string): Promise<InstanceRef[]> {
+// A child entity is meaningless without its parent context, so each option carries
+// a `sub` (parent label) and child entities (channel) can be filtered by a parentId.
+export async function listInstances(objectKey: string, projectId?: string, parentId?: string): Promise<InstanceRef[]> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return [];
   const db = getDb();
   if (!db) return [];
   const table = ident(obj.table);
-  const pk = ident(obj.pk || 'id');
-  const labelCol = ident(obj.labelCol || obj.pk || 'id');
-  const scoped = obj.projectScoped && projectId;
+  const pk = sql.raw(`t.${ident(obj.pk || 'id')}`);
+  const label = sql.raw(`t.${ident(obj.labelCol || obj.pk || 'id')}`);
+  const pkr = obj.picker;
+  const subSel = pkr?.subExpr ? sql`, (${sql.raw(pkr.subExpr)})::text AS sub` : sql``;
+  const joinSql = pkr?.join ? sql.raw(pkr.join) : sql``;
+
+  const conds: ReturnType<typeof sql>[] = [];
+  if (obj.projectScoped && projectId && !pkr?.crossProject) conds.push(sql`t.project_id = ${projectId}`);
+  if (pkr?.parent && parentId) conds.push(sql`${sql.raw('t.' + ident(pkr.parent.col))} = ${parentId}`);
+  const whereSql = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+
   try {
     const res = await db.execute(sql`
-      SELECT ${sql.raw(pk)}::text AS id, ${sql.raw(labelCol)}::text AS label
-      FROM ${sql.raw(table)}
-      ${scoped ? sql`WHERE project_id = ${projectId}` : sql``}
-      ORDER BY ${sql.raw(pk)} DESC
-      LIMIT 300`);
-    const rows = res as unknown as Array<{ id: string; label: string | null }>;
-    return rows.map((r) => ({ id: r.id, label: r.label || r.id }));
+      SELECT ${pk}::text AS id, ${label}::text AS label${subSel}
+      FROM ${sql.raw(table)} t
+      ${joinSql}
+      ${whereSql}
+      ORDER BY ${pk} DESC
+      LIMIT 400`);
+    const rows = res as unknown as Array<{ id: string; label: string | null; sub: string | null }>;
+    return rows.map((r) => ({ id: r.id, label: r.label || r.id, sub: r.sub || undefined }));
   } catch {
     return [];
   }
@@ -212,6 +223,7 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
     // habitat
     add('habitat', 'error', 'platform_key not in platforms', sql`SELECT count(*)::int AS n FROM habitats h WHERE h.platform_key IS NOT NULL AND h.platform_key <> '' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = h.platform_key)${fH}`),
     add('habitat', 'error', 'technology_key not in platform_technologies', sql`SELECT count(*)::int AS n FROM habitats h WHERE h.technology_key IS NOT NULL AND h.technology_key <> '' AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = h.technology_key)${fH}`),
+    add('habitat', 'warn', 'same community duplicated across projects (approach belongs in brief, not habitat)', sql`SELECT count(*)::int AS n FROM (SELECT url FROM habitats WHERE url <> '' GROUP BY url HAVING count(DISTINCT project_id) > 1) d`),
     // card
     add('card', 'warn', 'identity unresolved (no brief, no direct acct+habitat)', sql`SELECT count(*)::int AS n FROM cards c WHERE c.brief_id IS NULL AND (c.account_id IS NULL OR c.habitat_id IS NULL)${fC}`),
     add('card', 'error', 'brief_id dangling', sql`SELECT count(*)::int AS n FROM cards c WHERE c.brief_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM community_briefs b WHERE b.id = c.brief_id)${fC}`),

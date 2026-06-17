@@ -51,6 +51,13 @@ export interface ArchObject {
   relations: ObjRelation[];
   routes: string[];      // /api/ext/* routes that read/write this object
   deepLink?: string;     // app path to manage real instances
+  // instance-picker behaviour (a child entity is meaningless without its parent context):
+  picker?: {
+    crossProject?: boolean;                    // ignore project filter — entity exists independent of project (habitat)
+    parent?: { object: string; col: string };  // cascade: pick the parent first, then filter children (channel → habitat)
+    join?: string;                             // STATIC sql join (alias `t` = main table) to resolve the context label
+    subExpr?: string;                          // STATIC sql expr for the option's context sub-label
+  };
 }
 
 // ── Objects ────────────────────────────────────────────────────────────────
@@ -117,6 +124,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'account', label: 'Account', group: 'identity',
     table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: true,
     desc: 'Owned social account. Persona + status + anti-detect (proxy/profile). Multi-brand via project_accounts.',
+    picker: { subExpr: 't.platform_key' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk', note: 'legacy owner; multi-brand via project_accounts' },
@@ -154,6 +162,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'habitat', label: 'Habitat', group: 'place',
     table: 'habitats', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+engine+tribe.',
+    picker: { crossProject: true, subExpr: 't.project_id' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -181,6 +190,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'channel', label: 'Channel', group: 'place',
     table: 'habitat_channels', pk: 'id', labelCol: 'name', projectScoped: false,
     desc: 'Sub-channel/board inside a habitat (Discord channel, forum board, Slack channel).',
+    picker: { parent: { object: 'habitat', col: 'habitat_id' }, join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat' },
@@ -196,6 +206,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'brief', label: 'Brief (acc×habitat)', group: 'content',
     table: 'community_briefs', pk: 'id', labelCol: 'id', projectScoped: true,
     desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',
+    picker: { join: 'LEFT JOIN platform_accounts a ON a.id = t.account_id LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: "concat(coalesce(a.handle,'?'),' → ',coalesce(h.name,'?'))" },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -235,6 +246,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'card', label: 'Card (content)', group: 'content',
     table: 'cards', pk: 'id', labelCol: 'card_ref', projectScoped: true,
     desc: 'Content unit through full lifecycle: draft → posted → insights. Identity via brief OR direct account/habitat.',
+    picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -264,6 +276,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'people', label: 'People (scene)', group: 'scene',
     table: 'people', pk: 'id', labelCol: 'handle', projectScoped: true,
     desc: 'WHO-THEM: a person the operator interacts with. Familiarity score + status.',
+    picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -286,6 +299,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'interaction', label: 'Interaction (tracking)', group: 'scene',
     table: 'interactions', pk: 'id', labelCol: 'kind', projectScoped: false,
     desc: 'THE tracking link: one engagement event between us (account/card) and a person.',
+    picker: { join: 'LEFT JOIN people pe ON pe.id = t.people_id', subExpr: 'pe.handle' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'peopleId', col: 'people_id', type: 'fk', fk: 'people' },

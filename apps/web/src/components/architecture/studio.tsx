@@ -161,6 +161,10 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const [loading, setLoading] = useState(false);
   const [sels, setSels] = useState<SelRow[] | null>(null);
   const isScoped = obj.key === 'platform' || obj.key === 'engine' || obj.key === 'habitat';
+  const parent = obj.picker?.parent;             // child needs its parent picked first (channel → habitat)
+  const crossProject = !!obj.picker?.crossProject; // independent place, list across projects (habitat)
+  const [parentId, setParentId] = useState('');
+  const [parentInstances, setParentInstances] = useState<InstanceRef[]>([]);
 
   // load the selector library for this scope once an instance is picked
   useEffect(() => {
@@ -170,16 +174,26 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
     return () => { dead = true; };
   }, [obj.key, isScoped, picked]);
 
-  // load instance list when project changes (or for global objects, once)
+  // load parent options for cascade (channel → habitat)
+  useEffect(() => {
+    let dead = false;
+    if (!parent) { setParentInstances([]); return; }
+    listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); });
+    return () => { dead = true; };
+  }, [parent?.object]);
+
+  // load instance list — filtered by project (scoped), parent (cascade), or neither (cross-project)
   useEffect(() => {
     let dead = false;
     if (!obj.table) { setInstances([]); return; }
+    if (parent && !parentId) { setInstances([]); return; } // wait for parent
+    const projArg = obj.projectScoped && !crossProject && !parent ? projectId : undefined;
     setLoading(true);
-    listInstances(obj.key, obj.projectScoped ? projectId : undefined)
+    listInstances(obj.key, projArg, parent ? parentId : undefined)
       .then((r) => { if (!dead) setInstances(r); })
       .finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, obj.table, obj.projectScoped, projectId]);
+  }, [obj.key, obj.table, obj.projectScoped, crossProject, parent?.object, parentId, projectId]);
 
   const inspect = useCallback(async (id: string) => {
     setPicked(id);
@@ -251,16 +265,27 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
       {obj.table && (
         <Section title="Bind real instance" sub="// validates against the model">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-            {obj.projectScoped && (
+            {obj.projectScoped && !crossProject && !parent && (
               <select value={projectId} onChange={(e) => { setProjectId(e.target.value); setDetail(null); setPicked(''); }} style={selStyle}>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
-            <select value={picked} onChange={(e) => inspect(e.target.value)} style={{ ...selStyle, flex: 1, minWidth: 160 }}>
-              <option value="">{loading ? 'loading…' : `— pick (${instances.length}) —`}</option>
-              {instances.map((x) => <option key={x.id} value={x.id}>{x.label} · #{x.id}</option>)}
+            {parent && (
+              <select value={parentId} onChange={(e) => { setParentId(e.target.value); setDetail(null); setPicked(''); onBind(null); }} style={{ ...selStyle, flex: 1, minWidth: 150 }}>
+                <option value="">— {OBJ_BY_KEY[parent.object]?.label || parent.object} first —</option>
+                {parentInstances.map((x) => <option key={x.id} value={x.id}>{x.label}{x.sub ? ` · ${x.sub}` : ''}</option>)}
+              </select>
+            )}
+            <select value={picked} onChange={(e) => inspect(e.target.value)} disabled={!!parent && !parentId} style={{ ...selStyle, flex: 1, minWidth: 160 }}>
+              <option value="">{parent && !parentId ? 'pick parent first' : loading ? 'loading…' : `— pick (${instances.length}) —`}</option>
+              {instances.map((x) => <option key={x.id} value={x.id}>{x.label}{x.sub ? ` · ${x.sub}` : ''} · #{x.id}</option>)}
             </select>
           </div>
+          {crossProject && (
+            <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8, lineHeight: 1.5 }}>
+              {obj.label} is an independent place — listed across ALL projects. It still carries a <code>project_id</code> today, so the same community can appear as several rows; the per-project approach really lives in the <b>brief</b> (account × habitat).
+            </div>
+          )}
           {detail && (
             <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Consistency check</div>

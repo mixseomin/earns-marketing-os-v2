@@ -346,14 +346,14 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
             <tr>
               <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
               {cols.map((c) => (
-                <th key={c.key} title={c.title} style={{ ...TH, textAlign: c.num ? 'right' : 'left', background: `${GROUP_COLOR[c.group]}14`, ...(c.sort ? { cursor: 'pointer', userSelect: 'none' } : {}) }}
+                <th key={c.key} title={c.title} style={{ ...TH, textAlign: c.num ? 'right' : 'left', background: `${GROUP_COLOR[c.group]}33`, ...(c.sort ? { cursor: 'pointer', userSelect: 'none' } : {}) }}
                   onClick={c.sort ? () => toggleSort(c.sort!) : undefined}>{c.label}{c.sort ? caret(c.sort) : ''}</th>
               ))}
               <th style={TH}>Verdict</th>
-              {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)', background: `${FWD_BAND_COLOR}14` }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Live forward trades since forward start">Live N</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
-              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}14` }} title="Open positions right now (live demo)">Open</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'left', borderLeft: '2px solid var(--line)', background: `${FWD_BAND_COLOR}33` }} title="Live status: warming / HOLDING (live PF ≥ backtest base) / BELOW">📡 Live</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}33` }} title="Live forward trades since forward start">Live N</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}33` }} title="Live forward profit factor (demo) — compare to backtest PF">Live PF</th>}
+              {fwdOn && <th style={{ ...TH, textAlign: 'right', background: `${FWD_BAND_COLOR}33` }} title="Open positions right now (live demo)">Open</th>}
             </tr>
           </thead>
           <tbody>
@@ -445,7 +445,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                 </div>
               </td>
               {cols.map((c) => {
-                const cellBg = `${GROUP_COLOR[c.group]}0a`;
+                const cellBg = `${GROUP_COLOR[c.group]}1f`;
                 if (c.key === 'asset' && kids.length > 0) {
                   return (
                     <td key={c.key} style={{ ...TD, background: cellBg }}>
@@ -464,7 +464,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                 <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 10, color: '#fff', background: VERDICT_COLOR[r.verdict ?? ''] ?? '#7a8699' }}>{dash(r.verdict)}</span>
               </td>
               {fwdOn && (() => {
-                const fb = `${FWD_BAND_COLOR}0a`;
+                const fb = `${FWD_BAND_COLOR}1f`;
                 const fw = fwdAgg(forwardByStrategy[r.name]);
                 if (!fw) return (<><td style={{ ...TD, borderLeft: '2px solid var(--line)', background: fb, color: 'var(--muted)' }}>—</td><td style={{ ...NUM, background: fb }}>—</td><td style={{ ...NUM, background: fb }}>—</td><td style={{ ...NUM, background: fb }}>—</td></>);
                 return (<>

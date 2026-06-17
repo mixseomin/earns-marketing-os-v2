@@ -20,6 +20,7 @@ import {
   timestamp,
   bigserial,
   bigint,
+  doublePrecision,
   uniqueIndex,
   index,
   primaryKey,
@@ -1152,6 +1153,27 @@ export const strategyForward = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }),
   },
   (t) => [index('strategy_forward_strat_idx').on(t.strategy)],
+);
+
+// ── strategy_trades (per-trade detail from StrategyLab, for deriving rich perf metrics) ──
+export const strategyTrades = pgTable(
+  'strategy_trades',
+  {
+    positionId: bigint('position_id', { mode: 'number' }).primaryKey(),
+    projectId: text('project_id').notNull(),
+    strategy: text('strategy').notNull(),
+    symbol: text('symbol').notNull(),
+    dir: text('dir'),
+    entryTime: timestamp('entry_time', { withTimezone: true }),
+    exitTime: timestamp('exit_time', { withTimezone: true }),
+    entryPrice: doublePrecision('entry_price'),
+    exitPrice: doublePrecision('exit_price'),
+    profit: doublePrecision('profit'),
+    magic: integer('magic'),
+    isOpen: boolean('is_open').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+  },
+  (t) => [index('strategy_trades_strat_idx').on(t.strategy)],
 );
 
 // ── selector_overrides (mig 0061) ────────────────────────────────

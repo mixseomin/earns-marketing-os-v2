@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import type { StrategyTestRow, StrategyAssetRow, StrategyForwardRow } from '@/lib/data';
+import type { StrategyTestRow, StrategyAssetRow, StrategyForwardRow, StrategyTradeRow } from '@/lib/data';
 
 const VERDICT_COLOR: Record<string, string> = {
   dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4',
@@ -73,6 +73,50 @@ function resolveForward(fbs: Record<string, StrategyForwardRow[]>): Record<strin
   }
   return out;
 }
+function resolveTrades(tbs: Record<string, StrategyTradeRow[]>): Record<string, StrategyTradeRow[]> {
+  const out: Record<string, StrategyTradeRow[]> = {};
+  for (const [name, list] of Object.entries(tbs)) {
+    const target = FWD_EDGE_ALIAS[name] ?? name;
+    (out[target] ||= []).push(...list);
+  }
+  return out;
+}
+// derive rich perf metrics from per-trade rows (closed trades only; maxDD on the cumulative-profit curve by exit time).
+function tradeMetrics(list: StrategyTradeRow[] | undefined) {
+  if (!list || !list.length) return null;
+  const open = list.filter((t) => t.isOpen).length;
+  const closed = list.filter((t) => !t.isOpen && t.profit != null);
+  if (!closed.length) return { n: 0, open, winRate: 0, avgWin: 0, avgLoss: 0, expectancy: 0, pf: 0, maxDD: 0, net: 0, largestWin: 0, largestLoss: 0, avgHold: null as number | null };
+  const profits = closed.map((t) => Number(t.profit));
+  const wins = profits.filter((p) => p > 0), losses = profits.filter((p) => p <= 0);
+  const gw = wins.reduce((a, b) => a + b, 0), gl = -losses.reduce((a, b) => a + b, 0);
+  const net = profits.reduce((a, b) => a + b, 0);
+  const ordered = [...closed].sort((a, b) => (a.exitTime ?? '').localeCompare(b.exitTime ?? ''));
+  let cum = 0, peak = 0, maxDD = 0;
+  for (const t of ordered) { cum += Number(t.profit); peak = Math.max(peak, cum); maxDD = Math.max(maxDD, peak - cum); }
+  const holds = closed.filter((t) => t.entryTime && t.exitTime).map((t) => (Date.parse(t.exitTime as string) - Date.parse(t.entryTime as string)) / 3.6e6);
+  return {
+    n: closed.length, open,
+    winRate: (100 * wins.length) / closed.length,
+    avgWin: wins.length ? gw / wins.length : 0,
+    avgLoss: losses.length ? gl / losses.length : 0,
+    expectancy: net / closed.length,
+    pf: gl > 0 ? gw / gl : (gw > 0 ? 999 : 0),
+    maxDD, net,
+    largestWin: wins.length ? Math.max(...wins) : 0,
+    largestLoss: losses.length ? Math.min(...losses) : 0,
+    avgHold: holds.length ? holds.reduce((a, b) => a + b, 0) / holds.length : null,
+  };
+}
+const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
+function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', minWidth: 64 }}>
+      <span style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: color ?? 'var(--fg)' }}>{v}</span>
+    </span>
+  );
+}
 // aggregate live forward rows for a strategy (may run on >1 symbol): sum trades/wins, trade-weighted PF
 function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: number; status: string; symbols: number; open: number } | null {
   if (!list || !list.length) return null;
@@ -86,8 +130,9 @@ function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: n
   return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length, open };
 }
 
-export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy: forwardRaw = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]> }) {
+export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy: forwardRaw = {}, tradesByStrategy: tradesRaw = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]>; tradesByStrategy?: Record<string, StrategyTradeRow[]> }) {
   const forwardByStrategy = useMemo(() => resolveForward(forwardRaw), [forwardRaw]);
+  const tradesByStrategy = useMemo(() => resolveTrades(tradesRaw), [tradesRaw]);
   const [q, setQ] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) => setExpanded((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -237,7 +282,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} fwdOn={fwdOn} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} tradesByStrategy={tradesByStrategy} fwdOn={fwdOn} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
               <tr><td colSpan={colSpan} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
@@ -273,9 +318,9 @@ function childCell(key: string, a: StrategyAssetRow, spanMonths: number | null, 
   return '';
 }
 
-function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, forwardByStrategy, fwdOn, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
+function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, forwardByStrategy, tradesByStrategy, fwdOn, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass'; showTags: boolean;
-  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; forwardByStrategy: Record<string, StrategyForwardRow[]>; fwdOn: boolean; expanded: Set<number>; toggleExpand: (id: number) => void;
+  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; forwardByStrategy: Record<string, StrategyForwardRow[]>; tradesByStrategy: Record<string, StrategyTradeRow[]>; fwdOn: boolean; expanded: Set<number>; toggleExpand: (id: number) => void;
   onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
@@ -292,14 +337,16 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
       )}
       {g.rows.map((r) => {
         const kids = assetsByStrategy[r.name] ?? [];
+        const tm = tradeMetrics(tradesByStrategy[r.name]);
+        const canExpand = kids.length > 0 || !!tm;
         const isOpen = expanded.has(r.id);
         return (
           <Fragment key={r.id}>
             <tr>
               <td style={TD}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  {!assetColVisible && kids.length > 0 ? (
-                    <button type="button" onClick={() => toggleExpand(r.id)} title={`${kids.length} per-asset results`}
+                  {!assetColVisible && canExpand ? (
+                    <button type="button" onClick={() => toggleExpand(r.id)} title={kids.length > 0 ? `${kids.length} per-asset results` : 'live trade metrics'}
                       style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--accent,#00e5ff)', fontSize: 11, padding: 0, lineHeight: 1, width: 10 }}>{isOpen ? '▾' : '▸'}</button>
                   ) : null}
                   <span>
@@ -349,6 +396,30 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                 </>);
               })()}
             </tr>
+            {isOpen && tm && (
+              <tr style={{ background: 'rgba(0,229,255,0.05)' }}>
+                <td colSpan={colSpan} style={{ padding: '9px 28px' }}>
+                  {tm.n > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', alignItems: 'flex-end' }}>
+                      <Metric label="Closed" v={tm.n} />
+                      <Metric label="Open" v={tm.open || '—'} color={tm.open ? 'var(--ok,#5ac882)' : undefined} />
+                      <Metric label="Win rate" v={`${tm.winRate.toFixed(0)}%`} />
+                      <Metric label="Avg win" v={f2(tm.avgWin)} color="var(--ok,#5ac882)" />
+                      <Metric label="Avg loss" v={`-${f2(tm.avgLoss)}`} color="#ff5470" />
+                      <Metric label="Expectancy" v={f2(tm.expectancy)} color={tm.expectancy >= 0 ? 'var(--ok,#5ac882)' : '#ff5470'} />
+                      <Metric label="Live PF" v={tm.pf >= 999 ? '∞' : tm.pf.toFixed(2)} color={pfColor(String(tm.pf))} />
+                      <Metric label="Max DD" v={f2(tm.maxDD)} color="#ff9f43" />
+                      <Metric label="Largest win" v={f2(tm.largestWin)} />
+                      <Metric label="Largest loss" v={f2(tm.largestLoss)} />
+                      <Metric label="Avg hold" v={tm.avgHold != null ? `${tm.avgHold.toFixed(1)}h` : '—'} />
+                      <Metric label="Net" v={f2(tm.net)} color={tm.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470'} />
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{tm.open} open position{tm.open === 1 ? '' : 's'}, no closed trades yet — metrics appear once trades close.</span>
+                  )}
+                </td>
+              </tr>
+            )}
             {isOpen && kids.map((a, idx) => (
               <tr key={`${r.id}-${idx}`} style={{ background: 'rgba(127,140,160,0.05)' }}>
                 <td style={{ ...TD, paddingLeft: 28, color: 'var(--muted)', fontSize: 11.5 }}>↳ {a.asset}</td>

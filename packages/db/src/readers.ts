@@ -3,7 +3,7 @@
 
 import { and, asc, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { getDb } from './client';
-import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, projectAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps, strategyTests, strategyTestAssets, strategyForward } from './schema';
+import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, projectAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps, strategyTests, strategyTestAssets, strategyForward, strategyTrades } from './schema';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -23,6 +23,12 @@ export async function listStrategyForward() {
   const db = getDb();
   if (!db) return null;
   return db.select().from(strategyForward).orderBy(asc(strategyForward.id));
+}
+
+export async function listStrategyTrades() {
+  const db = getDb();
+  if (!db) return null;
+  return db.select().from(strategyTrades).orderBy(asc(strategyTrades.entryTime));
 }
 
 export async function listProjects() {

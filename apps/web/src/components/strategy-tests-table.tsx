@@ -1,6 +1,16 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+
+// state that survives F5: default on server + first render (no hydration mismatch), then load from localStorage, persist on change.
+function usePersisted<T>(key: string, def: T): [T, Dispatch<SetStateAction<T>>] {
+  const [v, setV] = useState<T>(def);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { try { const s = localStorage.getItem(key); if (s != null) setV(JSON.parse(s) as T); } catch { /* ignore */ } setLoaded(true); }, [key]);
+  useEffect(() => { if (loaded) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* ignore */ } } }, [key, v, loaded]);
+  return [v, setV];
+}
 import type { StrategyTestRow, StrategyAssetRow, StrategyForwardRow, StrategyTradeRow } from '@/lib/data';
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -183,20 +193,20 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const [q, setQ] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) => setExpanded((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [groupBy, setGroupBy] = useState<'none' | 'verdict' | 'klass'>('verdict');
-  const [sortKey, setSortKey] = useState<SortKey>('pf');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [showTags, setShowTags] = useState(true);
+  const [activeTags, setActiveTags] = usePersisted<string[]>('stx_tags', []);
+  const [groupBy, setGroupBy] = usePersisted<'none' | 'verdict' | 'klass'>('stx_groupBy', 'verdict');
+  const [sortKey, setSortKey] = usePersisted<SortKey>('stx_sortKey', 'pf');
+  const [sortDir, setSortDir] = usePersisted<'asc' | 'desc'>('stx_sortDir', 'desc');
+  const [showTags, setShowTags] = usePersisted('stx_showTags', true);
   const [showAllTags, setShowAllTags] = useState(false);
-  const [showTagFilter, setShowTagFilter] = useState(false);   // tag-chip filter row collapsed by default (saves a row)
-  const [hiddenVerdicts, setHiddenVerdicts] = useState<Set<string>>(new Set());   // click a summary pill to hide/show that verdict's rows
-  const [visGroups, setVisGroups] = useState<Record<GroupKey, boolean>>({ setup: true, sample: true, perf: true, robust: false });
+  const [showTagFilter, setShowTagFilter] = usePersisted('stx_tagFilter', false);   // tag-chip filter row collapsed by default (saves a row)
+  const [hiddenVerdicts, setHiddenVerdicts] = usePersisted<string[]>('stx_hiddenVerdicts', []);   // click a summary pill to hide/show that verdict's rows
+  const [visGroups, setVisGroups] = usePersisted<Record<GroupKey, boolean>>('stx_cols', { setup: true, sample: true, perf: true, robust: false });
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
   const hideTip = () => setTip(null);
   const hasForward = Object.keys(forwardByStrategy).length > 0;
-  const [showForward, setShowForward] = useState(true);
+  const [showForward, setShowForward] = usePersisted('stx_forward', true);
   const fwdOn = showForward; // forward columns visible (toggle); shows '—' until live data flows
 
   const cols = COLUMNS.filter((c) => visGroups[c.group]);
@@ -217,7 +227,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     let out = rows.filter((r) => {
-      if (hiddenVerdicts.has(r.verdict ?? '')) return false;
+      if (hiddenVerdicts.includes(r.verdict ?? '')) return false;
       if (activeTags.length && !activeTags.every((t) => (r.tags ?? []).includes(t))) return false;
       if (!ql) return true;
       return [r.name, r.variant, r.asset, r.notes, r.klass, ...(r.tags ?? [])]
@@ -270,10 +280,10 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
           style={{ flex: '1 1 220px', minWidth: 170, padding: '7px 11px', fontSize: 12.5, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)' }} />
         <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{rows.length} tested</span>
         {VERDICT_ORDER.filter((v) => counts[v]).map((v) => {
-          const hidden = hiddenVerdicts.has(v);
+          const hidden = hiddenVerdicts.includes(v);
           return (
             <button key={v} type="button" title={hidden ? `Show ${v}` : `Hide ${v}`}
-              onClick={() => setHiddenVerdicts((p) => { const n = new Set(p); if (n.has(v)) n.delete(v); else n.add(v); return n; })}
+              onClick={() => setHiddenVerdicts((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]))}
               style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 11, cursor: 'pointer', border: 'none', color: '#fff', background: VERDICT_COLOR[v], opacity: hidden ? 0.32 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{counts[v]} {v}</button>
           );
         })}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SHARED_POOL } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
+import { AwarenessFunnelPanel } from './awareness-funnel-panel';
 import { AwinDailyPanel } from './awin-daily-panel';
 import { PortfolioGrid } from './portfolio-grid';
 
@@ -62,6 +63,9 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
 
       {/* SEO Sites Overview — GSC live data for monitored sites */}
       <SeoSitesPanel />
+
+      {/* Awareness Funnel — cities.gg paid (Bidvertiser) ÷ organic spillover */}
+      <AwarenessFunnelPanel />
 
       {/* Awin Daily Route — reminder to run the apply-extension batch */}
       <AwinDailyPanel />

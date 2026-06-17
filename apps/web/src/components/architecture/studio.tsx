@@ -468,6 +468,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [showScanPanel, setShowScanPanel] = useState(true);
+  const [filling, setFilling] = useState(false);
   const [sel, setSel] = useState<{ kind: 'object'; key: string } | { kind: 'flow'; flow: string; step: string } | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -499,6 +500,30 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
     try { setScan(await systemScan(proj || undefined)); setShowScanPanel(true); }
     finally { setScanning(false); }
   }, [proj]);
+
+  // Bind a random instance to every bindable node that is still empty (skips already-bound).
+  const fillAllEmpty = useCallback(async () => {
+    setFilling(true);
+    try {
+      const targets = OBJECTS.filter((o) => o.table && !bound[o.key]);
+      const results = await Promise.all(targets.map(async (o): Promise<[string, Bound] | null> => {
+        try {
+          // list ALL instances directly (ignore the drawer's parent cascade — for a
+          // bulk fill we just want any row; cascade parents are too sparse to hit).
+          const projArg = o.projectScoped && !o.picker?.crossProject ? (proj || undefined) : undefined;
+          const list = await listInstances(o.key, projArg);
+          const inst = pickRandom(list);
+          if (!inst) return null;
+          const d = await getInstance(o.key, inst.id);
+          const worst: Bound['worst'] = d ? (d.issues.some((i) => i.level === 'error') ? 'error' : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok') : null;
+          return [o.key, { id: inst.id, label: inst.label, worst }];
+        } catch { return null; }
+      }));
+      setBound((prev) => { const next = { ...prev }; for (const r of results) if (r) next[r[0]] = r[1]; return next; });
+    } finally { setFilling(false); }
+  }, [bound, proj]);
+
+  const clearAll = useCallback(() => setBound({}), []);
 
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
     if (node.type === 'objectNode') setSel({ kind: 'object', key: node.id });
@@ -548,6 +573,12 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
             <button onClick={runScan} disabled={scanning} style={{ ...btnStyle, borderColor: scan ? 'var(--accent)' : 'var(--line)', color: scan ? 'var(--accent)' : 'var(--fg-1)' }}>
               {scanning ? '⏳ scanning…' : '⚕ Health scan'}
             </button>
+            <button onClick={fillAllEmpty} disabled={filling} title="Bind a random instance to every empty node" style={btnStyle}>
+              {filling ? '⏳ filling…' : '🎲 Fill all'}
+            </button>
+            {Object.keys(bound).length > 0 && (
+              <button onClick={clearAll} title="Clear all bindings" style={btnStyle}>✕</button>
+            )}
           </>
         )}
         <button onClick={resetLayout} style={btnStyle}>↺ Reset layout</button>

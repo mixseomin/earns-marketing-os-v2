@@ -279,9 +279,15 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
     setDetail(d);
     const worst: Bound['worst'] = d.issues.some((i) => i.level === 'error') ? 'error'
       : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok';
-    const label = instances.find((x) => x.id === id)?.label || id;
+    const label = instances.find((x) => x.id === id)?.label || bound?.label || id;
     onBind({ id, label, worst });
-  }, [obj.key, instances, onBind]);
+  }, [obj.key, instances, onBind, bound]);
+
+  // auto-load attribute values when a binding is already selected (reopen / restored after F5)
+  useEffect(() => {
+    if (picked && !detail && !loading) inspect(picked);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked]);
 
   // "Fill random": bind a random instance. For cascade objects, roll a random parent
   // first, then pick a random child once it loads (pendingRand).

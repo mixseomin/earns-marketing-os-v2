@@ -190,6 +190,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const [showTags, setShowTags] = useState(true);
   const [showAllTags, setShowAllTags] = useState(false);
   const [showTagFilter, setShowTagFilter] = useState(false);   // tag-chip filter row collapsed by default (saves a row)
+  const [hiddenVerdicts, setHiddenVerdicts] = useState<Set<string>>(new Set());   // click a summary pill to hide/show that verdict's rows
   const [visGroups, setVisGroups] = useState<Record<GroupKey, boolean>>({ setup: true, sample: true, perf: true, robust: false });
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
@@ -216,6 +217,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     let out = rows.filter((r) => {
+      if (hiddenVerdicts.has(r.verdict ?? '')) return false;
       if (activeTags.length && !activeTags.every((t) => (r.tags ?? []).includes(t))) return false;
       if (!ql) return true;
       return [r.name, r.variant, r.asset, r.notes, r.klass, ...(r.tags ?? [])]
@@ -234,7 +236,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
       return dir * (av - bv);
     });
     return out;
-  }, [rows, q, activeTags, sortKey, sortDir]);
+  }, [rows, q, activeTags, sortKey, sortDir, hiddenVerdicts]);
 
   const groups = useMemo(() => {
     if (groupBy === 'none') return [{ key: '', rows: filtered }];
@@ -267,9 +269,14 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search strategy, asset, notes…" autoComplete="off"
           style={{ flex: '1 1 220px', minWidth: 170, padding: '7px 11px', fontSize: 12.5, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)' }} />
         <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{rows.length} tested</span>
-        {VERDICT_ORDER.filter((v) => counts[v]).map((v) => (
-          <span key={v} style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 11, color: '#fff', background: VERDICT_COLOR[v] }}>{counts[v]} {v}</span>
-        ))}
+        {VERDICT_ORDER.filter((v) => counts[v]).map((v) => {
+          const hidden = hiddenVerdicts.has(v);
+          return (
+            <button key={v} type="button" title={hidden ? `Show ${v}` : `Hide ${v}`}
+              onClick={() => setHiddenVerdicts((p) => { const n = new Set(p); if (n.has(v)) n.delete(v); else n.add(v); return n; })}
+              style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 11, cursor: 'pointer', border: 'none', color: '#fff', background: VERDICT_COLOR[v], opacity: hidden ? 0.32 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{counts[v]} {v}</button>
+          );
+        })}
       </div>
 
       {/* row 2: all toggles (group · columns · forward · tags) on one line */}

@@ -236,8 +236,11 @@ button { font-family: inherit; color: inherit; }
     background: var(--bg-2);
   }
 
-  /* Mobile drawer PAGES section is visible only on mobile */
-  .sidebar-mobile-tabs { display: block; }
+  /* Mobile drawer PAGES section is visible only on mobile. !important
+     because the default `.sidebar-mobile-tabs { display: none; }` rule
+     lives later in the source and has equal specificity — without
+     !important, source order makes the default win even on mobile. */
+  .sidebar-mobile-tabs { display: block !important; }
 
   /* Topbar project indicator (emoji + name between Portfolio and tabs)
      eats ~160px of precious horizontal space — user already knows which

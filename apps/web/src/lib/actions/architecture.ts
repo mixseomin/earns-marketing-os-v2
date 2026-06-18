@@ -491,10 +491,13 @@ export async function metricCoverage(): Promise<MetricCoverage> {
       .map((k) => ({ key: k, technologyKey: techOf[k] ?? null, cards: cardsOf[k] ?? 0 }));
 
     // Cascade pick: platform-scope beats engine-scope (habitat omitted from matrix).
+    // field_name khớp cả 'metric.views' (schema) lẫn 'metric_views' (editor canonField '.'→'_').
+    const nf = (s: string) => s.toLowerCase().replace(/\./g, '_');
     const pickSel = (field: string, platform: string, tech: string | null) => {
-      const plat = selRows.find((r) => r.scope_kind === 'platform' && canonPf(r.scope_key) === platform && r.field_name === field);
+      const f = nf(field);
+      const plat = selRows.find((r) => r.scope_kind === 'platform' && canonPf(r.scope_key) === platform && nf(r.field_name) === f);
       if (plat) return { row: plat, scope: 'platform' as const };
-      if (tech) { const eng = selRows.find((r) => r.scope_kind === 'engine' && r.scope_key === tech && r.field_name === field); if (eng) return { row: eng, scope: 'engine' as const }; }
+      if (tech) { const eng = selRows.find((r) => r.scope_kind === 'engine' && r.scope_key === tech && nf(r.field_name) === f); if (eng) return { row: eng, scope: 'engine' as const }; }
       return null;
     };
 

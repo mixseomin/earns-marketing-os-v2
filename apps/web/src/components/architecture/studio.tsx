@@ -417,17 +417,34 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
           ) : sels.length === 0 ? (
             <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained at this scope yet. Train on-page via the Crew picker (🎯) or fall back to the cascade (habitat → platform → engine).</div>
           ) : (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-              {sels.map((s, i) => (
-                <div key={`${s.pageKind}.${s.fieldName}`} style={{ padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)' }}>@ {s.pageKind}</span>
-                    <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(() => {
+                // group by page_kind — each context (composer / subreddit-about / platform-any …)
+                // is where the SAME concept (user/author/viewer) is located differently
+                const groups: { pk: string; rows: typeof sels }[] = [];
+                for (const s of sels) {
+                  const g = groups[groups.length - 1];
+                  if (g && g.pk === s.pageKind) g.rows.push(s);
+                  else groups.push({ pk: s.pageKind, rows: [s] });
+                }
+                return groups.map((g) => (
+                  <div key={g.pk} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)', fontWeight: 600 }}>@ {g.pk}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{g.rows.length} field{g.rows.length > 1 ? 's' : ''}</span>
+                    </div>
+                    {g.rows.map((s, i) => (
+                      <div key={s.fieldName} style={{ padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
+                          <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           )}
           <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>

@@ -498,7 +498,11 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                   <td style={{ ...TD, borderLeft: '2px solid var(--line)', background: fb }}><span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_COLOR[fw.status] ?? '#7a8699' }}>{fw.status}</span>{fw.symbols > 1 ? <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>×{fw.symbols}</span> : null}</td>
                   <td style={{ ...NUM, background: fb }}>{fw.trades || '—'}</td>
                   <td style={{ ...NUM, background: fb, fontWeight: 700, color: fw.trades ? pfColor(String(fw.pf)) : 'var(--muted)' }}>{fw.trades ? fw.pf.toFixed(2) : '—'}</td>
-                  <td style={{ ...NUM, background: fb, fontWeight: 700, color: fw.open > 0 ? 'var(--ok, #5ac882)' : 'var(--muted)' }}>{fw.open > 0 ? fw.open : '—'}</td>
+                  <td style={{ ...NUM, background: fb, fontWeight: 700, color: fw.open > 0 ? 'var(--ok, #5ac882)' : 'var(--muted)' }}>
+                    {fw.open > 0 && canExpand
+                      ? <span onClick={() => toggleExpand(r.id)} title="Show the live orders" style={{ cursor: 'pointer', borderBottom: '1px dotted', display: 'inline-flex', alignItems: 'center', gap: 3 }}>{fw.open}<span style={{ fontSize: 9 }}>{isOpen ? '▾' : '▸'}</span></span>
+                      : (fw.open > 0 ? fw.open : '—')}
+                  </td>
                 </>);
               })()}
             </tr>

@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { BINDABLE_TABLES, OBJ_BY_KEY } from '@/components/architecture/spec';
+import { METRIC_PAGE_KIND, getMetricFieldSchema, type MetricKey } from '@/lib/metric-field-schema';
 
 type Row = Record<string, unknown>;
 
@@ -409,5 +410,108 @@ export async function extActivity(opts?: { limit?: number; errorsOnly?: boolean 
       FROM ext_call_log GROUP BY 1 ORDER BY 2 DESC LIMIT 16`);
     const endpoints = (e as unknown as Array<{ endpoint: string; n: number; errs: number; avg_ms: number | null; last: string }>).map((x) => ({ endpoint: x.endpoint, n: x.n, errs: x.errs, avgMs: x.avg_ms, last: x.last }));
     return { rows, stats: { total: st?.total || 0, last24h: st?.d1 || 0, last7d: st?.d7 || 0, errors7d: st?.errs7d || 0, lastCallAt: st?.last || null, versions }, endpoints };
+  } catch { return empty; }
+}
+
+// ── Metric tracking coverage (the "chỗ quản lý" cho engagement DOM capture) ──
+// Ma trận metric × platform: mỗi ô = có selector_overrides (page_kind='post-metrics')
+// nào feed metric này cho platform đó không. Lộ GAP (đỏ): platform đang có card đã
+// đăng nhưng KHÔNG selector → metric không bao giờ bắt được (vd Reddit views).
+// Anomaly: insights có data mà KHÔNG selector nào feed (= đến từ API/đường khác).
+const PLATFORM_CANON_MC: Record<string, string> = { x: 'twitter', 'x.com': 'twitter', 'twitter.com': 'twitter' };
+const canonPf = (k: string) => PLATFORM_CANON_MC[k.toLowerCase()] || k.toLowerCase();
+
+export interface MetricCell {
+  metric: MetricKey; field: string; platform: string;
+  trained: boolean; scope: 'platform' | 'engine' | 'habitat' | null; scopeKey: string | null;
+  source: string | null; via: string | null; hasCss: boolean; selId: string | null;
+  cards: number;        // posted cards on this platform
+  populated: number;    // cards where the matching insights_* column is non-null
+  gap: boolean;         // wanted (cards>0) but no selector
+  apiFed: boolean;      // populated>0 but no selector → value comes from API/other path, not DOM
+}
+export interface MetricCoverage {
+  metrics: Array<{ metric: MetricKey; field: string; label: string; hint: string; insightsCol: string }>;
+  platforms: Array<{ key: string; technologyKey: string | null; cards: number }>;
+  cells: MetricCell[];
+}
+export async function metricCoverage(): Promise<MetricCoverage> {
+  const schema = getMetricFieldSchema();
+  const metrics = schema.map((e) => ({ metric: e.metric, field: e.field, label: e.label, hint: e.hint, insightsCol: e.insightsCol }));
+  const db = getDb();
+  const empty: MetricCoverage = { metrics, platforms: [], cells: [] };
+  if (!db) return empty;
+  try {
+    // 1) Posted cards per platform + how many have each metric column populated.
+    const pf = await db.execute(sql`
+      WITH card_pf AS (
+        SELECT c.id,
+          COALESCE(pa.platform_key, h.platform_key) AS platform,
+          c.insights_views_count AS m_views, c.insights_score AS m_score,
+          c.insights_reply_count AS m_reply, c.insights_engagements AS m_share
+        FROM cards c
+        LEFT JOIN community_briefs b ON b.id = c.brief_id
+        LEFT JOIN platform_accounts pa ON pa.id = COALESCE(c.account_id, b.account_id)
+        LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
+        WHERE c.post_url IS NOT NULL
+      )
+      SELECT cp.platform, p.technology_key AS tech, count(*)::int AS cards,
+             count(cp.m_views)::int AS v, count(cp.m_score)::int AS s,
+             count(cp.m_reply)::int AS r, count(cp.m_share)::int AS sh
+      FROM card_pf cp LEFT JOIN platforms p ON p.key = cp.platform
+      WHERE cp.platform IS NOT NULL AND cp.platform <> ''
+      GROUP BY cp.platform, p.technology_key`);
+    const pfRows = pf as unknown as Array<{ platform: string; tech: string | null; cards: number; v: number; s: number; r: number; sh: number }>;
+
+    // 2) Trained metric selectors (post-metrics rows).
+    const sel = await db.execute(sql`
+      SELECT id::text AS id, scope_kind, scope_key, field_name, source,
+             spec->>'via' AS via, (COALESCE(spec->>'css','') <> '') AS has_css
+      FROM selector_overrides WHERE page_kind = ${METRIC_PAGE_KIND}`);
+    const selRows = sel as unknown as Array<{ id: string; scope_kind: string; scope_key: string; field_name: string; source: string; via: string | null; has_css: boolean }>;
+
+    // Aggregate platforms: cards-derived + any platform-scope selector target (trained ahead of cards).
+    const popOf: Record<string, Record<MetricKey, number>> = {};
+    const techOf: Record<string, string | null> = {};
+    const cardsOf: Record<string, number> = {};
+    for (const x of pfRows) {
+      const k = canonPf(x.platform);
+      cardsOf[k] = (cardsOf[k] || 0) + x.cards;
+      techOf[k] = techOf[k] || x.tech;
+      const cur = popOf[k] || { views: 0, score: 0, replyCount: 0, shareCount: 0 };
+      cur.views += x.v; cur.score += x.s; cur.replyCount += x.r; cur.shareCount += x.sh;
+      popOf[k] = cur;
+    }
+    for (const r of selRows) if (r.scope_kind === 'platform') { const k = canonPf(r.scope_key); if (!(k in cardsOf)) cardsOf[k] = 0; }
+
+    const platforms = Object.keys(cardsOf).sort((a, b) => ((cardsOf[b] ?? 0) - (cardsOf[a] ?? 0)) || a.localeCompare(b))
+      .map((k) => ({ key: k, technologyKey: techOf[k] ?? null, cards: cardsOf[k] ?? 0 }));
+
+    // Cascade pick: platform-scope beats engine-scope (habitat omitted from matrix).
+    const pickSel = (field: string, platform: string, tech: string | null) => {
+      const plat = selRows.find((r) => r.scope_kind === 'platform' && canonPf(r.scope_key) === platform && r.field_name === field);
+      if (plat) return { row: plat, scope: 'platform' as const };
+      if (tech) { const eng = selRows.find((r) => r.scope_kind === 'engine' && r.scope_key === tech && r.field_name === field); if (eng) return { row: eng, scope: 'engine' as const }; }
+      return null;
+    };
+
+    const cells: MetricCell[] = [];
+    for (const p of platforms) {
+      for (const m of schema) {
+        const hit = pickSel(m.field, p.key, p.technologyKey);
+        const populated = (popOf[p.key]?.[m.metric]) || 0;
+        const trained = !!hit;
+        cells.push({
+          metric: m.metric, field: m.field, platform: p.key,
+          trained, scope: hit?.scope ?? null, scopeKey: hit?.row.scope_key ?? null,
+          source: hit?.row.source ?? null, via: hit?.row.via ?? null,
+          hasCss: hit?.row.has_css ?? false, selId: hit?.row.id ?? null,
+          cards: p.cards, populated,
+          gap: !trained && p.cards > 0,
+          apiFed: !trained && populated > 0,
+        });
+      }
+    }
+    return { metrics, platforms, cells };
   } catch { return empty; }
 }

@@ -15,6 +15,8 @@ export async function POST(req: Request) {
 
   const b = (await req.json().catch(() => ({}))) as {
     scopeKind?: string; scopeKey?: string; pageKind?: string; fieldName?: string; css?: string; attr?: string | null;
+    // Metric selectors (page_kind='post-metrics'): cách đọc số (via) + parse hint.
+    via?: string | null; parse?: string | null;
   };
   const scopeKind = b.scopeKind === 'engine' || b.scopeKind === 'habitat' ? b.scopeKind : 'platform';
   const scopeKey = String(b.scopeKey || '').trim();
@@ -27,8 +29,12 @@ export async function POST(req: Request) {
 
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
-  const spec: { css: string; attr?: string } = { css };
+  const spec: { css: string; attr?: string; via?: string; parse?: string } = { css };
   if (b.attr) spec.attr = String(b.attr);
+  // via chỉ valid cho metric extraction — whitelist khớp branch MOS2.sel.metrics().
+  const VIA = new Set(['text', 'attr', 'count', 'depthCount', 'aria']);
+  if (b.via && VIA.has(String(b.via))) spec.via = String(b.via);
+  if (b.parse) spec.parse = String(b.parse);
 
   try {
     await db.execute(sql`

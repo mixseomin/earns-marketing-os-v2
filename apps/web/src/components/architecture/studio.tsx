@@ -19,8 +19,9 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity,
+  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
+  type MetricCoverage, type MetricCell,
 } from '@/lib/actions/architecture';
 
 type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
@@ -480,6 +481,126 @@ function SelectorCatalog() {
   );
 }
 
+// ── metric tracking coverage (matrix metric × platform) ──────────────────────
+// "Chỗ quản lý" việc bắt SỐ engagement (views/score/replies/shares) từ DOM. Mỗi ô =
+// 1 cặp (metric, platform): đã train selector chưa? GAP đỏ = có card đăng nhưng KHÔNG
+// selector → số không bao giờ bắt được (vd Reddit views). ◆ API = số có sẵn nhưng đến
+// từ commentstats API, KHÔNG selector DOM. Bấm ô đã train → mở selector detail (lớp kế).
+function MetricTrainGuide({ metric, platform, via }: { metric: string; platform: string; via: string }) {
+  const step = (n: number, t: ReactNode) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 8, padding: '4px 0' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>{n}</span>
+      <span style={{ fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5 }}>{t}</span>
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ padding: '8px 10px', marginBottom: 12, background: 'color-mix(in srgb, var(--bad) 12%, transparent)', border: '1px solid var(--bad)', borderRadius: 6, fontSize: 12, color: 'var(--fg-0)' }}>
+        Chưa có selector cho <b>{metric}</b> trên <b>{platform}</b> → số này hiện <b>không bắt được</b>. Train 1 lần qua extension:
+      </div>
+      {step(1, <>Mở 1 post/thread đã đăng của mình trên <b>{platform}</b> (nơi nhìn thấy số {metric}).</>)}
+      {step(2, <>Bật Crew ext → mở <b>🎯 Selector manager</b> (nút trên crew bar) → kéo xuống mục <b>📊 Metrics</b>.</>)}
+      {step(3, <>Bấm <b>🎯 Pick</b> ở dòng <b>{metric}</b> → click đúng con số trên trang. Ext tự sinh CSS.</>)}
+      {step(4, <>Chọn cách đọc <b>via</b> = <code style={{ fontFamily: 'var(--font-mono)' }}>{via}</code> (mặc định). Nếu số nằm trong attribute gốc (vd <code style={{ fontFamily: 'var(--font-mono)' }}>faceplate-number number="29"</code>) → đổi via=<b>attr</b> để chính xác hơn "2.3K".</>)}
+      {step(5, <>Chọn scope: <b>Platform ({platform})</b> cho riêng nền tảng, hoặc <b>Engine</b> nếu muốn dùng chung cho mọi forum cùng engine (xenforo…). Bấm <b>💾 Lưu</b>.</>)}
+      <div style={{ marginTop: 12, padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.5 }}>
+        Lưu xong: selector vào <code style={{ fontFamily: 'var(--font-mono)' }}>selector_overrides</code> (page_kind <code style={{ fontFamily: 'var(--font-mono)' }}>post-metrics</code>) → ext đọc qua <code style={{ fontFamily: 'var(--font-mono)' }}>MOS2.sel.metrics()</code> → lần track kế gửi số lên <code style={{ fontFamily: 'var(--font-mono)' }}>/seeding/insights</code> → ô này chuyển <span style={{ color: 'var(--ok)' }}>xanh ✓</span> + Live feed hiện 👁.
+      </div>
+    </div>
+  );
+}
+
+function MetricCoveragePanel() {
+  const openSub = useContext(SubCtx);
+  const [cov, setCov] = useState<MetricCoverage | null>(null);
+  useEffect(() => { let dead = false; metricCoverage().then((c) => { if (!dead) setCov(c); }); return () => { dead = true; }; }, []);
+  if (cov == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading coverage…</div>;
+  const cellOf = (metric: string, platform: string) => cov.cells.find((c) => c.metric === metric && c.platform === platform);
+  const gaps = cov.cells.filter((c) => c.gap).length;
+  const trained = cov.cells.filter((c) => c.trained).length;
+  const apiFed = cov.cells.filter((c) => c.apiFed).length;
+  if (!cov.platforms.length) {
+    return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có card đã đăng nào để đo coverage.</div>;
+  }
+  const th: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', fontWeight: 600, padding: '5px 7px', textAlign: 'center', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{cov.metrics.length} metric × {cov.platforms.length} platform</span>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+          <span style={{ color: 'var(--ok)' }}>✓ {trained}</span>
+          {gaps > 0 ? <span style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠ {gaps} gap</span> : <span style={{ color: 'var(--ok)' }}>0 gap</span>}
+          {apiFed > 0 && <Tip text={'◆ API: số có data nhưng KHÔNG do selector DOM bắt — đến từ commentstats API (Reddit). Đúng thiết kế, không phải lỗi.'}><span style={{ color: '#3fb6c4', cursor: 'help' }}>◆ {apiFed} API</span></Tip>}
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320 }}>
+          <thead>
+            <tr>
+              <th style={{ ...th, textAlign: 'left' }}>metric ↓ / platform →</th>
+              {cov.platforms.map((p) => (
+                <th key={p.key} style={th}>
+                  <Tip text={`${p.key}${p.technologyKey ? ` · engine ${p.technologyKey}` : ''}\n${p.cards} card đã đăng.\nSelector platform-scope áp cho nền tảng này; engine-scope dùng chung mọi forum cùng engine.`} style={{ cursor: 'help' }}>
+                    <span>{p.key}<br /><span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{p.cards}c</span></span>
+                  </Tip>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cov.metrics.map((m) => (
+              <tr key={m.metric}>
+                <td style={{ padding: '5px 8px', borderBottom: '1px solid var(--bg-1)', borderRight: '1px solid var(--line)' }}>
+                  <Tip text={`${m.hint}\n\nFeeds Card.${m.insightsCol}`} style={{ cursor: 'help' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)', whiteSpace: 'nowrap' }}>{m.label}</span>
+                  </Tip>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, color: 'var(--fg-4)' }}>{m.insightsCol}</div>
+                </td>
+                {cov.platforms.map((p) => {
+                  const c = cellOf(m.metric, p.key);
+                  if (!c) return <td key={p.key} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>·</td>;
+                  // state → color + glyph
+                  const state = c.trained ? 'trained' : c.gap ? 'gap' : c.apiFed ? 'api' : 'none';
+                  const color = state === 'trained' ? 'var(--ok)' : state === 'gap' ? 'var(--bad)' : state === 'api' ? '#3fb6c4' : 'var(--fg-4)';
+                  const glyph = state === 'trained' ? '✓' : state === 'gap' ? '⚠' : state === 'api' ? '◆' : '–';
+                  const tip = state === 'trained'
+                    ? `✓ Đã train · scope ${c.scope} ${c.scopeKey}\nvia=${c.via || 'text'} · nguồn ${SOURCE_VI[c.source || ''] || c.source}\n${c.populated}/${c.cards} card có số\n→ Bấm xem selector detail.`
+                    : state === 'gap'
+                    ? `⚠ GAP: ${c.cards} card đã đăng, KHÔNG selector → ${m.metric} không bắt được.\n→ Bấm xem hướng dẫn train.`
+                    : state === 'api'
+                    ? `◆ ${c.populated} card có ${m.metric} nhưng KHÔNG do selector DOM — đến từ commentstats API. Muốn bắt từ DOM thì vẫn train selector.\n→ Bấm xem hướng dẫn.`
+                    : `– Chưa cần: 0 card đã đăng trên ${p.key}.`;
+                  const clickable = state !== 'none';
+                  return (
+                    <td key={p.key} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: state === 'gap' ? 'color-mix(in srgb, var(--bad) 12%, transparent)' : state === 'trained' ? 'color-mix(in srgb, var(--ok) 9%, transparent)' : 'transparent' }}>
+                      <Tip text={tip} style={{ cursor: clickable ? 'pointer' : 'default' }}>
+                        <button
+                          disabled={!clickable}
+                          onClick={() => {
+                            if (state === 'trained' && c.selId) openSub({ title: c.field, sub: `${c.scope} · ${c.scopeKey} · @ post-metrics`, body: <SelectorDetail id={c.selId} /> });
+                            else if (state === 'gap' || state === 'api') openSub({ title: `Train ${m.metric} · ${p.key}`, sub: 'hướng dẫn bắt số từ DOM', body: <MetricTrainGuide metric={m.metric} platform={p.key} via={c.via || 'text'} /> });
+                          }}
+                          style={{ background: 'none', border: 0, padding: '4px 6px', cursor: clickable ? 'pointer' : 'default', color, fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <span>{glyph}</span>
+                          {c.via && state === 'trained' && <span style={{ fontSize: 7.5, color: 'var(--fg-3)', fontWeight: 400 }}>{c.via}</span>}
+                        </button>
+                      </Tip>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.6 }}>
+        <span style={{ color: 'var(--ok)' }}>✓ trained</span> = có selector DOM · <span style={{ color: 'var(--bad)' }}>⚠ gap</span> = có card mà chưa selector · <span style={{ color: '#3fb6c4' }}>◆ API</span> = số từ commentstats API (không DOM) · <span style={{ color: 'var(--fg-4)' }}>–</span> = chưa cần.<br />
+        <b>Thêm platform mới</b> (cùng element số): train field <code style={{ fontFamily: 'var(--font-mono)' }}>metric.*</code> ở scope <b>platform</b> hoặc <b>engine</b> → cascade tự áp mọi habitat. <b>Thêm metric mới</b>: 1 dòng vào <code style={{ fontFamily: 'var(--font-mono)' }}>metric-field-schema.ts</code> → tự hiện ở đây + ext.
+      </div>
+    </div>
+  );
+}
+
 // ── instance inspector (inside drawer) ───────────────────────────────────────
 function IssueRow({ it }: { it: Issue }) {
   const c = it.level === 'error' ? 'var(--bad)' : it.level === 'warn' ? 'var(--warn)' : 'var(--ok)';
@@ -656,6 +777,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
       {obj.key === 'selector' && (
         <Section title="Selector catalog" sub="// scope → page_kind → fields">
           <SelectorCatalog />
+        </Section>
+      )}
+
+      {/* metric tracking coverage — CHỖ QUẢN LÝ việc bắt số engagement từ DOM (views/score/…) */}
+      {obj.key === 'card' && (
+        <Section title="Metric tracking" sub="// metric × platform · ⚠ gap = chưa bắt được">
+          <MetricCoveragePanel />
         </Section>
       )}
 

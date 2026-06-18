@@ -52,6 +52,9 @@ export interface SelectorSpec {
   parse?: 'number' | 'date' | 'number-suffix' | 'enum';
   enum_values?: string[];
   notes?: string;
+  // Metric-only (page_kind='post-metrics'): cách ext đọc SỐ ra khỏi element,
+  // khớp branch trong MOS2.sel.metrics(). Bỏ trống cho field thường.
+  via?: 'text' | 'attr' | 'count' | 'depthCount' | 'aria';
 }
 
 export type SelectorMap = Record<string, SelectorSpec>;

@@ -218,11 +218,21 @@ function selChipTip(r: SelCatRow): string {
   return `${fieldDescVi(r.fieldName)}\nNguồn: ${src}.${r.hasCss ? '' : '\n⚠ Chưa có CSS selector — chỉ là cấu hình/flag hoặc cần train trên trang.'}`;
 }
 
+// ── anomaly detection — make "điểm bất hợp lý" POP without reading every row ──
+const PLATFORM_ALIAS: Record<string, string> = { x: 'twitter', twitter: 'x' }; // same platform, 2 scope keys
+// page_kind that belongs to one platform but leaked onto another (taxonomy isn't namespaced)
+function rowAnomaly(scopeKind: string, scopeKey: string, pageKind: string): string | null {
+  if (scopeKind === 'platform' && pageKind.startsWith('subreddit') && scopeKey !== 'reddit')
+    return `page_kind "${pageKind}" là của Reddit — bất hợp lý trên nền tảng "${scopeKey}".`;
+  return null;
+}
+
 // ── selector catalog (compact, browsable: scope → page_kind → fields) ────────
 function SelectorCatalog() {
   const [rows, setRows] = useState<SelCatRow[] | null>(null);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [onlyIssues, setOnlyIssues] = useState(false);
   useEffect(() => { let dead = false; selectorCatalog().then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, []);
 
   if (rows == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading catalog…</div>;
@@ -231,18 +241,30 @@ function SelectorCatalog() {
   const ql = q.trim().toLowerCase();
   const filtered = ql ? rows.filter((r) => `${r.scopeKey} ${r.pageKind} ${r.fieldName}`.toLowerCase().includes(ql)) : rows;
 
-  // group: scope (scope_kind:scope_key) → page_kind → field rows. Input is pre-sorted.
-  const scopes: { key: string; scopeKind: string; scopeKey: string; total: number; kinds: { pk: string; rows: SelCatRow[] }[] }[] = [];
+  // group: scope → page_kind → field rows, tagging each level with anomalies. Pre-sorted.
+  type Row = SelCatRow & { anom: string | null };
+  type Kind = { pk: string; rows: Row[]; hasAnom: boolean };
+  type Scope = { key: string; scopeKind: string; scopeKey: string; total: number; kinds: Kind[]; aliasDup: string | null; problems: string[] };
+  const scopes: Scope[] = [];
   for (const r of filtered) {
     const sk = `${r.scopeKind}:${r.scopeKey}`;
     let s = scopes.find((x) => x.key === sk);
-    if (!s) { s = { key: sk, scopeKind: r.scopeKind, scopeKey: r.scopeKey, total: 0, kinds: [] }; scopes.push(s); }
+    if (!s) { s = { key: sk, scopeKind: r.scopeKind, scopeKey: r.scopeKey, total: 0, kinds: [], aliasDup: null, problems: [] }; scopes.push(s); }
     s.total++;
     let k = s.kinds.find((x) => x.pk === r.pageKind);
-    if (!k) { k = { pk: r.pageKind, rows: [] }; s.kinds.push(k); }
-    k.rows.push(r);
+    if (!k) { k = { pk: r.pageKind, rows: [], hasAnom: false }; s.kinds.push(k); }
+    const anom = rowAnomaly(r.scopeKind, r.scopeKey, r.pageKind);
+    k.rows.push({ ...r, anom });
+    if (anom) { k.hasAnom = true; s.problems.push(anom); }
   }
-  const isOpen = (key: string) => (ql ? true : open.has(key)); // filtering auto-expands matches
+  for (const s of scopes) {
+    const alias = PLATFORM_ALIAS[s.scopeKey];
+    if (alias) { s.aliasDup = alias; s.problems.unshift(`"${s.scopeKey}" và "${alias}" là CÙNG 1 nền tảng — selector đang tách 2 key, nên gộp về 1.`); }
+  }
+  const totalProblems = scopes.reduce((a, s) => a + s.problems.length, 0);
+  const view = onlyIssues ? scopes.filter((s) => s.problems.length > 0) : scopes;
+
+  const isOpen = (s: Scope) => (ql || onlyIssues ? true : open.has(s.key)); // filter/issues-mode auto-expand
   const toggle = (key: string) => setOpen((p) => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   const scopeColor = (k: string) => (k === 'engine' ? '#b48cff' : k === 'platform' ? 'var(--accent)' : 'var(--ok)');
 
@@ -250,50 +272,77 @@ function SelectorCatalog() {
     <div>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter scope / page_kind / field…" autoComplete="off"
         style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
-      <Tip text={`scope = một cấp selector (engine/platform/habitat) + tên của nó.\nselectors = tổng số dòng selector đang khớp bộ lọc.`}>
-        <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8, cursor: 'help' }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</div>
-      </Tip>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Tip text={`scope = một cấp selector (engine/platform/habitat) + tên của nó.\nselectors = tổng số dòng selector đang khớp bộ lọc.`}>
+          <span style={{ fontSize: 10.5, color: 'var(--fg-3)', cursor: 'help' }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</span>
+        </Tip>
+        {totalProblems > 0 ? (
+          <button onClick={() => setOnlyIssues((v) => !v)}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, color: onlyIssues ? 'var(--bg-1)' : 'var(--bad)', background: onlyIssues ? 'var(--bad)' : 'transparent', border: '1px solid var(--bad)', borderRadius: 999, padding: '2px 9px', cursor: 'pointer' }}>
+            ⚠ {totalProblems} điểm bất hợp lý{onlyIssues ? ' ✕' : ''}
+          </button>
+        ) : (
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)' }}>✓ không có bất hợp lý</span>
+        )}
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {scopes.map((s) => (
-          <div key={s.key} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            <button onClick={() => toggle(s.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: 9, color: 'var(--fg-3)', width: 8 }}>{isOpen(s.key) ? '▾' : '▸'}</span>
+        {view.map((s) => {
+          const bad = s.problems.length > 0;
+          return (
+          <div key={s.key} style={{ border: `1px solid ${bad ? 'var(--bad)' : 'var(--line)'}`, borderRadius: 6, overflow: 'hidden' }}>
+            <button onClick={() => toggle(s.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: bad ? 'color-mix(in srgb, var(--bad) 12%, var(--bg-2))' : 'var(--bg-2)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ fontSize: 9, color: 'var(--fg-3)', width: 8 }}>{isOpen(s) ? '▾' : '▸'}</span>
               <Tip text={SCOPE_KIND_VI[s.scopeKind] || `Cấp scope: ${s.scopeKind}.`} style={{ cursor: 'help' }}>
                 <span style={{ ...chip(scopeColor(s.scopeKind)), marginLeft: 0 }}>{s.scopeKind}</span>
               </Tip>
               <Tip text={s.scopeKind === 'engine' ? `Forum engine "${s.scopeKey}" — selector áp cho MỌI site chạy engine này.` : s.scopeKind === 'platform' ? `Nền tảng "${s.scopeKey}".` : `Cộng đồng "${s.scopeKey}".`} style={{ cursor: 'help' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)' }}>{s.scopeKey}</span>
               </Tip>
+              {bad && (
+                <Tip text={s.problems.join('\n')} style={{ cursor: 'help' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: 'var(--bg-1)', background: 'var(--bad)', borderRadius: 999, padding: '1px 7px' }}>⚠ {s.problems.length}</span>
+                </Tip>
+              )}
               <Tip text={`${s.total} selector qua ${s.kinds.length} ngữ cảnh trang (page_kind). "ctx" = số page_kind.`} style={{ marginLeft: 'auto', cursor: 'help' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{s.total} · {s.kinds.length} ctx</span>
               </Tip>
             </button>
-            {isOpen(s.key) && (
+            {isOpen(s) && (
               <div style={{ borderTop: '1px solid var(--line)' }}>
+                {bad && s.aliasDup && (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', padding: '6px 10px', background: 'color-mix(in srgb, var(--bad) 10%, transparent)', fontSize: 11, color: 'var(--fg-0)' }}>
+                    <span style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠</span>
+                    <span>{s.problems[0]}</span>
+                  </div>
+                )}
                 {s.kinds.map((k) => (
                   <div key={k.pk} style={{ padding: '5px 10px 6px 22px', borderTop: '1px solid var(--bg-1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <Tip text={PAGE_KIND_VI[k.pk] || `Ngữ cảnh trang "${k.pk}" — nhóm selector dùng ở màn hình này.`} style={{ cursor: 'help' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {k.pk}</span>
+                      <Tip text={(k.hasAnom ? `⚠ ${k.rows.find((r) => r.anom)?.anom}\n\n` : '') + (PAGE_KIND_VI[k.pk] || `Ngữ cảnh trang "${k.pk}" — nhóm selector dùng ở màn hình này.`)} style={{ cursor: 'help' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: k.hasAnom ? 'var(--bad)' : 'var(--fg-1)', fontWeight: 600 }}>{k.hasAnom ? '⚠ ' : ''}@ {k.pk}</span>
                       </Tip>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>{k.rows.length}</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {k.rows.map((r) => (
-                        <Tip key={r.fieldName} text={selChipTip(r)} style={{ cursor: 'help' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px solid ${r.hasCss ? 'var(--line)' : 'var(--warn)'}`, borderRadius: 3, padding: '1px 5px' }}>{r.fieldName}</span>
+                      {k.rows.map((r) => {
+                        const border = r.anom ? 'var(--bad)' : r.hasCss ? 'var(--line)' : 'var(--fg-3)';
+                        return (
+                        <Tip key={r.fieldName} text={(r.anom ? `⚠ ${r.anom}\n\n` : '') + selChipTip(r)} style={{ cursor: 'help' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.anom ? 'var(--bad)' : r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: r.anom ? 'color-mix(in srgb, var(--bad) 14%, var(--bg-1))' : 'var(--bg-1)', border: `1px ${r.hasCss || r.anom ? 'solid' : 'dashed'} ${border}`, borderRadius: 3, padding: '1px 5px' }}>{r.anom ? '⚠ ' : ''}{r.fieldName}</span>
                         </Tip>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
-        Thứ tự ưu tiên lúc chạy: <b>habitat → platform → engine → generic</b> (cấp dưới ghi đè cấp trên). Quản lý tại <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. Viền vàng = spec chưa có CSS.
+        Thứ tự ưu tiên lúc chạy: <b>habitat → platform → engine → generic</b> (cấp dưới ghi đè cấp trên). Quản lý tại <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. <span style={{ color: 'var(--bad)' }}>Viền đỏ ⚠</span> = bất hợp lý · viền nét đứt = chưa có CSS.
       </div>
     </div>
   );

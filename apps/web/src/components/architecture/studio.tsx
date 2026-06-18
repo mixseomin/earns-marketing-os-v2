@@ -8,7 +8,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState, createCo
 import { createPortal } from 'react-dom';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
-  useNodesState, useEdgesState, MarkerType,
+  useNodesState, useEdgesState, useReactFlow, MarkerType,
   type Node, type Edge, type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -34,19 +34,34 @@ const REL_COLOR: Record<RelKind, string> = {
 const groupColor = (k: string) => GROUPS.find((g) => g.key === k)?.color || '#8a92a3';
 const groupLabel = (k: string) => GROUPS.find((g) => g.key === k)?.label || k;
 
-const COL_W = 250;
-const ROW_H = 104;
+// Layout spacing — cột = GROUPS (trái→phải), trong 1 cột node xếp dọc theo CHIỀU
+// CAO THẬT + gap (node cao đẩy node dưới xuống → ko chồng khi sau này node dài/ngắn
+// khác nhau). Rộng rãi; reset đo size thật để giãn khít.
+const COL_GAP = 120;       // khoảng trống giữa 2 cột (cộng vào bề rộng cột)
+const ROW_GAP = 44;        // khoảng trống dọc giữa các node trong 1 cột
+const HEADER_GAP = 34;     // group label → node đầu tiên
+const EST_W = 200, EST_H = 104;  // ước lượng khi chưa đo được (first paint)
 
 // ── default layouts (overridden by saved localStorage positions) ─────────────
-function defaultObjectPositions(): Record<string, Pos> {
+// measured = {id: {w,h}} kích thước thật từ ReactFlow (reset truyền vào). Trống →
+// ước lượng EST_* (first paint trước khi đo). Bề rộng mỗi cột = node rộng nhất cột đó.
+function layoutColumns(measured: Record<string, { w: number; h: number }> = {}): Record<string, Pos> {
   const pos: Record<string, Pos> = {};
-  GROUPS.forEach((g, gi) => {
-    pos[`group:${g.key}`] = { x: gi * COL_W, y: 0 };
+  let x = 0;
+  GROUPS.forEach((g) => {
     const objs = OBJECTS.filter((o) => o.group === g.key);
-    objs.forEach((o, i) => { pos[o.key] = { x: gi * COL_W, y: 56 + i * ROW_H }; });
+    const colW = Math.max(EST_W, measured[`group:${g.key}`]?.w || 0, ...objs.map((o) => measured[o.key]?.w || 0));
+    pos[`group:${g.key}`] = { x, y: 0 };
+    let y = (measured[`group:${g.key}`]?.h || 24) + HEADER_GAP;
+    objs.forEach((o) => {
+      pos[o.key] = { x, y };
+      y += (measured[o.key]?.h || EST_H) + ROW_GAP;
+    });
+    x += colW + COL_GAP;
   });
   return pos;
 }
+function defaultObjectPositions(): Record<string, Pos> { return layoutColumns(); }
 function defaultFlowPositions(flow: ArchFlow): Record<string, Pos> {
   const pos: Record<string, Pos> = {};
   flow.steps.forEach((s, i) => { pos[s.id] = { x: i * 250, y: 160 + (i % 2) * 40 }; });
@@ -1065,6 +1080,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const popTo = useCallback((n: number) => setStack((s) => s.slice(0, n)), []);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const rf = useReactFlow();
   const savedRef = useRef<Record<string, Pos>>({});
   const hydrated = useRef(false);
 
@@ -1166,12 +1182,23 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   }, [nodes, view]);
 
   const resetLayout = useCallback(() => {
-    savePositions(view, {});
-    savedRef.current = {};
-    const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
-    const g = view === 'objects' || !flow ? buildObjectGraph({}, bound, scan) : buildFlowGraph(flow, {});
-    setNodes(g.nodes); setEdges(g.edges);
-  }, [view, bound, scan, setNodes, setEdges]);
+    if (view === 'objects') {
+      // đo size THẬT của node đang render → giãn khít theo từng node (cao/thấp khác nhau).
+      const measured: Record<string, { w: number; h: number }> = {};
+      nodes.forEach((n) => { const m = n.measured; if (m?.width) measured[n.id] = { w: m.width, h: m.height || EST_H }; });
+      const pos = layoutColumns(measured);
+      savePositions(view, pos); savedRef.current = pos;
+      const g = buildObjectGraph(pos, bound, scan);
+      setNodes(g.nodes); setEdges(g.edges);
+    } else {
+      savePositions(view, {}); savedRef.current = {};
+      const flow = FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend'];
+      const g = flow ? buildFlowGraph(flow, {}) : buildObjectGraph({}, bound, scan);
+      setNodes(g.nodes); setEdges(g.edges);
+    }
+    // refit sau khi DOM cập nhật vị trí mới
+    requestAnimationFrame(() => { try { rf.fitView({ padding: 0.18, duration: 320 }); } catch { /* */ } });
+  }, [view, bound, scan, nodes, setNodes, setEdges, rf]);
 
   const selObj = sel?.kind === 'object' ? OBJ_BY_KEY[sel.key] : null;
   const selFlow = sel?.kind === 'flow' ? FLOW_BY_KEY[sel.flow] : null;

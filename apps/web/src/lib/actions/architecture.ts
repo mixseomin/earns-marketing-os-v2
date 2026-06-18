@@ -354,7 +354,7 @@ export interface ExtCall {
   objKey: string | null; objId: string | null; // related studio object + specific instance to pre-bind
 }
 const EP_OBJ: Record<string, string> = {
-  habitats: 'habitat', briefs: 'brief', brief: 'brief',
+  habitats: 'habitat', briefs: 'brief', brief: 'brief', insights: 'card',
   'learn-selectors': 'selector', 'save-selector': 'selector', 'train-selector': 'selector',
   'clear-selector': 'selector', 'suggest-selector': 'selector', selectors: 'selector',
   accounts: 'account', scene: 'interaction',
@@ -384,6 +384,7 @@ export async function extActivity(opts?: { limit?: number; errorsOnly?: boolean 
       const objKey = EP_OBJ[x.endpoint] || null;
       const objId = x.endpoint === 'habitats' ? jstr(rs.id)
         : (x.endpoint === 'briefs' || x.endpoint === 'brief') ? jstr(rs.briefId)
+        : x.endpoint === 'insights' ? jstr(rs.cardId)
         : x.endpoint === 'accounts' ? (jstr(rs.id) || jstr(rs.accountId)) : null;
       return {
         id: x.id, ts: x.created_at, endpoint: x.endpoint, method: x.method, status: x.status,

@@ -6,6 +6,7 @@ import { normalizeParentUrl } from '@/lib/parent-url';
 import { appendInsightsSnapshot, insightsScalarSets } from '@/lib/insights-snapshot';
 import { recordReplierInteractions } from '@/lib/scene-people';
 import { firstRow, errorResponse } from '@/lib/ext-route';
+import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 
 // POST /api/ext/seeding/insights
 // Body: {
@@ -25,6 +26,8 @@ import { firstRow, errorResponse } from '@/lib/ext-route';
 // metric sau mà không phải re-fetch.
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const extMeta = extractExtMeta(req);
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
@@ -51,6 +54,16 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
+  // mirror into ext_call_log so the Live · Activity feed reflects each tracking sync
+  const payloadMeta: Record<string, unknown> = {
+    cardId: body.cardId ?? null, parentUrl: body.parentUrl ?? null,
+    handle: body.accountHandle ?? null,
+    views: body.views ?? null, score: body.score ?? null,
+    replyCount: body.replyCount ?? null, upvoteRatio: body.upvoteRatio ?? null,
+  };
+  const logCall = (status: number, responseMeta: Record<string, unknown>, errorMsg?: string) =>
+    logExtCall({ endpoint: 'insights', method: 'POST', extVersion: extMeta.extVersion, pageUrl: extMeta.pageUrl, payloadMeta, responseMeta, status, durationMs: Date.now() - startedAt, errorMsg });
+
   // Resolve cardId: trực tiếp hoặc (parentUrl + accountHandle) cho forum reply-tracking.
   let cardId = Number(body.cardId ?? 0);
   if (!cardId && body.parentUrl) {
@@ -70,12 +83,13 @@ export async function POST(req: Request) {
     if (r) cardId = Number(r.id);
   }
   if (!cardId) {
+    await logCall(body.parentUrl ? 200 : 400, { ok: false, reason: 'card_not_found' }, 'card_not_found');
     return errorResponse('cardId (hoặc parentUrl+accountHandle khớp 1 card đã đăng) required', body.parentUrl ? 200 : 400, { reason: 'card_not_found' });
   }
 
   // Verify card exists + đã post (insights chỉ make sense cho card đã đăng)
   const checkRows = await db.execute(sql`
-    SELECT id, post_url FROM cards WHERE id = ${cardId} LIMIT 1
+    SELECT id, post_url, card_ref FROM cards WHERE id = ${cardId} LIMIT 1
   `);
   const card = firstRow(checkRows);
   if (!card) return errorResponse('Card not found', 404);
@@ -122,6 +136,14 @@ export async function POST(req: Request) {
   if (Array.isArray(body.topReplies) && body.topReplies.length) {
     await recordReplierInteractions(db, cardId, body.topReplies);
   }
+
+  // feed line: "SEED-169 · @handle → tracked ↑2 💬1 👁29" (👁 only when views actually sent)
+  payloadMeta.name = card.card_ref;
+  const parts = ['tracked'];
+  if (body.score != null) parts.push(`↑${body.score}`);
+  if (body.replyCount != null) parts.push(`💬${body.replyCount}`);
+  if (body.views != null) parts.push(`👁${body.views}`);
+  await logCall(200, { ok: true, cardId, action: parts.join(' '), views: body.views ?? null, score: body.score ?? null, replyCount: body.replyCount ?? null });
 
   return NextResponse.json({
     ok: true,

@@ -9,6 +9,9 @@ import { getCurrentUser } from '@/lib/auth';
 export default async function ProjectDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  // strategy-lab is a forward-test command center — its default landing is the Live Orders blotter, not the Morning Brief
+  if (id === 'strategy-lab') redirect(`/p/${id}/orders`);
+
   // Operators have no use for the Morning Brief — send them to their task queue
   const me = await getCurrentUser();
   if (me && me.role !== 'admin') redirect(`/p/${id}/inbox`);

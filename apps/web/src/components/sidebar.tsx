@@ -9,7 +9,7 @@ import { logoutAction } from '@/lib/actions/auth';
 import type { Mode, Project } from '@/lib/mock/types';
 import type { CurrentUserInfo } from './app-shell';
 
-export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo }) {
+export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobileNavigate }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo; onMobileNavigate?: () => void }) {
   const t = useT();
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
   const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
@@ -73,20 +73,20 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
             <span className="count mono">{mobileTabs.length}</span>
           </div>
           {mobileTabs.map((tabItem) => (
-            <div key={tabItem.href} style={{ marginBottom: 4 }}>
-              <Link href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '10px 12px', minHeight: 44, background: 'var(--bg-2)' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--accent)', color: 'var(--accent)', fontSize: 16 }}>{tabItem.icon}</div>
-                <div className="squad-name"><b style={{ fontSize: 14 }}>{tabItem.label}</b></div>
+            <div key={tabItem.href}>
+              <Link href={tabItem.href} onClick={onMobileNavigate} className="squad pages-row" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--accent)', color: 'var(--accent)', fontSize: 13, width: 20, height: 20 }}>{tabItem.icon}</div>
+                <div className="squad-name"><b style={{ fontSize: 12.5 }}>{tabItem.label}</b></div>
                 {tabItem.badge !== undefined && (
-                  <div className="squad-stats"><span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
+                  <div className="squad-stats"><span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
                 )}
               </Link>
               {tabItem.children && tabItem.children.length > 0 && (
-                <div style={{ borderLeft: '2px solid var(--accent)', marginLeft: 18, paddingLeft: 0 }}>
+                <div style={{ borderLeft: '2px solid var(--accent)', marginLeft: 14 }}>
                   {tabItem.children.map((c) => (
-                    <Link key={c.href} href={c.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '9px 12px 9px 14px', minHeight: 40, fontSize: 13 }}>
-                      <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)', fontSize: 13, width: 22, height: 22 }}>{c.icon}</div>
-                      <div className="squad-name" style={{ fontSize: 13 }}>{c.label}</div>
+                    <Link key={c.href} href={c.href} onClick={onMobileNavigate} className="squad pages-child" style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)', fontSize: 11, width: 16, height: 16 }}>{c.icon}</div>
+                      <div className="squad-name" style={{ fontSize: 11.5 }}>{c.label}</div>
                     </Link>
                   ))}
                 </div>

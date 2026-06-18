@@ -81,7 +81,7 @@ export function AppShell({
            data-mobile-nav={mobileNavOpen ? 'open' : 'closed'}
         style={impersonate ? { paddingTop: 44 } : undefined}>
         <TopBar tab={tab} mode={mode} currentProject={project} isPortfolio={isPortfolio} projectCount={projects.length} currentUser={currentUser ?? undefined} onMobileMenuClick={() => setMobileNavOpen(v => !v)} />
-        {(tweaks.showSidebar || mobileNavOpen) && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} />}
+        {(tweaks.showSidebar || mobileNavOpen) && <Sidebar mode={mode} currentProjectId={project?.id} projects={projects} currentUser={currentUser ?? undefined} onMobileNavigate={() => setMobileNavOpen(false)} />}
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <main className="main" data-screen-label={screenLabel}>{children}</main>
         {(currentUser?.role ?? 'admin') === 'admin' && (

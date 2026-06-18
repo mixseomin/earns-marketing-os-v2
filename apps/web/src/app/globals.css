@@ -241,6 +241,10 @@ button { font-family: inherit; color: inherit; }
      lives later in the source and has equal specificity — without
      !important, source order makes the default win even on mobile. */
   .sidebar-mobile-tabs { display: block !important; }
+  /* Tight padding so 7 parents + 15+ children fit one viewport. The .squad
+     default styles in the desktop sidebar are too loose for a phone. */
+  .sidebar-mobile-tabs .pages-row { padding: 5px 10px !important; min-height: 0 !important; gap: 8px !important; }
+  .sidebar-mobile-tabs .pages-child { padding: 4px 8px !important; min-height: 0 !important; gap: 7px !important; }
 
   /* Topbar project indicator (emoji + name between Portfolio and tabs)
      eats ~160px of precious horizontal space — user already knows which

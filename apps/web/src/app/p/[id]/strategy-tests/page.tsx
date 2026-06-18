@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { StrategyTestsTable } from '@/components/strategy-tests-table';
 import { getProject, getProjectMode, listProjects, listStrategyTests, listStrategyTestAssets, listStrategyForward, listStrategyTrades, getBrokerNowMs, type StrategyAssetRow, type StrategyForwardRow, type StrategyTradeRow } from '@/lib/data';
@@ -37,6 +38,8 @@ export default async function StrategyTestsRoute({ params }: { params: Promise<{
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12 }}>
           <h1 style={{ fontSize: 19, margin: 0 }}>🔬 Strategy Tests</h1>
           <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>Honest real-data backtests of famous trading strategies — including the failures.</span>
+          <span style={{ flex: 1 }} />
+          <Link href={`/p/${id}/orders`} style={{ fontSize: 12, color: 'var(--accent,#00e5ff)', textDecoration: 'none' }}>📋 Live Orders →</Link>
         </div>
         <StrategyTestsTable rows={rows} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} tradesByStrategy={tradesByStrategy} brokerNowMs={brokerNowMs} />
       </div>

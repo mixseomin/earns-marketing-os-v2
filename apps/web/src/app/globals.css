@@ -232,6 +232,9 @@ button { font-family: inherit; color: inherit; }
 
   .mobile-menu-btn { display: inline-flex; }
 
+  /* Mobile drawer PAGES section is visible only on mobile */
+  .sidebar-mobile-tabs { display: block; }
+
   .topbar {
     padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
     gap: 6px;
@@ -465,6 +468,9 @@ button { font-family: inherit; color: inherit; }
   overflow-y: auto;
   display: flex; flex-direction: column;
 }
+/* PAGES list is mobile-only — duplicates the topbar tabs inside the ☰ drawer.
+   On desktop the topbar already shows them inline so we hide the duplicate. */
+.sidebar-mobile-tabs { display: none; }
 .side-section {
   padding: var(--s-3) var(--s-3) var(--s-2);
 }

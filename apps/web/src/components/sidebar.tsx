@@ -12,10 +12,46 @@ import type { CurrentUserInfo } from './app-shell';
 export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo }) {
   const t = useT();
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
+  const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
+  const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
+
+  // Mobile-only: replicate the topbar's project tabs as a vertical menu inside
+  // the slide-out drawer. The topbar itself scrolls horizontally on mobile,
+  // but it's not discoverable — users hit ☰ expecting full nav.
+  const mobileTabs: Array<{ href: string; label: string; icon: string; badge?: string | number }> = currentProjectId ? [
+    ...(isOperator ? [] : [{ href: `/p/${currentProjectId}`,         label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief'), icon: '☀' }]),
+    { href: `/p/${currentProjectId}/board`,    label: t('nav.board', mode?.boardTitle || 'Command Board'), icon: '📋' },
+    { href: `/p/${currentProjectId}/inbox`,    label: 'Inbox', icon: '📥' },
+    ...(isOperator ? [] : [
+      { href: `/p/${currentProjectId}/squads`, label: t('nav.squads', 'Squads'), icon: '🤖', badge: totalAgents > 0 ? totalAgents : undefined },
+      { href: `/p/${currentProjectId}/studio`, label: t('nav.studio', 'Studio'), icon: '🎬' },
+      { href: `/p/${currentProjectId}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
+    ]),
+    { href: `/p/${currentProjectId}/resources`, label: t('nav.resources', 'Resources'), icon: '🗂' },
+    ...(isOperator ? [] : [{ href: `/p/${currentProjectId}/settings`, label: 'Settings', icon: '⚙' }]),
+  ] : [];
 
   return (
     <aside className="sidebar">
       <ProjectSwitcher currentProjectId={currentProjectId} projects={projects} />
+
+      {mobileTabs.length > 0 && (
+        <div className="side-section sidebar-mobile-tabs">
+          <div className="side-title">
+            <span>PAGES</span>
+            <span className="count mono">{mobileTabs.length}</span>
+          </div>
+          {mobileTabs.map((tabItem) => (
+            <Link key={tabItem.href} href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '6px 12px', minHeight: 0 }}>
+              <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>{tabItem.icon}</div>
+              <div className="squad-name"><b>{tabItem.label}</b></div>
+              {tabItem.badge !== undefined && (
+                <div className="squad-stats"><span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="side-section" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <div className="side-title">

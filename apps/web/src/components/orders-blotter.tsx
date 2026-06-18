@@ -21,6 +21,8 @@ const cagrPct = (t: StrategyTestRow): number => {
 };
 
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
+const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4));
+const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
@@ -42,7 +44,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       {showStrategy ? <td style={{ ...cell, fontWeight: t.isOpen ? 600 : 400 }}>{t.strategy}</td> : null}
       <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 500 }}>{t.symbol}</td>
       <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
-      <td style={cell}>{t.lots != null ? t.lots.toFixed(2) : '—'}</td>
+      <td style={cell}>{t.lots != null ? <span>{fmtVol(t.lots)}{t.notional != null ? <span style={{ color: 'var(--muted)', fontSize: 9.5, marginLeft: 4 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
       <td style={cell}>{fmtDT(t.entryTime)}</td>
       <td style={cell}>{t.entryPrice ?? '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>

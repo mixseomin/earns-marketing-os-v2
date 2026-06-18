@@ -871,11 +871,11 @@ export async function listStrategyForward(): Promise<StrategyForwardRow[]> {
   }, [], 'listStrategyForward');
 }
 
-export interface StrategyTradeRow { strategy: string; symbol: string; dir: string | null; entryTime: string | null; exitTime: string | null; entryPrice: number | null; exitPrice: number | null; profit: number | null; isOpen: boolean }
+export interface StrategyTradeRow { strategy: string; symbol: string; dir: string | null; entryTime: string | null; exitTime: string | null; entryPrice: number | null; exitPrice: number | null; profit: number | null; lots: number | null; isOpen: boolean }
 export async function listStrategyTrades(): Promise<StrategyTradeRow[]> {
   return tryDb(async () => {
     const rows = await dbListStrategyTrades();
-    return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, dir: r.dir, entryTime: r.entryTime ? new Date(r.entryTime).toISOString() : null, exitTime: r.exitTime ? new Date(r.exitTime).toISOString() : null, entryPrice: r.entryPrice, exitPrice: r.exitPrice, profit: r.profit, isOpen: r.isOpen }));
+    return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, dir: r.dir, entryTime: r.entryTime ? new Date(r.entryTime).toISOString() : null, exitTime: r.exitTime ? new Date(r.exitTime).toISOString() : null, entryPrice: r.entryPrice, exitPrice: r.exitPrice, profit: r.profit, lots: r.lots, isOpen: r.isOpen }));
   }, [], 'listStrategyTrades');
 }
 

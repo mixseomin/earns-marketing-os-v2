@@ -168,7 +168,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
       </div>
       <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
         <thead><tr style={{ color: 'var(--muted)' }}>
-          {['Symbol', 'Dir', 'Entry', 'In px', 'Exit', 'Out px', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
         </tr></thead>
         <tbody>
           {rows.map((t, i) => {
@@ -178,6 +178,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
               <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.5, background: t.isOpen ? 'rgba(90,200,130,0.07)' : 'transparent' }}>
                 <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 400 }}>{t.symbol}</td>
                 <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
+                <td style={cell}>{t.lots != null ? t.lots.toFixed(2) : '—'}</td>
                 <td style={cell}>{fmtDT(t.entryTime)}</td>
                 <td style={cell}>{t.entryPrice ?? '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>

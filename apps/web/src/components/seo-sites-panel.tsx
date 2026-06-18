@@ -46,6 +46,7 @@ const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'chatlt.com': { emoji: '💬' },
   'bestweightlosspills.reviews': { emoji: '💊' },
   'hljournal.xyz': { emoji: '📓' },
+  'astrolas.com': { project: 'astrolas', emoji: '🔭' },
 };
 
 function normalize(key: string): string {

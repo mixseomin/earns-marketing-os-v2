@@ -32,6 +32,7 @@ export type AwarenessFunnelStats = {
   last_day_date: string | null;
   top_countries_7d: Array<{ country: string; spend_usd: number; visits: number; cpc_usd: number }>;
   daily: FunnelDailyPoint[];
+  engagement_7d: Record<string, number>;
 };
 
 async function fetchGa4Channel(domain: string, days: number, channel: string): Promise<number | null> {
@@ -58,6 +59,32 @@ async function fetchGa4Channel(domain: string, days: number, channel: string): P
 
 type DailyRow = { date: string | Date; spend: string | number | null; visits: string | number | null };
 type CountryRow = { country: string; spend: string | number; visits: string | number; cpc: string | number };
+type ActionRow = { action: string; n: string | number };
+
+const DIRECTUS_BASE = 'https://as.on.tc';
+const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+
+// Engagement events are stored in the cities.gg Directus (collection cgg_events),
+// not in mos2_prod. Pull them via REST aggregate.
+async function loadEngagement7d(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (!DIRECTUS_TOKEN) return out;
+  try {
+    const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const url = `${DIRECTUS_BASE}/items/cgg_events?aggregate[count]=*&groupBy=action&filter[created_at][_gte]=${sevenAgo}&filter[action][_nstarts_with]=ab_&limit=-1`;
+    const r = await fetch(url, {
+      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+      next: { revalidate: 300, tags: ['cgg-events'] },
+    });
+    if (!r.ok) return out;
+    const j = await r.json();
+    const data = Array.isArray(j?.data) ? j.data : [];
+    for (const row of data as ActionRow[]) {
+      out[row.action] = Number(row.n || 0);
+    }
+  } catch { /* fall through */ }
+  return out;
+}
 
 export async function loadAwarenessFunnel(domain: string = 'cities.gg'): Promise<AwarenessFunnelStats | null> {
   const db = getDb();
@@ -114,6 +141,8 @@ export async function loadAwarenessFunnel(domain: string = 'cities.gg'): Promise
     const rt = await loadGa4Realtime();
     const rtSite = rt ? pickGa4Realtime(rt, domain) : null;
 
+    const engagement_7d = await loadEngagement7d();
+
     const last = days[days.length - 1];
     const yesterday = days[days.length - 2];
     const lastWithData = last && last.paid_visits > 0 ? last : (yesterday ?? last);
@@ -133,6 +162,7 @@ export async function loadAwarenessFunnel(domain: string = 'cities.gg'): Promise
       last_day_date: lastWithData?.date ?? null,
       top_countries_7d,
       daily: days,
+      engagement_7d,
     };
   } catch (e) {
     console.error('[awareness-funnel] load failed', e);

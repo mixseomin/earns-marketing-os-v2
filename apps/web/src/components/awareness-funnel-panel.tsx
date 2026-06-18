@@ -78,6 +78,56 @@ export async function AwarenessFunnelPanel() {
         </div>
       </div>
 
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+          Engagement events (7d) · src cgg_events
+        </div>
+        {(() => {
+          const eng = s.engagement_7d;
+          const totalSessions = s.ga4_paid_7d ?? s.paid_visits_7d;
+          const rate = (n: number) => totalSessions > 0 ? `${((n / totalSessions) * 100).toFixed(2)}%` : '—';
+          const groups: Array<{ key: string; label: string }> = [
+            { key: 'like',        label: 'Like' },
+            { key: 'share',       label: 'Share' },
+            { key: 'endcard_shown',    label: 'End-card shown' },
+            { key: 'endcard_pick',     label: 'End-card pick' },
+            { key: 'endcard_autonav',  label: 'End-card auto-nav' },
+            { key: 'endcard_stay',     label: 'End-card stay' },
+            { key: 'endcard_dismiss_esc',     label: 'End-card esc' },
+            { key: 'endcard_dismiss_outside', label: 'End-card outside' },
+            { key: 'pwa_prompt_shown',   label: 'PWA prompt shown' },
+            { key: 'pwa_install_accept', label: 'PWA install ✓' },
+            { key: 'pwa_install_dismiss',label: 'PWA dismiss' },
+          ];
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+              {groups.map(g => {
+                const n = eng[g.key] ?? 0;
+                const isNew = g.key.startsWith('endcard') || g.key.startsWith('pwa');
+                return (
+                  <div key={g.key} style={{
+                    background: n > 0 ? 'var(--bg-2)' : 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--line)',
+                    borderRadius: 6, padding: '8px 10px',
+                    opacity: n > 0 ? 1 : 0.55,
+                  }}>
+                    <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+                      {g.label}{isNew && <span style={{ marginLeft: 4, color: 'var(--neon-amber)' }}>•new</span>}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>
+                      {n.toLocaleString()}
+                      <span style={{ fontSize: 10, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
+                        {rate(n)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+
       <details>
         <summary style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', marginBottom: 6 }}>
           Top countries (7d) — {s.top_countries_7d.length}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 
@@ -17,6 +17,7 @@ function DropdownTab({
 }) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const cancelClose = () => {
     if (closeTimer.current !== null) {
@@ -31,6 +32,21 @@ function DropdownTab({
   };
   const openNow = () => { cancelClose(); setOpen(true); };
 
+  // Tap-anywhere-outside + Escape closes — needed on touch where hover doesn't fire.
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   if (!subItems?.length) {
     return (
       <Link href={href} className="tab" data-active={active || undefined} style={{ textDecoration: 'none' }}>
@@ -38,17 +54,27 @@ function DropdownTab({
       </Link>
     );
   }
+  // Parent tab is a BUTTON (not a Link) when it has sub-items — tap toggles the
+  // menu instead of navigating. The parent's destination is already exposed as
+  // the first sub-item in every existing config (Command Board, Squads,
+  // Resources Overview…), so no destination becomes unreachable.
   return (
     <div
+      ref={rootRef}
       style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}
       onMouseEnter={openNow}
       onMouseLeave={scheduleClose}
     >
-      <Link href={href} className="tab" data-active={(active || open) || undefined}
-        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="tab"
+        data-active={(active || open) || undefined}
+        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, background: 'transparent', border: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}
+      >
         {label}{badge !== undefined && <span className="badge">{badge}</span>}
         <span style={{ fontSize: 7, opacity: 0.5, marginLeft: 1, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
-      </Link>
+      </button>
       {open && (
         <>
           {/* Invisible bridge — full width của tab, kéo dài 12px xuống dưới
@@ -81,7 +107,7 @@ function DropdownTab({
             }}
           >
             {subItems.map((s) => (
-              <Link key={s.href} href={s.href} style={{
+              <Link key={s.href} href={s.href} onClick={() => setOpen(false)} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '8px 16px', textDecoration: 'none',
                 color: 'var(--fg-1)', fontSize: 12.5, whiteSpace: 'nowrap',

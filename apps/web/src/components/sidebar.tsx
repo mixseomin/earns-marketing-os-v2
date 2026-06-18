@@ -16,19 +16,49 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
   const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
 
   // Mobile-only: replicate the topbar's project tabs as a vertical menu inside
-  // the slide-out drawer. The topbar itself scrolls horizontally on mobile,
-  // but it's not discoverable — users hit ☰ expecting full nav.
-  const mobileTabs: Array<{ href: string; label: string; icon: string; badge?: string | number }> = currentProjectId ? [
-    ...(isOperator ? [] : [{ href: `/p/${currentProjectId}`,         label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief'), icon: '☀' }]),
-    { href: `/p/${currentProjectId}/board`,    label: t('nav.board', mode?.boardTitle || 'Command Board'), icon: '📋' },
-    { href: `/p/${currentProjectId}/inbox`,    label: 'Inbox', icon: '📥' },
+  // the slide-out drawer. The topbar dropdowns are hover-based and impossible
+  // to operate on touch; even with the tap fix on dropdowns, this sidebar
+  // gives full nav without depending on the topbar at all. Sub-items are
+  // indented under their parent so Inbox / Tribes / Pillars / Flow / Team /
+  // Identities / Knowledge / Publications are one tap away.
+  type MobileTab = { href: string; label: string; icon: string; badge?: string | number; children?: Array<{ href: string; label: string; icon: string }> };
+  const pid = currentProjectId;
+  const mobileTabs: MobileTab[] = pid ? [
+    ...(isOperator ? [] : [{ href: `/p/${pid}`, label: t('nav.dashboard', mode?.pageTitle || 'Morning Brief'), icon: '☀' }]),
+    {
+      href: `/p/${pid}/board`, label: t('nav.board', mode?.boardTitle || 'Command Board'), icon: '📋',
+      children: [{ href: `/p/${pid}/inbox`, label: 'Inbox', icon: '📥' }],
+    },
     ...(isOperator ? [] : [
-      { href: `/p/${currentProjectId}/squads`, label: t('nav.squads', 'Squads'), icon: '🤖', badge: totalAgents > 0 ? totalAgents : undefined },
-      { href: `/p/${currentProjectId}/studio`, label: t('nav.studio', 'Studio'), icon: '🎬' },
-      { href: `/p/${currentProjectId}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
+      {
+        href: `/p/${pid}/squads`, label: t('nav.squads', 'Squads'), icon: '🤖', badge: totalAgents > 0 ? totalAgents : undefined,
+        children: [
+          { href: `/p/${pid}/tribes`,  label: 'Tribes',       icon: '🏕' },
+          { href: `/p/${pid}/pillars`, label: 'Trụ cột',      icon: '📚' },
+          { href: `/p/${pid}/seeding`, label: 'Seeding',      icon: '⏱' },
+          { href: `/p/${pid}/flow`,    label: 'Flow Diagram', icon: '🗺' },
+          { href: `/p/${pid}/team`,    label: 'Team',         icon: '👥' },
+        ],
+      },
+      { href: `/p/${pid}/studio`, label: t('nav.studio', 'Studio'), icon: '🎬' },
+      { href: `/p/${pid}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
     ]),
-    { href: `/p/${currentProjectId}/resources`, label: t('nav.resources', 'Resources'), icon: '🗂' },
-    ...(isOperator ? [] : [{ href: `/p/${currentProjectId}/settings`, label: 'Settings', icon: '⚙' }]),
+    {
+      href: `/p/${pid}/resources`, label: t('nav.resources', 'Resources'), icon: '🗂',
+      children: isOperator
+        ? [{ href: `/p/${pid}/resources?vault=accounts`, label: 'Accounts', icon: '🔐' }]
+        : [
+            { href: `/p/${pid}/resources?vault=accounts`,  label: 'Accounts',     icon: '🔐' },
+            { href: `/p/${pid}/identities`,                label: 'Identities',   icon: '👤' },
+            { href: `/p/${pid}/resources?vault=media`,     label: 'Media',        icon: '🎬' },
+            { href: `/p/${pid}/resources?vault=contacts`,  label: 'Contacts',     icon: '📇' },
+            { href: `/p/${pid}/resources?vault=infra`,     label: 'Infra',        icon: '🌐' },
+            { href: `/p/${pid}/resources?vault=budget`,    label: 'Budget',       icon: '💰' },
+            { href: `/p/${pid}/resources?vault=knowledge`, label: 'Knowledge',    icon: '🧠' },
+            { href: `/p/${pid}/publications`,              label: 'Publications', icon: '📡' },
+          ],
+    },
+    ...(isOperator ? [] : [{ href: `/p/${pid}/settings`, label: 'Settings', icon: '⚙' }]),
   ] : [];
 
   return (
@@ -42,13 +72,21 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
             <span className="count mono">{mobileTabs.length}</span>
           </div>
           {mobileTabs.map((tabItem) => (
-            <Link key={tabItem.href} href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '6px 12px', minHeight: 0 }}>
-              <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>{tabItem.icon}</div>
-              <div className="squad-name"><b>{tabItem.label}</b></div>
-              {tabItem.badge !== undefined && (
-                <div className="squad-stats"><span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
-              )}
-            </Link>
+            <div key={tabItem.href}>
+              <Link href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '6px 12px', minHeight: 0 }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>{tabItem.icon}</div>
+                <div className="squad-name"><b>{tabItem.label}</b></div>
+                {tabItem.badge !== undefined && (
+                  <div className="squad-stats"><span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
+                )}
+              </Link>
+              {tabItem.children?.map((c) => (
+                <Link key={c.href} href={c.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '4px 12px 4px 28px', minHeight: 0, fontSize: 12 }}>
+                  <div className="squad-icon" style={{ borderColor: 'var(--fg-4)', color: 'var(--fg-3)', fontSize: 11, width: 18, height: 18 }}>{c.icon}</div>
+                  <div className="squad-name" style={{ fontSize: 12 }}>{c.label}</div>
+                </Link>
+              ))}
+            </div>
           ))}
         </div>
       )}

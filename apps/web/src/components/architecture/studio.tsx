@@ -18,8 +18,8 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels,
-  type InstanceRef, type Issue, type ScanResult, type SelRow,
+  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog,
+  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow,
 } from '@/lib/actions/architecture';
 
 type ViewKey = 'objects' | 'onpage' | 'backend';
@@ -143,6 +143,76 @@ function buildFlowGraph(flow: ArchFlow, saved: Record<string, Pos>): { nodes: No
     });
   }
   return { nodes, edges };
+}
+
+// ── selector catalog (compact, browsable: scope → page_kind → fields) ────────
+function SelectorCatalog() {
+  const [rows, setRows] = useState<SelCatRow[] | null>(null);
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  useEffect(() => { let dead = false; selectorCatalog().then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, []);
+
+  if (rows == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading catalog…</div>;
+  if (rows.length === 0) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained yet.</div>;
+
+  const ql = q.trim().toLowerCase();
+  const filtered = ql ? rows.filter((r) => `${r.scopeKey} ${r.pageKind} ${r.fieldName}`.toLowerCase().includes(ql)) : rows;
+
+  // group: scope (scope_kind:scope_key) → page_kind → field rows. Input is pre-sorted.
+  const scopes: { key: string; scopeKind: string; scopeKey: string; total: number; kinds: { pk: string; rows: SelCatRow[] }[] }[] = [];
+  for (const r of filtered) {
+    const sk = `${r.scopeKind}:${r.scopeKey}`;
+    let s = scopes.find((x) => x.key === sk);
+    if (!s) { s = { key: sk, scopeKind: r.scopeKind, scopeKey: r.scopeKey, total: 0, kinds: [] }; scopes.push(s); }
+    s.total++;
+    let k = s.kinds.find((x) => x.pk === r.pageKind);
+    if (!k) { k = { pk: r.pageKind, rows: [] }; s.kinds.push(k); }
+    k.rows.push(r);
+  }
+  const isOpen = (key: string) => (ql ? true : open.has(key)); // filtering auto-expands matches
+  const toggle = (key: string) => setOpen((p) => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  const scopeColor = (k: string) => (k === 'engine' ? '#b48cff' : k === 'platform' ? 'var(--accent)' : 'var(--ok)');
+
+  return (
+    <div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter scope / page_kind / field…" autoComplete="off"
+        style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
+      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8 }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {scopes.map((s) => (
+          <div key={s.key} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            <button onClick={() => toggle(s.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ fontSize: 9, color: 'var(--fg-3)', width: 8 }}>{isOpen(s.key) ? '▾' : '▸'}</span>
+              <span style={{ ...chip(scopeColor(s.scopeKind)), marginLeft: 0 }}>{s.scopeKind}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)' }}>{s.scopeKey}</span>
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{s.total} · {s.kinds.length} ctx</span>
+            </button>
+            {isOpen(s.key) && (
+              <div style={{ borderTop: '1px solid var(--line)' }}>
+                {s.kinds.map((k) => (
+                  <div key={k.pk} style={{ padding: '5px 10px 6px 22px', borderTop: '1px solid var(--bg-1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {k.pk}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>{k.rows.length}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {k.rows.map((r) => (
+                        <span key={r.fieldName} title={`source: ${r.source}${r.hasCss ? '' : ' · no css'}`}
+                          style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px solid ${r.hasCss ? 'var(--line)' : 'var(--warn)'}`, borderRadius: 3, padding: '1px 5px' }}>{r.fieldName}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
+        Cascade at runtime: <b>habitat → platform → engine → generic</b>. Manage at <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. Amber border = spec has no css yet.
+      </div>
+    </div>
+  );
 }
 
 // ── instance inspector (inside drawer) ───────────────────────────────────────
@@ -305,6 +375,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   return (
     <div>
       <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 14 }}>{obj.desc}</div>
+
+      {/* full selector catalog — every scope × page_kind × field, with counts (gọn overview) */}
+      {obj.key === 'selector' && (
+        <Section title="Selector catalog" sub="// scope → page_kind → fields">
+          <SelectorCatalog />
+        </Section>
+      )}
 
       {/* attribute schema */}
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>

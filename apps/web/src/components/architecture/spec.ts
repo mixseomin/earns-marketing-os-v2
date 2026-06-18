@@ -75,7 +75,7 @@ export const OBJECTS: ArchObject[] = [
       { name: 'category', col: 'category', type: 'text' },
       { name: 'region', col: 'region', type: 'text' },
       { name: 'autoPostSupported', col: 'auto_post_supported', type: 'bool' },
-      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine', note: 'forum engine if applicable' },
+      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine', note: 'forum technology if applicable' },
     ],
     relations: [
       { to: 'engine', kind: 'fk', via: 'technology_key' },
@@ -87,7 +87,7 @@ export const OBJECTS: ArchObject[] = [
     deepLink: '/platforms',
   },
   {
-    key: 'engine', label: 'Engine (forum tech)', group: 'platform',
+    key: 'engine', label: 'Technology (forum)', group: 'platform',
     table: 'platform_technologies', pk: 'key', labelCol: 'label',
     desc: 'Forum/CMS engine (xenforo/discourse/vbulletin). Drives engine-scope selectors + signup fields.',
     attrs: [

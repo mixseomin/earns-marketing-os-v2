@@ -300,3 +300,22 @@ export async function listSelectors(scopeKind: string, scopeKey: string): Promis
     }));
   } catch { return []; }
 }
+
+// ── full selector catalog (compact overview: scope → page_kind → fields) ──
+export interface SelCatRow { scopeKind: string; scopeKey: string; pageKind: string; fieldName: string; source: string; hasCss: boolean }
+export async function selectorCatalog(): Promise<SelCatRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const r = await db.execute(sql`
+      SELECT scope_kind, scope_key, page_kind, field_name, source,
+             (COALESCE(spec->>'css','') <> '') AS has_css
+      FROM selector_overrides
+      ORDER BY scope_kind, scope_key, page_kind, field_name`);
+    const rows = r as unknown as Array<{ scope_kind: string; scope_key: string; page_kind: string; field_name: string; source: string; has_css: boolean }>;
+    return rows.map((x) => ({
+      scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
+      fieldName: x.field_name, source: x.source, hasCss: x.has_css,
+    }));
+  } catch { return []; }
+}

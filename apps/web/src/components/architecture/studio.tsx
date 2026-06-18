@@ -4,7 +4,8 @@
 // system (objects · links · flows) into one map. Read-only: it visualizes and
 // validates real data; it creates nothing. Layout persists in localStorage.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
   useNodesState, useEdgesState, MarkerType,
@@ -145,6 +146,78 @@ function buildFlowGraph(flow: ArchFlow, saved: Record<string, Pos>): { nodes: No
   return { nodes, edges };
 }
 
+// ── instant tooltip (0ms, portal so it survives the drawer's transform/overflow)
+function Tip({ text, children, style }: { text: string; children: ReactNode; style?: CSSProperties }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const ref = useRef<HTMLSpanElement>(null);
+  const show = () => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: r.left + r.width / 2, y: r.top }); };
+  return (
+    <span ref={ref} onMouseEnter={show} onMouseLeave={() => setPos(null)} style={{ display: 'inline-flex', ...style }}>
+      {children}
+      {pos && typeof document !== 'undefined' && createPortal(
+        <span style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translate(-50%, -100%)', background: 'var(--bg-3)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 9px', fontSize: 11, lineHeight: 1.45, maxWidth: 290, zIndex: 99999, pointerEvents: 'none', boxShadow: '0 6px 24px rgba(0,0,0,.45)', whiteSpace: 'pre-wrap' }}>{text}</span>,
+        document.body)}
+    </span>
+  );
+}
+
+// Vietnamese descriptions (internal admin tool) — explain scope/context/field on hover.
+const SCOPE_KIND_VI: Record<string, string> = {
+  engine: 'Cấp ENGINE (forum tech): bộ selector DÙNG CHUNG cho MỌI site chạy engine này (vd mọi forum XenForo). Ưu tiên thấp nhất trong cascade.',
+  platform: 'Cấp PLATFORM: selector riêng cho 1 nền tảng (reddit, x…). Ghi đè lên cấp engine.',
+  habitat: 'Cấp HABITAT: selector riêng cho 1 cộng đồng cụ thể. Ưu tiên CAO nhất, ghi đè platform + engine.',
+};
+const PAGE_KIND_VI: Record<string, string> = {
+  composer: 'Khung soạn thảo: ô nhập reply/post, nút gửi, anchor để chèn widget, và bài đang được trả lời.',
+  'account-profile': 'Trang hồ sơ tài khoản: đọc handle, karma, ngày tạo, tên hiển thị… của người dùng.',
+  'platform-any': 'Áp cho MỌI trang của nền tảng (vd: kiểm tra đã đăng nhập chưa).',
+  signup: 'Form đăng ký tài khoản: map các ô nhập (email, mật khẩu, ngày sinh, location…).',
+  'subreddit-about': 'Trang giới thiệu cộng đồng (about): mô tả, số thành viên, luật, ngày tạo, icon…',
+};
+const FIELD_PREFIX_VI: Record<string, string> = {
+  viewer: 'Tài khoản ĐANG đăng nhập (của mình): handle, trạng thái login…',
+  post: 'Bài/comment đang xem: tác giả, nội dung, permalink, item, container…',
+  composer: 'Phần tử khung soạn: ô nhập (editor), nút gửi, anchor chèn, container cha…',
+  thread: 'Thông tin chủ đề/thread: tiêu đề…',
+  parent: 'Container cha bao quanh item — dùng để định vị tương đối.',
+  brief: 'Dữ liệu cộng đồng cho brief: trạng thái tham gia, karma trong sub, lần ghé gần nhất…',
+  account: 'Hồ sơ tài khoản: handle / tên hiển thị…',
+};
+const FIELD_EXACT_VI: Record<string, string> = {
+  _adapter: 'CẤU HÌNH HÀNH VI (insert/float/noPost…), KHÔNG phải selector DOM — nên không có CSS.',
+  replyAction: 'Nút/hành động mở khung trả lời.',
+  breadcrumb: 'Đường dẫn breadcrumb để nhận diện vị trí trang.',
+  members: 'Số thành viên của cộng đồng.',
+  rules: 'Luật của cộng đồng.',
+  privacy: 'Chế độ riêng tư của cộng đồng (public/private).',
+  description: 'Mô tả cộng đồng.',
+  icon_url: 'URL icon/avatar của cộng đồng.',
+  password: 'Ô nhập mật khẩu (form đăng ký).',
+  email: 'Ô nhập email (form đăng ký).',
+  username: 'Ô nhập username (form đăng ký).',
+  display_name: 'Tên hiển thị.',
+  karma: 'Điểm karma của tài khoản.',
+  created: 'Ngày tạo tài khoản.',
+  created_at: 'Ngày tạo (cộng đồng/tài khoản).',
+};
+const SOURCE_VI: Record<string, string> = {
+  manual: 'gắn tay (manual) — ưu tiên cao, đã kiểm chứng',
+  promoted: 'học & thăng cấp (promoted) từ lần pick trên trang',
+  seed: 'mặc định khởi tạo (seed) — có thể chưa kiểm chứng',
+};
+function fieldDescVi(field: string): string {
+  if (FIELD_EXACT_VI[field]) return FIELD_EXACT_VI[field];
+  const pfx = field.split('.')[0]!;
+  if (FIELD_PREFIX_VI[pfx]) return FIELD_PREFIX_VI[pfx];
+  if (field.startsWith('custom_fields') || field.startsWith('dob_') || ['location', 'profile_location', 'state_province_region', 'address_line_one', 'profile_website', 'official_website', 'abouts', 'about', 'reactions', 'option_receive_admin_email'].includes(field))
+    return `Field nhập/đọc ở form (đăng ký/hồ sơ): ${field}.`;
+  return `Selector cho field: ${field}.`;
+}
+function selChipTip(r: SelCatRow): string {
+  const src = SOURCE_VI[r.source] || `nguồn: ${r.source}`;
+  return `${fieldDescVi(r.fieldName)}\nNguồn: ${src}.${r.hasCss ? '' : '\n⚠ Chưa có CSS selector — chỉ là cấu hình/flag hoặc cần train trên trang.'}`;
+}
+
 // ── selector catalog (compact, browsable: scope → page_kind → fields) ────────
 function SelectorCatalog() {
   const [rows, setRows] = useState<SelCatRow[] | null>(null);
@@ -177,28 +250,39 @@ function SelectorCatalog() {
     <div>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter scope / page_kind / field…" autoComplete="off"
         style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
-      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8 }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</div>
+      <Tip text={`scope = một cấp selector (engine/platform/habitat) + tên của nó.\nselectors = tổng số dòng selector đang khớp bộ lọc.`}>
+        <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 8, cursor: 'help' }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</div>
+      </Tip>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {scopes.map((s) => (
           <div key={s.key} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             <button onClick={() => toggle(s.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
               <span style={{ fontSize: 9, color: 'var(--fg-3)', width: 8 }}>{isOpen(s.key) ? '▾' : '▸'}</span>
-              <span style={{ ...chip(scopeColor(s.scopeKind)), marginLeft: 0 }}>{s.scopeKind}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)' }}>{s.scopeKey}</span>
-              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{s.total} · {s.kinds.length} ctx</span>
+              <Tip text={SCOPE_KIND_VI[s.scopeKind] || `Cấp scope: ${s.scopeKind}.`} style={{ cursor: 'help' }}>
+                <span style={{ ...chip(scopeColor(s.scopeKind)), marginLeft: 0 }}>{s.scopeKind}</span>
+              </Tip>
+              <Tip text={s.scopeKind === 'engine' ? `Forum engine "${s.scopeKey}" — selector áp cho MỌI site chạy engine này.` : s.scopeKind === 'platform' ? `Nền tảng "${s.scopeKey}".` : `Cộng đồng "${s.scopeKey}".`} style={{ cursor: 'help' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)' }}>{s.scopeKey}</span>
+              </Tip>
+              <Tip text={`${s.total} selector qua ${s.kinds.length} ngữ cảnh trang (page_kind). "ctx" = số page_kind.`} style={{ marginLeft: 'auto', cursor: 'help' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{s.total} · {s.kinds.length} ctx</span>
+              </Tip>
             </button>
             {isOpen(s.key) && (
               <div style={{ borderTop: '1px solid var(--line)' }}>
                 {s.kinds.map((k) => (
                   <div key={k.pk} style={{ padding: '5px 10px 6px 22px', borderTop: '1px solid var(--bg-1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {k.pk}</span>
+                      <Tip text={PAGE_KIND_VI[k.pk] || `Ngữ cảnh trang "${k.pk}" — nhóm selector dùng ở màn hình này.`} style={{ cursor: 'help' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {k.pk}</span>
+                      </Tip>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>{k.rows.length}</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {k.rows.map((r) => (
-                        <span key={r.fieldName} title={`source: ${r.source}${r.hasCss ? '' : ' · no css'}`}
-                          style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px solid ${r.hasCss ? 'var(--line)' : 'var(--warn)'}`, borderRadius: 3, padding: '1px 5px' }}>{r.fieldName}</span>
+                        <Tip key={r.fieldName} text={selChipTip(r)} style={{ cursor: 'help' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px solid ${r.hasCss ? 'var(--line)' : 'var(--warn)'}`, borderRadius: 3, padding: '1px 5px' }}>{r.fieldName}</span>
+                        </Tip>
                       ))}
                     </div>
                   </div>
@@ -209,7 +293,7 @@ function SelectorCatalog() {
         ))}
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
-        Cascade at runtime: <b>habitat → platform → engine → generic</b>. Manage at <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. Amber border = spec has no css yet.
+        Thứ tự ưu tiên lúc chạy: <b>habitat → platform → engine → generic</b> (cấp dưới ghi đè cấp trên). Quản lý tại <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. Viền vàng = spec chưa có CSS.
       </div>
     </div>
   );
@@ -268,7 +352,7 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 60, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', maxHeight: 340, display: 'flex', flexDirection: 'column' }}>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${options.length}…`}
             style={{ ...selStyle, margin: 6, marginBottom: 4 }} />
-          <div style={{ overflowY: 'auto' }}>
+          <div style={{ overflowY: 'auto', paddingBottom: 6 }}>
             {filtered.length === 0 && <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--fg-3)' }}>no match</div>}
             {groups.map(([g, items]) => (
               <div key={g || '_'}>

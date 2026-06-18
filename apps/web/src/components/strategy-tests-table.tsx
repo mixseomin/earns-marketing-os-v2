@@ -123,7 +123,8 @@ function tradeMetrics(list: StrategyTradeRow[] | undefined) {
 }
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-const holdH = (a: string | null, b: string | null) => (a ? ((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 3.6e6 : null);
+// hold only when both ends exist; open positions have no reliable "now" in the broker's tz basis, so show '—' rather than a tz-skewed negative.
+const holdH = (a: string | null, b: string | null) => (a && b ? (Date.parse(b) - Date.parse(a)) / 3.6e6 : null);
 function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', minWidth: 64 }}>
@@ -140,24 +141,35 @@ function MetricGroup({ title, color, children }: { title: string; color: string;
     </div>
   );
 }
-// detail table of the actual live orders (per-trade), newest first
+// detail table of the actual live orders (per-trade): open positions first (live), then recent closed (dimmed). Default = last 24h of closed; "show all" reveals the rest.
+const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
 function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
+  const [showAll, setShowAll] = useState(false);
   const cell: React.CSSProperties = { padding: '2px 8px', whiteSpace: 'nowrap' };
-  const sorted = [...trades].sort((a, b) => (b.entryTime ?? '').localeCompare(a.entryTime ?? ''));
-  const show = sorted.slice(0, 60);
+  const open = [...trades].filter((t) => t.isOpen).sort((a, b) => (b.entryTime ?? '').localeCompare(a.entryTime ?? ''));
+  const closed = [...trades].filter((t) => !t.isOpen).sort((a, b) => tRef(b).localeCompare(tRef(a)));
+  // "recent" = closed within 24h of the latest activity, measured in the broker's own naked-time basis (relative -> timezone-safe)
+  const times = trades.map((t) => Date.parse(tRef(t))).filter((n) => !Number.isNaN(n));
+  const cutoff = (times.length ? Math.max(...times) : 0) - 24 * 3.6e6;
+  const recentClosed = closed.filter((t) => { const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
+  const closedShown = showAll ? closed : recentClosed;
+  const hiddenN = closed.length - closedShown.length;
+  const rows = [...open, ...closedShown].slice(0, showAll ? 400 : 100);
   return (
     <div style={{ overflowX: 'auto', marginTop: 4 }}>
-      <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Live orders ({trades.length})</div>
+      <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>
+        Live orders — <span style={{ color: 'var(--ok,#5ac882)' }}>{open.length} open</span> · {closed.length} closed
+      </div>
       <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
         <thead><tr style={{ color: 'var(--muted)' }}>
           {['Symbol', 'Dir', 'Entry', 'In px', 'Exit', 'Out px', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
         </tr></thead>
         <tbody>
-          {show.map((t, i) => {
+          {rows.map((t, i) => {
             const h = holdH(t.entryTime, t.exitTime); const p = t.profit == null ? null : Number(t.profit);
             return (
-              <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)' }}>
-                <td style={cell}>{t.symbol}</td>
+              <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.5, background: t.isOpen ? 'rgba(90,200,130,0.07)' : 'transparent' }}>
+                <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 400 }}>{t.symbol}</td>
                 <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
                 <td style={cell}>{fmtDT(t.entryTime)}</td>
                 <td style={cell}>{t.entryPrice ?? '—'}</td>
@@ -171,7 +183,11 @@ function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
           })}
         </tbody>
       </table>
-      {trades.length > 60 ? <div style={{ fontSize: 10, color: 'var(--muted)', padding: '4px 8px' }}>showing 60 of {trades.length}</div> : null}
+      {hiddenN > 0 && !showAll ? (
+        <button type="button" onClick={() => setShowAll(true)} style={{ marginTop: 4, fontSize: 10, color: 'var(--accent,#00e5ff)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 8px' }}>+ Show {hiddenN} older closed ▾</button>
+      ) : showAll && closed.length > recentClosed.length ? (
+        <button type="button" onClick={() => setShowAll(false)} style={{ marginTop: 4, fontSize: 10, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 8px' }}>Show less (last 24h only) ▴</button>
+      ) : null}
     </div>
   );
 }
@@ -203,6 +219,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const [showTagFilter, setShowTagFilter] = usePersisted('stx_tagFilter', false);   // tag-chip filter row collapsed by default (saves a row)
   const [hiddenVerdicts, setHiddenVerdicts] = usePersisted<string[]>('stx_hiddenVerdicts', []);   // click a summary pill to hide/show that verdict's rows
   const [autoRefresh, setAutoRefresh] = usePersisted('stx_autoRefresh', true);   // re-fetch the server route every 60s (force-dynamic) so live forward data updates without F5
+  const [showLegend, setShowLegend] = usePersisted('stx_showLegend', false);   // long footnote collapsed by default — most users never need it
   const router = useRouter();
   useEffect(() => { if (!autoRefresh) return; const id = setInterval(() => router.refresh(), 60000); return () => clearInterval(id); }, [autoRefresh, router]);
   const [visGroups, setVisGroups] = usePersisted<Record<GroupKey, boolean>>('stx_cols', { setup: true, sample: true, perf: true, robust: false });
@@ -371,9 +388,14 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-        PF = profit factor (green ≥1.3 · amber ≥1.0 · red &lt;1.0). For the 10 edges, <b>Net</b> &amp; <b>Max DD</b> are in <b>% of a $10k account, fixed notional, no leverage</b> (standard equity-drawdown, MT5-style); other rows are in raw instrument points. <b>CAGR*</b> = risk-normalized to a 20% max-drawdown budget, indicative. The ↗ on a strategy name links its <b>canonical published source</b> (book / paper / Turtle rules); the numbers here are this lab&apos;s own cost-subtracted, IS/OOS-split backtest (harness file in the notes tooltip), not the source&apos;s. Candle backtest is cost-subtracted; survivors get MT5 Model=4 real-tick. Hover a strategy name for its rules; use the Columns toggles to show/hide groups. <b>📡 Forward (live)</b> = real demo forward-test from StrategyLab (MT5), joined by name: <i>warming</i> → <i>HOLDING</i> (live PF ≥ backtest base) → <i>BELOW</i>. Watch Live PF vs backtest PF as N grows — that is the real out-of-sample proof.
-      </p>
+      <div style={{ marginTop: 10 }}>
+        <button type="button" onClick={() => setShowLegend((v) => !v)} style={{ fontSize: 10.5, color: 'var(--muted)', background: 'none', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', padding: '2px 9px' }}>{showLegend ? 'ⓘ Hide legend ▴' : 'ⓘ Legend ▾'}</button>
+        {showLegend && (
+          <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6 }}>
+            <b>PF</b> green ≥1.3 · amber ≥1.0 · red &lt;1.0. &nbsp; For the edges, <b>Net</b>/<b>Max DD</b> = % of a $10k account, no leverage; other rows = raw points. &nbsp; <b>CAGR*</b> = risk-normalized to a 20% DD budget. &nbsp; <b>📡 Live</b> = demo forward-test: warming → HOLDING (live PF ≥ backtest) → BELOW. &nbsp; In the live-orders detail: <i>italic *</i> = floating P&amp;L on an open position; dimmed rows = closed. &nbsp; Hover a strategy name for its rules &amp; source.
+          </p>
+        )}
+      </div>
 
       {tip && (
         <>

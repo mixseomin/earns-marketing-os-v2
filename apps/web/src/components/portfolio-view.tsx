@@ -13,8 +13,8 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
   const totalAlerts = PROJECTS.reduce((s, p) => s + p.alerts, 0);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20 }}>
+    <div style={{ padding: 16 }} className="portfolio-view">
+      <div className="portfolio-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 24, fontWeight: 600, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
             Portfolio
@@ -29,7 +29,7 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div className="portfolio-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { lbl: 'Total Projects', val: PROJECTS.length, delta: '3 modes running', color: 'var(--accent)' },
           { lbl: 'Total Agents', val: totalAgents, delta: `${SHARED_POOL.available} shared avail.`, color: 'var(--neon-lime)' },
@@ -45,7 +45,7 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
         ))}
       </div>
 
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className="portfolio-agent-pool" style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', flexShrink: 0 }}>
           🤖 AGENT POOL <span style={{ color: 'var(--fg-4)' }}>// hybrid model</span>
         </div>

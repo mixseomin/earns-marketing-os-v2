@@ -150,7 +150,8 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
         })}
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth: 640 }}>
         <thead>
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Site</th>
@@ -318,6 +319,7 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           </tr>
         </tbody>
       </table>
+      </div>
 
       {openDomain && (
         <GscDetailDrawer

@@ -41,6 +41,7 @@ export function GscDetailDrawer({ domain, points, onClose }: Props) {
   return (
     <div
       onClick={onClose}
+      className="gsc-drawer-overlay"
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
@@ -49,6 +50,7 @@ export function GscDetailDrawer({ domain, points, onClose }: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="gsc-drawer-body"
         style={{
           width: 'min(820px, 100%)',
           background: 'var(--bg-1)',

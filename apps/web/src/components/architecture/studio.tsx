@@ -4,7 +4,7 @@
 // system (objects · links · flows) into one map. Read-only: it visualizes and
 // validates real data; it creates nothing. Layout persists in localStorage.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
@@ -19,8 +19,8 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog,
-  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow,
+  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow,
+  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail,
 } from '@/lib/actions/architecture';
 
 type ViewKey = 'objects' | 'onpage' | 'backend';
@@ -227,8 +227,89 @@ function rowAnomaly(scopeKind: string, scopeKey: string, pageKind: string): stri
   return null;
 }
 
+// ── 2nd-layer drawer (Google AdX cascade): supplementary detail slides over the
+// right ~2/3 of the 1st drawer; its left strip stays visible & click-to-dismiss ──
+type SubContent = { title: string; sub?: string; body: ReactNode };
+const SubCtx = createContext<(c: SubContent | null) => void>(() => { /* noop default */ });
+
+function SubDrawer({ content, onClose, width }: { content: SubContent | null; onClose: () => void; width: number }) {
+  useEffect(() => {
+    if (!content) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [content, onClose]);
+  if (!content) return null;
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 255, background: 'rgba(7,9,13,.4)' }} />
+      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width, maxWidth: '70vw', zIndex: 256, background: 'var(--bg-1)', borderLeft: '2px solid var(--accent)', boxShadow: '-28px 0 90px rgba(0,0,0,.7)', display: 'flex', flexDirection: 'column', animation: 'subdrawer-in .2s ease-out' }}>
+        <style>{`@keyframes subdrawer-in { from { transform: translateX(28px); opacity:.4 } to { transform: translateX(0); opacity:1 } }`}</style>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', background: 'var(--bg-2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            {content.sub && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{content.sub}</div>}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)', marginTop: 3, wordBreak: 'break-all' }}>{content.title}</div>
+          </div>
+          <button onClick={onClose} title="Đóng (Esc)" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', width: 26, height: 26, borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>✕</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>{content.body}</div>
+      </div>
+    </>
+  );
+}
+
+// full detail of one selector row — opened in the 2nd-layer drawer
+function SelectorDetail({ id }: { id: string }) {
+  const [d, setD] = useState<SelDetail | null | 'loading'>('loading');
+  useEffect(() => { let dead = false; setD('loading'); getSelectorRow(id).then((r) => { if (!dead) setD(r); }); return () => { dead = true; }; }, [id]);
+  if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy selector.</div>;
+  const css = String(d.spec.css ?? '');
+  const attr = d.spec.attr ? String(d.spec.attr) : '';
+  const parse = d.spec.parse ? String(d.spec.parse) : '';
+  const kind = d.spec.kind ? String(d.spec.kind) : '';
+  const enumVals = Array.isArray(d.spec.enum_values) ? (d.spec.enum_values as unknown[]).map(String) : null;
+  const notes = d.spec.notes ? String(d.spec.notes) : '';
+  const anom = rowAnomaly(d.scopeKind, d.scopeKey, d.pageKind);
+  const row = (label: string, val: ReactNode) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 10, padding: '5px 0', borderBottom: '1px solid var(--bg-2)' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>{label}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)', wordBreak: 'break-all', minWidth: 0 }}>{val}</span>
+    </div>
+  );
+  return (
+    <div>
+      {anom && (
+        <div style={{ display: 'flex', gap: 6, padding: '8px 10px', marginBottom: 12, background: 'color-mix(in srgb, var(--bad) 12%, transparent)', border: '1px solid var(--bad)', borderRadius: 6, fontSize: 11.5, color: 'var(--fg-0)' }}>
+          <span style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠</span><span>{anom}</span>
+        </div>
+      )}
+      <Section title="Định danh" sub="// where it resolves">
+        {row('scope', `${d.scopeKind} · ${d.scopeKey}`)}
+        {row('page_kind', d.pageKind)}
+        {row('field', d.fieldName)}
+        {row('nguồn', SOURCE_VI[d.source] || d.source)}
+        {row('confidence', d.confidence == null ? '—' : String(d.confidence))}
+        {row('verified', d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : 'chưa kiểm chứng')}
+      </Section>
+      <Section title="Spec" sub="// cách extract">
+        {row('css', css ? <span style={{ color: 'var(--accent)' }}>{css}</span> : <span style={{ color: 'var(--warn)' }}>— (chưa có CSS)</span>)}
+        {attr && row('attr', attr)}
+        {kind && row('kind', kind)}
+        {parse && row('parse', parse)}
+        {enumVals && row('enum', enumVals.join(' · '))}
+        {notes && row('notes', notes)}
+      </Section>
+      <Section title="Raw spec" sub="// jsonb">
+        <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: 10, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(d.spec, null, 2)}</pre>
+      </Section>
+    </div>
+  );
+}
+
 // ── selector catalog (compact, browsable: scope → page_kind → fields) ────────
 function SelectorCatalog() {
+  const openSub = useContext(SubCtx);
   const [rows, setRows] = useState<SelCatRow[] | null>(null);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -327,8 +408,9 @@ function SelectorCatalog() {
                       {k.rows.map((r) => {
                         const border = r.anom ? 'var(--bad)' : r.hasCss ? 'var(--line)' : 'var(--fg-3)';
                         return (
-                        <Tip key={r.fieldName} text={(r.anom ? `⚠ ${r.anom}\n\n` : '') + selChipTip(r)} style={{ cursor: 'help' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.anom ? 'var(--bad)' : r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: r.anom ? 'color-mix(in srgb, var(--bad) 14%, var(--bg-1))' : 'var(--bg-1)', border: `1px ${r.hasCss || r.anom ? 'solid' : 'dashed'} ${border}`, borderRadius: 3, padding: '1px 5px' }}>{r.anom ? '⚠ ' : ''}{r.fieldName}</span>
+                        <Tip key={r.fieldName} text={(r.anom ? `⚠ ${r.anom}\n\n` : '') + selChipTip(r) + '\n\n→ Bấm để xem chi tiết (css, spec, raw).'} style={{ cursor: 'pointer' }}>
+                          <button onClick={() => openSub({ title: r.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${k.pk}`, body: <SelectorDetail id={r.id} /> })}
+                            style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.anom ? 'var(--bad)' : r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: r.anom ? 'color-mix(in srgb, var(--bad) 14%, var(--bg-1))' : 'var(--bg-1)', border: `1px ${r.hasCss || r.anom ? 'solid' : 'dashed'} ${border}`, borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>{r.anom ? '⚠ ' : ''}{r.fieldName}</button>
                         </Tip>
                         );
                       })}
@@ -703,6 +785,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const [showScanPanel, setShowScanPanel] = useState(true);
   const [filling, setFilling] = useState(false);
   const [sel, setSel] = useState<{ kind: 'object'; key: string } | { kind: 'flow'; flow: string; step: string } | null>(null);
+  const [subContent, setSubContent] = useState<SubContent | null>(null); // 2nd-layer drawer
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const savedRef = useRef<Record<string, Pos>>({});
@@ -893,17 +976,20 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       </div>
 
       {/* drawer */}
-      <Drawer
-        open={!!sel}
-        onClose={() => setSel(null)}
-        sub={drawerSub}
-        title={drawerTitle}
-        width={620}
-        footer={null}
-      >
-        {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
-        {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
-      </Drawer>
+      <SubCtx.Provider value={setSubContent}>
+        <Drawer
+          open={!!sel}
+          onClose={() => { setSel(null); setSubContent(null); }}
+          sub={drawerSub}
+          title={drawerTitle}
+          width={860}
+          footer={null}
+        >
+          {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
+          {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
+        </Drawer>
+        <SubDrawer content={sel ? subContent : null} onClose={() => setSubContent(null)} width={550} />
+      </SubCtx.Provider>
     </div>
   );
 }

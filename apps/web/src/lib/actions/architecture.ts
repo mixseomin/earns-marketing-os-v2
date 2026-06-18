@@ -303,20 +303,45 @@ export async function listSelectors(scopeKind: string, scopeKey: string): Promis
 }
 
 // ── full selector catalog (compact overview: scope → page_kind → fields) ──
-export interface SelCatRow { scopeKind: string; scopeKey: string; pageKind: string; fieldName: string; source: string; hasCss: boolean }
+export interface SelCatRow { id: string; scopeKind: string; scopeKey: string; pageKind: string; fieldName: string; source: string; hasCss: boolean }
 export async function selectorCatalog(): Promise<SelCatRow[]> {
   const db = getDb();
   if (!db) return [];
   try {
     const r = await db.execute(sql`
-      SELECT scope_kind, scope_key, page_kind, field_name, source,
+      SELECT id::text AS id, scope_kind, scope_key, page_kind, field_name, source,
              (COALESCE(spec->>'css','') <> '') AS has_css
       FROM selector_overrides
       ORDER BY scope_kind, scope_key, page_kind, field_name`);
-    const rows = r as unknown as Array<{ scope_kind: string; scope_key: string; page_kind: string; field_name: string; source: string; has_css: boolean }>;
+    const rows = r as unknown as Array<{ id: string; scope_kind: string; scope_key: string; page_kind: string; field_name: string; source: string; has_css: boolean }>;
     return rows.map((x) => ({
-      scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
+      id: x.id, scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
       fieldName: x.field_name, source: x.source, hasCss: x.has_css,
     }));
   } catch { return []; }
+}
+
+// ── one selector row, full detail (for the 2nd-layer drawer) ──
+export interface SelDetail {
+  id: string; scopeKind: string; scopeKey: string; pageKind: string; fieldName: string;
+  source: string; confidence: number | null; lastVerifiedAt: string | null;
+  spec: Record<string, unknown>;
+}
+export async function getSelectorRow(id: string): Promise<SelDetail | null> {
+  const db = getDb();
+  if (!db || !/^\d+$/.test(id)) return null;
+  try {
+    const r = await db.execute(sql`
+      SELECT id::text AS id, scope_kind, scope_key, page_kind, field_name, source,
+             confidence, last_verified_at, spec
+      FROM selector_overrides WHERE id = ${id} LIMIT 1`);
+    const rows = r as unknown as Array<{ id: string; scope_kind: string; scope_key: string; page_kind: string; field_name: string; source: string; confidence: number | null; last_verified_at: string | null; spec: Record<string, unknown> | null }>;
+    const x = rows[0];
+    if (!x) return null;
+    return {
+      id: x.id, scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
+      fieldName: x.field_name, source: x.source, confidence: x.confidence,
+      lastVerifiedAt: x.last_verified_at, spec: x.spec || {},
+    };
+  } catch { return null; }
 }

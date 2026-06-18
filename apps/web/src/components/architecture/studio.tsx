@@ -827,12 +827,6 @@ function FlowDrawerBody({ flow, stepId }: { flow: ArchFlow; stepId: string }) {
 
 // ── main ─────────────────────────────────────────────────────────────────────
 // ── live ext activity feed (ext_call_log) — what the extension does on real sites ──
-const EP_OBJECT: Record<string, string> = {
-  habitats: 'habitat', briefs: 'brief', brief: 'brief',
-  'learn-selectors': 'selector', 'save-selector': 'selector', 'train-selector': 'selector',
-  'clear-selector': 'selector', 'suggest-selector': 'selector', selectors: 'selector',
-  accounts: 'account', scene: 'interaction',
-};
 function relTime(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return `${Math.floor(s)}s`;
@@ -842,7 +836,7 @@ function relTime(iso: string): string {
 }
 const statusColor = (n: number) => (n >= 400 ? 'var(--bad)' : n >= 300 ? 'var(--warn)' : 'var(--ok)');
 
-function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string) => void }) {
+function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string, objId?: string | null, label?: string) => void }) {
   const [data, setData] = useState<ExtActivity | null>(null);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [ep, setEp] = useState<string | null>(null);
@@ -896,14 +890,15 @@ function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string) => void
       <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
         {rows.length === 0 && <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>không có call nào.</div>}
         {rows.map((r, i) => {
-          const obj = EP_OBJECT[r.endpoint];
+          const obj = r.objKey;
           const human = [r.place, r.who ? `@${r.who}` : null].filter(Boolean).join(' · ');
+          const openTitle = obj ? (r.objId ? `mở ${obj} đã chọn sẵn` : `mở ${obj}`) : undefined;
           return (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
               <span title={`HTTP ${r.status}`} style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor(r.status), flexShrink: 0 }} />
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', width: 34, flexShrink: 0, textAlign: 'right' }}>{relTime(r.ts)}</span>
-              <button onClick={() => obj && onOpenObject(obj)} disabled={!obj} title={obj ? `mở ${obj}` : undefined}
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: obj ? 'var(--accent)' : 'var(--fg-1)', background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px', cursor: obj ? 'pointer' : 'default', flexShrink: 0, width: 120, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</button>
+              <button onClick={() => obj && onOpenObject(obj, r.objId, human || r.host)} disabled={!obj} title={openTitle}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: obj ? 'var(--accent)' : 'var(--fg-1)', background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px', cursor: obj ? 'pointer' : 'default', flexShrink: 0, width: 120, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.objId && <span title="bind sẵn instance" style={{ color: 'var(--ok)' }}>●</span>}{r.endpoint}</button>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {human || r.host}{r.result && <span style={{ color: 'var(--ok)' }}> → {r.result}</span>}
                 {r.errorMsg && <span style={{ color: 'var(--bad)' }}> · {r.errorMsg}</span>}
@@ -1100,7 +1095,11 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       {/* canvas (or live feed) */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {view === 'live' ? (
-          <LiveActivity onOpenObject={(key) => { setStack([]); setSel({ kind: 'object', key }); }} />
+          <LiveActivity onOpenObject={(key, instId, label) => {
+            setStack([]);
+            if (instId) setBound((prev) => ({ ...prev, [key]: { id: instId, label: label || instId, worst: null } }));
+            setSel({ kind: 'object', key });
+          }} />
         ) : (
         <ReactFlow
           nodes={nodes} edges={edges}

@@ -351,7 +351,14 @@ export interface ExtCall {
   id: string; ts: string; endpoint: string; method: string; status: number;
   durationMs: number | null; host: string; extVersion: string | null; errorMsg: string | null;
   who: string | null; place: string | null; platform: string | null; result: string | null;
+  objKey: string | null; objId: string | null; // related studio object + specific instance to pre-bind
 }
+const EP_OBJ: Record<string, string> = {
+  habitats: 'habitat', briefs: 'brief', brief: 'brief',
+  'learn-selectors': 'selector', 'save-selector': 'selector', 'train-selector': 'selector',
+  'clear-selector': 'selector', 'suggest-selector': 'selector', selectors: 'selector',
+  accounts: 'account', scene: 'interaction',
+};
 export interface ExtActivity {
   rows: ExtCall[];
   stats: { total: number; last24h: number; last7d: number; errors7d: number; lastCallAt: string | null; versions: Array<{ v: string; last: string }> };
@@ -374,11 +381,16 @@ export async function extActivity(opts?: { limit?: number; errorsOnly?: boolean 
       const viewer = (rs.viewer as Record<string, unknown>) || {};
       const host = (x.page_url || '').match(/:\/\/([^/]+)/)?.[1] || '';
       const result = jstr(rs.action) || jstr(viewer.briefAction) || jstr(rs.joinStatus) || (rs.fields != null ? `${rs.fields} fields` : null);
+      const objKey = EP_OBJ[x.endpoint] || null;
+      const objId = x.endpoint === 'habitats' ? jstr(rs.id)
+        : (x.endpoint === 'briefs' || x.endpoint === 'brief') ? jstr(rs.briefId)
+        : x.endpoint === 'accounts' ? (jstr(rs.id) || jstr(rs.accountId)) : null;
       return {
         id: x.id, ts: x.created_at, endpoint: x.endpoint, method: x.method, status: x.status,
         durationMs: x.duration_ms, host, extVersion: x.ext_version, errorMsg: x.error_msg,
         who: jstr(p.handle) || jstr(p.viewer_handle) || jstr(viewer.handle),
         place: jstr(p.habitat_name) || jstr(p.name), platform: jstr(p.platform_key), result,
+        objKey, objId,
       };
     });
     const s = await db.execute(sql`

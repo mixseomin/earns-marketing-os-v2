@@ -863,11 +863,11 @@ export async function listStrategyTestAssets(): Promise<StrategyAssetRow[]> {
   }, [], 'listStrategyTestAssets');
 }
 
-export interface StrategyForwardRow { strategy: string; symbol: string; days: number | null; trades: number | null; winPct: string | null; net: string | null; fwdPf: string | null; basePf: string | null; status: string | null; openPos: number | null }
+export interface StrategyForwardRow { strategy: string; symbol: string; days: number | null; trades: number | null; winPct: string | null; net: string | null; fwdPf: string | null; basePf: string | null; status: string | null; openPos: number | null; equity: number | null }
 export async function listStrategyForward(): Promise<StrategyForwardRow[]> {
   return tryDb(async () => {
     const rows = await dbListStrategyForward();
-    return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, days: r.days, trades: r.trades, winPct: r.winPct, net: r.net, fwdPf: r.fwdPf, basePf: r.basePf, status: r.status, openPos: r.openPos }));
+    return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, days: r.days, trades: r.trades, winPct: r.winPct, net: r.net, fwdPf: r.fwdPf, basePf: r.basePf, status: r.status, openPos: r.openPos, equity: r.equity }));
   }, [], 'listStrategyForward');
 }
 

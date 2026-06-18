@@ -56,7 +56,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
 
 const chip = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '3px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)', background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: 600 });
 
-type StratMeta = { test?: StrategyTestRow; fwd?: { trades: number; pf: number; basePf: number; status: string } };
+type StratMeta = { test?: StrategyTestRow; fwd?: { trades: number; pf: number; basePf: number; status: string; equity: number | null } };
 
 function MetaPill({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
@@ -99,6 +99,7 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
           <span style={{ color: 'var(--muted)' }}>live forward:</span>
           <span>PF <b style={{ color: pfColor(fwd.pf) }}>{fwd.trades ? fwd.pf.toFixed(2) : '—'}</b> vs base {fwd.basePf.toFixed(2)}</span>
           <span style={{ color: 'var(--muted)' }}>· {fwd.trades} trades</span>
+          {fwd.equity != null ? <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>💰 ${Math.round(fwd.equity).toLocaleString()} <span style={{ color: fwd.equity >= 10000 ? '#2ecc71' : '#ff5470' }}>({((fwd.equity / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
         </div>
       ) : null}
       <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 8 }}>* CAGR risk-normalized to a 20% max-drawdown budget · PF green ≥1.3 / amber ≥1.0 / red &lt;1.0</div>
@@ -128,7 +129,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
       if (fl && fl.length) {
         const tr = fl.reduce((a, f) => a + (f.trades ?? 0), 0);
         const pf = tr > 0 ? fl.reduce((a, f) => a + Number(f.fwdPf ?? 0) * (f.trades ?? 0), 0) / tr : 0;
-        fwd = { trades: tr, pf, basePf: Number(fl[0]?.basePf ?? 0), status: fl.find((f) => f.status)?.status ?? 'warming' };
+        fwd = { trades: tr, pf, basePf: Number(fl[0]?.basePf ?? 0), status: fl.find((f) => f.status)?.status ?? 'warming', equity: fl.find((f) => f.equity != null)?.equity ?? null };
       }
       m[name] = { test, fwd };
     });
@@ -190,6 +191,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
                       <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
                       {g.open > 0 ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--ok,#5ac882)' }}>{g.open} open</span> : null}
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {f2(g.net)}</span>
+                      {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }}>💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
                     </td>
                   </tr>
                   {g.rows.map((t) => <Row key={String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}

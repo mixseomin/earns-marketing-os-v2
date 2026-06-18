@@ -1150,6 +1150,7 @@ export const strategyForward = pgTable(
     basePf: decimal('base_pf'),
     status: text('status'),
     openPos: integer('open_pos'),
+    equity: doublePrecision('equity'),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
   },
   (t) => [index('strategy_forward_strat_idx').on(t.strategy)],

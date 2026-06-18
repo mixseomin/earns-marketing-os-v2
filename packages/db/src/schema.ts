@@ -1174,6 +1174,7 @@ export const strategyTrades = pgTable(
     notional: doublePrecision('notional'),
     sl: doublePrecision('sl'),
     tp: doublePrecision('tp'),
+    raw: jsonb('raw'),
     magic: integer('magic'),
     isOpen: boolean('is_open').notNull().default(false),
     updatedAt: timestamp('updated_at', { withTimezone: true }),

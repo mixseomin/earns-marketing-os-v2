@@ -7,7 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { BINDABLE_TABLES, OBJ_BY_KEY } from '@/components/architecture/spec';
-import { METRIC_PAGE_KIND, getMetricFieldSchema, type MetricKey } from '@/lib/metric-field-schema';
+import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 
 type Row = Record<string, unknown>;
 
@@ -427,8 +427,9 @@ export interface MetricCell {
   source: string | null; via: string | null; hasCss: boolean; selId: string | null;
   cards: number;        // posted cards on this platform
   populated: number;    // cards where the matching insights_* column is non-null
-  gap: boolean;         // wanted (cards>0) but no selector
+  gap: boolean;         // applicable + wanted (cards>0) but no selector → real gap (⚠)
   apiFed: boolean;      // populated>0 but no selector → value comes from API/other path, not DOM
+  notApplicable: boolean; // platform/engine không phơi bày metric này cho loại nội dung → "–" N/A, KHÔNG gap
 }
 export interface MetricCoverage {
   metrics: Array<{ metric: MetricKey; field: string; label: string; hint: string; insightsCol: string }>;
@@ -507,16 +508,20 @@ export async function metricCoverage(): Promise<MetricCoverage> {
         const hit = pickSel(m.field, p.key, p.technologyKey);
         const populated = (popOf[p.key]?.[m.metric]) || 0;
         const trained = !!hit;
+        // applicable = nền tảng có phơi bày metric này cho loại nội dung (comment/reply) không.
+        const applicable = isMetricApplicable(p.key, p.technologyKey, m.metric);
         cells.push({
           metric: m.metric, field: m.field, platform: p.key,
           trained, scope: hit?.scope ?? null, scopeKey: hit?.row.scope_key ?? null,
           source: hit?.row.source ?? null, via: hit?.row.via ?? null,
           hasCss: hit?.row.has_css ?? false, selId: hit?.row.id ?? null,
           cards: p.cards, populated,
-          // gap (đỏ) = có card mà KHÔNG selector VÀ chưa số nào bắt được (trống thật).
+          // gap (đỏ) = APPLICABLE + có card mà KHÔNG selector VÀ chưa số nào bắt được.
           // apiFed (◆) = chưa selector DOM nhưng đã có số từ API/commentstats (1 phần OK).
-          gap: !trained && p.cards > 0 && populated === 0,
+          // notApplicable (–) = nền tảng không phơi bày metric → không phải gap, đừng báo đỏ.
+          gap: applicable && !trained && p.cards > 0 && populated === 0,
           apiFed: !trained && populated > 0,
+          notApplicable: !applicable && !trained && populated === 0,
         });
       }
     }

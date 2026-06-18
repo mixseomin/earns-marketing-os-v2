@@ -574,8 +574,8 @@ function MetricCoveragePanel() {
                 {cov.platforms.map((p) => {
                   const c = cellOf(m.metric, p.key);
                   if (!c) return <td key={p.key} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>·</td>;
-                  // state → color + glyph
-                  const state = c.trained ? 'trained' : c.gap ? 'gap' : c.apiFed ? 'api' : 'none';
+                  // state → color + glyph. Thứ tự: trained > api(có số) > gap(applicable) > na(ko hỗ trợ) > none(0 card).
+                  const state = c.trained ? 'trained' : c.apiFed ? 'api' : c.gap ? 'gap' : c.notApplicable ? 'na' : 'none';
                   const color = state === 'trained' ? 'var(--ok)' : state === 'gap' ? 'var(--bad)' : state === 'api' ? '#3fb6c4' : 'var(--fg-4)';
                   const glyph = state === 'trained' ? '✓' : state === 'gap' ? '⚠' : state === 'api' ? '◆' : '–';
                   const tip = state === 'trained'
@@ -584,8 +584,10 @@ function MetricCoveragePanel() {
                     ? `⚠ GAP: ${c.cards} card đã đăng, KHÔNG selector → ${m.metric} không bắt được.\n→ Bấm xem hướng dẫn train.`
                     : state === 'api'
                     ? `◆ ${c.populated} card có ${m.metric} nhưng KHÔNG do selector DOM — đến từ commentstats API. Muốn bắt từ DOM thì vẫn train selector.\n→ Bấm xem hướng dẫn.`
+                    : state === 'na'
+                    ? `– N/A: ${p.key} không phơi bày ${m.metric} cho loại nội dung này (card = comment/reply). Không phải gap — đừng train.`
                     : `– Chưa cần: 0 card đã đăng trên ${p.key}.`;
-                  const clickable = state !== 'none';
+                  const clickable = state !== 'none' && state !== 'na';
                   return (
                     <td key={p.key} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: state === 'gap' ? 'color-mix(in srgb, var(--bad) 12%, transparent)' : state === 'trained' ? 'color-mix(in srgb, var(--ok) 9%, transparent)' : 'transparent' }}>
                       <Tip text={tip} style={{ cursor: clickable ? 'pointer' : 'default' }}>
@@ -609,7 +611,7 @@ function MetricCoveragePanel() {
         </table>
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.6 }}>
-        <span style={{ color: 'var(--ok)' }}>✓ trained</span> = có selector DOM · <span style={{ color: 'var(--bad)' }}>⚠ gap</span> = có card mà chưa selector · <span style={{ color: '#3fb6c4' }}>◆ API</span> = số từ commentstats API (không DOM) · <span style={{ color: 'var(--fg-4)' }}>–</span> = chưa cần.<br />
+        <span style={{ color: 'var(--ok)' }}>✓ trained</span> = có selector DOM · <span style={{ color: 'var(--bad)' }}>⚠ gap</span> = có card mà chưa selector (cần train) · <span style={{ color: '#3fb6c4' }}>◆ API</span> = số từ commentstats API (không DOM) · <span style={{ color: 'var(--fg-4)' }}>–</span> = N/A (nền tảng không phơi bày metric cho comment/reply) hoặc chưa có card.<br />
         <b>Thêm platform mới</b> (cùng element số): train field <code style={{ fontFamily: 'var(--font-mono)' }}>metric.*</code> ở scope <b>platform</b> hoặc <b>engine</b> → cascade tự áp mọi habitat. <b>Thêm metric mới</b>: 1 dòng vào <code style={{ fontFamily: 'var(--font-mono)' }}>metric-field-schema.ts</code> → tự hiện ở đây + ext.
       </div>
     </div>

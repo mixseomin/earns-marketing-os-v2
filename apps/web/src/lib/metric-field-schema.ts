@@ -106,3 +106,33 @@ export function getMetricFieldSchema(): MetricFieldEntry[] {
 export const METRIC_OF_FIELD: Record<string, MetricKey> = Object.fromEntries(
   POST_METRIC_FIELDS.map((e) => [e.field, e.metric]),
 );
+
+// ── Applicability: metric nào KHÔNG áp dụng cho platform/engine ───────────────
+// Card seeding của ta = COMMENT/REPLY trên các nền tảng này. Nhiều metric không
+// TỒN TẠI cho loại nội dung đó → matrix phải hiện "–" (N/A) thay vì "⚠ gap" đỏ.
+// Phân biệt: gap đỏ = CÓ element số mà chưa train selector; N/A = nền tảng không
+// phơi bày số đó (đoán selector cũng vô nghĩa). Key = platform_key HOẶC
+// technology_key (engine) — match cả 2. Không liệt kê = mặc định ÁP DỤNG.
+const METRIC_NA: Record<string, MetricKey[]> = {
+  // Comment Reddit: nút share không có bộ đếm số.
+  reddit: ['shareCount'],
+  // Card HN = comment: HN ẩn điểm comment + không hiển thị reply/views/share count.
+  hackernews: ['views', 'score', 'replyCount', 'shareCount'],
+  // Xenforo (resetera…): không có khái niệm share (reaction=score, reply đếm OK).
+  xenforo: ['shareCount'],
+  'resetera-com': ['shareCount'],
+};
+
+/** metric CÓ áp dụng cho (platform, engine) không? false = nền tảng không phơi bày
+ *  số đó → matrix hiện "–" N/A thay vì gap đỏ. Thêm/bớt case ở METRIC_NA. */
+export function isMetricApplicable(
+  platform: string,
+  technologyKey: string | null | undefined,
+  metric: MetricKey,
+): boolean {
+  const naP = METRIC_NA[(platform || '').toLowerCase()];
+  if (naP?.includes(metric)) return false;
+  const t = (technologyKey || '').toLowerCase();
+  if (t && METRIC_NA[t]?.includes(metric)) return false;
+  return true;
+}

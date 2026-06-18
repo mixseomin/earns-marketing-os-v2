@@ -123,8 +123,14 @@ function tradeMetrics(list: StrategyTradeRow[] | undefined) {
 }
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-// hold only when both ends exist; open positions have no reliable "now" in the broker's tz basis, so show '—' rather than a tz-skewed negative.
-const holdH = (a: string | null, b: string | null) => (a && b ? (Date.parse(b) - Date.parse(a)) / 3.6e6 : null);
+// hold in hours. For closed trades: entry->exit (same time basis, tz cancels). For OPEN: entry->now, where "now" is the
+// broker clock (brokerNowMs, same basis as MT5 entry_time) for MT5, or real UTC for crypto whose entry_time is stored in UTC.
+const holdH = (a: string | null, b: string | null, nowMs?: number | null) => {
+  if (!a) return null;
+  const end = b ? Date.parse(b) : (nowMs != null ? nowMs : null);
+  return end == null ? null : (end - Date.parse(a)) / 3.6e6;
+};
+const isCryptoSym = (s: string) => /USDT$/i.test(s);
 function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', minWidth: 64 }}>
@@ -143,7 +149,7 @@ function MetricGroup({ title, color, children }: { title: string; color: string;
 }
 // detail table of the actual live orders (per-trade): open positions first (live), then recent closed (dimmed). Default = last 24h of closed; "show all" reveals the rest.
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
-function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
+function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; brokerNowMs?: number | null }) {
   const [showAll, setShowAll] = useState(false);
   const cell: React.CSSProperties = { padding: '2px 8px', whiteSpace: 'nowrap' };
   const open = [...trades].filter((t) => t.isOpen).sort((a, b) => (b.entryTime ?? '').localeCompare(a.entryTime ?? ''));
@@ -166,7 +172,8 @@ function TradesList({ trades }: { trades: StrategyTradeRow[] }) {
         </tr></thead>
         <tbody>
           {rows.map((t, i) => {
-            const h = holdH(t.entryTime, t.exitTime); const p = t.profit == null ? null : Number(t.profit);
+            const nowMs = t.isOpen ? (isCryptoSym(t.symbol) ? Date.now() : brokerNowMs) : null;
+            const h = holdH(t.entryTime, t.exitTime, nowMs); const p = t.profit == null ? null : Number(t.profit);
             return (
               <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.5, background: t.isOpen ? 'rgba(90,200,130,0.07)' : 'transparent' }}>
                 <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 400 }}>{t.symbol}</td>
@@ -204,7 +211,7 @@ function fwdAgg(list: StrategyForwardRow[] | undefined): { trades: number; pf: n
   return { trades, pf: trades ? pfw / trades : 0, status, symbols: list.length, open };
 }
 
-export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy: forwardRaw = {}, tradesByStrategy: tradesRaw = {} }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]>; tradesByStrategy?: Record<string, StrategyTradeRow[]> }) {
+export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrategy: forwardRaw = {}, tradesByStrategy: tradesRaw = {}, brokerNowMs }: { rows: StrategyTestRow[]; assetsByStrategy?: Record<string, StrategyAssetRow[]>; forwardByStrategy?: Record<string, StrategyForwardRow[]>; tradesByStrategy?: Record<string, StrategyTradeRow[]>; brokerNowMs?: number | null }) {
   const forwardByStrategy = useMemo(() => resolveForward(forwardRaw), [forwardRaw]);
   const tradesByStrategy = useMemo(() => resolveTrades(tradesRaw), [tradesRaw]);
   const [q, setQ] = useState('');
@@ -380,7 +387,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} tradesByStrategy={tradesByStrategy} fwdOn={fwdOn} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
+              <GroupBlock key={g.key || 'all'} g={g} groupBy={groupBy} showTags={showTags} cols={cols} colSpan={colSpan} assetsByStrategy={assetsByStrategy} forwardByStrategy={forwardByStrategy} tradesByStrategy={tradesByStrategy} brokerNowMs={brokerNowMs} fwdOn={fwdOn} expanded={expanded} toggleExpand={toggleExpand} onTip={showTip} onTipEnd={hideTip} TD={TD} NUM={NUM} />
             ))}
             {filtered.length === 0 && (
               <tr><td colSpan={colSpan} style={{ ...TD, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No strategies match the filter.</td></tr>
@@ -421,9 +428,9 @@ function childCell(key: string, a: StrategyAssetRow, spanMonths: number | null, 
   return '';
 }
 
-function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, forwardByStrategy, tradesByStrategy, fwdOn, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
+function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, forwardByStrategy, tradesByStrategy, brokerNowMs, fwdOn, expanded, toggleExpand, onTip, onTipEnd, TD, NUM }: {
   g: { key: string; rows: StrategyTestRow[] }; groupBy: 'none' | 'verdict' | 'klass'; showTags: boolean;
-  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; forwardByStrategy: Record<string, StrategyForwardRow[]>; tradesByStrategy: Record<string, StrategyTradeRow[]>; fwdOn: boolean; expanded: Set<number>; toggleExpand: (id: number) => void;
+  cols: Col[]; colSpan: number; assetsByStrategy: Record<string, StrategyAssetRow[]>; forwardByStrategy: Record<string, StrategyForwardRow[]>; tradesByStrategy: Record<string, StrategyTradeRow[]>; brokerNowMs?: number | null; fwdOn: boolean; expanded: Set<number>; toggleExpand: (id: number) => void;
   onTip: (text: string, e: React.MouseEvent) => void; onTipEnd: () => void;
   TD: React.CSSProperties; NUM: React.CSSProperties;
 }) {
@@ -531,12 +538,12 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
                           <Metric label="Avg hold" v={tm.avgHold != null ? `${tm.avgHold.toFixed(1)}h` : '—'} />
                         </MetricGroup>
                       </div>
-                      {trades.length > 0 ? <TradesList trades={trades} /> : null}
+                      {trades.length > 0 ? <TradesList trades={trades} brokerNowMs={brokerNowMs} /> : null}
                     </div>
                   ) : trades.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontSize: 11, color: 'var(--muted)' }}>{tm.open} open position{tm.open === 1 ? '' : 's'}, no closed trades yet — metrics appear once trades close.</span>
-                      <TradesList trades={trades} />
+                      <TradesList trades={trades} brokerNowMs={brokerNowMs} />
                     </div>
                   ) : (
                     <span style={{ fontSize: 11, color: 'var(--muted)' }}>No live trades yet.</span>

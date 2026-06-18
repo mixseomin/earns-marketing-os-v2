@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades, getBrokerNowMs as dbGetBrokerNowMs } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -877,6 +877,10 @@ export async function listStrategyTrades(): Promise<StrategyTradeRow[]> {
     const rows = await dbListStrategyTrades();
     return (rows ?? []).map((r) => ({ strategy: r.strategy, symbol: r.symbol, dir: r.dir, entryTime: r.entryTime ? new Date(r.entryTime).toISOString() : null, exitTime: r.exitTime ? new Date(r.exitTime).toISOString() : null, entryPrice: r.entryPrice, exitPrice: r.exitPrice, profit: r.profit, isOpen: r.isOpen }));
   }, [], 'listStrategyTrades');
+}
+
+export async function getBrokerNowMs(): Promise<number | null> {
+  return tryDb(async () => (await dbGetBrokerNowMs()) ?? null, null, 'getBrokerNowMs');
 }
 
 // ── Media / Infra / Budget vault rows ──────────────────────────

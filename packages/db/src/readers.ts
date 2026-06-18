@@ -31,6 +31,19 @@ export async function listStrategyTrades() {
   return db.select().from(strategyTrades).orderBy(asc(strategyTrades.entryTime));
 }
 
+// "now" in the broker's clock as epoch-ms, in the SAME basis strategy_trades.entry_time is stored (naked broker time
+// read as UTC). Lets the UI compute live hold for OPEN MT5 positions without the browser-tz skew. = server_time + age.
+export async function getBrokerNowMs(): Promise<number | null> {
+  const db = getDb();
+  if (!db) return null;
+  const r = await db.execute(sql`
+    SELECT (extract(epoch from ((server_time::timestamp) AT TIME ZONE 'UTC')) + extract(epoch from (now() - seen_at))) * 1000 AS ms
+    FROM ea_heartbeat WHERE source = 'strategylab' LIMIT 1`);
+  const row = (r as { rows?: Array<{ ms: number | string }> }).rows?.[0] ?? (r as unknown as Array<{ ms: number | string }>)[0];
+  const ms = row?.ms;
+  return ms == null ? null : Number(ms);
+}
+
 export async function listProjects() {
   const db = getDb();
   if (!db) return null;

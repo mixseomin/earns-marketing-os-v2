@@ -624,6 +624,17 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked]);
 
+  // a pre-bound instance can live in another project (e.g. opened from the Live feed) —
+  // align the project picker to it ONCE so the picker shows the right project + selection.
+  const projSynced = useRef(false);
+  useEffect(() => {
+    if (projSynced.current || !obj.projectScoped || crossProject || parent || !detail) return;
+    const pid = detail.row['project_id'];
+    projSynced.current = true;
+    if (typeof pid === 'string' && pid && pid !== projectId) setProjectId(pid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail]);
+
   // "Fill random": bind a random instance. For cascade objects, roll a random parent
   // first, then pick a random child once it loads (pendingRand).
   const randomFill = useCallback(() => {
@@ -944,8 +955,31 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       }).catch(() => { /* */ });
     }
     const p = loadProj(); if (p) setProj(p);
+    // restore tab + open drawer from the URL so F5 keeps the view/modal
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const tab = sp.get('tab');
+      if (tab && ['objects', 'onpage', 'backend', 'live'].includes(tab)) setView(tab as ViewKey);
+      const obj = sp.get('obj'); const flow = sp.get('flow'); const step = sp.get('step');
+      if (obj && OBJ_BY_KEY[obj]) setSel({ kind: 'object', key: obj });
+      else if (flow && step && FLOW_BY_KEY[flow]) setSel({ kind: 'flow', flow, step });
+    } catch { /* */ }
     hydrated.current = true;
   }, []);
+  // reflect tab + open drawer into the URL (replaceState — no history spam)
+  const urlSkip = useRef(true);
+  useEffect(() => {
+    if (urlSkip.current) { urlSkip.current = false; return; }
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (view === 'objects') sp.delete('tab'); else sp.set('tab', view);
+      sp.delete('obj'); sp.delete('flow'); sp.delete('step');
+      if (sel?.kind === 'object') sp.set('obj', sel.key);
+      else if (sel?.kind === 'flow') { sp.set('flow', sel.flow); sp.set('step', sel.step); }
+      const qs = sp.toString();
+      window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    } catch { /* */ }
+  }, [view, sel]);
   useEffect(() => { if (hydrated.current) { try { localStorage.setItem(BOUND_KEY, JSON.stringify(bound)); } catch { /* */ } } }, [bound]);
   useEffect(() => { if (hydrated.current && proj) { try { localStorage.setItem(PROJ_KEY, proj); } catch { /* */ } } }, [proj]);
 

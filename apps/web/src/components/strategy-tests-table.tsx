@@ -180,7 +180,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
               <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.5, background: t.isOpen ? 'rgba(90,200,130,0.07)' : 'transparent' }}>
                 <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 400 }}>{t.symbol}</td>
                 <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
-                <td style={cell}>{t.lots != null ? <span>{fmtVol(t.lots)}{t.notional != null ? <span style={{ color: 'var(--muted)', fontSize: 9, marginLeft: 3 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
+                <td style={cell}>{t.lots != null ? <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{fmtVol(t.lots)}</span>{t.notional != null ? <span style={{ color: 'var(--muted)', opacity: 0.55, fontSize: 9 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
                 <td style={cell}>{fmtDT(t.entryTime)}</td>
                 <td style={cell}>{t.entryPrice ?? '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>

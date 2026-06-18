@@ -44,7 +44,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       {showStrategy ? <td style={{ ...cell, fontWeight: t.isOpen ? 600 : 400 }}>{t.strategy}</td> : null}
       <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 500 }}>{t.symbol}</td>
       <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
-      <td style={cell}>{t.lots != null ? <span>{fmtVol(t.lots)}{t.notional != null ? <span style={{ color: 'var(--muted)', fontSize: 9.5, marginLeft: 4 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
+      <td style={cell}>{t.lots != null ? <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{fmtVol(t.lots)}</span>{t.notional != null ? <span style={{ color: 'var(--muted)', opacity: 0.55, fontSize: 9.5 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
       <td style={cell}>{fmtDT(t.entryTime)}</td>
       <td style={cell}>{t.entryPrice ?? '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>

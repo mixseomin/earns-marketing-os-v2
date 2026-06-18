@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Dispatch, SetStateAction } from 'react';
 
 // state that survives F5: default on server + first render (no hydration mismatch), then load from localStorage, persist on change.
@@ -201,6 +202,9 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
   const [showAllTags, setShowAllTags] = useState(false);
   const [showTagFilter, setShowTagFilter] = usePersisted('stx_tagFilter', false);   // tag-chip filter row collapsed by default (saves a row)
   const [hiddenVerdicts, setHiddenVerdicts] = usePersisted<string[]>('stx_hiddenVerdicts', []);   // click a summary pill to hide/show that verdict's rows
+  const [autoRefresh, setAutoRefresh] = usePersisted('stx_autoRefresh', true);   // re-fetch the server route every 60s (force-dynamic) so live forward data updates without F5
+  const router = useRouter();
+  useEffect(() => { if (!autoRefresh) return; const id = setInterval(() => router.refresh(), 60000); return () => clearInterval(id); }, [autoRefresh, router]);
   const [visGroups, setVisGroups] = usePersisted<Record<GroupKey, boolean>>('stx_cols', { setup: true, sample: true, perf: true, robust: false });
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const showTip = (text: string, e: React.MouseEvent) => { if (text) setTip({ x: e.clientX, y: e.clientY, text }); };
@@ -302,6 +306,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
             style={{ ...chip(visGroups[g.key]), fontSize: 10.5, ...(visGroups[g.key] ? { background: GROUP_COLOR[g.key], color: '#001018' } : { color: GROUP_COLOR[g.key], borderColor: `${GROUP_COLOR[g.key]}55` }) }}>{g.label}</button>
         ))}
         <button type="button" onClick={() => setShowForward((v) => !v)} title="Live forward-test results (StrategyLab demo)" style={{ ...chip(fwdOn), fontSize: 10.5, ...(fwdOn ? { background: FWD_BAND_COLOR, color: '#001018' } : { color: FWD_BAND_COLOR, borderColor: `${FWD_BAND_COLOR}55` }) }}>📡 Forward{hasForward ? '' : ' (no data)'}</button>
+        <button type="button" onClick={() => setAutoRefresh((v) => !v)} title="Auto re-fetch live forward data every 60s (no F5 needed). MT5 pushes floating P&L every 60s; the Binance paper bot every 5 min." style={{ ...chip(autoRefresh), fontSize: 10.5, ...(autoRefresh ? { background: '#5ac882', color: '#001018' } : { color: '#5ac882', borderColor: '#5ac88255' }) }}>{autoRefresh ? '🟢 Live 60s' : '⚪ Live off'}</button>
         <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
         <button type="button" onClick={() => setShowTagFilter((v) => !v)} style={{ ...chip(showTagFilter || activeTags.length > 0), fontSize: 10.5 }}>🏷 Filter{activeTags.length ? ` (${activeTags.length})` : ''}</button>
         <button type="button" onClick={() => setShowTags((v) => !v)} title="Show tag pills under each strategy name" style={{ ...chip(false), fontSize: 10.5, color: showTags ? 'var(--fg)' : 'var(--muted)' }}>{showTags ? 'row-tags ✓' : 'row-tags'}</button>

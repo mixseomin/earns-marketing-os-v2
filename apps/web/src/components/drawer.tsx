@@ -5,7 +5,7 @@ import * as React from "react";
 import { useT } from "@/lib/lang-context";
 
 
-export function Drawer({ open, onClose, title, sub, width, children, footer }) {
+export function Drawer({ open, onClose, title, sub, width, children, footer, pushPx }) {
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape" && open) onClose && onClose(); };
     window.addEventListener("keydown", onKey);
@@ -13,6 +13,7 @@ export function Drawer({ open, onClose, title, sub, width, children, footer }) {
   }, [open, onClose]);
 
   if (!open) return null;
+  const pushed = pushPx > 0;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, pointerEvents: "auto" }}>
       <div onClick={onClose} style={{
@@ -25,6 +26,8 @@ export function Drawer({ open, onClose, title, sub, width, children, footer }) {
         background: "var(--bg-1)", borderLeft: "1px solid var(--line-2)",
         display: "flex", flexDirection: "column",
         boxShadow: "-24px 0 80px rgba(0,0,0,.6)",
+        transform: pushed ? `translateX(${-pushPx}px)` : "none",
+        transition: "transform .2s ease-out",
         animation: "drawer-in .22s ease-out",
       }}>
         <style>{`@keyframes drawer-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>

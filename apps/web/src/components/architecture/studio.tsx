@@ -227,39 +227,84 @@ function rowAnomaly(scopeKind: string, scopeKey: string, pageKind: string): stri
   return null;
 }
 
-// ── 2nd-layer drawer (Google AdX cascade): supplementary detail slides over the
-// right ~2/3 of the 1st drawer; its left strip stays visible & click-to-dismiss ──
+// ── cascade drawer stack (Google AdX / Tag Manager): the TOP layer is standard width
+// on the right; each layer below is pushed an extra step (~1/3) to the left and dimmed
+// behind a scrim. Pop a level via ✕ / ‹ / Esc / click-the-dim. In-app "links" inside a
+// layer push the NEXT layer (no new browser tab). ──
 type SubContent = { title: string; sub?: string; body: ReactNode };
-const SubCtx = createContext<(c: SubContent | null) => void>(() => { /* noop default */ });
+const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
+const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
 
-function SubDrawer({ content, onClose, width }: { content: SubContent | null; onClose: () => void; width: number }) {
+function SubStack({ stack, popTo, width }: { stack: SubContent[]; popTo: (n: number) => void; width: number }) {
   useEffect(() => {
-    if (!content) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    if (!stack.length) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); popTo(stack.length - 1); } };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [content, onClose]);
-  if (!content) return null;
+  }, [stack.length, popTo]);
+  if (!stack.length) return null;
+  const n = stack.length;
+  const baseZ = 250;
+  const topZ = baseZ + (n - 1) * 4;
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 255, background: 'rgba(7,9,13,.4)' }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width, maxWidth: '70vw', zIndex: 256, background: 'var(--bg-1)', borderLeft: '2px solid var(--accent)', boxShadow: '-28px 0 90px rgba(0,0,0,.7)', display: 'flex', flexDirection: 'column', animation: 'subdrawer-in .2s ease-out' }}>
-        <style>{`@keyframes subdrawer-in { from { transform: translateX(28px); opacity:.4 } to { transform: translateX(0); opacity:1 } }`}</style>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', background: 'var(--bg-2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            {content.sub && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{content.sub}</div>}
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)', marginTop: 3, wordBreak: 'break-all' }}>{content.title}</div>
+      {/* scrim under the top layer: dims base + lower layers; click → pop the top one */}
+      <div onClick={() => popTo(n - 1)} style={{ position: 'fixed', inset: 0, zIndex: topZ - 1, background: 'rgba(7,9,13,.4)' }} />
+      {stack.map((c, i) => {
+        const depthFromTop = n - 1 - i;
+        const isTop = i === n - 1;
+        const tx = -depthFromTop * CASCADE_STEP;
+        return (
+          <div key={i} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width, maxWidth: '72vw', zIndex: baseZ + i * 4, transform: `translateX(${tx}px)`, transition: 'transform .2s ease-out', background: 'var(--bg-1)', borderLeft: `2px solid ${isTop ? 'var(--accent)' : 'var(--line)'}`, boxShadow: '-28px 0 90px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column', pointerEvents: isTop ? 'auto' : 'none' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', background: 'var(--bg-2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+              <div style={{ minWidth: 0 }}>
+                {c.sub && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.sub}</div>}
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)', marginTop: 3, wordBreak: 'break-all' }}>{c.title}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={() => popTo(i)} title="Quay lại lớp trước" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', height: 26, borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', fontSize: 13, padding: '0 9px' }}>‹</button>
+                <button onClick={() => popTo(0)} title="Đóng tất cả lớp (Esc)" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', width: 26, height: 26, borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', fontSize: 13 }}>✕</button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>{c.body}</div>
           </div>
-          <button onClick={onClose} title="Đóng (Esc)" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', width: 26, height: 26, borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>✕</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>{content.body}</div>
-      </div>
+        );
+      })}
     </>
   );
 }
 
-// full detail of one selector row — opened in the 2nd-layer drawer
+// a scope's selector library (opened as a cascade layer from a selector's detail) —
+// each field links to its own detail in the NEXT layer
+function ScopeSelectorList({ scopeKind, scopeKey }: { scopeKind: string; scopeKey: string }) {
+  const push = useContext(SubCtx);
+  const [rows, setRows] = useState<SelCatRow[] | null>(null);
+  useEffect(() => { let dead = false; selectorCatalog().then((r) => { if (!dead) setRows(r.filter((x) => x.scopeKind === scopeKind && x.scopeKey === scopeKey)); }); return () => { dead = true; }; }, [scopeKind, scopeKey]);
+  if (rows == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có selector.</div>;
+  const groups: { pk: string; rows: SelCatRow[] }[] = [];
+  for (const r of rows) { const g = groups[groups.length - 1]; if (g && g.pk === r.pageKind) g.rows.push(r); else groups.push({ pk: r.pageKind, rows: [r] }); }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{rows.length} selector · bấm 1 field để mở chi tiết ở lớp kế.</div>
+      {groups.map((g) => (
+        <div key={g.pk} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ padding: '5px 10px', background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {g.pk} <span style={{ color: 'var(--fg-3)' }}>{g.rows.length}</span></div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 10px' }}>
+            {g.rows.map((r) => (
+              <button key={r.id} onClick={() => push({ title: r.fieldName, sub: `${scopeKind} · ${scopeKey} · @ ${r.pageKind}`, body: <SelectorDetail id={r.id} /> })}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px ${r.hasCss ? 'solid' : 'dashed'} var(--line)`, borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>{r.fieldName}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// full detail of one selector row — opened as a cascade layer
 function SelectorDetail({ id }: { id: string }) {
+  const push = useContext(SubCtx);
   const [d, setD] = useState<SelDetail | null | 'loading'>('loading');
   useEffect(() => { let dead = false; setD('loading'); getSelectorRow(id).then((r) => { if (!dead) setD(r); }); return () => { dead = true; }; }, [id]);
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
@@ -285,7 +330,10 @@ function SelectorDetail({ id }: { id: string }) {
         </div>
       )}
       <Section title="Định danh" sub="// where it resolves">
-        {row('scope', `${d.scopeKind} · ${d.scopeKey}`)}
+        {row('scope', (
+          <button onClick={() => push({ title: `${d.scopeKind} · ${d.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={d.scopeKind} scopeKey={d.scopeKey} /> })}
+            style={{ background: 'none', border: 0, padding: 0, color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>{d.scopeKind} · {d.scopeKey} ↗</button>
+        ))}
         {row('page_kind', d.pageKind)}
         {row('field', d.fieldName)}
         {row('nguồn', SOURCE_VI[d.source] || d.source)}
@@ -785,7 +833,9 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const [showScanPanel, setShowScanPanel] = useState(true);
   const [filling, setFilling] = useState(false);
   const [sel, setSel] = useState<{ kind: 'object'; key: string } | { kind: 'flow'; flow: string; step: string } | null>(null);
-  const [subContent, setSubContent] = useState<SubContent | null>(null); // 2nd-layer drawer
+  const [stack, setStack] = useState<SubContent[]>([]); // cascade drawer layers above the base
+  const pushSub = useCallback((c: SubContent) => setStack((s) => [...s, c]), []);
+  const popTo = useCallback((n: number) => setStack((s) => s.slice(0, n)), []);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const savedRef = useRef<Record<string, Pos>>({});
@@ -853,6 +903,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const clearAll = useCallback(() => setBound({}), []);
 
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
+    setStack([]); // fresh node → reset cascade
     if (node.type === 'objectNode') setSel({ kind: 'object', key: node.id });
     else if (node.type === 'flowStep') setSel({ kind: 'flow', flow: view === 'onpage' ? 'onpage' : 'backend', step: node.id });
   }, [view]);
@@ -976,19 +1027,20 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       </div>
 
       {/* drawer */}
-      <SubCtx.Provider value={setSubContent}>
+      <SubCtx.Provider value={pushSub}>
         <Drawer
           open={!!sel}
-          onClose={() => { setSel(null); setSubContent(null); }}
+          onClose={() => { setSel(null); setStack([]); }}
           sub={drawerSub}
           title={drawerTitle}
           width={860}
           footer={null}
+          pushPx={sel ? Math.min(stack.length * CASCADE_STEP, 600) : 0}
         >
           {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
           {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
         </Drawer>
-        <SubDrawer content={sel ? subContent : null} onClose={() => setSubContent(null)} width={550} />
+        <SubStack stack={sel ? stack : []} popTo={popTo} width={720} />
       </SubCtx.Provider>
     </div>
   );

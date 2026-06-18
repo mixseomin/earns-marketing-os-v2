@@ -355,7 +355,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
         <table style={{ borderCollapse: 'collapse', width: 'auto', minWidth: 560 }}>
           <thead>
             <tr>
-              <th style={{ background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)' }} />
+              <th style={{ background: 'var(--panel,#0e1420)', borderBottom: '1px solid var(--line)', position: 'sticky', left: 0, zIndex: 3 }} />
               {GROUPS.filter((g) => visGroups[g.key]).map((g) => {
                 const n = cols.filter((c) => c.group === g.key).length;
                 if (!n) return null;
@@ -366,7 +366,7 @@ export function StrategyTestsTable({ rows, assetsByStrategy = {}, forwardByStrat
               {fwdOn && <th colSpan={4} style={{ textAlign: 'center', fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: FWD_BAND_COLOR, background: `${FWD_BAND_COLOR}1c`, borderBottom: `2px solid ${FWD_BAND_COLOR}`, borderLeft: '2px solid var(--line)', padding: '3px 6px' }}>📡 Forward (live)</th>}
             </tr>
             <tr>
-              <th style={{ ...TH, cursor: 'pointer' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
+              <th style={{ ...TH, cursor: 'pointer', left: 0, zIndex: 6, boxShadow: 'inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line)' }} onClick={() => toggleSort('name')}>Strategy{caret('name')}</th>
               {cols.map((c) => (
                 <th key={c.key} title={c.title} style={{ ...TH, textAlign: c.num ? 'right' : 'left', background: `${GROUP_COLOR[c.group]}33`, ...(c.sort ? { cursor: 'pointer', userSelect: 'none' } : {}) }}
                   onClick={c.sort ? () => toggleSort(c.sort!) : undefined}>{c.label}{c.sort ? caret(c.sort) : ''}</th>
@@ -447,7 +447,7 @@ function GroupBlock({ g, groupBy, showTags, cols, colSpan, assetsByStrategy, for
         return (
           <Fragment key={r.id}>
             <tr>
-              <td style={TD}>
+              <td style={{ ...TD, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel,#0e1420)', boxShadow: 'inset -1px 0 0 var(--line)', whiteSpace: 'normal', maxWidth: 200 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                   {!assetColVisible && canExpand ? (
                     <button type="button" onClick={() => toggleExpand(r.id)} title={kids.length > 0 ? `${kids.length} per-asset results` : 'live trade metrics'}

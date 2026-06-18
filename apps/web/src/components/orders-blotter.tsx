@@ -2,7 +2,23 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { StrategyTradeRow } from '@/lib/data';
+import type { StrategyTradeRow, StrategyTestRow, StrategyForwardRow } from '@/lib/data';
+
+// trade/forward sleeve name -> the canonical edge row in strategy_tests (mirrors strategy-tests-table FWD_EDGE_ALIAS)
+const EDGE_ALIAS: Record<string, string> = {
+  'IBS mean-reversion': 'Index-MR portfolio', 'Connors RSI-2': 'Index-MR portfolio', 'Connors RSI-2 (<5)': 'Index-MR portfolio',
+  '5-day-low reversal': 'Index-MR portfolio', 'Double-7 low': 'Index-MR portfolio', '3-down-days': 'Index-MR portfolio',
+  'FX NY-close reversion': 'FX NY-close reversion basket', 'FX London-breakout': 'FX London-breakout trend basket',
+};
+const VERDICT_COLOR: Record<string, string> = { dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4' };
+const FWD_STATUS_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };
+const pfColor = (v: number) => (Number.isNaN(v) ? 'var(--muted)' : v >= 1.3 ? '#2ecc71' : v >= 1.0 ? '#f5a623' : '#ff5470');
+// risk-normalized CAGR at a 20% maxDD budget (same formula as the Strategy Tests table)
+const cagrPct = (t: StrategyTestRow): number => {
+  const net = Number(t.net), dd = Number(t.maxDd), m = t.spanMonths;
+  if (!m || Number.isNaN(net) || Number.isNaN(dd) || dd <= 0 || net <= 0) return NaN;
+  return (Math.pow(1 + 0.2 * net / dd, 12 / m) - 1) * 100;
+};
 
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -39,11 +55,84 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
 
 const chip = (on: boolean): React.CSSProperties => ({ fontSize: 11, padding: '3px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--line)', background: on ? 'var(--accent,#00e5ff)' : 'transparent', color: on ? '#001018' : 'var(--muted)', fontWeight: 600 });
 
-export function OrdersBlotter({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; brokerNowMs?: number | null }) {
+type StratMeta = { test?: StrategyTestRow; fwd?: { trades: number; pf: number; basePf: number; status: string } };
+
+function MetaPill({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
+  return (
+    <div style={{ background: 'rgba(127,140,160,0.10)', borderRadius: 7, padding: '5px 8px', minWidth: 0 }}>
+      <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: color ?? 'var(--fg)' }}>{value}</div>
+    </div>
+  );
+}
+
+// hover card: strategy description + expected (backtest) metrics + live forward, anchored near the cursor (clamped to viewport)
+function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: number; y: number }) {
+  const t = meta.test; const fwd = meta.fwd;
+  const W = 340;
+  const left = Math.min(x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1200) - W - 12);
+  const top = Math.min(y + 14, (typeof window !== 'undefined' ? window.innerHeight : 800) - 320);
+  const cagr = t ? cagrPct(t) : NaN;
+  return (
+    <div style={{ position: 'fixed', left, top, width: W, zIndex: 100, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 14, pointerEvents: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800 }}>{t?.name ?? name}</span>
+        {t?.verdict ? <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#fff', background: VERDICT_COLOR[t.verdict] ?? '#7a8699' }}>{t.verdict}</span> : null}
+      </div>
+      {t?.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 6 }}>{t.variant}</div> : null}
+      {t?.notes ? <div style={{ fontSize: 11, color: 'var(--fg)', opacity: 0.85, lineHeight: 1.5, marginBottom: 10 }}>{t.notes.length > 300 ? t.notes.slice(0, 300) + '…' : t.notes}</div>
+        : <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>No backtest metadata linked for this strategy.</div>}
+      {t ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: fwd ? 10 : 0 }}>
+          <MetaPill label="Backtest PF" value={t.pf ?? '—'} color={t.pf ? pfColor(Number(t.pf)) : undefined} />
+          <MetaPill label="OOS PF" value={t.oosPf ?? '—'} color={t.oosPf ? pfColor(Number(t.oosPf)) : undefined} />
+          <MetaPill label="Win%" value={t.winPct ?? '—'} />
+          <MetaPill label="CAGR*" value={Number.isNaN(cagr) ? '—' : `${cagr.toFixed(0)}%`} color={Number.isNaN(cagr) ? undefined : cagr >= 10 ? '#2ecc71' : '#f5a623'} />
+          <MetaPill label="Max DD" value={t.maxDd != null && t.maxDd !== '' ? `${t.maxDd}${t.netUnit ? ' ' + t.netUnit : ''}` : '—'} />
+          <MetaPill label="Tr/mo" value={t.trades && t.spanMonths ? (t.trades / t.spanMonths).toFixed(1) : '—'} />
+        </div>
+      ) : null}
+      {fwd ? (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+          <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#001018', background: FWD_STATUS_COLOR[fwd.status] ?? '#7a8699' }}>{fwd.status}</span>
+          <span style={{ color: 'var(--muted)' }}>live forward:</span>
+          <span>PF <b style={{ color: pfColor(fwd.pf) }}>{fwd.trades ? fwd.pf.toFixed(2) : '—'}</b> vs base {fwd.basePf.toFixed(2)}</span>
+          <span style={{ color: 'var(--muted)' }}>· {fwd.trades} trades</span>
+        </div>
+      ) : null}
+      <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 8 }}>* CAGR risk-normalized to a 20% max-drawdown budget · PF green ≥1.3 / amber ≥1.0 / red &lt;1.0</div>
+    </div>
+  );
+}
+
+export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }: { trades: StrategyTradeRow[]; tests?: StrategyTestRow[]; forward?: StrategyForwardRow[]; brokerNowMs?: number | null }) {
   const [showAll, setShowAll] = useState(false);
   const [grouped, setGrouped] = useState(true);
+  const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const router = useRouter();
-  useEffect(() => { const id = setInterval(() => router.refresh(), 60000); return () => clearInterval(id); }, [router]);
+  useEffect(() => { const id = setInterval(() => router.refresh(), 20000); return () => clearInterval(id); }, [router]);
+
+  // strategy (trade name) -> backtest edge row + aggregated live forward, for the hover card
+  const metaByStrategy = useMemo(() => {
+    const testByName: Record<string, StrategyTestRow> = {};
+    tests.forEach((t) => { testByName[t.name] = t; });
+    const fwdByName: Record<string, StrategyForwardRow[]> = {};
+    forward.forEach((f) => { (fwdByName[f.strategy] ??= []).push(f); });
+    const names = Array.from(new Set(trades.map((t) => t.strategy)));
+    const m: Record<string, StratMeta> = {};
+    names.forEach((name) => {
+      const test = testByName[EDGE_ALIAS[name] ?? name] ?? testByName[name];
+      const fl = fwdByName[name];
+      let fwd: StratMeta['fwd'];
+      if (fl && fl.length) {
+        const tr = fl.reduce((a, f) => a + (f.trades ?? 0), 0);
+        const pf = tr > 0 ? fl.reduce((a, f) => a + Number(f.fwdPf ?? 0) * (f.trades ?? 0), 0) / tr : 0;
+        fwd = { trades: tr, pf, basePf: Number(fl[0]?.basePf ?? 0), status: fl.find((f) => f.status)?.status ?? 'warming' };
+      }
+      m[name] = { test, fwd };
+    });
+    return m;
+  }, [trades, tests, forward]);
 
   // scope: every open position + closed within 24h of the latest activity (relative -> tz-safe). "Show all" reveals older closed.
   const visible = useMemo(() => {
@@ -80,7 +169,7 @@ export function OrdersBlotter({ trades, brokerNowMs }: { trades: StrategyTradeRo
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={chip(grouped)}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
         <button type="button" onClick={() => setShowAll((v) => !v)} style={chip(showAll)}>{showAll ? 'All' : 'Last 24h'}{!showAll && hiddenN > 0 ? ` (+${hiddenN})` : ''}</button>
-        <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 60s</span>
+        <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 20s</span>
       </div>
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>
@@ -91,8 +180,13 @@ export function OrdersBlotter({ trades, brokerNowMs }: { trades: StrategyTradeRo
               ? groups.map((g) => (
                 <Fragment key={g.name}>
                   <tr style={{ background: 'rgba(0,229,255,0.06)' }}>
-                    <td colSpan={HEADERS.length} style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
+                    <td colSpan={HEADERS.length}
+                      onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
+                      onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                      onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
+                      style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)', cursor: 'help' }}>
                       {g.name}
+                      <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
                       {g.open > 0 ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--ok,#5ac882)' }}>{g.open} open</span> : null}
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {f2(g.net)}</span>
                     </td>
@@ -105,7 +199,8 @@ export function OrdersBlotter({ trades, brokerNowMs }: { trades: StrategyTradeRo
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted, <i>italic *</i> P&amp;L = floating); closed dimmed. P&amp;L unit: crypto = %, MT5 = account currency. Hold counts to now for open positions.</p>
+      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted, <i>italic *</i> P&amp;L = floating); closed dimmed. P&amp;L unit: crypto = %, MT5 = account currency. Hold counts to now for open positions. {grouped ? 'Hover a strategy header for its description & expected metrics.' : ''}</p>
+      {(() => { const hm = hover ? metaByStrategy[hover.name] : undefined; return hover && hm ? <HoverCard name={hover.name} meta={hm} x={hover.x} y={hover.y} /> : null; })()}
     </div>
   );
 }

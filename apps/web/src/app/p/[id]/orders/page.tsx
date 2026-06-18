@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { OrdersBlotter } from '@/components/orders-blotter';
-import { getProject, getProjectMode, listProjects, listStrategyTrades, getBrokerNowMs } from '@/lib/data';
+import { getProject, getProjectMode, listProjects, listStrategyTrades, listStrategyTests, listStrategyForward, getBrokerNowMs } from '@/lib/data';
 import { getCurrentUser, getEffectiveUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -13,10 +13,12 @@ export default async function OrdersRoute({ params }: { params: Promise<{ id: st
   if (!project) notFound();
 
   const [, eff] = await Promise.all([getCurrentUser(), getEffectiveUser()]);
-  const [mode, projects, tradeRows, brokerNowMs] = await Promise.all([
+  const [mode, projects, tradeRows, testRows, forwardRows, brokerNowMs] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listStrategyTrades(),
+    listStrategyTests(id),
+    listStrategyForward(),
     getBrokerNowMs(),
   ]);
 
@@ -32,7 +34,7 @@ export default async function OrdersRoute({ params }: { params: Promise<{ id: st
           <span style={{ flex: 1 }} />
           <Link href={`/p/${id}/strategy-tests`} style={{ fontSize: 12, color: 'var(--accent,#00e5ff)', textDecoration: 'none' }}>🔬 Strategy Tests →</Link>
         </div>
-        <OrdersBlotter trades={tradeRows} brokerNowMs={brokerNowMs} />
+        <OrdersBlotter trades={tradeRows} tests={testRows} forward={forwardRows} brokerNowMs={brokerNowMs} />
       </div>
     </AppShell>
   );

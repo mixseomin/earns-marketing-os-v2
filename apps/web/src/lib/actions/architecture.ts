@@ -271,6 +271,7 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
     add('selector', 'error', "engine scope not in platform_technologies", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'engine' AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = s.scope_key)`),
     add('selector', 'error', "habitat scope not in habitats", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'habitat' AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id::text = s.scope_key)`),
     add('selector', 'warn', 'spec.css empty', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE COALESCE(s.spec->>'css','') = ''`),
+    add('selector', 'warn', "Reddit page_kind (subreddit-*) on a non-reddit platform — taxonomy leak, rename to a platform-neutral kind", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.page_kind LIKE 'subreddit%' AND s.scope_key <> 'reddit'`),
     // interaction (global)
     add('interaction', 'error', 'people_id dangling', sql`SELECT count(*)::int AS n FROM interactions i WHERE NOT EXISTS (SELECT 1 FROM people pe WHERE pe.id = i.people_id)`),
     // platform (global)

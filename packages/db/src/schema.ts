@@ -1172,6 +1172,8 @@ export const strategyTrades = pgTable(
     profit: doublePrecision('profit'),
     lots: doublePrecision('lots'),
     notional: doublePrecision('notional'),
+    sl: doublePrecision('sl'),
+    tp: doublePrecision('tp'),
     magic: integer('magic'),
     isOpen: boolean('is_open').notNull().default(false),
     updatedAt: timestamp('updated_at', { withTimezone: true }),

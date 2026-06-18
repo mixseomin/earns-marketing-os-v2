@@ -170,7 +170,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
       </div>
       <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
         <thead><tr style={{ color: 'var(--muted)' }}>
-          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
         </tr></thead>
         <tbody>
           {rows.map((t, i) => {
@@ -185,6 +185,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
                 <td style={cell}>{t.entryPrice ?? '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>
                 <td style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
+                <td style={cell} title="SL / TP (crypto SL = Donchian-20 trailing exit, no fixed TP)">{t.sl != null || t.tp != null ? <span><span style={{ color: '#ff8a8a' }}>{t.sl != null ? t.sl : '—'}</span><span style={{ color: 'var(--muted)' }}> / </span><span style={{ color: 'var(--ok,#5ac882)' }}>{t.tp != null ? t.tp : '—'}</span></span> : '—'}</td>
                 <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
                 <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L (gross; cost applied on close)' : undefined}>{p == null ? '—' : (t.isOpen ? `${f2(p)}*` : f2(p))}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>

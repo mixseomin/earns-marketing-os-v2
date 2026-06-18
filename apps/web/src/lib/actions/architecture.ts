@@ -507,7 +507,9 @@ export async function metricCoverage(): Promise<MetricCoverage> {
           source: hit?.row.source ?? null, via: hit?.row.via ?? null,
           hasCss: hit?.row.has_css ?? false, selId: hit?.row.id ?? null,
           cards: p.cards, populated,
-          gap: !trained && p.cards > 0,
+          // gap (đỏ) = có card mà KHÔNG selector VÀ chưa số nào bắt được (trống thật).
+          // apiFed (◆) = chưa selector DOM nhưng đã có số từ API/commentstats (1 phần OK).
+          gap: !trained && p.cards > 0 && populated === 0,
           apiFed: !trained && populated > 0,
         });
       }

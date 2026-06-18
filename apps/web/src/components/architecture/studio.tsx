@@ -386,9 +386,11 @@ function SelectorCatalog() {
     k.rows.push({ ...r, anom });
     if (anom) { k.hasAnom = true; s.problems.push(anom); }
   }
+  const presentKeys = new Set(scopes.map((s) => s.scopeKey));
   for (const s of scopes) {
     const alias = PLATFORM_ALIAS[s.scopeKey];
-    if (alias) { s.aliasDup = alias; s.problems.unshift(`"${s.scopeKey}" và "${alias}" là CÙNG 1 nền tảng — selector đang tách 2 key, nên gộp về 1.`); }
+    // only a real problem while BOTH keys still carry selectors (auto-clears once merged)
+    if (alias && presentKeys.has(alias)) { s.aliasDup = alias; s.problems.unshift(`"${s.scopeKey}" và "${alias}" là CÙNG 1 nền tảng — selector đang tách 2 key, nên gộp về 1.`); }
   }
   const totalProblems = scopes.reduce((a, s) => a + s.problems.length, 0);
   const view = onlyIssues ? scopes.filter((s) => s.problems.length > 0) : scopes;

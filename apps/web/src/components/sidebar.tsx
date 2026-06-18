@@ -73,20 +73,24 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
             <span className="count mono">{mobileTabs.length}</span>
           </div>
           {mobileTabs.map((tabItem) => (
-            <div key={tabItem.href}>
-              <Link href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '6px 12px', minHeight: 0 }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>{tabItem.icon}</div>
-                <div className="squad-name"><b>{tabItem.label}</b></div>
+            <div key={tabItem.href} style={{ marginBottom: 4 }}>
+              <Link href={tabItem.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '10px 12px', minHeight: 44, background: 'var(--bg-2)' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--accent)', color: 'var(--accent)', fontSize: 16 }}>{tabItem.icon}</div>
+                <div className="squad-name"><b style={{ fontSize: 14 }}>{tabItem.label}</b></div>
                 {tabItem.badge !== undefined && (
-                  <div className="squad-stats"><span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
+                  <div className="squad-stats"><span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 3, background: 'var(--accent)', color: 'var(--bg-0)', fontFamily: 'var(--font-mono)' }}>{tabItem.badge}</span></div>
                 )}
               </Link>
-              {tabItem.children?.map((c) => (
-                <Link key={c.href} href={c.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '4px 12px 4px 28px', minHeight: 0, fontSize: 12 }}>
-                  <div className="squad-icon" style={{ borderColor: 'var(--fg-4)', color: 'var(--fg-3)', fontSize: 11, width: 18, height: 18 }}>{c.icon}</div>
-                  <div className="squad-name" style={{ fontSize: 12 }}>{c.label}</div>
-                </Link>
-              ))}
+              {tabItem.children && tabItem.children.length > 0 && (
+                <div style={{ borderLeft: '2px solid var(--accent)', marginLeft: 18, paddingLeft: 0 }}>
+                  {tabItem.children.map((c) => (
+                    <Link key={c.href} href={c.href} className="squad" style={{ textDecoration: 'none', color: 'inherit', padding: '9px 12px 9px 14px', minHeight: 40, fontSize: 13 }}>
+                      <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)', fontSize: 13, width: 22, height: 22 }}>{c.icon}</div>
+                      <div className="squad-name" style={{ fontSize: 13 }}>{c.label}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

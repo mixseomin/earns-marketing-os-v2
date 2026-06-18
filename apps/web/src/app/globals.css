@@ -214,7 +214,7 @@ button { font-family: inherit; color: inherit; }
     position: fixed;
     top: calc(48px + env(safe-area-inset-top));
     left: 0;
-    width: min(260px, 80vw);
+    width: min(320px, 90vw);
     height: calc(100dvh - 48px - env(safe-area-inset-top));
     z-index: 100;
     overflow-y: auto;

@@ -345,3 +345,56 @@ export async function getSelectorRow(id: string): Promise<SelDetail | null> {
     };
   } catch { return null; }
 }
+
+// ── live ext activity (ext_call_log) — what the extension does on real sites ──
+export interface ExtCall {
+  id: string; ts: string; endpoint: string; method: string; status: number;
+  durationMs: number | null; host: string; extVersion: string | null; errorMsg: string | null;
+  who: string | null; place: string | null; platform: string | null; result: string | null;
+}
+export interface ExtActivity {
+  rows: ExtCall[];
+  stats: { total: number; last24h: number; last7d: number; errors7d: number; lastCallAt: string | null; versions: Array<{ v: string; last: string }> };
+  endpoints: Array<{ endpoint: string; n: number; errs: number; avgMs: number | null; last: string }>;
+}
+function jstr(v: unknown): string | null { return v == null ? null : String(v); }
+export async function extActivity(opts?: { limit?: number; errorsOnly?: boolean }): Promise<ExtActivity> {
+  const db = getDb();
+  const empty: ExtActivity = { rows: [], stats: { total: 0, last24h: 0, last7d: 0, errors7d: 0, lastCallAt: null, versions: [] }, endpoints: [] };
+  if (!db) return empty;
+  const limit = Math.min(Math.max(opts?.limit || 60, 1), 200);
+  try {
+    const r = await db.execute(sql`
+      SELECT id::text AS id, created_at, endpoint, method, status, duration_ms, page_url, ext_version, error_msg, payload_meta, response_meta
+      FROM ext_call_log ${opts?.errorsOnly ? sql`WHERE status >= 400` : sql``}
+      ORDER BY created_at DESC LIMIT ${limit}`);
+    const raw = r as unknown as Array<{ id: string; created_at: string; endpoint: string; method: string; status: number; duration_ms: number | null; page_url: string | null; ext_version: string | null; error_msg: string | null; payload_meta: Record<string, unknown> | null; response_meta: Record<string, unknown> | null }>;
+    const rows: ExtCall[] = raw.map((x) => {
+      const p = x.payload_meta || {}; const rs = x.response_meta || {};
+      const viewer = (rs.viewer as Record<string, unknown>) || {};
+      const host = (x.page_url || '').match(/:\/\/([^/]+)/)?.[1] || '';
+      const result = jstr(rs.action) || jstr(viewer.briefAction) || jstr(rs.joinStatus) || (rs.fields != null ? `${rs.fields} fields` : null);
+      return {
+        id: x.id, ts: x.created_at, endpoint: x.endpoint, method: x.method, status: x.status,
+        durationMs: x.duration_ms, host, extVersion: x.ext_version, errorMsg: x.error_msg,
+        who: jstr(p.handle) || jstr(p.viewer_handle) || jstr(viewer.handle),
+        place: jstr(p.habitat_name) || jstr(p.name), platform: jstr(p.platform_key), result,
+      };
+    });
+    const s = await db.execute(sql`
+      SELECT count(*)::int total,
+             count(*) FILTER (WHERE created_at > now()-interval '24 hours')::int d1,
+             count(*) FILTER (WHERE created_at > now()-interval '7 days')::int d7,
+             count(*) FILTER (WHERE status >= 400 AND created_at > now()-interval '7 days')::int errs7d,
+             max(created_at)::text last FROM ext_call_log`);
+    const st = (s as unknown as Array<{ total: number; d1: number; d7: number; errs7d: number; last: string | null }>)[0];
+    const v = await db.execute(sql`SELECT ext_version v, max(created_at)::text last FROM ext_call_log WHERE ext_version <> '' GROUP BY 1 ORDER BY 2 DESC LIMIT 4`);
+    const versions = (v as unknown as Array<{ v: string; last: string }>).map((x) => ({ v: x.v, last: x.last }));
+    const e = await db.execute(sql`
+      SELECT endpoint, count(*)::int n, count(*) FILTER (WHERE status >= 400)::int errs,
+             round(avg(duration_ms))::int avg_ms, max(created_at)::text last
+      FROM ext_call_log GROUP BY 1 ORDER BY 2 DESC LIMIT 16`);
+    const endpoints = (e as unknown as Array<{ endpoint: string; n: number; errs: number; avg_ms: number | null; last: string }>).map((x) => ({ endpoint: x.endpoint, n: x.n, errs: x.errs, avgMs: x.avg_ms, last: x.last }));
+    return { rows, stats: { total: st?.total || 0, last24h: st?.d1 || 0, last7d: st?.d7 || 0, errors7d: st?.errs7d || 0, lastCallAt: st?.last || null, versions }, endpoints };
+  } catch { return empty; }
+}

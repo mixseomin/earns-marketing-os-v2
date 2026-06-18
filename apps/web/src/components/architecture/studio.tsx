@@ -19,11 +19,11 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow,
-  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail,
+  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity,
+  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
 } from '@/lib/actions/architecture';
 
-type ViewKey = 'objects' | 'onpage' | 'backend';
+type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
 type Pos = { x: number; y: number };
 type Bound = { id: string; label: string; worst: 'error' | 'warn' | 'ok' | null };
 
@@ -826,6 +826,97 @@ function FlowDrawerBody({ flow, stepId }: { flow: ArchFlow; stepId: string }) {
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
+// ── live ext activity feed (ext_call_log) — what the extension does on real sites ──
+const EP_OBJECT: Record<string, string> = {
+  habitats: 'habitat', briefs: 'brief', brief: 'brief',
+  'learn-selectors': 'selector', 'save-selector': 'selector', 'train-selector': 'selector',
+  'clear-selector': 'selector', 'suggest-selector': 'selector', selectors: 'selector',
+  accounts: 'account', scene: 'interaction',
+};
+function relTime(iso: string): string {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return `${Math.floor(s)}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+const statusColor = (n: number) => (n >= 400 ? 'var(--bad)' : n >= 300 ? 'var(--warn)' : 'var(--ok)');
+
+function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string) => void }) {
+  const [data, setData] = useState<ExtActivity | null>(null);
+  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [ep, setEp] = useState<string | null>(null);
+  const [tick, setTick] = useState(0); // re-render to refresh relative times
+  const load = useCallback(() => { extActivity({ limit: 80, errorsOnly }).then(setData).catch(() => {}); }, [errorsOnly]);
+  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(t); }, []);
+  void tick;
+
+  if (!data) return <div style={{ padding: 24, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>loading ext activity…</div>;
+  const { stats, endpoints } = data;
+  const rows = ep ? data.rows.filter((r) => r.endpoint === ep) : data.rows;
+  const stat = (label: string, val: ReactNode, color?: string) => (
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 11px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 600, color: color || 'var(--fg-0)', marginTop: 2 }}>{val}</div>
+    </div>
+  );
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ok)', boxShadow: '0 0 8px var(--ok)' }} />
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)' }}>Live · Ext activity</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>// ext_call_log · auto-refresh 15s</span>
+        <button onClick={load} style={{ marginLeft: 'auto', ...selStyle, cursor: 'pointer' }}>↻ refresh</button>
+        <button onClick={() => setErrorsOnly((v) => !v)} style={{ ...selStyle, cursor: 'pointer', color: errorsOnly ? 'var(--bg-1)' : 'var(--bad)', background: errorsOnly ? 'var(--bad)' : 'var(--bg-2)', borderColor: 'var(--bad)' }}>⚠ chỉ lỗi</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 8, marginBottom: 14 }}>
+        {stat('Calls 24h', stats.last24h)}
+        {stat('Calls 7d', stats.last7d)}
+        {stat('Last call', stats.lastCallAt ? `${relTime(stats.lastCallAt)} ago` : '—', 'var(--ok)')}
+        {stat('Errors 7d', stats.errors7d, stats.errors7d > 0 ? 'var(--bad)' : 'var(--ok)')}
+        {stat('Ext version', stats.versions[0]?.v || '—')}
+      </div>
+
+      {/* endpoint breakdown — click to filter */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+        {endpoints.map((e) => (
+          <button key={e.endpoint} onClick={() => setEp(ep === e.endpoint ? null : e.endpoint)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, padding: '3px 9px', borderRadius: 999, cursor: 'pointer', background: ep === e.endpoint ? 'var(--accent)' : 'var(--bg-2)', color: ep === e.endpoint ? 'var(--bg-1)' : 'var(--fg-1)', border: '1px solid var(--line)' }}>
+            {e.endpoint}<span style={{ opacity: 0.7 }}>{e.n}</span>
+            {e.errs > 0 && <span style={{ color: ep === e.endpoint ? 'var(--bg-1)' : 'var(--bad)', fontWeight: 700 }}>⚠{e.errs}</span>}
+            {e.avgMs != null && <span style={{ opacity: 0.6 }}>{e.avgMs}ms</span>}
+          </button>
+        ))}
+        {ep && <button onClick={() => setEp(null)} style={{ ...selStyle, cursor: 'pointer', fontSize: 10.5 }}>✕ bỏ lọc {ep}</button>}
+      </div>
+
+      {/* feed */}
+      <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+        {rows.length === 0 && <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>không có call nào.</div>}
+        {rows.map((r, i) => {
+          const obj = EP_OBJECT[r.endpoint];
+          const human = [r.place, r.who ? `@${r.who}` : null].filter(Boolean).join(' · ');
+          return (
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
+              <span title={`HTTP ${r.status}`} style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor(r.status), flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', width: 34, flexShrink: 0, textAlign: 'right' }}>{relTime(r.ts)}</span>
+              <button onClick={() => obj && onOpenObject(obj)} disabled={!obj} title={obj ? `mở ${obj}` : undefined}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: obj ? 'var(--accent)' : 'var(--fg-1)', background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px', cursor: obj ? 'pointer' : 'default', flexShrink: 0, width: 120, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {human || r.host}{r.result && <span style={{ color: 'var(--ok)' }}> → {r.result}</span>}
+                {r.errorMsg && <span style={{ color: 'var(--bad)' }}> · {r.errorMsg}</span>}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', flexShrink: 0 }}>{r.host}{r.extVersion ? ` · v${r.extVersion}` : ''}{r.durationMs != null ? ` · ${r.durationMs}ms` : ''}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function StudioInner({ projects, defaultProjectId }: { projects: { id: string; name: string }[]; defaultProjectId: string }) {
   const [view, setView] = useState<ViewKey>('objects');
   const [proj, setProj] = useState(defaultProjectId || projects[0]?.id || '');
@@ -940,7 +1031,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architecture Studio</div>
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
-          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend']] as [ViewKey, string][]).map(([k, lbl]) => (
+          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity']] as [ViewKey, string][]).map(([k, lbl]) => (
             <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>
           ))}
         </div>
@@ -1006,8 +1097,11 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         );
       })()}
 
-      {/* canvas */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      {/* canvas (or live feed) */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        {view === 'live' ? (
+          <LiveActivity onOpenObject={(key) => { setStack([]); setSel({ kind: 'object', key }); }} />
+        ) : (
         <ReactFlow
           nodes={nodes} edges={edges}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -1026,6 +1120,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
             return d?.color || '#5a6273';
           }} maskColor="rgba(7,9,13,0.7)" style={{ background: 'var(--bg-1)' }} />
         </ReactFlow>
+        )}
       </div>
 
       {/* drawer */}

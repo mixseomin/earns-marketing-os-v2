@@ -447,6 +447,7 @@ export async function metricCoverage(): Promise<MetricCoverage> {
       WITH card_pf AS (
         SELECT c.id,
           COALESCE(pa.platform_key, h.platform_key) AS platform,
+          h.technology_key AS hab_tech,
           c.insights_views_count AS m_views, c.insights_score AS m_score,
           c.insights_reply_count AS m_reply, c.insights_engagements AS m_share
         FROM cards c
@@ -455,7 +456,9 @@ export async function metricCoverage(): Promise<MetricCoverage> {
         LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
         WHERE c.post_url IS NOT NULL
       )
-      SELECT cp.platform, p.technology_key AS tech, count(*)::int AS cards,
+      -- engine = platforms.technology_key, fallback về habitat.technology_key
+      -- (forum như resetera-com có platforms.tech=NULL mà habitat=xenforo → vẫn cascade engine được).
+      SELECT cp.platform, COALESCE(p.technology_key, max(cp.hab_tech)) AS tech, count(*)::int AS cards,
              count(cp.m_views)::int AS v, count(cp.m_score)::int AS s,
              count(cp.m_reply)::int AS r, count(cp.m_share)::int AS sh
       FROM card_pf cp LEFT JOIN platforms p ON p.key = cp.platform

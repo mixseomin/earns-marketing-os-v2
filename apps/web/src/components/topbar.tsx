@@ -223,8 +223,12 @@ export function TopBar({
         className="mobile-menu-btn"
         onClick={onMobileMenuClick}
         aria-label="Toggle navigation"
+        title="Tap to open navigation menu"
       >
-        ☰
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+          <span style={{ fontSize: 16 }}>☰</span>
+          <span style={{ fontSize: 7, marginTop: 1, letterSpacing: '0.04em', fontFamily: 'var(--font-mono)', opacity: 0.7 }}>MENU</span>
+        </span>
       </button>
       <Link href="/" className="brand" title="MOS — về trang chủ (portfolio)"
             style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -247,7 +251,7 @@ export function TopBar({
           shortcut quay về Board / Tribes / Studio mà không phải qua sidebar. */}
       {currentProject && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="topbar-project-indicator" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             <span style={{ fontSize: 14 }}>{currentProject.emoji}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentProject.name}</span>
           </div>

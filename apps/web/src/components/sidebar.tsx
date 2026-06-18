@@ -55,6 +55,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser }: { mod
             { href: `/p/${pid}/resources?vault=infra`,     label: 'Infra',        icon: '🌐' },
             { href: `/p/${pid}/resources?vault=budget`,    label: 'Budget',       icon: '💰' },
             { href: `/p/${pid}/resources?vault=knowledge`, label: 'Knowledge',    icon: '🧠' },
+            ...(pid === 'strategy-lab' ? [{ href: `/p/${pid}/strategy-tests`, label: 'Strategy Tests', icon: '🔬' }] : []),
             { href: `/p/${pid}/publications`,              label: 'Publications', icon: '📡' },
           ],
     },

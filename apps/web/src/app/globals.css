@@ -230,10 +230,19 @@ button { font-family: inherit; color: inherit; }
   .rightbar { display: none !important; }
   .statusbar { display: none !important; }
 
-  .mobile-menu-btn { display: inline-flex; }
+  .mobile-menu-btn {
+    display: inline-flex;
+    width: 42px; height: 38px;
+    background: var(--bg-2);
+  }
 
   /* Mobile drawer PAGES section is visible only on mobile */
   .sidebar-mobile-tabs { display: block; }
+
+  /* Topbar project indicator (emoji + name between Portfolio and tabs)
+     eats ~160px of precious horizontal space — user already knows which
+     project they opened. Drop it on phone; the sidebar shows it. */
+  .topbar-project-indicator { display: none !important; }
 
   .topbar {
     padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));

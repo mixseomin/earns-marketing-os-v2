@@ -266,8 +266,17 @@ export const OBJECTS: ArchObject[] = [
       { name: 'habitatId', col: 'habitat_id', type: 'fk', fk: 'habitat', note: 'identity path B (direct)' },
       { name: 'pillarId', col: 'pillar_id', type: 'fk', fk: 'pillar' },
       { name: 'postUrl', col: 'post_url', type: 'text' },
-      { name: 'postLifecycle', col: 'post_lifecycle', type: 'text' },
+      { name: 'postLifecycle', col: 'post_lifecycle', type: 'text', note: 'live|removed|… (= badge "live")' },
+      { name: 'briefPhase', col: 'brief_phase', type: 'text', note: 'lifecycle phase (= badge "warm-up")' },
+      { name: 'postedAt', col: 'posted_at', type: 'date' },
       { name: 'answerSource', col: 'answer_source', type: 'text', note: 'astrolas|hyperjournal' },
+      // tracking — on-page engagement scraped back into the card (the ↑ 💬 badge)
+      { name: 'insightsScore', col: 'insights_score', type: 'int', note: '↑ upvotes / score' },
+      { name: 'insightsReplyCount', col: 'insights_reply_count', type: 'int', note: '💬 replies' },
+      { name: 'insightsUpvoteRatio', col: 'insights_upvote_ratio', type: 'float' },
+      { name: 'insightsViews', col: 'insights_views_count', type: 'int' },
+      { name: 'insightsEngagements', col: 'insights_engagements', type: 'int' },
+      { name: 'insightsFetchedAt', col: 'insights_fetched_at', type: 'date', note: 'last tracked' },
     ],
     relations: [
       { to: 'brief', kind: 'fk', via: 'brief_id' },

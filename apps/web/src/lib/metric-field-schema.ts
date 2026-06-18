@@ -118,9 +118,11 @@ const METRIC_NA: Record<string, MetricKey[]> = {
   reddit: ['shareCount'],
   // Card HN = comment: HN ẩn điểm comment + không hiển thị reply/views/share count.
   hackernews: ['views', 'score', 'replyCount', 'shareCount'],
-  // Xenforo (resetera…): không có khái niệm share (reaction=score, reply đếm OK).
-  xenforo: ['shareCount'],
-  'resetera-com': ['shareCount'],
+  // Xenforo (resetera…): không có khái niệm share; views chỉ ở thread-LIST
+  // (thread-level), KHÔNG phơi bày per-post trên trang thread → ko phải metric của
+  // post mình (verify 2026-06-19 qua Playwright: trang thread rỗng stat). reaction=score, reply OK.
+  xenforo: ['shareCount', 'views'],
+  'resetera-com': ['shareCount', 'views'],
 };
 
 /** metric CÓ áp dụng cho (platform, engine) không? false = nền tảng không phơi bày

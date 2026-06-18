@@ -256,17 +256,11 @@ button { font-family: inherit; color: inherit; }
   .topbar-search { display: none !important; }
   .live-pill { display: none !important; }
   .topbar-spacer { flex: 0 !important; }
-  .topbar .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .topbar .tab {
-    font-size: 11px;
-    padding: 0 8px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
+  /* Kill the project-tabs nav on mobile entirely — the ☰ MENU drawer has
+     the full PAGES list with sub-items. Half-cropped horizontal-scroll
+     tabs are worse than no tabs (the scroll thumb confuses users into
+     thinking they should swipe a part of the page that ISN'T the page). */
+  .topbar .tabs { display: none !important; }
 
   .main {
     overflow-x: hidden;

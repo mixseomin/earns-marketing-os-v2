@@ -7,8 +7,9 @@ import { errorResponse } from '@/lib/ext-route';
 // POST /api/ext/selectors/set — lưu THỦ CÔNG 1 selector từ picker on-page (khác learn-selectors = LLM).
 // Ghi TRỰC TIẾP field_name as-is (vd 'post.author') — KHÔNG qua setMap/canonField vì canonField biến
 // '.' → '_' (post.author → post_author) SAI convention dot mà resolve + buildDbAdapter dùng.
-// source='manual' → cascade habitat>platform>engine + ext MOS2.sel dùng ngay.
-// Body: { scopeKind:'platform'|'engine'|'habitat', scopeKey, pageKind, fieldName, css, attr? }
+// source='manual' → cascade habitat>platform>technology + ext MOS2.sel dùng ngay.
+// Body: { scopeKind:'platform'|'technology'|'habitat', scopeKey, pageKind, fieldName, css, attr? }
+//        (legacy 'engine' accepted from un-updated ext; stored as 'technology').
 export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
@@ -18,7 +19,9 @@ export async function POST(req: Request) {
     // Metric selectors (page_kind='post-metrics'): cách đọc số (via) + parse hint.
     via?: string | null; parse?: string | null;
   };
-  const scopeKind = b.scopeKind === 'engine' || b.scopeKind === 'habitat' ? b.scopeKind : 'platform';
+  // legacy 'engine' → 'technology'; anything but technology/habitat falls back to platform.
+  const scopeKind = b.scopeKind === 'engine' || b.scopeKind === 'technology' ? 'technology'
+    : b.scopeKind === 'habitat' ? 'habitat' : 'platform';
   const scopeKey = String(b.scopeKey || '').trim();
   const pageKind = String(b.pageKind || '').trim();
   const fieldName = String(b.fieldName || '').trim();

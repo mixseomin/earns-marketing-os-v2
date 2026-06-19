@@ -909,8 +909,8 @@ export function HabitatFormModal({
 
           <div>
             <label style={lbl}>
-              <span title="Engine / CMS / framework của site (WordPress, Discourse, vBulletin, XenForo, phpBB, Shopify, Webflow, custom…). Chỉ cần điền nếu khác mặc định của platform — để scraper biết cách parse rules + post."
-                    style={{ cursor: 'help' }}>Engine</span>
+              <span title="Technology / CMS / framework của site (WordPress, Discourse, vBulletin, XenForo, phpBB, Shopify, Webflow, custom…). Chỉ cần điền nếu khác mặc định của platform — để scraper biết cách parse rules + post."
+                    style={{ cursor: 'help' }}>Technology</span>
             </label>
             <TechnologyPicker
               technologies={technologies}
@@ -1903,7 +1903,7 @@ export function HabitatFormModal({
                     {form.platformKey ?? '(chưa set)'}
                   </strong> không có concept sub-area.
                   <br />
-                  Áp dụng cho Discord/Slack/Telegram (channel) + forum (sub-forum). Forum cần đặt engine ở tab Identity.
+                  Áp dụng cho Discord/Slack/Telegram (channel) + forum (sub-forum). Forum cần đặt technology ở tab Identity.
                 </div>
               ) : !channelsLoaded ? (
                 <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -1192,7 +1192,7 @@ export const selectorOverrides = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     tenantId: text('tenant_id').notNull().default('self'),
-    scopeKind: text('scope_kind').notNull(),    // 'engine' | 'platform' | 'habitat'
+    scopeKind: text('scope_kind').notNull(),    // 'technology' | 'platform' | 'habitat' (legacy value: 'engine')
     scopeKey: text('scope_key').notNull(),       // techKey | platformKey | habitatId::text
     pageKind: text('page_kind').notNull(),       // 'subreddit-about' | 'forum-thread' ...
     fieldName: text('field_name').notNull(),    // 'members' | 'description' ...

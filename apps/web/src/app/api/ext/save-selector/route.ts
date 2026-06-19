@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { errorResponse } from '@/lib/ext-route';
 import { checkAuth } from '../_auth';
-import { setOverride } from '@/lib/actions/habitat-selectors';
+import { setOverride, normScopeKind } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema, WRITE_PAGE_KINDS } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
@@ -25,7 +25,8 @@ interface SaveReq {
   kind?: 'css' | 'xpath';
   attr?: string;
   parse?: string;
-  target_scope?: 'engine' | 'platform' | 'habitat';
+  // legacy 'engine' accepted from un-updated ext; normalized to 'technology'.
+  target_scope?: 'engine' | 'technology' | 'platform' | 'habitat';
   target_key?: string;
   habitat_id?: number;
   technology_key?: string;
@@ -109,9 +110,9 @@ export async function POST(req: Request) {
     if (body.transform_replace != null) spec.transform_replace = body.transform_replace;
   }
 
-  const targetScope = body.target_scope ?? 'platform';
+  const targetScope = normScopeKind(body.target_scope ?? 'platform');
   const targetKey = body.target_key
-    ?? (targetScope === 'engine' ? (body.technology_key || '') :
+    ?? (targetScope === 'technology' ? (body.technology_key || '') :
         targetScope === 'habitat' ? String(body.habitat_id || '') :
         body.platform_key);
 

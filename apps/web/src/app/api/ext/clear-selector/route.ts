@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { clearOverride, type ScopeKind } from '@/lib/actions/habitat-selectors';
+import { clearOverride, normScopeKind, type ScopeKind } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 
 export const dynamic = 'force-dynamic';
 
 // Clear (delete) 1 selector row qua ext (HL mode label menu click).
 // Mặc định scope='platform' để xóa selector chung; user có thể pass
-// scope='habitat'/'engine' để clear scope hẹp/rộng hơn.
+// scope='habitat'/'technology' để clear scope hẹp/rộng hơn (legacy 'engine' OK).
 
 interface ClearReq {
   platform_key: string;     // dùng làm scope_key default
   page_kind: string;
   field_name: string;
-  scope?: ScopeKind;
+  scope?: ScopeKind | 'engine';
   scope_key?: string;
 }
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
-  const scope = body.scope ?? 'platform';
+  const scope = normScopeKind(body.scope ?? 'platform');
   const key = body.scope_key ?? body.platform_key;
 
   const res = await clearOverride({

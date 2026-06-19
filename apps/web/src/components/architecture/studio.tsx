@@ -178,10 +178,12 @@ function Tip({ text, children, style }: { text: string; children: ReactNode; sty
 }
 
 // Vietnamese descriptions (internal admin tool) — explain scope/context/field on hover.
+const TECH_SCOPE_VI = 'Cấp TECHNOLOGY (forum tech): bộ selector DÙNG CHUNG cho MỌI site chạy technology này (vd mọi forum XenForo). Ưu tiên thấp nhất trong cascade.';
 const SCOPE_KIND_VI: Record<string, string> = {
-  engine: 'Cấp ENGINE (forum tech): bộ selector DÙNG CHUNG cho MỌI site chạy engine này (vd mọi forum XenForo). Ưu tiên thấp nhất trong cascade.',
-  platform: 'Cấp PLATFORM: selector riêng cho 1 nền tảng (reddit, x…). Ghi đè lên cấp engine.',
-  habitat: 'Cấp HABITAT: selector riêng cho 1 cộng đồng cụ thể. Ưu tiên CAO nhất, ghi đè platform + engine.',
+  technology: TECH_SCOPE_VI,
+  engine: TECH_SCOPE_VI, // legacy scope value alias
+  platform: 'Cấp PLATFORM: selector riêng cho 1 nền tảng (reddit, x…). Ghi đè lên cấp technology.',
+  habitat: 'Cấp HABITAT: selector riêng cho 1 cộng đồng cụ thể. Ưu tiên CAO nhất, ghi đè platform + technology.',
 };
 const PAGE_KIND_VI: Record<string, string> = {
   composer: 'Khung soạn thảo: ô nhập reply/post, nút gửi, anchor để chèn widget, và bài đang được trả lời.',
@@ -413,14 +415,14 @@ function SelectorCatalog() {
 
   const isOpen = (s: Scope) => (ql || onlyIssues ? true : open.has(s.key)); // filter/issues-mode auto-expand
   const toggle = (key: string) => setOpen((p) => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; });
-  const scopeColor = (k: string) => (k === 'engine' ? '#b48cff' : k === 'platform' ? 'var(--accent)' : 'var(--ok)');
+  const scopeColor = (k: string) => (k === 'technology' || k === 'engine' ? '#b48cff' : k === 'platform' ? 'var(--accent)' : 'var(--ok)');
 
   return (
     <div>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter scope / page_kind / field…" autoComplete="off"
         style={{ width: '100%', boxSizing: 'border-box', marginBottom: 6, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <Tip text={`scope = một cấp selector (engine/platform/habitat) + tên của nó.\nselectors = tổng số dòng selector đang khớp bộ lọc.`}>
+        <Tip text={`scope = một cấp selector (technology/platform/habitat) + tên của nó.\nselectors = tổng số dòng selector đang khớp bộ lọc.`}>
           <span style={{ fontSize: 10.5, color: 'var(--fg-3)', cursor: 'help' }}>{scopes.length} scope{scopes.length > 1 ? 's' : ''} · {filtered.length} selectors</span>
         </Tip>
         {totalProblems > 0 ? (
@@ -442,7 +444,7 @@ function SelectorCatalog() {
               <Tip text={SCOPE_KIND_VI[s.scopeKind] || `Cấp scope: ${s.scopeKind}.`} style={{ cursor: 'help' }}>
                 <span style={{ ...chip(scopeColor(s.scopeKind)), marginLeft: 0 }}>{s.scopeKind}</span>
               </Tip>
-              <Tip text={s.scopeKind === 'engine' ? `Forum engine "${s.scopeKey}" — selector áp cho MỌI site chạy engine này.` : s.scopeKind === 'platform' ? `Nền tảng "${s.scopeKey}".` : `Cộng đồng "${s.scopeKey}".`} style={{ cursor: 'help' }}>
+              <Tip text={s.scopeKind === 'technology' || s.scopeKind === 'engine' ? `Forum technology "${s.scopeKey}" — selector áp cho MỌI site chạy technology này.` : s.scopeKind === 'platform' ? `Nền tảng "${s.scopeKey}".` : `Cộng đồng "${s.scopeKey}".`} style={{ cursor: 'help' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)' }}>{s.scopeKey}</span>
               </Tip>
               {bad && (
@@ -490,7 +492,7 @@ function SelectorCatalog() {
         })}
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
-        Thứ tự ưu tiên lúc chạy: <b>habitat → platform → engine → generic</b> (cấp dưới ghi đè cấp trên). Quản lý tại <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. <span style={{ color: 'var(--bad)' }}>Viền đỏ ⚠</span> = bất hợp lý · viền nét đứt = chưa có CSS.
+        Thứ tự ưu tiên lúc chạy: <b>habitat → platform → technology → generic</b> (cấp dưới ghi đè cấp trên). Quản lý tại <a href="/technologies" style={{ color: 'var(--accent)' }}>/technologies</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>. <span style={{ color: 'var(--bad)' }}>Viền đỏ ⚠</span> = bất hợp lý · viền nét đứt = chưa có CSS.
       </div>
     </div>
   );
@@ -517,7 +519,7 @@ function MetricTrainGuide({ metric, platform, via }: { metric: string; platform:
       {step(2, <>Bật Crew ext → mở <b>🎯 Selector manager</b> (nút trên crew bar) → kéo xuống mục <b>📊 Metrics</b>.</>)}
       {step(3, <>Bấm <b>🎯 Pick</b> ở dòng <b>{metric}</b> → click đúng con số trên trang. Ext tự sinh CSS.</>)}
       {step(4, <>Chọn cách đọc <b>via</b> = <code style={{ fontFamily: 'var(--font-mono)' }}>{via}</code> (mặc định). Nếu số nằm trong attribute gốc (vd <code style={{ fontFamily: 'var(--font-mono)' }}>faceplate-number number="29"</code>) → đổi via=<b>attr</b> để chính xác hơn "2.3K".</>)}
-      {step(5, <>Chọn scope: <b>Platform ({platform})</b> cho riêng nền tảng, hoặc <b>Engine</b> nếu muốn dùng chung cho mọi forum cùng engine (xenforo…). Bấm <b>💾 Lưu</b>.</>)}
+      {step(5, <>Chọn scope: <b>Platform ({platform})</b> cho riêng nền tảng, hoặc <b>Technology</b> nếu muốn dùng chung cho mọi forum cùng technology (xenforo…). Bấm <b>💾 Lưu</b>.</>)}
       <div style={{ marginTop: 12, padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.5 }}>
         Lưu xong: selector vào <code style={{ fontFamily: 'var(--font-mono)' }}>selector_overrides</code> (page_kind <code style={{ fontFamily: 'var(--font-mono)' }}>post-metrics</code>) → ext đọc qua <code style={{ fontFamily: 'var(--font-mono)' }}>MOS2.sel.metrics()</code> → lần track kế gửi số lên <code style={{ fontFamily: 'var(--font-mono)' }}>/seeding/insights</code> → ô này chuyển <span style={{ color: 'var(--ok)' }}>xanh ✓</span> + Live feed hiện 👁.
       </div>
@@ -555,7 +557,7 @@ function MetricCoveragePanel() {
               <th style={{ ...th, textAlign: 'left' }}>metric ↓ / platform →</th>
               {cov.platforms.map((p) => (
                 <th key={p.key} style={th}>
-                  <Tip text={`${p.key}${p.technologyKey ? ` · engine ${p.technologyKey}` : ''}\n${p.cards} card đã đăng.\nSelector platform-scope áp cho nền tảng này; engine-scope dùng chung mọi forum cùng engine.`} style={{ cursor: 'help' }}>
+                  <Tip text={`${p.key}${p.technologyKey ? ` · technology ${p.technologyKey}` : ''}\n${p.cards} card đã đăng.\nSelector platform-scope áp cho nền tảng này; technology-scope dùng chung mọi forum cùng technology.`} style={{ cursor: 'help' }}>
                     <span>{p.key}<br /><span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{p.cards}c</span></span>
                   </Tip>
                 </th>
@@ -612,7 +614,7 @@ function MetricCoveragePanel() {
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.6 }}>
         <span style={{ color: 'var(--ok)' }}>✓ trained</span> = có selector DOM · <span style={{ color: 'var(--bad)' }}>⚠ gap</span> = có card mà chưa selector (cần train) · <span style={{ color: '#3fb6c4' }}>◆ API</span> = số từ commentstats API (không DOM) · <span style={{ color: 'var(--fg-4)' }}>–</span> = N/A (nền tảng không phơi bày metric cho comment/reply) hoặc chưa có card.<br />
-        <b>Thêm platform mới</b> (cùng element số): train field <code style={{ fontFamily: 'var(--font-mono)' }}>metric.*</code> ở scope <b>platform</b> hoặc <b>engine</b> → cascade tự áp mọi habitat. <b>Thêm metric mới</b>: 1 dòng vào <code style={{ fontFamily: 'var(--font-mono)' }}>metric-field-schema.ts</code> → tự hiện ở đây + ext.
+        <b>Thêm platform mới</b> (cùng element số): train field <code style={{ fontFamily: 'var(--font-mono)' }}>metric.*</code> ở scope <b>platform</b> hoặc <b>technology</b> → cascade tự áp mọi habitat. <b>Thêm metric mới</b>: 1 dòng vào <code style={{ fontFamily: 'var(--font-mono)' }}>metric-field-schema.ts</code> → tự hiện ở đây + ext.
       </div>
     </div>
   );
@@ -705,7 +707,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const [detail, setDetail] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sels, setSels] = useState<SelRow[] | null>(null);
-  const isScoped = obj.key === 'platform' || obj.key === 'engine' || obj.key === 'habitat';
+  const isScoped = obj.key === 'platform' || obj.key === 'technology' || obj.key === 'habitat';
   const parent = obj.picker?.parent;             // child needs its parent picked first (channel → habitat)
   const crossProject = !!obj.picker?.crossProject; // independent place, list across projects (habitat)
   const [parentId, setParentId] = useState('');
@@ -905,7 +907,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
         </Section>
       )}
 
-      {/* selector library for this scope (per platform/engine/habitat × entity) */}
+      {/* selector library for this scope (per platform/technology/habitat × entity) */}
       {isScoped && (
         <Section title="Selectors (this scope)" sub={`// scope_kind='${obj.key}'`}>
           {!picked ? (
@@ -913,7 +915,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
           ) : sels == null ? (
             <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>
           ) : sels.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained at this scope yet. Train on-page via the Crew picker (🎯) or fall back to the cascade (habitat → platform → engine).</div>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained at this scope yet. Train on-page via the Crew picker (🎯) or fall back to the cascade (habitat → platform → technology).</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(() => {
@@ -946,7 +948,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
             </div>
           )}
           <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
-            The Crew extension resolves these at runtime via <code>MOS2.sel</code> (priority: DB → a.sel → platform → engine → generic) and lets you pick/edit them on the page. Manage at <a href="/engines" style={{ color: 'var(--accent)' }}>/engines</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>.
+            The Crew extension resolves these at runtime via <code>MOS2.sel</code> (priority: DB → a.sel → platform → technology → generic) and lets you pick/edit them on the page. Manage at <a href="/technologies" style={{ color: 'var(--accent)' }}>/technologies</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>.
           </div>
         </Section>
       )}

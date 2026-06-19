@@ -1,10 +1,10 @@
 'use client';
 
-// EnginesPage — admin view to inspect + manage forum/CMS engine selectors.
-// Per engine (xenforo, vbulletin, discourse…): the selector_overrides at
-// engine scope (view/edit/delete via HabitatSelectorsSection editScope=engine),
-// the signup-field defaults, which platforms + habitats inherit the engine,
-// and a duplicate-field detector with one-click merge. Route: /engines.
+// TechnologiesPage — admin view to inspect + manage forum/CMS technology selectors.
+// Per technology (xenforo, vbulletin, discourse…): the selector_overrides at
+// technology scope (view/edit/delete via HabitatSelectorsSection editScope=technology),
+// the signup-field defaults, which platforms + habitats inherit the technology,
+// and a duplicate-field detector with one-click merge. Route: /technologies.
 
 import { useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -23,7 +23,7 @@ const pkMeta = (pk: string) => PK_META[pk] ?? { label: pk, color: 'var(--fg-3)' 
 
 const APPLIED_CAP = 10;
 
-export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[]; dups: DupGroup[] }) {
+export function TechnologiesPage({ technologies, dups }: { technologies: TechnologyWithUsage[]; dups: DupGroup[] }) {
   const pathname = usePathname();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(() => {
@@ -31,8 +31,8 @@ export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[];
     return new URLSearchParams(window.location.search).get('e');
   });
 
-  // engine key → its duplicate groups
-  const dupsByEngine = useMemo(() => {
+  // technology key → its duplicate groups
+  const dupsByTechnology = useMemo(() => {
     const m = new Map<string, DupGroup[]>();
     for (const d of dups) (m.get(d.scopeKey) ?? m.set(d.scopeKey, []).get(d.scopeKey)!).push(d);
     return m;
@@ -40,14 +40,14 @@ export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[];
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return engines;
-    return engines.filter((e) =>
+    if (!s) return technologies;
+    return technologies.filter((e) =>
       e.key.toLowerCase().includes(s) ||
       e.label.toLowerCase().includes(s) ||
       e.platforms.some((p) => p.label.toLowerCase().includes(s) || p.key.toLowerCase().includes(s)) ||
       e.habitats.some((h) => h.name.toLowerCase().includes(s)),
     );
-  }, [engines, q]);
+  }, [technologies, q]);
 
   const toggle = (key: string) => {
     const next = open === key ? null : key;
@@ -60,30 +60,30 @@ export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[];
     }
   };
 
-  const totalSel = engines.reduce((a, e) => a + Object.values(e.selectorCounts).reduce((x, y) => x + y, 0), 0);
+  const totalSel = technologies.reduce((a, e) => a + Object.values(e.selectorCounts).reduce((x, y) => x + y, 0), 0);
   const totalDups = dups.length;
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 14 }}>
         <h1 style={{ fontSize: 20, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          ⚙ Engines
+          ⚙ Technologies
           <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--fg-3)' }}>
-            {engines.length} engines · {totalSel} engine-scope selectors
+            {technologies.length} technologies · {totalSel} technology-scope selectors
             {totalDups > 0 && <span style={{ color: 'var(--warn)' }}> · ⚠ {totalDups} duplicate{totalDups > 1 ? 's' : ''}</span>}
           </span>
         </h1>
         <p style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 4 }}>
-          Selector defaults inherited by every platform + habitat on this engine
-          (cascade: habitat &gt; platform &gt; engine). Edit here = applies to all
-          sites on the engine unless overridden at a narrower scope.
+          Selector defaults inherited by every platform + habitat on this technology
+          (cascade: habitat &gt; platform &gt; technology). Edit here = applies to all
+          sites on the technology unless overridden at a narrower scope.
         </p>
       </div>
 
       <div style={{ marginBottom: 10 }}>
         <NoFillInput
           type="search"
-          placeholder="Search engine · platform · habitat…"
+          placeholder="Search technology · platform · habitat…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           style={{ width: '100%', maxWidth: 360, fontSize: 13, padding: '6px 10px',
@@ -93,14 +93,14 @@ export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[];
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.map((e) => (
-          <EngineCard
-            key={e.key} engine={e} isOpen={open === e.key}
-            onToggle={() => toggle(e.key)} dups={dupsByEngine.get(e.key) ?? []}
+          <TechnologyCard
+            key={e.key} technology={e} isOpen={open === e.key}
+            onToggle={() => toggle(e.key)} dups={dupsByTechnology.get(e.key) ?? []}
           />
         ))}
         {filtered.length === 0 && (
           <div style={{ padding: 30, textAlign: 'center', color: 'var(--fg-3)' }}>
-            {engines.length === 0 ? 'No engines yet.' : `No engine matches “${q}”.`}
+            {technologies.length === 0 ? 'No technologies yet.' : `No technology matches “${q}”.`}
           </div>
         )}
       </div>
@@ -108,8 +108,8 @@ export function EnginesPage({ engines, dups }: { engines: TechnologyWithUsage[];
   );
 }
 
-function EngineCard({ engine: e, isOpen, onToggle, dups }: {
-  engine: TechnologyWithUsage; isOpen: boolean; onToggle: () => void; dups: DupGroup[];
+function TechnologyCard({ technology: e, isOpen, onToggle, dups }: {
+  technology: TechnologyWithUsage; isOpen: boolean; onToggle: () => void; dups: DupGroup[];
 }) {
   const selPks = Object.entries(e.selectorCounts).sort();
   const selTotal = selPks.reduce((a, [, n]) => a + n, 0);
@@ -142,17 +142,17 @@ function EngineCard({ engine: e, isOpen, onToggle, dups }: {
           })}
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, fontSize: 11, color: 'var(--fg-2)' }}>
-          <span title="platforms on this engine">🌐 {e.platforms.length}</span>
-          <span title="habitats on this engine">◍ {e.habitats.length}</span>
+          <span title="platforms on this technology">🌐 {e.platforms.length}</span>
+          <span title="habitats on this technology">◍ {e.habitats.length}</span>
         </div>
       </button>
 
       {isOpen && (
         <div style={{ padding: '4px 16px 16px', borderTop: '1px solid var(--line)' }}>
-          {dups.length > 0 && <DupPanel engineKey={e.key} dups={dups} />}
+          {dups.length > 0 && <DupPanel technologyKey={e.key} dups={dups} />}
 
           <Section title="Applied by">
-            <AppliedBy engine={e} />
+            <AppliedBy technology={e} />
           </Section>
 
           {e.signupFields.length > 0 && (
@@ -168,8 +168,8 @@ function EngineCard({ engine: e, isOpen, onToggle, dups }: {
             </Section>
           )}
 
-          <Section title="Selectors (engine scope)">
-            <HabitatSelectorsSection editScope="engine" editKey={e.key} pageKind="signup" />
+          <Section title="Selectors (technology scope)">
+            <HabitatSelectorsSection editScope="technology" editKey={e.key} pageKind="signup" />
           </Section>
         </div>
       )}
@@ -177,7 +177,7 @@ function EngineCard({ engine: e, isOpen, onToggle, dups }: {
   );
 }
 
-function AppliedBy({ engine: e }: { engine: TechnologyWithUsage }) {
+function AppliedBy({ technology: e }: { technology: TechnologyWithUsage }) {
   const [expanded, setExpanded] = useState(false);
   const all = [
     ...e.platforms.map((p) => ({ kind: 'platform' as const, id: p.key, label: p.label, href: '/platforms', title: `Platform · ${p.key}` })),
@@ -201,7 +201,7 @@ function AppliedBy({ engine: e }: { engine: TechnologyWithUsage }) {
   );
 }
 
-function DupPanel({ engineKey, dups }: { engineKey: string; dups: DupGroup[] }) {
+function DupPanel({ technologyKey, dups }: { technologyKey: string; dups: DupGroup[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
@@ -210,7 +210,7 @@ function DupPanel({ engineKey, dups }: { engineKey: string; dups: DupGroup[] }) 
     const drop = g.fields.map((f) => f.field).filter((f) => f !== keep);
     setBusy(g.on);
     start(async () => {
-      await mergeSelectorField({ scopeKind: 'engine', scopeKey: engineKey, pageKind: g.pageKind, keep, drop });
+      await mergeSelectorField({ scopeKind: 'technology', scopeKey: technologyKey, pageKind: g.pageKind, keep, drop });
       setBusy(null);
       router.refresh();
     });

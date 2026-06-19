@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb, platformTechnologies, platforms, habitats, selectorOverrides } from '@mos2/db';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, inArray, isNotNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
@@ -18,7 +18,7 @@ export interface SignupField {
   template?: string;
   alt?: string[];
   maxLen?: number;
-  source?: 'engine' | 'platform' | 'checklist';
+  source?: 'technology' | 'platform' | 'checklist';
   // Ràng buộc signup tích luỹ per-platform (lộ lúc submit, vd "password ≥15 ký tự") →
   // fill/gen khớp sẵn lần sau. notes = mô tả người đọc; min/max/pattern = structured.
   minLength?: number;
@@ -55,11 +55,11 @@ export async function listTechnologies(): Promise<TechnologyRow[]> {
   return rows.map(mapRow);
 }
 
-// ── Engine management page: each engine + who applies it + selector coverage ──
+// ── Technology management page: each technology + who applies it + selector coverage ──
 export interface TechnologyWithUsage extends TechnologyRow {
   platforms: Array<{ key: string; label: string }>;
   habitats: Array<{ id: number; name: string; projectId: string }>;
-  // selector_overrides at engine scope, count per page_kind ('signup': 12, ...)
+  // selector_overrides at technology scope, count per page_kind ('signup': 12, ...)
   selectorCounts: Record<string, number>;
 }
 
@@ -74,7 +74,7 @@ export async function listTechnologiesWithUsage(): Promise<TechnologyWithUsage[]
       .from(habitats).where(isNotNull(habitats.technologyKey)),
     db.select({ key: selectorOverrides.scopeKey, pageKind: selectorOverrides.pageKind, n: sql<number>`count(*)::int` })
       .from(selectorOverrides)
-      .where(and(eq(selectorOverrides.tenantId, TENANT), eq(selectorOverrides.scopeKind, 'engine')))
+      .where(and(eq(selectorOverrides.tenantId, TENANT), inArray(selectorOverrides.scopeKind, ['technology', 'engine'])))
       .groupBy(selectorOverrides.scopeKey, selectorOverrides.pageKind),
   ]);
   const platBy = new Map<string, Array<{ key: string; label: string }>>();
@@ -171,12 +171,12 @@ export async function getEffectiveSignupFields(platformKey: string): Promise<Sig
       .from(platformTechnologies)
       .where(eq(platformTechnologies.key, pf.technologyKey))
       .limit(1);
-    if (tech) techFields = ((tech.signupFields as SignupField[]) ?? []).map((f) => ({ ...f, source: 'engine' as const }));
+    if (tech) techFields = ((tech.signupFields as SignupField[]) ?? []).map((f) => ({ ...f, source: 'technology' as const }));
   }
 
   // Auto-derive snippet fields from platform.checklist (creating phase) so
   // user doesn't have to redefine HEADLINE/BIO/etc. The checklist remains
-  // canonical; here we surface them as fields-to-prepare unified with engine
+  // canonical; here we surface them as fields-to-prepare unified with technology
   // signup_fields.
   type ChkSnippet = { label: string; text: string; alt?: string[]; maxLen?: number };
   type ChkItem = { key: string; phase: string; tip?: string; snippets?: ChkSnippet[] };
@@ -195,7 +195,7 @@ export async function getEffectiveSignupFields(platformKey: string): Promise<Sig
       source: 'checklist' as const,
     })));
 
-  // Merge order: engine defaults → platform overrides (by key) → checklist snippets
+  // Merge order: technology defaults → platform overrides (by key) → checklist snippets
   const merged: SignupField[] = [...techFields];
   for (const pField of platformFields) {
     const idx = merged.findIndex((f) => f.key === pField.key);
@@ -292,7 +292,7 @@ export async function detectTechnologyFromUrl(
     }
   }
 
-  // 4. HTML substring scan — count hits per engine, pick highest
+  // 4. HTML substring scan — count hits per technology, pick highest
   const scores: Record<string, number> = {};
   for (const [slug, fp] of Object.entries(FINGERPRINTS)) {
     scores[slug] = fp.html.filter((s) => html.includes(s)).length;

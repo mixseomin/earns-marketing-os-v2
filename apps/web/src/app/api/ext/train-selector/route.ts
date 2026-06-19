@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
-import { setOverride } from '@/lib/actions/habitat-selectors';
+import { setOverride, normScopeKind } from '@/lib/actions/habitat-selectors';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';
@@ -35,7 +35,8 @@ interface TrainReq {
   element_html: string;        // outerHTML element user click
   parent_html?: string;        // wrap 3-cấp parent for context
   element_text?: string;       // sample text để LLM verify
-  target_scope?: 'engine' | 'platform' | 'habitat';
+  // legacy 'engine' accepted from un-updated ext; normalized to 'technology'.
+  target_scope?: 'engine' | 'technology' | 'platform' | 'habitat';
   target_key?: string;
   habitat_id?: number;
   technology_key?: string;
@@ -180,9 +181,9 @@ Sinh selector trỏ chính xác element này.`;
   }
 
   // Save - source='trained' priority cao hơn 'llm' (user explicitly tag).
-  const targetScope = body.target_scope ?? 'platform';
+  const targetScope = normScopeKind(body.target_scope ?? 'platform');
   const targetKey = body.target_key
-    ?? (targetScope === 'engine' ? (body.technology_key || '') :
+    ?? (targetScope === 'technology' ? (body.technology_key || '') :
         targetScope === 'habitat' ? String(body.habitat_id || '') :
         body.platform_key);
 

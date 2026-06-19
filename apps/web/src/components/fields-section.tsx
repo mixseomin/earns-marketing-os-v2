@@ -23,7 +23,7 @@ export interface FieldRowSpec {
   hint?: string;
   /** Parse hint (number, date, ...) — show ở góc phải. */
   parse?: string;
-  /** Resolved selector scope (site/platform/engine) hoặc null nếu chưa train. */
+  /** Resolved selector scope (site/platform/technology) hoặc null nếu chưa train. */
   selectorScope?: ScopeKind | null;
   /** CSS selector full — show qua tooltip khi hover scope badge. */
   selectorCss?: string;
@@ -68,7 +68,7 @@ interface Props {
 const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
   habitat: { label: 'site', color: 'var(--accent)' },
   platform: { label: 'platform', color: 'var(--warn)' },
-  engine: { label: 'engine', color: 'var(--fg-3)' },
+  technology: { label: 'technology', color: 'var(--fg-3)' },
 };
 
 const NONE_BADGE_STYLE: React.CSSProperties = {

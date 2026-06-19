@@ -1106,7 +1106,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Inline tech picker — lets user set platform engine without opening Platform modal
+  // Inline tech picker — lets user set platform technology without opening Platform modal
   const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
   const [localTechKey, setLocalTechKey] = useState<string | null>(null);
   const [pendingTechKey, setPendingTechKey] = useState<string | null>(null);
@@ -1150,7 +1150,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     setPendingTechKey(null);
   }, [form.platformKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDetectEngine = () => {
+  const handleDetectTechnology = () => {
     const signupUrl = platform?.signupUrl;
     if (!signupUrl) return;
     setTechDetecting(true); setTechDetectMsg(null);
@@ -1166,54 +1166,54 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     });
   };
 
-  const handleSetEngine = () => {
+  const handleSetTechnology = () => {
     if (!form.platformKey) return;
     setTechSaving(true);
     startTransition(async () => {
       const res = await updatePlatform(form.platformKey, { technologyKey: pendingTechKey });
       setTechSaving(false);
-      if (!res.ok) { setError(res.error || 'Engine update failed'); return; }
+      if (!res.ok) { setError(res.error || 'Technology update failed'); return; }
       setLocalTechKey(pendingTechKey);
       setPendingTechKey(null);
       setFieldsTrigger((n) => n + 1);
     });
   };
 
-  // Inline field editors for engine defaults + platform overrides
-  const [showEditEngine, setShowEditEngine] = useState(false);
+  // Inline field editors for technology defaults + platform overrides
+  const [showEditTechnology, setShowEditTechnology] = useState(false);
   const [showEditPlatformFields, setShowEditPlatformFields] = useState(false);
-  const [editEngineFields, setEditEngineFields] = useState<SignupFieldDef[]>([]);
+  const [editTechnologyFields, setEditTechnologyFields] = useState<SignupFieldDef[]>([]);
   const [editPlatformFields, setEditPlatformFields] = useState<SignupFieldDef[]>([]);
-  const [fieldsSaving, setFieldsSaving] = useState<'engine' | 'platform' | null>(null);
+  const [fieldsSaving, setFieldsSaving] = useState<'technology' | 'platform' | null>(null);
 
-  // Sync editor state when engine/platform picker changes
+  // Sync editor state when technology/platform picker changes
   useEffect(() => {
-    if (!showEditEngine) return;
+    if (!showEditTechnology) return;
     const tech = technologies.find((t) => t.key === localTechKey);
-    setEditEngineFields((tech?.signupFields ?? []) as SignupFieldDef[]);
-  }, [showEditEngine, localTechKey, technologies]);
+    setEditTechnologyFields((tech?.signupFields ?? []) as SignupFieldDef[]);
+  }, [showEditTechnology, localTechKey, technologies]);
 
   useEffect(() => {
     if (!showEditPlatformFields) return;
     setEditPlatformFields((platform?.signupFields ?? []) as SignupFieldDef[]);
   }, [showEditPlatformFields]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSaveEngineFields = () => {
+  const handleSaveTechnologyFields = () => {
     if (!localTechKey) return;
     const tech = technologies.find((t) => t.key === localTechKey);
     if (!tech) return;
-    setFieldsSaving('engine');
+    setFieldsSaving('technology');
     startTransition(async () => {
       const res = await upsertTechnology({
         key: tech.key,
         label: tech.label,
         description: tech.description,
-        signupFields: editEngineFields as SignupField[],
+        signupFields: editTechnologyFields as SignupField[],
         notes: tech.notes,
       });
       setFieldsSaving(null);
-      if (!res.ok) { setError(res.error || 'Save engine fields failed'); return; }
-      setShowEditEngine(false);
+      if (!res.ok) { setError(res.error || 'Save technology fields failed'); return; }
+      setShowEditTechnology(false);
       setFieldsTrigger((n) => n + 1);
     });
   };
@@ -1784,8 +1784,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 onOpenBrief={onOpenBrief}
               />
             )}
-            {/* ── Pre-deployment: inline engine picker + signup fields ──
-                Visible khi status=todo/creating. Engine picker saves trực tiếp
+            {/* ── Pre-deployment: inline technology picker + signup fields ──
+                Visible khi status=todo/creating. Technology picker saves trực tiếp
                 vào platform record (không cần mở Platform modal riêng).
                 Signup fields (persona) lưu cùng account khi Save. */}
             {platform && (form.status === 'todo' || form.status === 'creating') && (
@@ -1816,13 +1816,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
 
                 <div style={{ padding: '10px 10px 12px' }}>
-                  {/* Inline engine picker — saves to platform record directly */}
+                  {/* Inline technology picker — saves to platform record directly */}
                   <div style={{ marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                       <span style={{
                         fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
                         textTransform: 'uppercase', letterSpacing: '0.06em',
-                      }}>⚙ Forum engine</span>
+                      }}>⚙ Forum technology</span>
                       {!localTechKey && (
                         <span style={{ fontSize: 9.5, color: 'var(--warn)', fontStyle: 'italic' }}>
                           — unknown, chọn để xem required fields
@@ -1838,9 +1838,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                           fld={{ ...fld, fontSize: 12 }}
                         />
                       </div>
-                      <button type="button" onClick={handleDetectEngine}
+                      <button type="button" onClick={handleDetectTechnology}
                         disabled={techDetecting || !platform?.signupUrl}
-                        title={platform?.signupUrl ? 'Auto-detect engine từ signup URL' : 'Platform chưa có signup URL'}
+                        title={platform?.signupUrl ? 'Auto-detect technology từ signup URL' : 'Platform chưa có signup URL'}
                         style={{
                           flexShrink: 0, padding: '5px 8px', fontSize: 11, whiteSpace: 'nowrap',
                           background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
@@ -1852,16 +1852,16 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       </button>
                       {(pendingTechKey !== null && pendingTechKey !== localTechKey) && (
                         <button type="button"
-                          onClick={handleSetEngine}
+                          onClick={handleSetTechnology}
                           disabled={techSaving}
-                          title="Lưu engine vào platform record (áp dụng cho tất cả accounts của platform này)"
+                          title="Lưu technology vào platform record (áp dụng cho tất cả accounts của platform này)"
                           style={{
                             flexShrink: 0, padding: '6px 10px', fontSize: 11, fontWeight: 700,
                             background: 'var(--accent)', color: '#0d1117',
                             border: 'none', borderRadius: 5, cursor: techSaving ? 'wait' : 'pointer',
                             opacity: techSaving ? 0.7 : 1, whiteSpace: 'nowrap',
                           }}>
-                          {techSaving ? '...' : '↑ Set engine'}
+                          {techSaving ? '...' : '↑ Set technology'}
                         </button>
                       )}
                     </div>
@@ -1884,29 +1884,29 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   ) : (
                     <div style={{ fontSize: 11, color: 'var(--fg-4)', fontStyle: 'italic', padding: '4px 0' }}>
                       {localTechKey
-                        ? 'Engine này không có required signup fields đặc biệt.'
-                        : 'Chọn engine ở trên để xem danh sách fields cần chuẩn bị.'}
+                        ? 'Technology này không có required signup fields đặc biệt.'
+                        : 'Chọn technology ở trên để xem danh sách fields cần chuẩn bị.'}
                     </div>
                   )}
 
-                  {/* ── Edit buttons for engine defaults + platform overrides ── */}
+                  {/* ── Edit buttons for technology defaults + platform overrides ── */}
                   <div style={{ display: 'flex', gap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--line)' }}>
                     {localTechKey && (
                       <button type="button"
-                        onClick={() => { setShowEditEngine((v) => !v); setShowEditPlatformFields(false); }}
+                        onClick={() => { setShowEditTechnology((v) => !v); setShowEditPlatformFields(false); }}
                         style={{
                           fontSize: 10, padding: '3px 8px',
-                          background: showEditEngine ? 'var(--accent-soft)' : 'var(--bg-2)',
-                          border: `1px solid ${showEditEngine ? 'var(--accent-line)' : 'var(--line)'}`,
-                          color: showEditEngine ? 'var(--accent)' : 'var(--fg-2)',
+                          background: showEditTechnology ? 'var(--accent-soft)' : 'var(--bg-2)',
+                          border: `1px solid ${showEditTechnology ? 'var(--accent-line)' : 'var(--line)'}`,
+                          color: showEditTechnology ? 'var(--accent)' : 'var(--fg-2)',
                           borderRadius: 4, cursor: 'pointer',
                         }}
-                        title="Sửa default fields của engine này (áp dụng toàn cầu cho tất cả platform dùng engine này)">
-                        ✏ Engine defaults ({technologies.find((t) => t.key === localTechKey)?.label ?? localTechKey})
+                        title="Sửa default fields của technology này (áp dụng toàn cầu cho tất cả platform dùng technology này)">
+                        ✏ Technology defaults ({technologies.find((t) => t.key === localTechKey)?.label ?? localTechKey})
                       </button>
                     )}
                     <button type="button"
-                      onClick={() => { setShowEditPlatformFields((v) => !v); setShowEditEngine(false); }}
+                      onClick={() => { setShowEditPlatformFields((v) => !v); setShowEditTechnology(false); }}
                       style={{
                         fontSize: 10, padding: '3px 8px',
                         background: showEditPlatformFields ? 'var(--accent-soft)' : 'var(--bg-2)',
@@ -1914,29 +1914,29 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                         color: showEditPlatformFields ? 'var(--accent)' : 'var(--fg-2)',
                         borderRadius: 4, cursor: 'pointer',
                       }}
-                      title="Sửa platform-specific signup fields (chỉ áp dụng cho platform này, override engine defaults)">
+                      title="Sửa platform-specific signup fields (chỉ áp dụng cho platform này, override technology defaults)">
                       ✏ Platform fields ({platform?.label ?? form.platformKey})
                     </button>
                   </div>
 
-                  {/* Engine field editor */}
-                  {showEditEngine && localTechKey && (
+                  {/* Technology field editor */}
+                  {showEditTechnology && localTechKey && (
                     <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-0)', border: '1px solid var(--accent-line)', borderRadius: 5 }}>
                       <div style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 700, marginBottom: 6 }}>
-                        ⚙ Engine defaults — {technologies.find((t) => t.key === localTechKey)?.label}
+                        ⚙ Technology defaults — {technologies.find((t) => t.key === localTechKey)?.label}
                         <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
-                          (áp dụng cho mọi platform dùng engine này)
+                          (áp dụng cho mọi platform dùng technology này)
                         </span>
                       </div>
-                      <SignupFieldsBuilder fields={editEngineFields} onChange={setEditEngineFields} />
+                      <SignupFieldsBuilder fields={editTechnologyFields} onChange={setEditTechnologyFields} />
                       <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
-                        <button type="button" onClick={() => setShowEditEngine(false)}
+                        <button type="button" onClick={() => setShowEditTechnology(false)}
                           style={{ fontSize: 10, padding: '3px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-3)', borderRadius: 4, cursor: 'pointer' }}>
                           Cancel
                         </button>
-                        <button type="button" onClick={handleSaveEngineFields} disabled={fieldsSaving === 'engine'}
-                          style={{ fontSize: 10, padding: '3px 12px', fontWeight: 700, background: 'var(--accent)', color: '#0d1117', border: 'none', borderRadius: 4, cursor: fieldsSaving === 'engine' ? 'wait' : 'pointer', opacity: fieldsSaving === 'engine' ? 0.7 : 1 }}>
-                          {fieldsSaving === 'engine' ? 'Saving…' : '↑ Save engine defaults'}
+                        <button type="button" onClick={handleSaveTechnologyFields} disabled={fieldsSaving === 'technology'}
+                          style={{ fontSize: 10, padding: '3px 12px', fontWeight: 700, background: 'var(--accent)', color: '#0d1117', border: 'none', borderRadius: 4, cursor: fieldsSaving === 'technology' ? 'wait' : 'pointer', opacity: fieldsSaving === 'technology' ? 0.7 : 1 }}>
+                          {fieldsSaving === 'technology' ? 'Saving…' : '↑ Save technology defaults'}
                         </button>
                       </div>
                     </div>
@@ -1948,7 +1948,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       <div style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 700, marginBottom: 6 }}>
                         Platform overrides — {platform?.label ?? form.platformKey}
                         <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
-                          (override/bổ sung trên engine defaults)
+                          (override/bổ sung trên technology defaults)
                         </span>
                       </div>
                       <SignupFieldsBuilder fields={editPlatformFields} onChange={setEditPlatformFields} />
@@ -1982,7 +1982,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             const fieldNames = Array.from(new Set([...personaKeys, ...Object.keys(selFields)])).sort();
             if (!fieldNames.length) return null;
             const SCOPE_LTR: Record<string, { l: string; c: string }> = {
-              engine: { l: 'E', c: '#a78bfa' }, platform: { l: 'P', c: '#38bdf8' }, habitat: { l: 'S', c: '#34d399' },
+              technology: { l: 'T', c: '#a78bfa' }, platform: { l: 'P', c: '#38bdf8' }, habitat: { l: 'S', c: '#34d399' },
             };
             return (
               <Collapsible
@@ -2007,7 +2007,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       if (!nk || nk === k) return;
                       if (personaKeys.includes(nk) || selFields[nk]) { setFieldMsg({ text: `Field "${nk}" đã tồn tại — chọn tên khác.`, ok: false }); return; }
                       const scope = sel?.scope ?? 'platform';
-                      const scopeKey = scope === 'engine' ? (platform?.technologyKey ?? '') : form.platformKey;
+                      const scopeKey = scope === 'technology' ? (platform?.technologyKey ?? '') : form.platformKey;
                       if (!scopeKey) { setFieldMsg({ text: 'Thiếu scope key để đổi tên.', ok: false }); return; }
                       startTransition(async () => {
                         const res = await renameProfileField({ platformKey: form.platformKey, pageKind: 'signup', scopeKind: scope, scopeKey, oldName: k, newName: nk });

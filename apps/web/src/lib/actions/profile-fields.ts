@@ -2,7 +2,7 @@
 
 // Single authority for the "profile field" concept = the shared field NAME that
 // links a SELECTOR (selector_overrides.field_name — how to find/fill an input,
-// scoped platform/engine/habitat) with its per-account VALUE
+// scoped platform/technology/habitat) with its per-account VALUE
 // (platform_accounts.persona[name]). These are two stores on purpose (a selector
 // is shared across every account on a platform; a value is per-account), but they
 // share ONE canonical name. Renaming a field must move BOTH together — across
@@ -11,10 +11,10 @@
 // that owns that cross-store operation, so future fixes touch one file.
 
 import { getDb, platformAccounts, selectorOverrides } from '@mos2/db';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { canonField } from '../selector-field-canon';
-import { setOverride, resolveSelectors, type ScopeKind, type SelectorSpec } from './habitat-selectors';
+import { setOverride, resolveSelectors, scopeKindMatch, type ScopeKind, type SelectorSpec } from './habitat-selectors';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -55,7 +55,7 @@ export async function renameProfileField(opts: {
     .from(selectorOverrides)
     .where(and(
       eq(selectorOverrides.tenantId, TENANT),
-      eq(selectorOverrides.scopeKind, opts.scopeKind),
+      inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.scopeKind)),
       eq(selectorOverrides.scopeKey, opts.scopeKey),
       eq(selectorOverrides.pageKind, opts.pageKind),
       eq(selectorOverrides.fieldName, oldCanon),

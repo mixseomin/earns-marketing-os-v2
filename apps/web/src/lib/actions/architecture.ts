@@ -136,11 +136,12 @@ async function runChecks(objectKey: string, row: Row): Promise<Issue[]> {
       break;
     }
     case 'selector': {
-      const kind = s('scope_kind');
+      // normalize legacy 'engine' → 'technology' before resolving the target table.
+      const kind = s('scope_kind') === 'engine' ? 'technology' : s('scope_kind');
       const key = s('scope_key');
       const map: Record<string, [string, string]> = {
         platform: ['platforms', 'key'],
-        engine: ['platform_technologies', 'key'],
+        technology: ['platform_technologies', 'key'],
         habitat: ['habitats', 'id'],
       };
       const tgt = map[kind];
@@ -269,7 +270,7 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
     add('brief', 'error', 'habitat_id dangling', sql`SELECT count(*)::int AS n FROM community_briefs b WHERE b.habitat_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id = b.habitat_id)${fB}`),
     // selector (global)
     add('selector', 'error', "platform scope not in platforms", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'platform' AND NOT EXISTS (SELECT 1 FROM platforms p WHERE p.key = s.scope_key)`),
-    add('selector', 'error', "engine scope not in platform_technologies", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'engine' AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = s.scope_key)`),
+    add('selector', 'error', "technology scope not in platform_technologies", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind IN ('engine','technology') AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = s.scope_key)`),
     add('selector', 'error', "habitat scope not in habitats", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'habitat' AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id::text = s.scope_key)`),
     add('selector', 'warn', 'spec.css empty', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE COALESCE(s.spec->>'css','') = ''`),
     add('selector', 'warn', "Reddit page_kind (subreddit-*) on a non-reddit platform — taxonomy leak, rename to a platform-neutral kind", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.page_kind LIKE 'subreddit%' AND s.scope_key <> 'reddit'`),
@@ -282,17 +283,20 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
   return result;
 }
 
-// ── selector library for a scope (per platform/engine/habitat × entity) ──
+// ── selector library for a scope (per platform/technology/habitat × entity) ──
 export interface SelRow { pageKind: string; fieldName: string; css: string; attr: string | null; source: string; confidence: number }
 export async function listSelectors(scopeKind: string, scopeKey: string): Promise<SelRow[]> {
   const db = getDb();
   if (!db) return [];
-  if (!['platform', 'engine', 'habitat'].includes(scopeKind)) return [];
+  // normalize legacy 'engine' → 'technology'; the SQL still matches both stored values.
+  const kind = scopeKind === 'engine' ? 'technology' : scopeKind;
+  if (!['platform', 'technology', 'habitat'].includes(kind)) return [];
+  const kindMatch = kind === 'technology' ? ['technology', 'engine'] : [kind];
   try {
     const r = await db.execute(sql`
       SELECT page_kind, field_name, spec, source, confidence
       FROM selector_overrides
-      WHERE scope_kind = ${scopeKind} AND scope_key = ${scopeKey}
+      WHERE scope_kind IN (${sql.join(kindMatch.map((k) => sql`${k}`), sql`, `)}) AND scope_key = ${scopeKey}
       ORDER BY page_kind, field_name`);
     const rows = r as unknown as Array<{ page_kind: string; field_name: string; spec: { css?: string; attr?: string } | null; source: string; confidence: number }>;
     return rows.map((x) => ({
@@ -316,7 +320,7 @@ export async function selectorCatalog(): Promise<SelCatRow[]> {
       ORDER BY scope_kind, scope_key, page_kind, field_name`);
     const rows = r as unknown as Array<{ id: string; scope_kind: string; scope_key: string; page_kind: string; field_name: string; source: string; has_css: boolean }>;
     return rows.map((x) => ({
-      id: x.id, scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
+      id: x.id, scopeKind: x.scope_kind === 'engine' ? 'technology' : x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
       fieldName: x.field_name, source: x.source, hasCss: x.has_css,
     }));
   } catch { return []; }
@@ -340,7 +344,7 @@ export async function getSelectorRow(id: string): Promise<SelDetail | null> {
     const x = rows[0];
     if (!x) return null;
     return {
-      id: x.id, scopeKind: x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
+      id: x.id, scopeKind: x.scope_kind === 'engine' ? 'technology' : x.scope_kind, scopeKey: x.scope_key, pageKind: x.page_kind,
       fieldName: x.field_name, source: x.source, confidence: x.confidence,
       lastVerifiedAt: x.last_verified_at, spec: x.spec || {},
     };
@@ -423,13 +427,13 @@ const canonPf = (k: string) => PLATFORM_CANON_MC[k.toLowerCase()] || k.toLowerCa
 
 export interface MetricCell {
   metric: MetricKey; field: string; platform: string;
-  trained: boolean; scope: 'platform' | 'engine' | 'habitat' | null; scopeKey: string | null;
+  trained: boolean; scope: 'platform' | 'technology' | 'habitat' | null; scopeKey: string | null;
   source: string | null; via: string | null; hasCss: boolean; selId: string | null;
   cards: number;        // posted cards on this platform
   populated: number;    // cards where the matching insights_* column is non-null
   gap: boolean;         // applicable + wanted (cards>0) but no selector → real gap (⚠)
   apiFed: boolean;      // populated>0 but no selector → value comes from API/other path, not DOM
-  notApplicable: boolean; // platform/engine không phơi bày metric này cho loại nội dung → "–" N/A, KHÔNG gap
+  notApplicable: boolean; // platform/technology không phơi bày metric này cho loại nội dung → "–" N/A, KHÔNG gap
 }
 export interface MetricCoverage {
   metrics: Array<{ metric: MetricKey; field: string; label: string; hint: string; insightsCol: string }>;
@@ -457,8 +461,8 @@ export async function metricCoverage(): Promise<MetricCoverage> {
         LEFT JOIN habitats h ON h.id = COALESCE(c.habitat_id, b.habitat_id)
         WHERE c.post_url IS NOT NULL
       )
-      -- engine = platforms.technology_key, fallback về habitat.technology_key
-      -- (forum như resetera-com có platforms.tech=NULL mà habitat=xenforo → vẫn cascade engine được).
+      -- technology = platforms.technology_key, fallback về habitat.technology_key
+      -- (forum như resetera-com có platforms.tech=NULL mà habitat=xenforo → vẫn cascade technology được).
       SELECT cp.platform, COALESCE(p.technology_key, max(cp.hab_tech)) AS tech, count(*)::int AS cards,
              count(cp.m_views)::int AS v, count(cp.m_score)::int AS s,
              count(cp.m_reply)::int AS r, count(cp.m_share)::int AS sh
@@ -472,7 +476,9 @@ export async function metricCoverage(): Promise<MetricCoverage> {
       SELECT id::text AS id, scope_kind, scope_key, field_name, source,
              spec->>'via' AS via, (COALESCE(spec->>'css','') <> '') AS has_css
       FROM selector_overrides WHERE page_kind = ${METRIC_PAGE_KIND}`);
-    const selRows = sel as unknown as Array<{ id: string; scope_kind: string; scope_key: string; field_name: string; source: string; via: string | null; has_css: boolean }>;
+    const selRowsRaw = sel as unknown as Array<{ id: string; scope_kind: string; scope_key: string; field_name: string; source: string; via: string | null; has_css: boolean }>;
+    // normalize legacy 'engine' scope → 'technology' for the cascade pick below.
+    const selRows = selRowsRaw.map((r) => ({ ...r, scope_kind: r.scope_kind === 'engine' ? 'technology' : r.scope_kind }));
 
     // Aggregate platforms: cards-derived + any platform-scope selector target (trained ahead of cards).
     const popOf: Record<string, Record<MetricKey, number>> = {};
@@ -491,14 +497,14 @@ export async function metricCoverage(): Promise<MetricCoverage> {
     const platforms = Object.keys(cardsOf).sort((a, b) => ((cardsOf[b] ?? 0) - (cardsOf[a] ?? 0)) || a.localeCompare(b))
       .map((k) => ({ key: k, technologyKey: techOf[k] ?? null, cards: cardsOf[k] ?? 0 }));
 
-    // Cascade pick: platform-scope beats engine-scope (habitat omitted from matrix).
+    // Cascade pick: platform-scope beats technology-scope (habitat omitted from matrix).
     // field_name khớp cả 'metric.views' (schema) lẫn 'metric_views' (editor canonField '.'→'_').
     const nf = (s: string) => s.toLowerCase().replace(/\./g, '_');
     const pickSel = (field: string, platform: string, tech: string | null) => {
       const f = nf(field);
       const plat = selRows.find((r) => r.scope_kind === 'platform' && canonPf(r.scope_key) === platform && nf(r.field_name) === f);
       if (plat) return { row: plat, scope: 'platform' as const };
-      if (tech) { const eng = selRows.find((r) => r.scope_kind === 'engine' && r.scope_key === tech && nf(r.field_name) === f); if (eng) return { row: eng, scope: 'engine' as const }; }
+      if (tech) { const eng = selRows.find((r) => r.scope_kind === 'technology' && r.scope_key === tech && nf(r.field_name) === f); if (eng) return { row: eng, scope: 'technology' as const }; }
       return null;
     };
 

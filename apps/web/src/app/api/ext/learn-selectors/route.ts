@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { errorResponse } from '@/lib/ext-route';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
-import { resolveSelectors, resolveSelectorsForHabitat, setMap, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
+import { resolveSelectors, resolveSelectorsForHabitat, setMap, normScopeKind, type SelectorSpec, type SelectorMap } from '@/lib/actions/habitat-selectors';
 import { getFieldHint } from '@/lib/habitat-field-schema';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { validateSelector } from '@/lib/selector-validate';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 // LLM = SELECTOR DISCOVERY, không phải DATA EXTRACTION.
-// 3-tier inheritance (mig 0061): habitat > platform > engine.
+// 3-tier inheritance (mig 0061): habitat > platform > technology.
 
 interface LearnReq {
   platform_key: string;
@@ -21,7 +21,8 @@ interface LearnReq {
   habitat_id?: number;                    // optional - nếu có sẽ check habitat scope
   technology_key?: string;                // optional - engine fallback (vbulletin, xenforo)
   detected_engine?: string;               // ext sniff engine markers (shreddit, discourse)
-  target_scope?: 'engine' | 'platform' | 'habitat';  // default 'platform'
+  // legacy 'engine' accepted from un-updated ext; normalized to 'technology'. default 'platform'
+  target_scope?: 'engine' | 'technology' | 'platform' | 'habitat';
   target_key?: string;                    // override scope_key (vd habitat_id)
 }
 
@@ -201,11 +202,11 @@ RULES:
   }
 
   // Default scope = platform (broadest). Ext có thể override gửi 'habitat'
-  // nếu muốn site-specific (chưa wire). Engine tier reserved cho future
-  // (cần technologyKey + LLM phải detect engine-generic selectors).
-  const targetScope = body.target_scope ?? 'platform';
+  // nếu muốn site-specific (chưa wire). Technology tier reserved cho future
+  // (cần technologyKey + LLM phải detect technology-generic selectors).
+  const targetScope = normScopeKind(body.target_scope ?? 'platform');
   const targetKey = body.target_key
-    ?? (targetScope === 'engine' ? (body.technology_key || '') :
+    ?? (targetScope === 'technology' ? (body.technology_key || '') :
         targetScope === 'habitat' ? String(body.habitat_id || '') :
         body.platform_key);
 

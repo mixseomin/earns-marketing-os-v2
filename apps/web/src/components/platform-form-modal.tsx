@@ -388,12 +388,12 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             })()}
           </div>
 
-          {/* ── Technology engine section ── */}
+          {/* ── Technology section ── */}
           <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
             <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              ⚙ Engine / CMS / framework
+              ⚙ Technology / CMS / framework
               {form.technologyKey && (
-                <Link href={`/engines?e=${form.technologyKey}`} title={`Open engine “${form.technologyKey}” → selectors + sites using it`}
+                <Link href={`/technologies?e=${form.technologyKey}`} title={`Open technology “${form.technologyKey}” → selectors + sites using it`}
                       style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 400 }}>↗ manage</Link>
               )}
             </span>
@@ -407,7 +407,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                 />
               </div>
               <button type="button" onClick={handleDetect} disabled={detecting || !form.signupUrl}
-                title={form.signupUrl ? 'Auto-detect engine từ signup URL' : 'Nhập signup URL trước'}
+                title={form.signupUrl ? 'Auto-detect technology từ signup URL' : 'Nhập signup URL trước'}
                 style={{
                   flexShrink: 0, padding: '5px 9px', fontSize: 11, whiteSpace: 'nowrap',
                   background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4,
@@ -430,7 +430,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
               <span style={{ ...lbl, marginBottom: 0 }}>
                 Signup fields
                 <span style={{ color: 'var(--fg-4)', textTransform: 'none', marginLeft: 4 }}>
-                  // platform-specific overrides; inherits from engine above
+                  // platform-specific overrides; inherits from technology above
                 </span>
               </span>
             </div>

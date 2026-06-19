@@ -3,10 +3,10 @@
 // HabitatSelectorsSection — UI inspect + manage 3-tier selectors.
 //
 // Mode:
-//   - inspect (habitat modal): show resolved map (cascade habitat>platform>engine)
+//   - inspect (habitat modal): show resolved map (cascade habitat>platform>technology)
 //     với badge scope per field. Click field → action override (xuống scope hẹp)
 //     hoặc promote (lên scope rộng).
-//   - editScope (platform/engine modal): list rows của 1 scope cụ thể, edit
+//   - editScope (platform/technology modal): list rows của 1 scope cụ thể, edit
 //     CSS/parse inline, delete.
 
 import { useState, useEffect } from 'react';
@@ -61,7 +61,7 @@ const FIELD_TO_HABITAT_PROP: Record<string, string> = {
 const SCOPE_META: Record<ScopeKind, { label: string; color: string }> = {
   habitat: { label: 'site', color: 'var(--accent)' },
   platform: { label: 'platform', color: 'var(--warn)' },
-  engine: { label: 'engine', color: 'var(--fg-3)' },
+  technology: { label: 'technology', color: 'var(--fg-3)' },
 };
 
 export function HabitatSelectorsSection({
@@ -229,8 +229,8 @@ export function HabitatSelectorsSection({
           <span style={{ fontSize: 9, color: 'var(--fg-4)' }}>
             cascade: site#{habitatId ?? '?'} → platform:{resolvedPlatform}
             {resolvedTech ? (
-              <> → engine:
-                <Link href={`/engines?e=${resolvedTech}`} title={`Open engine “${resolvedTech}” → manage all its selectors`}
+              <> → technology:
+                <Link href={`/technologies?e=${resolvedTech}`} title={`Open technology “${resolvedTech}” → manage all its selectors`}
                       style={{ color: 'var(--accent)', textDecoration: 'none' }}>{resolvedTech} ↗</Link>
               </>
             ) : ''}
@@ -439,8 +439,8 @@ export function HabitatSelectorsSection({
               )}
               {scope === 'platform' && resolvedTech && (
                 <button type="button"
-                        onClick={() => handlePromote(row.field, 'platform', scopeKey, 'engine', resolvedTech)}
-                        title={`Promote platform → engine:${resolvedTech}`}
+                        onClick={() => handlePromote(row.field, 'platform', scopeKey, 'technology', resolvedTech)}
+                        title={`Promote platform → technology:${resolvedTech}`}
                         style={btnSmall}>⤴</button>
               )}
               {scope === 'habitat' && (
@@ -450,7 +450,7 @@ export function HabitatSelectorsSection({
                             handleClear(row.field, scope, scopeKey);
                           }
                         }}
-                        title="Clear site override (revert to platform/engine)"
+                        title="Clear site override (revert to platform/technology)"
                         style={{ ...btnSmall, color: 'var(--bad)' }}>✕</button>
               )}
             </>

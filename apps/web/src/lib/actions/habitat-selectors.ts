@@ -1,8 +1,10 @@
 'use server';
 
 // 3-tier selector inheritance (mig 0061 selector_overrides table).
-// Cascade: habitat > platform > engine. Field-level — mỗi field tự
+// Cascade: habitat > platform > technology. Field-level — mỗi field tự
 // resolve qua chuỗi cascade, dùng row có scope cụ thể nhất.
+// NOTE: scope_kind 'technology' was renamed from the legacy value 'engine'
+// (mig 0101). Reads stay backward-compatible via normScopeKind/scopeKindMatch.
 //
 // Files liên quan:
 //   - apps/web/src/app/api/ext/learn-selectors/route.ts (ext entry)
@@ -44,7 +46,18 @@ async function adoptExistingField(
   return rows[0]?.field ?? null;
 }
 
-export type ScopeKind = 'engine' | 'platform' | 'habitat';
+export type ScopeKind = 'technology' | 'platform' | 'habitat';
+
+// Backward-compat normalizer: legacy rows / un-updated ext requests may still
+// carry the old scope value 'engine'. Always pass an incoming scope_kind through
+// this before comparing/using so 'engine' still resolves as the new 'technology'.
+export const normScopeKind = (s: string): ScopeKind =>
+  (s === 'engine' ? 'technology' : s) as ScopeKind;
+
+// The set of stored scope_kind values that a normalized scope matches. Used in
+// DB filters so a 'technology' filter also catches legacy 'engine' rows.
+export const scopeKindMatch = (s: ScopeKind | string): string[] =>
+  normScopeKind(s) === 'technology' ? ['technology', 'engine'] : [normScopeKind(s)];
 
 export interface SelectorSpec {
   css: string;
@@ -77,7 +90,7 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const SCOPE_PRIORITY: Record<ScopeKind, number> = {
   habitat: 3,
   platform: 2,
-  engine: 1,
+  technology: 1,
 };
 
 // resolveSelectors: input (habitatId/platformKey/techKey, pageKind) →
@@ -93,10 +106,13 @@ export async function resolveSelectors(opts: {
   const db = getDb();
   if (!db) return {};
 
-  const conditions: Array<{ scope: ScopeKind; key: string }> = [];
-  if (opts.habitatId != null) conditions.push({ scope: 'habitat', key: String(opts.habitatId) });
-  if (opts.platformKey) conditions.push({ scope: 'platform', key: opts.platformKey });
-  if (opts.technologyKey) conditions.push({ scope: 'engine', key: opts.technologyKey });
+  // scopes: list of legacy-aware scope_kind values per condition. The technology
+  // tier matches BOTH the new 'technology' and the legacy 'engine' value so
+  // un-migrated rows still resolve.
+  const conditions: Array<{ scopes: string[]; key: string }> = [];
+  if (opts.habitatId != null) conditions.push({ scopes: ['habitat'], key: String(opts.habitatId) });
+  if (opts.platformKey) conditions.push({ scopes: ['platform'], key: opts.platformKey });
+  if (opts.technologyKey) conditions.push({ scopes: ['technology', 'engine'], key: opts.technologyKey });
   if (conditions.length === 0) return {};
 
   // OR mỗi (scope_kind, scope_key) pair + page_kind chung.
@@ -107,7 +123,7 @@ export async function resolveSelectors(opts: {
       AND page_kind = ${opts.pageKind}
       AND (
         ${sql.join(
-          conditions.map((c) => sql`(scope_kind = ${c.scope} AND scope_key = ${c.key})`),
+          conditions.map((c) => sql`(scope_kind IN (${sql.join(c.scopes.map((s) => sql`${s}`), sql`, `)}) AND scope_key = ${c.key})`),
           sql` OR `,
         )}
       )
@@ -115,17 +131,18 @@ export async function resolveSelectors(opts: {
 
   const out: ResolvedMap = {};
   for (const r of rows as unknown as Array<{
-    scope_kind: ScopeKind; scope_key: string; field_name: string;
+    scope_kind: string; scope_key: string; field_name: string;
     spec: SelectorSpec; source: 'llm' | 'manual' | 'promoted'; updated_at: Date | string;
   }>) {
+    const scope = normScopeKind(r.scope_kind);
     const existing = out[r.field_name];
-    const newPri = SCOPE_PRIORITY[r.scope_kind] ?? 0;
+    const newPri = SCOPE_PRIORITY[scope] ?? 0;
     const oldPri = existing ? SCOPE_PRIORITY[existing.source.scope] ?? 0 : -1;
     if (newPri > oldPri) {
       out[r.field_name] = {
         spec: r.spec,
         source: {
-          scope: r.scope_kind,
+          scope,
           key: r.scope_key,
           source: r.source,
           updated_at: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
@@ -180,6 +197,8 @@ export async function setOverride(opts: {
   const db = getDb();
   if (!db) return { ok: false, error: 'DB unavailable' };
   if (!opts.spec.css) return { ok: false, error: 'spec.css required' };
+  // Always persist the canonical scope value (never legacy 'engine').
+  const scopeKind = normScopeKind(opts.scopeKind);
   // 1) Normalize field name (bracket/case/alias) so variants converge.
   let field = canonField(opts.fieldName, opts.pageKind);
   if (!field) return { ok: false, error: 'field_name empty after normalize' };
@@ -190,7 +209,7 @@ export async function setOverride(opts: {
   //    of folding the new name back onto it.
   const requested = field;
   const adoptedName = await adoptExistingField(
-    db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, opts.spec.css,
+    db, scopeKind, opts.scopeKey, opts.pageKind, field, opts.spec.css,
     isRename ? renameFrom : undefined,
   );
   if (adoptedName) field = adoptedName;
@@ -201,7 +220,7 @@ export async function setOverride(opts: {
     await db.execute(sql`
       INSERT INTO selector_overrides
         (tenant_id, scope_kind, scope_key, page_kind, field_name, spec, source, updated_at)
-      VALUES (${TENANT}, ${opts.scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
+      VALUES (${TENANT}, ${scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
               ${field}, ${JSON.stringify(opts.spec)}::jsonb,
               ${opts.source ?? 'manual'}, NOW())
       ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
@@ -212,7 +231,7 @@ export async function setOverride(opts: {
     if (isRename && renameFrom && field !== renameFrom) {
       await db.delete(selectorOverrides).where(and(
         eq(selectorOverrides.tenantId, TENANT),
-        eq(selectorOverrides.scopeKind, opts.scopeKind),
+        inArray(selectorOverrides.scopeKind, scopeKindMatch(scopeKind)),
         eq(selectorOverrides.scopeKey, opts.scopeKey),
         eq(selectorOverrides.pageKind, opts.pageKind),
         eq(selectorOverrides.fieldName, renameFrom),
@@ -239,6 +258,7 @@ export async function setMap(opts: {
 }): Promise<{ ok: boolean; saved: number; skipped: number; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, saved: 0, skipped: 0, error: 'DB unavailable' };
+  const scopeKind = normScopeKind(opts.scopeKind);
   const source = opts.source ?? 'llm';
   let saved = 0;
   let skipped = 0;
@@ -254,7 +274,7 @@ export async function setMap(opts: {
       const claimed = cssClaimed.get(spec.css);
       if (claimed && claimed !== field) field = claimed;
       else {
-        const adopted = await adoptExistingField(db, opts.scopeKind, opts.scopeKey, opts.pageKind, field, spec.css);
+        const adopted = await adoptExistingField(db, scopeKind, opts.scopeKey, opts.pageKind, field, spec.css);
         if (adopted) field = adopted;
         cssClaimed.set(spec.css, field);
       }
@@ -264,7 +284,7 @@ export async function setMap(opts: {
       const res = await db.execute(sql`
         INSERT INTO selector_overrides
           (tenant_id, scope_kind, scope_key, page_kind, field_name, spec, source, updated_at)
-        VALUES (${TENANT}, ${opts.scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
+        VALUES (${TENANT}, ${scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
                 ${field}, ${JSON.stringify(spec)}::jsonb,
                 ${source}, NOW())
         ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
@@ -297,7 +317,7 @@ export async function clearOverride(opts: {
   if (!db) return { ok: false };
   await db.delete(selectorOverrides).where(and(
     eq(selectorOverrides.tenantId, TENANT),
-    eq(selectorOverrides.scopeKind, opts.scopeKind),
+    inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.scopeKind)),
     eq(selectorOverrides.scopeKey, opts.scopeKey),
     eq(selectorOverrides.pageKind, opts.pageKind),
     eq(selectorOverrides.fieldName, opts.fieldName),
@@ -323,7 +343,7 @@ export async function promoteToScope(opts: {
     .from(selectorOverrides)
     .where(and(
       eq(selectorOverrides.tenantId, TENANT),
-      eq(selectorOverrides.scopeKind, opts.fromScope),
+      inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.fromScope)),
       eq(selectorOverrides.scopeKey, opts.fromKey),
       eq(selectorOverrides.pageKind, opts.pageKind),
       eq(selectorOverrides.fieldName, opts.fieldName),
@@ -365,7 +385,7 @@ export async function listScope(opts: {
     .from(selectorOverrides)
     .where(and(
       eq(selectorOverrides.tenantId, TENANT),
-      eq(selectorOverrides.scopeKind, opts.scopeKind),
+      inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.scopeKind)),
       eq(selectorOverrides.scopeKey, opts.scopeKey),
       eq(selectorOverrides.pageKind, opts.pageKind),
     ))
@@ -381,7 +401,7 @@ export async function listScope(opts: {
 // ── Duplicate detection + merge (catch what slips past write-time guards) ──
 // A duplicate = ≥2 fields at the same (scope, page_kind) that resolve to the
 // SAME element: identical css, OR field names that canonicalize to the same
-// key. Surfaced on /engines for one-click merge so dups never pile up silently.
+// key. Surfaced on /technologies for one-click merge so dups never pile up silently.
 export interface DupGroup {
   scopeKind: string;
   scopeKey: string;
@@ -401,7 +421,8 @@ export async function findDuplicateSelectors(opts?: {
   const db = getDb();
   if (!db) return [];
   const conds = [eq(selectorOverrides.tenantId, TENANT)];
-  if (opts?.scopeKind) conds.push(eq(selectorOverrides.scopeKind, opts.scopeKind));
+  // Legacy-aware: filtering by 'technology' must also catch un-migrated 'engine' rows.
+  if (opts?.scopeKind) conds.push(inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.scopeKind)));
   if (opts?.scopeKey) conds.push(eq(selectorOverrides.scopeKey, opts.scopeKey));
   const rows = await db
     .select({
@@ -417,7 +438,9 @@ export async function findDuplicateSelectors(opts?: {
     .where(and(...conds));
 
   type Row = (typeof rows)[number] & { css: string };
-  const norm = rows.map((r) => ({ ...r, css: ((r.spec as SelectorSpec)?.css ?? '').trim() })) as Row[];
+  // Normalize legacy 'engine' scope to 'technology' so dup groups + the merge
+  // call downstream operate on the canonical value.
+  const norm = rows.map((r) => ({ ...r, scopeKind: normScopeKind(r.scopeKind), css: ((r.spec as SelectorSpec)?.css ?? '').trim() })) as Row[];
   const groups: DupGroup[] = [];
   // bucket per (scope, key, page) → then by css and by canon-field
   const byScope = new Map<string, Row[]>();
@@ -485,12 +508,12 @@ export async function mergeSelectorField(opts: {
   try {
     const res = await db.delete(selectorOverrides).where(and(
       eq(selectorOverrides.tenantId, TENANT),
-      eq(selectorOverrides.scopeKind, opts.scopeKind),
+      inArray(selectorOverrides.scopeKind, scopeKindMatch(opts.scopeKind)),
       eq(selectorOverrides.scopeKey, opts.scopeKey),
       eq(selectorOverrides.pageKind, opts.pageKind),
       inArray(selectorOverrides.fieldName, drop),
     ));
-    revalidatePath('/engines');
+    revalidatePath('/technologies');
     revalidatePath('/platforms');
     const removed = (res as { rowCount?: number }).rowCount ?? drop.length;
     return { ok: true, removed };

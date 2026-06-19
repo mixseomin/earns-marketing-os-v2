@@ -75,10 +75,10 @@ export const OBJECTS: ArchObject[] = [
       { name: 'category', col: 'category', type: 'text' },
       { name: 'region', col: 'region', type: 'text' },
       { name: 'autoPostSupported', col: 'auto_post_supported', type: 'bool' },
-      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine', note: 'forum technology if applicable' },
+      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'technology', note: 'forum technology if applicable' },
     ],
     relations: [
-      { to: 'engine', kind: 'fk', via: 'technology_key' },
+      { to: 'technology', kind: 'fk', via: 'technology_key' },
       { to: 'account', kind: 'fk', via: 'account.platform_key' },
       { to: 'habitat', kind: 'fk', via: 'habitat.platform_key' },
       { to: 'selector', kind: 'scope', via: "scope_kind='platform'" },
@@ -87,9 +87,9 @@ export const OBJECTS: ArchObject[] = [
     deepLink: '/platforms',
   },
   {
-    key: 'engine', label: 'Technology (forum)', group: 'platform',
+    key: 'technology', label: 'Technology (forum)', group: 'platform',
     table: 'platform_technologies', pk: 'key', labelCol: 'label',
-    desc: 'Forum/CMS engine (xenforo/discourse/vbulletin). Drives engine-scope selectors + signup fields.',
+    desc: 'Forum/CMS technology (xenforo/discourse/vbulletin). Drives technology-scope selectors + signup fields.',
     attrs: [
       { name: 'key', col: 'key', type: 'text', pk: true },
       { name: 'label', col: 'label', type: 'text' },
@@ -99,10 +99,10 @@ export const OBJECTS: ArchObject[] = [
     relations: [
       { to: 'platform', kind: 'fk', via: 'platform.technology_key' },
       { to: 'habitat', kind: 'fk', via: 'habitat.technology_key' },
-      { to: 'selector', kind: 'scope', via: "scope_kind='engine'" },
+      { to: 'selector', kind: 'scope', via: "scope_kind='technology'" },
     ],
-    routes: ['/engines', '/selectors/resolve'],
-    deepLink: '/engines',
+    routes: ['/technologies', '/selectors/resolve'],
+    deepLink: '/technologies',
   },
   {
     key: 'genEngine', label: 'Engine (gen/QA)', group: 'infra',
@@ -119,8 +119,8 @@ export const OBJECTS: ArchObject[] = [
       { to: 'card', kind: 'gen', via: "card.answer_source" },
       { to: 'externalApi', kind: 'gen', via: 'endpoint' },
     ],
-    routes: ['/engines', '/seeding/astrolas-answer', '/seeding/hyperjournal-answer', '/astrolas/models'],
-    deepLink: '/engines',
+    routes: ['/technologies', '/seeding/astrolas-answer', '/seeding/hyperjournal-answer', '/astrolas/models'],
+    deepLink: '/technologies',
   },
   {
     key: 'account', label: 'Account', group: 'identity',
@@ -168,7 +168,7 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'habitat', label: 'Habitat', group: 'place',
     table: 'habitats', pk: 'id', labelCol: 'name', projectScoped: true,
-    desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+engine+tribe.',
+    desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+technology+tribe.',
     picker: { crossProject: true, subExpr: 't.project_id' },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
@@ -177,14 +177,14 @@ export const OBJECTS: ArchObject[] = [
       { name: 'name', col: 'name', type: 'text' },
       { name: 'url', col: 'url', type: 'text' },
       { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform' },
-      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'engine' },
+      { name: 'technologyKey', col: 'technology_key', type: 'fk', fk: 'technology' },
       { name: 'tribeId', col: 'tribe_id', type: 'fk' },
       { name: 'status', col: 'status', type: 'text', note: 'target|engaged|saturated|banned|dormant' },
       { name: 'voiceProfile', col: 'voice_profile', type: 'text' },
     ],
     relations: [
       { to: 'platform', kind: 'fk', via: 'platform_key' },
-      { to: 'engine', kind: 'fk', via: 'technology_key' },
+      { to: 'technology', kind: 'fk', via: 'technology_key' },
       { to: 'channel', kind: 'fk', via: 'habitat_channels.habitat_id' },
       { to: 'brief', kind: 'brief', via: 'community_briefs.habitat_id' },
       { to: 'card', kind: 'fk', via: 'card.habitat_id' },
@@ -335,11 +335,11 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'selector', label: 'Selector override', group: 'infra',
     table: 'selector_overrides', pk: 'id', labelCol: 'field_name', projectScoped: false,
-    desc: 'Selector library row. Cascade habitat > platform > engine. Resolves DOM fields for detection/marking.',
+    desc: 'Selector library row. Cascade habitat > platform > technology. Resolves DOM fields for detection/marking.',
     picker: { subExpr: "concat(t.scope_kind,' · ',t.page_kind)" },
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
-      { name: 'scopeKind', col: 'scope_kind', type: 'text', note: 'engine|platform|habitat' },
+      { name: 'scopeKind', col: 'scope_kind', type: 'text', note: 'technology|platform|habitat (legacy: engine)' },
       { name: 'scopeKey', col: 'scope_key', type: 'text' },
       { name: 'pageKind', col: 'page_kind', type: 'text', note: 'composer|subreddit-about|forum-thread…' },
       { name: 'fieldName', col: 'field_name', type: 'text', note: 'post.author|post.body|post.permalink…' },
@@ -349,7 +349,7 @@ export const OBJECTS: ArchObject[] = [
     ],
     relations: [
       { to: 'platform', kind: 'scope', via: "scope_kind='platform'" },
-      { to: 'engine', kind: 'scope', via: "scope_kind='engine'" },
+      { to: 'technology', kind: 'scope', via: "scope_kind='technology'" },
       { to: 'habitat', kind: 'scope', via: "scope_kind='habitat'" },
     ],
     routes: ['/selectors/resolve', '/selectors/set', '/learn-selectors', '/train-selector'],
@@ -400,7 +400,7 @@ export const FLOWS: ArchFlow[] = [
     key: 'onpage', family: 'onpage', label: 'On-page (extension)',
     desc: 'What the Crew extension does as the operator works a platform page.',
     steps: [
-      { id: 'detect', label: 'Detect', objects: ['platform', 'engine', 'habitat'], note: 'crew-detector: platform/habitat detect + viewer resolve' },
+      { id: 'detect', label: 'Detect', objects: ['platform', 'technology', 'habitat'], note: 'crew-detector: platform/habitat detect + viewer resolve' },
       { id: 'autosave', label: 'Auto-save', objects: ['habitat', 'brief'], route: 'POST /habitats · /briefs', writes: ['habitats', 'community_briefs'] },
       { id: 'load', label: 'Load state', objects: ['account', 'brief', 'people', 'selector'], route: 'GET /habitats/resolve · /accounts/profile · /scene/people · /selectors/resolve' },
       { id: 'mark', label: 'Mark', objects: ['people', 'card'], route: 'POST /scene/observe', note: 'markTrackedUsers WHO marker (◎ familiarity)' },

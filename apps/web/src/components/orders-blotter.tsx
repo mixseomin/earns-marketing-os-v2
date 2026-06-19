@@ -27,6 +27,12 @@ const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `$
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
+// P&L in account $ for ANY row (uniform): crypto stores % (convert via notional), MT5 stores $ directly. Never sum the raw `profit` (mixes units).
+const usdOf = (t: StrategyTradeRow): number => {
+  const p = t.profit == null ? null : Number(t.profit);
+  if (p == null) return 0;
+  return isCryptoSym(t.symbol) ? (t.notional != null ? p / 100 * t.notional : 0) : p;
+};
 // hold in hours. Closed: entry->exit. Open: entry->now (broker clock for MT5, real UTC for crypto). See strategy-tests-table.
 const holdH = (t: StrategyTradeRow, brokerNowMs?: number | null) => {
   if (!t.entryTime) return null;
@@ -158,7 +164,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
   const openN = visible.filter((t) => t.isOpen).length;
   const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
   const closedN = closedRows.length;
-  const netClosed = closedRows.reduce((a, t) => a + Number(t.profit), 0);
+  const netClosed = closedRows.reduce((a, t) => a + usdOf(t), 0);
   const hiddenN = trades.filter((t) => !t.isOpen).length - trades.filter((t) => !t.isOpen && (showAll || (() => { const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= ((() => { const ts = trades.map((x) => Date.parse(tRef(x))).filter((n) => !Number.isNaN(n)); return (ts.length ? Math.max(...ts) : 0) - 24 * 3.6e6; })()); })())).length;
 
   const sortRows = (rows: StrategyTradeRow[]) => [...rows].sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a)));
@@ -168,7 +174,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
     const m: Record<string, StrategyTradeRow[]> = {};
     visible.forEach((t) => { (m[t.strategy] ??= []).push(t); });
     return Object.entries(m)
-      .map(([name, rows]) => ({ name, rows: sortRows(rows), open: rows.filter((r) => r.isOpen).length, net: rows.filter((r) => !r.isOpen && r.profit != null).reduce((a, r) => a + Number(r.profit), 0) }))
+      .map(([name, rows]) => ({ name, rows: sortRows(rows), open: rows.filter((r) => r.isOpen).length, net: rows.filter((r) => !r.isOpen && r.profit != null).reduce((a, r) => a + usdOf(r), 0) }))
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
@@ -178,7 +184,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 12.5 }}>
-          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open · <b>{closedN}</b> closed{showAll ? '' : ' (24h)'} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{f2(netClosed)}</b>
+          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open · <b>{closedN}</b> closed{showAll ? '' : ' (24h)'} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
         </span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={chip(grouped)}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
@@ -201,8 +207,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
                       style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)', cursor: 'help' }}>
                       {g.name}
                       <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
-                      {g.open > 0 ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--ok,#5ac882)' }}>{g.open} open</span> : null}
-                      <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {f2(g.net)}</span>
+                      <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
+                      <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {fmtPnlUsd(g.net)}</span>
                       {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }}>💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
                     </td>
                   </tr>
@@ -214,7 +220,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted, <i>italic *</i> P&amp;L = floating); closed dimmed. P&amp;L unit: crypto = %, MT5 = account currency. Hold counts to now for open positions. {grouped ? 'Hover a strategy header for its description & expected metrics.' : ''}</p>
+      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted); closed dimmed. <b>P&amp;L</b> = native number (crypto %, MT5 account $); <b>$</b> = same P&amp;L converted to account $. Net totals are in $. Hold counts to now for open positions. {grouped ? 'Hover a strategy header for its description & expected metrics.' : ''}</p>
       {(() => { const hm = hover ? metaByStrategy[hover.name] : undefined; return hover && hm ? <HoverCard name={hover.name} meta={hm} x={hover.x} y={hover.y} /> : null; })()}
     </div>
   );

@@ -583,10 +583,10 @@ export async function templateAdoption(): Promise<TemplateAdoptionData> {
     const allTechsRaw = await db.execute(sql`SELECT key, label FROM platform_technologies ORDER BY label`);
     const allTechs = (allTechsRaw as unknown as Array<{ key: string; label: string }>).map((t) => ({ key: String(t.key), label: String(t.label) }));
     const platRaw = await db.execute(sql`
-      SELECT p.key, p.label, p.technology_key,
+      SELECT p.key, p.label, p.technology_key, p.category,
              (SELECT count(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts
       FROM platforms p`);
-    const plats = platRaw as unknown as Array<{ key: string; label: string; technology_key: string | null; accounts: number }>;
+    const plats = platRaw as unknown as Array<{ key: string; label: string; technology_key: string | null; category: string | null; accounts: number }>;
     const detRaw = await db.execute(sql`
       SELECT d.host, d.platform_key, d.technology_key, d.hits, d.last_seen,
              (p.key IS NOT NULL) AS exists, p.technology_key AS bound
@@ -618,9 +618,17 @@ export async function templateAdoption(): Promise<TemplateAdoptionData> {
     const detByPlat = new Map<string, string>();
     for (const d of dets) if (!detByPlat.has(d.platform_key)) detByPlat.set(d.platform_key, d.technology_key);
 
+    // Manual-bind list = CHỈ forum platform thật. Template adoption chỉ áp dụng cho
+    // forum chạy engine chung (xenforo/phpbb/…); platform bespoke (Discord/FB/LinkedIn/
+    // AdSense/Product Hunt…) train selector RIÊNG ở platform scope, KHÔNG dùng technology
+    // → loại khỏi đây (tránh list phình vô hạn + bind vô nghĩa). Tín hiệu forum:
+    //   (a) đã ext-detect engine (→ nằm ở candidates per-template rồi, loại khỏi đây để khỏi trùng), HOẶC
+    //   (b) category = community/forum (forum chưa ext-thăm → cho bind tay).
+    const FORUM_CATS = new Set(['community', 'forum']);
     const unbound: AdoptUnbound[] = plats
-      .filter((p) => !p.technology_key && Number(p.accounts) > 0 && !isSeedReady(p.key, null))
-      .map((p) => ({ key: p.key, label: p.label, accounts: Number(p.accounts), signup: own(p.key, 'signup'), composer: own(p.key, 'composer'), detectedTech: detByPlat.get(p.key) ?? null }))
+      .filter((p) => !p.technology_key && Number(p.accounts) > 0 && !isSeedReady(p.key, null)
+        && FORUM_CATS.has(String(p.category || '').toLowerCase()) && !detByPlat.has(p.key))
+      .map((p) => ({ key: p.key, label: p.label, accounts: Number(p.accounts), signup: own(p.key, 'signup'), composer: own(p.key, 'composer'), detectedTech: null }))
       .sort((a, b) => (b.accounts - a.accounts) || a.label.localeCompare(b.label));
 
     const seedReadyCount = plats.filter((p) => isSeedReady(p.key, p.technology_key)).length;

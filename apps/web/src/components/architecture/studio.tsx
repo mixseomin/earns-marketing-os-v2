@@ -1450,7 +1450,7 @@ function TemplateAdoptionPanel() {
         <span style={{ color: 'var(--ok)' }}>✓ {data.seedReadyCount} seed-ready</span>
         <span style={{ color: techGreen }}>◆ {data.techs.length} templates</span>
         <span style={{ color: data.detectedCount ? 'var(--accent)' : 'var(--fg-4)' }}>◎ {data.detectedCount} detected (ext)</span>
-        <span style={{ color: data.unbound.length ? 'var(--warn,#ffb03c)' : 'var(--fg-4)' }}>⬚ {data.unbound.length} unbound w/ accounts</span>
+        <span style={{ color: data.unbound.length ? 'var(--warn,#ffb03c)' : 'var(--fg-4)' }} title="Forum platform (category community) chưa gắn engine — không tính platform bespoke (social/messaging/…)">⬚ {data.unbound.length} forum chưa bind</span>
         <button onClick={reload} disabled={refreshing} title="Tải lại dữ liệu (sau khi ext detect forum mới)"
           style={{ marginLeft: 'auto', background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', cursor: refreshing ? 'default' : 'pointer', width: 26, height: 26, fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: refreshing ? 0.5 : 1 }}>
           <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.7s linear infinite' : 'none' }}>↻</span>
@@ -1493,7 +1493,7 @@ function TemplateAdoptionPanel() {
       {/* unbound platforms needing a template */}
       {data.unbound.length > 0 && (
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>unbound platforms (have accounts, not seed-ready) — bind a template</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }} title="Chỉ forum platform (category community/forum) — bespoke platform (Discord/FB/LinkedIn…) train selector riêng, không adopt template">forum platforms chưa gắn engine — bind a template</div>
           <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             {data.unbound.map((p, i) => {
               const chosen = pick[p.key] || p.detectedTech || '';
@@ -1517,7 +1517,7 @@ function TemplateAdoptionPanel() {
         </div>
       )}
 
-      {data.techs.length === 0 && data.unbound.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No templates with selectors yet, and every account-bearing platform is seed-ready or bound.</div>}
+      {data.techs.length === 0 && data.unbound.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có selector template nào, và không có forum platform nào chờ bind.</div>}
     </div>
   );
 }

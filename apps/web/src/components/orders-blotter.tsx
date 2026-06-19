@@ -24,6 +24,7 @@ const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4));
 const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
 const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1)}k` : Math.abs(n).toFixed(Math.abs(n) < 10 ? 2 : 0)}`;
+const fmtUsd2 = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;   // always 2 decimals (for the $ column)
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
@@ -67,7 +68,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
       <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
-      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
+      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtUsd2(usd) : '—'}</td>
       <td style={{ ...cell, textAlign: 'right', color: pnlColor, fontSize: 9.5 }} title="return % = P&L $ ÷ Lots $ (notional)">{pct != null ? `${f2(pct)}%` : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>

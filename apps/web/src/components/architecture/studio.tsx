@@ -1426,9 +1426,11 @@ function packLabel(c: Record<string, number>): string {
 function TemplateAdoptionPanel() {
   const [data, setData] = useState<TemplateAdoptionData | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [pick, setPick] = useState<Record<string, string>>({}); // unbound platform key → chosen tech
   const load = useCallback(() => { let dead = false; templateAdoption().then((d) => { if (!dead) setData(d); }); return () => { dead = true; }; }, []);
   useEffect(() => load(), [load]);
+  const reload = useCallback(async () => { setRefreshing(true); try { setData(await templateAdoption()); } finally { setRefreshing(false); } }, []);
 
   const adopt = useCallback(async (platformKey: string, technologyKey: string, label?: string) => {
     setBusy(platformKey + ':' + technologyKey);
@@ -1444,11 +1446,16 @@ function TemplateAdoptionPanel() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 11, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, marginBottom: 12 }}>
         <span style={{ color: 'var(--ok)' }}>✓ {data.seedReadyCount} seed-ready</span>
         <span style={{ color: techGreen }}>◆ {data.techs.length} templates</span>
         <span style={{ color: data.detectedCount ? 'var(--accent)' : 'var(--fg-4)' }}>◎ {data.detectedCount} detected (ext)</span>
         <span style={{ color: data.unbound.length ? 'var(--warn,#ffb03c)' : 'var(--fg-4)' }}>⬚ {data.unbound.length} unbound w/ accounts</span>
+        <button onClick={reload} disabled={refreshing} title="Tải lại dữ liệu (sau khi ext detect forum mới)"
+          style={{ marginLeft: 'auto', background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', cursor: refreshing ? 'default' : 'pointer', width: 26, height: 26, fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: refreshing ? 0.5 : 1 }}>
+          <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.7s linear infinite' : 'none' }}>↻</span>
+        </button>
+        <style>{'@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}'}</style>
       </div>
 
       {/* per-template reach */}

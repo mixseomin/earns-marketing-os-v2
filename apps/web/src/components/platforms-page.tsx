@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, type CSSProperties } from 'react';
 import { Spinner, IconCommunity, SiteFavicon } from './ui';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   syncPlatformsFromDirectus,
   type PlatformWithUsage, type PlatformPriority,
 } from '@/lib/actions/platforms';
+import { READINESS_DIMS, isReady } from '@/lib/selector-readiness';
 import { searchHabitatsAcrossProjects } from '@/lib/actions/tribes-crud';
 import Link from 'next/link';
 import { TagsFilterChips } from './tags-input';
@@ -40,6 +41,88 @@ function useUrlParam(key: string, def: string): [string, (v: string) => void] {
     window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname);
   };
   return [value, set];
+}
+
+// Scale readiness cho PLATFORM scope — giống ma trận /technologies nhưng tính
+// EFFECTIVE = selector riêng nền tảng (platform-scope) + KẾ THỪA technology pack.
+// Chỉ hiện platform CÓ selector (riêng hoặc kế thừa). Cột = page_kind của pack.
+function PlatformReadinessMatrix({ platforms, onOpen }: {
+  platforms: PlatformWithUsage[]; onOpen: (label: string) => void;
+}) {
+  const eff = (p: PlatformWithUsage) => {
+    const e: Record<string, number> = {};
+    for (const d of READINESS_DIMS) e[d.pk] = (p.selectorCounts[d.pk] ?? 0) + (p.inheritedCounts[d.pk] ?? 0);
+    return e;
+  };
+  const hasSel = (p: PlatformWithUsage) =>
+    Object.keys(p.selectorCounts).length > 0 || Object.keys(p.inheritedCounts).length > 0;
+  const tot = (p: PlatformWithUsage) => Object.values(eff(p)).reduce((x, y) => x + y, 0);
+  const withSel = platforms.filter(hasSel);
+  const rows = [...withSel].sort((a, b) => {
+    const score = (p: PlatformWithUsage) => (isReady(eff(p)) ? 2e4 : tot(p) > 0 ? 1e4 : 0) + tot(p);
+    return score(b) - score(a) || a.label.localeCompare(b.label);
+  });
+  if (!rows.length) return null;
+  const readyN = withSel.filter((p) => isReady(eff(p))).length;
+  const th: CSSProperties = { fontSize: 10.5, color: 'var(--fg-3)', fontWeight: 600, textAlign: 'center', padding: '5px 8px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+  return (
+    <div style={{ marginBottom: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700 }}>🚀 Scale readiness</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{readyN}/{withSel.length} platform sẵn sàng (tạo account + đăng được) · effective = selector riêng + kế thừa technology (⬇)</span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: 'left' }}>platform</th>
+            <th style={th} title="Technology (engine) mà platform này kế thừa pack selector">tech</th>
+            {READINESS_DIMS.map((d) => <th key={d.pk} style={th} title={d.hint}>{d.label}</th>)}
+            <th style={th}>status</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((p) => {
+              const e = eff(p);
+              const ready = isReady(e);
+              const st = ready ? { t: 'ready', c: '#22c55e' } : tot(p) > 0 ? { t: 'partial', c: 'var(--warn)' } : { t: 'empty', c: 'var(--fg-3)' };
+              return (
+                <tr key={p.key} onClick={() => onOpen(p.label)} style={{ cursor: 'pointer' }}
+                    title="Bấm để lọc danh sách xuống platform này">
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--bg-1)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{p.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6, fontFamily: 'var(--font-mono, monospace)' }}>{p.key}</span>
+                  </td>
+                  <td style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: p.technologyKey ? '#b48cff' : 'var(--fg-3)' }}>{p.technologyKey || '–'}</span>
+                  </td>
+                  {READINESS_DIMS.map((d) => {
+                    const own = p.selectorCounts[d.pk] ?? 0;
+                    const inh = p.inheritedCounts[d.pk] ?? 0;
+                    const total = own + inh;
+                    const inheritedOnly = own === 0 && inh > 0;
+                    return (
+                      <td key={d.pk}
+                          title={total === 0 ? 'chưa có selector' : `${own} riêng platform + ${inh} kế thừa technology`}
+                          style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: total > 0 ? 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)' : 'transparent' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: total === 0 ? 'var(--fg-3)' : inheritedOnly ? '#b48cff' : 'var(--neon-cyan)' }}>
+                          {total === 0 ? '–' : `${inheritedOnly ? '⬇' : '✓'} ${total}`}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: st.c, textTransform: 'uppercase', letterSpacing: '.04em' }}>{st.t}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', padding: '6px 12px', borderTop: '1px solid var(--line)', lineHeight: 1.5 }}>
+        <b style={{ color: 'var(--neon-cyan)' }}>✓ N</b> = có selector riêng platform · <b style={{ color: '#b48cff' }}>⬇ N</b> = kế thừa từ technology pack (chưa override riêng) · <b style={{ color: '#22c55e' }}>ready</b> = signup + composer (tạo account + đăng được). Platform không có technology (reddit/x/HN…) phải tự đủ pack ở platform scope.
+      </div>
+    </div>
+  );
 }
 
 export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] }) {
@@ -146,6 +229,8 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
           <button className="btn primary" onClick={() => setCreating(true)}>+ New platform</button>
         </div>
       </div>
+
+      <PlatformReadinessMatrix platforms={platforms} onOpen={setQ} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <NoFillInput

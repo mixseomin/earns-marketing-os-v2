@@ -2224,6 +2224,8 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 signupFields: (platform.signupFields as PlatformWithUsage['signupFields']) ?? [],
                 allowedFormats: null,
                 formatMix: null,
+                selectorCounts: {},
+                inheritedCounts: {},
               }}
               onClose={() => setShowEditPlatform(false)}
             />

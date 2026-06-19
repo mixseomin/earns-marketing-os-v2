@@ -330,6 +330,10 @@ export interface PlatformWithUsage {
   signupFields: SignupField[];
   allowedFormats: string[] | null;
   formatMix: Record<string, number> | null;
+  /** Platform-scope selectors của riêng nền tảng này, theo page_kind. */
+  selectorCounts: Record<string, number>;
+  /** Selectors KẾ THỪA từ technology pack (nếu technologyKey set), theo page_kind. */
+  inheritedCounts: Record<string, number>;
 }
 
 export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
@@ -343,6 +347,21 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     FROM platforms p
     ORDER BY p.label
   `);
+  // Selector coverage theo page_kind: platform-scope (riêng nền tảng) + technology-scope
+  // (kế thừa). 1 query gộp → 2 map. Cascade lúc chạy: platform đè technology.
+  const selRows = await db.execute(sql`
+    SELECT scope_kind, scope_key, page_kind, count(*)::int AS n
+    FROM selector_overrides
+    WHERE scope_kind IN ('platform', 'technology', 'engine')
+    GROUP BY scope_kind, scope_key, page_kind
+  `);
+  const ownByPlat = new Map<string, Record<string, number>>();
+  const byTech = new Map<string, Record<string, number>>();
+  for (const s of selRows as unknown as Array<{ scope_kind: string; scope_key: string; page_kind: string; n: number }>) {
+    const target = s.scope_kind === 'platform' ? ownByPlat : byTech;
+    const m = target.get(s.scope_key) ?? target.set(s.scope_key, {}).get(s.scope_key)!;
+    m[s.page_kind] = (m[s.page_kind] ?? 0) + Number(s.n);
+  }
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     key: String(r.key),
     label: String(r.label),
@@ -365,6 +384,8 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     allowedFormats: Array.isArray(r.allowed_formats) ? (r.allowed_formats as string[]) : null,
     formatMix: (r.format_mix && typeof r.format_mix === 'object' && !Array.isArray(r.format_mix))
       ? (r.format_mix as Record<string, number>) : null,
+    selectorCounts: ownByPlat.get(String(r.key)) ?? {},
+    inheritedCounts: r.technology_key ? (byTech.get(String(r.technology_key)) ?? {}) : {},
   }));
 }
 

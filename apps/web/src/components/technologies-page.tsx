@@ -13,6 +13,7 @@ import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { NoFillInput } from './no-fill-input';
 import { mergeSelectorField, type DupGroup } from '@/lib/actions/habitat-selectors';
 import type { TechnologyWithUsage } from '@/lib/actions/technologies';
+import { READINESS_DIMS, isReady } from '@/lib/selector-readiness';
 
 const PK_META: Record<string, { label: string; color: string }> = {
   signup: { label: 'signup', color: 'var(--neon-amber)' },
@@ -27,14 +28,7 @@ const APPLIED_CAP = 10;
 // "Scale readiness": để vận hành 1 site trên 1 technology với 0 công thủ công,
 // technology cần đủ PACK selector ở technology scope. Cột = chiều của pack (page_kind).
 // Train 1 lần ở technology scope → mọi site cùng technology cascade tự dùng.
-const READINESS_DIMS: { pk: string; label: string; hint: string }[] = [
-  { pk: 'signup', label: 'Signup', hint: 'Tạo account + sửa profile sau reg — điền form đăng ký / account-details (page_kind=signup, catalog WRITE thống nhất)' },
-  { pk: 'composer', label: 'Compose', hint: 'Đăng/reply + login state + thread context' },
-  { pk: 'post-metrics', label: 'Metrics', hint: 'Đọc số engagement (views/score/replies)' },
-  { pk: 'account-profile', label: 'Profile', hint: 'Đọc hồ sơ tài khoản sau reg (handle / joined / messages) — track warmup. Không tính vào "ready".' },
-];
-// Tối thiểu để "operate" 1 site = tạo được account + đăng được bài.
-const isReady = (c: Record<string, number>) => (c.signup ?? 0) > 0 && (c.composer ?? 0) > 0;
+// READINESS_DIMS + isReady dùng chung với /platforms — xem lib/selector-readiness.
 
 function TechnologyReadinessMatrix({ technologies, onOpen }: {
   technologies: TechnologyWithUsage[]; onOpen: (key: string) => void;

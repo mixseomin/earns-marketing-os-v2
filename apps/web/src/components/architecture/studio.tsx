@@ -707,6 +707,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const [detail, setDetail] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sels, setSels] = useState<SelRow[] | null>(null);
+  const [scopesWithSel, setScopesWithSel] = useState<{ key: string; n: number }[]>([]);
   const openSub = useContext(SubCtx);
   const isScoped = obj.key === 'platform' || obj.key === 'technology' || obj.key === 'habitat';
   const parent = obj.picker?.parent;             // child needs its parent picked first (channel → habitat)
@@ -723,6 +724,20 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
     listSelectors(obj.key, picked).then((r) => { if (!dead) setSels(r); });
     return () => { dead = true; };
   }, [obj.key, isScoped, picked]);
+
+  // which instances of THIS scope actually have selectors (đa số platform trống —
+  // DEV.to=0, chỉ reddit/twitter/HN… có) → hiện chip quick-jump để khỏi bind mò.
+  useEffect(() => {
+    let dead = false;
+    if (!isScoped) { setScopesWithSel([]); return; }
+    selectorCatalog().then((rows) => {
+      if (dead) return;
+      const m = new Map<string, number>();
+      for (const r of rows) if (r.scopeKind === obj.key) m.set(r.scopeKey, (m.get(r.scopeKey) ?? 0) + 1);
+      setScopesWithSel([...m.entries()].map(([key, n]) => ({ key, n })).sort((a, b) => b.n - a.n));
+    });
+    return () => { dead = true; };
+  }, [isScoped, obj.key]);
 
   // load parent options for cascade (channel → habitat)
   useEffect(() => {
@@ -911,8 +926,27 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
       {/* selector library for this scope (per platform/technology/habitat × entity) */}
       {isScoped && (
         <Section title="Selectors (this scope)" sub={`// scope_kind='${obj.key}'`}>
+          {scopesWithSel.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 4 }}>
+                {scopesWithSel.length} {obj.label.toLowerCase()} có selector — bấm để mở (đa số {obj.label.toLowerCase()} khác trống):
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {scopesWithSel.map((s) => {
+                  const on = s.key === picked;
+                  return (
+                    <button key={s.key} type="button" onClick={() => inspect(s.key)}
+                      title={`Bind ${s.key} + xem ${s.n} selector`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: on ? 'var(--bg-0)' : 'var(--accent)', background: on ? 'var(--accent)' : 'var(--bg-2)', border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}>
+                      {s.key} <span style={{ opacity: 0.7 }}>{s.n}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {!picked ? (
-            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Bind a real {obj.label} above to view its extraction selectors.</div>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Bấm 1 chip ở trên, hoặc bind 1 {obj.label} ở mục trên để xem selector của nó.</div>
           ) : sels == null ? (
             <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>
           ) : sels.length === 0 ? (

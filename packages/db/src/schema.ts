@@ -508,6 +508,24 @@ export const platformTechDetections = pgTable('platform_tech_detections', {
   url: text('url'),
 }, (t) => [index('platform_tech_detections_tech_idx').on(t.technologyKey), index('platform_tech_detections_pkey_idx').on(t.platformKey)]);
 
+// ── dom_samples (migration 0106) ─────────────────────────────────
+// Ext (browser ĐÃ LOGIN) chụp full rendered HTML 1 trang cần track → lưu đây theo
+// platform/technology/page_kind. Giải login-gated (server không curl được trang auth)
+// + giữ mẫu để extract thêm field sau này mà khỏi chụp lại.
+export const domSamples = pgTable('dom_samples', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  platformKey: text('platform_key'),
+  technologyKey: text('technology_key'),
+  pageKind: text('page_kind').notNull().default('page'),
+  url: text('url'),
+  hostname: text('hostname'),
+  title: text('title'),
+  html: text('html').notNull(),
+  bytes: integer('bytes').notNull().default(0),
+  note: text('note'),
+  capturedAt: timestamp('captured_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index('dom_samples_tech_idx').on(t.technologyKey, t.pageKind), index('dom_samples_plat_idx').on(t.platformKey, t.pageKind)]);
+
 // ── platform_accounts ────────────────────────────────────────────
 // Tenant-level accounts on platforms (Product Hunt, HackerNews, Reddit, ...).
 // projectId = legacy "owner/creator project" (nullable). For full multi-brand

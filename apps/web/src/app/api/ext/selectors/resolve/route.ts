@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { resolveSelectors } from '@/lib/actions/habitat-selectors';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,11 @@ export async function GET(req: Request) {
   const pageKind = (p.get('pageKind') || '').trim();
   if (!pageKind) return errorResponse('pageKind required', 400);
   const habitatId = p.get('habitatId') ? Number(p.get('habitatId')) : null;
-  const platformKey = p.get('platformKey') || null;
+  // Ext gửi platformKey theo HOST ('x' trên x.com) nhưng selector lưu theo key
+  // CANONICAL ('twitter'). Không canon → resolve rỗng → widget composer không build
+  // được (bug lộ ra khi cache adapter bị xoá lúc bump version). canonPlatformKey x→twitter.
+  const rawPlatformKey = p.get('platformKey') || null;
+  const platformKey = rawPlatformKey ? canonPlatformKey(rawPlatformKey) : null;
   const technologyKey = p.get('technologyKey') || null;
   try {
     const map = await resolveSelectors({ habitatId, platformKey, technologyKey, pageKind });

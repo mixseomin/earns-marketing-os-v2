@@ -18,6 +18,7 @@ const PK_META: Record<string, { label: string; color: string }> = {
   signup: { label: 'signup', color: 'var(--neon-amber)' },
   composer: { label: 'composer', color: 'var(--neon-cyan)' },
   'subreddit-about': { label: 'about', color: 'var(--neon-violet)' },
+  'account-profile': { label: 'profile', color: 'var(--neon-green, #22c55e)' },
 };
 const pkMeta = (pk: string) => PK_META[pk] ?? { label: pk, color: 'var(--fg-3)' };
 
@@ -27,9 +28,10 @@ const APPLIED_CAP = 10;
 // technology cần đủ PACK selector ở technology scope. Cột = chiều của pack (page_kind).
 // Train 1 lần ở technology scope → mọi site cùng technology cascade tự dùng.
 const READINESS_DIMS: { pk: string; label: string; hint: string }[] = [
-  { pk: 'signup', label: 'Signup', hint: 'Tạo account — điền form đăng ký' },
+  { pk: 'signup', label: 'Signup', hint: 'Tạo account + sửa profile sau reg — điền form đăng ký / account-details (page_kind=signup, catalog WRITE thống nhất)' },
   { pk: 'composer', label: 'Compose', hint: 'Đăng/reply + login state + thread context' },
   { pk: 'post-metrics', label: 'Metrics', hint: 'Đọc số engagement (views/score/replies)' },
+  { pk: 'account-profile', label: 'Profile', hint: 'Đọc hồ sơ tài khoản sau reg (handle / joined / messages) — track warmup. Không tính vào "ready".' },
 ];
 // Tối thiểu để "operate" 1 site = tạo được account + đăng được bài.
 const isReady = (c: Record<string, number>) => (c.signup ?? 0) > 0 && (c.composer ?? 0) > 0;
@@ -89,7 +91,7 @@ function TechnologyReadinessMatrix({ technologies, onOpen }: {
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', padding: '6px 12px', borderTop: '1px solid var(--line)', lineHeight: 1.5 }}>
         <b style={{ color: '#22c55e' }}>ready</b> = có signup + composer (tạo account + đăng được) → site mới trên technology này scale 0 công ·{' '}
-        <b style={{ color: 'var(--warn)' }}>partial</b>/<b>empty</b> = cần bootstrap pack (train 1 lần ở technology scope, vd qua Playwright trainer). Bấm hàng để mở chi tiết.
+        <b style={{ color: 'var(--warn)' }}>partial</b>/<b>empty</b> = cần bootstrap pack (train 1 lần ở technology scope). <b style={{ color: 'var(--neon-green, #22c55e)' }}>Profile</b> = track warmup sau reg, không gate "ready". Bấm hàng để mở chi tiết.
       </div>
     </div>
   );

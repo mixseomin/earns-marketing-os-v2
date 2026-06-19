@@ -17,6 +17,9 @@ interface ExtHabitatPayload {
   kind: string;
   name: string;
   url: string;
+  // auto:true = autoSaveHabitat (chỉ duyệt trang) → KHÔNG tự tạo bản mới khi
+  // community đã track ở project khác (chống add ngoài chủ ý). Tạo mới = explicit.
+  auto?: boolean;
   icon_url?: string;
   members?: number | null;
   description?: string;
@@ -283,6 +286,31 @@ export async function POST(req: Request) {
       // phụ thuộc project). patch (từ body) sẽ ghi đè nếu ext gửi value
       // mới — sibling chỉ là fallback cho field ext miss.
       const sib = sibling[0]!;
+      // AUTO path (autoSaveHabitat = chỉ DUYỆT trang, không click): community ĐÃ
+      // track ở project KHÁC → KHÔNG tự nhân bản sang project đang ghim (đó chính
+      // là "add nhầm / ngoài chủ ý"). Refresh metadata project-agnostic của bản đã
+      // có rồi báo trackedElsewhere. Muốn thêm vào project này = phải EXPLICIT
+      // "+ Track" (đi qua /habitats/ensure), không qua auto.
+      if (body.auto) {
+        // refresh metadata project-agnostic của bản đã có (COALESCE: KHÔNG ghi đè data sẵn).
+        await db.execute(sql`
+          UPDATE habitats SET
+            members = COALESCE(members, ${patch.members}),
+            description = COALESCE(NULLIF(description, ''), ${patch.description}),
+            weekly_visitors = COALESCE(weekly_visitors, ${patch.weeklyVisitors}),
+            weekly_contributions = COALESCE(weekly_contributions, ${patch.weeklyContributions}),
+            icon_url = COALESCE(NULLIF(icon_url, ''), ${patch.iconUrl}),
+            updated_at = NOW()
+          WHERE id = ${sib.id}
+        `);
+        return NextResponse.json({
+          ok: true, created: false, trackedElsewhere: true,
+          habitat: {
+            id: sib.id, name: sib.name, kind: sib.kind,
+            projectId: sib.projectId, platformKey: sib.platformKey, briefId: null,
+          },
+        });
+      }
       const inheritedFromSibling = {
         members: patch.members || sib.members,
         iconUrl: patch.iconUrl || sib.iconUrl,

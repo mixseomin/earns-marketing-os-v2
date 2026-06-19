@@ -192,7 +192,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
                 <td style={cell} title="SL / TP (crypto SL = Donchian-20 trailing exit, no fixed TP)">{t.sl != null || t.tp != null ? <span><span style={{ color: '#ff8a8a' }}>{t.sl != null ? t.sl : '—'}</span><span style={{ color: 'var(--muted)' }}> / </span><span style={{ color: 'var(--ok,#5ac882)' }}>{t.tp != null ? t.tp : '—'}</span></span> : '—'}</td>
                 <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
                 <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
-                <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6 }} title="P&L converted to account $">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
+                <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
               </tr>
             );

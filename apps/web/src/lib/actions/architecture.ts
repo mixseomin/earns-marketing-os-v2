@@ -535,6 +535,34 @@ export async function metricCoverage(): Promise<MetricCoverage> {
   } catch { return empty; }
 }
 
+// ── DOM sample library (ext capture) ────────────────────────────────────────
+export interface DomSampleRow {
+  id: number; platformKey: string | null; technologyKey: string | null;
+  pageKind: string; url: string | null; hostname: string | null; title: string | null;
+  bytes: number; capturedAt: string;
+}
+export async function listDomSamples(): Promise<DomSampleRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const rows = await db.execute(sql`
+      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at
+      FROM dom_samples ORDER BY captured_at DESC LIMIT 300`);
+    return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), platformKey: (r.platform_key as string | null) ?? null,
+      technologyKey: (r.technology_key as string | null) ?? null, pageKind: String(r.page_kind ?? 'page'),
+      url: (r.url as string | null) ?? null, hostname: (r.hostname as string | null) ?? null,
+      title: (r.title as string | null) ?? null, bytes: Number(r.bytes) || 0, capturedAt: String(r.captured_at),
+    }));
+  } catch { return []; }
+}
+export async function deleteDomSample(id: number): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  try { await db.execute(sql`DELETE FROM dom_samples WHERE id = ${id}`); return { ok: true }; }
+  catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+
 // ── Template Adoption ────────────────────────────────────────────────────────
 // Scaling lever: 1 technology template (e.g. xenforo signup+composer+profile)
 // covers EVERY forum on that engine the moment a platform binds technology_key.

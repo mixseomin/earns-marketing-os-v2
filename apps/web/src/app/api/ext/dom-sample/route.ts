@@ -78,3 +78,17 @@ export async function GET(req: Request) {
     ORDER BY captured_at DESC LIMIT 200`);
   return NextResponse.json({ ok: true, samples: rows });
 }
+
+// DELETE /api/ext/dom-sample?id=N — xoá 1 sample (vd chụp lỗi/chưa load xong).
+export async function DELETE(req: Request) {
+  const err = checkAuth(req); if (err) return err;
+  const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
+  const id = new URL(req.url).searchParams.get('id');
+  if (!id) return errorResponse('id required', 400);
+  try {
+    await db.execute(sql`DELETE FROM dom_samples WHERE id = ${Number(id)}`);
+    return NextResponse.json({ ok: true, deleted: Number(id) });
+  } catch (e) {
+    return errorResponse((e as Error).message, 200);
+  }
+}

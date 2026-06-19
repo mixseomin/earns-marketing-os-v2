@@ -20,9 +20,9 @@ import {
 import { Drawer } from '@/components/drawer';
 import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
-  templateAdoption,
+  templateAdoption, listDomSamples, deleteDomSample,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
-  type MetricCoverage, type MetricCell, type TemplateAdoptionData,
+  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -833,6 +833,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
         </Section>
       )}
 
+      {/* DOM sample library — ext capture full HTML (logged-in) để extract selector */}
+      {obj.key === 'technology' && (
+        <Section title="DOM Samples" sub="// ext 💾 capture · tìm & xoá (vd chụp lỗi chưa load xong)">
+          <DomSamplesPanel />
+        </Section>
+      )}
+
       {/* attribute schema */}
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
@@ -1518,6 +1525,57 @@ function TemplateAdoptionPanel() {
       )}
 
       {data.techs.length === 0 && data.unbound.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có selector template nào, và không có forum platform nào chờ bind.</div>}
+    </div>
+  );
+}
+
+// ── DOM sample library (ext capture) — list + delete ────────────────────────
+function DomSamplesPanel() {
+  const [rows, setRows] = useState<DomSampleRow[] | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [q, setQ] = useState('');
+  const load = useCallback(() => { let dead = false; listDomSamples().then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, []);
+  useEffect(() => load(), [load]);
+  const del = useCallback(async (id: number) => {
+    setBusy(id);
+    await deleteDomSample(id);
+    setRows((prev) => (prev ? prev.filter((x) => x.id !== id) : prev));
+    setBusy(null);
+  }, []);
+  if (rows == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading samples…</div>;
+  const ql = q.trim().toLowerCase();
+  const view = ql ? rows.filter((r) => `${r.hostname} ${r.platformKey} ${r.technologyKey} ${r.pageKind} ${r.url}`.toLowerCase().includes(ql)) : rows;
+  const kb = (b: number) => (b >= 1024 ? Math.round(b / 1024) + 'KB' : b + 'B');
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="lọc host / platform / page_kind…" autoComplete="off"
+          style={{ flex: 1, boxSizing: 'border-box', padding: '5px 9px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{view.length} sample{view.length !== 1 ? 's' : ''}</span>
+        <button onClick={load} title="Tải lại" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', width: 26, height: 26, fontSize: 13 }}>↻</button>
+      </div>
+      {view.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có DOM sample nào (bấm 🤖 → 💾 Lưu HTML trên 1 trang forum).</div> : (
+        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          {view.map((r, i) => (
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', minWidth: 30 }}>#{r.id}</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{r.platformKey || r.hostname || '?'}</span>
+                  {r.technologyKey && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }}>◆{r.technologyKey}</span>}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>{r.pageKind}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{kb(r.bytes)} · {new Date(r.capturedAt).toLocaleString()}</span>
+                </div>
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</a>}
+              </div>
+              <button disabled={busy === r.id} onClick={() => del(r.id)} title="Xoá sample này"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: busy === r.id ? 'var(--fg-4)' : 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap' }}>
+                {busy === r.id ? '…' : '🗑'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

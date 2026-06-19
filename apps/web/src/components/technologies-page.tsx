@@ -6,7 +6,7 @@
 // the signup-field defaults, which platforms + habitats inherit the technology,
 // and a duplicate-field detector with one-click merge. Route: /technologies.
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
@@ -22,6 +22,78 @@ const PK_META: Record<string, { label: string; color: string }> = {
 const pkMeta = (pk: string) => PK_META[pk] ?? { label: pk, color: 'var(--fg-3)' };
 
 const APPLIED_CAP = 10;
+
+// "Scale readiness": để vận hành 1 site trên 1 technology với 0 công thủ công,
+// technology cần đủ PACK selector ở technology scope. Cột = chiều của pack (page_kind).
+// Train 1 lần ở technology scope → mọi site cùng technology cascade tự dùng.
+const READINESS_DIMS: { pk: string; label: string; hint: string }[] = [
+  { pk: 'signup', label: 'Signup', hint: 'Tạo account — điền form đăng ký' },
+  { pk: 'composer', label: 'Compose', hint: 'Đăng/reply + login state + thread context' },
+  { pk: 'post-metrics', label: 'Metrics', hint: 'Đọc số engagement (views/score/replies)' },
+];
+// Tối thiểu để "operate" 1 site = tạo được account + đăng được bài.
+const isReady = (c: Record<string, number>) => (c.signup ?? 0) > 0 && (c.composer ?? 0) > 0;
+
+function TechnologyReadinessMatrix({ technologies, onOpen }: {
+  technologies: TechnologyWithUsage[]; onOpen: (key: string) => void;
+}) {
+  const tot = (e: TechnologyWithUsage) => Object.values(e.selectorCounts).reduce((x, y) => x + y, 0);
+  // ready trước (đòn bẩy đã sẵn) → partial → empty (= hàng đợi bootstrap).
+  const rows = [...technologies].sort((a, b) => {
+    const score = (e: TechnologyWithUsage) => (isReady(e.selectorCounts) ? 2e4 : tot(e) > 0 ? 1e4 : 0) + tot(e);
+    return score(b) - score(a) || a.key.localeCompare(b.key);
+  });
+  const readyN = technologies.filter((e) => isReady(e.selectorCounts)).length;
+  const th: CSSProperties = { fontSize: 10.5, color: 'var(--fg-3)', fontWeight: 600, textAlign: 'center', padding: '5px 8px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+  return (
+    <div style={{ marginBottom: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700 }}>🚀 Scale readiness</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{readyN}/{technologies.length} technology sẵn sàng — train 1 lần ở technology scope → mọi site cùng technology tự dùng, 0 công</span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480 }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: 'left' }}>technology</th>
+            {READINESS_DIMS.map((d) => <th key={d.pk} style={th} title={d.hint}>{d.label}</th>)}
+            <th style={th}>status</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((e) => {
+              const ready = isReady(e.selectorCounts);
+              const t = tot(e);
+              const st = ready ? { t: 'ready', c: '#22c55e' } : t > 0 ? { t: 'partial', c: 'var(--warn)' } : { t: 'empty', c: 'var(--fg-3)' };
+              return (
+                <tr key={e.key} onClick={() => onOpen(e.key)} style={{ cursor: 'pointer' }}
+                    title="Bấm để mở chi tiết selector của technology này">
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--bg-1)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{e.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6, fontFamily: 'var(--font-mono, monospace)' }}>{e.key}</span>
+                  </td>
+                  {READINESS_DIMS.map((d) => {
+                    const n = e.selectorCounts[d.pk] ?? 0;
+                    return (
+                      <td key={d.pk} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: n > 0 ? 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)' : 'transparent' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: n > 0 ? 'var(--neon-cyan)' : 'var(--fg-3)' }}>{n > 0 ? `✓ ${n}` : '–'}</span>
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: st.c, textTransform: 'uppercase', letterSpacing: '.04em' }}>{st.t}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-3)', padding: '6px 12px', borderTop: '1px solid var(--line)', lineHeight: 1.5 }}>
+        <b style={{ color: '#22c55e' }}>ready</b> = có signup + composer (tạo account + đăng được) → site mới trên technology này scale 0 công ·{' '}
+        <b style={{ color: 'var(--warn)' }}>partial</b>/<b>empty</b> = cần bootstrap pack (train 1 lần ở technology scope, vd qua Playwright trainer). Bấm hàng để mở chi tiết.
+      </div>
+    </div>
+  );
+}
 
 export function TechnologiesPage({ technologies, dups }: { technologies: TechnologyWithUsage[]; dups: DupGroup[] }) {
   const pathname = usePathname();
@@ -79,6 +151,15 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
           sites on the technology unless overridden at a narrower scope.
         </p>
       </div>
+
+      <TechnologyReadinessMatrix technologies={technologies} onOpen={(k) => {
+        setOpen(k);
+        if (typeof window !== 'undefined') {
+          const p = new URLSearchParams(window.location.search);
+          p.set('e', k);
+          window.history.replaceState({}, '', `${pathname}?${p.toString()}`);
+        }
+      }} />
 
       <div style={{ marginBottom: 10 }}>
         <NoFillInput

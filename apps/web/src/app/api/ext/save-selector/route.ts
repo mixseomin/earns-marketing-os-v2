@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { errorResponse } from '@/lib/ext-route';
 import { checkAuth } from '../_auth';
-import { setOverride, normScopeKind } from '@/lib/actions/habitat-selectors';
+import { setOverride } from '@/lib/actions/habitat-selectors';
+import { normScopeKind } from '@/lib/scope-kind';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { getFieldSchema, WRITE_PAGE_KINDS } from '@/lib/habitat-field-schema';
 import { getBriefFieldSchema, parseBriefFieldName } from '@/lib/brief-field-schema';

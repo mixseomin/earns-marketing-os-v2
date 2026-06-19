@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { clearOverride, normScopeKind, type ScopeKind } from '@/lib/actions/habitat-selectors';
+import { clearOverride, type ScopeKind } from '@/lib/actions/habitat-selectors';
+import { normScopeKind } from '@/lib/scope-kind';
 import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 
 export const dynamic = 'force-dynamic';

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { errorResponse } from '@/lib/ext-route';
 import { renameProfileField } from '@/lib/actions/profile-fields';
-import { normScopeKind } from '@/lib/actions/habitat-selectors';
+import { normScopeKind } from '@/lib/scope-kind';
 
 export const dynamic = 'force-dynamic';
 

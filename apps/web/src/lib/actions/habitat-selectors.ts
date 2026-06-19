@@ -14,6 +14,11 @@ import { getDb, selectorOverrides, habitats } from '@mos2/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { canonField } from '../selector-field-canon';
+// Sync scope helpers live in a plain module ('use server' files may only export
+// async fns). Re-export the TYPE here (type-only re-export is erased → allowed) so
+// existing `import { ScopeKind } from '.../habitat-selectors'` sites keep working.
+import { normScopeKind, scopeKindMatch, type ScopeKind } from '@/lib/scope-kind';
+export type { ScopeKind } from '@/lib/scope-kind';
 
 // CSS-identity guard: if a row at the same (scope, page_kind) already holds
 // this exact css under a DIFFERENT field_name, that existing field IS this
@@ -45,19 +50,6 @@ async function adoptExistingField(
     .limit(1);
   return rows[0]?.field ?? null;
 }
-
-export type ScopeKind = 'technology' | 'platform' | 'habitat';
-
-// Backward-compat normalizer: legacy rows / un-updated ext requests may still
-// carry the old scope value 'engine'. Always pass an incoming scope_kind through
-// this before comparing/using so 'engine' still resolves as the new 'technology'.
-export const normScopeKind = (s: string): ScopeKind =>
-  (s === 'engine' ? 'technology' : s) as ScopeKind;
-
-// The set of stored scope_kind values that a normalized scope matches. Used in
-// DB filters so a 'technology' filter also catches legacy 'engine' rows.
-export const scopeKindMatch = (s: ScopeKind | string): string[] =>
-  normScopeKind(s) === 'technology' ? ['technology', 'engine'] : [normScopeKind(s)];
 
 export interface SelectorSpec {
   css: string;

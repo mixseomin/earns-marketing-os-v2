@@ -14,7 +14,8 @@ import { getDb, platformAccounts, selectorOverrides } from '@mos2/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { canonField } from '../selector-field-canon';
-import { setOverride, resolveSelectors, scopeKindMatch, type ScopeKind, type SelectorSpec } from './habitat-selectors';
+import { setOverride, resolveSelectors, type ScopeKind, type SelectorSpec } from './habitat-selectors';
+import { scopeKindMatch } from '@/lib/scope-kind';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 

@@ -23,6 +23,7 @@ const cagrPct = (t: StrategyTestRow): number => {
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4));
 const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
+const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1)}k` : Math.abs(n).toFixed(Math.abs(n) < 10 ? 2 : 0)}`;
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
@@ -55,7 +56,14 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L' : undefined}>{p == null ? '—' : (t.isOpen ? `${f2(p)}*` : f2(p))}</td>
+      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L' : undefined}>
+        {p == null ? '—' : (() => {
+          const crypto = isCryptoSym(t.symbol);
+          const main = crypto ? `${f2(p)}%${t.isOpen ? '*' : ''}` : `${fmtPnlUsd(p)}${t.isOpen ? '*' : ''}`;
+          const sec = t.notional != null && t.notional !== 0 ? (crypto ? fmtPnlUsd(p / 100 * t.notional) : `${(p / t.notional * 100).toFixed(2)}%`) : null;
+          return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 9.5 }}>{sec}</span> : null}</span>;
+        })()}
+      </td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>
   );

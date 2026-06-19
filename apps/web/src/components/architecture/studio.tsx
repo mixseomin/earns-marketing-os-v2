@@ -708,6 +708,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const [loading, setLoading] = useState(false);
   const [sels, setSels] = useState<SelRow[] | null>(null);
   const [scopesWithSel, setScopesWithSel] = useState<{ key: string; n: number }[]>([]);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const openSub = useContext(SubCtx);
   const isScoped = obj.key === 'platform' || obj.key === 'technology' || obj.key === 'habitat';
   const parent = obj.picker?.parent;             // child needs its parent picked first (channel → habitat)
@@ -720,6 +721,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   // load the selector library for this scope once an instance is picked
   useEffect(() => {
     let dead = false;
+    setOpenGroups(new Set()); // đổi scope → thu gọn lại (default collapsed cho dễ nhìn)
     if (!isScoped || !picked) { setSels(null); return; }
     listSelectors(obj.key, picked).then((r) => { if (!dead) setSels(r); });
     return () => { dead = true; };
@@ -951,43 +953,62 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
             <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>
           ) : sels.length === 0 ? (
             <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No selectors trained at this scope yet. Train on-page via the Crew picker (🎯) or fall back to the cascade (habitat → platform → technology).</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(() => {
-                // group by page_kind — each context (composer / subreddit-about / platform-any …)
-                // is where the SAME concept (user/author/viewer) is located differently
-                const groups: { pk: string; rows: typeof sels }[] = [];
-                for (const s of sels) {
-                  const g = groups[groups.length - 1];
-                  if (g && g.pk === s.pageKind) g.rows.push(s);
-                  else groups.push({ pk: s.pageKind, rows: [s] });
-                }
-                return groups.map((g) => (
-                  <div key={g.pk} style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)', fontWeight: 600 }}>@ {g.pk}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{g.rows.length} field{g.rows.length > 1 ? 's' : ''}</span>
-                    </div>
-                    {g.rows.map((s, i) => (
-                      <button key={s.fieldName} type="button"
-                        onClick={() => openSub({ title: s.fieldName, sub: `${obj.key} · ${picked} · @ ${s.pageKind}`, body: <SelectorDetail id={s.id} /> })}
-                        title="Mở chi tiết selector (spec, cascade, raw jsonb)"
-                        style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, cursor: 'pointer', padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
-                          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>›</span>
-                          <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
-                        </div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
+          ) : (() => {
+            // group by page_kind — mỗi context (composer / subreddit-about / platform-any …)
+            // là nơi CÙNG concept (user/author/viewer) nằm khác nhau. Mỗi nhóm collapse được.
+            const groups: { pk: string; rows: typeof sels }[] = [];
+            for (const s of sels) {
+              const g = groups[groups.length - 1];
+              if (g && g.pk === s.pageKind) g.rows.push(s);
+              else groups.push({ pk: s.pageKind, rows: [s] });
+            }
+            const pkColor = (pk: string) => pk === 'signup' ? 'var(--neon-amber)' : pk === 'composer' ? 'var(--neon-cyan)'
+              : pk.startsWith('subreddit') ? 'var(--neon-violet)' : pk === 'post-metrics' ? '#3fb6c4'
+              : pk === 'account-profile' ? '#22c55e' : pk === 'platform-any' ? '#b48cff' : 'var(--fg-2)';
+            const allOpen = groups.length > 0 && groups.every((g) => openGroups.has(g.pk));
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, color: 'var(--fg-3)' }}>
+                  <span>{groups.length} nhóm · {sels.length} selector</span>
+                  <button type="button" onClick={() => setOpenGroups(allOpen ? new Set() : new Set(groups.map((g) => g.pk)))}
+                    style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', fontSize: 10.5, padding: '2px 8px', cursor: 'pointer' }}>
+                    {allOpen ? '⊟ thu hết' : '⊞ mở hết'}
+                  </button>
+                </div>
+                {groups.map((g) => {
+                  const open = openGroups.has(g.pk);
+                  const col = pkColor(g.pk);
+                  return (
+                    <div key={g.pk} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${col}`, borderRadius: 6, overflow: 'hidden' }}>
+                      <button type="button"
+                        onClick={() => setOpenGroups((prev) => { const n = new Set(prev); if (n.has(g.pk)) n.delete(g.pk); else n.add(g.pk); return n; })}
+                        title={PAGE_KIND_VI[g.pk] || `page_kind "${g.pk}"`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '7px 10px', background: 'var(--bg-3)', border: 0, cursor: 'pointer' }}>
+                        <span style={{ fontSize: 9, color: 'var(--fg-3)', width: 8, flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: col, fontWeight: 700 }}>{g.pk}</span>
+                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-1)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 10, padding: '0 7px', flexShrink: 0 }}>{g.rows.length}</span>
                       </button>
-                    ))}
-                  </div>
-                ));
-              })()}
-            </div>
-          )}
+                      {open && g.rows.map((s, i) => (
+                        <button key={s.fieldName} type="button"
+                          onClick={() => openSub({ title: s.fieldName, sub: `${obj.key} · ${picked} · @ ${s.pageKind}`, body: <SelectorDetail id={s.id} /> })}
+                          title="Mở chi tiết selector (spec, cascade, raw jsonb)"
+                          style={{ display: 'block', width: '100%', textAlign: 'left', borderWidth: '1px 0 0 0', borderStyle: 'solid', borderColor: 'var(--line)', cursor: 'pointer', padding: '6px 10px 6px 26px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
+                            <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>›</span>
+                            <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
+                          </div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
             The Crew extension resolves these at runtime via <code>MOS2.sel</code> (priority: DB → a.sel → platform → technology → generic) and lets you pick/edit them on the page. Manage at <a href="/technologies" style={{ color: 'var(--accent)' }}>/technologies</a> · <a href="/platforms" style={{ color: 'var(--accent)' }}>/platforms</a>.
           </div>

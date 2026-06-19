@@ -41,7 +41,6 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
   const h = holdH(t, brokerNowMs);
   const p = t.profit == null ? null : Number(t.profit);
   const crypto = isCryptoSym(t.symbol);
-  const pct = p == null ? null : (crypto ? p : (t.notional ? p / t.notional * 100 : null));   // return % of notional
   const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);   // P&L in $
   const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
   return (
@@ -60,8 +59,8 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title="return % of the position notional">{pct != null ? `${f2(pct)}%` : '—'}</td>
-      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L ($)' : 'realized P&L ($)'}>{usd != null ? fmtPnlUsd(usd) : '—'}</td>
+      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native: crypto %, MT5 $)' : 'realized P&L (native: crypto %, MT5 $)'}>{p == null ? '—' : (crypto ? `${f2(p)}%` : fmtPnlUsd(p))}</td>
+      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title="P&L converted to account $ (qty × notional)">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>
   );
@@ -173,7 +172,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
-  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', '%', 'P&L', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', '%', 'P&L', ''];
+  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', ''];
 
   return (
     <div>
@@ -189,7 +188,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: grouped ? 520 : 640 }}>
-          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '%' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '$' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
               ? groups.map((g) => (

@@ -171,14 +171,13 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
       </div>
       <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
         <thead><tr style={{ color: 'var(--muted)' }}>
-          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', '%', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: h === 'P&L' || h === '%' ? 'right' : 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', ''].map((h) => <th key={h} style={{ textAlign: h === 'P&L' || h === '$' ? 'right' : 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
         </tr></thead>
         <tbody>
           {rows.map((t, i) => {
             const nowMs = t.isOpen ? (isCryptoSym(t.symbol) ? Date.now() : brokerNowMs) : null;
             const h = holdH(t.entryTime, t.exitTime, nowMs); const p = t.profit == null ? null : Number(t.profit);
             const crypto = isCryptoSym(t.symbol);
-            const pct = p == null ? null : (crypto ? p : (t.notional ? p / t.notional * 100 : null));
             const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);
             const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
             return (
@@ -192,8 +191,8 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
                 <td style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
                 <td style={cell} title="SL / TP (crypto SL = Donchian-20 trailing exit, no fixed TP)">{t.sl != null || t.tp != null ? <span><span style={{ color: '#ff8a8a' }}>{t.sl != null ? t.sl : '—'}</span><span style={{ color: 'var(--muted)' }}> / </span><span style={{ color: 'var(--ok,#5ac882)' }}>{t.tp != null ? t.tp : '—'}</span></span> : '—'}</td>
                 <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-                <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title="return % of the position notional">{pct != null ? `${f2(pct)}%` : '—'}</td>
-                <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L ($)' : 'realized P&L ($)'}>{usd != null ? fmtPnlUsd(usd) : '—'}</td>
+                <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native: crypto %, MT5 $)' : 'realized P&L (native: crypto %, MT5 $)'}>{p == null ? '—' : (crypto ? `${f2(p)}%` : fmtPnlUsd(p))}</td>
+                <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title="P&L converted to account $ (qty × notional)">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
               </tr>
             );

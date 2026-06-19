@@ -40,9 +40,6 @@ const th: React.CSSProperties = { padding: '5px 10px', fontSize: 10.5, textAlign
 function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowMs?: number | null; showStrategy: boolean }) {
   const h = holdH(t, brokerNowMs);
   const p = t.profit == null ? null : Number(t.profit);
-  const crypto = isCryptoSym(t.symbol);
-  const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);   // P&L in $
-  const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
   return (
     <tr style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.55, background: t.isOpen ? 'rgba(90,200,130,0.06)' : 'transparent' }}>
       {showStrategy ? <td style={{ ...cell, fontWeight: t.isOpen ? 600 : 400 }}>{t.strategy}</td> : null}
@@ -59,8 +56,14 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native: crypto %, MT5 $)' : 'realized P&L (native: crypto %, MT5 $)'}>{p == null ? '—' : (crypto ? `${f2(p)}%` : fmtPnlUsd(p))}</td>
-      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title="P&L converted to account $ (qty × notional)">{usd != null ? fmtPnlUsd(usd) : '—'}</td>
+      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L' : undefined}>
+        {p == null ? '—' : (() => {
+          const crypto = isCryptoSym(t.symbol);
+          const main = crypto ? `${f2(p)}%${t.isOpen ? '*' : ''}` : `${fmtPnlUsd(p)}${t.isOpen ? '*' : ''}`;
+          const sec = t.notional != null && t.notional !== 0 ? (crypto ? fmtPnlUsd(p / 100 * t.notional) : `${(p / t.notional * 100).toFixed(2)}%`) : null;
+          return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 9.5 }}>{sec}</span> : null}</span>;
+        })()}
+      </td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>
   );
@@ -172,7 +175,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
-  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', ''];
+  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', ''];
 
   return (
     <div>
@@ -188,7 +191,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: grouped ? 520 : 640 }}>
-          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '$' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{HEADERS.map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
               ? groups.map((g) => (

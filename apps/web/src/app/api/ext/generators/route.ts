@@ -5,16 +5,17 @@ import { checkAuth } from '../_auth';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/ext/engines → SPEC của các gen engine (0095). Ext fetch để override defaults hardcode
-// (endpoint/label/màu/flags) → config editable từ dashboard, ko cần rebuild ext. BEHAVIOR (payload/fmt/
-// preCheck) vẫn ở ext theo key. GATING vẫn theo projects.capabilities.engines (per-project allow-list).
+// GET /api/ext/generators → SPEC của các content generator (0095, table renamed 0102). Ext fetch để
+// override defaults hardcode (endpoint/label/màu/flags) → config editable từ dashboard, ko cần rebuild ext.
+// BEHAVIOR (payload/fmt/preCheck) vẫn ở ext theo key. GATING vẫn theo projects.capabilities.generators
+// (per-project allow-list; legacy `capabilities.engines` vẫn đọc fallback trong transition).
 export async function GET(req: Request) {
   const err = checkAuth(req); if (err) return err;
-  const db = getDb(); if (!db) return NextResponse.json({ engines: [] });
+  const db = getDb(); if (!db) return NextResponse.json({ generators: [] });
   const rows = await db.execute(sql`
     SELECT key, label, endpoint, color, title, working, needs_depth, needs_vision, default_model
-    FROM engines WHERE enabled = true ORDER BY sort_order, key`);
-  const engines = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    FROM generators WHERE enabled = true ORDER BY sort_order, key`);
+  const generators = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     key: String(r.key),
     label: String(r.label ?? ''),
     endpoint: String(r.endpoint ?? ''),
@@ -25,5 +26,5 @@ export async function GET(req: Request) {
     needsVision: r.needs_vision === true,
     defaultModel: r.default_model ? String(r.default_model) : null,
   }));
-  return NextResponse.json({ engines });
+  return NextResponse.json({ generators });
 }

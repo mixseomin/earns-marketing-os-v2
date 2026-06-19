@@ -85,7 +85,9 @@ export const projects = pgTable(
     // per-project). Default true cho real projects; demos không gọi AI dù flag true.
     aiEnabled: boolean('ai_enabled').notNull().default(true),
     // capabilities = feature flags config-driven (thay literal project-id hardcode).
-    // Shape: { engines: ['astrolas'|'hyperjournal'] } → ext bật engine button theo đây.
+    // Shape: { generators: ['astrolas'|'hyperjournal'] } → ext bật generator button theo đây.
+    // (Transition: cả `generators` (mới) lẫn `engines` (cũ) đều được chấp nhận; reader
+    //  fallback `capabilities.generators ?? capabilities.engines`.)
     // Thêm project mới = set capabilities (data), KHÔNG sửa code ext.
     capabilities: jsonb('capabilities').notNull().default({}),
     // ── Brand fields (used by content snippet templates per-account) ──
@@ -349,11 +351,13 @@ export const cardInsightsSnapshots = pgTable(
   ],
 );
 
-// 0095: engine SPEC catalog (gen engines: astrolas QA, hyperjournal wallet-grade, …). Config that used to
-// be hardcoded in the ext ENGINES registry. GATING stays on projects.capabilities.engines (per-project
-// allow-list); BEHAVIOR (payload/fmt/preCheck) stays in the ext keyed by `key`. Ext fetches this to
-// override its defaults → endpoint/label/flags become dashboard-editable without an ext rebuild.
-export const engines = pgTable('engines', {
+// 0095 (renamed 0102): content-GENERATOR SPEC catalog (generators: astrolas QA, hyperjournal wallet-grade,
+// …). Config that used to be hardcoded in the ext GENERATORS registry. GATING stays on
+// projects.capabilities.generators (per-project allow-list; legacy `engines` key still read as fallback);
+// BEHAVIOR (payload/fmt/preCheck) stays in the ext keyed by `key`. Ext fetches this to override its
+// defaults → endpoint/label/flags become dashboard-editable without an ext rebuild.
+// (Table was `engines` pre-0102; a legacy `engines` VIEW aliases `generators` for lagging readers.)
+export const generators = pgTable('generators', {
   key: text('key').primaryKey(),
   label: text('label').notNull(),
   endpoint: text('endpoint').notNull(),

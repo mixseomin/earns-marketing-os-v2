@@ -284,7 +284,7 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
 }
 
 // ── selector library for a scope (per platform/technology/habitat × entity) ──
-export interface SelRow { pageKind: string; fieldName: string; css: string; attr: string | null; source: string; confidence: number }
+export interface SelRow { id: string; pageKind: string; fieldName: string; css: string; attr: string | null; source: string; confidence: number }
 export async function listSelectors(scopeKind: string, scopeKey: string): Promise<SelRow[]> {
   const db = getDb();
   if (!db) return [];
@@ -294,13 +294,13 @@ export async function listSelectors(scopeKind: string, scopeKey: string): Promis
   const kindMatch = kind === 'technology' ? ['technology', 'engine'] : [kind];
   try {
     const r = await db.execute(sql`
-      SELECT page_kind, field_name, spec, source, confidence
+      SELECT id::text AS id, page_kind, field_name, spec, source, confidence
       FROM selector_overrides
       WHERE scope_kind IN (${sql.join(kindMatch.map((k) => sql`${k}`), sql`, `)}) AND scope_key = ${scopeKey}
       ORDER BY page_kind, field_name`);
-    const rows = r as unknown as Array<{ page_kind: string; field_name: string; spec: { css?: string; attr?: string } | null; source: string; confidence: number }>;
+    const rows = r as unknown as Array<{ id: string; page_kind: string; field_name: string; spec: { css?: string; attr?: string } | null; source: string; confidence: number }>;
     return rows.map((x) => ({
-      pageKind: x.page_kind, fieldName: x.field_name,
+      id: x.id, pageKind: x.page_kind, fieldName: x.field_name,
       css: x.spec?.css || '', attr: x.spec?.attr || null,
       source: x.source, confidence: x.confidence,
     }));

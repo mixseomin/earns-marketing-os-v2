@@ -707,6 +707,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   const [detail, setDetail] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sels, setSels] = useState<SelRow[] | null>(null);
+  const openSub = useContext(SubCtx);
   const isScoped = obj.key === 'platform' || obj.key === 'technology' || obj.key === 'habitat';
   const parent = obj.picker?.parent;             // child needs its parent picked first (channel → habitat)
   const crossProject = !!obj.picker?.crossProject; // independent place, list across projects (habitat)
@@ -934,13 +935,19 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{g.rows.length} field{g.rows.length > 1 ? 's' : ''}</span>
                     </div>
                     {g.rows.map((s, i) => (
-                      <div key={s.fieldName} style={{ padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                      <button key={s.fieldName} type="button"
+                        onClick={() => openSub({ title: s.fieldName, sub: `${obj.key} · ${picked} · @ ${s.pageKind}`, body: <SelectorDetail id={s.id} /> })}
+                        title="Mở chi tiết selector (spec, cascade, raw jsonb)"
+                        style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, cursor: 'pointer', padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
+                          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>›</span>
                           <span style={{ ...chip(s.source === 'manual' ? 'var(--ok)' : s.source === 'promoted' ? 'var(--accent)' : 'var(--fg-3)'), marginLeft: 'auto' }}>{s.source}</span>
                         </div>
                         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', marginTop: 2, wordBreak: 'break-all' }}>{s.css}{s.attr ? ` [${s.attr}]` : ''}</div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ));

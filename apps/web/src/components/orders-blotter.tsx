@@ -56,12 +56,12 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L' : undefined}>
+      <td style={{ ...cell, color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L' : undefined}>
         {p == null ? '—' : (() => {
           const crypto = isCryptoSym(t.symbol);
-          const main = crypto ? `${f2(p)}%${t.isOpen ? '*' : ''}` : `${fmtPnlUsd(p)}${t.isOpen ? '*' : ''}`;
+          const main = crypto ? `${f2(p)}%` : fmtPnlUsd(p);
           const sec = t.notional != null && t.notional !== 0 ? (crypto ? fmtPnlUsd(p / 100 * t.notional) : `${(p / t.notional * 100).toFixed(2)}%`) : null;
-          return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 9.5 }}>{sec}</span> : null}</span>;
+          return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontSize: 9.5 }}>{sec}</span> : null}</span>;
         })()}
       </td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>

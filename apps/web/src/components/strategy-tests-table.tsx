@@ -124,7 +124,7 @@ function tradeMetrics(list: StrategyTradeRow[] | undefined) {
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4));
 const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
-const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1)}k` : Math.abs(n).toFixed(Math.abs(n) < 10 ? 2 : 0)}`;
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 // hold in hours. For closed trades: entry->exit (same time basis, tz cancels). For OPEN: entry->now, where "now" is the
 // broker clock (brokerNowMs, same basis as MT5 entry_time) for MT5, or real UTC for crypto whose entry_time is stored in UTC.
@@ -171,17 +171,12 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
       </div>
       <table style={{ borderCollapse: 'collapse', fontSize: 10.5, width: '100%' }}>
         <thead><tr style={{ color: 'var(--muted)' }}>
-          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', 'Ret%', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
+          {['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', ''].map((h) => <th key={h} style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600, borderBottom: '1px solid var(--line)' }}>{h}</th>)}
         </tr></thead>
         <tbody>
           {rows.map((t, i) => {
             const nowMs = t.isOpen ? (isCryptoSym(t.symbol) ? Date.now() : brokerNowMs) : null;
             const h = holdH(t.entryTime, t.exitTime, nowMs); const p = t.profit == null ? null : Number(t.profit);
-            const crypto = isCryptoSym(t.symbol);
-            const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);
-            const pct = p == null ? null : (crypto ? p : (t.notional ? p / t.notional * 100 : null));
-            const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
-            const star = t.isOpen ? '*' : '';
             return (
               <tr key={i} style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.5, background: t.isOpen ? 'rgba(90,200,130,0.07)' : 'transparent' }}>
                 <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 400 }}>{t.symbol}</td>
@@ -193,14 +188,14 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
                 <td style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
                 <td style={cell} title="SL / TP (crypto SL = Donchian-20 trailing exit, no fixed TP)">{t.sl != null || t.tp != null ? <span><span style={{ color: '#ff8a8a' }}>{t.sl != null ? t.sl : '—'}</span><span style={{ color: 'var(--muted)' }}> / </span><span style={{ color: 'var(--ok,#5ac882)' }}>{t.tp != null ? t.tp : '—'}</span></span> : '—'}</td>
                 <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-                <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L' : 'realized P&L'}>
+                <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') }} title={t.isOpen ? 'floating / unrealized P&L (gross; cost applied on close)' : undefined}>
                   {p == null ? '—' : (() => {
-                    const main = crypto ? `${f2(p)}%${star}` : `${fmtPnlUsd(p)}${star}`;
-                    const sec = crypto ? (usd != null ? fmtPnlUsd(usd) : null) : (pct != null ? `${f2(pct)}%` : null);
+                    const crypto = isCryptoSym(t.symbol);
+                    const main = crypto ? `${f2(p)}%${t.isOpen ? '*' : ''}` : `${fmtPnlUsd(p)}${t.isOpen ? '*' : ''}`;
+                    const sec = t.notional != null && t.notional !== 0 ? (crypto ? fmtPnlUsd(p / 100 * t.notional) : `${(p / t.notional * 100).toFixed(2)}%`) : null;
                     return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 9 }}>{sec}</span> : null}</span>;
                   })()}
                 </td>
-                <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: pnlColor }} title="P&L as % of the position notional (the Lots $ value)">{pct != null ? `${f2(pct)}%${star}` : '—'}</td>
                 <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
               </tr>
             );

@@ -89,7 +89,7 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'technology', label: 'Technology (forum)', group: 'platform',
     table: 'platform_technologies', pk: 'key', labelCol: 'label',
-    desc: 'Forum/CMS technology (xenforo/discourse/vbulletin). Drives technology-scope selectors + signup fields.',
+    desc: 'Forum engine (xenforo/phpbb/discourse). Cung cấp technology-scope SELECTORS cho NHIỀU page_kind — signup (form đăng ký) · composer (post/reply fields) · post-metrics (tracking: views/score/reply) · account-profile (user fields: handle/karma/created) · subreddit-about · platform-any (viewer). MỌI platform bind vào engine này KẾ THỪA hết (1 template → N forum). Cột signupFields = CHỈ field-set form đăng ký (legacy, vì signup khác nhau theo engine); field các page_kind khác = schema chung trong code + selector theo technology (xem mục SELECTORS bên dưới).',
     attrs: [
       { name: 'key', col: 'key', type: 'text', pk: true },
       { name: 'label', col: 'label', type: 'text' },

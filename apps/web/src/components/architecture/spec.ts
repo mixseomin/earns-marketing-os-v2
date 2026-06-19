@@ -105,6 +105,25 @@ export const OBJECTS: ArchObject[] = [
     deepLink: '/technologies',
   },
   {
+    key: 'domSample', label: 'DOM Sample', group: 'platform', table: null,
+    desc: 'Thư viện HTML thô: ext (browser ĐÃ login) chụp full rendered DOM 1 trang cần track → lưu theo PLATFORM (site) + TECHNOLOGY (engine) + page_kind. Giải login-gated (server không curl được trang cần auth) + giữ mẫu để Claude extract selector/field về sau (giờ lấy username, sau lấy posts list…). KHÔNG phải runtime — chỉ là NGUỒN để train selector. Mỗi sample luôn gắn 1 site/engine cụ thể.',
+    attrs: [
+      { name: 'id', type: 'bigserial', pk: true },
+      { name: 'platformKey', col: 'platform_key', type: 'text' },
+      { name: 'technologyKey', col: 'technology_key', type: 'text' },
+      { name: 'pageKind', col: 'page_kind', type: 'text' },
+      { name: 'url', col: 'url', type: 'text' },
+      { name: 'bytes', col: 'bytes', type: 'int' },
+      { name: 'capturedAt', col: 'captured_at', type: 'timestamptz' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'dom_samples.platform_key' },
+      { to: 'technology', kind: 'fk', via: 'dom_samples.technology_key' },
+      { to: 'selector', kind: 'ref', via: 'extract → selector_overrides' },
+    ],
+    routes: ['/dom-sample'],
+  },
+  {
     key: 'generator', label: 'Generator (gen/QA)', group: 'infra',
     table: 'generators', pk: 'key', labelCol: 'label',
     desc: 'Content/QA generator (Astrolas, HyperJournal). External endpoint per project capability.',

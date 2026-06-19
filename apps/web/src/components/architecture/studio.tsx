@@ -833,9 +833,9 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
         </Section>
       )}
 
-      {/* DOM sample library — ext capture full HTML (logged-in) để extract selector */}
-      {obj.key === 'technology' && (
-        <Section title="DOM Samples" sub="// ext 💾 capture · tìm & xoá (vd chụp lỗi chưa load xong)">
+      {/* DOM sample library — node riêng, gắn platform/technology cụ thể */}
+      {obj.key === 'domSample' && (
+        <Section title="DOM Samples" sub="// ext 💾 capture · gom theo site · tìm & xoá">
           <DomSamplesPanel />
         </Section>
       )}
@@ -1546,6 +1546,15 @@ function DomSamplesPanel() {
   const ql = q.trim().toLowerCase();
   const view = ql ? rows.filter((r) => `${r.hostname} ${r.platformKey} ${r.technologyKey} ${r.pageKind} ${r.url}`.toLowerCase().includes(ql)) : rows;
   const kb = (b: number) => (b >= 1024 ? Math.round(b / 1024) + 'KB' : b + 'B');
+  // gom theo SITE (platform/host) — mỗi sample luôn thuộc 1 site cụ thể
+  const groups: Array<{ key: string; tech: string | null; items: DomSampleRow[] }> = [];
+  for (const r of view) {
+    const gk = r.platformKey || r.hostname || '?';
+    let g = groups.find((x) => x.key === gk);
+    if (!g) { g = { key: gk, tech: r.technologyKey, items: [] }; groups.push(g); }
+    if (!g.tech && r.technologyKey) g.tech = r.technologyKey;
+    g.items.push(r);
+  }
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
@@ -1554,24 +1563,31 @@ function DomSamplesPanel() {
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{view.length} sample{view.length !== 1 ? 's' : ''}</span>
         <button onClick={load} title="Tải lại" style={{ background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', cursor: 'pointer', width: 26, height: 26, fontSize: 13 }}>↻</button>
       </div>
-      {view.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có DOM sample nào (bấm 🤖 → 💾 Lưu HTML trên 1 trang forum).</div> : (
-        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-          {view.map((r, i) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', minWidth: 30 }}>#{r.id}</span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{r.platformKey || r.hostname || '?'}</span>
-                  {r.technologyKey && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }}>◆{r.technologyKey}</span>}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>{r.pageKind}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{kb(r.bytes)} · {new Date(r.capturedAt).toLocaleString()}</span>
-                </div>
-                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</a>}
+      {groups.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có DOM sample nào (bấm 🤖 → 💾 Lưu HTML trên 1 trang forum).</div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {groups.map((g) => (
+            <div key={g.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${g.tech ? '#b48cff' : 'var(--accent)'}`, borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }}>{g.key}</span>
+                {g.tech ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }}>◆ {g.tech}</span> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{g.items.length} sample{g.items.length !== 1 ? 's' : ''}</span>
               </div>
-              <button disabled={busy === r.id} onClick={() => del(r.id)} title="Xoá sample này"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: busy === r.id ? 'var(--fg-4)' : 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap' }}>
-                {busy === r.id ? '…' : '🗑'}
-              </button>
+              {g.items.map((r, i) => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderTop: '1px solid var(--line)', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', minWidth: 28 }}>#{r.id}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>{r.pageKind}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{kb(r.bytes)} · {new Date(r.capturedAt).toLocaleString()}</span>
+                    </div>
+                    {r.url && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</div>}
+                  </div>
+                  <button disabled={busy === r.id} onClick={() => del(r.id)} title="Xoá sample này"
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: busy === r.id ? 'var(--fg-4)' : 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap' }}>
+                    {busy === r.id ? '…' : '🗑'}
+                  </button>
+                </div>
+              ))}
             </div>
           ))}
         </div>

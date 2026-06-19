@@ -105,12 +105,42 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
     { key: 'post.item', label: 'Post (1 bài)', hint: 'Element bao 1 post/comment. Vd article.message, shreddit-comment.' },
     { key: 'post.body', label: 'Nội dung post', hint: 'Text 1 post/comment (match card đã đăng → đánh dấu trên trang). Vd [data-testid=tweetText], .bbWrapper.' },
     { key: 'post.author', label: 'Author post', hint: 'Tên người đăng trong 1 post.' },
+    { key: 'post.author_url', label: 'Link profile author', hint: 'Link profile người đăng post (memberlist viewprofile / /user/<id|slug>). parse href.' },
+    { key: 'post.author_id', label: 'User id author', hint: 'ID/slug người đăng (từ href ?u=NNN / /user/ID).' },
+    { key: 'post.id', label: 'Post id', hint: 'ID 1 post (id="pNNN" / href #postNNN).' },
     { key: 'post.permalink', label: 'Permalink post', hint: 'Link tới 1 post (post-NNN / /comments/...).' },
+    { key: 'post.date', label: 'Ngày đăng post', hint: 'Thời điểm đăng 1 post.', parse: 'date' },
     { key: 'parent.container', label: 'Bài đang reply', hint: 'Comment/post mà reply nhắm tới (Reddit: ancestor comment).' },
     { key: 'reactions', label: 'Reactions', hint: 'Số like/reaction của 1 post (track metrics).' },
     { key: 'replyAction', label: 'Nút Reply', hint: 'Action "Reply"/quote trên 1 post (follow-up).' },
     { key: 'breadcrumb', label: 'Breadcrumb sub-forum', hint: 'Link sub-forum trong breadcrumb (forum).' },
     { key: '_adapter', label: 'Behavior (JSON)', hint: 'Cấu hình: { float, noPost, quoteFormat:bbcode|reddit-parent, insert:append, postAuthorAttr }.' },
+  ],
+  // Thread/topic LIST (forum board · index · search results · "recent" widget) —
+  // danh sách BÀI. Repeating: thread.item = container 1 row, các field khác scrape
+  // TRONG mỗi item. Feed: habitat discovery + card tracking (post id/title/url/views).
+  'thread-list': [
+    { key: 'thread.item', label: 'Thread (1 row)', hint: 'Element bao 1 thread/topic trong list (li.row, tr.topic, .recent-item…). Repeating container.' },
+    { key: 'thread.title', label: 'Tiêu đề bài', hint: 'Tiêu đề thread trong list (text link tới viewtopic).' },
+    { key: 'thread.id', label: 'Thread id', hint: 'ID bài (href ?t=NNN / /thread/NNN / /topic/slug). parse từ link.' },
+    { key: 'thread.url', label: 'Thread URL', hint: 'Link tới thread (href).' },
+    { key: 'thread.author', label: 'Author / last-post', hint: 'Tên user tạo bài hoặc người post gần nhất.' },
+    { key: 'thread.author_url', label: 'Link profile author', hint: 'Link profile author (memberlist viewprofile / /user/<id|slug>).' },
+    { key: 'thread.replies', label: 'Số reply', hint: 'Số trả lời của thread.', parse: 'number' },
+    { key: 'thread.views', label: 'Số view', hint: 'Số lượt xem thread.', parse: 'number' },
+    { key: 'thread.last_date', label: 'Hoạt động gần nhất', hint: 'Ngày/giờ post gần nhất.', parse: 'date' },
+    { key: 'thread.board', label: 'Board/sub-forum', hint: 'Tên/khu vực sub-forum chứa thread (nếu list gộp nhiều board).' },
+  ],
+  // Member/user LIST (memberlist · online list · participants · poster list) — danh
+  // sách USER. Feed: scene/WHO layer (people) + habitat participants.
+  'member-list': [
+    { key: 'user.item', label: 'User (1 row)', hint: 'Element bao 1 user trong list. Repeating container.' },
+    { key: 'user.handle', label: 'Tên user', hint: 'Username hiển thị (a.username / .username-coloured).' },
+    { key: 'user.id', label: 'User id', hint: 'ID user (href ?u=NNN / /user/ID). parse từ link.' },
+    { key: 'user.url', label: 'Link profile', hint: 'Link tới profile user (href).' },
+    { key: 'user.slug', label: 'User slug', hint: 'Slug user nếu URL dạng /user/<slug> / /u/<slug> (thay vì id số).' },
+    { key: 'user.posts', label: 'Số bài', hint: 'Số post của user (nếu list hiện).', parse: 'number' },
+    { key: 'user.joined', label: 'Ngày tham gia', hint: 'Ngày đăng ký (nếu list hiện).', parse: 'date' },
   ],
   // Future: subreddit-rules, fb-group-about, discord-server-about ...
 };

@@ -92,16 +92,39 @@ export async function POST(req: Request) {
 
   // Create minimal — chỉ field bắt buộc + externalId vào scraped_meta để resolve sau.
   const meta = externalId ? { ext_external_id: externalId } : {};
+  // ON CONFLICT chống double-fire race: check-then-insert KHÔNG atomic → 2 request
+  // gần đồng thời cùng qua SELECT thấy trống rồi cùng INSERT. Unique index
+  // (project_id, platform_key, lower(name)) + DO NOTHING → bản thua không tạo trùng.
   const ins = await db.execute(sql`
     INSERT INTO habitats (project_id, platform_key, kind, name, url, scraped_meta, imported_from,
                           members, description, weekly_visitors, weekly_contributions, icon_url, is_own)
     VALUES (${projectId}, ${platformKey || null}, ${kind}, ${name}, ${b.url || null},
             ${JSON.stringify(meta)}::jsonb, 'ext-widget',
             ${members ?? 0}, ${description ?? ''}, ${weeklyVisitors ?? 0}, ${weeklyContributions ?? 0}, ${iconUrl}, ${b.isOwn === true})
+    ON CONFLICT (project_id, platform_key, lower(name)) DO NOTHING
     RETURNING id, name, kind, project_id, platform_key
   `);
-  const row = firstRow(ins);
-  if (!row) return errorResponse('insert failed', 500);
+  let row = firstRow(ins);
+  // Conflict (bản khác thắng race) → re-select bản đã tồn tại, trả created:false (idempotent).
+  if (!row) {
+    const ex = await db.execute(sql`
+      SELECT id, name, kind, project_id, platform_key FROM habitats
+      WHERE project_id = ${projectId}
+        AND platform_key IS NOT DISTINCT FROM ${platformKey || null}
+        AND lower(name) = lower(${name})
+      ORDER BY id LIMIT 1
+    `);
+    row = firstRow(ex);
+    if (!row) return errorResponse('insert failed', 500);
+    return NextResponse.json({
+      ok: true, created: false,
+      habitat: {
+        id: Number(row.id), name: String(row.name), kind: String(row.kind),
+        projectId: String(row.project_id), platformKey: row.platform_key ? String(row.platform_key) : null,
+        briefId: null,
+      },
+    });
+  }
   return NextResponse.json({
     ok: true, created: true,
     habitat: {

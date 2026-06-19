@@ -220,6 +220,14 @@ export async function POST(req: Request) {
     updatedAt: new Date(),
   };
 
+  // sau ON CONFLICT DO NOTHING (request thua double-fire race) → resolve lại bản
+  // thắng theo unique key (project, platform, lower(name)) để trả idempotent, ko 500.
+  const resolveWinnerId = async (): Promise<number | null> => {
+    const w = await db.select({ id: habitats.id }).from(habitats)
+      .where(and(eq(habitats.projectId, body.projectId), eq(habitats.platformKey, body.platform_key),
+        sql`LOWER(${habitats.name}) = LOWER(${body.name})`)).limit(1);
+    return w[0]?.id ?? null;
+  };
   let habitatId: number;
   let action: 'created' | 'updated' | 'cloned';
   if (existing.length > 0) {
@@ -310,9 +318,11 @@ export async function POST(req: Request) {
         ...patch,
         ...inheritedFromSibling,
         importedFrom: `mos2-crew-ext:cloned-from-habitat:${sib.id}`,
-      }).returning({ id: habitats.id });
-      habitatId = inserted[0]!.id;
-      action = 'cloned';
+      }).onConflictDoNothing().returning({ id: habitats.id });
+      const wid = inserted[0]?.id ?? await resolveWinnerId();
+      if (wid == null) return NextResponse.json({ ok: false, error: 'habitat conflict resolve failed' }, { status: 500 });
+      habitatId = wid;
+      action = inserted[0] ? 'cloned' : 'updated';
     } else {
       // Auto-detect language khi habitat hoàn toàn mới (lần đầu seed). Sibling
       // branch đã inherit sib.language, branch sibling-không-tồn-tại cần tự detect.
@@ -333,9 +343,11 @@ export async function POST(req: Request) {
         ...(body.technology_key ? { technologyKey: body.technology_key } : {}),
         scrapedMeta: body.scraped_meta || {},
         ...(detected !== 'unknown' ? { language: detected } : {}),
-      }).returning({ id: habitats.id });
-      habitatId = inserted[0]!.id;
-      action = 'created';
+      }).onConflictDoNothing().returning({ id: habitats.id });
+      const wid = inserted[0]?.id ?? await resolveWinnerId();
+      if (wid == null) return NextResponse.json({ ok: false, error: 'habitat conflict resolve failed' }, { status: 500 });
+      habitatId = wid;
+      action = inserted[0] ? 'created' : 'updated';
     }
   }
 

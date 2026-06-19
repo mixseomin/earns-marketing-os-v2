@@ -43,11 +43,13 @@ interface Props {
   rows: RowData[];
   timeseries: Record<string, GscDailyPoint[]>;
   totals: { imps: number; clicks: number; pages: number; sitemap: number; avgPos: number };
+  initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
 type ColGroup = 'live' | 'gsc' | 'adsense' | 'bing';
 const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, gsc: true, adsense: true, bing: true };
 const STORAGE_KEY = 'seo-table-cols-v2';
+const COOKIE_KEY = 'seo_cols';
 
 // Per-group palette — same hue used for the toggle chip, the header band,
 // and the column's left-edge separator so the eye can scan a column straight
@@ -60,20 +62,36 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
 };
 const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing' };
 
-export function SeoSitesTable({ rows, timeseries, totals }: Props) {
+export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
-  const [cols, setCols] = useState<Record<ColGroup, boolean>>(DEFAULT_COLS);
+  // Seed from server-supplied cookie value (passed via initialCols prop) so the
+  // very first render — server AND client — matches the user's saved view.
+  // Avoids the FOUC where AdSense/Bing flashed visible then collapsed after
+  // useEffect read localStorage.
+  const [cols, setCols] = useState<Record<ColGroup, boolean>>(() => ({ ...DEFAULT_COLS, ...(initialCols ?? {}) }));
 
+  // Hydration fallback: if the cookie was missing (older sessions / not
+  // mirrored yet), reconcile from localStorage AFTER paint. Reads write the
+  // cookie too so the next reload comes back with no fallback needed.
   useEffect(() => {
+    if (initialCols && Object.keys(initialCols).length > 0) return;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setCols({ ...DEFAULT_COLS, ...JSON.parse(stored) });
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCols({ ...DEFAULT_COLS, ...parsed });
+        document.cookie = `${COOKIE_KEY}=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+      }
     } catch {}
-  }, []);
+  }, [initialCols]);
+
   function toggle(g: ColGroup) {
     setCols(prev => {
       const next = { ...prev, [g]: !prev[g] };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        document.cookie = `${COOKIE_KEY}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+      } catch {}
       return next;
     });
   }

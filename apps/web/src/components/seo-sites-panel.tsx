@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { RefreshGscBtn } from './refresh-gsc-btn';
 import { SeoSitesTable } from './seo-sites-table';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
@@ -85,6 +86,18 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
     });
 }
 
+// Pull the user's column-group preference out of cookies so the table SSR
+// renders with the right set hidden from frame one. Matches what the client
+// component would do on hydration — no FOUC, no layout jump on F5.
+async function readInitialCols(): Promise<Partial<Record<'live' | 'gsc' | 'adsense' | 'bing', boolean>>> {
+  try {
+    const raw = (await cookies()).get('seo_cols')?.value;
+    if (!raw) return {};
+    const parsed = JSON.parse(decodeURIComponent(raw));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch { return {}; }
+}
+
 export async function SeoSitesPanel() {
   let payload: GscPayload | null = null;
   try {
@@ -96,6 +109,7 @@ export async function SeoSitesPanel() {
   const ga4Realtime = await loadGa4Realtime();
   const bingPayload = await loadBingStats();
   const adsenseByDomain = await loadAdsenseByDomain(7);
+  const initialCols = await readInitialCols();
 
   if (!payload) {
     return (
@@ -135,6 +149,7 @@ export async function SeoSitesPanel() {
       </div>
 
       <SeoSitesTable
+        initialCols={initialCols}
         rows={rows.map((r) => {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
           const bing = pickBing(bingPayload, r.domain);

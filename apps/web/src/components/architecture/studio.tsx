@@ -20,9 +20,11 @@ import {
 import { Drawer } from '@/components/drawer';
 import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  templateAdoption,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
-  type MetricCoverage, type MetricCell,
+  type MetricCoverage, type MetricCell, type TemplateAdoptionData,
 } from '@/lib/actions/architecture';
+import { adoptTemplate } from '@/lib/actions/platforms';
 
 type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
 type Pos = { x: number; y: number };
@@ -824,6 +826,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
         </Section>
       )}
 
+      {/* template adoption — 1 technology template → N forums seed-ready */}
+      {obj.key === 'technology' && (
+        <Section title="Template Adoption" sub="// bind platform → inherit selector pack · scale lever">
+          <TemplateAdoptionPanel />
+        </Section>
+      )}
+
       {/* attribute schema */}
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
@@ -1406,6 +1415,106 @@ export function ArchitectureStudio({ projects, defaultProjectId }: { projects: {
 }
 
 // ── small style helpers ──────────────────────────────────────────────────────
+// ── Template Adoption worklist ──────────────────────────────────────────────
+// Scaling cockpit: 1 technology template → N forums. Shows each template's reach
+// (bound platforms + ext-detected candidates with 1-click adopt) and unbound
+// platforms still needing a template (manual bind dropdown).
+const PK_SHORT: Record<string, string> = { signup: 'signup', composer: 'composer', 'account-profile': 'profile', 'post-metrics': 'metrics', 'subreddit-about': 'about', 'platform-any': 'viewer' };
+function packLabel(c: Record<string, number>): string {
+  return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${PK_SHORT[k] || k} ${n}`).join(' · ');
+}
+function TemplateAdoptionPanel() {
+  const [data, setData] = useState<TemplateAdoptionData | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [pick, setPick] = useState<Record<string, string>>({}); // unbound platform key → chosen tech
+  const load = useCallback(() => { let dead = false; templateAdoption().then((d) => { if (!dead) setData(d); }); return () => { dead = true; }; }, []);
+  useEffect(() => load(), [load]);
+
+  const adopt = useCallback(async (platformKey: string, technologyKey: string, label?: string) => {
+    setBusy(platformKey + ':' + technologyKey);
+    await adoptTemplate({ platformKey, technologyKey, label, signupUrl: label ? 'https://' + label : undefined });
+    setBusy(null);
+    load();
+  }, [load]);
+
+  if (data == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading adoption…</div>;
+
+  const btn = (active: boolean): CSSProperties => ({ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, cursor: active ? 'pointer' : 'default', border: '1px solid var(--accent)', color: active ? 'var(--bg-1)' : 'var(--accent)', background: active ? 'var(--accent)' : 'transparent', whiteSpace: 'nowrap' });
+  const techGreen = '#b48cff';
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 11, marginBottom: 12 }}>
+        <span style={{ color: 'var(--ok)' }}>✓ {data.seedReadyCount} seed-ready</span>
+        <span style={{ color: techGreen }}>◆ {data.techs.length} templates</span>
+        <span style={{ color: data.detectedCount ? 'var(--accent)' : 'var(--fg-4)' }}>◎ {data.detectedCount} detected (ext)</span>
+        <span style={{ color: data.unbound.length ? 'var(--warn,#ffb03c)' : 'var(--fg-4)' }}>⬚ {data.unbound.length} unbound w/ accounts</span>
+      </div>
+
+      {/* per-template reach */}
+      {data.techs.map((t) => (
+        <div key={t.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${techGreen}`, borderRadius: 6, padding: '8px 10px', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: techGreen }}>{t.label}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>pack: {packLabel(t.selectorCounts)}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>{t.bound.length} bound</span>
+          </div>
+          {t.bound.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+              {t.bound.map((b) => (
+                <span key={b.key} title={`own: signup ${b.ownSignup} · composer ${b.ownComposer}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 999, padding: '1px 8px' }}>✓ {b.label}</span>
+              ))}
+            </div>
+          )}
+          {t.candidates.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>detected — adopt to inherit pack</div>
+              {t.candidates.map((c) => (
+                <div key={c.host} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)' }}>{c.host}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>×{c.hits}{c.platformExists ? '' : ' · new'}</span>
+                  <button disabled={!!busy} onClick={() => adopt(c.platformKey, t.key, c.host)} style={{ ...btn(true), marginLeft: 'auto', opacity: busy ? 0.5 : 1 }}>
+                    {busy === c.platformKey + ':' + t.key ? '…' : `Adopt → +${t.total}`}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* unbound platforms needing a template */}
+      {data.unbound.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>unbound platforms (have accounts, not seed-ready) — bind a template</div>
+          <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {data.unbound.map((p, i) => {
+              const chosen = pick[p.key] || p.detectedTech || '';
+              return (
+                <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{p.accounts} acct · own s{p.signup}/c{p.composer}</span>
+                  {p.detectedTech && <span title="ext-detected engine" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: techGreen }}>◎ {p.detectedTech}</span>}
+                  <select value={chosen} onChange={(e) => setPick((m) => ({ ...m, [p.key]: e.target.value }))} autoComplete="off"
+                    style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', padding: '2px 5px', maxWidth: 130 }}>
+                    <option value="">technology…</option>
+                    {data.allTechs.map((tt) => <option key={tt.key} value={tt.key}>{tt.label}</option>)}
+                  </select>
+                  <button disabled={!chosen || !!busy} onClick={() => adopt(p.key, chosen)} style={{ ...btn(!!chosen), opacity: !chosen || busy ? 0.4 : 1 }}>
+                    {busy === p.key + ':' + chosen ? '…' : 'Bind'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {data.techs.length === 0 && data.unbound.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>No templates with selectors yet, and every account-bearing platform is seed-ready or bound.</div>}
+    </div>
+  );
+}
+
 function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>

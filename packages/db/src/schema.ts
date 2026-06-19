@@ -492,6 +492,22 @@ export const platforms = pgTable(
   (t) => [index('platforms_tenant_idx').on(t.tenantId), index('platforms_priority_idx').on(t.priority), index('platforms_category_idx').on(t.category)],
 );
 
+// ── platform_tech_detections (migration 0105) ────────────────────
+// Discovery inbox: ext fingerprint-detects a site's forum engine (xenforo/phpbb/
+// discourse/…) and POSTs it here. Studio "Template Adoption" reads this to suggest
+// binding the platform to that technology → inherits technology-scope selector pack
+// (1 template → N forums). Separate from `platforms` so brand-new forums (no row yet)
+// are still captured as candidates; binding is never silent.
+export const platformTechDetections = pgTable('platform_tech_detections', {
+  host: text('host').primaryKey(),                          // 'resetera.com'
+  platformKey: text('platform_key').notNull(),              // 'resetera-com'
+  technologyKey: text('technology_key').notNull(),          // 'xenforo'
+  hits: integer('hits').notNull().default(1),
+  firstSeen: timestamp('first_seen', { withTimezone: true }).notNull().defaultNow(),
+  lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+  url: text('url'),
+}, (t) => [index('platform_tech_detections_tech_idx').on(t.technologyKey), index('platform_tech_detections_pkey_idx').on(t.platformKey)]);
+
 // ── platform_accounts ────────────────────────────────────────────
 // Tenant-level accounts on platforms (Product Hunt, HackerNews, Reddit, ...).
 // projectId = legacy "owner/creator project" (nullable). For full multi-brand

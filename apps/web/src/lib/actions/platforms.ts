@@ -389,6 +389,36 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   }));
 }
 
+// Template Adoption: bind a platform to a technology so it inherits the
+// technology-scope selector pack (1 template → N forums). Upserts a stub platform
+// row when the key doesn't exist yet (brand-new forum discovered by the ext),
+// then sets technology_key. Clears the matching detection (adopted = handled).
+// technologyKey=null unbinds. Explicit human action — never auto-bound.
+export async function adoptTemplate(input: {
+  platformKey: string; technologyKey: string | null; label?: string; signupUrl?: string;
+}): Promise<{ ok: boolean; created?: boolean; error?: string }> {
+  const db = ensureDb();
+  const key = input.platformKey.trim();
+  if (!key) return { ok: false, error: 'platformKey required' };
+  try {
+    const res = await db.execute(sql`
+      INSERT INTO platforms (key, label, signup_url, technology_key)
+      VALUES (${key}, ${input.label || key}, ${input.signupUrl || ''}, ${input.technologyKey})
+      ON CONFLICT (key) DO UPDATE SET technology_key = ${input.technologyKey}, updated_at = now()
+      RETURNING (xmax = 0) AS inserted`);
+    const created = !!(res as unknown as Array<{ inserted: boolean }>)[0]?.inserted;
+    if (input.technologyKey) {
+      // drop the detection(s) for this platform that match the adopted tech
+      await db.execute(sql`DELETE FROM platform_tech_detections WHERE platform_key = ${key} AND technology_key = ${input.technologyKey}`);
+    }
+    revalidatePath('/architecture');
+    revalidatePath('/platforms');
+    return { ok: true, created };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 // Toggle archived tag on a platform. Archived platforms are hidden from the
 // picker by default — still exist in DB, can be restored.
 export async function archivePlatform(key: string, archive: boolean): Promise<{ ok: boolean; error?: string }> {

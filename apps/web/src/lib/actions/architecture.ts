@@ -534,3 +534,96 @@ export async function metricCoverage(): Promise<MetricCoverage> {
     return { metrics, platforms, cells };
   } catch { return empty; }
 }
+
+// ── Template Adoption ────────────────────────────────────────────────────────
+// Scaling lever: 1 technology template (e.g. xenforo signup+composer+profile)
+// covers EVERY forum on that engine the moment a platform binds technology_key.
+// This worklist surfaces (a) which templates exist + who's bound, (b) ext-detected
+// candidates awaiting a 1-click adopt, (c) unbound platforms that still need a template.
+export interface AdoptTech {
+  key: string;
+  label: string;
+  selectorCounts: Record<string, number>; // technology-scope page_kind → n (the inheritance pack)
+  total: number;
+  bound: Array<{ key: string; label: string; ownComposer: number; ownSignup: number }>;
+  candidates: Array<{ host: string; platformKey: string; platformExists: boolean; hits: number; lastSeen: string }>;
+}
+export interface AdoptUnbound { key: string; label: string; accounts: number; signup: number; composer: number; detectedTech: string | null }
+export interface TemplateAdoptionData {
+  techs: AdoptTech[];                              // technologies that actually carry selectors (templates)
+  allTechs: Array<{ key: string; label: string }>; // every technology (for manual bind dropdown)
+  unbound: AdoptUnbound[];                         // platforms with accounts, no tech bound, not seed-ready
+  detectedCount: number;
+  seedReadyCount: number;
+}
+
+export async function templateAdoption(): Promise<TemplateAdoptionData> {
+  const empty: TemplateAdoptionData = { techs: [], allTechs: [], unbound: [], detectedCount: 0, seedReadyCount: 0 };
+  const db = getDb();
+  if (!db) return empty;
+  try {
+    // technology-scope selector pack per page_kind (legacy 'engine' folded into 'technology')
+    const techSelRaw = await db.execute(sql`
+      SELECT scope_key, page_kind, count(*)::int AS n FROM selector_overrides
+      WHERE scope_kind IN ('technology','engine') GROUP BY scope_key, page_kind`);
+    const techSel = new Map<string, Record<string, number>>();
+    for (const r of techSelRaw as unknown as Array<{ scope_key: string; page_kind: string; n: number }>) {
+      const m = techSel.get(r.scope_key) ?? techSel.set(r.scope_key, {}).get(r.scope_key)!;
+      m[r.page_kind] = (m[r.page_kind] ?? 0) + Number(r.n);
+    }
+    // platform-scope own counts per page_kind
+    const platSelRaw = await db.execute(sql`
+      SELECT scope_key, page_kind, count(*)::int AS n FROM selector_overrides
+      WHERE scope_kind = 'platform' GROUP BY scope_key, page_kind`);
+    const platSel = new Map<string, Record<string, number>>();
+    for (const r of platSelRaw as unknown as Array<{ scope_key: string; page_kind: string; n: number }>) {
+      const m = platSel.get(r.scope_key) ?? platSel.set(r.scope_key, {}).get(r.scope_key)!;
+      m[r.page_kind] = (m[r.page_kind] ?? 0) + Number(r.n);
+    }
+    const allTechsRaw = await db.execute(sql`SELECT key, label FROM platform_technologies ORDER BY label`);
+    const allTechs = (allTechsRaw as unknown as Array<{ key: string; label: string }>).map((t) => ({ key: String(t.key), label: String(t.label) }));
+    const platRaw = await db.execute(sql`
+      SELECT p.key, p.label, p.technology_key,
+             (SELECT count(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts
+      FROM platforms p`);
+    const plats = platRaw as unknown as Array<{ key: string; label: string; technology_key: string | null; accounts: number }>;
+    const detRaw = await db.execute(sql`
+      SELECT d.host, d.platform_key, d.technology_key, d.hits, d.last_seen,
+             (p.key IS NOT NULL) AS exists, p.technology_key AS bound
+      FROM platform_tech_detections d LEFT JOIN platforms p ON p.key = d.platform_key
+      ORDER BY d.last_seen DESC`);
+    const dets = detRaw as unknown as Array<{ host: string; platform_key: string; technology_key: string; hits: number; last_seen: string; exists: boolean; bound: string | null }>;
+
+    const own = (k: string, pk: string) => platSel.get(k)?.[pk] ?? 0;
+    const isSeedReady = (k: string, techKey: string | null) => {
+      const inh = techKey ? (techSel.get(techKey) ?? {}) : {};
+      const sig = own(k, 'signup') + (inh['signup'] ?? 0);
+      const com = own(k, 'composer') + (inh['composer'] ?? 0);
+      return sig > 0 && com > 0;
+    };
+
+    // techs = only technologies carrying selectors (real templates)
+    const techs: AdoptTech[] = [];
+    for (const t of allTechs) {
+      const sc = techSel.get(t.key);
+      if (!sc || Object.keys(sc).length === 0) continue;
+      const bound = plats.filter((p) => p.technology_key === t.key)
+        .map((p) => ({ key: p.key, label: p.label, ownComposer: own(p.key, 'composer'), ownSignup: own(p.key, 'signup') }));
+      const candidates = dets.filter((d) => d.technology_key === t.key && d.bound !== t.key)
+        .map((d) => ({ host: d.host, platformKey: d.platform_key, platformExists: !!d.exists, hits: Number(d.hits), lastSeen: String(d.last_seen) }));
+      techs.push({ key: t.key, label: t.label, selectorCounts: sc, total: Object.values(sc).reduce((a, b) => a + b, 0), bound, candidates });
+    }
+    techs.sort((a, b) => (b.candidates.length - a.candidates.length) || (b.total - a.total));
+
+    const detByPlat = new Map<string, string>();
+    for (const d of dets) if (!detByPlat.has(d.platform_key)) detByPlat.set(d.platform_key, d.technology_key);
+
+    const unbound: AdoptUnbound[] = plats
+      .filter((p) => !p.technology_key && Number(p.accounts) > 0 && !isSeedReady(p.key, null))
+      .map((p) => ({ key: p.key, label: p.label, accounts: Number(p.accounts), signup: own(p.key, 'signup'), composer: own(p.key, 'composer'), detectedTech: detByPlat.get(p.key) ?? null }))
+      .sort((a, b) => (b.accounts - a.accounts) || a.label.localeCompare(b.label));
+
+    const seedReadyCount = plats.filter((p) => isSeedReady(p.key, p.technology_key)).length;
+    return { techs, allTechs, unbound, detectedCount: dets.length, seedReadyCount };
+  } catch { return empty; }
+}

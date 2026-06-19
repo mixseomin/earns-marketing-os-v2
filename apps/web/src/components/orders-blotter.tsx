@@ -23,7 +23,7 @@ const cagrPct = (t: StrategyTestRow): number => {
 const f2 = (n: number) => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2));
 const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4));
 const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
-const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1)}k` : Math.abs(n).toFixed(Math.abs(n) < 10 ? 2 : 0)}`;
+const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
@@ -62,7 +62,13 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L ($)' : 'realized P&L ($)'}>{usd != null ? `${fmtPnlUsd(usd)}${star}` : (pct != null ? `${f2(pct)}%${star}` : '—')}</td>
+      <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L' : 'realized P&L'}>
+        {p == null ? '—' : (() => {
+          const main = crypto ? `${f2(p)}%${star}` : `${fmtPnlUsd(p)}${star}`;
+          const sec = crypto ? (usd != null ? fmtPnlUsd(usd) : null) : (pct != null ? `${f2(pct)}%` : null);
+          return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{main}</span>{sec ? <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 9.5 }}>{sec}</span> : null}</span>;
+        })()}
+      </td>
       <td style={{ ...cell, fontWeight: 700, fontStyle: t.isOpen ? 'italic' : 'normal', color: pnlColor }} title="P&L as % of the position notional (the Lots $ value)">{pct != null ? `${f2(pct)}%${star}` : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>

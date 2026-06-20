@@ -556,6 +556,62 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
     }));
   } catch { return []; }
 }
+// Auto-extract entity LISTS từ HTML 1 sample (generic, regex theo href pattern) để
+// user KIỂM SOÁT page trích được gì TRƯỚC khi seed: user list, thread/post list, board list.
+export interface ExtractedEntity { key: string; label: string; url: string | null }
+export interface DomExtract {
+  id: number; url: string | null; title: string | null; bytes: number; pageKind: string;
+  users: ExtractedEntity[]; threads: ExtractedEntity[]; boards: ExtractedEntity[];
+  counts: { users: number; threads: number; boards: number; anchors: number };
+  classHooks: string[];
+}
+export async function extractDomSample(id: number): Promise<DomExtract | null> {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute(sql`SELECT html, url, title, bytes, page_kind FROM dom_samples WHERE id = ${id} LIMIT 1`);
+  const row = (rows as unknown as Array<Record<string, unknown>>)[0];
+  if (!row) return null;
+  const html = String(row.html ?? '');
+  const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#0?39;/g, "'").replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+  const strip = (s: string) => decode(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+  const users = new Map<string, ExtractedEntity>();
+  const threads = new Map<string, ExtractedEntity>();
+  const boards = new Map<string, ExtractedEntity>();
+  let anchors = 0;
+  const re = /<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) && anchors < 8000) {
+    anchors++;
+    const href = decode(m[1] ?? '');
+    const text = strip(m[2] ?? '');
+    let g: RegExpMatchArray | null;
+    if ((g = href.match(/memberlist\.php\?[^"]*?[?&]u=(\d+)|\/(?:user|users|members?|profile)\/([\w.%-]+)|\/u\/([\w.%-]+)|\/@([\w.%-]+)/i))) {
+      const key = g[1] || g[2] || g[3] || g[4];
+      if (key && text && !/^[<>›»\s]*$/.test(text) && text.length <= 40) { if (!users.has(key)) users.set(key, { key, label: text, url: href }); }
+      continue;
+    }
+    if ((g = href.match(/viewtopic\.php\?[^"]*?[?&]t=(\d+)|showthread\.php\?[^"]*?[?&]t=(\d+)|\/(?:thread|topic|t)\/([\w-]+)|\/comments\/([\w]+)/i))) {
+      const key = g[1] || g[2] || g[3] || g[4];
+      if (key && text && text.length >= 2) { if (!threads.has(key)) threads.set(key, { key, label: text, url: href }); }
+      continue;
+    }
+    if ((g = href.match(/viewforum\.php\?[^"]*?[?&]f=(\d+)|\/(?:forum|forums|board|c)\/([\w-]+)/i))) {
+      const key = g[1] || g[2];
+      if (key && text) { if (!boards.has(key)) boards.set(key, { key, label: text, url: href }); }
+      continue;
+    }
+  }
+  const classHooks = Array.from(new Set((html.match(/class="([a-z][\w-]*(?:[_-][\w-]+){1,})"/gi) || []).map((c) => c.replace(/^class="|"$/g, ''))))
+    .filter((c) => /recent|post|user|author|thread|topic|forum|message|profile|member|username/i.test(c)).slice(0, 24);
+  return {
+    id, url: (row.url as string | null) ?? null, title: (row.title as string | null) ?? null,
+    bytes: Number(row.bytes) || 0, pageKind: String(row.page_kind ?? 'page'),
+    users: Array.from(users.values()).slice(0, 60), threads: Array.from(threads.values()).slice(0, 60), boards: Array.from(boards.values()).slice(0, 40),
+    counts: { users: users.size, threads: threads.size, boards: boards.size, anchors },
+    classHooks,
+  };
+}
+
 export async function deleteDomSample(id: number): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no db' };

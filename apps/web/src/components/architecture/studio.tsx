@@ -20,9 +20,9 @@ import {
 import { Drawer } from '@/components/drawer';
 import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
-  templateAdoption, listDomSamples, deleteDomSample,
+  templateAdoption, listDomSamples, deleteDomSample, extractDomSample,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
-  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow,
+  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -1430,7 +1430,70 @@ const PK_SHORT: Record<string, string> = { signup: 'signup', composer: 'composer
 function packLabel(c: Record<string, number>): string {
   return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${PK_SHORT[k] || k} ${n}`).join(' · ');
 }
+// selectors gom theo page_kind, click 1 field → SelectorDetail. Dùng lại cho tech & platform.
+function SelByPageKind({ rows }: { rows: SelCatRow[] }) {
+  const openSub = useContext(SubCtx);
+  const byPk = new Map<string, SelCatRow[]>();
+  for (const r of rows) { const a = byPk.get(r.pageKind) ?? byPk.set(r.pageKind, []).get(r.pageKind)!; a.push(r); }
+  return (
+    <>
+      {[...byPk.entries()].map(([pk, items]) => (
+        <div key={pk} style={{ marginBottom: 8, border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '5px 10px', background: 'var(--bg-2)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>{PK_SHORT[pk] || pk}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{items.length} field</span>
+          </div>
+          {items.map((s, i) => (
+            <button key={s.id} onClick={() => openSub({ title: s.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${pk}`, body: <SelectorDetail id={s.id} /> })}
+              style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 8, alignItems: 'center', padding: '4px 10px', borderTop: '1px solid var(--line)', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', border: 'none', cursor: 'pointer' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>↗</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+// Drawer riêng cho 1 THỰC THỂ cụ thể (technology hoặc platform) — theo dõi: selectors
+// own + kế thừa (platform bind tech) theo page_kind + DOM samples của nó.
+function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technology' | 'platform'; scopeKey: string; technologyKey?: string | null }) {
+  const openSub = useContext(SubCtx);
+  const [cat, setCat] = useState<SelCatRow[] | null>(null);
+  const [samples, setSamples] = useState<DomSampleRow[] | null>(null);
+  useEffect(() => { let dead = false; selectorCatalog().then((r) => { if (!dead) setCat(r); }); listDomSamples().then((r) => { if (!dead) setSamples(r); }); return () => { dead = true; }; }, []);
+  if (cat == null || samples == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  const own = cat.filter((x) => x.scopeKey === scopeKey && (x.scopeKind === scope || (scope === 'technology' && x.scopeKind === 'engine')));
+  const inh = (scope === 'platform' && technologyKey) ? cat.filter((x) => x.scopeKey === technologyKey && (x.scopeKind === 'technology' || x.scopeKind === 'engine')) : [];
+  const mine = samples.filter((s) => (scope === 'technology' ? s.technologyKey === scopeKey : s.platformKey === scopeKey));
+  const hdr = (t: string, c: string) => <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: c, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '10px 0 6px' }}>{t}</div>;
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+        <span style={{ color: 'var(--fg-2)' }}>scope <b>{scope}</b>=<b style={{ color: scope === 'technology' ? '#b48cff' : 'var(--accent)' }}>{scopeKey}</b></span>
+        <span style={{ color: 'var(--fg-4)' }}>{own.length} own{inh.length ? ` · ${inh.length} kế thừa` : ''} · {mine.length} DOM sample</span>
+      </div>
+      {own.length === 0 && inh.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có selector. Train trên site / seed từ DOM sample → field hiện ở đây.</div>}
+      {own.length > 0 && <>{hdr('selectors (scope này)', 'var(--fg-4)')}<SelByPageKind rows={own} /></>}
+      {inh.length > 0 && <>{hdr(`kế thừa từ technology ${technologyKey}`, '#b48cff')}<SelByPageKind rows={inh} /></>}
+      {mine.length > 0 && <>
+        {hdr('DOM samples', 'var(--fg-4)')}
+        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          {mine.map((s, i) => (
+            <button key={s.id} onClick={() => openSub({ title: `#${s.id} · ${s.platformKey || s.hostname || ''}`, sub: 'extract preview', body: <DomSampleDetail id={s.id} /> })}
+              style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 8, alignItems: 'center', padding: '4px 10px', borderTop: i ? '1px solid var(--line)' : 'none', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', border: 'none', cursor: 'pointer' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>#{s.id}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>{s.pageKind}</span>
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{s.bytes >= 1024 ? Math.round(s.bytes / 1024) + 'KB' : s.bytes + 'B'} ↗</span>
+            </button>
+          ))}
+        </div>
+      </>}
+    </div>
+  );
+}
 function TemplateAdoptionPanel() {
+  const openSub = useContext(SubCtx);
   const [data, setData] = useState<TemplateAdoptionData | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -1469,14 +1532,16 @@ function TemplateAdoptionPanel() {
       {data.techs.map((t) => (
         <div key={t.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${techGreen}`, borderRadius: 6, padding: '8px 10px', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: techGreen }}>{t.label}</span>
+            <button onClick={() => openSub({ title: t.label, sub: `technology · ${t.key} · selectors + samples`, body: <EntityScopeDrawer scope="technology" scopeKey={t.key} /> })} title="Mở drawer technology này (fields/selectors + samples)"
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: techGreen, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{t.label} ↗</button>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>pack: {packLabel(t.selectorCounts)}</span>
             <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>{t.bound.length} bound</span>
           </div>
           {t.bound.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
               {t.bound.map((b) => (
-                <span key={b.key} title={`own: signup ${b.ownSignup} · composer ${b.ownComposer}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 999, padding: '1px 8px' }}>✓ {b.label}</span>
+                <button key={b.key} onClick={() => openSub({ title: b.label, sub: `platform · ${b.key} · bound ${t.key}`, body: <EntityScopeDrawer scope="platform" scopeKey={b.key} technologyKey={t.key} /> })}
+                  title={`own: signup ${b.ownSignup} · composer ${b.ownComposer} · bấm xem drawer platform`} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 999, padding: '1px 8px', background: 'none', cursor: 'pointer' }}>✓ {b.label} ↗</button>
               ))}
             </div>
           )}
@@ -1529,8 +1594,58 @@ function TemplateAdoptionPanel() {
   );
 }
 
+// Chi tiết 1 sample: auto-extract entity LIST (user/thread/board) để KIỂM SOÁT
+// page trích được gì trước khi seed.
+function EntityGroup({ title, color, items, total, fmt }: { title: string; color: string; items: ExtractedEntity[]; total: number; fmt: (e: ExtractedEntity) => string }) {
+  if (total === 0) return null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color, marginBottom: 5 }}>{title} · {total}{total > items.length ? ` (hiện ${items.length})` : ''}</div>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+        {items.map((e, i) => (
+          <div key={e.key + i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '3px 9px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', minWidth: 60, flexShrink: 0 }}>{e.key}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fmt(e) + (e.url ? '\n' + e.url : '')}>{fmt(e)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function DomSampleDetail({ id }: { id: number }) {
+  const [d, setD] = useState<DomExtract | null | 'loading'>('loading');
+  useEffect(() => { let dead = false; extractDomSample(id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [id]);
+  if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>extracting…</div>;
+  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>sample không tìm thấy.</div>;
+  const empty = d.counts.users + d.counts.threads + d.counts.boards === 0;
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 4 }}>{d.pageKind} · {Math.round(d.bytes / 1024)}KB · {d.counts.anchors} links</div>
+      {d.url && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 4, wordBreak: 'break-all' }}>{d.url}</div>}
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+        <span style={{ color: '#b48cff' }}>◆ {d.counts.users} users</span>
+        <span style={{ color: 'var(--accent)' }}>≡ {d.counts.threads} threads</span>
+        <span style={{ color: 'var(--ok)' }}>▦ {d.counts.boards} boards</span>
+      </div>
+      {empty && <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 6 }}>Không bắt được entity-link nào (trang này ít link user/thread, hoặc engine dùng pattern lạ). Xem class hooks dưới.</div>}
+      <EntityGroup title="Users (handle · id/slug)" color="#b48cff" items={d.users} total={d.counts.users} fmt={(e) => e.label} />
+      <EntityGroup title="Threads / posts (title · id)" color="var(--accent)" items={d.threads} total={d.counts.threads} fmt={(e) => e.label} />
+      <EntityGroup title="Boards / sub-forums" color="var(--ok)" items={d.boards} total={d.counts.boards} fmt={(e) => e.label} />
+      {d.classHooks.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>class hooks (gợi ý selector custom)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {d.classHooks.map((c) => <span key={c} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px' }}>.{c}</span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── DOM sample library (ext capture) — list + delete ────────────────────────
 function DomSamplesPanel() {
+  const openSub = useContext(SubCtx);
   const [rows, setRows] = useState<DomSampleRow[] | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [q, setQ] = useState('');
@@ -1568,17 +1683,20 @@ function DomSamplesPanel() {
           {groups.map((g) => (
             <div key={g.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${g.tech ? '#b48cff' : 'var(--accent)'}`, borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }}>{g.key}</span>
+                <button onClick={() => openSub({ title: g.key, sub: `platform · selectors + samples`, body: <EntityScopeDrawer scope="platform" scopeKey={g.key} technologyKey={g.tech} /> })} title="Mở drawer platform này"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{g.key} ↗</button>
                 {g.tech ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }}>◆ {g.tech}</span> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
                 <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{g.items.length} sample{g.items.length !== 1 ? 's' : ''}</span>
               </div>
               {g.items.map((r, i) => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderTop: '1px solid var(--line)', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', minWidth: 28 }}>#{r.id}</span>
-                  <div style={{ minWidth: 0, flex: 1 }}>
+                  <div onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · kiểm soát trước khi seed', body: <DomSampleDetail id={r.id} /> })}
+                    style={{ minWidth: 0, flex: 1, cursor: 'pointer' }} title="Bấm xem chi tiết extract được">
                     <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>{r.pageKind}</span>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{kb(r.bytes)} · {new Date(r.capturedAt).toLocaleString()}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>↗ extract</span>
                     </div>
                     {r.url && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</div>}
                   </div>

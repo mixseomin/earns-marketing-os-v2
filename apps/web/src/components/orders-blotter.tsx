@@ -25,6 +25,19 @@ const fmtVol = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(0) : Math.abs(n) 
 const fmtUsd = (n: number) => (Math.abs(n) >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`);
 const fmtPnlUsd = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1)}k` : Math.abs(n).toFixed(Math.abs(n) < 10 ? 2 : 0)}`;
 const fmtUsd2 = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;   // always 2 decimals (for the $ column)
+// naive annualization of the return-on-notional over the hold period: (1+r)^(yr/hold) - 1. Short holds blow up (expected).
+const cagrEquiv = (pct: number, holdHours: number): number | null => {
+  if (!(holdHours > 0) || pct <= -100) return null;
+  return (Math.pow(1 + pct / 100, 8766 / holdHours) - 1) * 100;
+};
+const fmtCagr = (n: number): string => {
+  const a = Math.abs(n), s = n < 0 ? '-' : '';
+  if (a < 1000) return `${n.toFixed(0)}%`;
+  if (a < 1e6) return `${s}${(a / 1e3).toFixed(1)}k%`;
+  if (a < 1e9) return `${s}${(a / 1e6).toFixed(1)}M%`;
+  if (a < 1e12) return `${s}${(a / 1e9).toFixed(1)}B%`;
+  return `${s}${a.toExponential(1)}%`;
+};
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
@@ -50,6 +63,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
   const crypto = isCryptoSym(t.symbol);
   const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);   // $ converted
   const pct = usd != null && t.notional ? usd / t.notional * 100 : null;   // P&L $ / Lots $ = return on notional
+  const cagr = pct != null && h != null ? cagrEquiv(pct, h) : null;   // annualized-equivalent of this hold's return
   const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
   return (
     <tr style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.55, background: t.isOpen ? 'rgba(90,200,130,0.06)' : 'transparent' }}>
@@ -70,6 +84,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
       <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtUsd2(usd) : '—'}</td>
       <td style={{ ...cell, textAlign: 'right', color: pnlColor, fontSize: 9.5 }} title="return % = P&L $ ÷ Lots $ (notional)">{pct != null ? `${f2(pct)}%` : '—'}</td>
+      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.7, fontSize: 9.5 }} title="naive annualized-equivalent (CAGR) of this hold's return — short holds extrapolate to huge values">{cagr != null ? fmtCagr(cagr) : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>
   );
@@ -181,7 +196,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
-  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', ''];
+  const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''];
 
   return (
     <div>
@@ -197,7 +212,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: grouped ? 520 : 640 }}>
-          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' || h === 'CAGR' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
               ? groups.map((g) => (

@@ -616,7 +616,7 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
       if (key && !STOP.test(key) && text && text.length >= 2) { if (!threads.has(key)) threads.set(key, { key, label: text, url: href }); }
       continue;
     }
-    if ((g = href.match(/viewforum\.php[^"]*?[?&]f=(\d+)|\/(?:forum|forums|board|c)\/([\w-]+)(?!\.)/i))) {
+    if ((g = href.match(/viewforum\.php[^"]*?[?&]f=(\d+)|\/(?:board|category)\/([\w-]+)/i))) {
       const key = g[1] || g[2];
       if (key && !STOP.test(key) && text) { if (!boards.has(key)) boards.set(key, { key, label: text, url: href }); }
       continue;

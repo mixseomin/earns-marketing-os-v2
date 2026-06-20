@@ -1500,8 +1500,19 @@ function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technol
     </div>
   );
 }
-function TemplateAdoptionPanel() {
+// REUSABLE: bất kỳ tên thực thể (platform/technology) ở đâu cũng dùng cái này → tự
+// mở drawer hub tương ứng. Item mới chỉ cần <EntityLink>, KHÔNG wire openSub tay.
+function EntityLink({ scope, ek, label, tech, style }: { scope: 'platform' | 'technology'; ek: string; label?: string; tech?: string | null; style?: CSSProperties }) {
   const openSub = useContext(SubCtx);
+  return (
+    <button onClick={() => openSub({ title: label || ek, sub: `${scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={scope} scopeKey={ek} technologyKey={tech} /> })}
+      title={`Mở drawer ${scope}: ${label || ek}`}
+      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', textAlign: 'left', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...style }}>
+      {label || ek} ↗
+    </button>
+  );
+}
+function TemplateAdoptionPanel() {
   const [data, setData] = useState<TemplateAdoptionData | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -1540,16 +1551,14 @@ function TemplateAdoptionPanel() {
       {data.techs.map((t) => (
         <div key={t.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${techGreen}`, borderRadius: 6, padding: '8px 10px', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => openSub({ title: t.label, sub: `technology · ${t.key} · selectors + samples`, body: <EntityScopeDrawer scope="technology" scopeKey={t.key} /> })} title="Mở drawer technology này (fields/selectors + samples)"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: techGreen, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{t.label} ↗</button>
+            <EntityLink scope="technology" ek={t.key} label={t.label} style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: techGreen }} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>pack: {packLabel(t.selectorCounts)}</span>
             <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>{t.bound.length} bound</span>
           </div>
           {t.bound.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
               {t.bound.map((b) => (
-                <button key={b.key} onClick={() => openSub({ title: b.label, sub: `platform · ${b.key} · bound ${t.key}`, body: <EntityScopeDrawer scope="platform" scopeKey={b.key} technologyKey={t.key} /> })}
-                  title={`own: signup ${b.ownSignup} · composer ${b.ownComposer} · bấm xem drawer platform`} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 999, padding: '1px 8px', background: 'none', cursor: 'pointer' }}>✓ {b.label} ↗</button>
+                <EntityLink key={b.key} scope="platform" ek={b.key} label={`✓ ${b.label}`} tech={t.key} style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 999, padding: '1px 8px' }} />
               ))}
             </div>
           )}
@@ -1558,7 +1567,7 @@ function TemplateAdoptionPanel() {
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>detected — adopt to inherit pack</div>
               {t.candidates.map((c) => (
                 <div key={c.host} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)' }}>{c.host}</span>
+                  <EntityLink scope="platform" ek={c.platformKey} label={c.host} tech={t.key} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)' }} />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>×{c.hits}{c.platformExists ? '' : ' · new'}</span>
                   <button disabled={!!busy} onClick={() => adopt(c.platformKey, t.key, c.host)} style={{ ...btn(true), marginLeft: 'auto', opacity: busy ? 0.5 : 1 }}>
                     {busy === c.platformKey + ':' + t.key ? '…' : `Adopt → +${t.total}`}
@@ -1579,7 +1588,7 @@ function TemplateAdoptionPanel() {
               const chosen = pick[p.key] || p.detectedTech || '';
               return (
                 <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</span>
+                  <EntityLink scope="platform" ek={p.key} label={p.label} tech={p.detectedTech} style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }} />
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{p.accounts} acct · own s{p.signup}/c{p.composer}</span>
                   {p.detectedTech && <span title="ext-detected engine" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: techGreen }}>◎ {p.detectedTech}</span>}
                   <select value={chosen} onChange={(e) => setPick((m) => ({ ...m, [p.key]: e.target.value }))} autoComplete="off"
@@ -1691,10 +1700,8 @@ function DomSamplesPanel() {
           {groups.map((g) => (
             <div key={g.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${g.tech ? '#b48cff' : 'var(--accent)'}`, borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', flexWrap: 'wrap' }}>
-                <button onClick={() => openSub({ title: g.key, sub: `platform · selectors + samples`, body: <EntityScopeDrawer scope="platform" scopeKey={g.key} technologyKey={g.tech} /> })} title="Mở drawer platform này"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{g.key} ↗</button>
-                {g.tech ? <button onClick={() => openSub({ title: g.tech!, sub: `technology · selectors + samples`, body: <EntityScopeDrawer scope="technology" scopeKey={g.tech!} /> })} title="Mở drawer technology này"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>◆ {g.tech} ↗</button> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
+                <EntityLink scope="platform" ek={g.key} tech={g.tech} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }} />
+                {g.tech ? <EntityLink scope="technology" ek={g.tech} label={`◆ ${g.tech}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }} /> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
                 <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{g.items.length} sample{g.items.length !== 1 ? 's' : ''}</span>
               </div>
               {g.items.map((r, i) => (

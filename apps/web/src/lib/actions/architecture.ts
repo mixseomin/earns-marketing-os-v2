@@ -677,7 +677,9 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
     const at = (n: string): string => { const x = a.match(new RegExp(n + '\\s*=\\s*"([^"]*)"', 'i')); return x ? decode(x[1] ?? '') : ''; };
     const type = (at('type') || (tag === 'textarea' ? 'textarea' : tag === 'select' ? 'select' : tag === 'button' ? 'submit' : 'text')).toLowerCase();
     if (type === 'hidden') continue;
-    if (/data-mos2-key|id="mos2|lastpass|data-lastpass/i.test(a)) { /* still list but mark below */ }
+    // Loại element do CHÍNH ext tạo (launcher/picker/FAB — id/class chứa mos2) + password
+    // manager. KHÔNG loại input thật chỉ vì có data-mos2-key (đó là field trang, ext gắn nhãn).
+    if (/\s(?:id|class)="[^"]*mos2/i.test(a) || /lastpass|1password|data-dashlane/i.test(a)) continue;
     const name = at('name'); const idA = at('id'); const ph = at('placeholder'); const val = at('value');
     const css = name ? `${tag}[name="${name}"]` : idA ? `#${idA}` : `${tag}${tag === 'input' && type ? `[type="${type}"]` : ''}`;
     const k = css + '|' + type; if (seenIn.has(k)) continue; seenIn.add(k);

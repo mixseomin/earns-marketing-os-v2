@@ -561,7 +561,10 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
 // user KIỂM SOÁT page trích được gì TRƯỚC khi seed: user list, thread/post list, board list.
 export interface ExtractedEntity { key: string; label: string; url: string | null }
 // 1 selector đề xuất từ sample → map vào (technology|platform) scope qua seedSelectorsFromSample.
-export interface SeedSelector { pageKind: string; field: string; css: string; attr: string; label: string; count: number }
+// tech/plat = trạng thái so với selector ĐÃ CÓ ở scope đó: new (chưa có) · same (y hệt →
+// seed bỏ qua) · diff (đã có khác → seed sẽ ghi đè; nếu source='manual' thì PROTECT).
+export interface SeedFieldState { status: 'new' | 'same' | 'diff'; css?: string; attr?: string; source?: string }
+export interface SeedSelector { pageKind: string; field: string; css: string; attr: string; label: string; count: number; tech?: SeedFieldState; plat?: SeedFieldState }
 // 1 form control (input/textarea/select/button) — login/register/search/post fields.
 export interface ExtractedInput { tag: string; type: string; name: string; id: string; placeholder: string; value: string; label: string; css: string }
 // Page-level training signals (1 sample = nhiều tín hiệu train platform/tech).
@@ -732,6 +735,46 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   }
   void loginInputs;
 
+  // ── DEDUP + EXISTING-STATE (lọc trùng + đã có) ──────────────────────────────
+  // (a) Bỏ proposal trùng (pageKind, css): 2 field cùng 1 element (vd thread.title +
+  //     thread.url cùng `a.topictitle`, khác mỗi attr) sẽ bị CSS-identity guard GỘP
+  //     thành 1 row khi seed → giữ field ĐẦU (canonical), drop cái sau. Tránh box đè.
+  const seenCss = new Set<string>();
+  const dedupSel: SeedSelector[] = [];
+  for (const s of seedSelectors) {
+    const k = `${s.pageKind}|${s.css}`;
+    if (seenCss.has(k)) continue;
+    seenCss.add(k); dedupSel.push(s);
+  }
+  // (b) So với selector ĐÃ CÓ ở scope technology/platform → new/same/diff + source.
+  //     UI hiện badge; seed bỏ qua 'same' (no-op) + KHÔNG ghi đè 'manual' (no silent override).
+  const techKey = (row.technology_key as string | null) ?? null;
+  const platKey = (row.platform_key as string | null) ?? null;
+  if (dedupSel.length && (techKey || platKey)) {
+    // scope_key = NULL → so sánh ra UNKNOWN, row tự loại → nhánh thiếu key không match.
+    const exRows = await db.execute(sql`
+      SELECT scope_kind, page_kind, field_name, spec->>'css' AS css, spec->>'attr' AS attr, source
+      FROM selector_overrides
+      WHERE (scope_kind IN ('technology','engine') AND scope_key = ${techKey})
+         OR (scope_kind = 'platform' AND scope_key = ${platKey})`);
+    const techMap = new Map<string, { css: string; attr: string; source: string }>();
+    const platMap = new Map<string, { css: string; attr: string; source: string }>();
+    for (const r of exRows as unknown as Array<{ scope_kind: string; page_kind: string; field_name: string; css: string | null; attr: string | null; source: string | null }>) {
+      const tgt = r.scope_kind === 'platform' ? platMap : techMap;
+      tgt.set(`${r.page_kind}|${r.field_name}`, { css: r.css ?? '', attr: r.attr ?? '', source: r.source ?? 'manual' });
+    }
+    const stateOf = (m: Map<string, { css: string; attr: string; source: string }>, s: SeedSelector): SeedFieldState => {
+      const e = m.get(`${s.pageKind}|${s.field}`);
+      if (!e) return { status: 'new' };
+      const same = e.css === s.css && (e.attr || '') === (s.attr || '');
+      return { status: same ? 'same' : 'diff', css: e.css, attr: e.attr, source: e.source };
+    };
+    for (const s of dedupSel) {
+      if (techKey) s.tech = stateOf(techMap, s);
+      if (platKey) s.plat = stateOf(platMap, s);
+    }
+  }
+
   // ── GAPS: page cần capture thêm để train đủ phpbb ───────────────────────────
   const gaps: string[] = [];
   if (!has(/<textarea[^>]*name="message"/i) && !has(/id="message"/i)) gaps.push('Composer: chưa có ô soạn reply → capture viewtopic.php?t=<id> + posting.php?mode=reply (logged-in) để seed composer.editor/postBtn + post.item/body/author.');
@@ -746,27 +789,32 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
     users: usersArr.slice(0, 80), threads: threadsArr.slice(0, 80), boards: boardsArr.slice(0, 60),
     inputs, blocks, breadcrumbs, pagination: pg,
     counts: { users: users.size, threads: threads.size, boards: boards.size, anchors, inputs: inputs.length },
-    classHooks, seedSelectors, gaps,
+    classHooks, seedSelectors: dedupSel, gaps,
   };
 }
 
 // Seed: ghi seedSelectors của 1 sample vào selector_overrides ở scope chọn (technology
 // = mọi forum cùng engine kế thừa; platform = chỉ site này). Sau seed, ext highlight
 // các field này trên trang (page_kind thread-list/member-list). Trả số dòng đã ghi.
-export async function seedSelectorsFromSample(id: number, scope: 'technology' | 'platform'): Promise<{ ok: boolean; seeded: number; scopeKey?: string; error?: string }> {
+export interface SeedResult { ok: boolean; seeded: number; skippedSame: number; protectedManual: number; scopeKey?: string; error?: string }
+export async function seedSelectorsFromSample(id: number, scope: 'technology' | 'platform', force = false): Promise<SeedResult> {
+  const fail = (error: string): SeedResult => ({ ok: false, seeded: 0, skippedSame: 0, protectedManual: 0, error });
   const db = getDb();
-  if (!db) return { ok: false, seeded: 0, error: 'no db' };
+  if (!db) return fail('no db');
   const ex = await extractDomSample(id);
-  if (!ex) return { ok: false, seeded: 0, error: 'sample not found' };
+  if (!ex) return fail('sample not found');
   const scopeKey = scope === 'technology' ? ex.technologyKey : ex.platformKey;
-  if (!scopeKey) return { ok: false, seeded: 0, error: `sample chưa gắn ${scope}` };
-  if (!ex.seedSelectors.length) return { ok: false, seeded: 0, error: 'không có selector đề xuất (trang ít entity-link)' };
-  let seeded = 0;
+  if (!scopeKey) return fail(`sample chưa gắn ${scope}`);
+  if (!ex.seedSelectors.length) return fail('không có selector đề xuất (trang ít entity-link)');
+  let seeded = 0, skippedSame = 0, protectedManual = 0;
   for (const s of ex.seedSelectors) {
+    const st = scope === 'technology' ? s.tech : s.plat;
+    if (st?.status === 'same') { skippedSame++; continue; }                                  // đã có y hệt → no-op
+    if (st?.status === 'diff' && st.source === 'manual' && !force) { protectedManual++; continue; } // train tay → KHÔNG đè (trừ khi force)
     const res = await setOverride({ scopeKind: scope, scopeKey, pageKind: s.pageKind, fieldName: s.field, spec: { css: s.css, attr: s.attr }, source: 'promoted' });
     if (res.ok) seeded++;
   }
-  return { ok: true, seeded, scopeKey };
+  return { ok: true, seeded, skippedSame, protectedManual, scopeKey };
 }
 
 export async function deleteDomSample(id: number): Promise<{ ok: boolean; error?: string }> {

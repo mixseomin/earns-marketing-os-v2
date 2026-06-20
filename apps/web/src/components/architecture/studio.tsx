@@ -22,7 +22,7 @@ import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
-  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector,
+  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -1689,25 +1689,46 @@ function EntityGroup({ title, color, items, total, fmt }: { title: string; color
 // TRƯỚC khi bấm — kiểm soát, không tự ghi đè.
 function SeedPanel({ id, proposals, platformKey, technologyKey, onSeeded }: { id: number; proposals: SeedSelector[]; platformKey: string | null; technologyKey: string | null; onSeeded?: () => void }) {
   const [busy, setBusy] = useState<'technology' | 'platform' | null>(null);
+  const [force, setForce] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const run = useCallback(async (scope: 'technology' | 'platform') => {
     setBusy(scope); setMsg(null);
-    const r = await seedSelectorsFromSample(id, scope);
+    const r = await seedSelectorsFromSample(id, scope, force);
     setBusy(null);
-    setMsg(r.ok
-      ? { ok: true, text: `✓ Seed ${r.seeded} selector → ${scope} ${r.scopeKey}. Mở site (ext) → bật Highlight để thấy field được bắt.` }
-      : { ok: false, text: `✕ ${r.error}` });
-    if (r.ok) onSeeded?.();
-  }, [id, onSeeded]);
+    if (r.ok) {
+      const extra = [r.skippedSame ? `${r.skippedSame} bỏ qua (đã có)` : '', r.protectedManual ? `${r.protectedManual} giữ nguyên (manual)` : ''].filter(Boolean).join(' · ');
+      setMsg({ ok: true, text: `✓ Ghi ${r.seeded} selector → ${scope} ${r.scopeKey}${extra ? ` · ${extra}` : ''}. Mở site (ext) → bật Highlight để thấy field được bắt.` });
+      onSeeded?.();
+    } else setMsg({ ok: false, text: `✕ ${r.error}` });
+  }, [id, force, onSeeded]);
   const byPk = new Map<string, SeedSelector[]>();
   for (const s of proposals) { const a = byPk.get(s.pageKind) ?? byPk.set(s.pageKind, []).get(s.pageKind)!; a.push(s); }
+  // tally per scope: new (sẽ ghi) · same (bỏ qua) · diff (ghi đè) · manual (protect nếu !force)
+  const tally = (scope: 'technology' | 'platform') => {
+    let neu = 0, same = 0, diff = 0, manual = 0;
+    for (const s of proposals) { const st = scope === 'technology' ? s.tech : s.plat; if (!st || st.status === 'new') neu++; else if (st.status === 'same') same++; else { diff++; if (st.source === 'manual') manual++; } }
+    return { neu, same, diff, manual };
+  };
+  const anyManual = tally('technology').manual + tally('platform').manual > 0;
+  // badge cho 1 field ở 1 scope: chỉ hiện khi ĐÃ CÓ (same/diff) — 'new' để trống cho gọn.
+  const stateBadge = (label: string, st?: SeedFieldState): ReactNode => {
+    if (!st || st.status === 'new') return null;
+    const same = st.status === 'same';
+    const c = same ? 'var(--fg-4)' : (st.source === 'manual' ? 'var(--bad)' : 'var(--warn,#ffb03c)');
+    const txt = same ? `✓${label}` : `⚠${label}${st.source === 'manual' ? '·manual' : ''}`;
+    const tip = same ? `${label}: đã có y hệt → seed bỏ qua` : `${label}: đã có khác (${st.source}) — ${st.css}·${st.attr || 'textContent'}${st.source === 'manual' ? ' · train tay, KHÔNG đè trừ khi bật force' : ' → seed sẽ ghi đè'}`;
+    return <span title={tip} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: c, border: `1px solid ${c}`, borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{txt}</span>;
+  };
   const seedBtn = (scope: 'technology' | 'platform', key: string | null): ReactNode => {
-    const disabled = !key || busy != null;
+    const t = tally(scope);
+    const willWrite = t.neu + (t.diff - (force ? 0 : t.manual));
+    const disabled = !key || busy != null || willWrite === 0;
+    const counts = key ? ` · ${t.neu} mới${t.diff ? ` · ${t.diff} đè${t.manual ? `(${t.manual} manual)` : ''}` : ''}${t.same ? ` · ${t.same} có` : ''}` : '';
     return (
       <button key={scope} disabled={disabled} onClick={() => run(scope)}
-        title={key ? `Ghi ${proposals.length} selector vào ${scope} "${key}"` : `Sample chưa gắn ${scope} — không thể seed scope này`}
-        style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, cursor: disabled ? 'default' : 'pointer', border: `1px solid ${scope === 'technology' ? '#b48cff' : 'var(--accent)'}`, color: disabled ? 'var(--fg-4)' : (scope === 'technology' ? '#b48cff' : 'var(--accent)'), background: 'transparent', whiteSpace: 'nowrap', opacity: disabled && key ? 0.6 : 1 }}>
-        {busy === scope ? '…' : `Seed → ${scope}${key ? ` ${key}` : ' (chưa gắn)'}`}
+        title={key ? `Ghi ${willWrite} selector vào ${scope} "${key}" (${t.neu} mới + ${force ? t.diff : t.diff - t.manual} ghi đè). ${t.same} đã có y hệt sẽ bỏ qua.${t.manual && !force ? ` ${t.manual} selector train tay được giữ nguyên (bật force để đè).` : ''}` : `Sample chưa gắn ${scope} — không thể seed scope này`}
+        style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, cursor: disabled ? 'default' : 'pointer', border: `1px solid ${scope === 'technology' ? '#b48cff' : 'var(--accent)'}`, color: disabled ? 'var(--fg-4)' : (scope === 'technology' ? '#b48cff' : 'var(--accent)'), background: 'transparent', whiteSpace: 'nowrap', opacity: disabled ? 0.5 : 1 }}>
+        {busy === scope ? '…' : `Seed → ${scope}${key ? ` ${key}` : ' (chưa gắn)'}${busy ? '' : counts}`}
       </button>
     );
   };
@@ -1725,16 +1746,23 @@ function SeedPanel({ id, proposals, platformKey, technologyKey, onSeeded }: { id
                 <div key={s.field} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '1px 0', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
                   <span style={{ color: 'var(--fg-1)', minWidth: 96 }}>{s.field}</span>
                   <span style={{ color: 'var(--fg-3)', flex: 1, wordBreak: 'break-all' }}>{s.css}<span style={{ color: 'var(--fg-4)' }}> ·{s.attr}</span></span>
+                  <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>{stateBadge('tech', s.tech)}{stateBadge('plat', s.plat)}</span>
                   <span style={{ color: 'var(--fg-4)' }}>×{s.count}</span>
                 </div>
               ))}
             </div>
           ))}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
             {seedBtn('technology', technologyKey)}
             {seedBtn('platform', platformKey)}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 5 }}>technology = mọi forum cùng engine kế thừa · platform = chỉ site này.</div>
+          {anyManual && (
+            <label style={{ display: 'flex', gap: 5, alignItems: 'center', marginTop: 6, fontSize: 10.5, color: force ? 'var(--bad)' : 'var(--fg-3)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} style={{ accentColor: 'var(--bad)' }} />
+              ghi đè cả selector train tay (manual) — mặc định giữ nguyên
+            </label>
+          )}
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 5 }}>technology = mọi forum cùng engine kế thừa · platform = chỉ site này. <span style={{ color: 'var(--fg-3)' }}>✓ = đã có (bỏ qua) · ⚠ = sẽ ghi đè.</span></div>
           {msg && <div style={{ marginTop: 6, fontSize: 11, color: msg.ok ? 'var(--ok)' : 'var(--bad)' }}>{msg.text}</div>}
         </>
       )}

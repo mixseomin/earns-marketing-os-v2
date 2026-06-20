@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { BINDABLE_TABLES, OBJ_BY_KEY } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
+import { setOverride } from './habitat-selectors';
 
 type Row = Record<string, unknown>;
 
@@ -559,16 +560,32 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
 // Auto-extract entity LISTS từ HTML 1 sample (generic, regex theo href pattern) để
 // user KIỂM SOÁT page trích được gì TRƯỚC khi seed: user list, thread/post list, board list.
 export interface ExtractedEntity { key: string; label: string; url: string | null }
+// 1 selector đề xuất từ sample → map vào (technology|platform) scope qua seedSelectorsFromSample.
+export interface SeedSelector { pageKind: string; field: string; css: string; attr: string; label: string; count: number }
 export interface DomExtract {
   id: number; url: string | null; title: string | null; bytes: number; pageKind: string;
+  platformKey: string | null; technologyKey: string | null;
   users: ExtractedEntity[]; threads: ExtractedEntity[]; boards: ExtractedEntity[];
   counts: { users: number; threads: number; boards: number; anchors: number };
   classHooks: string[];
+  seedSelectors: SeedSelector[]; // proposals user review TRƯỚC khi seed (kiểm soát)
+}
+// href token nhận diện theo loại entity — ưu tiên token đặc thù (memberlist.php) trước
+// path chung (/user/) để selector a[href*=token] không quét nhầm (login/register…).
+const SEED_TOKENS: Record<'user' | 'thread' | 'board', string[]> = {
+  user: ['memberlist.php', 'mode=viewprofile', '/members/', '/member/', '/users/', '/user/', '/profile/', '/u/', '/@'],
+  thread: ['viewtopic.php', 'showthread.php', '/threads/', '/thread/', '/topic/', '/comments/'],
+  board: ['viewforum.php', '/forums/', '/forum/', '/board/'],
+};
+function pickToken(urls: string[], kind: 'user' | 'thread' | 'board'): string | null {
+  const low = urls.map((u) => u.toLowerCase());
+  for (const t of SEED_TOKENS[kind]) if (low.some((u) => u.includes(t))) return t;
+  return null;
 }
 export async function extractDomSample(id: number): Promise<DomExtract | null> {
   const db = getDb();
   if (!db) return null;
-  const rows = await db.execute(sql`SELECT html, url, title, bytes, page_kind FROM dom_samples WHERE id = ${id} LIMIT 1`);
+  const rows = await db.execute(sql`SELECT html, url, title, bytes, page_kind, platform_key, technology_key FROM dom_samples WHERE id = ${id} LIMIT 1`);
   const row = (rows as unknown as Array<Record<string, unknown>>)[0];
   if (!row) return null;
   const html = String(row.html ?? '');
@@ -603,13 +620,53 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   }
   const classHooks = Array.from(new Set((html.match(/class="([a-z][\w-]*(?:[_-][\w-]+){1,})"/gi) || []).map((c) => c.replace(/^class="|"$/g, ''))))
     .filter((c) => /recent|post|user|author|thread|topic|forum|message|profile|member|username/i.test(c)).slice(0, 24);
+  // Đề xuất selector: từ token href đã match → a[href*="token"] (READ list). User review
+  // trước khi seed; seedSelectorsFromSample mới ghi vào selector_overrides.
+  const usersArr = Array.from(users.values());
+  const threadsArr = Array.from(threads.values());
+  const boardsArr = Array.from(boards.values());
+  const seedSelectors: SeedSelector[] = [];
+  const uTok = pickToken(usersArr.map((e) => e.url ?? ''), 'user');
+  if (uTok && users.size) seedSelectors.push(
+    { pageKind: 'member-list', field: 'user.handle', css: `a[href*="${uTok}"]`, attr: 'textContent', label: 'Tên user', count: users.size },
+    { pageKind: 'member-list', field: 'user.url', css: `a[href*="${uTok}"]`, attr: 'href', label: 'Link profile', count: users.size },
+  );
+  const tTok = pickToken(threadsArr.map((e) => e.url ?? ''), 'thread');
+  if (tTok && threads.size) seedSelectors.push(
+    { pageKind: 'thread-list', field: 'thread.title', css: `a[href*="${tTok}"]`, attr: 'textContent', label: 'Tiêu đề bài', count: threads.size },
+    { pageKind: 'thread-list', field: 'thread.url', css: `a[href*="${tTok}"]`, attr: 'href', label: 'Thread URL', count: threads.size },
+  );
+  const bTok = pickToken(boardsArr.map((e) => e.url ?? ''), 'board');
+  if (bTok && boards.size) seedSelectors.push(
+    { pageKind: 'thread-list', field: 'thread.board', css: `a[href*="${bTok}"]`, attr: 'textContent', label: 'Board/sub-forum', count: boards.size },
+  );
   return {
     id, url: (row.url as string | null) ?? null, title: (row.title as string | null) ?? null,
     bytes: Number(row.bytes) || 0, pageKind: String(row.page_kind ?? 'page'),
-    users: Array.from(users.values()).slice(0, 60), threads: Array.from(threads.values()).slice(0, 60), boards: Array.from(boards.values()).slice(0, 40),
+    platformKey: (row.platform_key as string | null) ?? null, technologyKey: (row.technology_key as string | null) ?? null,
+    users: usersArr.slice(0, 60), threads: threadsArr.slice(0, 60), boards: boardsArr.slice(0, 40),
     counts: { users: users.size, threads: threads.size, boards: boards.size, anchors },
-    classHooks,
+    classHooks, seedSelectors,
   };
+}
+
+// Seed: ghi seedSelectors của 1 sample vào selector_overrides ở scope chọn (technology
+// = mọi forum cùng engine kế thừa; platform = chỉ site này). Sau seed, ext highlight
+// các field này trên trang (page_kind thread-list/member-list). Trả số dòng đã ghi.
+export async function seedSelectorsFromSample(id: number, scope: 'technology' | 'platform'): Promise<{ ok: boolean; seeded: number; scopeKey?: string; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, seeded: 0, error: 'no db' };
+  const ex = await extractDomSample(id);
+  if (!ex) return { ok: false, seeded: 0, error: 'sample not found' };
+  const scopeKey = scope === 'technology' ? ex.technologyKey : ex.platformKey;
+  if (!scopeKey) return { ok: false, seeded: 0, error: `sample chưa gắn ${scope}` };
+  if (!ex.seedSelectors.length) return { ok: false, seeded: 0, error: 'không có selector đề xuất (trang ít entity-link)' };
+  let seeded = 0;
+  for (const s of ex.seedSelectors) {
+    const res = await setOverride({ scopeKind: scope, scopeKey, pageKind: s.pageKind, fieldName: s.field, spec: { css: s.css, attr: s.attr }, source: 'promoted' });
+    if (res.ok) seeded++;
+  }
+  return { ok: true, seeded, scopeKey };
 }
 
 export async function deleteDomSample(id: number): Promise<{ ok: boolean; error?: string }> {

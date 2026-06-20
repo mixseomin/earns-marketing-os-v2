@@ -20,9 +20,9 @@ import {
 import { Drawer } from '@/components/drawer';
 import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
-  templateAdoption, listDomSamples, deleteDomSample, extractDomSample,
+  templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
-  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity,
+  type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -251,9 +251,41 @@ function rowAnomaly(scopeKind: string, scopeKey: string, pageKind: string): stri
 // on the right; each layer below is pushed an extra step (~1/3) to the left and dimmed
 // behind a scrim. Pop a level via ✕ / ‹ / Esc / click-the-dim. In-app "links" inside a
 // layer push the NEXT layer (no new browser tab). ──
-type SubContent = { title: string; sub?: string; body: ReactNode };
+// Descriptor SERIALIZABLE của 1 lớp drawer → cho URL nhớ full flow (F5 mở lại đúng
+// trình tự). body (ReactNode) không serialize được nên mỗi push kèm `route` để rebuild.
+type SubRoute =
+  | { t: 'entity'; scope: 'platform' | 'technology'; key: string; tech?: string | null }
+  | { t: 'dom'; id: number }
+  | { t: 'sel'; id: string }
+  | { t: 'scopeSel'; scopeKind: string; scopeKey: string }
+  | { t: 'metric'; metric: string; platform: string; via: string };
+type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
 const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
+
+// Rebuild 1 lớp drawer từ route (dùng khi F5 restore từ URL). Header đơn giản hơn
+// lúc click live (chỉ có dữ liệu trong route) — body tự load đầy đủ.
+function renderRoute(r: SubRoute): SubContent {
+  switch (r.t) {
+    case 'entity': return { title: r.key, sub: `${r.scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={r.scope} scopeKey={r.key} technologyKey={r.tech ?? null} />, route: r };
+    case 'dom': return { title: `#${r.id}`, sub: 'extract preview', body: <DomSampleDetail id={r.id} />, route: r };
+    case 'sel': return { title: `selector #${r.id}`, sub: 'selector detail', body: <SelectorDetail id={r.id} />, route: r };
+    case 'scopeSel': return { title: `${r.scopeKind} · ${r.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={r.scopeKind} scopeKey={r.scopeKey} />, route: r };
+    case 'metric': return { title: `${r.metric} · ${r.platform}`, sub: 'train metric', body: <MetricTrainGuide metric={r.metric} platform={r.platform} via={r.via} />, route: r };
+  }
+}
+function encodeStack(stack: SubContent[]): string {
+  const routes: SubRoute[] = [];
+  for (const c of stack) { if (!c.route) break; routes.push(c.route); } // chỉ prefix serialize được
+  return routes.length ? encodeURIComponent(JSON.stringify(routes)) : '';
+}
+function decodeStack(raw: string): SubContent[] {
+  try {
+    const arr = JSON.parse(decodeURIComponent(raw)) as SubRoute[];
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((r) => r && typeof r.t === 'string').map(renderRoute);
+  } catch { return []; }
+}
 
 function SubStack({ stack, popTo, width }: { stack: SubContent[]; popTo: (n: number) => void; width: number }) {
   useEffect(() => {
@@ -312,7 +344,7 @@ function ScopeSelectorList({ scopeKind, scopeKey }: { scopeKind: string; scopeKe
           <div style={{ padding: '5px 10px', background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', fontWeight: 600 }}>@ {g.pk} <span style={{ color: 'var(--fg-3)' }}>{g.rows.length}</span></div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 10px' }}>
             {g.rows.map((r) => (
-              <button key={r.id} onClick={() => push({ title: r.fieldName, sub: `${scopeKind} · ${scopeKey} · @ ${r.pageKind}`, body: <SelectorDetail id={r.id} /> })}
+              <button key={r.id} onClick={() => push({ title: r.fieldName, sub: `${scopeKind} · ${scopeKey} · @ ${r.pageKind}`, body: <SelectorDetail id={r.id} />, route: { t: 'sel', id: r.id } })}
                 style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-1)', border: `1px ${r.hasCss ? 'solid' : 'dashed'} var(--line)`, borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>{r.fieldName}</button>
             ))}
           </div>
@@ -351,7 +383,7 @@ function SelectorDetail({ id }: { id: string }) {
       )}
       <Section title="Định danh" sub="// where it resolves">
         {row('scope', (
-          <button onClick={() => push({ title: `${d.scopeKind} · ${d.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={d.scopeKind} scopeKey={d.scopeKey} /> })}
+          <button onClick={() => push({ title: `${d.scopeKind} · ${d.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={d.scopeKind} scopeKey={d.scopeKey} />, route: { t: 'scopeSel', scopeKind: d.scopeKind, scopeKey: d.scopeKey } })}
             style={{ background: 'none', border: 0, padding: 0, color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>{d.scopeKind} · {d.scopeKey} ↗</button>
         ))}
         {row('page_kind', d.pageKind)}
@@ -479,7 +511,7 @@ function SelectorCatalog() {
                         const border = r.anom ? 'var(--bad)' : r.hasCss ? 'var(--line)' : 'var(--fg-3)';
                         return (
                         <Tip key={r.fieldName} text={(r.anom ? `⚠ ${r.anom}\n\n` : '') + selChipTip(r) + '\n\n→ Bấm để xem chi tiết (css, spec, raw).'} style={{ cursor: 'pointer' }}>
-                          <button onClick={() => openSub({ title: r.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${k.pk}`, body: <SelectorDetail id={r.id} /> })}
+                          <button onClick={() => openSub({ title: r.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${k.pk}`, body: <SelectorDetail id={r.id} />, route: { t: 'sel', id: r.id } })}
                             style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: r.anom ? 'var(--bad)' : r.hasCss ? 'var(--fg-1)' : 'var(--fg-3)', background: r.anom ? 'color-mix(in srgb, var(--bad) 14%, var(--bg-1))' : 'var(--bg-1)', border: `1px ${r.hasCss || r.anom ? 'solid' : 'dashed'} ${border}`, borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>{r.anom ? '⚠ ' : ''}{r.fieldName}</button>
                         </Tip>
                         );
@@ -598,8 +630,8 @@ function MetricCoveragePanel() {
                         <button
                           disabled={!clickable}
                           onClick={() => {
-                            if (state === 'trained' && c.selId) openSub({ title: c.field, sub: `${c.scope} · ${c.scopeKey} · @ post-metrics`, body: <SelectorDetail id={c.selId} /> });
-                            else if (state === 'gap' || state === 'api') openSub({ title: `Train ${m.metric} · ${p.key}`, sub: 'hướng dẫn bắt số từ DOM', body: <MetricTrainGuide metric={m.metric} platform={p.key} via={c.via || 'text'} /> });
+                            if (state === 'trained' && c.selId) openSub({ title: c.field, sub: `${c.scope} · ${c.scopeKey} · @ post-metrics`, body: <SelectorDetail id={c.selId} />, route: { t: 'sel', id: c.selId } });
+                            else if (state === 'gap' || state === 'api') openSub({ title: `Train ${m.metric} · ${p.key}`, sub: 'hướng dẫn bắt số từ DOM', body: <MetricTrainGuide metric={m.metric} platform={p.key} via={c.via || 'text'} />, route: { t: 'metric', metric: m.metric, platform: p.key, via: c.via || 'text' } });
                           }}
                           style={{ background: 'none', border: 0, padding: '4px 6px', cursor: clickable ? 'pointer' : 'default', color, fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                           <span>{glyph}</span>
@@ -1006,7 +1038,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
                       </button>
                       {open && g.rows.map((s, i) => (
                         <button key={s.fieldName} type="button"
-                          onClick={() => openSub({ title: s.fieldName, sub: `${obj.key} · ${picked} · @ ${s.pageKind}`, body: <SelectorDetail id={s.id} /> })}
+                          onClick={() => openSub({ title: s.fieldName, sub: `${obj.key} · ${picked} · @ ${s.pageKind}`, body: <SelectorDetail id={s.id} />, route: { t: 'sel', id: s.id } })}
                           title="Mở chi tiết selector (spec, cascade, raw jsonb)"
                           style={{ display: 'block', width: '100%', textAlign: 'left', borderWidth: '1px 0 0 0', borderStyle: 'solid', borderColor: 'var(--line)', cursor: 'pointer', padding: '6px 10px 6px 26px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
@@ -1189,6 +1221,8 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       const obj = sp.get('obj'); const flow = sp.get('flow'); const step = sp.get('step');
       if (obj && OBJ_BY_KEY[obj]) setSel({ kind: 'object', key: obj });
       else if (flow && step && FLOW_BY_KEY[flow]) setSel({ kind: 'flow', flow, step });
+      // restore the cascade drawer stack (full drill flow) so F5 reopens every layer in order
+      const d = sp.get('d'); if (d) { const st = decodeStack(d); if (st.length) setStack(st); }
     } catch { /* */ }
     hydrated.current = true;
   }, []);
@@ -1202,10 +1236,11 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       sp.delete('obj'); sp.delete('flow'); sp.delete('step');
       if (sel?.kind === 'object') sp.set('obj', sel.key);
       else if (sel?.kind === 'flow') { sp.set('flow', sel.flow); sp.set('step', sel.step); }
+      const ds = encodeStack(stack); if (ds) sp.set('d', ds); else sp.delete('d');
       const qs = sp.toString();
       window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''));
     } catch { /* */ }
-  }, [view, sel]);
+  }, [view, sel, stack]);
   useEffect(() => { if (hydrated.current) { try { localStorage.setItem(BOUND_KEY, JSON.stringify(bound)); } catch { /* */ } } }, [bound]);
   useEffect(() => { if (hydrated.current && proj) { try { localStorage.setItem(PROJ_KEY, proj); } catch { /* */ } } }, [proj]);
 
@@ -1444,7 +1479,7 @@ function SelByPageKind({ rows }: { rows: SelCatRow[] }) {
             <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{items.length} field</span>
           </div>
           {items.map((s, i) => (
-            <button key={s.id} onClick={() => openSub({ title: s.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${pk}`, body: <SelectorDetail id={s.id} /> })}
+            <button key={s.id} onClick={() => openSub({ title: s.fieldName, sub: `${s.scopeKind} · ${s.scopeKey} · @ ${pk}`, body: <SelectorDetail id={s.id} />, route: { t: 'sel', id: s.id } })}
               style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 8, alignItems: 'center', padding: '4px 10px', borderTop: '1px solid var(--line)', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', border: 'none', cursor: 'pointer' }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{s.fieldName}</span>
               <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>↗</span>
@@ -1493,7 +1528,7 @@ function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technol
         {hdr('DOM samples', 'var(--fg-4)')}
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {mine.map((s, i) => (
-            <button key={s.id} onClick={() => openSub({ title: `#${s.id} · ${s.platformKey || s.hostname || ''}`, sub: 'extract preview', body: <DomSampleDetail id={s.id} /> })}
+            <button key={s.id} onClick={() => openSub({ title: `#${s.id} · ${s.platformKey || s.hostname || ''}`, sub: 'extract preview', body: <DomSampleDetail id={s.id} />, route: { t: 'dom', id: s.id } })}
               style={{ display: 'flex', width: '100%', textAlign: 'left', gap: 8, alignItems: 'center', padding: '4px 10px', borderTop: i ? '1px solid var(--line)' : 'none', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', border: 'none', cursor: 'pointer' }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>#{s.id}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>{s.pageKind}</span>
@@ -1510,7 +1545,7 @@ function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technol
 function EntityLink({ scope, ek, label, tech, style }: { scope: 'platform' | 'technology'; ek: string; label?: string; tech?: string | null; style?: CSSProperties }) {
   const openSub = useContext(SubCtx);
   return (
-    <button onClick={() => openSub({ title: label || ek, sub: `${scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={scope} scopeKey={ek} technologyKey={tech} /> })}
+    <button onClick={() => openSub({ title: label || ek, sub: `${scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={scope} scopeKey={ek} technologyKey={tech} />, route: { t: 'entity', scope, key: ek, tech } })}
       title={`Mở drawer ${scope}: ${label || ek}`}
       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', textAlign: 'left', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...style }}>
       {label || ek} ↗
@@ -1634,6 +1669,64 @@ function EntityGroup({ title, color, items, total, fmt }: { title: string; color
     </div>
   );
 }
+// GIEO SELECTOR: map các field extract được vào (technology|platform) scope. Sau seed,
+// ext highlight field này trên trang (page_kind thread-list/member-list). User review css
+// TRƯỚC khi bấm — kiểm soát, không tự ghi đè.
+function SeedPanel({ id, proposals, platformKey, technologyKey, onSeeded }: { id: number; proposals: SeedSelector[]; platformKey: string | null; technologyKey: string | null; onSeeded?: () => void }) {
+  const [busy, setBusy] = useState<'technology' | 'platform' | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const run = useCallback(async (scope: 'technology' | 'platform') => {
+    setBusy(scope); setMsg(null);
+    const r = await seedSelectorsFromSample(id, scope);
+    setBusy(null);
+    setMsg(r.ok
+      ? { ok: true, text: `✓ Seed ${r.seeded} selector → ${scope} ${r.scopeKey}. Mở site (ext) → bật Highlight để thấy field được bắt.` }
+      : { ok: false, text: `✕ ${r.error}` });
+    if (r.ok) onSeeded?.();
+  }, [id, onSeeded]);
+  const byPk = new Map<string, SeedSelector[]>();
+  for (const s of proposals) { const a = byPk.get(s.pageKind) ?? byPk.set(s.pageKind, []).get(s.pageKind)!; a.push(s); }
+  const seedBtn = (scope: 'technology' | 'platform', key: string | null): ReactNode => {
+    const disabled = !key || busy != null;
+    return (
+      <button key={scope} disabled={disabled} onClick={() => run(scope)}
+        title={key ? `Ghi ${proposals.length} selector vào ${scope} "${key}"` : `Sample chưa gắn ${scope} — không thể seed scope này`}
+        style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 6, cursor: disabled ? 'default' : 'pointer', border: `1px solid ${scope === 'technology' ? '#b48cff' : 'var(--accent)'}`, color: disabled ? 'var(--fg-4)' : (scope === 'technology' ? '#b48cff' : 'var(--accent)'), background: 'transparent', whiteSpace: 'nowrap', opacity: disabled && key ? 0.6 : 1 }}>
+        {busy === scope ? '…' : `Seed → ${scope}${key ? ` ${key}` : ' (chưa gắn)'}`}
+      </button>
+    );
+  };
+  return (
+    <div style={{ marginTop: 14, border: '1px solid var(--line)', borderLeft: '3px solid var(--ok)', borderRadius: 6, padding: '8px 10px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--ok)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>gieo selector · map vào scope</div>
+      {proposals.length === 0 ? (
+        <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>Chưa đề xuất được selector (trang ít entity-link rõ pattern). Train tay từ class hooks ở trên, hoặc lưu 1 trang list (memberlist / viewforum) rồi extract lại.</div>
+      ) : (
+        <>
+          {[...byPk.entries()].map(([pk, items]) => (
+            <div key={pk} style={{ marginBottom: 6 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--accent)', marginBottom: 2 }}>@ {pk}</div>
+              {items.map((s) => (
+                <div key={s.field} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '1px 0', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                  <span style={{ color: 'var(--fg-1)', minWidth: 96 }}>{s.field}</span>
+                  <span style={{ color: 'var(--fg-3)', flex: 1, wordBreak: 'break-all' }}>{s.css}<span style={{ color: 'var(--fg-4)' }}> ·{s.attr}</span></span>
+                  <span style={{ color: 'var(--fg-4)' }}>×{s.count}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+            {seedBtn('technology', technologyKey)}
+            {seedBtn('platform', platformKey)}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 5 }}>technology = mọi forum cùng engine kế thừa · platform = chỉ site này.</div>
+          {msg && <div style={{ marginTop: 6, fontSize: 11, color: msg.ok ? 'var(--ok)' : 'var(--bad)' }}>{msg.text}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function DomSampleDetail({ id }: { id: number }) {
   const [d, setD] = useState<DomExtract | null | 'loading'>('loading');
   useEffect(() => { let dead = false; extractDomSample(id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [id]);
@@ -1661,6 +1754,7 @@ function DomSampleDetail({ id }: { id: number }) {
           </div>
         </div>
       )}
+      <SeedPanel id={d.id} proposals={d.seedSelectors} platformKey={d.platformKey} technologyKey={d.technologyKey} />
     </div>
   );
 }
@@ -1712,7 +1806,7 @@ function DomSamplesPanel() {
               {g.items.map((r, i) => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderTop: '1px solid var(--line)', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', minWidth: 28 }}>#{r.id}</span>
-                  <div onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · kiểm soát trước khi seed', body: <DomSampleDetail id={r.id} /> })}
+                  <div onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · kiểm soát trước khi seed', body: <DomSampleDetail id={r.id} />, route: { t: 'dom', id: r.id } })}
                     style={{ minWidth: 0, flex: 1, cursor: 'pointer' }} title="Bấm xem chi tiết extract được">
                     <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>{r.pageKind}</span>

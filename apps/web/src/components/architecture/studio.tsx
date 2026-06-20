@@ -1685,7 +1685,8 @@ function DomSamplesPanel() {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 10px', background: 'var(--bg-2)', flexWrap: 'wrap' }}>
                 <button onClick={() => openSub({ title: g.key, sub: `platform · selectors + samples`, body: <EntityScopeDrawer scope="platform" scopeKey={g.key} technologyKey={g.tech} /> })} title="Mở drawer platform này"
                   style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{g.key} ↗</button>
-                {g.tech ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff' }}>◆ {g.tech}</span> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
+                {g.tech ? <button onClick={() => openSub({ title: g.tech!, sub: `technology · selectors + samples`, body: <EntityScopeDrawer scope="technology" scopeKey={g.tech!} /> })} title="Mở drawer technology này"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#b48cff', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>◆ {g.tech} ↗</button> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>engine custom (no tech)</span>}
                 <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{g.items.length} sample{g.items.length !== 1 ? 's' : ''}</span>
               </div>
               {g.items.map((r, i) => (

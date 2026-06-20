@@ -602,19 +602,23 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
     const href = decode(m[1] ?? '');
     const text = strip(m[2] ?? '');
     let g: RegExpMatchArray | null;
-    if ((g = href.match(/memberlist\.php\?[^"]*?[?&]u=(\d+)|\/(?:user|users|members?|profile)\/([\w.%-]+)|\/u\/([\w.%-]+)|\/@([\w.%-]+)/i))) {
+    // NB: KHÔNG escape dấu `?` sau `.php` — để [?&] còn match được dấu `?` đầu khi id
+    // là param ĐẦU TIÊN (vd viewtopic.php?t=96630, memberlist.php?u=1 — phpbb pattern).
+    // STOP loại link auth/nav giả danh user/board (/user/login, /forum/search.php…).
+    const STOP = /^(register|login|logout|signin|signup|password|reset|search|faq|help|new|edit|delete|home|app|index|posting|ucp|mcp|cron|memberlist|viewforum|viewtopic|search)$/i;
+    if ((g = href.match(/memberlist\.php[^"]*?[?&]u=(\d+)|\/(?:user|users|members?|profile)\/([\w.%-]+)|\/u\/([\w.%-]+)|\/@([\w.%-]+)/i))) {
       const key = g[1] || g[2] || g[3] || g[4];
-      if (key && text && !/^[<>›»\s]*$/.test(text) && text.length <= 40) { if (!users.has(key)) users.set(key, { key, label: text, url: href }); }
+      if (key && !STOP.test(key) && text && !/^[<>›»\s]*$/.test(text) && text.length <= 40) { if (!users.has(key)) users.set(key, { key, label: text, url: href }); }
       continue;
     }
-    if ((g = href.match(/viewtopic\.php\?[^"]*?[?&]t=(\d+)|showthread\.php\?[^"]*?[?&]t=(\d+)|\/(?:thread|topic|t)\/([\w-]+)|\/comments\/([\w]+)/i))) {
+    if ((g = href.match(/viewtopic\.php[^"]*?[?&]t=(\d+)|showthread\.php[^"]*?[?&]t=(\d+)|\/(?:thread|topic|t)\/([\w-]+)|\/comments\/([\w]+)/i))) {
       const key = g[1] || g[2] || g[3] || g[4];
-      if (key && text && text.length >= 2) { if (!threads.has(key)) threads.set(key, { key, label: text, url: href }); }
+      if (key && !STOP.test(key) && text && text.length >= 2) { if (!threads.has(key)) threads.set(key, { key, label: text, url: href }); }
       continue;
     }
-    if ((g = href.match(/viewforum\.php\?[^"]*?[?&]f=(\d+)|\/(?:forum|forums|board|c)\/([\w-]+)/i))) {
+    if ((g = href.match(/viewforum\.php[^"]*?[?&]f=(\d+)|\/(?:forum|forums|board|c)\/([\w-]+)(?!\.)/i))) {
       const key = g[1] || g[2];
-      if (key && text) { if (!boards.has(key)) boards.set(key, { key, label: text, url: href }); }
+      if (key && !STOP.test(key) && text) { if (!boards.has(key)) boards.set(key, { key, label: text, url: href }); }
       continue;
     }
   }

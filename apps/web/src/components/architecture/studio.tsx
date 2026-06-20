@@ -1483,7 +1483,12 @@ function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technol
       </div>
       {own.length === 0 && inh.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có selector. Train trên site / seed từ DOM sample → field hiện ở đây.</div>}
       {own.length > 0 && <>{hdr('selectors (scope này)', 'var(--fg-4)')}<SelByPageKind rows={own} /></>}
-      {inh.length > 0 && <>{hdr(`kế thừa từ technology ${technologyKey}`, '#b48cff')}<SelByPageKind rows={inh} /></>}
+      {inh.length > 0 && <>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#b48cff', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '10px 0 6px' }}>
+          kế thừa từ technology <EntityLink scope="technology" ek={technologyKey!} label={technologyKey!} style={{ color: '#b48cff', fontWeight: 700, textTransform: 'uppercase' }} />
+        </div>
+        <SelByPageKind rows={inh} />
+      </>}
       {mine.length > 0 && <>
         {hdr('DOM samples', 'var(--fg-4)')}
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>

@@ -1811,30 +1811,16 @@ function DomSamplesPanel() {
   const [q, setQ] = useState('');
   const load = useCallback(() => { let dead = false; listDomSamples().then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, []);
   useEffect(() => load(), [load]);
-  // Destructive = optimistic remove + 10s UNDO (server delete trễ). KHÔNG hard-delete
-  // ngay, KHÔNG native confirm (feedback_destructive_actions + no_native_dialogs).
-  const [pending, setPending] = useState<DomSampleRow[]>([]);
-  const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const sortRows = (arr: DomSampleRow[]) => [...arr].sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1));
-  const commitDel = useCallback((id: number) => {
-    const t = timers.current[id]; if (t) { clearTimeout(t); delete timers.current[id]; }
-    deleteDomSample(id).catch(() => { /* */ });
-    setPending((p) => p.filter((x) => x.id !== id));
-  }, []);
-  const del = useCallback((row: DomSampleRow) => {
+  // Destructive = XÁC NHẬN 2 bước INLINE (bấm 🗑 → "Xoá? / Huỷ" → bấm Xoá mới xoá thật).
+  // Confirm TRƯỚC, không hard-delete ngay, không native dialog (feedback_destructive_actions).
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const doDelete = useCallback((row: DomSampleRow) => {
+    setConfirmId(null);
     setRows((prev) => (prev ? prev.filter((x) => x.id !== row.id) : prev));
-    setPending((p) => [row, ...p.filter((x) => x.id !== row.id)]);
-    if (timers.current[row.id]) clearTimeout(timers.current[row.id]);
-    timers.current[row.id] = setTimeout(() => commitDel(row.id), 10000);
-  }, [commitDel]);
-  const undoDel = useCallback((row: DomSampleRow) => {
-    const t = timers.current[row.id]; if (t) { clearTimeout(t); delete timers.current[row.id]; }
-    setPending((p) => p.filter((x) => x.id !== row.id));
-    setRows((prev) => sortRows([row, ...(prev || []).filter((x) => x.id !== row.id)]));
+    deleteDomSample(row.id).catch(() => { /* */ });
   }, []);
-  // Đóng drawer = honor các xoá đang chờ (commit ngay).
-  const pendRef = useRef<DomSampleRow[]>([]); pendRef.current = pending;
-  useEffect(() => () => { for (const r of pendRef.current) { const t = timers.current[r.id]; if (t) clearTimeout(t); deleteDomSample(r.id).catch(() => { /* */ }); } }, []);
+  // confirm tự huỷ sau 4s (tránh kẹt trạng thái Xoá?/Huỷ — pattern đã chốt).
+  useEffect(() => { if (confirmId == null) return; const t = setTimeout(() => setConfirmId(null), 4000); return () => clearTimeout(t); }, [confirmId]);
   if (rows == null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading samples…</div>;
   const ql = q.trim().toLowerCase();
   const view = ql ? rows.filter((r) => `${r.hostname} ${r.platformKey} ${r.technologyKey} ${r.pageKind} ${r.url}`.toLowerCase().includes(ql)) : rows;
@@ -1850,16 +1836,6 @@ function DomSamplesPanel() {
   }
   return (
     <div>
-      {pending.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-          {pending.map((r) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6, background: 'color-mix(in srgb, var(--bad) 12%, transparent)', border: '1px solid var(--bad)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)' }}>🗑 Đã xoá #{r.id} · {r.hostname || r.platformKey}</span>
-              <button onClick={() => undoDel(r)} style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--accent)', color: 'var(--accent)', background: 'transparent' }}>↩ Hoàn tác (10s)</button>
-            </div>
-          ))}
-        </div>
-      )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="lọc host / platform / page_kind…" autoComplete="off"
           style={{ flex: 1, boxSizing: 'border-box', padding: '5px 9px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)' }} />
@@ -1887,10 +1863,17 @@ function DomSamplesPanel() {
                     </div>
                     {r.url && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</div>}
                   </div>
-                  <button onClick={() => del(r)} title="Xoá sample (10s hoàn tác)"
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap' }}>
-                    🗑
-                  </button>
+                  {confirmId === r.id ? (
+                    <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                      <button onClick={() => doDelete(r)} title="Xác nhận xoá vĩnh viễn sample này"
+                        style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: 'var(--bg-1)', background: 'var(--bad)', whiteSpace: 'nowrap' }}>⚠ XOÁ</button>
+                      <button onClick={() => setConfirmId(null)} title="Huỷ"
+                        style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--line)', color: 'var(--fg-2)', background: 'transparent', whiteSpace: 'nowrap' }}>✗</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmId(r.id)} title="Xoá sample (cần xác nhận)"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap', flexShrink: 0 }}>🗑</button>
+                  )}
                 </div>
               ))}
             </div>

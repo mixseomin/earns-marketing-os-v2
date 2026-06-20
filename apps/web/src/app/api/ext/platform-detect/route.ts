@@ -29,10 +29,16 @@ export async function POST(req: Request) {
     // tech must exist in the catalog — drops noise from unknown fingerprints
     const known = await db.execute(sql`SELECT 1 FROM platform_technologies WHERE key = ${tech} LIMIT 1`);
     if (!(known as unknown as unknown[]).length) return NextResponse.json({ ok: true, known: false });
+    // Does this technology already carry a SELECTOR TEMPLATE (technology-scope rows)?
+    // hasTemplate=true → the site merely ADOPTS an existing template (frame the SITE as
+    // new, not the technology). false → genuinely new technology (first site).
+    const tmpl = await db.execute(sql`SELECT count(*)::int AS n FROM selector_overrides WHERE scope_kind IN ('technology','engine') AND scope_key = ${tech}`);
+    const templateCount = Number((tmpl as unknown as Array<{ n: number }>)[0]?.n ?? 0);
+    const hasTemplate = templateCount > 0;
     // already bound to this exact tech? nothing to suggest
     const cur = await db.execute(sql`SELECT technology_key FROM platforms WHERE key = ${platformKey} LIMIT 1`);
     const bound = (cur as unknown as Array<{ technology_key: string | null }>)[0]?.technology_key ?? null;
-    if (bound === tech) return NextResponse.json({ ok: true, known: true, alreadyBound: true });
+    if (bound === tech) return NextResponse.json({ ok: true, known: true, alreadyBound: true, hasTemplate, templateCount });
     await db.execute(sql`
       INSERT INTO platform_tech_detections (host, platform_key, technology_key, url, hits, first_seen, last_seen)
       VALUES (${host}, ${platformKey}, ${tech}, ${url}, 1, now(), now())
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
         url = COALESCE(EXCLUDED.url, platform_tech_detections.url),
         hits = platform_tech_detections.hits + 1,
         last_seen = now()`);
-    return NextResponse.json({ ok: true, known: true, alreadyBound: false, platformKey, technologyKey: tech });
+    return NextResponse.json({ ok: true, known: true, alreadyBound: false, platformKey, technologyKey: tech, hasTemplate, templateCount });
   } catch (e) {
     return errorResponse((e as Error).message, 200);
   }

@@ -625,20 +625,20 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   const usersArr = Array.from(users.values());
   const threadsArr = Array.from(threads.values());
   const boardsArr = Array.from(boards.values());
+  // 1 field/nhóm: setOverride gộp field cùng css (khác attr) → seed field ĐỊNH DANH
+  // (href: id+slug+link). Box highlight vẫn nằm trên anchor tên/tiêu đề hiển thị.
   const seedSelectors: SeedSelector[] = [];
   const uTok = pickToken(usersArr.map((e) => e.url ?? ''), 'user');
   if (uTok && users.size) seedSelectors.push(
-    { pageKind: 'member-list', field: 'user.handle', css: `a[href*="${uTok}"]`, attr: 'textContent', label: 'Tên user', count: users.size },
-    { pageKind: 'member-list', field: 'user.url', css: `a[href*="${uTok}"]`, attr: 'href', label: 'Link profile', count: users.size },
+    { pageKind: 'member-list', field: 'user.url', css: `a[href*="${uTok}"]`, attr: 'href', label: 'Link profile (id/slug/url)', count: users.size },
   );
   const tTok = pickToken(threadsArr.map((e) => e.url ?? ''), 'thread');
   if (tTok && threads.size) seedSelectors.push(
-    { pageKind: 'thread-list', field: 'thread.title', css: `a[href*="${tTok}"]`, attr: 'textContent', label: 'Tiêu đề bài', count: threads.size },
-    { pageKind: 'thread-list', field: 'thread.url', css: `a[href*="${tTok}"]`, attr: 'href', label: 'Thread URL', count: threads.size },
+    { pageKind: 'thread-list', field: 'thread.url', css: `a[href*="${tTok}"]`, attr: 'href', label: 'Thread (id/url/title-anchor)', count: threads.size },
   );
   const bTok = pickToken(boardsArr.map((e) => e.url ?? ''), 'board');
   if (bTok && boards.size) seedSelectors.push(
-    { pageKind: 'thread-list', field: 'thread.board', css: `a[href*="${bTok}"]`, attr: 'textContent', label: 'Board/sub-forum', count: boards.size },
+    { pageKind: 'thread-list', field: 'thread.board', css: `a[href*="${bTok}"]`, attr: 'textContent', label: 'Board/sub-forum (tên)', count: boards.size },
   );
   return {
     id, url: (row.url as string | null) ?? null, title: (row.title as string | null) ?? null,

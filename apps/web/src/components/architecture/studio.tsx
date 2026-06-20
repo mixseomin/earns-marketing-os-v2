@@ -1741,11 +1741,49 @@ function DomSampleDetail({ id }: { id: number }) {
         <span style={{ color: '#b48cff' }}>◆ {d.counts.users} users</span>
         <span style={{ color: 'var(--accent)' }}>≡ {d.counts.threads} threads</span>
         <span style={{ color: 'var(--ok)' }}>▦ {d.counts.boards} boards</span>
+        <span style={{ color: 'var(--fg-3)' }}>⌨ {d.counts.inputs} fields</span>
       </div>
+      {/* PAGE SIGNALS — train platform/tech */}
+      {(() => {
+        const s = d.signals; const chip = (k: string, v: string | null, c?: string) => v ? <span key={k} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: c || 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px' }}>{k}:<b style={{ color: c || 'var(--fg-0)' }}>{v}</b></span> : null;
+        const authBtn = (label: string, url: string | null, c: string) => url ? <a key={label} href={url.startsWith('http') ? url : undefined} target="_blank" rel="noopener noreferrer" title={url} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: c, border: `1px solid ${c}`, borderRadius: 999, padding: '1px 7px', textDecoration: 'none', cursor: url.startsWith('http') ? 'pointer' : 'default' }}>{label} ↗</a> : null;
+        return <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', margin: '6px 0', padding: '6px 8px', border: '1px solid var(--line)', borderLeft: '3px solid #b48cff', borderRadius: 6 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', width: '100%', marginBottom: 2 }}>page signals</span>
+          {chip('engine', s.engine, '#b48cff')}{chip('style', s.styleName)}{chip('lang', s.lang, 'var(--accent)')}{chip('dir', s.dir)}{chip('charset', s.charset)}{chip('generator', s.generator)}{chip('viewport', s.viewport)}{chip('session', s.session)}
+          {s.loggedIn != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: s.loggedIn ? 'var(--ok)' : 'var(--bad)', border: `1px solid ${s.loggedIn ? 'var(--ok)' : 'var(--bad)'}`, borderRadius: 4, padding: '1px 6px' }}>{s.loggedIn ? '● logged-in' : '○ logged-out'}</span>}
+          {authBtn('login', s.loginUrl, 'var(--fg-2)')}{authBtn('register', s.registerUrl, 'var(--accent)')}{authBtn('logout', s.logoutUrl, 'var(--fg-2)')}
+        </div>;
+      })()}
+      {d.breadcrumbs.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginBottom: 4 }}>🧭 {d.breadcrumbs.join(' › ')}</div>}
+      {(d.pagination.topics != null || d.pagination.totalPages != null) && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 4 }}>{d.pagination.topics != null ? `${d.pagination.topics} topics` : ''}{d.pagination.totalPages != null ? ` · trang ${d.pagination.page}/${d.pagination.totalPages}` : ''}</div>}
       {empty && <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 6 }}>Không bắt được entity-link nào (trang này ít link user/thread, hoặc engine dùng pattern lạ). Xem class hooks dưới.</div>}
       <EntityGroup title="Users (handle · id/slug)" color="#b48cff" items={d.users} total={d.counts.users} fmt={(e) => e.label} />
       <EntityGroup title="Threads / posts (title · id)" color="var(--accent)" items={d.threads} total={d.counts.threads} fmt={(e) => e.label} />
       <EntityGroup title="Boards / sub-forums" color="var(--ok)" items={d.boards} total={d.counts.boards} fmt={(e) => e.label} />
+      {/* FORM FIELDS — login/register/search/post controls */}
+      {d.inputs.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>form fields ({d.inputs.length}) · login/register/search/post</div>
+          <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {d.inputs.map((f, i) => (
+              <div key={f.css + i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '3px 8px', borderTop: i ? '1px solid var(--line)' : 'none', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                <span style={{ color: f.type === 'password' ? 'var(--bad)' : f.type === 'submit' || f.type === 'button' ? 'var(--accent)' : 'var(--fg-2)', minWidth: 62 }}>{f.tag}:{f.type}</span>
+                <span style={{ color: 'var(--fg-0)', minWidth: 90 }}>{f.label}</span>
+                <span style={{ color: 'var(--fg-4)', flex: 1, wordBreak: 'break-all', textAlign: 'right' }}>{f.css}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* BLOCKS — menu state / panel titles */}
+      {d.blocks.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>blocks / menu state ({d.blocks.length})</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {d.blocks.map((b, i) => <span key={b + i} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px' }}>{b}</span>)}
+          </div>
+        </div>
+      )}
       {d.classHooks.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>class hooks (gợi ý selector custom)</div>
@@ -1755,6 +1793,13 @@ function DomSampleDetail({ id }: { id: number }) {
         </div>
       )}
       <SeedPanel id={d.id} proposals={d.seedSelectors} platformKey={d.platformKey} technologyKey={d.technologyKey} />
+      {/* GAPS — capture-next guidance to complete the template */}
+      {d.gaps.length > 0 && (
+        <div style={{ marginTop: 12, border: '1px solid var(--warn,#ffb03c)', borderRadius: 6, padding: '8px 10px', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--warn,#ffb03c)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>⚠ cần capture thêm để train đủ</div>
+          {d.gaps.map((g, i) => <div key={i} style={{ fontSize: 11, color: 'var(--fg-1)', marginBottom: 3, lineHeight: 1.4 }}>• {g}</div>)}
+        </div>
+      )}
     </div>
   );
 }

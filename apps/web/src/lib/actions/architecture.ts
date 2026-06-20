@@ -562,13 +562,28 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
 export interface ExtractedEntity { key: string; label: string; url: string | null }
 // 1 selector đề xuất từ sample → map vào (technology|platform) scope qua seedSelectorsFromSample.
 export interface SeedSelector { pageKind: string; field: string; css: string; attr: string; label: string; count: number }
+// 1 form control (input/textarea/select/button) — login/register/search/post fields.
+export interface ExtractedInput { tag: string; type: string; name: string; id: string; placeholder: string; value: string; label: string; css: string }
+// Page-level training signals (1 sample = nhiều tín hiệu train platform/tech).
+export interface ExtractSignals {
+  lang: string | null; dir: string | null; charset: string | null;
+  generator: string | null; engine: string | null; styleName: string | null; viewport: string | null;
+  loggedIn: boolean | null; session: string | null;       // session = masked (••last4) — KHÔNG leak token
+  loginUrl: string | null; registerUrl: string | null; logoutUrl: string | null;
+}
 export interface DomExtract {
   id: number; url: string | null; title: string | null; bytes: number; pageKind: string;
   platformKey: string | null; technologyKey: string | null;
+  signals: ExtractSignals; // lang / engine / login-state / auth-urls — train platform·tech
   users: ExtractedEntity[]; threads: ExtractedEntity[]; boards: ExtractedEntity[];
-  counts: { users: number; threads: number; boards: number; anchors: number };
+  inputs: ExtractedInput[]; // form fields (login/register/search/post)
+  blocks: string[];         // headings / panel titles = "menu state" (Личное меню, Друзья…)
+  breadcrumbs: string[];    // breadcrumb trail (orients board context)
+  pagination: { topics: number | null; page: number | null; totalPages: number | null }; // crawl bounds
+  counts: { users: number; threads: number; boards: number; anchors: number; inputs: number };
   classHooks: string[];
   seedSelectors: SeedSelector[]; // proposals user review TRƯỚC khi seed (kiểm soát)
+  gaps: string[];           // capture-next guidance (register/viewtopic/logged-in pages…)
 }
 // href token nhận diện theo loại entity — ưu tiên token đặc thù (memberlist.php) trước
 // path chung (/user/) để selector a[href*=token] không quét nhầm (login/register…).
@@ -597,22 +612,23 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   let anchors = 0;
   const re = /<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) && anchors < 8000) {
+  while ((m = re.exec(html)) && anchors < 12000) {
     anchors++;
     const href = decode(m[1] ?? '');
     const text = strip(m[2] ?? '');
     let g: RegExpMatchArray | null;
     // NB: KHÔNG escape dấu `?` sau `.php` — để [?&] còn match được dấu `?` đầu khi id
-    // là param ĐẦU TIÊN (vd viewtopic.php?t=96630, memberlist.php?u=1 — phpbb pattern).
-    // STOP loại link auth/nav giả danh user/board (/user/login, /forum/search.php…).
-    const STOP = /^(register|login|logout|signin|signup|password|reset|search|faq|help|new|edit|delete|home|app|index|posting|ucp|mcp|cron|memberlist|viewforum|viewtopic|search)$/i;
-    if ((g = href.match(/memberlist\.php[^"]*?[?&]u=(\d+)|\/(?:user|users|members?|profile)\/([\w.%-]+)|\/u\/([\w.%-]+)|\/@([\w.%-]+)/i))) {
-      const key = g[1] || g[2] || g[3] || g[4];
+    // là param ĐẦU. SEO alt (mod_rewrite): /memberNNN.html (user) + slug-tNNN.html
+    // (thread) — riperam.org dùng dạng này, matcher cũ bỏ sót ~57 user / 42 thread.
+    const STOP = /^(register|login|logout|signin|signup|password|reset|search|faq|help|new|edit|delete|home|app|index|posting|ucp|mcp|cron|memberlist|viewforum|viewtopic)$/i;
+    if (/memberlist\.php[^"]*?[?&](?:mode=group|g=)/i.test(href)) { /* group legend, not a user */ }
+    else if ((g = href.match(/\/member(\d+)\.html|memberlist\.php[^"]*?[?&]u=(\d+)|\/(?:user|users|members?|profile)\/([\w.%-]+)|\/u\/([\w.%-]+)|\/@([\w.%-]+)/i))) {
+      const key = g[1] || g[2] || g[3] || g[4] || g[5];
       if (key && !STOP.test(key) && text && !/^[<>›»\s]*$/.test(text) && text.length <= 40) { if (!users.has(key)) users.set(key, { key, label: text, url: href }); }
       continue;
     }
-    if ((g = href.match(/viewtopic\.php[^"]*?[?&]t=(\d+)|showthread\.php[^"]*?[?&]t=(\d+)|\/(?:thread|topic|t)\/([\w-]+)|\/comments\/([\w]+)/i))) {
-      const key = g[1] || g[2] || g[3] || g[4];
+    if ((g = href.match(/-t(\d+)(?:-\d+)?\.html|viewtopic\.php[^"]*?[?&]t=(\d+)|showthread\.php[^"]*?[?&]t=(\d+)|\/(?:thread|topic)\/([\w-]+)|\/comments\/([\w]+)/i))) {
+      const key = g[1] || g[2] || g[3] || g[4] || g[5];
       if (key && !STOP.test(key) && text && text.length >= 2) { if (!threads.has(key)) threads.set(key, { key, label: text, url: href }); }
       continue;
     }
@@ -622,35 +638,113 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
       continue;
     }
   }
+  // Boards cũng nằm trong jumpbox <select name="f"> options (board ko hiện thành row).
+  const jb = html.match(/<select[^>]*\bname="f"[^>]*>([\s\S]*?)<\/select>/i);
+  if (jb) { const opt = /<option[^>]*value="(\d+)"[^>]*>([\s\S]*?)<\/option>/gi; let om: RegExpExecArray | null;
+    while ((om = opt.exec(jb[1] ?? '')) && boards.size < 120) { const k = om[1]!; const t = strip(om[2] ?? ''); if (k !== '0' && t && t.length <= 60 && !boards.has(k)) boards.set(k, { key: k, label: t, url: null }); } }
+
+  // ── PAGE SIGNALS ─────────────────────────────────────────────────────────────
+  const grp = (rx: RegExp): string | null => { const x = html.match(rx); return x && x[1] ? decode(x[1]).trim() : null; };
+  const engine = /id="phpbb"|styles\/[a-z0-9_]+\/theme\/|(?:ucp|viewtopic|viewforum|memberlist)\.php\?|phpbbforum_recent_/i.test(html) ? 'phpbb'
+    : /data-xf-init|class="p-nav|XF\.extendObject|\/community\//i.test(html) ? 'xenforo'
+    : /data-discourse|discourse-application|<meta name="discourse/i.test(html) ? 'discourse'
+    : /vBulletin|vb_login|class="vbmenu/i.test(html) ? 'vbulletin'
+    : /class="ipsApp|data-ipsHook/i.test(html) ? 'invisionpower' : null;
+  const sidRaw = grp(/[?&]sid=([0-9a-f]{16,40})/i);
+  const loginUrl = grp(/href="([^"]*(?:ucp\.php\?mode=login|\/user\/login)[^"]*)"/i);
+  const registerUrl = grp(/href="([^"]*(?:ucp\.php\?mode=register|\/user\/register|\/register\b)[^"]*)"/i);
+  const logoutUrl = grp(/href="([^"]*(?:ucp\.php\?mode=logout|\/user\/logout)[^"]*)"/i);
+  const loggedIn = logoutUrl ? true : /\bnot-logged-in\b/i.test(html) ? false : (loginUrl ? false : null);
+  const signals: ExtractSignals = {
+    lang: grp(/<html[^>]*\blang="([^"]+)"/i),
+    dir: grp(/<html[^>]*\bdir="(ltr|rtl)"/i) || (/<body[^>]*class="[^"]*\brtl\b/i.test(html) ? 'rtl' : /<body[^>]*class="[^"]*\bltr\b/i.test(html) ? 'ltr' : null),
+    charset: (grp(/<meta\s+charset="([^"]+)"/i) || '').toLowerCase() || null,
+    generator: grp(/<meta\s+name="generator"\s+content="([^"]+)"/i),
+    engine, styleName: grp(/styles\/([a-z0-9_]+)\/(?:theme|imageset)\//i),
+    viewport: grp(/<meta\s+name="viewport"\s+content="([^"]+)"/i),
+    loggedIn, session: sidRaw ? '••••' + sidRaw.slice(-4) : null,
+    loginUrl, registerUrl, logoutUrl,
+  };
+
+  // ── FORM CONTROLS (login/register/search/post) ───────────────────────────────
+  const inputs: ExtractedInput[] = [];
+  const seenIn = new Set<string>();
+  const ctl = /<(input|textarea|select|button)\b([^>]*)>/gi; let cm: RegExpExecArray | null; let ci = 0;
+  while ((cm = ctl.exec(html)) && ci < 800) {
+    ci++;
+    const tag = (cm[1] ?? '').toLowerCase();
+    const a = cm[2] ?? '';
+    const at = (n: string): string => { const x = a.match(new RegExp(n + '\\s*=\\s*"([^"]*)"', 'i')); return x ? decode(x[1] ?? '') : ''; };
+    const type = (at('type') || (tag === 'textarea' ? 'textarea' : tag === 'select' ? 'select' : tag === 'button' ? 'submit' : 'text')).toLowerCase();
+    if (type === 'hidden') continue;
+    if (/data-mos2-key|id="mos2|lastpass|data-lastpass/i.test(a)) { /* still list but mark below */ }
+    const name = at('name'); const idA = at('id'); const ph = at('placeholder'); const val = at('value');
+    const css = name ? `${tag}[name="${name}"]` : idA ? `#${idA}` : `${tag}${tag === 'input' && type ? `[type="${type}"]` : ''}`;
+    const k = css + '|' + type; if (seenIn.has(k)) continue; seenIn.add(k);
+    const label = (ph || (type === 'submit' || type === 'button' ? val : '') || name || idA || `${tag}:${type}`).slice(0, 50);
+    inputs.push({ tag, type, name, id: idA, placeholder: ph, value: type === 'password' ? '' : val.slice(0, 40), label, css });
+    if (inputs.length >= 50) break;
+  }
+
+  // ── BLOCKS (menu state) + BREADCRUMBS + PAGINATION ──────────────────────────
+  const uniq = (arr: string[]) => Array.from(new Set(arr));
+  const blocks = uniq([
+    ...(html.match(/portal_\w+\.(?:png|gif|jpg)"[^>]*>(?:&nbsp;|\s|;)*([^<&]{2,40})/gi) || []).map((s) => strip(s.replace(/^[\s\S]*?>(?:&nbsp;|\s|;)*/, ''))),
+    ...(html.match(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/gi) || []).map(strip),
+  ].map((s) => s.replace(/&nbsp;/g, ' ').trim())).filter((t) => t && t.length >= 2 && t.length <= 50).slice(0, 30);
+  let breadcrumbs: string[] = [];
+  const bc = html.match(/<ul class="[^"]*navlinks[^"]*">([\s\S]*?)<\/ul>/i) || html.match(/<[^>]*class="[^"]*breadcrumb[^"]*"[^>]*>([\s\S]*?)<\/(?:ul|div|nav|p)>/i);
+  if (bc) breadcrumbs = uniq((bc[1] ?? '').match(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)?.map(strip).filter((t) => t && t.length <= 40) || []).slice(0, 12);
+  const pg = { topics: null as number | null, page: null as number | null, totalPages: null as number | null };
+  const mt = html.match(/(?:Тем|Topics|Темы):\s*([\d.,]+)/i); if (mt) pg.topics = Number((mt[1] ?? '').replace(/[.,]/g, '')) || null;
+  const mp = html.match(/(?:Страница|Page)\s+(\d+)\s+(?:из|of)\s+(\d+)/i); if (mp) { pg.page = Number(mp[1]) || null; pg.totalPages = Number(mp[2]) || null; }
+
   const classHooks = Array.from(new Set((html.match(/class="([a-z][\w-]*(?:[_-][\w-]+){1,})"/gi) || []).map((c) => c.replace(/^class="|"$/g, ''))))
-    .filter((c) => /recent|post|user|author|thread|topic|forum|message|profile|member|username/i.test(c)).slice(0, 24);
-  // Đề xuất selector: từ token href đã match → a[href*="token"] (READ list). User review
-  // trước khi seed; seedSelectorsFromSample mới ghi vào selector_overrides.
+    .filter((c) => /recent|post|user|author|thread|topic|forum|message|profile|member|username|topictitle|lastpost|pagination|topiclist/i.test(c)).slice(0, 28);
+
+  // ── SEED PROPOSALS (review trước khi ghi) ────────────────────────────────────
   const usersArr = Array.from(users.values());
   const threadsArr = Array.from(threads.values());
   const boardsArr = Array.from(boards.values());
-  // 1 field/nhóm: setOverride gộp field cùng css (khác attr) → seed field ĐỊNH DANH
-  // (href: id+slug+link). Box highlight vẫn nằm trên anchor tên/tiêu đề hiển thị.
+  const has = (rx: RegExp) => rx.test(html);
   const seedSelectors: SeedSelector[] = [];
-  const uTok = pickToken(usersArr.map((e) => e.url ?? ''), 'user');
-  if (uTok && users.size) seedSelectors.push(
-    { pageKind: 'member-list', field: 'user.url', css: `a[href*="${uTok}"]`, attr: 'href', label: 'Link profile (id/slug/url)', count: users.size },
-  );
-  const tTok = pickToken(threadsArr.map((e) => e.url ?? ''), 'thread');
-  if (tTok && threads.size) seedSelectors.push(
-    { pageKind: 'thread-list', field: 'thread.url', css: `a[href*="${tTok}"]`, attr: 'href', label: 'Thread (id/url/title-anchor)', count: threads.size },
-  );
-  const bTok = pickToken(boardsArr.map((e) => e.url ?? ''), 'board');
-  if (bTok && boards.size) seedSelectors.push(
-    { pageKind: 'thread-list', field: 'thread.board', css: `a[href*="${bTok}"]`, attr: 'textContent', label: 'Board/sub-forum (tên)', count: boards.size },
-  );
+  // user: a[href*="/member"] phủ cả memberlist.php + memberNNN.html (SEO). a.username-coloured = tên.
+  if (users.size) {
+    const uCss = usersArr.some((e) => /\/member\d+\.html|memberlist\.php/i.test(e.url || '')) ? 'a[href*="/member"]' : `a[href*="${pickToken(usersArr.map((e) => e.url ?? ''), 'user') || '/member'}"]`;
+    seedSelectors.push({ pageKind: 'member-list', field: 'user.url', css: uCss, attr: 'href', label: 'Link profile (id/slug)', count: users.size });
+    if (has(/class="username-coloured"|class="username"/i)) seedSelectors.push({ pageKind: 'member-list', field: 'user.handle', css: 'a.username-coloured, a.username', attr: 'textContent', label: 'Tên user', count: users.size });
+  }
+  // thread: a.topictitle (class chuẩn phpbb, phủ cả SEO -tNNN.html) > token href.
+  if (threads.size) {
+    const tClass = has(/class="topictitle"/i);
+    const tCss = tClass ? 'a.topictitle' : `a[href*="${pickToken(threadsArr.map((e) => e.url ?? ''), 'thread') || 'viewtopic.php'}"]`;
+    seedSelectors.push({ pageKind: 'thread-list', field: 'thread.title', css: tCss, attr: 'textContent', label: 'Tiêu đề bài', count: threads.size });
+    seedSelectors.push({ pageKind: 'thread-list', field: 'thread.url', css: tCss, attr: 'href', label: 'Thread URL/id', count: threads.size });
+  }
+  if (boards.size) seedSelectors.push({ pageKind: 'thread-list', field: 'thread.board', css: 'a[href*="viewforum.php"]', attr: 'textContent', label: 'Board/sub-forum', count: boards.size });
+  // signup: từ LOGIN form (fallback hint — register page mới đủ email/confirm). attr=value (WRITE).
+  const loginInputs = inputs.filter((i) => i.type !== 'submit' && i.type !== 'button');
+  if (has(/name="username"/i) && has(/type="password"/i)) {
+    seedSelectors.push({ pageKind: 'signup', field: 'username', css: 'input[name="username"]', attr: 'value', label: 'Username (từ login — xác minh ở register)', count: 1 });
+    seedSelectors.push({ pageKind: 'signup', field: 'password', css: 'input[type="password"]', attr: 'value', label: 'Password (từ login — xác minh ở register)', count: 1 });
+  }
+  void loginInputs;
+
+  // ── GAPS: page cần capture thêm để train đủ phpbb ───────────────────────────
+  const gaps: string[] = [];
+  if (!has(/<textarea[^>]*name="message"/i) && !has(/id="message"/i)) gaps.push('Composer: chưa có ô soạn reply → capture viewtopic.php?t=<id> + posting.php?mode=reply (logged-in) để seed composer.editor/postBtn + post.item/body/author.');
+  if (registerUrl) gaps.push('Signup đầy đủ: chỉ thấy form login → capture trang register (' + registerUrl + ') để seed email/password_confirm/display_name.');
+  if (loggedIn === false) gaps.push('Viewer.*: trang đang LOGGED-OUT → capture 1 trang đã đăng nhập để seed viewer.handle/avatar/logout/unread.');
+
   return {
     id, url: (row.url as string | null) ?? null, title: (row.title as string | null) ?? null,
     bytes: Number(row.bytes) || 0, pageKind: String(row.page_kind ?? 'page'),
     platformKey: (row.platform_key as string | null) ?? null, technologyKey: (row.technology_key as string | null) ?? null,
-    users: usersArr.slice(0, 60), threads: threadsArr.slice(0, 60), boards: boardsArr.slice(0, 40),
-    counts: { users: users.size, threads: threads.size, boards: boards.size, anchors },
-    classHooks, seedSelectors,
+    signals,
+    users: usersArr.slice(0, 80), threads: threadsArr.slice(0, 80), boards: boardsArr.slice(0, 60),
+    inputs, blocks, breadcrumbs, pagination: pg,
+    counts: { users: users.size, threads: threads.size, boards: boards.size, anchors, inputs: inputs.length },
+    classHooks, seedSelectors, gaps,
   };
 }
 

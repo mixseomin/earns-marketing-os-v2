@@ -1467,11 +1467,19 @@ function EntityScopeDrawer({ scope, scopeKey, technologyKey }: { scope: 'technol
   const inh = (scope === 'platform' && technologyKey) ? cat.filter((x) => x.scopeKey === technologyKey && (x.scopeKind === 'technology' || x.scopeKind === 'engine')) : [];
   const mine = samples.filter((s) => (scope === 'technology' ? s.technologyKey === scopeKey : s.platformKey === scopeKey));
   const hdr = (t: string, c: string) => <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: c, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '10px 0 6px' }}>{t}</div>;
+  // Đây là drawer RIÊNG của thực thể này (hub theo dõi) — KHÔNG phải record chính thức.
+  // Link mở Platform/Technology record (catalog quản lý) nếu muốn.
+  const recObj = scope === 'platform' ? 'platform' : 'technology';
+  const recHref = (OBJ_BY_KEY[recObj]?.deepLink || (scope === 'platform' ? '/platforms' : '/technologies')) + (scope === 'platform' ? `?key=${encodeURIComponent(scopeKey)}` : `?e=${encodeURIComponent(scopeKey)}`);
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
-        <span style={{ color: 'var(--fg-2)' }}>scope <b>{scope}</b>=<b style={{ color: scope === 'technology' ? '#b48cff' : 'var(--accent)' }}>{scopeKey}</b></span>
-        <span style={{ color: 'var(--fg-4)' }}>{own.length} own{inh.length ? ` · ${inh.length} kế thừa` : ''} · {mine.length} DOM sample</span>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{scope} <b style={{ color: scope === 'technology' ? '#b48cff' : 'var(--accent)' }}>{scopeKey}</b></span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{own.length} own{inh.length ? ` · ${inh.length} kế thừa` : ''} · {mine.length} sample</span>
+        <a href={recHref} target="_blank" rel="noopener noreferrer" title={`Mở ${scope} record chính thức (catalog) trong tab mới`}
+          style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', border: '1px solid var(--accent)', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+          ↗ {scope === 'platform' ? 'Platform' : 'Technology'} record
+        </a>
       </div>
       {own.length === 0 && inh.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có selector. Train trên site / seed từ DOM sample → field hiện ở đây.</div>}
       {own.length > 0 && <>{hdr('selectors (scope này)', 'var(--fg-4)')}<SelByPageKind rows={own} /></>}

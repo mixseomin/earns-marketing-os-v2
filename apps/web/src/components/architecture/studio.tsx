@@ -1654,18 +1654,33 @@ function TemplateAdoptionPanel() {
 // Chi tiết 1 sample: auto-extract entity LIST (user/thread/board) để KIỂM SOÁT
 // page trích được gì trước khi seed.
 function EntityGroup({ title, color, items, total, fmt }: { title: string; color: string; items: ExtractedEntity[]; total: number; fmt: (e: ExtractedEntity) => string }) {
+  const PREVIEW = 8;
+  const [expanded, setExpanded] = useState(false);
+  const [q, setQ] = useState('');
   if (total === 0) return null;
+  const ql = q.trim().toLowerCase();
+  const filtered = ql ? items.filter((e) => `${e.key} ${fmt(e)} ${e.url || ''}`.toLowerCase().includes(ql)) : items;
+  const showAll = expanded || !!ql;
+  const shown = showAll ? filtered : filtered.slice(0, PREVIEW);
+  const moreCount = filtered.length - shown.length;
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color, marginBottom: 5 }}>{title} · {total}{total > items.length ? ` (hiện ${items.length})` : ''}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color }}>{title} · {total}{total > items.length ? ` (mẫu ${items.length})` : ''}</span>
+        {items.length > PREVIEW && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="lọc…" autoComplete="off"
+          style={{ marginLeft: 'auto', width: 120, boxSizing: 'border-box', padding: '2px 7px', fontSize: 10.5, fontFamily: 'var(--font-mono)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)' }} />}
+      </div>
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-        {items.map((e, i) => (
+        {shown.map((e, i) => (
           <div key={e.key + i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '3px 9px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', minWidth: 60, flexShrink: 0 }}>{e.key}</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fmt(e) + (e.url ? '\n' + e.url : '')}>{fmt(e)}</span>
           </div>
         ))}
+        {shown.length === 0 && <div style={{ padding: '4px 9px', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>không khớp</div>}
       </div>
+      {!showAll && moreCount > 0 && <button onClick={() => setExpanded(true)} style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}>+ xem thêm ({moreCount})</button>}
+      {expanded && !ql && <button onClick={() => setExpanded(false)} style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}>− thu gọn</button>}
     </div>
   );
 }
@@ -1765,13 +1780,14 @@ function DomSampleDetail({ id }: { id: number }) {
         <div style={{ marginTop: 12 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>form fields ({d.inputs.length}) · login/register/search/post</div>
           <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            {d.inputs.map((f, i) => (
+            {d.inputs.slice(0, 14).map((f, i) => (
               <div key={f.css + i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '3px 8px', borderTop: i ? '1px solid var(--line)' : 'none', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
                 <span style={{ color: f.type === 'password' ? 'var(--bad)' : f.type === 'submit' || f.type === 'button' ? 'var(--accent)' : 'var(--fg-2)', minWidth: 62 }}>{f.tag}:{f.type}</span>
                 <span style={{ color: 'var(--fg-0)', minWidth: 90 }}>{f.label}</span>
                 <span style={{ color: 'var(--fg-4)', flex: 1, wordBreak: 'break-all', textAlign: 'right' }}>{f.css}</span>
               </div>
             ))}
+            {d.inputs.length > 14 && <div style={{ padding: '3px 8px', borderTop: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', background: 'var(--bg-2)' }}>+{d.inputs.length - 14} field nữa…</div>}
           </div>
         </div>
       )}
@@ -1872,7 +1888,9 @@ function DomSamplesPanel() {
                     </span>
                   ) : (
                     <button onClick={() => setConfirmId(r.id)} title="Xoá sample (cần xác nhận)"
-                      style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--bad)', color: 'var(--bad)', background: 'transparent', whiteSpace: 'nowrap', flexShrink: 0 }}>🗑</button>
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--bad)'; e.currentTarget.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--fg-4)'; e.currentTarget.style.opacity = '0.5'; }}
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, padding: '3px 6px', borderRadius: 6, cursor: 'pointer', border: 'none', color: 'var(--fg-4)', background: 'transparent', whiteSpace: 'nowrap', flexShrink: 0, opacity: 0.5 }}>🗑</button>
                   )}
                 </div>
               ))}

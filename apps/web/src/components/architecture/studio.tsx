@@ -21,8 +21,10 @@ import { Drawer } from '@/components/drawer';
 import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
+  listUxFlows, getUxFlow,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
+  type UxFlowRow, type UxFlowDetailData,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -258,7 +260,9 @@ type SubRoute =
   | { t: 'dom'; id: number }
   | { t: 'sel'; id: string }
   | { t: 'scopeSel'; scopeKind: string; scopeKey: string }
-  | { t: 'metric'; metric: string; platform: string; via: string };
+  | { t: 'metric'; metric: string; platform: string; via: string }
+  | { t: 'uxflow'; id: number }
+  | { t: 'objpeek'; objKey: string };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
 const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
@@ -272,6 +276,8 @@ function renderRoute(r: SubRoute): SubContent {
     case 'sel': return { title: `selector #${r.id}`, sub: 'selector detail', body: <SelectorDetail id={r.id} />, route: r };
     case 'scopeSel': return { title: `${r.scopeKind} · ${r.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={r.scopeKind} scopeKey={r.scopeKey} />, route: r };
     case 'metric': return { title: `${r.metric} · ${r.platform}`, sub: 'train metric', body: <MetricTrainGuide metric={r.metric} platform={r.platform} via={r.via} />, route: r };
+    case 'uxflow': return { title: `flow #${r.id}`, sub: 'need→action steps', body: <UxFlowDetail id={r.id} />, route: r };
+    case 'objpeek': return { title: OBJ_BY_KEY[r.objKey]?.label || r.objKey, sub: 'entity spec (peek)', body: <ObjPeek objKey={r.objKey} />, route: r };
   }
 }
 function encodeStack(stack: SubContent[]): string {
@@ -869,6 +875,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
       {obj.key === 'domSample' && (
         <Section title="DOM Samples" sub="// ext 💾 capture · gom theo site · tìm & xoá">
           <DomSamplesPanel />
+        </Section>
+      )}
+
+      {/* UX flows — chuỗi nhu cầu→hành động (sơ đồ khối), data-driven, scale */}
+      {obj.key === 'uxFlow' && (
+        <Section title="UX Flows" sub="// need→action · click step mở drawer entity · drive thiết kế ext">
+          <UxFlowsPanel />
         </Section>
       )}
 
@@ -1766,6 +1779,92 @@ function SeedPanel({ id, proposals, platformKey, technologyKey, onSeeded }: { id
           {msg && <div style={{ marginTop: 6, fontSize: 11, color: msg.ok ? 'var(--ok)' : 'var(--bad)' }}>{msg.text}</div>}
         </>
       )}
+    </div>
+  );
+}
+
+// ── UX Flows: list + block-diagram detail + entity peek ──────────────────────
+function UxFlowsPanel() {
+  const openSub = useContext(SubCtx);
+  const [rows, setRows] = useState<UxFlowRow[] | null>(null);
+  useEffect(() => { let dead = false; listUxFlows().then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, []);
+  if (!rows) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có flow (ux_flows rỗng).</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {rows.map((f) => (
+        <button key={f.id} onClick={() => openSub({ title: f.label, sub: `${f.surface || ''} · ${f.steps} steps`, body: <UxFlowDetail id={f.id} />, route: { t: 'uxflow', id: f.id } })}
+          style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px', background: 'var(--bg-1)', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 600 }}>{f.label}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>{f.surface}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>{f.steps} steps ↗</span>
+          </div>
+          {f.description && <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 3, lineHeight: 1.4 }}>{f.description}</div>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function UxFlowDetail({ id }: { id: number }) {
+  const openSub = useContext(SubCtx);
+  const [d, setD] = useState<UxFlowDetailData | null | 'loading'>('loading');
+  useEffect(() => { let dead = false; getUxFlow(id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [id]);
+  if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>flow không tìm thấy.</div>;
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginBottom: 8 }}>{d.surface} · {d.steps.length} steps · need→action</div>
+      {d.description && <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginBottom: 10, lineHeight: 1.4 }}>{d.description}</div>}
+      {d.steps.map((s, i) => (
+        <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 22 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 11, background: 'var(--accent)', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{i + 1}</div>
+            {i < d.steps.length - 1 && <div style={{ flex: 1, width: 2, background: 'var(--line)', minHeight: 10 }} />}
+          </div>
+          <div style={{ flex: 1, border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', marginBottom: 8, background: 'var(--bg-1)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{s.label} <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>· {s.stepKey}</span></div>
+            {s.need && <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 3 }}><span style={{ color: 'var(--fg-4)' }}>cần:</span> {s.need}</div>}
+            {s.action && <div style={{ fontSize: 11, color: 'var(--fg-1)', marginTop: 2 }}><span style={{ color: 'var(--ok)' }}>→</span> {s.action}</div>}
+            {s.route && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--accent)', marginTop: 3 }}>{s.route}</div>}
+            {s.objects.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                {s.objects.map((ok) => (
+                  <button key={ok} onClick={() => openSub({ title: OBJ_BY_KEY[ok]?.label || ok, sub: 'entity spec (peek)', body: <ObjPeek objKey={ok} />, route: { t: 'objpeek', objKey: ok } })}
+                    title={`mở entity ${ok}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px', background: 'var(--bg-2)', cursor: 'pointer' }}>
+                    {OBJ_BY_KEY[ok]?.label || ok} ↗
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ObjPeek({ objKey }: { objKey: string }) {
+  const o = OBJ_BY_KEY[objKey];
+  if (!o) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.45, marginBottom: 8 }}>{o.desc}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 4 }}>{o.table ? `table: ${o.table}` : 'doc-only'} · group {o.group}</div>
+      {o.attrs.length > 0 && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>attrs</div>
+          {o.attrs.map((a) => (
+            <div key={a.name} style={{ display: 'flex', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5, padding: '1px 0' }}>
+              <span style={{ color: 'var(--fg-1)', minWidth: 110 }}>{a.name}</span>
+              <span style={{ color: 'var(--fg-4)' }}>{a.type}{a.col ? ` ·${a.col}` : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {o.routes.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', marginTop: 8, wordBreak: 'break-all' }}>{o.routes.join(' · ')}</div>}
+      {o.deepLink && <a href={o.deepLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)' }}>↗ manage real {o.label}</a>}
     </div>
   );
 }

@@ -824,6 +824,44 @@ export async function deleteDomSample(id: number): Promise<{ ok: boolean; error?
   catch (e) { return { ok: false, error: (e as Error).message }; }
 }
 
+// ── UX Flows (need→action chains, data-driven block-diagram) ─────────────────
+// Node 'uxFlow' trong Studio: list flow + steps; mỗi step.objects = entity key →
+// mở drawer entity. Drive thiết kế ext (chuỗi nhu cầu→hành động).
+export interface UxFlowRow { id: number; key: string; label: string; surface: string | null; description: string | null; steps: number }
+export interface UxFlowStep { id: number; stepKey: string; label: string; need: string | null; action: string | null; objects: string[]; route: string | null; note: string | null; orderIndex: number }
+export interface UxFlowDetailData { id: number; key: string; label: string; surface: string | null; description: string | null; steps: UxFlowStep[] }
+
+export async function listUxFlows(): Promise<UxFlowRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT f.id, f.key, f.label, f.surface, f.description,
+           (SELECT count(*)::int FROM ux_flow_steps s WHERE s.flow_id = f.id) AS steps
+    FROM ux_flows f WHERE f.archived_at IS NULL ORDER BY f.order_index, f.id`);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id), key: String(r.key), label: String(r.label),
+    surface: (r.surface as string | null) ?? null, description: (r.description as string | null) ?? null,
+    steps: Number(r.steps) || 0,
+  }));
+}
+
+export async function getUxFlow(id: number): Promise<UxFlowDetailData | null> {
+  const db = getDb();
+  if (!db) return null;
+  const fr = await db.execute(sql`SELECT id, key, label, surface, description FROM ux_flows WHERE id = ${id} LIMIT 1`);
+  const f = (fr as unknown as Array<Record<string, unknown>>)[0];
+  if (!f) return null;
+  const sr = await db.execute(sql`SELECT id, step_key, label, need, action, objects, route, note, order_index FROM ux_flow_steps WHERE flow_id = ${id} ORDER BY order_index, id`);
+  const steps: UxFlowStep[] = (sr as unknown as Array<Record<string, unknown>>).map((s) => ({
+    id: Number(s.id), stepKey: String(s.step_key), label: String(s.label),
+    need: (s.need as string | null) ?? null, action: (s.action as string | null) ?? null,
+    objects: Array.isArray(s.objects) ? (s.objects as string[]) : (typeof s.objects === 'string' ? (JSON.parse(s.objects) as string[]) : []),
+    route: (s.route as string | null) ?? null, note: (s.note as string | null) ?? null,
+    orderIndex: Number(s.order_index) || 0,
+  }));
+  return { id: Number(f.id), key: String(f.key), label: String(f.label), surface: (f.surface as string | null) ?? null, description: (f.description as string | null) ?? null, steps };
+}
+
 // ── Template Adoption ────────────────────────────────────────────────────────
 // Scaling lever: 1 technology template (e.g. xenforo signup+composer+profile)
 // covers EVERY forum on that engine the moment a platform binds technology_key.

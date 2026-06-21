@@ -248,6 +248,11 @@ const FINGERPRINTS: Record<string, {
   xenforo:       { url: [/\/threads\//, /\/forums\//],                                       html: ['data-xf-init', 'p-nav', 'p-body', 'xenforo'],            meta: ['XenForo'],   mosKey: 'xenforo' },
   discourse:     { url: [],                                                                   html: ['d-header', 'discourse-setup', 'Ember.Application', 'data-ember-action'], meta: ['Discourse'], mosKey: 'discourse' },
   wordpress:     { url: [/wp-login\.php/, /wp-admin/, /\/wp-content\//],                    html: ['wp-core-ui', 'wpadminbar', 'wp-content', 'wpforms'],     meta: ['WordPress'],  mosKey: 'wordpress' },
+  // WP forum/community plugins — composer/post DOM khác hẳn nhau → technology riêng.
+  // KHÔNG đặt meta (generator vẫn là 'WordPress'); nhận diện qua html signature đặc thù.
+  bbpress:       { url: [],                                                                  html: ['bbp-forum', 'bbp-topic', 'bbp-reply', 'bbpress-forums', 'bbp-breadcrumb'], meta: [],          mosKey: 'bbpress' },
+  buddypress:    { url: [],                                                                  html: ['buddypress', 'bp-feedback', 'bp-nouveau', 'id="buddypress"'],            meta: [],          mosKey: 'buddypress' },
+  wpforo:        { url: [],                                                                  html: ['wpforo', 'wpfl-', 'wpforo-wrap', 'wpf-'],                                meta: [],          mosKey: 'wpforo' },
   mybb:          { url: [/showthread\.php/, /member\.php/],                                  html: ['mybb_', 'class="navigation"', "id='panel'", 'id="panel"'], meta: ['MyBB'],   mosKey: 'mybb' },
   invisionpower: { url: [/\/topic\//, /\/forum\//],                                          html: ['ipsLayout', 'data-ipsquote', 'ipsApp', 'ipb_'],          meta: ['Invision', 'IPS Community'], mosKey: 'invisionpower' },
 };
@@ -278,6 +283,16 @@ export async function detectTechnologyFromUrl(
     html = html.slice(0, 80_000); // scan first 80KB only
   } catch {
     return { techKey: null, method: 'fetch-failed', confidence: 'none' };
+  }
+
+  // 2.5 WP forum-PLUGIN check — TRƯỚC meta generator, vì generator 'WordPress' sẽ
+  //     che mất bbPress/BuddyPress/wpForo (chúng đều chạy trên WP). Plugin signature
+  //     đặc thù → confidence likely.
+  for (const slug of ['wpforo', 'buddypress', 'bbpress']) {
+    const fp = FINGERPRINTS[slug];
+    if (fp && fp.html.some((s) => html.includes(s))) {
+      return { techKey: fp.mosKey, method: `wp-plugin:${slug}`, confidence: 'likely' };
+    }
   }
 
   // 3. Meta generator check (most reliable when present)

@@ -77,8 +77,8 @@ export const TECHNOLOGIES: TechnologySeed[] = [
   },
   {
     key: 'wordpress',
-    label: 'WordPress + BuddyPress/bbPress',
-    description: 'WordPress site với forum/community plugin. Phổ biến ở blogs có community features.',
+    label: 'WordPress (core registration)',
+    description: 'WordPress CMS core. Đăng ký = WP-core registration, CHUNG cho mọi forum-plugin chạy trên WP → signup luôn scope = wordpress (khỏi nhân bản template theo plugin). Forum/composer = scope theo plugin riêng (bbpress/buddypress/wpforo).',
     signupFields: [
       { key: 'username', label: 'Username', type: 'text', required: true },
       { key: 'email', label: 'Email', type: 'email', required: true },
@@ -87,6 +87,40 @@ export const TECHNOLOGIES: TechnologySeed[] = [
       { key: 'captcha', label: 'Captcha', type: 'captcha', required: false, notes: 'Tùy plugin — có thể dùng CF Turnstile, reCAPTCHA, hoặc không có.' },
     ],
     notes: 'WordPress registration thường đơn giản nhất. Nhiều site send password qua email (không cho chọn password khi đăng ký).',
+  },
+  {
+    key: 'bbpress',
+    label: 'bbPress (WP forum)',
+    description: 'Forum plugin nhẹ trên WordPress. Composer/post/member DOM = .bbp-*. Đăng ký qua WP-core (signup dồn về wordpress).',
+    signupFields: [
+      { key: 'username', label: 'Username', type: 'text', required: true },
+      { key: 'email', label: 'Email', type: 'email', required: true },
+      { key: 'captcha', label: 'Captcha', type: 'captcha', required: false, notes: 'Tùy plugin anti-spam.' },
+    ],
+    notes: 'Đăng ký qua WordPress core — chỉ forum/composer selectors là riêng bbPress.',
+  },
+  {
+    key: 'buddypress',
+    label: 'BuddyPress (WP community)',
+    description: 'Community/social plugin trên WordPress (profiles/activity/groups). DOM = #buddypress / .bp-*. Đăng ký qua WP-core.',
+    signupFields: [
+      { key: 'username', label: 'Username', type: 'text', required: true },
+      { key: 'email', label: 'Email', type: 'email', required: true },
+      { key: 'display_name', label: 'Display name', type: 'text', required: false },
+      { key: 'captcha', label: 'Captcha', type: 'captcha', required: false },
+    ],
+    notes: 'BuddyPress mở rộng profile/activity; đăng ký vẫn WP-core.',
+  },
+  {
+    key: 'wpforo',
+    label: 'wpForo (WP forum)',
+    description: 'Forum plugin full-featured trên WordPress. DOM = .wpforo / #wpforo. Đăng ký qua WP-core.',
+    signupFields: [
+      { key: 'username', label: 'Username', type: 'text', required: true },
+      { key: 'email', label: 'Email', type: 'email', required: true },
+      { key: 'captcha', label: 'Captcha', type: 'captcha', required: false },
+    ],
+    notes: 'Đăng ký qua WordPress core — forum/composer selectors riêng wpForo.',
   },
   {
     key: 'invisionpower',

@@ -814,9 +814,10 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   const from = data.total === 0 ? 0 : page * PAGE + 1;
   const to = Math.min(data.total, (page + 1) * PAGE);
   const parentLabel = parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object) : '';
+  const projMap = new Map(projects.map((p) => [p.id, p.name]));   // id → name cho cột project
   const bc = obj.browseCols || [];
   // generic column model: spec browseCols when present, else the picker's sub-label as 1 ctx col.
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link'; link?: string }[] =
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project'; link?: string }[] =
     bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
       : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
   const grid = `minmax(90px,1.4fr) ${dataCols.map(() => 'minmax(0,1fr)').join(' ')} 48px`;
@@ -890,7 +891,12 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                       <span style={{ color: badgeColor(String(v)), border: `1px solid ${badgeColor(String(v))}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5 }}>{String(v)}</span>
                     ) : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
-                    ) : (
+                    ) : dc.kind === 'project' ? (() => {
+                      const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '');
+                      const names = ids.map((id) => projMap.get(String(id)) || String(id));
+                      if (!names.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
+                      return <span title={names.join(', ')} style={{ color: 'var(--fg-1)' }}>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span>;
+                    })() : (
                       <span style={{ color: 'var(--fg-1)' }}>{fmtVal(v)}</span>
                     )}
                 </span>
@@ -1692,7 +1698,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
           onClose={() => { setSel(null); setStack([]); }}
           sub={drawerSub}
           title={drawerTitle}
-          width={860}
+          width={1040}
           footer={null}
           pushPx={sel ? Math.min(stack.length * CASCADE_STEP, 600) : 0}
         >

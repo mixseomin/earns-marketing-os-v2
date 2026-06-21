@@ -62,7 +62,11 @@ export interface ArchObject {
   // extra columns shown in the node's live instance TABLE (beyond label + id). Each is a
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link'; link?: string }[];
+  // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project'; link?: string }[];
+  // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
+  // projects an instance belongs to, not just the legacy scalar project_id.
+  projectsVia?: { table: string; fkCol: string };
 }
 
 // ── Objects ────────────────────────────────────────────────────────────────
@@ -150,8 +154,10 @@ export const OBJECTS: ArchObject[] = [
     table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: false,
     desc: 'Owned social account = (platform, handle). Belongs to MANY projects via project_accounts (project_id is legacy owner only). May be based on an identity — optional, not fixed. Pick by PLATFORM.',
     picker: { parent: { object: 'platform', col: 'platform_key' }, subExpr: 't.status' },
+    projectsVia: { table: 'project_accounts', fkCol: 'account_id' },
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: '__projects', label: 'project', kind: 'project' },
       { col: 'email', label: 'email' },
       { col: 'status', label: 'status', kind: 'badge' },
       { col: 'created_at', label: 'created', kind: 'time' },
@@ -275,6 +281,7 @@ export const OBJECTS: ArchObject[] = [
     picker: { crossProject: true, subExpr: 't.project_id' },
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'project_id', label: 'project', kind: 'project' },
       { col: 'community_type', label: 'type' },
       { col: 'status', label: 'status', kind: 'badge' },
       { col: 'created_at', label: 'created', kind: 'time' },
@@ -324,6 +331,7 @@ export const OBJECTS: ArchObject[] = [
     desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',
     picker: { join: 'LEFT JOIN platform_accounts a ON a.id = t.account_id LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "concat(coalesce(a.handle,'?'),' × ',coalesce(h.name,'?'))", subExpr: 't.current_phase' },
     browseCols: [
+      { col: 'project_id', label: 'project', kind: 'project' },
       { col: 'current_phase', label: 'phase', kind: 'badge' },
       { col: 'join_status', label: 'join' },
       { col: 'created_at', label: 'created', kind: 'time' },
@@ -369,6 +377,7 @@ export const OBJECTS: ArchObject[] = [
     desc: 'Content unit through full lifecycle: draft → posted → insights. Identity via brief OR direct account/habitat.',
     picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "t.card_ref || coalesce(' · ' || nullif(left(coalesce(t.title_review, t.title, ''), 26), ''), '')", subExpr: 'h.name' },
     browseCols: [
+      { col: 'project_id', label: 'project', kind: 'project' },
       { col: 'content_type', label: 'type' },
       { col: 'post_lifecycle', label: 'lifecycle', kind: 'badge' },
       { col: 'created_at', label: 'created', kind: 'time' },
@@ -414,6 +423,7 @@ export const OBJECTS: ArchObject[] = [
     picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'project_id', label: 'project', kind: 'project' },
       { col: 'display_name', label: 'name' },
       { col: 'status', label: 'status', kind: 'badge' },
       { col: 'created_at', label: 'created', kind: 'time' },

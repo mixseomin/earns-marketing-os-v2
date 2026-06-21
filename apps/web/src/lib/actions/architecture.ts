@@ -105,12 +105,20 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
+  const special = new Set(['__projects']);
   let extraCols: string[] = [];
   if (opts.cols && opts.cols.length) {
     const valid = await tableColumns(obj.table);
-    extraCols = opts.cols.filter((c) => /^[a-z_][a-z0-9_]*$/.test(c) && valid.has(c) && !reserved.has(c));
+    extraCols = opts.cols.filter((c) => !special.has(c) && /^[a-z_][a-z0-9_]*$/.test(c) && valid.has(c) && !reserved.has(c));
   }
-  const extraSel = extraCols.length ? sql.raw(', ' + extraCols.map((c) => `t.${ident(c)}`).join(', ')) : sql``;
+  const selParts = extraCols.map((c) => `t.${ident(c)}`);
+  // __projects: all projects this instance belongs to via the m2m junction (account_id → project_id).
+  const wantProjects = !!(opts.cols?.includes('__projects') && obj.projectsVia);
+  if (wantProjects && obj.projectsVia) {
+    const jt = ident(obj.projectsVia.table); const fk = ident(obj.projectsVia.fkCol); const pkc = ident(obj.pk || 'id');
+    selParts.push(`(SELECT array_agg(DISTINCT j.project_id) FROM ${jt} j WHERE j.${fk} = t.${pkc}) AS __projects`);
+  }
+  const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
   const conds: ReturnType<typeof sql>[] = [];
   if (obj.projectScoped && opts.projectId && !pkr?.crossProject) conds.push(sql`t.project_id = ${opts.projectId}`);
@@ -140,6 +148,7 @@ export async function browseInstances(
     const rows = (listRes as unknown as Array<Record<string, unknown>>).map((r) => {
       const cols: Record<string, unknown> = {};
       for (const c of extraCols) cols[c] = r[c];
+      if (wantProjects) cols['__projects'] = r['__projects'] ?? null;
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;

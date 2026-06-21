@@ -776,6 +776,48 @@ function badgeColor(v: string): string {
   return 'var(--fg-2)';
 }
 
+// project cell: 1st project = link; the "+N" opens a popover listing EVERY project,
+// each clickable → mở drawer của project đó (mọi ref mở được phải mở ngay).
+function ProjectCell({ ids, projMap, onOpen }: { ids: string[]; projMap: Map<string, string>; onOpen: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const names = ids.map((id) => projMap.get(id) || id);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('mousedown', close);
+    window.addEventListener('scroll', close, true);
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('scroll', close, true); };
+  }, [open]);
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setPos({ x: r.left, y: r.bottom + 4 });
+    setOpen((o) => !o);
+  };
+  return (
+    <span title={names.join(', ')} style={{ display: 'inline-flex', gap: 4, minWidth: 0, alignItems: 'center' }}>
+      <span role="link" onClick={(e) => { e.stopPropagation(); onOpen(String(ids[0])); }}
+        style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{names[0]}</span>
+      {ids.length > 1 && (
+        <span role="button" onClick={toggle} title="Xem tất cả project"
+          style={{ color: 'var(--fg-2)', cursor: 'pointer', flexShrink: 0, borderBottom: '1px dashed var(--fg-3)' }}>+{ids.length - 1}</span>
+      )}
+      {open && pos && createPortal(
+        <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', minWidth: 140, maxHeight: 260, overflowY: 'auto', padding: 4 }}>
+          {ids.map((id) => (
+            <button key={id} onClick={(e) => { e.stopPropagation(); setOpen(false); onOpen(id); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 0, color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 11, padding: '5px 8px', borderRadius: 4, cursor: 'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              {projMap.get(id) || id}
+            </button>
+          ))}
+        </div>, document.body)}
+    </span>
+  );
+}
+
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
 function InstanceBrowser({ obj, projects, defaultProject }: {
@@ -830,6 +872,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
     e.stopPropagation();   // ko trigger row click (mở account); chỉ mở drawer của entity được link
     openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id } });
   };
+  const openProj = (pid: string) => openSub({ title: projMap.get(pid) || pid, sub: OBJ_BY_KEY['project']?.label || 'Project', body: <InstanceDetail objKey="project" id={pid} />, route: { t: 'inst', objKey: 'project', id: pid } });
 
   return (
     <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
@@ -894,14 +937,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                     ) : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
                       if (!ids.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
-                      const names = ids.map((pid) => projMap.get(pid) || pid);
-                      return (
-                        <span title={names.join(', ')}>
-                          <span role="link" onClick={(e) => openLinked(e, 'project', String(ids[0]))}
-                            style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted' }}>{names[0]}</span>
-                          {ids.length > 1 && <span style={{ color: 'var(--fg-3)' }}> +{ids.length - 1}</span>}
-                        </span>
-                      );
+                      return <ProjectCell ids={ids} projMap={projMap} onOpen={openProj} />;
                     })() : (
                       <span style={{ color: 'var(--fg-1)' }}>{fmtVal(v)}</span>
                     )}

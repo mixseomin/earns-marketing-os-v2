@@ -862,6 +862,82 @@ export async function getUxFlow(id: number): Promise<UxFlowDetailData | null> {
   return { id: Number(f.id), key: String(f.key), label: String(f.label), surface: (f.surface as string | null) ?? null, description: (f.description as string | null) ?? null, steps };
 }
 
+// ── Identities (view + edit in Studio) ───────────────────────────────────────
+// Identity node drawer: list per project → open one → see full persona/custom
+// fields → edit text fields inline. Password is NEVER read/edited here (only a
+// has-password flag) — credential editing stays in the ext flow.
+export interface IdentityRow { id: number; name: string; kind: string | null; handleBase: string | null; email: string | null; displayName: string | null; project: string | null }
+export interface IdentityDetailData {
+  id: number; projectId: string | null; name: string; kind: string | null;
+  handleBase: string | null; email: string | null; displayName: string | null;
+  bio: string | null; avatarUrl: string | null;
+  persona: Record<string, unknown> | null; customFields: Record<string, unknown> | null;
+  hasPassword: boolean; updatedAt: string | null;
+}
+const asJsonObj = (v: unknown): Record<string, unknown> | null => {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return p && typeof p === 'object' ? p as Record<string, unknown> : null; } catch { return null; } }
+  return null;
+};
+
+export async function listIdentities(projectId?: string): Promise<IdentityRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const base = sql`
+    SELECT i.id, i.name, i.kind, i.handle_base, i.email, i.display_name, p.name AS project
+    FROM identities i LEFT JOIN projects p ON p.id = i.project_id`;
+  const rows = await db.execute(projectId
+    ? sql`${base} WHERE i.project_id = ${projectId} ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`
+    : sql`${base} ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id), name: String(r.name ?? ''),
+    kind: (r.kind as string | null) ?? null, handleBase: (r.handle_base as string | null) ?? null,
+    email: (r.email as string | null) ?? null, displayName: (r.display_name as string | null) ?? null,
+    project: (r.project as string | null) ?? null,
+  }));
+}
+
+export async function getIdentity(id: number): Promise<IdentityDetailData | null> {
+  const db = getDb();
+  if (!db) return null;
+  const r = await db.execute(sql`
+    SELECT id, project_id, name, kind, handle_base, email, display_name, bio, avatar_url,
+           persona, custom_fields, password_enc, updated_at
+    FROM identities WHERE id = ${id} LIMIT 1`);
+  const x = (r as unknown as Array<Record<string, unknown>>)[0];
+  if (!x) return null;
+  return {
+    id: Number(x.id), projectId: (x.project_id as string | null) ?? null, name: String(x.name ?? ''),
+    kind: (x.kind as string | null) ?? null, handleBase: (x.handle_base as string | null) ?? null,
+    email: (x.email as string | null) ?? null, displayName: (x.display_name as string | null) ?? null,
+    bio: (x.bio as string | null) ?? null, avatarUrl: (x.avatar_url as string | null) ?? null,
+    persona: asJsonObj(x.persona), customFields: asJsonObj(x.custom_fields),
+    hasPassword: !!x.password_enc, updatedAt: x.updated_at ? String(x.updated_at) : null,
+  };
+}
+
+export interface IdentityPatch { name?: string; kind?: string; handleBase?: string; email?: string; displayName?: string; bio?: string }
+export async function updateIdentity(id: number, patch: IdentityPatch): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  // COALESCE → only provided (non-null) fields change; omit a field to keep it.
+  try {
+    await db.execute(sql`
+      UPDATE identities SET
+        name = COALESCE(${patch.name ?? null}, name),
+        kind = COALESCE(${patch.kind ?? null}, kind),
+        handle_base = COALESCE(${patch.handleBase ?? null}, handle_base),
+        email = COALESCE(${patch.email ?? null}, email),
+        display_name = COALESCE(${patch.displayName ?? null}, display_name),
+        bio = COALESCE(${patch.bio ?? null}, bio),
+        updated_at = now()
+      WHERE id = ${id}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 // ── Template Adoption ────────────────────────────────────────────────────────
 // Scaling lever: 1 technology template (e.g. xenforo signup+composer+profile)
 // covers EVERY forum on that engine the moment a platform binds technology_key.

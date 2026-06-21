@@ -1,6 +1,6 @@
 # MOS v2 — Claude Context
 
-> Map cấp hàm cho file component lớn (>1500d): `_NAV.md`.
+> Map cấp hàm cho file component lớn (>1500d): `NAV.md`.
 
 ## 🚨 CRITICAL DEPLOY RULE
 

@@ -41,15 +41,21 @@ export function ObjectNode({ data, selected }: NodeProps) {
   const dot = d.worst === 'error' ? 'var(--bad)' : d.worst === 'warn' ? 'var(--warn)' : d.worst === 'ok' ? 'var(--ok)' : null;
   return (
     <div style={{
+      position: 'relative',
       width: 188,
       background: 'var(--bg-1)',
-      border: `1px solid ${selected ? d.color : 'var(--line)'}`,
-      borderLeft: `3px solid ${d.color}`,
+      border: '1px solid var(--line)',
       borderRadius: 8,
-      padding: '9px 11px',
-      boxShadow: selected ? `0 0 0 1px ${d.color}, 0 8px 24px rgba(0,0,0,.4)` : '0 2px 8px rgba(0,0,0,.3)',
+      padding: '9px 11px 9px 13px',
+      boxShadow: selected ? '0 8px 24px rgba(0,0,0,.4)' : '0 2px 8px rgba(0,0,0,.3)',
+      // selection = OFFSET outline (sits clear of the stripe) — never recolors the
+      // border so the left accent bar stays visible while selected / dragging.
+      outline: selected ? `2px solid ${d.color}` : undefined,
+      outlineOffset: selected ? 2 : undefined,
       cursor: 'pointer',
     }}>
+      {/* accent stripe = its OWN element → constant in every state (idle/hover/selected/drag) */}
+      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: '8px 0 0 8px', background: d.color }} />
       <AllHandles />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--fg-0)', lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
@@ -83,15 +89,18 @@ export function FlowStepNode({ data, selected }: NodeProps) {
   const d = data as unknown as FlowStepNodeData;
   return (
     <div style={{
+      position: 'relative',
       width: 210,
       background: 'var(--bg-1)',
-      border: `1px solid ${selected ? d.color : 'var(--line)'}`,
-      borderTop: `3px solid ${d.color}`,
+      border: '1px solid var(--line)',
       borderRadius: 8,
-      padding: '10px 12px',
-      boxShadow: selected ? `0 0 0 1px ${d.color}, 0 8px 24px rgba(0,0,0,.4)` : '0 2px 8px rgba(0,0,0,.3)',
+      padding: '12px 12px 10px',
+      boxShadow: selected ? '0 8px 24px rgba(0,0,0,.4)' : '0 2px 8px rgba(0,0,0,.3)',
+      outline: selected ? `2px solid ${d.color}` : undefined,
+      outlineOffset: selected ? 2 : undefined,
       cursor: 'pointer',
     }}>
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, borderRadius: '8px 8px 0 0', background: d.color }} />
       <Handle id="t-l" type="target" position={Position.Left} style={HANDLE_STYLE} />
       <Handle id="s-r" type="source" position={Position.Right} style={HANDLE_STYLE} />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>

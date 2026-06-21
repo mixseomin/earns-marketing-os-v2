@@ -22,9 +22,10 @@ import {
   listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
+  listIdentities, getIdentity, updateIdentity,
   type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
-  type UxFlowRow, type UxFlowDetailData,
+  type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
 } from '@/lib/actions/architecture';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
@@ -262,7 +263,8 @@ type SubRoute =
   | { t: 'scopeSel'; scopeKind: string; scopeKey: string }
   | { t: 'metric'; metric: string; platform: string; via: string }
   | { t: 'uxflow'; id: number }
-  | { t: 'objpeek'; objKey: string };
+  | { t: 'objpeek'; objKey: string }
+  | { t: 'identity'; id: number };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
 const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
@@ -278,6 +280,7 @@ function renderRoute(r: SubRoute): SubContent {
     case 'metric': return { title: `${r.metric} · ${r.platform}`, sub: 'train metric', body: <MetricTrainGuide metric={r.metric} platform={r.platform} via={r.via} />, route: r };
     case 'uxflow': return { title: `flow #${r.id}`, sub: 'need→action steps', body: <UxFlowDetail id={r.id} />, route: r };
     case 'objpeek': return { title: OBJ_BY_KEY[r.objKey]?.label || r.objKey, sub: 'entity spec (peek)', body: <ObjPeek objKey={r.objKey} />, route: r };
+    case 'identity': return { title: `identity #${r.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={r.id} />, route: r };
   }
 }
 function encodeStack(stack: SubContent[]): string {
@@ -882,6 +885,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
       {obj.key === 'uxFlow' && (
         <Section title="UX Flows" sub="// need→action · click step mở drawer entity · drive thiết kế ext">
           <UxFlowsPanel />
+        </Section>
+      )}
+
+      {/* Identities — list per project → drawer xem chi tiết persona + edit inline */}
+      {obj.key === 'identity' && (
+        <Section title="Identities" sub="// theo project · click mở chi tiết + sửa · password ẩn">
+          <IdentitiesPanel projectId={projectId} />
         </Section>
       )}
 
@@ -1865,6 +1875,122 @@ function ObjPeek({ objKey }: { objKey: string }) {
       )}
       {o.routes.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', marginTop: 8, wordBreak: 'break-all' }}>{o.routes.join(' · ')}</div>}
       {o.deepLink && <a href={o.deepLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)' }}>↗ manage real {o.label}</a>}
+    </div>
+  );
+}
+
+// ── Identities (node drawer) — list per project → open → view + edit ─────────
+function IdentitiesPanel({ projectId }: { projectId: string }) {
+  const openSub = useContext(SubCtx);
+  const [rows, setRows] = useState<IdentityRow[] | null>(null);
+  useEffect(() => { let dead = false; setRows(null); listIdentities(projectId || undefined).then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, [projectId]);
+  if (!rows) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có identity cho project này. Tạo ở <a href="/identities" style={{ color: 'var(--accent)' }}>/identities</a>.</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {rows.map((it) => (
+        <button key={it.id} onClick={() => openSub({ title: it.name || `identity #${it.id}`, sub: `${it.kind || ''} · @${it.handleBase || '—'}`, body: <IdentityDetail id={it.id} />, route: { t: 'identity', id: it.id } })}
+          style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px', background: 'var(--bg-1)', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 600 }}>{it.name || `#${it.id}`}</span>
+            {it.kind && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 3, padding: '0 5px' }}>{it.kind}</span>}
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>edit ↗</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', marginTop: 3 }}>
+            {it.handleBase ? <span style={{ color: 'var(--accent)' }}>@{it.handleBase}</span> : <span style={{ color: 'var(--fg-4)' }}>no handle</span>}
+            {it.email && <span> · {it.email}</span>}
+            {it.displayName && it.displayName !== it.name && <span> · “{it.displayName}”</span>}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function IdentityDetail({ id }: { id: number }) {
+  const [d, setD] = useState<IdentityDetailData | null | 'loading'>('loading');
+  const [form, setForm] = useState<{ name: string; kind: string; handleBase: string; email: string; displayName: string; bio: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let dead = false;
+    getIdentity(id).then((r) => {
+      if (dead) return;
+      setD(r ?? null);
+      if (r) setForm({ name: r.name || '', kind: r.kind || '', handleBase: r.handleBase || '', email: r.email || '', displayName: r.displayName || '', bio: r.bio || '' });
+    });
+    return () => { dead = true; };
+  }, [id]);
+  if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!d || !form) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>identity không tìm thấy.</div>;
+  const dirty = !!d && (form.name !== (d.name || '') || form.kind !== (d.kind || '') || form.handleBase !== (d.handleBase || '') || form.email !== (d.email || '') || form.displayName !== (d.displayName || '') || form.bio !== (d.bio || ''));
+  const save = async () => {
+    setSaving(true); setErr(null);
+    const res = await updateIdentity(id, { name: form.name, kind: form.kind, handleBase: form.handleBase, email: form.email, displayName: form.displayName, bio: form.bio });
+    setSaving(false);
+    if (res.ok) { setD({ ...d, ...form }); setSaved(true); setTimeout(() => setSaved(false), 1800); }
+    else setErr(res.error || 'save failed');
+  };
+  const inp: CSSProperties = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, padding: '5px 8px', color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontSize: 11.5, boxSizing: 'border-box' };
+  const lbl: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
+  const field = (key: keyof typeof form, label: string, opts?: { area?: boolean; mono?: boolean }) => (
+    <div style={{ marginBottom: 9 }}>
+      <label style={lbl}>{label}</label>
+      {opts?.area
+        ? <textarea value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} rows={3} style={{ ...inp, resize: 'vertical', lineHeight: 1.4 }} />
+        : <input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} autoComplete="off" style={inp} />}
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 10 }}>
+        <span>#{d.id}</span>
+        {d.projectId && <span>· project <b style={{ color: 'var(--fg-2)' }}>{d.projectId}</b></span>
+        }
+        <span style={{ marginLeft: 'auto', color: d.hasPassword ? 'var(--ok)' : 'var(--fg-4)' }}>{d.hasPassword ? '🔒 password set' : '○ no password'}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+        {field('name', 'name')}
+        {field('kind', 'kind (user/bot…)')}
+        {field('handleBase', 'handle base (@)')}
+        {field('email', 'email')}
+      </div>
+      {field('displayName', 'display name (on-site)')}
+      {field('bio', 'bio', { area: true })}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2, marginBottom: 12 }}>
+        <button onClick={save} disabled={!dirty || saving} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 6, cursor: !dirty || saving ? 'default' : 'pointer', border: '1px solid var(--accent)', color: dirty && !saving ? 'var(--bg-1)' : 'var(--fg-4)', background: dirty && !saving ? 'var(--accent)' : 'transparent', opacity: !dirty && !saving ? 0.6 : 1 }}>{saving ? 'saving…' : 'Save'}</button>
+        {saved && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)' }}>✓ saved</span>}
+        {dirty && !saving && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warn)' }}>● unsaved</span>}
+        {err && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--bad)' }}>{err}</span>}
+        <a href="/identities" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>↗ full editor</a>
+      </div>
+
+      {/* persona + custom_fields = read-only JSON (canonical, dùng để fill profile on-site) */}
+      <JsonBlock title="persona" data={d.persona} />
+      <JsonBlock title="custom_fields (→ profile on-site, reuse mọi site)" data={d.customFields} />
+    </div>
+  );
+}
+
+function JsonBlock({ title, data }: { title: string; data: Record<string, unknown> | null }) {
+  const keys = data ? Object.keys(data) : [];
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{title}{keys.length ? ` · ${keys.length}` : ''}</div>
+      {!keys.length
+        ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-4)' }}>—</div>
+        : (
+          <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {keys.map((k, i) => (
+              <div key={k} style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8, padding: '4px 9px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                <span style={{ color: 'var(--fg-2)' }}>{k}</span>
+                <span style={{ color: 'var(--fg-0)', wordBreak: 'break-word' }}>{typeof data![k] === 'object' ? JSON.stringify(data![k]) : String(data![k])}</span>
+              </div>
+            ))}
+          </div>
+        )}
     </div>
   );
 }

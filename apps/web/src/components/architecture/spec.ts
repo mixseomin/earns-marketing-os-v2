@@ -208,17 +208,17 @@ export const OBJECTS: ArchObject[] = [
   },
   {
     key: 'profileOnsite', label: 'Profile (on-site)', group: 'identity', table: null,
-    desc: 'Hồ sơ điền LÊN site (display_name/bio/avatar/custom_fields) = account.persona + identity.custom_fields, fill qua selectors page_kind=account-profile. Cấu trúc field hồ sơ + value đã lưu + AI suggest.',
+    desc: 'KHÔNG phải entity lưu riêng — là VIEW dẫn xuất của Account. Account = bản ghi đăng nhập (credential + status, có thật trong platform_accounts). Profile (on-site) = "mặt hiển thị" của account đó trên trang profile = chiếu account.persona + identity.custom_fields LÊN site qua selectors page_kind=account-profile. Cùng data, khác VAI TRÒ: Account trả lời "đăng nhập được? handle/status?", Profile trả lời "trang hồ sơ hiện gì?". Doc-only vì không lưu tách khỏi account.',
     attrs: [
       { name: 'displayName', type: 'text', note: 'account.persona.display_name' },
       { name: 'bio', type: 'text', note: 'account.persona.bio / identity.bio' },
-      { name: 'avatar', type: 'text' },
+      { name: 'avatar', type: 'text', note: 'identity.avatar_url' },
       { name: 'customFields', type: 'jsonb', note: 'identity.custom_fields (pronoun/dob/…) → reuse mọi site' },
     ],
     relations: [
-      { to: 'identity', kind: 'ref', via: 'identity.custom_fields (canonical)' },
-      { to: 'account', kind: 'ref', via: 'account.persona (đã lưu)' },
-      { to: 'selector', kind: 'scope', via: "page_kind='account-profile'" },
+      { to: 'account', kind: 'ref', via: 'IS-A view of account (account.persona = nơi lưu thật)' },
+      { to: 'identity', kind: 'ref', via: 'identity.custom_fields / bio / avatar (nguồn canonical)' },
+      { to: 'selector', kind: 'scope', via: "page_kind='account-profile' (cách chiếu lên trang)" },
     ],
     routes: ['/profile-fields/suggest', '/accounts/{id}', '/selectors/resolve'],
   },

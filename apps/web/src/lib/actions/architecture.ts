@@ -74,10 +74,23 @@ export async function listInstances(objectKey: string, projectId?: string, paren
 // ── paginated + filtered instance browser ───────────────────────────────────
 // listInstances tops out at 400 for the picker; the node drawer needs to walk
 // ALL rows (accounts can be huge) → page + text filter + total count.
-export interface InstancePage { rows: InstanceRef[]; total: number }
+export interface BrowseRow extends InstanceRef { cols: Record<string, unknown> }
+export interface InstancePage { rows: BrowseRow[]; total: number }
+
+// real columns of a table → used to validate browseCols so a spec typo just drops the
+// column instead of throwing (which would silently empty the whole table).
+async function tableColumns(table: string): Promise<Set<string>> {
+  const db = getDb();
+  if (!db) return new Set();
+  try {
+    const res = await db.execute(sql`SELECT column_name FROM information_schema.columns WHERE table_name = ${table}`);
+    return new Set((res as unknown as Array<{ column_name: string }>).map((r) => r.column_name));
+  } catch { return new Set(); }
+}
+
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[] } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -89,6 +102,15 @@ export async function browseInstances(
   const labelSel = pkr?.labelExpr ? sql.raw(`(${pkr.labelExpr})`) : sql.raw(`t.${ident(obj.labelCol || obj.pk || 'id')}`);
   const subSel = pkr?.subExpr ? sql`, (${sql.raw(pkr.subExpr)})::text AS sub` : sql``;
   const joinSql = pkr?.join ? sql.raw(pkr.join) : sql``;
+
+  // extra columns (validated against the real table) → selected as t.<col>
+  const reserved = new Set(['id', 'label', 'sub']);
+  let extraCols: string[] = [];
+  if (opts.cols && opts.cols.length) {
+    const valid = await tableColumns(obj.table);
+    extraCols = opts.cols.filter((c) => /^[a-z_][a-z0-9_]*$/.test(c) && valid.has(c) && !reserved.has(c));
+  }
+  const extraSel = extraCols.length ? sql.raw(', ' + extraCols.map((c) => `t.${ident(c)}`).join(', ')) : sql``;
 
   const conds: ReturnType<typeof sql>[] = [];
   if (obj.projectScoped && opts.projectId && !pkr?.crossProject) conds.push(sql`t.project_id = ${opts.projectId}`);
@@ -107,7 +129,7 @@ export async function browseInstances(
   try {
     const [listRes, countRes] = await Promise.all([
       db.execute(sql`
-        SELECT ${pk}::text AS id, ${labelSel}::text AS label${subSel}
+        SELECT ${pk}::text AS id, ${labelSel}::text AS label${subSel}${extraSel}
         FROM ${sql.raw(table)} t
         ${joinSql}
         ${whereSql}
@@ -115,8 +137,11 @@ export async function browseInstances(
         LIMIT ${limit} OFFSET ${offset}`),
       db.execute(sql`SELECT COUNT(*)::int AS n FROM ${sql.raw(table)} t ${joinSql} ${whereSql}`),
     ]);
-    const rows = (listRes as unknown as Array<{ id: string; label: string | null; sub: string | null }>)
-      .map((r) => ({ id: r.id, label: r.label || r.id, sub: r.sub || undefined }));
+    const rows = (listRes as unknown as Array<Record<string, unknown>>).map((r) => {
+      const cols: Record<string, unknown> = {};
+      for (const c of extraCols) cols[c] = r[c];
+      return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
+    });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;
     return { rows, total };
   } catch {

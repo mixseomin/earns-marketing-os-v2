@@ -59,6 +59,10 @@ export interface ArchObject {
     labelExpr?: string;                        // STATIC sql expr for a MEANINGFUL primary label (overrides labelCol — e.g. acct × habitat)
     subExpr?: string;                          // STATIC sql expr for the option's context sub-label
   };
+  // extra columns shown in the node's live instance TABLE (beyond label + id). Each is a
+  // REAL column on `table`; browseInstances validates against information_schema so a typo
+  // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link'; link?: string }[];
 }
 
 // ── Objects ────────────────────────────────────────────────────────────────
@@ -146,6 +150,12 @@ export const OBJECTS: ArchObject[] = [
     table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: false,
     desc: 'Owned social account = (platform, handle). Belongs to MANY projects via project_accounts (project_id is legacy owner only). May be based on an identity — optional, not fixed. Pick by PLATFORM.',
     picker: { parent: { object: 'platform', col: 'platform_key' }, subExpr: 't.status' },
+    browseCols: [
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'email', label: 'email' },
+      { col: 'status', label: 'status', kind: 'badge' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk', note: 'legacy owner; multi-brand via project_accounts' },
@@ -263,6 +273,12 @@ export const OBJECTS: ArchObject[] = [
     table: 'habitats', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+technology+tribe.',
     picker: { crossProject: true, subExpr: 't.project_id' },
+    browseCols: [
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'community_type', label: 'type' },
+      { col: 'status', label: 'status', kind: 'badge' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -307,6 +323,11 @@ export const OBJECTS: ArchObject[] = [
     table: 'community_briefs', pk: 'id', labelCol: 'id', projectScoped: true,
     desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',
     picker: { join: 'LEFT JOIN platform_accounts a ON a.id = t.account_id LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "concat(coalesce(a.handle,'?'),' × ',coalesce(h.name,'?'))", subExpr: 't.current_phase' },
+    browseCols: [
+      { col: 'current_phase', label: 'phase', kind: 'badge' },
+      { col: 'join_status', label: 'join' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -347,6 +368,11 @@ export const OBJECTS: ArchObject[] = [
     table: 'cards', pk: 'id', labelCol: 'card_ref', projectScoped: true,
     desc: 'Content unit through full lifecycle: draft → posted → insights. Identity via brief OR direct account/habitat.',
     picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', labelExpr: "t.card_ref || coalesce(' · ' || nullif(left(coalesce(t.title_review, t.title, ''), 26), ''), '')", subExpr: 'h.name' },
+    browseCols: [
+      { col: 'content_type', label: 'type' },
+      { col: 'post_lifecycle', label: 'lifecycle', kind: 'badge' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -386,6 +412,12 @@ export const OBJECTS: ArchObject[] = [
     table: 'people', pk: 'id', labelCol: 'handle', projectScoped: true,
     desc: 'WHO-THEM: a person the operator interacts with. Familiarity score + status.',
     picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
+    browseCols: [
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'display_name', label: 'name' },
+      { col: 'status', label: 'status', kind: 'badge' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
@@ -409,6 +441,11 @@ export const OBJECTS: ArchObject[] = [
     table: 'interactions', pk: 'id', labelCol: 'kind', projectScoped: false,
     desc: 'THE tracking link: one engagement event between us (account/card) and a person.',
     picker: { join: 'LEFT JOIN people pe ON pe.id = t.people_id LEFT JOIN platform_accounts a ON a.id = t.account_id', labelExpr: "concat(coalesce(pe.handle,'?'),' × ',coalesce(a.handle,'me'))", subExpr: "concat(t.kind,' · ',t.direction)" },
+    browseCols: [
+      { col: 'kind', label: 'kind', kind: 'badge' },
+      { col: 'direction', label: 'dir' },
+      { col: 'at', label: 'at', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'peopleId', col: 'people_id', type: 'fk', fk: 'people' },

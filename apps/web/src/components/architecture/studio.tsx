@@ -23,7 +23,7 @@ import {
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   listIdentities, getIdentity, updateIdentity,
-  type InstanceRef, type InstancePage, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
+  type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
   type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
 } from '@/lib/actions/architecture';
@@ -746,6 +746,22 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
 // generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
 const HAS_OWN_LIST = new Set(['identity', 'domSample', 'uxFlow', 'selector']);
 
+// short date (YYYY-MM-DD) for time columns; full value in title.
+function fmtDate(v: unknown): string {
+  if (v == null || v === '') return '—';
+  const d = new Date(v as string | number | Date);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toISOString().slice(0, 10);
+}
+// status/phase/kind → semantic color for a badge cell.
+function badgeColor(v: string): string {
+  const s = v.toLowerCase();
+  if (['active', 'warming', 'live', 'posted', 'published', 'joined', 'approved', 'done', 'replied'].includes(s)) return 'var(--ok)';
+  if (['blocked', 'banned', 'rejected', 'failed', 'error', 'dead', 'left'].includes(s)) return 'var(--bad)';
+  if (['limited', 'pending', 'hold', 'draft', 'todo', 'creating', 'queued', 'review'].includes(s)) return 'var(--warn)';
+  return 'var(--fg-2)';
+}
+
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
 function InstanceBrowser({ obj, projects, defaultProject }: {
@@ -775,6 +791,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
       projectId: projectScoped ? projectId : undefined,
       parentId: parent && parentId ? parentId : undefined,   // parentId rỗng = TẤT CẢ (ko gate)
       q: qDeb, limit: PAGE, offset: page * PAGE,
+      cols: (obj.browseCols || []).map((c) => c.col),
     }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
   }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page]);
@@ -783,12 +800,21 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   const from = data.total === 0 ? 0 : page * PAGE + 1;
   const to = Math.min(data.total, (page + 1) * PAGE);
   const parentLabel = parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object) : '';
-  const ctxHead = parent ? parentLabel.toLowerCase() : 'ctx';
+  const bc = obj.browseCols || [];
+  // generic column model: spec browseCols when present, else the picker's sub-label as 1 ctx col.
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link'; link?: string }[] =
+    bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
+      : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
+  const grid = `minmax(90px,1.4fr) ${dataCols.map(() => 'minmax(0,1fr)').join(' ')} 48px`;
+  const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
   const open = (it: InstanceRef) => openSub({
     title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
     body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id },
   });
-  const cols = '1fr auto 64px';
+  const openLinked = (e: React.MouseEvent, objKey: string, id: string) => {
+    e.stopPropagation();   // ko trigger row click (mở account); chỉ mở drawer của entity được link
+    openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id } });
+  };
 
   return (
     <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
@@ -821,22 +847,41 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
         {data.total > 0 && <span style={{ marginLeft: 'auto' }}>{from}–{to} / {data.total}</span>}
       </div>
 
-      {/* TABLE — header + paginated rows; click row mở drawer chi tiết */}
+      {/* TABLE — header + paginated rows; click row mở drawer chi tiết.
+          Cột link (platform…) click riêng → mở drawer entity đó (stopPropagation). */}
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          <span>{(obj.labelCol || 'name')}</span>
-          <span style={{ textAlign: 'right' }}>{ctxHead}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{obj.labelCol || 'name'}</span>
+          {dataCols.map((dc, j) => <span key={j} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dc.label}</span>)}
           <span style={{ textAlign: 'right' }}>{obj.pk || 'id'}</span>
         </div>
         {data.rows.length === 0 ? (
           <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '12px 10px', textAlign: 'center' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
         ) : data.rows.map((it, i) => (
           <button key={it.id} onClick={() => open(it)} title="Mở chi tiết item"
-            style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
-            <span style={{ fontSize: 12, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub || '—'}</span>
+            <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+            {dataCols.map((dc, j) => {
+              const v = cellVal(it, dc.key);
+              const empty = v == null || v === '';
+              return (
+                <span key={j} title={empty ? '' : String(v)} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                  {empty ? <span style={{ color: 'var(--fg-4)' }}>—</span>
+                    : dc.kind === 'link' && dc.link ? (
+                      <span role="link" onClick={(e) => openLinked(e, dc.link!, String(v))}
+                        style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted' }}>{String(v)}</span>
+                    ) : dc.kind === 'badge' ? (
+                      <span style={{ color: badgeColor(String(v)), border: `1px solid ${badgeColor(String(v))}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5 }}>{String(v)}</span>
+                    ) : dc.kind === 'time' ? (
+                      <span style={{ color: 'var(--fg-2)' }}>{fmtDate(v)}</span>
+                    ) : (
+                      <span style={{ color: 'var(--fg-1)' }}>{fmtVal(v)}</span>
+                    )}
+                </span>
+              );
+            })}
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'right' }}>#{it.id}</span>
           </button>
         ))}

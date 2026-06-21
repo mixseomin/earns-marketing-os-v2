@@ -892,10 +892,16 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                     ) : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : dc.kind === 'project' ? (() => {
-                      const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '');
-                      const names = ids.map((id) => projMap.get(String(id)) || String(id));
-                      if (!names.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
-                      return <span title={names.join(', ')} style={{ color: 'var(--fg-1)' }}>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span>;
+                      const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
+                      if (!ids.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
+                      const names = ids.map((pid) => projMap.get(pid) || pid);
+                      return (
+                        <span title={names.join(', ')}>
+                          <span role="link" onClick={(e) => openLinked(e, 'project', String(ids[0]))}
+                            style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted' }}>{names[0]}</span>
+                          {ids.length > 1 && <span style={{ color: 'var(--fg-3)' }}> +{ids.length - 1}</span>}
+                        </span>
+                      );
                     })() : (
                       <span style={{ color: 'var(--fg-1)' }}>{fmtVal(v)}</span>
                     )}
@@ -925,6 +931,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
 // Modeled attrs (FK chips + live value) + mọi cột còn lại + consistency check.
 function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const obj = OBJ_BY_KEY[objKey];
+  const push = useContext(SubCtx);   // FK value click → mở entity được tham chiếu ở lớp kế
   const [d, setD] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null | 'loading'>('loading');
   useEffect(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
   if (!obj) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
@@ -937,18 +944,32 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-          {obj.attrs.map((a, i) => (
-            <div key={a.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'center' }}>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{a.name}</span>
-                {a.pk && <span style={chip('var(--accent)')}>PK</span>}
-                {a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}
+          {obj.attrs.map((a, i) => {
+            const val = a.col != null ? d.row[a.col] : null;
+            const has = val != null && val !== '';
+            const fkObj = a.fk ? OBJ_BY_KEY[a.fk] : null;
+            const canOpen = !!(fkObj?.table && has);   // FK trỏ tới node có bảng + có value → mở được
+            return (
+              <div key={a.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'center' }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{a.name}</span>
+                  {a.pk && <span style={chip('var(--accent)')}>PK</span>}
+                  {a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}
+                </div>
+                {canOpen ? (
+                  <span role="link" title={`Mở ${fkObj!.label} #${val}`}
+                    onClick={() => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val) } })}
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {fmtVal(val)}
+                  </span>
+                ) : (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: has ? 'var(--ok)' : 'var(--fg-4)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {has ? fmtVal(val) : '—'}
+                  </span>
+                )}
               </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: a.col != null && d.row[a.col] != null ? 'var(--ok)' : 'var(--fg-4)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {a.col != null ? fmtVal(d.row[a.col]) : '—'}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
       {others.length > 0 && (

@@ -770,24 +770,29 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   useEffect(() => { setPage(0); }, [projectId, parentId]);
   useEffect(() => {
     let dead = false;
-    if (parent && !parentId) { setData({ rows: [], total: 0 }); return; }
     setLoading(true);
     browseInstances(obj.key, {
       projectId: projectScoped ? projectId : undefined,
-      parentId: parent ? parentId : undefined,
+      parentId: parent && parentId ? parentId : undefined,   // parentId rỗng = TẤT CẢ (ko gate)
       q: qDeb, limit: PAGE, offset: page * PAGE,
     }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
   }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page]);
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
+  const from = data.total === 0 ? 0 : page * PAGE + 1;
+  const to = Math.min(data.total, (page + 1) * PAGE);
+  const parentLabel = parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object) : '';
+  const ctxHead = parent ? parentLabel.toLowerCase() : 'ctx';
   const open = (it: InstanceRef) => openSub({
     title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
     body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id },
   });
+  const cols = '1fr auto 64px';
 
   return (
-    <Section title={obj.label} sub="// live · filter · click mở chi tiết">
+    <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
+      {/* filters: project + parent (optional, ko bắt buộc chọn) + search */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
         {projectScoped && (
           <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={selStyle}>
@@ -795,48 +800,57 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
           </select>
         )}
         {parent && (
-          <SearchSelect value={parentId} options={parentInstances}
-            placeholder={`— ${OBJ_BY_KEY[parent.object]?.label || parent.object} first —`}
-            onChange={setParentId} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 170 }}>
+            <SearchSelect value={parentId} options={parentInstances}
+              placeholder={`lọc ${parentLabel} (tất cả)`}
+              onChange={setParentId} />
+            {parentId && (
+              <button type="button" title="Bỏ lọc — xem tất cả" onClick={() => setParentId('')}
+                style={{ ...btnStyle, padding: '5px 8px', flexShrink: 0 }}>×</button>
+            )}
+          </div>
         )}
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`tìm trong ${data.total || '…'}…`}
           style={{ ...selStyle, flex: 1, minWidth: 150 }} />
       </div>
-      {parent && !parentId ? (
-        <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>Chọn {OBJ_BY_KEY[parent.object]?.label || parent.object} trước để xem item.</div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>
-            <span><b style={{ color: 'var(--fg-1)' }}>{data.total}</b> {obj.label.toLowerCase()}{qDeb ? ` khớp “${qDeb}”` : ''}</span>
-            {loading && <span style={{ color: 'var(--fg-4)' }}>· loading…</span>}
-            {data.total > PAGE && <span style={{ marginLeft: 'auto' }}>trang {page + 1}/{pages}</span>}
-          </div>
-          {data.rows.length === 0 ? (
-            <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '8px 0' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {data.rows.map((it) => (
-                <button key={it.id} onClick={() => open(it)} title="Mở chi tiết item"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: '1px solid var(--line)', borderRadius: 5, padding: '6px 10px', background: 'var(--bg-1)', cursor: 'pointer' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-1)')}>
-                  <span style={{ fontSize: 12, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{it.label}</span>
-                  {it.sub && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', flexShrink: 0 }}>{it.sub}</span>}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', flexShrink: 0 }}>#{it.id}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {data.total > PAGE && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
-              <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
-                style={{ ...btnStyle, opacity: page === 0 ? 0.4 : 1, cursor: page === 0 ? 'default' : 'pointer' }}>‹ trước</button>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{page + 1} / {pages}</span>
-              <button type="button" disabled={page + 1 >= pages} onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
-                style={{ ...btnStyle, opacity: page + 1 >= pages ? 0.4 : 1, cursor: page + 1 >= pages ? 'default' : 'pointer' }}>sau ›</button>
-            </div>
-          )}
-        </>
+
+      {/* count + range */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>
+        <span><b style={{ color: 'var(--fg-1)' }}>{data.total}</b> {obj.label.toLowerCase()}{qDeb ? ` khớp “${qDeb}”` : ''}{parentId ? ` · ${parentLabel}` : ''}</span>
+        {loading && <span style={{ color: 'var(--fg-4)' }}>· loading…</span>}
+        {data.total > 0 && <span style={{ marginLeft: 'auto' }}>{from}–{to} / {data.total}</span>}
+      </div>
+
+      {/* TABLE — header + paginated rows; click row mở drawer chi tiết */}
+      <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span>{(obj.labelCol || 'name')}</span>
+          <span style={{ textAlign: 'right' }}>{ctxHead}</span>
+          <span style={{ textAlign: 'right' }}>{obj.pk || 'id'}</span>
+        </div>
+        {data.rows.length === 0 ? (
+          <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '12px 10px', textAlign: 'center' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
+        ) : data.rows.map((it, i) => (
+          <button key={it.id} onClick={() => open(it)} title="Mở chi tiết item"
+            style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
+            <span style={{ fontSize: 12, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub || '—'}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'right' }}>#{it.id}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* pager */}
+      {data.total > PAGE && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+          <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
+            style={{ ...btnStyle, opacity: page === 0 ? 0.4 : 1, cursor: page === 0 ? 'default' : 'pointer' }}>‹ trước</button>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{page + 1} / {pages}</span>
+          <button type="button" disabled={page + 1 >= pages} onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
+            style={{ ...btnStyle, opacity: page + 1 >= pages ? 0.4 : 1, cursor: page + 1 >= pages ? 'default' : 'pointer' }}>sau ›</button>
+        </div>
       )}
     </Section>
   );

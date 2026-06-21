@@ -746,12 +746,26 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
 // generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
 const HAS_OWN_LIST = new Set(['identity', 'domSample', 'uxFlow', 'selector']);
 
-// short date (YYYY-MM-DD) for time columns; full value in title.
-function fmtDate(v: unknown): string {
+// relative "x ago" for time columns (hover = full timestamp via the cell title).
+function relAgo(v: unknown): string {
   if (v == null || v === '') return '—';
-  const d = new Date(v as string | number | Date);
-  if (isNaN(d.getTime())) return String(v);
-  return d.toISOString().slice(0, 10);
+  const t = new Date(v as string | number | Date).getTime();
+  if (isNaN(t)) return String(v);
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  const d = Math.floor(s / 86400);
+  if (d < 7) return `${d}d ago`;
+  if (d < 31) return `${Math.floor(d / 7)}w ago`;
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
+  return `${Math.floor(d / 365)}y ago`;
+}
+// full timestamp for the hover title (YYYY-MM-DD HH:mm).
+function fmtFull(v: unknown): string {
+  const t = new Date(v as string | number | Date).getTime();
+  if (isNaN(t)) return String(v ?? '');
+  return new Date(t).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 }
 // status/phase/kind → semantic color for a badge cell.
 function badgeColor(v: string): string {
@@ -875,7 +889,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                     ) : dc.kind === 'badge' ? (
                       <span style={{ color: badgeColor(String(v)), border: `1px solid ${badgeColor(String(v))}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5 }}>{String(v)}</span>
                     ) : dc.kind === 'time' ? (
-                      <span style={{ color: 'var(--fg-2)' }}>{fmtDate(v)}</span>
+                      <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : (
                       <span style={{ color: 'var(--fg-1)' }}>{fmtVal(v)}</span>
                     )}

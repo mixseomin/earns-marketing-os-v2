@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, habitats, platforms, platformTechnologies } from '@mos2/db';
-import { ilike, eq, and } from 'drizzle-orm';
+import { ilike, eq, and, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +54,16 @@ export async function GET(req: Request) {
     .where(ilike(platforms.signupUrl, `%${host}%`))
     .limit(1);
 
+  // signup quirk: email activation known broken (mail never arrives) → ext warns upfront +
+  // skips waiting. Raw sql vì cột chưa map trong Drizzle schema.
+  let emailVerifyBroken = false;
+  if (platformRow?.key) {
+    try {
+      const r = await db.execute(sql`SELECT email_verify_broken FROM platforms WHERE key = ${platformRow.key} LIMIT 1`);
+      emailVerifyBroken = !!(r as unknown as Array<{ email_verify_broken: boolean }>)[0]?.email_verify_broken;
+    } catch { /* cột có thể chưa migrate */ }
+  }
+
   return NextResponse.json({
     habitat: habitatRow ? {
       id: habitatRow.id,
@@ -69,6 +79,7 @@ export async function GET(req: Request) {
       signupUrl: platformRow.signupUrl,
       technologyKey: platformRow.technologyKey ?? null,
       techLabel: platformRow.techLabel ?? null,
+      emailVerifyBroken,
     } : null,
   });
 }
@@ -86,7 +97,8 @@ export async function POST(req: Request) {
     target: 'habitat' | 'platform';
     id?: number;
     key?: string;
-    technologyKey: string | null;
+    technologyKey?: string | null;
+    emailVerifyBroken?: boolean;
   };
 
   if (body.target === 'habitat') {
@@ -97,7 +109,13 @@ export async function POST(req: Request) {
 
   if (body.target === 'platform') {
     if (!body.key) return NextResponse.json({ error: 'Missing platform key' }, { status: 400 });
-    await db.update(platforms).set({ technologyKey: body.technologyKey ?? null, updatedAt: new Date() }).where(eq(platforms.key, body.key));
+    // flag-only update (email_verify_broken) must NOT clobber technologyKey → set per field provided.
+    if (typeof body.emailVerifyBroken === 'boolean') {
+      await db.execute(sql`UPDATE platforms SET email_verify_broken = ${body.emailVerifyBroken}, updated_at = now() WHERE key = ${body.key}`);
+    }
+    if ('technologyKey' in body) {
+      await db.update(platforms).set({ technologyKey: body.technologyKey ?? null, updatedAt: new Date() }).where(eq(platforms.key, body.key));
+    }
     return NextResponse.json({ ok: true, target: 'platform', key: body.key });
   }
 

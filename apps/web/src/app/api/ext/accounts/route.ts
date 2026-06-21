@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
-import { and, desc, eq, exists, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, exists, ilike, or, sql } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 
 export const dynamic = 'force-dynamic';
@@ -72,7 +72,15 @@ export async function GET(req: Request) {
     } catch (e) {
       console.warn('[ext/accounts] directus merge fail:', (e as Error).message);
     }
-    return NextResponse.json({ accounts: out });
+    // login_challenges (per-platform): site cần xác minh gì khi login (device email code / SMS /
+    // 2FA…) → ext báo trước cho user chuẩn bị. Raw sql vì cột chưa có trong Drizzle schema.
+    let loginChallenges: unknown[] = [];
+    try {
+      const pc = await db.execute(sql`SELECT login_challenges FROM platforms WHERE key = ${slug} LIMIT 1`);
+      const lc = (pc as unknown as Array<{ login_challenges: unknown }>)[0]?.login_challenges;
+      if (Array.isArray(lc)) loginChallenges = lc;
+    } catch { /* cột có thể chưa migrate */ }
+    return NextResponse.json({ accounts: out, loginChallenges });
   }
 
   // Site accounts for regkit picker

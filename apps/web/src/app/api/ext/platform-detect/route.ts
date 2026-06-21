@@ -26,8 +26,10 @@ export async function POST(req: Request) {
   const platformKey = canonPlatformKey(rawKey);
   const url = (body.url || '').toString().slice(0, 500) || null;
   try {
-    // tech must exist in the catalog — drops noise from unknown fingerprints
-    const known = await db.execute(sql`SELECT 1 FROM platform_technologies WHERE key = ${tech} LIMIT 1`);
+    // tech must exist in the catalog — drops noise from unknown fingerprints.
+    // Return the LABEL so the ext toast shows the SAME name as Studio (not raw key).
+    const known = await db.execute(sql`SELECT label FROM platform_technologies WHERE key = ${tech} LIMIT 1`);
+    const techLabel = (known as unknown as Array<{ label: string | null }>)[0]?.label ?? tech;
     if (!(known as unknown as unknown[]).length) return NextResponse.json({ ok: true, known: false });
     // Does this technology already carry a SELECTOR TEMPLATE (technology-scope rows)?
     // hasTemplate=true → the site merely ADOPTS an existing template (frame the SITE as
@@ -38,7 +40,7 @@ export async function POST(req: Request) {
     // already bound to this exact tech? nothing to suggest
     const cur = await db.execute(sql`SELECT technology_key FROM platforms WHERE key = ${platformKey} LIMIT 1`);
     const bound = (cur as unknown as Array<{ technology_key: string | null }>)[0]?.technology_key ?? null;
-    if (bound === tech) return NextResponse.json({ ok: true, known: true, alreadyBound: true, hasTemplate, templateCount });
+    if (bound === tech) return NextResponse.json({ ok: true, known: true, alreadyBound: true, hasTemplate, templateCount, label: techLabel });
     await db.execute(sql`
       INSERT INTO platform_tech_detections (host, platform_key, technology_key, url, hits, first_seen, last_seen)
       VALUES (${host}, ${platformKey}, ${tech}, ${url}, 1, now(), now())
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
         url = COALESCE(EXCLUDED.url, platform_tech_detections.url),
         hits = platform_tech_detections.hits + 1,
         last_seen = now()`);
-    return NextResponse.json({ ok: true, known: true, alreadyBound: false, platformKey, technologyKey: tech, hasTemplate, templateCount });
+    return NextResponse.json({ ok: true, known: true, alreadyBound: false, platformKey, technologyKey: tech, hasTemplate, templateCount, label: techLabel });
   } catch (e) {
     return errorResponse((e as Error).message, 200);
   }

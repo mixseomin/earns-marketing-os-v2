@@ -381,7 +381,8 @@ export async function POST(req: Request) {
     if (!jobId) return { kind: 'fail', error: 'submit: no job_id' };
     const pollUrl = subJson?.poll_url || `${apiBase}/api/v1/qa/result/${jobId}`;
     console.log(`[astrolas-answer extv=${extVer}] card=${cardId} async job=${jobId} → poll`);
-    const deadline = Date.now() + 240000;   // 240s/job < maxDuration 300s
+    const deadline = Date.now() + 270000;   // poll 1 job gần hết maxDuration (300s) → bắt được terminal
+    // status (kể cả engine failed=TIME_BUDGET) thay vì bỏ ở 240s rồi resubmit job orphan.
     let consecErr = 0;
     while (Date.now() < deadline) {
       await new Promise((ok) => setTimeout(ok, 5000));
@@ -417,6 +418,10 @@ export async function POST(req: Request) {
         break;
       }
       if (r.kind === 'fail') break;                       // lỗi cứng (4xx) → ko retry
+      // Async POLL-phase timeout/errors: job đã submit + đang chạy. Resubmit job mới = (a) ko kịp
+      // trong maxDuration còn lại, (b) bỏ orphan job đang chạy (đốt compute Astrolas). → KHÔNG retry,
+      // báo lỗi rõ luôn. Chỉ retry transient ở SUBMIT (nhanh) hoặc 429 (đã xử ở trên).
+      if (useAsync && /async poll|poll timeout/i.test(r.error)) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} async poll hết budget — ko resubmit (tránh orphan): ${r.error}`); break; }
       if (attempt < MAX_ATTEMPTS) { console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} depth=${depth} transient → retry ${attempt + 1}/${MAX_ATTEMPTS}`); await new Promise((ok) => setTimeout(ok, 1500)); }
     }
     return { ok: false, error: lastErr };
@@ -495,12 +500,15 @@ export async function POST(req: Request) {
   //  • 'economy' = nhanh. · Auto (ko chọn) = BALANCED: cố max nhẹ, hỏng mới tụt economy cho "luôn có bản".
   const qualityMode = requestedDepth === 'deep' || requestedDepth === 'max';
   let downgraded = false;
+  // TIME_BUDGET = engine nghĩ hết giờ chưa ra chữ (thinking dài + nhiều tool, raw_len 0). Retry 'max'
+  // (nghĩ NHIỀU hơn) chỉ tệ hơn + đốt thêm 1 job dài → đừng retry; báo lỗi rõ để user hạ depth/Gen thường.
+  const isTimeBudget = (d: AstrolasData) => /TIME_BUDGET|time budget/i.test(`${(d as { code?: string }).code ?? ''} ${d.error ?? ''}`);
 
   if (qualityMode) {
     // Bấm max = PHẢI ra max. retry max 1 lần (preamble intermittent). KHÔNG tự tụt economy
     // (user ghét bị hạ mini). Vẫn bad → trả lỗi retryable, user chủ động Gen lại (mỗi lần=version).
     let tries = 1;
-    while (isBad(data) && tries < 2) {
+    while (isBad(data) && tries < 2 && !isTimeBudget(data)) {
       tries++;
       console.warn(`[astrolas-answer extv=${extVer}] card=${cardId} ${badReason(data)} → QUALITY retry max ${tries}/2`);
       const retry = await callAstrolas('max');
@@ -522,7 +530,9 @@ export async function POST(req: Request) {
   if (isBad(data)) {
     const base = isEmpty(data) ? (data.error ?? 'Astrolas empty answer') : 'Astrolas trả nháp/incomplete (engine ko hoàn tất)';
     // Quality mode: engine max bấp bênh → để user CHỦ ĐỘNG gen lại (giữ option chất lượng), ko ép economy.
-    const err = qualityMode ? `${base} · max engine bấp bênh — bấm Gen lại để thử bản chất lượng (mỗi lần = 1 version), hoặc chọn depth 'eco' cho bản nhanh.` : base;
+    const err = isTimeBudget(data)
+      ? `⏱ Astrolas ${depthUsed} nghĩ quá lâu chưa ra câu trả lời (TIME_BUDGET) — câu hỏi chart phức tạp. Hạ depth 'eco'/'standard' hoặc dùng ✨ Gen reply thường.`
+      : qualityMode ? `${base} · max engine bấp bênh — bấm Gen lại để thử bản chất lượng (mỗi lần = 1 version), hoặc chọn depth 'eco' cho bản nhanh.` : base;
     await markFailed(err);
     return NextResponse.json({ ok: false, cardId, error: err, depthUsed, retryable: qualityMode }, { status: 200 });
   }

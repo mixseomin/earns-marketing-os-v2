@@ -71,6 +71,59 @@ export async function listInstances(objectKey: string, projectId?: string, paren
   }
 }
 
+// ── paginated + filtered instance browser ───────────────────────────────────
+// listInstances tops out at 400 for the picker; the node drawer needs to walk
+// ALL rows (accounts can be huge) → page + text filter + total count.
+export interface InstancePage { rows: InstanceRef[]; total: number }
+export async function browseInstances(
+  objectKey: string,
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number } = {},
+): Promise<InstancePage> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table) return { rows: [], total: 0 };
+  const db = getDb();
+  if (!db) return { rows: [], total: 0 };
+  const table = ident(obj.table);
+  const pkr = obj.picker;
+  const pk = sql.raw(`t.${ident(obj.pk || 'id')}`);
+  const labelSel = pkr?.labelExpr ? sql.raw(`(${pkr.labelExpr})`) : sql.raw(`t.${ident(obj.labelCol || obj.pk || 'id')}`);
+  const subSel = pkr?.subExpr ? sql`, (${sql.raw(pkr.subExpr)})::text AS sub` : sql``;
+  const joinSql = pkr?.join ? sql.raw(pkr.join) : sql``;
+
+  const conds: ReturnType<typeof sql>[] = [];
+  if (obj.projectScoped && opts.projectId && !pkr?.crossProject) conds.push(sql`t.project_id = ${opts.projectId}`);
+  if (pkr?.parent && opts.parentId) conds.push(sql`${sql.raw('t.' + ident(pkr.parent.col))} = ${opts.parentId}`);
+  const q = (opts.q || '').trim();
+  if (q) {
+    const like = `%${q}%`;
+    const parts: ReturnType<typeof sql>[] = [sql`(${labelSel})::text ILIKE ${like}`, sql`${pk}::text ILIKE ${like}`];
+    if (pkr?.subExpr) parts.push(sql`(${sql.raw(pkr.subExpr)})::text ILIKE ${like}`);
+    conds.push(sql`(${sql.join(parts, sql` OR `)})`);
+  }
+  const whereSql = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+  const offset = Math.max(opts.offset ?? 0, 0);
+
+  try {
+    const [listRes, countRes] = await Promise.all([
+      db.execute(sql`
+        SELECT ${pk}::text AS id, ${labelSel}::text AS label${subSel}
+        FROM ${sql.raw(table)} t
+        ${joinSql}
+        ${whereSql}
+        ORDER BY ${pk} DESC
+        LIMIT ${limit} OFFSET ${offset}`),
+      db.execute(sql`SELECT COUNT(*)::int AS n FROM ${sql.raw(table)} t ${joinSql} ${whereSql}`),
+    ]);
+    const rows = (listRes as unknown as Array<{ id: string; label: string | null; sub: string | null }>)
+      .map((r) => ({ id: r.id, label: r.label || r.id, sub: r.sub || undefined }));
+    const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;
+    return { rows, total };
+  } catch {
+    return { rows: [], total: 0 };
+  }
+}
+
 // ── instance detail + consistency checks ─────────────────────────────────────
 export async function getInstance(objectKey: string, id: string): Promise<InstanceDetail | null> {
   const obj = BINDABLE_TABLES[objectKey];

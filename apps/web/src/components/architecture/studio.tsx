@@ -19,11 +19,11 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  listInstances, browseInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   listIdentities, getIdentity, updateIdentity,
-  type InstanceRef, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
+  type InstanceRef, type InstancePage, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
   type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
 } from '@/lib/actions/architecture';
@@ -264,7 +264,8 @@ type SubRoute =
   | { t: 'metric'; metric: string; platform: string; via: string }
   | { t: 'uxflow'; id: number }
   | { t: 'objpeek'; objKey: string }
-  | { t: 'identity'; id: number };
+  | { t: 'identity'; id: number }
+  | { t: 'inst'; objKey: string; id: string };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
 const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
@@ -281,6 +282,7 @@ function renderRoute(r: SubRoute): SubContent {
     case 'uxflow': return { title: `flow #${r.id}`, sub: 'need→action steps', body: <UxFlowDetail id={r.id} />, route: r };
     case 'objpeek': return { title: OBJ_BY_KEY[r.objKey]?.label || r.objKey, sub: 'entity spec (peek)', body: <ObjPeek objKey={r.objKey} />, route: r };
     case 'identity': return { title: `identity #${r.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={r.id} />, route: r };
+    case 'inst': return { title: `#${r.id}`, sub: `${OBJ_BY_KEY[r.objKey]?.label || r.objKey} · instance`, body: <InstanceDetail objKey={r.objKey} id={r.id} />, route: r };
   }
 }
 function encodeStack(stack: SubContent[]): string {
@@ -740,6 +742,158 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
   );
 }
 
+// Nodes đã có panel liệt kê item riêng (UI chuyên biệt) → KHÔNG hiện InstanceBrowser
+// generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
+const HAS_OWN_LIST = new Set(['identity', 'domSample', 'uxFlow', 'selector']);
+
+// ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
+// Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
+function InstanceBrowser({ obj, projects, defaultProject }: {
+  obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
+}) {
+  const openSub = useContext(SubCtx);
+  const parent = obj.picker?.parent;
+  const crossProject = !!obj.picker?.crossProject;
+  const projectScoped = !!obj.projectScoped && !crossProject && !parent;
+  const [projectId, setProjectId] = useState(defaultProject || projects[0]?.id || '');
+  const [parentId, setParentId] = useState('');
+  const [parentInstances, setParentInstances] = useState<InstanceRef[]>([]);
+  const [q, setQ] = useState('');
+  const [qDeb, setQDeb] = useState('');
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<InstancePage>({ rows: [], total: 0 });
+  const [loading, setLoading] = useState(false);
+  const PAGE = 25;
+
+  useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
+  useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
+  useEffect(() => { setPage(0); }, [projectId, parentId]);
+  useEffect(() => {
+    let dead = false;
+    if (parent && !parentId) { setData({ rows: [], total: 0 }); return; }
+    setLoading(true);
+    browseInstances(obj.key, {
+      projectId: projectScoped ? projectId : undefined,
+      parentId: parent ? parentId : undefined,
+      q: qDeb, limit: PAGE, offset: page * PAGE,
+    }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
+    return () => { dead = true; };
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page]);
+
+  const pages = Math.max(1, Math.ceil(data.total / PAGE));
+  const open = (it: InstanceRef) => openSub({
+    title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
+    body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id },
+  });
+
+  return (
+    <Section title={obj.label} sub="// live · filter · click mở chi tiết">
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+        {projectScoped && (
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={selStyle}>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        )}
+        {parent && (
+          <SearchSelect value={parentId} options={parentInstances}
+            placeholder={`— ${OBJ_BY_KEY[parent.object]?.label || parent.object} first —`}
+            onChange={setParentId} />
+        )}
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`tìm trong ${data.total || '…'}…`}
+          style={{ ...selStyle, flex: 1, minWidth: 150 }} />
+      </div>
+      {parent && !parentId ? (
+        <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>Chọn {OBJ_BY_KEY[parent.object]?.label || parent.object} trước để xem item.</div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>
+            <span><b style={{ color: 'var(--fg-1)' }}>{data.total}</b> {obj.label.toLowerCase()}{qDeb ? ` khớp “${qDeb}”` : ''}</span>
+            {loading && <span style={{ color: 'var(--fg-4)' }}>· loading…</span>}
+            {data.total > PAGE && <span style={{ marginLeft: 'auto' }}>trang {page + 1}/{pages}</span>}
+          </div>
+          {data.rows.length === 0 ? (
+            <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '8px 0' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {data.rows.map((it) => (
+                <button key={it.id} onClick={() => open(it)} title="Mở chi tiết item"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: '1px solid var(--line)', borderRadius: 5, padding: '6px 10px', background: 'var(--bg-1)', cursor: 'pointer' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-1)')}>
+                  <span style={{ fontSize: 12, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{it.label}</span>
+                  {it.sub && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)', flexShrink: 0 }}>{it.sub}</span>}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', flexShrink: 0 }}>#{it.id}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {data.total > PAGE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+              <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
+                style={{ ...btnStyle, opacity: page === 0 ? 0.4 : 1, cursor: page === 0 ? 'default' : 'pointer' }}>‹ trước</button>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)' }}>{page + 1} / {pages}</span>
+              <button type="button" disabled={page + 1 >= pages} onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
+                style={{ ...btnStyle, opacity: page + 1 >= pages ? 0.4 : 1, cursor: page + 1 >= pages ? 'default' : 'pointer' }}>sau ›</button>
+            </div>
+          )}
+        </>
+      )}
+    </Section>
+  );
+}
+
+// full detail of one real row — opened as a cascade layer from InstanceBrowser.
+// Modeled attrs (FK chips + live value) + mọi cột còn lại + consistency check.
+function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
+  const obj = OBJ_BY_KEY[objKey];
+  const [d, setD] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null | 'loading'>('loading');
+  useEffect(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
+  if (!obj) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
+  if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
+  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy record #{id}.</div>;
+  const worst = d.issues.some((i) => i.level === 'error') ? 'error' : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok';
+  const mapped = new Set(obj.attrs.map((a) => a.col).filter(Boolean) as string[]);
+  const others = Object.keys(d.row).filter((k) => !mapped.has(k));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+          {obj.attrs.map((a, i) => (
+            <div key={a.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'center' }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{a.name}</span>
+                {a.pk && <span style={chip('var(--accent)')}>PK</span>}
+                {a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}
+              </div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: a.col != null && d.row[a.col] != null ? 'var(--ok)' : 'var(--fg-4)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {a.col != null ? fmtVal(d.row[a.col]) : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Section>
+      {others.length > 0 && (
+        <Section title="Other columns" sub={`// ${others.length} ngoài model`}>
+          <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            {others.map((k, i) => (
+              <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '5px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)' }}>{k}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fmtVal(d.row[k])}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+      <Section title="Consistency check" sub={`// worst: ${worst}`}>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px' }}>
+          {d.issues.map((it, i) => <IssueRow key={i} it={it} />)}
+        </div>
+      </Section>
+      {obj.deepLink && <a href={obj.deepLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>↗ manage real {obj.label}</a>}
+    </div>
+  );
+}
+
 function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
   bound?: Bound; onBind: (b: Bound | null) => void;
@@ -852,6 +1006,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
   return (
     <div>
       <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 14 }}>{obj.desc}</div>
+
+      {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
+          full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
+          chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
+      {obj.table && !HAS_OWN_LIST.has(obj.key) && (
+        <InstanceBrowser obj={obj} projects={projects} defaultProject={projectId} />
+      )}
 
       {/* full selector catalog — every scope × page_kind × field, with counts (gọn overview) */}
       {obj.key === 'selector' && (

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, habitats, platforms, platformTechnologies } from '@mos2/db';
-import { ilike, eq, and, sql } from 'drizzle-orm';
+import { ilike, eq, and, or, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +51,9 @@ export async function GET(req: Request) {
     })
     .from(platforms)
     .leftJoin(platformTechnologies, eq(platforms.technologyKey, platformTechnologies.key))
-    .where(ilike(platforms.signupUrl, `%${host}%`))
+    // match by signupUrl OR by host-slug key (ext-created platforms have empty signupUrl,
+    // key = host without www, dots→'-' — same as the widget's platformKeyOf()).
+    .where(or(ilike(platforms.signupUrl, `%${host}%`), eq(platforms.key, host.replace(/^www\./, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase())))
     .limit(1);
 
   // signup quirk: email activation known broken (mail never arrives) → ext warns upfront +

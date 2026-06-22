@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   // one batch query: board + project score + project habitat + account brief
   const rows = (await db.execute(sql`
     SELECT pb.id AS board_id, pb.name, pb.url, pb.members, pb.privacy AS board_privacy,
-           s.topic_tier,
+           s.topic_tier, s.fit AS score_fit, s.reason AS score_reason,
            h.id AS habitat_id, h.privacy AS h_privacy, h.min_karma, h.min_account_age_days, h.min_posts, h.mod_strictness,
            b.id AS brief_id, b.join_status, b.approach_md
     FROM platform_boards pb
@@ -83,11 +83,16 @@ export async function GET(req: Request) {
     };
     const guardrail = guardrailSkip(gate, acc, overlay.joinStatus);
     const { tier, reason } = composeTier({ topicTier: r.topic_tier != null ? String(r.topic_tier) : null, overlay, guardrail });
+    const scoreReason = r.score_reason != null ? String(r.score_reason) : '';
+    const fit = numOr(r.score_fit);
+    // tier reason (overlay/guardrail) first; fall back to the fit rationale so low-fit boards
+    // explain WHY they don't match (request: "nếu ko khớp thì cần lý do").
+    const displayReason = reason || (scoreReason ? (fit != null ? 'fit ' + fit + ' · ' : '') + scoreReason : '');
     return {
       key: input, name: r.name != null ? String(r.name) : null, url: r.url != null ? String(r.url) : null,
       boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
       hasHabitat: overlay.hasHabitat, hasBrief: overlay.hasBrief, joinStatus: overlay.joinStatus,
-      reason, members: numOr(r.members) ?? 0,
+      reason: displayReason, fit: fit ?? null, members: numOr(r.members) ?? 0,
     };
   });
 

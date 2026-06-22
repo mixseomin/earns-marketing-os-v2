@@ -58,13 +58,13 @@ export async function POST(req: Request) {
   // existing scores (for cache-skip)
   const existing = new Map<number, Record<string, unknown>>();
   const erows = (await db.execute(sql`
-    SELECT board_id, project_inputs_hash, board_inputs_hash, schema_version, stale, fit, topic_tier
+    SELECT board_id, project_inputs_hash, board_inputs_hash, schema_version, stale, fit, topic_tier, reason
     FROM board_project_score WHERE project_id = ${projectId} AND tenant_id = 'self'
       AND board_id IN (${sql.join(boardIds.map((b) => sql`${b}`), sql`, `)})`)) as Array<Record<string, unknown>>;
   for (const e of erows) existing.set(Number(e.board_id), e);
 
   let llmUsed = 0;
-  const scored: Array<{ boardId: number; fit: number; topicTier: string; cached: boolean; via: string }> = [];
+  const scored: Array<{ boardId: number; fit: number; topicTier: string; reason: string; cached: boolean; via: string }> = [];
 
   for (const r of brows) {
     const boardId = Number(r.id);
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     });
     const ex = existing.get(boardId);
     if (ex && !ex.stale && String(ex.project_inputs_hash) === projHash && String(ex.board_inputs_hash) === boardHash && Number(ex.schema_version) === SCHEMA_VERSION) {
-      scored.push({ boardId, fit: Number(ex.fit), topicTier: String(ex.topic_tier), cached: true, via: 'cache' });
+      scored.push({ boardId, fit: Number(ex.fit), topicTier: String(ex.topic_tier), reason: String(ex.reason ?? ''), cached: true, via: 'cache' });
       continue;
     }
     // B-HARD forbidden
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
         fit = ${fit}, topic_tier = ${tier}, reason = ${reason}, project_inputs_hash = ${projHash},
         board_inputs_hash = ${boardHash}, schema_version = ${SCHEMA_VERSION}, model = ${model}, stale = false,
         scored_at = now(), updated_at = now()`);
-    scored.push({ boardId, fit, topicTier: tier, cached: false, via: model });
+    scored.push({ boardId, fit, topicTier: tier, reason, cached: false, via: model });
   }
 
   return okResponse({ scored, llmUsed, projectInputsHash: projHash });

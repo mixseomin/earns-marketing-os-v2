@@ -29,6 +29,23 @@ import {
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
+import ReactMarkdown, { type Components } from 'react-markdown';
+
+// compact markdown rendering for the dark drawer (default h1/p sizes are too big in a narrow panel).
+const MD_COMPONENTS: Components = {
+  h1: ({ node, ...p }) => <div style={{ fontSize: 14, fontWeight: 700, margin: '9px 0 4px', color: 'var(--fg-0)' }} {...p} />,
+  h2: ({ node, ...p }) => <div style={{ fontSize: 13, fontWeight: 700, margin: '8px 0 3px', color: 'var(--fg-0)' }} {...p} />,
+  h3: ({ node, ...p }) => <div style={{ fontSize: 12.5, fontWeight: 700, margin: '6px 0 3px', color: 'var(--fg-1)' }} {...p} />,
+  p: ({ node, ...p }) => <p style={{ margin: '4px 0', fontSize: 12, lineHeight: 1.55, color: 'var(--fg-1)' }} {...p} />,
+  ul: ({ node, ...p }) => <ul style={{ margin: '4px 0', paddingLeft: 18 }} {...p} />,
+  ol: ({ node, ...p }) => <ol style={{ margin: '4px 0', paddingLeft: 18 }} {...p} />,
+  li: ({ node, ...p }) => <li style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--fg-1)', margin: '2px 0' }} {...p} />,
+  a: ({ node, ...p }) => <a style={{ color: 'var(--accent)' }} target="_blank" rel="noopener noreferrer" {...p} />,
+  code: ({ node, ...p }) => <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-2)', padding: '1px 4px', borderRadius: 4 }} {...p} />,
+  strong: ({ node, ...p }) => <strong style={{ color: 'var(--fg-0)' }} {...p} />,
+  blockquote: ({ node, ...p }) => <blockquote style={{ borderLeft: '2px solid var(--line)', margin: '4px 0', paddingLeft: 8, color: 'var(--fg-2)' }} {...p} />,
+};
+const looksMarkdown = (s: string) => /(^|\n)#{1,6}\s/.test(s) || /\*\*[^*\n]+\*\*/.test(s) || /(^|\n)\s*[-*]\s/.test(s) || /(^|\n)\s*\d+\.\s/.test(s) || /\[[^\]]+\]\([^)]+\)/.test(s);
 import { adoptTemplate } from '@/lib/actions/platforms';
 
 type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
@@ -1011,10 +1028,12 @@ function FieldRow({ name, nameColor = 'var(--fg-0)', chips, value, link, zebra }
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [fmt, setFmt] = useState(true);   // markdown fields default to the rendered view
   const has = value != null && value !== '';
   const full = !has ? '' : (typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value));
   const oneLine = full.replace(/\s+/g, ' ').trim();
   const long = !link && has && (oneLine.length > 56 || full.includes('\n'));
+  const isMd = typeof value === 'string' && looksMarkdown(full);
   const bg = zebra % 2 ? 'var(--bg-1)' : 'var(--bg-2)';
   const nameBlock = (
     <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -1029,11 +1048,18 @@ function FieldRow({ name, nameColor = 'var(--fg-0)', chips, value, link, zebra }
           {nameBlock}
           <div style={{ display: 'flex', gap: 6 }}>
             <span style={{ fontSize: 9.5, color: 'var(--fg-4)', alignSelf: 'center' }}>{full.length}</span>
+            {isMd && <button type="button" onClick={() => setFmt((v) => !v)} style={miniBtn}>{fmt ? '</> raw' : '📄 đẹp'}</button>}
             <button type="button" onClick={copy} style={miniBtn}>{copied ? '✓ copied' : '⧉ copy'}</button>
             <button type="button" onClick={() => setOpen(false)} style={miniBtn}>▾ thu gọn</button>
           </div>
         </div>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, color: 'var(--fg-0)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, maxHeight: 360, overflow: 'auto', userSelect: 'text' }}>{full}</pre>
+        {isMd && fmt ? (
+          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 10px', maxHeight: 380, overflow: 'auto', userSelect: 'text' }}>
+            <ReactMarkdown components={MD_COMPONENTS}>{full}</ReactMarkdown>
+          </div>
+        ) : (
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, color: 'var(--fg-0)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, maxHeight: 360, overflow: 'auto', userSelect: 'text' }}>{full}</pre>
+        )}
       </div>
     );
   }

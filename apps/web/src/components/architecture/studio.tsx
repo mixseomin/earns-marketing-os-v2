@@ -778,6 +778,12 @@ function badgeColor(v: string): string {
 const ACCOUNT_STATUS_C = ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'];
 const PENDING_C = new Set(['creating', 'todo', 'warming']);   // pending = chưa active → stale-check áp dụng
 const STALE_DAYS = 7;
+// Đồng bộ MỌI surface đang mở (table + các drawer cùng record) khi 1 chỗ sửa status/note.
+// `from` = id component phát → bỏ qua chính nó (đã optimistic update, tránh double-apply note).
+const INST_EVT = 'mos2-inst-updated';
+function emitInstUpdate(objKey: string, id: string, patch: { status?: string; noteAppend?: string }, from: string) {
+  try { window.dispatchEvent(new CustomEvent(INST_EVT, { detail: { objKey, id: String(id), patch, from } })); } catch { /* noop */ }
+}
 
 // project cell: 1st project = link; the "+N" opens a popover listing EVERY project,
 // each clickable → mở drawer của project đó (mọi ref mở được phải mở ngay).
@@ -843,6 +849,16 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
   useEffect(() => { setPage(0); }, [projectId, parentId]);
+  // 1 drawer sửa status → patch row tương ứng trong bảng NGAY (badge + stale recompute) — ko refetch.
+  useEffect(() => {
+    const h = (e: Event) => {
+      const det = (e as CustomEvent).detail as { objKey: string; id: string; patch: { status?: string } };
+      if (!det || det.objKey !== obj.key || det.patch.status == null) return;
+      setData((prev) => ({ ...prev, rows: prev.rows.map((r) => String(r.id) === det.id ? { ...r, sub: det.patch.status, cols: { ...r.cols, status: det.patch.status } } : r) }));
+    };
+    window.addEventListener(INST_EVT, h);
+    return () => window.removeEventListener(INST_EVT, h);
+  }, [obj.key]);
   useEffect(() => {
     let dead = false;
     setLoading(true);
@@ -985,8 +1001,19 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const [note, setNote] = useState('');
   const [triBusy, setTriBusy] = useState(false);
   const [triMsg, setTriMsg] = useState('');
+  const selfId = useRef(Math.random().toString(36).slice(2));
   useEffect(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
   useEffect(() => { if (d && d !== 'loading' && d.row) setStatus(String(d.row.status ?? '')); }, [d]);
+  // Drawer KHÁC (cùng record) sửa → đồng bộ d ở đây luôn (bỏ qua event do CHÍNH drawer này phát).
+  useEffect(() => {
+    const h = (e: Event) => {
+      const det = (e as CustomEvent).detail as { objKey: string; id: string; from: string; patch: { status?: string; noteAppend?: string } };
+      if (!det || det.objKey !== objKey || det.id !== String(id) || det.from === selfId.current) return;
+      setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, ...(det.patch.status != null ? { status: det.patch.status } : {}), ...(det.patch.noteAppend ? { notes: (p.row.notes ? String(p.row.notes) + '\n' : '') + '[studio] ' + det.patch.noteAppend } : {}) } } : p);
+    };
+    window.addEventListener(INST_EVT, h);
+    return () => window.removeEventListener(INST_EVT, h);
+  }, [objKey, id]);
   if (!obj) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
   if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy record #{id}.</div>;
@@ -1007,7 +1034,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
                   const ns = e.target.value; setTriBusy(true); setTriMsg('');
                   const r = await updateInstance('account', id, { status: ns });
                   setTriBusy(false);
-                  if (r.ok) { setStatus(ns); setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, status: ns } } : p); setTriMsg('✓ status → ' + ns); }
+                  if (r.ok) { setStatus(ns); setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, status: ns } } : p); emitInstUpdate(objKey, id, { status: ns }, selfId.current); setTriMsg('✓ status → ' + ns); }
                   else setTriMsg('✗ ' + (r.error || 'lỗi'));
                 }}>
                 {ACCOUNT_STATUS_C.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -1022,7 +1049,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
                   const n = note.trim(); if (!n) return; setTriBusy(true); setTriMsg('');
                   const r = await updateInstance(objKey, id, { noteAppend: n });
                   setTriBusy(false);
-                  if (r.ok) { setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, notes: (p.row.notes ? String(p.row.notes) + '\n' : '') + '[studio] ' + n } } : p); setNote(''); setTriMsg('✓ đã ghi chú'); }
+                  if (r.ok) { setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, notes: (p.row.notes ? String(p.row.notes) + '\n' : '') + '[studio] ' + n } } : p); emitInstUpdate(objKey, id, { noteAppend: n }, selfId.current); setNote(''); setTriMsg('✓ đã ghi chú'); }
                   else setTriMsg('✗ ' + (r.error || 'lỗi'));
                 }}>+ note</button>
             </div>

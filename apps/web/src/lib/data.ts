@@ -384,6 +384,8 @@ export interface AccountRow {
   browserProfileId: number | null;// optional: anti-detect browser fingerprint
   ownerUserId: number | null;     // member đang quản lý account (cho BulkAssign hiển thị "đã giao cho")
   persona: Record<string, string>; // pre-deployment signup data (dob, gender, city, etc.)
+  unreadMessages: number | null;   // account_stats.unread_messages — tin nhắn chưa đọc (ext quét lúc đã login)
+  unreadAt: string | null;         // account_stats.fetched_at — lần ext cập nhật stats gần nhất
 }
 
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
@@ -420,6 +422,8 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
         browserProfileId: (r as { browserProfileId?: number | null }).browserProfileId ?? null,
         ownerUserId: (r as { ownerUserId?: number | null }).ownerUserId ?? null,
         persona: ((r as { persona?: Record<string, string> }).persona) ?? {},
+        unreadMessages: ((): number | null => { const s = (r as { accountStats?: Record<string, unknown> }).accountStats; const v = s?.unread_messages; return typeof v === 'number' ? v : null; })(),
+        unreadAt: ((): string | null => { const s = (r as { accountStats?: Record<string, unknown> }).accountStats; const v = s?.fetched_at; return typeof v === 'string' ? v : null; })(),
       }));
     },
     [],

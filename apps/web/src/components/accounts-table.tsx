@@ -40,7 +40,7 @@ interface AccountSeedMetrics {
   lastSeededAt: number | null;
 }
 
-type SortKey = 'handle' | 'platform' | 'status' | 'cost' | 'briefs' | 'posts' | 'lastSeed';
+type SortKey = 'handle' | 'platform' | 'status' | 'cost' | 'briefs' | 'posts' | 'lastSeed' | 'unread';
 type SortDir = 'asc' | 'desc';
 
 const TH: React.CSSProperties = {
@@ -199,6 +199,7 @@ export function AccountsTable({
         case 'briefs': return (ma.briefs - mb.briefs) * mul;
         case 'posts': return (ma.posts - mb.posts) * mul;
         case 'lastSeed': return ((ma.lastSeededAt ?? 0) - (mb.lastSeededAt ?? 0)) * mul;
+        case 'unread': return ((a.unreadMessages ?? -1) - (b.unreadMessages ?? -1)) * mul;
         default: return 0;
       }
     });
@@ -274,6 +275,8 @@ export function AccountsTable({
                 <SortHead label="Account" k="handle" sort={sort} dir={dir} onSort={onSort} />
                 <SortHead label="Platform" k="platform" sort={sort} dir={dir} onSort={onSort} />
                 <SortHead label="Status" k="status" sort={sort} dir={dir} onSort={onSort} />
+                <SortHead label="✉" k="unread" sort={sort} dir={dir} onSort={onSort} align="center"
+                          title="Tin nhắn chưa đọc — ext tự quét khi account đang đăng nhập trên site. Sort để nổi account có inbox cần xử lý lên đầu." />
                 <th style={{ ...TH, textAlign: 'center' }} title="Warm-up checklist (done/total) — điều kiện đủ tuổi/karma global">Warmup</th>
                 <SortHead label="Briefs" k="briefs" sort={sort} dir={dir} onSort={onSort} align="center"
                           title="Số brief account này đang seed (distinct)" />
@@ -328,6 +331,17 @@ export function AccountsTable({
                     <td style={{ ...TD }}>
                       <Pill color={sm.color} label={sm.label} tone="soft" size="xs" mono uppercase
                             title={a.blockReason ? `${sm.hint}\n⚠ ${a.blockReason}` : sm.hint} />
+                    </td>
+                    {/* Unread messages (ext-scraped khi đã login) */}
+                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                      {a.unreadMessages && a.unreadMessages > 0 ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--warn)', fontWeight: 700 }}
+                              title={`✉ ${a.unreadMessages} tin nhắn chưa đọc${a.unreadAt ? `\nQuét lúc ${fmtAgoShort(new Date(a.unreadAt).getTime())} trước` : ''}`}>
+                          ✉ {a.unreadMessages}
+                        </span>
+                      ) : a.unreadMessages === 0 ? (
+                        <span style={{ color: 'var(--fg-4)' }} title={`Đã đọc hết${a.unreadAt ? ` · quét ${fmtAgoShort(new Date(a.unreadAt).getTime())} trước` : ''}`}>0</span>
+                      ) : <span style={{ color: 'var(--fg-4)' }} title="Chưa quét (ext chưa thấy account này đăng nhập)">—</span>}
                     </td>
                     {/* Warmup */}
                     <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10 }}>

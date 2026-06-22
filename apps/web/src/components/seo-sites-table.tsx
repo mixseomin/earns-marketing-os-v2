@@ -362,6 +362,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
         <GscDetailDrawer
           domain={openDomain}
           points={openPoints}
+          interactions={rows.find((r) => r.domain === openDomain)?.ga4_interactions_by ?? null}
           onClose={() => setOpenDomain(null)}
         />
       )}

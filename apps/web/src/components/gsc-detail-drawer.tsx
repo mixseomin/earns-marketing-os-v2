@@ -9,11 +9,13 @@ interface Props {
   domain: string;
   points: GscDailyPoint[];
   onClose: () => void;
+  /** GA4 interaction events (7d) per event name, for the breakdown section. */
+  interactions?: Record<string, number> | null;
 }
 
 type Range = 7 | 30 | 90;
 
-export function GscDetailDrawer({ domain, points, onClose }: Props) {
+export function GscDetailDrawer({ domain, points, onClose, interactions }: Props) {
   const [range, setRange] = useState<Range>(30);
   const [queries, setQueries] = useState<{ google: Q[]; bing: Q[] } | null>(null);
   const [qLoading, setQLoading] = useState(true);
@@ -103,6 +105,38 @@ export function GscDetailDrawer({ domain, points, onClose }: Props) {
 
         <div style={{ marginTop: 12, color: 'var(--fg-4)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
           impressions (cyan) · clicks (lime) · position right-axis (amber, lower=better)
+        </div>
+
+        {/* Interactions breakdown (GA4 custom events, 7d) */}
+        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <h3 style={{ fontSize: 13, fontFamily: 'var(--font-sans)', margin: '0 0 10px', fontWeight: 600 }}>
+            Interactions <span style={{ color: 'var(--fg-3)', fontWeight: 400, fontSize: 11, fontFamily: 'var(--font-mono)' }}>· GA4 events · last 7d</span>
+          </h3>
+          {interactions && Object.keys(interactions).length > 0 ? (() => {
+            const entries = Object.entries(interactions).sort((a, b) => b[1] - a[1]);
+            const max = entries[0][1] || 1;
+            const sum = entries.reduce((s, [, n]) => s + n, 0);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {entries.map(([name, n]) => (
+                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                    <span style={{ width: 160, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={name}>{name}</span>
+                    <div style={{ flex: 1, background: 'var(--bg-2)', borderRadius: 3, height: 14 }}>
+                      <div style={{ width: `${(n / max) * 100}%`, background: '#ec4899', height: '100%', borderRadius: 3, minWidth: 2 }} />
+                    </div>
+                    <span style={{ width: 60, textAlign: 'right', color: 'var(--fg-1)', fontWeight: 600 }}>{n.toLocaleString()}</span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 4, color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+                  total {sum.toLocaleString()}
+                </div>
+              </div>
+            );
+          })() : (
+            <div style={{ color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+              No interaction events in the last 7 days (site not instrumented, or no activity yet).
+            </div>
+          )}
         </div>
 
         {/* Top queries */}

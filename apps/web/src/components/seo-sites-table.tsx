@@ -15,6 +15,9 @@ interface RowData {
   // Live (GA4 realtime)
   ga4_active_5min?: number | null;
   ga4_active_30min?: number | null;
+  // Interactions (GA4 custom events, 7d)
+  ga4_interactions_7d?: number | null;
+  ga4_interactions_by?: Record<string, number> | null;
   // GSC group
   impressions_7d: number;
   clicks_7d: number;
@@ -46,8 +49,8 @@ interface Props {
   initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
-type ColGroup = 'live' | 'gsc' | 'adsense' | 'bing';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, gsc: true, adsense: true, bing: true };
+type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true };
 const STORAGE_KEY = 'seo-table-cols-v2';
 const COOKIE_KEY = 'seo_cols';
 
@@ -56,11 +59,12 @@ const COOKIE_KEY = 'seo_cols';
 // back to its group label.
 const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> = {
   live:    { fg: '#22c55e', bg: 'rgba(34,197,94,0.22)',  bgSoft: 'rgba(34,197,94,0.06)' },   // green = realtime
+  interactions: { fg: '#ec4899', bg: 'rgba(236,72,153,0.22)', bgSoft: 'rgba(236,72,153,0.06)' }, // pink = interactions
   gsc:     { fg: '#3c9bff', bg: 'rgba(60,155,255,0.22)', bgSoft: 'rgba(60,155,255,0.06)' },  // blue = Google
   adsense: { fg: '#ffb03c', bg: 'rgba(255,176,60,0.22)', bgSoft: 'rgba(255,176,60,0.06)' },  // amber = money
   bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
 };
-const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing' };
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing' };
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -126,6 +130,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalBing4xx = rows.reduce((s, r) => s + (r.bing_errors_4xx_30d ?? 0), 0);
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
   const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
+  const totalInteractions = rows.reduce((s, r) => s + (r.ga4_interactions_7d ?? 0), 0);
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
@@ -149,7 +154,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -180,6 +185,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('live')} title="GA4 Realtime: active users in the last 30 minutes">
                 <span className="live-text">30m</span>
               </th>
+            </>}
+            {cols.interactions && <>
+              <th style={headOf('interactions', true)} title="GA4 interaction events last 7 days: share, save, subscribe, calc_used, compare, command palette, location clicks + outbound clicks/downloads/forms. Hover a row for the per-event breakdown. Sites show 0 until their UI is instrumented.">Inter</th>
             </>}
             {cols.gsc && <>
               <th style={headOf('gsc', true)} title="GSC impressions last 7 days">Impr</th>
@@ -246,6 +254,14 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     {r.ga4_active_30min == null ? '—' : r.ga4_active_30min > 0 ? r.ga4_active_30min.toLocaleString() : '0'}
                   </td>
                 </>}
+                {cols.interactions && <>
+                  <td style={cellOf('interactions', true, { textAlign: 'right', ...tone((r.ga4_interactions_7d ?? 0) > 0), fontWeight: (r.ga4_interactions_7d ?? 0) > 0 ? 600 : 400 })}
+                    title={r.ga4_interactions_by && Object.keys(r.ga4_interactions_by).length
+                      ? Object.entries(r.ga4_interactions_by).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ')
+                      : 'No GA4 interaction events in last 7d (site not instrumented or no activity yet)'}>
+                    {r.ga4_interactions_7d == null ? '—' : r.ga4_interactions_7d > 0 ? r.ga4_interactions_7d.toLocaleString() : '0'}
+                  </td>
+                </>}
                 {cols.gsc && <>
                   <td style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
                   <td style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
@@ -308,6 +324,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             {cols.live && <>
               <td style={cellOf('live', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.live.fg })}>{totalLive5.toLocaleString()}</td>
               <td style={cellOf('live', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.live.fg })}>{totalLive30.toLocaleString()}</td>
+            </>}
+            {cols.interactions && <>
+              <td style={cellOf('interactions', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.interactions.fg })}>{totalInteractions.toLocaleString()}</td>
             </>}
             {cols.gsc && <>
               <td style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>

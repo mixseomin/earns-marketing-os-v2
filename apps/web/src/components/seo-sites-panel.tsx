@@ -5,6 +5,7 @@ import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
 import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
+import { loadGa4Events, pickGa4Events } from '@/lib/projects/ga4-events';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
@@ -90,7 +91,7 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
 // Pull the user's column-group preference out of cookies so the table SSR
 // renders with the right set hidden from frame one. Matches what the client
 // component would do on hydration — no FOUC, no layout jump on F5.
-async function readInitialCols(): Promise<Partial<Record<'live' | 'gsc' | 'adsense' | 'bing', boolean>>> {
+async function readInitialCols(): Promise<Partial<Record<'live' | 'interactions' | 'gsc' | 'adsense' | 'bing', boolean>>> {
   try {
     const raw = (await cookies()).get('seo_cols')?.value;
     if (!raw) return {};
@@ -108,6 +109,7 @@ export async function SeoSitesPanel() {
   const tsPayload = await loadGscTimeSeries();
   const ga4Payload = await loadGa4Properties();
   const ga4Realtime = await loadGa4Realtime();
+  const ga4Events = await loadGa4Events();
   const bingPayload = await loadBingStats();
   const adsenseByDomain = await loadAdsenseByDomain(7);
   const initialCols = await readInitialCols();
@@ -155,6 +157,7 @@ export async function SeoSitesPanel() {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
           const bing = pickBing(bingPayload, r.domain);
           const rt = pickGa4Realtime(ga4Realtime, r.domain);
+          const ev = pickGa4Events(ga4Events, r.domain);
           return {
             domain: r.domain,
             emoji: meta.emoji,
@@ -162,6 +165,8 @@ export async function SeoSitesPanel() {
             ga4PropertyId: pickGa4(ga4Payload, r.domain),
             ga4_active_5min: rt?.last5min ?? null,
             ga4_active_30min: rt?.last30min ?? null,
+            ga4_interactions_7d: ev?.total ?? null,
+            ga4_interactions_by: ev?.byEvent ?? null,
             impressions_7d: r.stats.impressions_7d,
             clicks_7d: r.stats.clicks_7d,
             avg_position_7d: r.stats.avg_position_7d,

@@ -194,7 +194,16 @@ export async function createContentPillar(
       input.tribeIds.map((tribeId) => ({ pillarId: newId, tribeId })),
     ).onConflictDoNothing();
   }
+  await flipBoardScoresStale(projectId);
   return { ok: true, id: newId };
+}
+
+// Seeding Radar: a pillar change invalidates this project's board topic-fit scores (lazy
+// re-score on next /boards/score). Cheap UPDATE, no LLM. Guarded: board_project_score may
+// be absent on environments behind migration 0107.
+async function flipBoardScoresStale(projectId: string) {
+  const db = getDb(); if (!db) return;
+  try { await db.execute(sql`UPDATE board_project_score SET stale = true, updated_at = now() WHERE project_id = ${projectId} AND tenant_id = 'self' AND stale = false`); } catch { /* table absent pre-mig */ }
 }
 
 export async function updateContentPillar(
@@ -229,6 +238,7 @@ export async function updateContentPillar(
       ).onConflictDoNothing();
     }
   }
+  await flipBoardScoresStale(projectId);
   return { ok: true };
 }
 
@@ -239,6 +249,7 @@ export async function deleteContentPillar(
   await db.delete(contentPillars)
     .where(and(eq(contentPillars.id, id), eq(contentPillars.projectId, projectId)));
   // Cards.pillar_id → SET NULL (FK ON DELETE), không cần manual
+  await flipBoardScoresStale(projectId);
   return { ok: true };
 }
 

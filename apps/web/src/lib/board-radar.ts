@@ -149,7 +149,12 @@ export function composeTier(opts: { topicTier: string | null; overlay: Overlay; 
   const { topicTier, overlay, guardrail } = opts;
   if (guardrail) return { tier: 'SKIP', reason: guardrail };
   if (overlay.hasBrief && overlay.joinStatus === 'joined' && overlay.approachReady) return { tier: 'GO', reason: 'account đã join + có chiến lược → đăng ngay' };
-  if (overlay.hasHabitat) return { tier: 'ADD', reason: overlay.hasBrief ? 'có brief, chưa join xong' : 'community đã track, account chưa có brief' };
+  if (overlay.hasHabitat) {
+    const reason = !overlay.hasBrief ? 'community đã track, account chưa có brief'
+      : overlay.joinStatus === 'joined' ? 'account đã join, chưa có chiến lược (approach) → soạn brief'
+      : `có brief (join: ${overlay.joinStatus || 'not_joined'}) → vào nhóm`;
+    return { tier: 'ADD', reason };
+  }
   if (topicTier === 'TRACK') return { tier: 'TRACK', reason: 'fit cao, project chưa adopt — nên track' };
   return { tier: 'NONE', reason: '' };
 }

@@ -1002,6 +1002,58 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
 
 // full detail of one real row — opened as a cascade layer from InstanceBrowser.
 // Modeled attrs (FK chips + live value) + mọi cột còn lại + consistency check.
+// One key→value row in an instance drawer. Long/multiline values truncate to 1 line with "▸ xem";
+// click expands to a full wrapped, scrollable, selectable block + copy (fixes drawer field cut-off).
+const miniBtn: CSSProperties = { fontSize: 10, padding: '2px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-3)', color: 'var(--fg-1)', cursor: 'pointer', flexShrink: 0 };
+function FieldRow({ name, nameColor = 'var(--fg-0)', chips, value, link, zebra }: {
+  name: string; nameColor?: string; chips?: ReactNode; value: unknown;
+  link?: { label: string; onOpen: () => void }; zebra: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const has = value != null && value !== '';
+  const full = !has ? '' : (typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value));
+  const oneLine = full.replace(/\s+/g, ' ').trim();
+  const long = !link && has && (oneLine.length > 56 || full.includes('\n'));
+  const bg = zebra % 2 ? 'var(--bg-1)' : 'var(--bg-2)';
+  const nameBlock = (
+    <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: nameColor }}>{name}</span>{chips}
+    </div>
+  );
+  const copy = async () => { try { await navigator.clipboard.writeText(full); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch { /* */ } };
+  if (long && open) {
+    return (
+      <div style={{ padding: '6px 10px', background: bg, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          {nameBlock}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', alignSelf: 'center' }}>{full.length}</span>
+            <button type="button" onClick={copy} style={miniBtn}>{copied ? '✓ copied' : '⧉ copy'}</button>
+            <button type="button" onClick={() => setOpen(false)} style={miniBtn}>▾ thu gọn</button>
+          </div>
+        </div>
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, color: 'var(--fg-0)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, maxHeight: 360, overflow: 'auto', userSelect: 'text' }}>{full}</pre>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: bg, alignItems: 'center' }}>
+      {nameBlock}
+      {link ? (
+        <span role="link" title={`Mở ${link.label}`} onClick={link.onOpen}
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fmtVal(value)}</span>
+      ) : long ? (
+        <span onClick={() => setOpen(true)} title="bấm xem đầy đủ"
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ok)', cursor: 'pointer', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+          {oneLine.slice(0, 50)}… <span style={{ color: 'var(--accent)' }}>▸ xem</span>
+        </span>
+      ) : (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: has ? 'var(--ok)' : 'var(--fg-4)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{has ? full : '—'}</span>
+      )}
+    </div>
+  );
+}
 // Project drawer — editable Seeding-Radar relevance signals (key_messages/seo_keywords/forbidden/
 // languages live on content_pillars). Narrow, sanctioned write like the account-status triage:
 // edit here → updateContentPillar flips board_project_score.stale → boards re-score with new signals.
@@ -1154,24 +1206,9 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
             const fkObj = a.fk ? OBJ_BY_KEY[a.fk] : null;
             const canOpen = !!(fkObj?.table && has);   // FK trỏ tới node có bảng + có value → mở được
             return (
-              <div key={a.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'center' }}>
-                <div style={{ minWidth: 0 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--fg-0)' }}>{a.name}</span>
-                  {a.pk && <span style={chip('var(--accent)')}>PK</span>}
-                  {a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}
-                </div>
-                {canOpen ? (
-                  <span role="link" title={`Mở ${fkObj!.label} #${val}`}
-                    onClick={() => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val), label: String(val) } })}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {fmtVal(val)}
-                  </span>
-                ) : (
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: has ? 'var(--ok)' : 'var(--fg-4)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {has ? fmtVal(val) : '—'}
-                  </span>
-                )}
-              </div>
+              <FieldRow key={a.name} zebra={i} value={val} name={a.name}
+                chips={<>{a.pk && <span style={chip('var(--accent)')}>PK</span>}{a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}</>}
+                link={canOpen ? { label: `${fkObj!.label} #${val}`, onOpen: () => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val), label: String(val) } }) } : undefined} />
             );
           })}
         </div>
@@ -1180,10 +1217,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
         <Section title="Other columns" sub={`// ${others.length} ngoài model`}>
           <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             {others.map((k, i) => (
-              <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '5px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)' }}>{k}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-1)', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fmtVal(d.row[k])}</span>
-              </div>
+              <FieldRow key={k} zebra={i} value={d.row[k]} name={k} nameColor="var(--fg-2)" />
             ))}
           </div>
         </Section>

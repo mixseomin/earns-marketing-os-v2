@@ -27,6 +27,7 @@ import {
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
   type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
 } from '@/lib/actions/architecture';
+import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
 type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
@@ -1000,6 +1001,53 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
 
 // full detail of one real row — opened as a cascade layer from InstanceBrowser.
 // Modeled attrs (FK chips + live value) + mọi cột còn lại + consistency check.
+// Project drawer — editable Seeding-Radar relevance signals (key_messages/seo_keywords/forbidden/
+// languages live on content_pillars). Narrow, sanctioned write like the account-status triage:
+// edit here → updateContentPillar flips board_project_score.stale → boards re-score with new signals.
+function ProjectRelevanceEditor({ projectId }: { projectId: string }) {
+  const [pillars, setPillars] = useState<ContentPillarRow[] | null>(null);
+  useEffect(() => { let dead = false; listContentPillars(projectId).then((r) => { if (!dead) setPillars(r); }).catch(() => { if (!dead) setPillars([]); }); return () => { dead = true; }; }, [projectId]);
+  return (
+    <Section title="Relevance · Seeding Radar" sub="// thông số chấm board (② Project cần gì) — sửa + lưu thẳng DB">
+      {pillars == null ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>loading…</div>
+        : !pillars.length ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có content pillar → chưa chấm được. <a href={`/p/${projectId}/pillars`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>↗ Tạo pillar</a></div>
+        : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{pillars.map((p) => <PillarRelevanceRow key={p.id} projectId={projectId} pillar={p} />)}</div>}
+    </Section>
+  );
+}
+function PillarRelevanceRow({ projectId, pillar }: { projectId: string; pillar: ContentPillarRow }) {
+  const j = (xs?: string[]) => (xs || []).join(', ');
+  const [km, setKm] = useState(j(pillar.keyMessages));
+  const [kw, setKw] = useState(j(pillar.seoKeywords));
+  const [fb, setFb] = useState(j(pillar.forbiddenMsgs));
+  const [lg, setLg] = useState(j(pillar.languages));
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+  const fCss: CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-1)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 5, padding: '4px 7px', fontSize: 11.5, fontFamily: 'var(--font-mono)' };
+  const lCss: CSSProperties = { fontSize: 10, color: 'var(--fg-3)', marginBottom: 2, display: 'block' };
+  const field = (lbl: string, v: string, set: (s: string) => void) => (
+    <div><label style={lCss}>{lbl}</label><input value={v} onChange={(e) => set(e.target.value)} style={fCss} /></div>
+  );
+  const save = async () => {
+    setBusy(true); setMsg('');
+    const r = await updateContentPillar(projectId, pillar.id, { keyMessages: split(km), seoKeywords: split(kw), forbiddenMsgs: split(fb), languages: split(lg) });
+    setBusy(false); setMsg(r.ok ? '✓ đã lưu — board sẽ re-score' : ('✗ ' + (r.error || 'lỗi')));
+  };
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 8, background: 'var(--bg-2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--fg-0)' }}>{pillar.name || `pillar #${pillar.id}`}</div>
+      {field('Bán/nói về (key messages · phẩy)', km, setKm)}
+      {field('Keywords (· phẩy)', kw, setKw)}
+      {field('Tránh (forbidden · phẩy)', fb, setFb)}
+      {field('Ngôn ngữ (· phẩy)', lg, setLg)}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button type="button" disabled={busy} onClick={save} style={{ ...btnStyle, opacity: busy ? 0.5 : 1 }}>✓ Lưu</button>
+        {msg && <span style={{ fontSize: 10.5, color: msg.startsWith('✓') ? 'var(--ok)' : 'var(--bad)' }}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
 function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const obj = OBJ_BY_KEY[objKey];
   const push = useContext(SubCtx);   // FK value click → mở entity được tham chiếu ở lớp kế
@@ -1080,6 +1128,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
           {triMsg && <div style={{ fontSize: 10.5, color: triMsg.startsWith('✓') ? 'var(--ok)' : 'var(--bad)', marginTop: 5 }}>{triMsg}</div>}
         </Section>
       )}
+      {objKey === 'project' && <ProjectRelevanceEditor projectId={id} />}
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {obj.attrs.map((a, i) => {

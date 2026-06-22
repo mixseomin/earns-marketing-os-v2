@@ -158,6 +158,38 @@ export async function browseInstances(
   }
 }
 
+// ── instance mutation (narrow, sanctioned exception to the read-only map) ─────
+// Studio triage: đổi status + append note cho 1 account ngay trên /architecture.
+const ACCOUNT_STATUS = ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'];
+export async function updateInstance(
+  objectKey: string, id: string, patch: { status?: string; noteAppend?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table) return { ok: false, error: 'unknown object' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  const cols = await tableColumns(obj.table);
+  const sets: ReturnType<typeof sql>[] = [];
+  if (patch.status != null) {
+    if (objectKey !== 'account') return { ok: false, error: 'status edit chỉ hỗ trợ account' };
+    if (!ACCOUNT_STATUS.includes(patch.status)) return { ok: false, error: `status không hợp lệ (${ACCOUNT_STATUS.join('|')})` };
+    if (!cols.has('status')) return { ok: false, error: 'no status column' };
+    sets.push(sql`status = ${patch.status}`);
+  }
+  if (patch.noteAppend != null && patch.noteAppend.trim()) {
+    if (!cols.has('notes')) return { ok: false, error: 'no notes column' };
+    const line = `[studio ${new Date().toISOString().slice(0, 10)}] ${patch.noteAppend.trim()}`;
+    sets.push(sql`notes = case when coalesce(notes, '') = '' then ${line} else notes || E'\n' || ${line} end`);
+  }
+  if (!sets.length) return { ok: false, error: 'nothing to update' };
+  if (cols.has('updated_at')) sets.push(sql`updated_at = now()`);
+  const pk = ident(obj.pk || 'id');
+  try {
+    await db.execute(sql`UPDATE ${sql.raw(ident(obj.table))} SET ${sql.join(sets, sql`, `)} WHERE ${sql.raw(pk)}::text = ${id}`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
+}
+
 // ── instance detail + consistency checks ─────────────────────────────────────
 export async function getInstance(objectKey: string, id: string): Promise<InstanceDetail | null> {
   const obj = BINDABLE_TABLES[objectKey];

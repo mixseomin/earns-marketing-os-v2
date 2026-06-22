@@ -19,7 +19,7 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
-  listInstances, browseInstances, getInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   listIdentities, getIdentity, updateIdentity,
@@ -775,6 +775,9 @@ function badgeColor(v: string): string {
   if (['limited', 'pending', 'hold', 'draft', 'todo', 'creating', 'queued', 'review'].includes(s)) return 'var(--warn)';
   return 'var(--fg-2)';
 }
+const ACCOUNT_STATUS_C = ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'];
+const PENDING_C = new Set(['creating', 'todo', 'warming']);   // pending = chưa active → stale-check áp dụng
+const STALE_DAYS = 7;
 
 // project cell: 1st project = link; the "+N" opens a popover listing EVERY project,
 // each clickable → mở drawer của project đó (mọi ref mở được phải mở ngay).
@@ -915,9 +918,15 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
         </div>
         {data.rows.length === 0 ? (
           <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '12px 10px', textAlign: 'center' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
-        ) : data.rows.map((it, i) => (
-          <button key={it.id} onClick={() => open(it)} title="Mở chi tiết item"
-            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '6px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+        ) : data.rows.map((it, i) => {
+          // stale: account pending (creating/todo/warming) + created >7d → viền đỏ trái + status đỏ.
+          const sv = String(it.cols['status'] ?? it.sub ?? '').toLowerCase();
+          const cAt = it.cols['created_at'];
+          const ageDays = cAt ? (Date.now() - new Date(cAt as string | number | Date).getTime()) / 86400000 : 0;
+          const stale = obj.key === 'account' && PENDING_C.has(sv) && ageDays > STALE_DAYS;
+          return (
+          <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : 'Mở chi tiết item'}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: stale ? '3px solid var(--bad)' : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
@@ -930,9 +939,11 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                     : dc.kind === 'link' && dc.link ? (
                       <span role="link" onClick={(e) => openLinked(e, dc.link!, String(v))}
                         style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted' }}>{String(v)}</span>
-                    ) : dc.kind === 'badge' ? (
-                      <span style={{ color: badgeColor(String(v)), border: `1px solid ${badgeColor(String(v))}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5 }}>{String(v)}</span>
-                    ) : dc.kind === 'time' ? (
+                    ) : dc.kind === 'badge' ? (() => {
+                      const hot = stale && dc.key === 'status';
+                      const sc = hot ? 'var(--bad)' : badgeColor(String(v));
+                      return <span style={{ color: sc, border: `1px solid ${sc}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5, fontWeight: hot ? 800 : 400 }}>{String(v)}{hot ? ' ⚠' : ''}</span>;
+                    })() : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
@@ -946,7 +957,8 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
             })}
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'right' }}>#{it.id}</span>
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* pager */}
@@ -969,15 +981,55 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const obj = OBJ_BY_KEY[objKey];
   const push = useContext(SubCtx);   // FK value click → mở entity được tham chiếu ở lớp kế
   const [d, setD] = useState<{ row: Record<string, unknown>; issues: Issue[] } | null | 'loading'>('loading');
+  const [status, setStatus] = useState('');
+  const [note, setNote] = useState('');
+  const [triBusy, setTriBusy] = useState(false);
+  const [triMsg, setTriMsg] = useState('');
   useEffect(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
+  useEffect(() => { if (d && d !== 'loading' && d.row) setStatus(String(d.row.status ?? '')); }, [d]);
   if (!obj) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
   if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy record #{id}.</div>;
   const worst = d.issues.some((i) => i.level === 'error') ? 'error' : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok';
   const mapped = new Set(obj.attrs.map((a) => a.col).filter(Boolean) as string[]);
   const others = Object.keys(d.row).filter((k) => !mapped.has(k));
+  const hasNotes = 'notes' in d.row;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* TRIAGE — đổi status + ghi chú nhanh (lưu thẳng DB). Account-only cho status. */}
+      {(objKey === 'account' || hasNotes) && (
+        <Section title="Triage" sub="// đổi status · ghi chú — lưu thẳng DB">
+          {objKey === 'account' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)', width: 48 }}>status</span>
+              <select value={status} disabled={triBusy} style={{ ...selStyle, flex: 1 }}
+                onChange={async (e) => {
+                  const ns = e.target.value; setTriBusy(true); setTriMsg('');
+                  const r = await updateInstance('account', id, { status: ns });
+                  setTriBusy(false);
+                  if (r.ok) { setStatus(ns); setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, status: ns } } : p); setTriMsg('✓ status → ' + ns); }
+                  else setTriMsg('✗ ' + (r.error || 'lỗi'));
+                }}>
+                {ACCOUNT_STATUS_C.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+          {hasNotes && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ghi chú nhanh…" style={{ ...selStyle, flex: 1 }} />
+              <button type="button" disabled={triBusy || !note.trim()} style={{ ...btnStyle, opacity: (!note.trim() || triBusy) ? 0.5 : 1 }}
+                onClick={async () => {
+                  const n = note.trim(); if (!n) return; setTriBusy(true); setTriMsg('');
+                  const r = await updateInstance(objKey, id, { noteAppend: n });
+                  setTriBusy(false);
+                  if (r.ok) { setD((p) => (p && p !== 'loading') ? { ...p, row: { ...p.row, notes: (p.row.notes ? String(p.row.notes) + '\n' : '') + '[studio] ' + n } } : p); setNote(''); setTriMsg('✓ đã ghi chú'); }
+                  else setTriMsg('✗ ' + (r.error || 'lỗi'));
+                }}>+ note</button>
+            </div>
+          )}
+          {triMsg && <div style={{ fontSize: 10.5, color: triMsg.startsWith('✓') ? 'var(--ok)' : 'var(--bad)', marginTop: 5 }}>{triMsg}</div>}
+        </Section>
+      )}
       <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {obj.attrs.map((a, i) => {

@@ -265,7 +265,7 @@ type SubRoute =
   | { t: 'uxflow'; id: number }
   | { t: 'objpeek'; objKey: string }
   | { t: 'identity'; id: number }
-  | { t: 'inst'; objKey: string; id: string };
+  | { t: 'inst'; objKey: string; id: string; label?: string };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
 const CASCADE_STEP = 240; // ≈ 1/3 of a standard 720 panel
@@ -282,7 +282,7 @@ function renderRoute(r: SubRoute): SubContent {
     case 'uxflow': return { title: `flow #${r.id}`, sub: 'need→action steps', body: <UxFlowDetail id={r.id} />, route: r };
     case 'objpeek': return { title: OBJ_BY_KEY[r.objKey]?.label || r.objKey, sub: 'entity spec (peek)', body: <ObjPeek objKey={r.objKey} />, route: r };
     case 'identity': return { title: `identity #${r.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={r.id} />, route: r };
-    case 'inst': return { title: `#${r.id}`, sub: `${OBJ_BY_KEY[r.objKey]?.label || r.objKey} · instance`, body: <InstanceDetail objKey={r.objKey} id={r.id} />, route: r };
+    case 'inst': return { title: r.label || `#${r.id}`, sub: `${OBJ_BY_KEY[r.objKey]?.label || r.objKey} · #${r.id}`, body: <InstanceDetail objKey={r.objKey} id={r.id} />, route: r };
   }
 }
 function encodeStack(stack: SubContent[]): string {
@@ -885,13 +885,13 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
   const open = (it: InstanceRef) => openSub({
     title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
-    body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id },
+    body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id, label: it.label },
   });
   const openLinked = (e: React.MouseEvent, objKey: string, id: string) => {
     e.stopPropagation();   // ko trigger row click (mở account); chỉ mở drawer của entity được link
-    openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id } });
+    openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id, label: id } });
   };
-  const openProj = (pid: string) => openSub({ title: projMap.get(pid) || pid, sub: OBJ_BY_KEY['project']?.label || 'Project', body: <InstanceDetail objKey="project" id={pid} />, route: { t: 'inst', objKey: 'project', id: pid } });
+  const openProj = (pid: string) => openSub({ title: projMap.get(pid) || pid, sub: OBJ_BY_KEY['project']?.label || 'Project', body: <InstanceDetail objKey="project" id={pid} />, route: { t: 'inst', objKey: 'project', id: pid, label: projMap.get(pid) || pid } });
 
   return (
     <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
@@ -1002,7 +1002,8 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const [triBusy, setTriBusy] = useState(false);
   const [triMsg, setTriMsg] = useState('');
   const selfId = useRef(Math.random().toString(36).slice(2));
-  useEffect(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
+  const load = useCallback(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
+  useEffect(() => load(), [load]);
   useEffect(() => { if (d && d !== 'loading' && d.row) setStatus(String(d.row.status ?? '')); }, [d]);
   // Drawer KHÁC (cùng record) sửa → đồng bộ d ở đây luôn (bỏ qua event do CHÍNH drawer này phát).
   useEffect(() => {
@@ -1016,7 +1017,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   }, [objKey, id]);
   if (!obj) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{objKey}: không có trong spec.</div>;
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
-  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy record #{id}.</div>;
+  if (!d) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không tìm thấy record #{id}. <button onClick={() => load()} style={{ ...btnStyle, marginLeft: 6, padding: '2px 8px' }}>↻ thử lại</button></div>;
   const worst = d.issues.some((i) => i.level === 'error') ? 'error' : d.issues.some((i) => i.level === 'warn') ? 'warn' : 'ok';
   const mapped = new Set(obj.attrs.map((a) => a.col).filter(Boolean) as string[]);
   const others = Object.keys(d.row).filter((k) => !mapped.has(k));
@@ -1073,7 +1074,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
                 </div>
                 {canOpen ? (
                   <span role="link" title={`Mở ${fkObj!.label} #${val}`}
-                    onClick={() => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val) } })}
+                    onClick={() => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val), label: String(val) } })}
                     style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {fmtVal(val)}
                   </span>

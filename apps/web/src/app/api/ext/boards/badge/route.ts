@@ -115,13 +115,18 @@ export async function GET(req: Request) {
 
   // project-side relevance factors (shared across boards) — panel shows read-only so the user
   // understands WHAT the board is being judged against. Only when explicitly requested (panel).
-  let pillar: { sellsAbout: string[]; keywords: string[]; avoid: string[]; languages: string[] } | null = null;
+  let pillar: { sellsAbout: string[]; keywords: string[]; avoid: string[]; languages: string[]; tribes: { name: string; who: string }[] } | null = null;
   if (withPillar) {
     const pr = (await db.execute(sql`SELECT key_messages, seo_keywords, forbidden_msgs, languages FROM content_pillars WHERE project_id = ${projectId} AND tenant_id = 'self'`)) as Array<Record<string, unknown>>;
-    if (pr.length) pillar = {
-      sellsAbout: dedup(pr.flatMap((x) => arr(x.key_messages))), keywords: dedup(pr.flatMap((x) => arr(x.seo_keywords))),
-      avoid: dedup(pr.flatMap((x) => arr(x.forbidden_msgs))), languages: dedup(pr.flatMap((x) => arr(x.languages))),
-    };
+    if (pr.length) {
+      // WHO the project targets — existing tribes (audience). Read-only here; edit at /p/<id>/tribes.
+      const tr = (await db.execute(sql`SELECT name, psychographic, signal FROM tribes WHERE project_id = ${projectId} AND tenant_id = 'self' ORDER BY id`)) as Array<Record<string, unknown>>;
+      pillar = {
+        sellsAbout: dedup(pr.flatMap((x) => arr(x.key_messages))), keywords: dedup(pr.flatMap((x) => arr(x.seo_keywords))),
+        avoid: dedup(pr.flatMap((x) => arr(x.forbidden_msgs))), languages: dedup(pr.flatMap((x) => arr(x.languages))),
+        tribes: tr.map((t) => ({ name: String(t.name ?? ''), who: String(t.psychographic || t.signal || '') })).filter((t) => t.name),
+      };
+    }
   }
 
   return okResponse({ badges, pillar });

@@ -6,24 +6,30 @@ import { getOpenAI, DEFAULT_MODEL } from './openai';
 import { getDb } from '@mos2/db';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
-export interface PillarContext { keyMessages: string[]; seoKeywords: string[]; forbiddenMsgs: string[]; languages: string[] }
+export interface TribeContext { name: string; psychographic: string; signal: string; lexicon: string[]; avoid: string[] }
+export interface PillarContext { keyMessages: string[]; seoKeywords: string[]; forbiddenMsgs: string[]; languages: string[]; tribes: TribeContext[] }
 export interface BoardContext { name: string; description: string; dominantTopics: string[]; forbiddenTopics: string[]; language: string; members: number }
 
 // ── shared context loaders (reused by /boards/score + /boards/approach — DRY) ──
 const asArr = (v: unknown): string[] => Array.isArray(v) ? v.map((x) => String(x)) : [];
-export interface PillarLoad { pillar: PillarContext; ids: string[]; status: string }
+export interface PillarLoad { pillar: PillarContext; ids: string[]; status: string; tribeIds: number[] }
 export async function loadPillarContext(db: Db, projectId: string): Promise<PillarLoad | null> {
   const rows = (await db.execute(sql`SELECT id, key_messages, seo_keywords, forbidden_msgs, languages, status FROM content_pillars WHERE project_id = ${projectId} AND tenant_id = 'self'`)) as Array<Record<string, unknown>>;
   if (!rows.length) return null;
+  // WHO the project targets — existing tribes (audience identity). Feeds audience-fit (psychographic
+  // + lexicon) into scoring alongside topic-fit. tribeIds → projectInputsHash (re-score on change).
+  const trows = (await db.execute(sql`SELECT id, name, psychographic, signal, lexicon, avoid FROM tribes WHERE project_id = ${projectId} AND tenant_id = 'self' ORDER BY id`)) as Array<Record<string, unknown>>;
   return {
     pillar: {
       keyMessages: rows.flatMap((p) => asArr(p.key_messages)),
       seoKeywords: rows.flatMap((p) => asArr(p.seo_keywords)),
       forbiddenMsgs: rows.flatMap((p) => asArr(p.forbidden_msgs)),
       languages: [...new Set(rows.flatMap((p) => asArr(p.languages)))],
+      tribes: trows.map((t) => ({ name: String(t.name ?? ''), psychographic: String(t.psychographic ?? ''), signal: String(t.signal ?? ''), lexicon: asArr(t.lexicon), avoid: asArr(t.avoid) })),
     },
     ids: rows.map((p) => String(p.id)).sort(),
     status: rows.map((p) => String(p.status ?? '')).join(','),
+    tribeIds: trows.map((t) => Number(t.id)).filter(Number.isFinite),
   };
 }
 // board topic signals = catalog-level (user-editable, override) → fall back to any adopting habitat.
@@ -90,10 +96,13 @@ export function forbiddenConflict(board: BoardContext, pillar: PillarContext): b
 export async function scoreBoardLLM(board: BoardContext, pillar: PillarContext, threshold: number, approach?: string): Promise<ScoreResult | null> {
   const ai = getOpenAI();
   if (!ai) return null;
-  const sys = 'You score how well a community board fits a marketing project for organic seeding. Output strict JSON {"fit": int 0-100, "reason": "one short sentence"}. fit = topic relevance + audience match; ignore account/posting mechanics. Be skeptical: generic/off-topic boards score low. IF an "approach" angle is provided, score fit ASSUMING the project uses exactly that angle to bridge to this board\'s audience authentically (e.g. using astrology to analyze celebrities on an entertainment board) — a strong bridge can raise an otherwise off-topic board; a weak/forced bridge should not. Explain in the reason whether the angle works.';
+  const sys = 'You score how well a community board fits a marketing project for organic seeding. Output strict JSON {"fit": int 0-100, "reason": "one short sentence"}. fit = topic relevance + AUDIENCE match; ignore account/posting mechanics. Be skeptical: generic/off-topic boards score low. Weigh the project\'s target audience (the "target_audience" tribes: psychographic + lexicon) — a board whose members match that audience scores higher even on adjacent topics; a board on-topic but full of the wrong audience scores lower. IF an "approach" angle is provided, score fit ASSUMING the project uses exactly that angle to bridge to this board\'s audience authentically (e.g. using astrology to analyze celebrities on an entertainment board) — a strong bridge can raise an otherwise off-topic board; a weak/forced bridge should not. Explain in the reason whether topic + audience + angle line up.';
   const usr = JSON.stringify({
     board: { name: board.name, description: board.description.slice(0, 600), topics: board.dominantTopics.slice(0, 20), language: board.language, members: board.members },
     project: { sells_about: pillar.keyMessages.slice(0, 20), keywords: pillar.seoKeywords.slice(0, 30), languages: pillar.languages, avoid: pillar.forbiddenMsgs.slice(0, 15) },
+    target_audience: pillar.tribes && pillar.tribes.length
+      ? pillar.tribes.slice(0, 8).map((t) => ({ tribe: t.name, who: t.psychographic || t.signal, lexicon: t.lexicon.slice(0, 12), avoid: t.avoid.slice(0, 8) }))
+      : undefined,
     approach: approach && approach.trim() ? approach.trim().slice(0, 400) : undefined,
   });
   try {
@@ -159,6 +168,7 @@ export async function suggestApproach(board: BoardContext, pillar: PillarContext
     board: { name: board.name, description: board.description.slice(0, 600), topics: board.dominantTopics.slice(0, 20) },
     recent_discussion: clean.length ? clean : undefined,
     project: { sells_about: pillar.keyMessages.slice(0, 20), keywords: pillar.seoKeywords.slice(0, 20), avoid: pillar.forbiddenMsgs.slice(0, 12) },
+    target_audience: pillar.tribes && pillar.tribes.length ? pillar.tribes.slice(0, 6).map((t) => ({ tribe: t.name, who: t.psychographic || t.signal })) : undefined,
   });
   try {
     const c = await ai.chat.completions.create({

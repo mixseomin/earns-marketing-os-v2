@@ -28,6 +28,7 @@ import {
   type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
+import { listTribesForProject } from '@/lib/actions/tribes-crud';
 import { adoptTemplate } from '@/lib/actions/platforms';
 
 type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
@@ -1006,12 +1007,28 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
 // edit here → updateContentPillar flips board_project_score.stale → boards re-score with new signals.
 function ProjectRelevanceEditor({ projectId }: { projectId: string }) {
   const [pillars, setPillars] = useState<ContentPillarRow[] | null>(null);
-  useEffect(() => { let dead = false; listContentPillars(projectId).then((r) => { if (!dead) setPillars(r); }).catch(() => { if (!dead) setPillars([]); }); return () => { dead = true; }; }, [projectId]);
+  const [tribes, setTribes] = useState<Array<{ id: number; name: string; psychographic: string }> | null>(null);
+  useEffect(() => {
+    let dead = false;
+    listContentPillars(projectId).then((r) => { if (!dead) setPillars(r); }).catch(() => { if (!dead) setPillars([]); });
+    listTribesForProject(projectId).then((r) => { if (!dead) setTribes(r.map((t) => ({ id: t.id, name: t.name, psychographic: t.psychographic }))); }).catch(() => { if (!dead) setTribes([]); });
+    return () => { dead = true; };
+  }, [projectId]);
   return (
     <Section title="Relevance · Seeding Radar" sub="// thông số chấm board (② Project cần gì) — sửa + lưu thẳng DB">
       {pillars == null ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>loading…</div>
         : !pillars.length ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có content pillar → chưa chấm được. <a href={`/p/${projectId}/pillars`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>↗ Tạo pillar</a></div>
         : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{pillars.map((p) => <PillarRelevanceRow key={p.id} projectId={projectId} pillar={p} />)}</div>}
+      {/* WHO (tribes) — cũng tham gia chấm audience-fit. Đọc-only ở đây; sửa ở trang tribes. */}
+      <div style={{ marginTop: 10, borderTop: '1px dashed var(--line)', paddingTop: 8 }}>
+        <div style={{ fontSize: 10.5, color: 'var(--fg-2)', marginBottom: 5 }}>
+          Nhóm đối tượng · audience (chấm cùng relevance)
+          <a href={`/p/${projectId}/tribes`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>↗ sửa</a>
+        </div>
+        {tribes == null ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>…</span>
+          : !tribes.length ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>chưa có tribe — board chấm theo topic thôi.</span>
+          : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{tribes.map((t) => <span key={t.id} title={t.psychographic} style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 999, background: 'var(--bg-2)', border: '1px solid #4c3a8a', color: '#c4b5fd' }}>{t.name}</span>)}</div>}
+      </div>
     </Section>
   );
 }

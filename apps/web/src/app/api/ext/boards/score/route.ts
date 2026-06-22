@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const pillar = pl.pillar;
   const sig: PillarSig = {
     ids: pl.ids, keyMessages: pillar.keyMessages, seoKeywords: pillar.seoKeywords, forbiddenMsgs: pillar.forbiddenMsgs,
-    languages: pillar.languages, status: pl.status, tribeIds: [], threshold: THRESHOLD,
+    languages: pillar.languages, status: pl.status, tribeIds: pl.tribeIds, threshold: THRESHOLD,
   };
   const projHash = projectInputsHash(sig);
   const boards = await loadBoardContexts(db, boardIds);

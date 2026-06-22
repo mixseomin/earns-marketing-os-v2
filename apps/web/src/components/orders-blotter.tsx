@@ -48,10 +48,24 @@ const usdOf = (t: StrategyTradeRow): number => {
   return isCryptoSym(t.symbol) ? (t.notional != null ? p / 100 * t.notional : 0) : p;
 };
 // hold in hours. Closed: entry->exit. Open: entry->now (broker clock for MT5, real UTC for crypto). See strategy-tests-table.
+// elapsed hours with full Sat/Sun removed for FX/index (markets closed weekends); crypto = 24/7, no subtraction.
+// ponytail: weekend-only — skips public holidays (rare, no per-market calendar). Add a holiday list if a holiday gap ever distorts a real result.
+const openHoursBetween = (startMs: number, endMs: number, skipWeekend: boolean): number => {
+  if (!skipWeekend || endMs <= startMs) return Math.max(0, endMs - startMs) / 3.6e6;
+  const DAY = 86400000; let ms = 0;
+  for (let t = startMs; t < endMs;) {
+    const day = new Date(t).getUTCDay();                       // 0=Sun, 6=Sat
+    const next = Math.min(Math.floor(t / DAY) * DAY + DAY, endMs);
+    if (day !== 0 && day !== 6) ms += next - t;
+    t = next;
+  }
+  return ms / 3.6e6;
+};
 const holdH = (t: StrategyTradeRow, brokerNowMs?: number | null) => {
   if (!t.entryTime) return null;
-  const end = t.exitTime ? Date.parse(t.exitTime) : (t.isOpen ? (isCryptoSym(t.symbol) ? Date.now() : (brokerNowMs ?? null)) : null);
-  return end == null ? null : (end - Date.parse(t.entryTime)) / 3.6e6;
+  const crypto = isCryptoSym(t.symbol);
+  const end = t.exitTime ? Date.parse(t.exitTime) : (t.isOpen ? (crypto ? Date.now() : (brokerNowMs ?? null)) : null);
+  return end == null ? null : openHoursBetween(Date.parse(t.entryTime), end, !crypto);
 };
 
 const cell: React.CSSProperties = { padding: '4px 10px', whiteSpace: 'nowrap', fontSize: 11.5 };

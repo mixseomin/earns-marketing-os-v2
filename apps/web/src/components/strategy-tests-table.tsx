@@ -142,10 +142,23 @@ const fmtCagr = (n: number): string => {
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 // hold in hours. For closed trades: entry->exit (same time basis, tz cancels). For OPEN: entry->now, where "now" is the
 // broker clock (brokerNowMs, same basis as MT5 entry_time) for MT5, or real UTC for crypto whose entry_time is stored in UTC.
-const holdH = (a: string | null, b: string | null, nowMs?: number | null) => {
+// elapsed hours with full Sat/Sun removed for FX/index (closed weekends); crypto = 24/7, no subtraction.
+// ponytail: weekend-only — skips public holidays (rare, no per-market calendar).
+const openHoursBetween = (startMs: number, endMs: number, skipWeekend: boolean): number => {
+  if (!skipWeekend || endMs <= startMs) return Math.max(0, endMs - startMs) / 3.6e6;
+  const DAY = 86400000; let ms = 0;
+  for (let t = startMs; t < endMs;) {
+    const day = new Date(t).getUTCDay();
+    const next = Math.min(Math.floor(t / DAY) * DAY + DAY, endMs);
+    if (day !== 0 && day !== 6) ms += next - t;
+    t = next;
+  }
+  return ms / 3.6e6;
+};
+const holdH = (a: string | null, b: string | null, nowMs?: number | null, isCrypto = false) => {
   if (!a) return null;
   const end = b ? Date.parse(b) : (nowMs != null ? nowMs : null);
-  return end == null ? null : (end - Date.parse(a)) / 3.6e6;
+  return end == null ? null : openHoursBetween(Date.parse(a), end, !isCrypto);
 };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 function Metric({ label, v, color }: { label: string; v: string | number; color?: string }) {
@@ -190,7 +203,7 @@ function TradesList({ trades, brokerNowMs }: { trades: StrategyTradeRow[]; broke
         <tbody>
           {rows.map((t, i) => {
             const nowMs = t.isOpen ? (isCryptoSym(t.symbol) ? Date.now() : brokerNowMs) : null;
-            const h = holdH(t.entryTime, t.exitTime, nowMs); const p = t.profit == null ? null : Number(t.profit);
+            const h = holdH(t.entryTime, t.exitTime, nowMs, isCryptoSym(t.symbol)); const p = t.profit == null ? null : Number(t.profit);
             const crypto = isCryptoSym(t.symbol);
             const usd = p == null ? null : (crypto ? (t.notional != null ? p / 100 * t.notional : null) : p);
             const pct = usd != null && t.notional ? usd / t.notional * 100 : null;

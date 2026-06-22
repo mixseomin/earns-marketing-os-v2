@@ -852,6 +852,11 @@ export const habitats = pgTable(
     // 0077: habitat own brand mình (Discord server own, FB group, subreddit user mod)
     // vs external community. UI hiển thị 👑 + AI prompt có thể đổi tone.
     isOwn: boolean('is_own').notNull().default(false),
+    // 0107 Seeding Radar: link tới platform_boards catalog (COMMUNITY-grain = đơn vị join 1
+    // lần/forum). AUTHORITATIVE khi set — resolve/match key theo board_id, name demoted to
+    // display fallback. Nullable VĨNH VIỄN (luôn có habitat chưa map board). FK SET NULL: xoá
+    // catalog board KHÔNG wipe habitat/brief/card. Xem decision 2026-06-22-seeding-radar.
+    boardId: bigint('board_id', { mode: 'number' }).references(() => platformBoards.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -859,6 +864,7 @@ export const habitats = pgTable(
     index('habitats_tenant_idx').on(t.tenantId),
     index('habitats_tribe_idx').on(t.tribeId),
     index('habitats_project_idx').on(t.projectId),
+    index('habitats_board_idx').on(t.boardId),
   ],
 );
 
@@ -916,10 +922,90 @@ export const habitatChannels = pgTable(
     // 0080: channel-level language override (vd Discord multi-region server).
     // Empty = kế thừa habitat.language.
     language: text('language').notNull().default(''),
+    // 0107 Seeding Radar: link tới platform_boards catalog (POST-TARGET-grain = chỗ đăng bài:
+    // Discord channel / forum subforum). Khác habitats.board_id (community-grain). card.channel_id
+    // = bài đăng vào board nào. Nullable. FK SET NULL. Xem decision 2026-06-22-seeding-radar.
+    boardId: bigint('board_id', { mode: 'number' }).references(() => platformBoards.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('habitat_channels_habitat_idx').on(t.habitatId)],
+  (t) => [
+    index('habitat_channels_habitat_idx').on(t.habitatId),
+    index('habitat_channels_board_idx').on(t.boardId),
+  ],
+);
+
+// ── platform_boards (mig 0107) — SHARED board catalog theo platform ───────
+// Seeding Radar Layer 1. 1 row / board thật, dùng chung MỌI project trong tenant.
+// 2 grain phân biệt qua parent_board_id: community (subreddit/server/forum = join unit)
+// và post-target (subforum/Discord channel = chỗ đăng). Identity = external_id engine-aware
+// (reuse /resolve discriminator), KHÔNG phải name. THIN: chỉ platform-truth chậm đổi —
+// discovery (ext board-extractor / habitats-ensure) ghi 1 LẦN. 1 writer/field: board sở hữu
+// members/desc/url/parent; habitat giữ override project. Xem decision 2026-06-22-seeding-radar.
+export const platformBoards = pgTable(
+  'platform_boards',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    platformKey: text('platform_key').references(() => platforms.key, { onDelete: 'set null' }),
+    technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
+    // Danh tính engine-aware (subreddit slug / Discord guild_id / forum slug.id) — discriminator
+    // y như /resolve extract. NULL cho custom forum chưa resolve (Phase 2 fill); dedup fallback theo url.
+    externalId: text('external_id'),
+    url: text('url'),
+    name: text('name').notNull(),                          // display fallback only (KHÔNG join key khi board_id set)
+    fullPath: text('full_path'),                            // XenForo/phpBB 'Forum > Subforum' disambiguation
+    // Hierarchy community↔post-target. SHIP nullable + UNUSED tới khi extractor emit breadcrumb chain.
+    parentBoardId: bigint('parent_board_id', { mode: 'number' }),
+    description: text('description').notNull().default(''),
+    members: integer('members').notNull().default(0),
+    privacy: text('privacy').notNull().default(''),         // public|restricted|private (gate server-side trước khi trả ext)
+    rawMeta: jsonb('raw_meta').notNull().default({}),
+    firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('platform_boards_tenant_idx').on(t.tenantId),
+    index('platform_boards_platform_idx').on(t.platformKey),
+    index('platform_boards_parent_idx').on(t.parentBoardId),
+    // Primary natural key (NULLs distinct → custom forum rơi xuống partial url-unique ở migration SQL).
+    uniqueIndex('platform_boards_ext_uq').on(t.tenantId, t.platformKey, t.externalId),
+  ],
+);
+
+// ── board_project_score (mig 0107) — fit topic board×project, ACCOUNT-FREE ─
+// Seeding Radar Layer 2. LLM topic-fit board vs pillar project (0-100 + reason + topic_tier).
+// HARD INVARIANT: KHÔNG cột nào ref platform_accounts; scorer KHÔNG nhận account arg → đổi account
+// KHÔNG re-score (account-poison cache = phá guarantee). Dual inputs_hash (project|board) +
+// schema_version để invalidate; stale-while-revalidate + DAILY_BUDGET cap (copy ai-suggestions).
+export const boardProjectScore = pgTable(
+  'board_project_score',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    boardId: bigint('board_id', { mode: 'number' }).notNull().references(() => platformBoards.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    fit: integer('fit').notNull(),                          // 0-100 topic fit ONLY (account-free)
+    topicTier: text('topic_tier').notNull(),                // TRACK-threshold tier (KHÔNG mang tín hiệu account)
+    reason: text('reason').notNull().default(''),           // scoring rationale (audit trail)
+    // sha256 pillar: id+keyMessages+seoKeywords+forbiddenMsgs+languages+status+tribeIds+threshold.
+    projectInputsHash: text('project_inputs_hash').notNull(),
+    // sha256 board signature: dominant_topics+forbidden_topics+description+members-bucket+language.
+    boardInputsHash: text('board_inputs_hash').notNull(),
+    schemaVersion: integer('schema_version').notNull().default(1),  // bump = mass-invalidate đổi prompt-shape
+    model: text('model').notNull().default(''),
+    stale: boolean('stale').notNull().default(false),
+    scoredAt: timestamp('scored_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('board_project_score_uq').on(t.tenantId, t.boardId, t.projectId),
+    index('board_project_score_project_idx').on(t.projectId),
+    index('board_project_score_stale_idx').on(t.stale),
+  ],
 );
 
 // ── content_pillars (macro content positioning per project) ─────────

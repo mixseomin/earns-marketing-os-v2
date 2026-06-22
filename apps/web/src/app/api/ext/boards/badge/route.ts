@@ -92,7 +92,7 @@ export async function GET(req: Request) {
       key: input, name: r.name != null ? String(r.name) : null, url: r.url != null ? String(r.url) : null,
       boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
       hasHabitat: overlay.hasHabitat, hasBrief: overlay.hasBrief, joinStatus: overlay.joinStatus,
-      reason: displayReason, fit: fit ?? null, members: numOr(r.members) ?? 0,
+      reason: displayReason, scoreReason: scoreReason || null, fit: fit ?? null, members: numOr(r.members) ?? 0,
     };
   });
 

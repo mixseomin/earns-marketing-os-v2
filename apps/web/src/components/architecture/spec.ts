@@ -3,7 +3,7 @@
 // pull live values and consistency-checks can validate. This file documents
 // HOW MOS2 is wired; keep it in sync with packages/db/src/schema.ts.
 
-export type ObjGroup = 'platform' | 'identity' | 'place' | 'content' | 'scene' | 'infra';
+export type ObjGroup = 'platform' | 'identity' | 'place' | 'content' | 'scene' | 'infra' | 'resource';
 
 export interface GroupDef {
   key: ObjGroup;
@@ -18,6 +18,7 @@ export const GROUPS: GroupDef[] = [
   { key: 'content', label: 'Content layer', color: '#ffb03c' },
   { key: 'scene', label: 'Scene layer (WHO-THEM)', color: '#ff7ab0' },
   { key: 'infra', label: 'Infra / detection', color: '#8a92a3' },
+  { key: 'resource', label: 'Resource layer', color: '#c9a46a' },
 ];
 
 export type RelKind = 'fk' | 'brief' | 'tracking' | 'm2m' | 'scope' | 'gen' | 'ref';
@@ -500,6 +501,30 @@ export const OBJECTS: ArchObject[] = [
       { to: 'generator', kind: 'gen', via: 'answer_source' },
     ],
     routes: ['/seeding/quick-comment', '/seeding/mark-posted', '/seeding/insights', '/seeding/list-drafts'],
+  },
+  {
+    key: 'knowledge', label: 'Knowledge', group: 'resource',
+    table: 'knowledge_items', pk: 'id', labelCol: 'title', projectScoped: true,
+    desc: 'Resource / Knowledge vault — playbook · prompt · template · lesson · gotcha tái dùng. project_id null = portfolio-wide, có project = riêng project đó. Nguồn context cho agent + trang /resources. Vd: militarycalc widget-embed outreach playbook (kind=playbook). KHÔNG nhầm với Card (content_pieces = bài đăng/draft kênh); Knowledge = tri thức/quy trình tái dùng, không phải nội dung để post.',
+    picker: { subExpr: 't.kind' },
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'title', col: 'title', type: 'text' },
+      { name: 'kind', col: 'kind', type: 'text', note: 'playbook|prompt|template|lesson|gotcha' },
+      { name: 'content', col: 'content', type: 'text', note: 'markdown body' },
+      { name: 'tags', col: 'tags', type: 'jsonb' },
+      { name: 'projectId', col: 'project_id', type: 'fk', fk: 'project', note: 'null = portfolio-wide' },
+      { name: 'importedFrom', col: 'imported_from', type: 'text', note: 'agent_run / chat / wiki origin' },
+    ],
+    relations: [
+      { to: 'project', kind: 'fk', via: 'project_id (null = portfolio-wide)' },
+    ],
+    routes: [],
+    deepLink: '/p/{id}/resources',
+    browseCols: [
+      { col: 'kind', label: 'kind', kind: 'badge' },
+      { col: 'updated_at', label: 'updated', kind: 'time' },
+    ],
   },
   {
     key: 'people', label: 'People (scene)', group: 'scene',

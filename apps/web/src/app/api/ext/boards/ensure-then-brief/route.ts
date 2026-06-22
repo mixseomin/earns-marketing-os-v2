@@ -29,9 +29,10 @@ export async function POST(req: Request) {
     platformKey?: string | null; technologyKey?: string | null; joinStatus?: string;
   };
   const projectId = (body.projectId || '').trim();
-  const accountId = Number(body.accountId);
+  const accountId = body.accountId != null && Number.isFinite(Number(body.accountId)) ? Number(body.accountId) : null;
   if (!projectId) return errorResponse('projectId required', 400);
-  if (!Number.isFinite(accountId)) return errorResponse('accountId required', 400);
+  // accountId optional: absent = ADOPT-ONLY (board → project habitat, no brief). The inline
+  // "Track" badge action uses this when no seeding account is bound yet (TRACK → ADD).
   const joinStatus = body.joinStatus && VALID_JOIN.has(body.joinStatus) ? body.joinStatus : 'not_joined';
 
   // 1. resolve catalog board
@@ -78,13 +79,16 @@ export async function POST(req: Request) {
   }
   if (!Number.isFinite(habitatId)) return errorResponse('could not adopt habitat', 500);
 
-  // 3. upsert a bare brief (account × habitat) — no LLM
-  const bins = (await db.execute(sql`
-    INSERT INTO community_briefs (tenant_id, project_id, account_id, habitat_id, join_status)
-    VALUES ('self', ${projectId}, ${accountId}, ${habitatId}, ${joinStatus})
-    ON CONFLICT (account_id, habitat_id) DO UPDATE SET join_status = ${joinStatus}, updated_at = now()
-    RETURNING id`)) as Array<Record<string, unknown>>;
-  const briefId = bins[0] ? Number(bins[0].id) : null;
+  // 3. upsert a bare brief (account × habitat) — no LLM. Skipped when adopt-only (no account).
+  let briefId: number | null = null;
+  if (accountId != null) {
+    const bins = (await db.execute(sql`
+      INSERT INTO community_briefs (tenant_id, project_id, account_id, habitat_id, join_status)
+      VALUES ('self', ${projectId}, ${accountId}, ${habitatId}, ${joinStatus})
+      ON CONFLICT (account_id, habitat_id) DO UPDATE SET join_status = ${joinStatus}, updated_at = now()
+      RETURNING id`)) as Array<Record<string, unknown>>;
+    briefId = bins[0] ? Number(bins[0].id) : null;
+  }
 
-  return okResponse({ boardId, habitatId, briefId, joinStatus });
+  return okResponse({ boardId, habitatId, briefId, joinStatus: accountId != null ? joinStatus : null });
 }

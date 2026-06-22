@@ -46,6 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       id: platformAccounts.id, projectId: platformAccounts.projectId, platformKey: platformAccounts.platformKey,
       handle: platformAccounts.handle, email: platformAccounts.email, status: platformAccounts.status,
       notes: platformAccounts.notes, persona: platformAccounts.persona, passwordEnc: platformAccounts.passwordEnc,
+      createdAt: platformAccounts.createdAt,
     })
     .from(platformAccounts)
     .where(eq(platformAccounts.id, Number(id)))

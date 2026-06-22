@@ -105,7 +105,7 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
-  const special = new Set(['__projects', '__unread']);
+  const special = new Set(['__projects', '__unread', '__platform']);
   let extraCols: string[] = [];
   let validCols = new Set<string>();
   if (opts.cols && opts.cols.length) {
@@ -122,6 +122,14 @@ export async function browseInstances(
   // __unread: account_stats.unread_messages (jsonb subkey, ext quét khi đã login) → int cho cột ✉ triage.
   const wantUnread = !!(opts.cols?.includes('__unread') && validCols.has('account_stats'));
   if (wantUnread) selParts.push(`(t.account_stats->>'unread_messages')::int AS __unread`);
+  // __platform: every board/channel belongs to a platform. Channels carry it via their habitat;
+  // boards have platform_key directly (fall back to technology_key for engine-only forums).
+  const wantPlatform = !!opts.cols?.includes('__platform');
+  if (wantPlatform) {
+    if (validCols.has('habitat_id')) selParts.push(`(SELECT platform_key FROM habitats WHERE id = t.habitat_id) AS __platform`);
+    else if (validCols.has('platform_key')) selParts.push(`COALESCE(t.platform_key, t.technology_key) AS __platform`);
+    else selParts.push(`NULL::text AS __platform`);
+  }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
   const conds: ReturnType<typeof sql>[] = [];
@@ -154,6 +162,7 @@ export async function browseInstances(
       for (const c of extraCols) cols[c] = r[c];
       if (wantProjects) cols['__projects'] = r['__projects'] ?? null;
       if (wantUnread) cols['__unread'] = r['__unread'] ?? null;
+      if (wantPlatform) cols['__platform'] = r['__platform'] ?? null;
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;

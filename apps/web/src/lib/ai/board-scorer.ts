@@ -113,6 +113,36 @@ export async function scoreBoardLLM(board: BoardContext, pillar: PillarContext, 
   } catch { return null; }
 }
 
+// Extract a board's topic profile from its name + LIVE recent-discussion titles (we are physically
+// on the board page, so read it instead of asking the user to type). Returns clean signals to
+// pre-fill the panel; user reviews + saves. NOT auto-saved (cheap-ish, but explicit save keeps the
+// account-free board catalog honest). DOM hints (description/language) refine the result.
+export interface ExtractedSignals { dominantTopics: string[]; description: string; language: string }
+export async function extractBoardSignals(boardName: string, samples: string[], hints?: { description?: string; language?: string }): Promise<ExtractedSignals | null> {
+  const ai = getOpenAI();
+  if (!ai) return null;
+  const clean = (samples || []).map((s) => String(s || '').replace(/\s+/g, ' ').trim()).filter((s) => s.length >= 3).slice(0, 25);
+  if (!boardName && !clean.length) return null;
+  const sys = 'You profile a community board from its name + recent discussion titles. Output strict JSON {"dominant_topics": string[] (3-8 short lowercase topic tags), "description": "one sentence: what this board is about", "language": "ISO 639-1 code e.g. en/vi/fr"}. Base topics ONLY on the evidence. For language prefer the hint; else infer from the titles; else "en".';
+  const usr = JSON.stringify({
+    board_name: boardName, recent_titles: clean,
+    hint_description: hints?.description ? hints.description.slice(0, 300) : undefined,
+    hint_language: hints?.language || undefined,
+  });
+  try {
+    const c = await ai.chat.completions.create({
+      model: DEFAULT_MODEL, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }],
+      response_format: { type: 'json_object' }, temperature: 0.2, max_tokens: 220,
+    });
+    const j = JSON.parse(c.choices[0]?.message?.content || '{}') as { dominant_topics?: string[]; description?: string; language?: string };
+    return {
+      dominantTopics: Array.isArray(j.dominant_topics) ? j.dominant_topics.map((x) => String(x).trim()).filter(Boolean).slice(0, 8) : [],
+      description: String(j.description || hints?.description || '').trim().slice(0, 400),
+      language: String(j.language || hints?.language || '').trim().slice(0, 8),
+    };
+  } catch { return null; }
+}
+
 // Suggest a concrete bridging angle so the project can participate in a board it isn't obviously
 // about (e.g. astrology project on an entertainment board → "analyze celebrities' natal charts").
 export interface ApproachSuggestion { approach: string; fitLift: string; model: string; tokens: number }

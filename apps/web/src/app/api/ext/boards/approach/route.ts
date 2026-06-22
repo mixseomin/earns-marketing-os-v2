@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { errorResponse, okResponse } from '@/lib/ext-route';
-import { suggestApproach, loadPillarContext, loadBoardContexts } from '@/lib/ai/board-scorer';
+import { suggestApproach, loadPillarContext, loadBoardContexts, extractBoardSignals } from '@/lib/ai/board-scorer';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     projectId?: string; boardId?: number; approach?: string; suggest?: boolean; samples?: string[];
     manualTier?: string | null; playbookId?: number;
+    extractSignals?: boolean; hintDescription?: string; hintLanguage?: string;
     signals?: { dominantTopics?: string[]; forbiddenTopics?: string[]; description?: string; language?: string };
   };
   const projectId = (body.projectId || '').trim();
@@ -39,6 +40,15 @@ export async function POST(req: Request) {
     const s = await suggestApproach(board, pl.pillar, samples);
     if (!s) return errorResponse('AI unavailable or no honest bridge', 200, { reason: 'no_suggestion' });
     return okResponse({ suggested: s.approach, fitLift: s.fitLift, usedSamples: samples.length });
+  }
+
+  // ── auto-read board signals from the LIVE page (no save) — we're on the board, read it ──
+  if (body.extractSignals) {
+    const board = (await loadBoardContexts(db, [boardId])).get(boardId);
+    const samples = Array.isArray(body.samples) ? body.samples.map((s) => String(s || '')).slice(0, 25) : [];
+    const sig = await extractBoardSignals(board?.name || '', samples, { description: body.hintDescription, language: body.hintLanguage });
+    if (!sig) return errorResponse('AI unavailable or nothing to read', 200, { reason: 'no_extract' });
+    return okResponse({ signals: sig });
   }
 
   // ── manual tier override (dismiss / pin / clear) — read-time, no re-score ──

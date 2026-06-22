@@ -7,9 +7,10 @@ import { guardrailSkip, composeTier, type AccountFacts, type Overlay } from '@/l
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// GET /api/ext/boards/badge?platformKey=reddit&projectId=X&accountId=N&names=r/a,r/b
-// 3-layer lookup per board name found on the live page → composed GO/ADD/TRACK/SKIP tier.
-// Batch (chunk client-side when names>10). Private boards gated server-side.
+// GET /api/ext/boards/badge?projectId=X&accountId=N
+//   names=r/a,r/b  (+platformKey)  → Reddit/keyed-platform mode (match by platform_key+name)
+//   urls=u1,u2                     → forum mode (match by globally-unique url; phpBB etc.)
+// 3-layer lookup per board → composed GO/ADD/TRACK/SKIP tier. Private boards gated server-side.
 export async function GET(req: Request) {
   const authErr = checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
@@ -19,9 +20,15 @@ export async function GET(req: Request) {
   const accountIdRaw = (p.get('accountId') || '').trim();
   const accountId = accountIdRaw && Number.isFinite(Number(accountIdRaw)) ? Number(accountIdRaw) : null;
   const names = (p.get('names') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const urls = (p.get('urls') || '').split(',').map((s) => s.trim()).filter(Boolean);
   if (!projectId) return errorResponse('projectId required', 400);
-  if (!names.length) return okResponse({ badges: [] });
-  const lowered = [...new Set(names.map((n) => n.toLowerCase()))].slice(0, 60);
+  const byUrl = urls.length > 0;                         // forum mode keys on url, not name
+  const inputs = byUrl ? urls : names;
+  if (!inputs.length) return okResponse({ badges: [] });
+  const lowered = [...new Set(inputs.map((n) => n.toLowerCase()))].slice(0, 80);
+  const matchCond = byUrl
+    ? sql`lower(pb.url) IN (${sql.join(lowered.map((n) => sql`${n}`), sql`, `)})`
+    : sql`pb.platform_key IS NOT DISTINCT FROM ${platformKey} AND lower(pb.name) IN (${sql.join(lowered.map((n) => sql`${n}`), sql`, `)})`;
 
   // account facts once (for guardrail) — effective status via the account row.
   let acc: AccountFacts | null = null;
@@ -42,7 +49,7 @@ export async function GET(req: Request) {
 
   // one batch query: board + project score + project habitat + account brief
   const rows = (await db.execute(sql`
-    SELECT pb.id AS board_id, pb.name, pb.members, pb.privacy AS board_privacy,
+    SELECT pb.id AS board_id, pb.name, pb.url, pb.members, pb.privacy AS board_privacy,
            s.topic_tier,
            h.id AS habitat_id, h.privacy AS h_privacy, h.min_karma, h.min_account_age_days, h.min_posts, h.mod_strictness,
            b.id AS brief_id, b.join_status, b.approach_md
@@ -50,16 +57,15 @@ export async function GET(req: Request) {
     LEFT JOIN board_project_score s ON s.board_id = pb.id AND s.project_id = ${projectId} AND s.tenant_id = pb.tenant_id
     LEFT JOIN habitats h ON h.board_id = pb.id AND h.project_id = ${projectId}
     LEFT JOIN community_briefs b ON b.habitat_id = h.id ${accountId != null ? sql`AND b.account_id = ${accountId}` : sql`AND false`}
-    WHERE pb.tenant_id = 'self'
-      AND pb.platform_key IS NOT DISTINCT FROM ${platformKey}
-      AND lower(pb.name) IN (${sql.join(lowered.map((n) => sql`${n}`), sql`, `)})`)) as Array<Record<string, unknown>>;
+    WHERE pb.tenant_id = 'self' AND ${matchCond}`)) as Array<Record<string, unknown>>;
 
-  const byName = new Map<string, Record<string, unknown>>();
-  for (const r of rows) byName.set(String(r.name).toLowerCase(), r);
+  const keyOf = (r: Record<string, unknown>) => byUrl ? String(r.url ?? '').toLowerCase() : String(r.name ?? '').toLowerCase();
+  const byKey = new Map<string, Record<string, unknown>>();
+  for (const r of rows) byKey.set(keyOf(r), r);
 
-  const badges = names.map((name) => {
-    const r = byName.get(name.toLowerCase());
-    if (!r) return { name, boardId: null, tier: 'NONE' as const, topicTier: null, hasHabitat: false, hasBrief: false, joinStatus: null, reason: '', members: 0 };
+  const badges = inputs.map((input) => {
+    const r = byKey.get(input.toLowerCase());
+    if (!r) return { key: input, name: byUrl ? null : input, url: byUrl ? input : null, boardId: null, tier: 'NONE' as const, topicTier: null, hasHabitat: false, hasBrief: false, joinStatus: null, reason: '', members: 0 };
     const overlay: Overlay = {
       habitatId: r.habitat_id != null ? Number(r.habitat_id) : null,
       hasHabitat: r.habitat_id != null,
@@ -78,7 +84,8 @@ export async function GET(req: Request) {
     const guardrail = guardrailSkip(gate, acc, overlay.joinStatus);
     const { tier, reason } = composeTier({ topicTier: r.topic_tier != null ? String(r.topic_tier) : null, overlay, guardrail });
     return {
-      name, boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
+      key: input, name: r.name != null ? String(r.name) : null, url: r.url != null ? String(r.url) : null,
+      boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
       hasHabitat: overlay.hasHabitat, hasBrief: overlay.hasBrief, joinStatus: overlay.joinStatus,
       reason, members: numOr(r.members) ?? 0,
     };

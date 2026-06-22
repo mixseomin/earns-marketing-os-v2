@@ -437,15 +437,20 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'pillar', label: 'Content pillar', group: 'content',
     table: 'content_pillars', pk: 'id', labelCol: 'name', projectScoped: true,
-    desc: 'Macro content theme/positioning. Carries voice profile + external tag (Astrolas sync).',
+    desc: 'Macro content theme/positioning + relevance signals (key_messages/seo_keywords/forbidden_msgs/languages) mà Seeding Radar chấm board theo. SỬA tại /p/<id>/pillars (Studio map read-only).',
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },
       { name: 'name', col: 'name', type: 'text' },
       { name: 'voiceProfile', col: 'voice_profile', type: 'text' },
       { name: 'externalTag', col: 'external_tag', type: 'text' },
+      { name: 'keyMessages', col: 'key_messages', type: 'jsonb', note: 'bán/nói về gì — tín hiệu fit "② Project cần gì"' },
+      { name: 'seoKeywords', col: 'seo_keywords', type: 'jsonb', note: 'keywords chấm relevance' },
+      { name: 'forbiddenMsgs', col: 'forbidden_msgs', type: 'jsonb', note: 'tránh — hard-exclude khi board trùng' },
+      { name: 'languages', col: 'languages', type: 'jsonb' },
     ],
     relations: [
+      { to: 'project', kind: 'fk', via: 'project_id' },
       { to: 'brief', kind: 'fk', via: 'brief.primary_pillar_id' },
       { to: 'card', kind: 'fk', via: 'card.pillar_id' },
     ],

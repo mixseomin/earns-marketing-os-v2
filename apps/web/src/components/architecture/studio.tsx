@@ -848,8 +848,8 @@ function ProjectCell({ ids, projMap, onOpen }: { ids: string[]; projMap: Map<str
 
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
-function InstanceBrowser({ obj, projects, defaultProject }: {
-  obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
+function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
+  obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string; onProjectChange?: (pid: string) => void;
 }) {
   const openSub = useContext(SubCtx);
   const parent = obj.picker?.parent;
@@ -917,7 +917,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
       {/* filters: project + parent (optional, ko bắt buộc chọn) + search */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
         {projectScoped && (
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={selStyle}>
+          <select value={projectId} onChange={(e) => { setProjectId(e.target.value); onProjectChange?.(e.target.value); }} style={selStyle}>
             {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         )}
@@ -1258,9 +1258,9 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   );
 }
 
-function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
+function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProjectChange }: {
   obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string;
-  bound?: Bound; onBind: (b: Bound | null) => void;
+  bound?: Bound; onBind: (b: Bound | null) => void; onProjectChange?: (pid: string) => void;
 }) {
   const [projectId, setProjectId] = useState(defaultProject || projects[0]?.id || '');
   const [instances, setInstances] = useState<InstanceRef[]>([]);
@@ -1375,7 +1375,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
       {obj.table && !HAS_OWN_LIST.has(obj.key) && (
-        <InstanceBrowser obj={obj} projects={projects} defaultProject={projectId} />
+        <InstanceBrowser obj={obj} projects={projects} defaultProject={projectId} onProjectChange={(pid) => { setProjectId(pid); onProjectChange?.(pid); }} />
       )}
 
       {/* full selector catalog — every scope × page_kind × field, with counts (gọn overview) */}
@@ -1473,7 +1473,7 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind }: {
         <Section title="Bind real instance" sub="// validates against the model">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
             {obj.projectScoped && !crossProject && !parent && (
-              <select value={projectId} onChange={(e) => { setProjectId(e.target.value); setDetail(null); setPicked(''); }} style={selStyle}>
+              <select value={projectId} onChange={(e) => { setProjectId(e.target.value); onProjectChange?.(e.target.value); setDetail(null); setPicked(''); }} style={selStyle}>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
@@ -1987,7 +1987,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
           footer={null}
           pushPx={sel ? Math.min(stack.length * CASCADE_STEP, 600) : 0}
         >
-          {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
+          {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} onProjectChange={setProj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
           {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
         </Drawer>
         <SubStack stack={sel ? stack : []} popTo={popTo} width={720} />

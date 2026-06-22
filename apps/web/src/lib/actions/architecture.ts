@@ -105,11 +105,12 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
-  const special = new Set(['__projects']);
+  const special = new Set(['__projects', '__unread']);
   let extraCols: string[] = [];
+  let validCols = new Set<string>();
   if (opts.cols && opts.cols.length) {
-    const valid = await tableColumns(obj.table);
-    extraCols = opts.cols.filter((c) => !special.has(c) && /^[a-z_][a-z0-9_]*$/.test(c) && valid.has(c) && !reserved.has(c));
+    validCols = await tableColumns(obj.table);
+    extraCols = opts.cols.filter((c) => !special.has(c) && /^[a-z_][a-z0-9_]*$/.test(c) && validCols.has(c) && !reserved.has(c));
   }
   const selParts = extraCols.map((c) => `t.${ident(c)}`);
   // __projects: all projects this instance belongs to via the m2m junction (account_id → project_id).
@@ -118,6 +119,9 @@ export async function browseInstances(
     const jt = ident(obj.projectsVia.table); const fk = ident(obj.projectsVia.fkCol); const pkc = ident(obj.pk || 'id');
     selParts.push(`(SELECT array_agg(DISTINCT j.project_id) FROM ${jt} j WHERE j.${fk} = t.${pkc}) AS __projects`);
   }
+  // __unread: account_stats.unread_messages (jsonb subkey, ext quét khi đã login) → int cho cột ✉ triage.
+  const wantUnread = !!(opts.cols?.includes('__unread') && validCols.has('account_stats'));
+  if (wantUnread) selParts.push(`(t.account_stats->>'unread_messages')::int AS __unread`);
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
   const conds: ReturnType<typeof sql>[] = [];
@@ -149,6 +153,7 @@ export async function browseInstances(
       const cols: Record<string, unknown> = {};
       for (const c of extraCols) cols[c] = r[c];
       if (wantProjects) cols['__projects'] = r['__projects'] ?? null;
+      if (wantUnread) cols['__unread'] = r['__unread'] ?? null;
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;

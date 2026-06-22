@@ -878,7 +878,7 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
   const projMap = new Map(projects.map((p) => [p.id, p.name]));   // id → name cho cột project
   const bc = obj.browseCols || [];
   // generic column model: spec browseCols when present, else the picker's sub-label as 1 ctx col.
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project'; link?: string }[] =
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[] =
     bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
       : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
   const grid = `minmax(90px,1.4fr) ${dataCols.map(() => 'minmax(0,1fr)').join(' ')} 48px`;
@@ -962,6 +962,10 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
                       const hot = stale && dc.key === 'status';
                       const sc = hot ? 'var(--bad)' : badgeColor(String(v));
                       return <span style={{ color: sc, border: `1px solid ${sc}`, borderRadius: 4, padding: '0 5px', fontSize: 9.5, fontWeight: hot ? 800 : 400 }}>{String(v)}{hot ? ' ⚠' : ''}</span>;
+                    })() : dc.kind === 'unread' ? (() => {
+                      const n = Number(v);
+                      if (!Number.isFinite(n) || n <= 0) return <span style={{ color: 'var(--fg-4)' }}>{Number.isFinite(n) ? '0' : '—'}</span>;
+                      return <span style={{ color: 'var(--warn)', fontWeight: 700 }} title={`✉ ${n} tin nhắn chưa đọc`}>✉ {n}</span>;
                     })() : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : dc.kind === 'project' ? (() => {
@@ -1045,6 +1049,21 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
               </select>
             </div>
           )}
+          {objKey === 'account' && (() => {
+            const stats = (d.row.account_stats as Record<string, unknown> | null) || null;
+            const u = stats && typeof stats.unread_messages === 'number' ? stats.unread_messages as number : null;
+            if (u == null) return null;   // chưa quét → không hiện dòng
+            const at = stats && typeof stats.fetched_at === 'string' ? stats.fetched_at as string : null;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)', width: 48 }}>inbox</span>
+                <span style={{ fontSize: 11.5, fontWeight: u > 0 ? 700 : 400, color: u > 0 ? 'var(--warn)' : 'var(--fg-3)' }}>
+                  {u > 0 ? `✉ ${u} tin chưa đọc` : '✓ đã đọc hết'}
+                  {at && <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}> · quét {relAgo(at)} trước</span>}
+                </span>
+              </div>
+            );
+          })()}
           {hasNotes && (
             <div style={{ display: 'flex', gap: 6 }}>
               <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ghi chú nhanh…" style={{ ...selStyle, flex: 1 }} />

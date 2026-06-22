@@ -63,7 +63,7 @@ export interface ArchObject {
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
   // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project'; link?: string }[];
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[];
   // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
   // projects an instance belongs to, not just the legacy scalar project_id.
   projectsVia?: { table: string; fkCol: string };
@@ -160,6 +160,7 @@ export const OBJECTS: ArchObject[] = [
       { col: '__projects', label: 'project', kind: 'project' },
       { col: 'email', label: 'email' },
       { col: 'status', label: 'status', kind: 'badge' },
+      { col: '__unread', label: '✉', kind: 'unread' },
       { col: 'created_at', label: 'created', kind: 'time' },
     ],
     attrs: [

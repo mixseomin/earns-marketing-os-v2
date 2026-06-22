@@ -45,6 +45,7 @@ import {
 } from '@/lib/ai/post-draft';
 // markCardSeeded sử dụng qua confirmCardPosted trong DispatchPostFlow
 import { suggestBrief, type BriefSuggestion, type BriefSuggestionLang } from '@/lib/ai/brief-suggest';
+import { listApproaches, createApproach, type ApproachPlaybook } from '@/lib/actions/approaches';
 import { parseParentContext } from '@/lib/ai/parent-parser';
 import { getAstrolasAnswer } from '@/lib/ai/astrolas-answer';
 import { AIFormParser } from './ai-form-parser';
@@ -1481,6 +1482,8 @@ export function BriefEditModal({
             <SuggestionInline suggestion={suggestion} defaultLang={suggestLang} viSlotLabel={viSlotLabel} collapseSignal={replaceAllSeq} field="approachMd" current={approachMd}
                               setterFor={setterFor} currentFor={currentFor}
                               onRegenerate={() => handleGenerateSuggestion('approachMd')} regenerating={regenField === 'approachMd'} />
+            {/* shared cross-project library: apply a saved angle here OR promote this approach into it */}
+            <ApproachLibraryBar value={approachMd} onApply={setApproachMd} projectId={projectId} platformKey={platformKey} />
           </div>
           </div>{/* /modal-cols: kể chuyện | approach */}
 
@@ -1634,6 +1637,69 @@ function TemplatesEditor({
 
 // ──────────────────────────────────────────────────────────────────
 // FieldLabel — label with optional ✨ icon when AI has a suggestion
+// ──────────────────────────────────────────────────────────────────
+// ApproachLibraryBar — bridge brief.approach_md ↔ the shared cross-project
+// approach_playbooks library. 📚 apply a saved angle into this field; 💾 promote
+// the current approach into the library (reusable knowledge). One concept, one
+// shared dictionary across discovery (board score) + execution (brief).
+// ──────────────────────────────────────────────────────────────────
+function ApproachLibraryBar({ value, onApply, projectId, platformKey }: {
+  value: string; onApply: (v: string) => void; projectId: string; platformKey?: string;
+}) {
+  const [mode, setMode] = useState<'lib' | 'save' | null>(null);
+  const [items, setItems] = useState<ApproachPlaybook[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState('');
+  const [msg, setMsg] = useState('');
+  const openLib = async () => {
+    if (mode === 'lib') { setMode(null); return; }
+    setMode('lib'); setMsg('');
+    if (items == null) { setLoading(true); try { setItems(await listApproaches({ platformKey: platformKey || null })); } catch { setItems([]); } setLoading(false); }
+  };
+  const openSave = () => { setMsg(''); setTitle(''); setMode(mode === 'save' ? null : 'save'); };
+  const doSave = async () => {
+    const t = title.trim(); const angle = (value || '').trim();
+    if (!t) { setMsg('Đặt tên đã'); return; }
+    if (!angle) { setMsg('Approach đang trống'); return; }
+    setLoading(true);
+    const r = await createApproach({ title: t, angle, sourceProjectId: projectId, platformKey: platformKey || null });
+    setLoading(false);
+    if (r.ok) { setMsg('✓ đã lưu vào thư viện'); setItems(null); setMode(null); } else { setMsg(r.error || 'lỗi'); }
+  };
+  const btn: CSSProperties = { fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
+  return (
+    <div style={{ margin: '5px 0' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button type="button" style={btn} onClick={openLib}>📚 Thư viện</button>
+        <button type="button" style={btn} onClick={openSave}>💾 Lưu lên thư viện</button>
+        {msg && <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{msg}</span>}
+      </div>
+      {mode === 'lib' && (
+        <div style={{ marginTop: 5, border: '1px solid var(--line)', borderRadius: 6, padding: 6, maxHeight: 190, overflowY: 'auto', background: 'var(--bg-1)' }}>
+          {loading ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>đang tải…</div>
+            : !items || !items.length ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>(thư viện trống — soạn approach rồi bấm 💾 để lưu lên)</div>
+            : items.map((p) => (
+              <div key={p.id} onClick={() => { onApply(p.angle); setMode(null); }}
+                   style={{ padding: '4px 6px', borderRadius: 5, cursor: 'pointer', marginBottom: 3, background: 'var(--bg-2)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+                  {p.title}{p.uses ? <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}> · {p.uses}×</span> : null}
+                  {p.platformKey ? <span style={{ color: 'var(--accent)', fontWeight: 400 }}> · {p.platformKey}</span> : null}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{p.angle}</div>
+              </div>
+            ))}
+        </div>
+      )}
+      {mode === 'save' && (
+        <div style={{ marginTop: 5, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tên phương án (vd: Astrology → người nổi tiếng)"
+                 style={{ flex: 1, fontSize: 11.5, padding: '4px 7px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+          <button type="button" style={{ ...btn, background: '#14532d', color: '#86efac', borderColor: '#14532d' }} onClick={doSave} disabled={loading}>✓ Lưu</button>
+        </div>
+      )}
+    </div>
+  );
+}
 // for this field. Click ✨ → quick "Replace" using the modal's default
 // suggestion language.
 // ──────────────────────────────────────────────────────────────────

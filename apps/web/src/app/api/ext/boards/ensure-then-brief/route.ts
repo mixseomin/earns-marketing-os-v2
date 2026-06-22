@@ -80,15 +80,22 @@ export async function POST(req: Request) {
   if (!Number.isFinite(habitatId)) return errorResponse('could not adopt habitat', 500);
 
   // 3. upsert a bare brief (account × habitat) — no LLM. Skipped when adopt-only (no account).
+  // Pipeline: the account-free DISCOVERY angle (board_project_score.approach, possibly from the
+  // shared library) FLOWS INTO the brief's execution approach_md on FIRST create. ON CONFLICT only
+  // touches join_status → an existing brief keeps its own (richer) approach. One concept, two stages.
   let briefId: number | null = null;
+  let seededApproach = false;
   if (accountId != null) {
+    const sa = (await db.execute(sql`SELECT approach FROM board_project_score WHERE board_id = ${boardId} AND project_id = ${projectId} AND tenant_id = 'self' LIMIT 1`)) as Array<Record<string, unknown>>;
+    const seedApproach = sa[0]?.approach ? String(sa[0].approach).trim() : '';
     const bins = (await db.execute(sql`
-      INSERT INTO community_briefs (tenant_id, project_id, account_id, habitat_id, join_status)
-      VALUES ('self', ${projectId}, ${accountId}, ${habitatId}, ${joinStatus})
+      INSERT INTO community_briefs (tenant_id, project_id, account_id, habitat_id, join_status, approach_md)
+      VALUES ('self', ${projectId}, ${accountId}, ${habitatId}, ${joinStatus}, ${seedApproach})
       ON CONFLICT (account_id, habitat_id) DO UPDATE SET join_status = ${joinStatus}, updated_at = now()
-      RETURNING id`)) as Array<Record<string, unknown>>;
+      RETURNING id, (xmax = 0) AS inserted`)) as Array<Record<string, unknown>>;
     briefId = bins[0] ? Number(bins[0].id) : null;
+    seededApproach = !!(seedApproach && bins[0]?.inserted);
   }
 
-  return okResponse({ boardId, habitatId, briefId, joinStatus: accountId != null ? joinStatus : null });
+  return okResponse({ boardId, habitatId, briefId, joinStatus: accountId != null ? joinStatus : null, seededApproach });
 }

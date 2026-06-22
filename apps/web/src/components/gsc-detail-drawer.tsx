@@ -114,7 +114,7 @@ export function GscDetailDrawer({ domain, points, onClose, interactions }: Props
           </h3>
           {interactions && Object.keys(interactions).length > 0 ? (() => {
             const entries = Object.entries(interactions).sort((a, b) => b[1] - a[1]);
-            const max = entries[0][1] || 1;
+            const max = entries[0]?.[1] ?? 1;
             const sum = entries.reduce((s, [, n]) => s + n, 0);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

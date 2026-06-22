@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   // one batch query: board + project score + project habitat + account brief
   const rows = (await db.execute(sql`
     SELECT pb.id AS board_id, pb.name, pb.url, pb.members, pb.privacy AS board_privacy,
-           s.topic_tier, s.fit AS score_fit, s.reason AS score_reason,
+           s.topic_tier, s.fit AS score_fit, s.reason AS score_reason, s.approach AS approach,
            h.id AS habitat_id, h.privacy AS h_privacy, h.min_karma, h.min_account_age_days, h.min_posts, h.mod_strictness,
            b.id AS brief_id, b.join_status, b.approach_md
     FROM platform_boards pb
@@ -92,7 +92,8 @@ export async function GET(req: Request) {
       key: input, name: r.name != null ? String(r.name) : null, url: r.url != null ? String(r.url) : null,
       boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
       hasHabitat: overlay.hasHabitat, hasBrief: overlay.hasBrief, joinStatus: overlay.joinStatus,
-      reason: displayReason, scoreReason: scoreReason || null, fit: fit ?? null, members: numOr(r.members) ?? 0,
+      reason: displayReason, scoreReason: scoreReason || null, fit: fit ?? null,
+      approach: r.approach != null && String(r.approach).trim() ? String(r.approach) : null, members: numOr(r.members) ?? 0,
     };
   });
 

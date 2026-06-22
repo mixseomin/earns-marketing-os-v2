@@ -990,6 +990,10 @@ export const boardProjectScore = pgTable(
     fit: integer('fit').notNull(),                          // 0-100 topic fit ONLY (account-free)
     topicTier: text('topic_tier').notNull(),                // TRACK-threshold tier (KHÔNG mang tín hiệu account)
     reason: text('reason').notNull().default(''),           // scoring rationale (audit trail)
+    // 0108: per-(board×project) phương án tiếp cận. Fit thấp thường vì angle chưa hợp — sửa
+    // approach (vd "dùng astrology phân tích người nổi tiếng" cho board giải trí) → re-score cao
+    // hơn. Vẫn ACCOUNT-FREE (project-level). Đổi approach → set stale → re-score dùng angle này.
+    approach: text('approach').notNull().default(''),
     // sha256 pillar: id+keyMessages+seoKeywords+forbiddenMsgs+languages+status+tribeIds+threshold.
     projectInputsHash: text('project_inputs_hash').notNull(),
     // sha256 board signature: dominant_topics+forbidden_topics+description+members-bucket+language.

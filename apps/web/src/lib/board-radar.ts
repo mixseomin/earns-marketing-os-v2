@@ -145,8 +145,11 @@ export function guardrailSkip(gate: HabitatGate, acc: AccountFacts | null, joinS
 }
 
 // ── Compose final tier (read-time) ──
-export function composeTier(opts: { topicTier: string | null; overlay: Overlay; guardrail: string | null }): { tier: BoardTier; reason: string } {
-  const { topicTier, overlay, guardrail } = opts;
+export function composeTier(opts: { topicTier: string | null; overlay: Overlay; guardrail: string | null; manualTier?: string | null }): { tier: BoardTier; reason: string } {
+  const { topicTier, overlay, guardrail, manualTier } = opts;
+  // user override wins over everything (explicit decision to dismiss / pin this board).
+  if (manualTier === 'SKIP') return { tier: 'SKIP', reason: 'đã bỏ qua thủ công' };
+  if (manualTier === 'GO') return { tier: 'GO', reason: 'pin thủ công' };
   if (guardrail) return { tier: 'SKIP', reason: guardrail };
   if (overlay.hasBrief && overlay.joinStatus === 'joined' && overlay.approachReady) return { tier: 'GO', reason: 'account đã join + có chiến lược → đăng ngay' };
   if (overlay.hasHabitat) {

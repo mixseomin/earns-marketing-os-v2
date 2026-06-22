@@ -360,6 +360,31 @@ export const OBJECTS: ArchObject[] = [
     routes: ['/boards/badge', '/boards/ensure', '/boards/score', '/boards/ensure-then-brief'],
   },
   {
+    key: 'approach', label: 'Approach playbook', group: 'content',
+    table: 'approach_playbooks', pk: 'id', labelCol: 'title', projectScoped: false,
+    desc: 'SHARED cross-project library of seeding approach angles (vd "dùng astrology phân tích người nổi tiếng được bàn ở board"). Reusable knowledge — chọn áp dụng cho board bất kỳ ở project bất kỳ. Áp vào board×project → ghi board_project_score.approach (angle) + approach_playbook_id (link) + bump uses.',
+    picker: { subExpr: 't.platform_key' },
+    browseCols: [
+      { col: 'title', label: 'title' },
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'uses', label: 'uses' },
+      { col: 'updated_at', label: 'updated', kind: 'time' },
+    ],
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'title', col: 'title', type: 'text' },
+      { name: 'angle', col: 'angle', type: 'text', note: 'nội dung approach (cái /boards/score chấm theo)' },
+      { name: 'category', col: 'category', type: 'text' },
+      { name: 'sourceProjectId', col: 'source_project_id', type: 'fk', note: 'project tác giả (reusable mọi project)' },
+      { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform', note: 'null = any platform' },
+      { name: 'uses', col: 'uses', type: 'integer', note: 'số lần áp vào board (độ phổ biến)' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform_key' },
+    ],
+    routes: ['/approaches', '/boards/approach'],
+  },
+  {
     key: 'brief', label: 'Brief (acc×habitat)', group: 'content',
     table: 'community_briefs', pk: 'id', labelCol: 'id', projectScoped: true,
     desc: 'THE link between account + habitat: strategy/voice/phase. Drives every AI draft.',

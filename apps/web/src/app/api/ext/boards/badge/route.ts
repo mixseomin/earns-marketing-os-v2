@@ -21,6 +21,7 @@ export async function GET(req: Request) {
   const accountId = accountIdRaw && Number.isFinite(Number(accountIdRaw)) ? Number(accountIdRaw) : null;
   const names = (p.get('names') || '').split(',').map((s) => s.trim()).filter(Boolean);
   const urls = (p.get('urls') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const withPillar = p.get('withPillar') === '1';   // panel-only: also return project relevance factors
   if (!projectId) return errorResponse('projectId required', 400);
   const byUrl = urls.length > 0;                         // forum mode keys on url, not name
   const inputs = byUrl ? urls : names;
@@ -47,10 +48,17 @@ export async function GET(req: Request) {
     }
   }
 
-  // one batch query: board + project score + project habitat + account brief
+  // one batch query: board + project score + project habitat + account brief.
+  // eff_* = effective relevance factors (board-level catalog override → habitat fallback) that the
+  // panel surfaces for editing; manual_tier = user dismiss/pin override.
   const rows = (await db.execute(sql`
-    SELECT pb.id AS board_id, pb.name, pb.url, pb.members, pb.privacy AS board_privacy,
-           s.topic_tier, s.fit AS score_fit, s.reason AS score_reason, s.approach AS approach,
+    SELECT pb.id AS board_id, pb.name, pb.url, pb.members, pb.privacy AS board_privacy, pb.description AS board_desc,
+           CASE WHEN jsonb_array_length(COALESCE(pb.dominant_topics, '[]'::jsonb)) > 0
+                THEN pb.dominant_topics ELSE COALESCE(h.dominant_topics, '[]'::jsonb) END AS eff_dominant,
+           CASE WHEN jsonb_array_length(COALESCE(pb.forbidden_topics, '[]'::jsonb)) > 0
+                THEN pb.forbidden_topics ELSE COALESCE(h.forbidden_topics, '[]'::jsonb) END AS eff_forbidden,
+           COALESCE(NULLIF(pb.language, ''), h.language, '') AS eff_language,
+           s.topic_tier, s.fit AS score_fit, s.reason AS score_reason, s.approach AS approach, s.manual_tier, s.approach_playbook_id,
            h.id AS habitat_id, h.privacy AS h_privacy, h.min_karma, h.min_account_age_days, h.min_posts, h.mod_strictness,
            b.id AS brief_id, b.join_status, b.approach_md
     FROM platform_boards pb
@@ -82,7 +90,8 @@ export async function GET(req: Request) {
       modStrictness: String(r.mod_strictness ?? ''),
     };
     const guardrail = guardrailSkip(gate, acc, overlay.joinStatus);
-    const { tier, reason } = composeTier({ topicTier: r.topic_tier != null ? String(r.topic_tier) : null, overlay, guardrail });
+    const manualTier = r.manual_tier != null ? String(r.manual_tier) : null;
+    const { tier, reason } = composeTier({ topicTier: r.topic_tier != null ? String(r.topic_tier) : null, overlay, guardrail, manualTier });
     const scoreReason = r.score_reason != null ? String(r.score_reason) : '';
     const fit = numOr(r.score_fit);
     // tier reason (overlay/guardrail) first; fall back to the fit rationale so low-fit boards
@@ -92,11 +101,31 @@ export async function GET(req: Request) {
       key: input, name: r.name != null ? String(r.name) : null, url: r.url != null ? String(r.url) : null,
       boardId: Number(r.board_id), tier, topicTier: r.topic_tier != null ? String(r.topic_tier) : null,
       hasHabitat: overlay.hasHabitat, hasBrief: overlay.hasBrief, joinStatus: overlay.joinStatus,
-      reason: displayReason, scoreReason: scoreReason || null, fit: fit ?? null,
-      approach: r.approach != null && String(r.approach).trim() ? String(r.approach) : null, members: numOr(r.members) ?? 0,
+      reason: displayReason, scoreReason: scoreReason || null, fit: fit ?? null, manualTier,
+      approach: r.approach != null && String(r.approach).trim() ? String(r.approach) : null,
+      approachPlaybookId: r.approach_playbook_id != null ? Number(r.approach_playbook_id) : null, members: numOr(r.members) ?? 0,
+      // editable relevance factors (what the LLM scores against) — panel shows these to tune fit.
+      signals: {
+        description: r.board_desc != null ? String(r.board_desc) : '',
+        dominantTopics: arr(r.eff_dominant), forbiddenTopics: arr(r.eff_forbidden),
+        language: r.eff_language != null ? String(r.eff_language) : '',
+      },
     };
   });
 
-  return okResponse({ badges });
+  // project-side relevance factors (shared across boards) — panel shows read-only so the user
+  // understands WHAT the board is being judged against. Only when explicitly requested (panel).
+  let pillar: { sellsAbout: string[]; keywords: string[]; avoid: string[]; languages: string[] } | null = null;
+  if (withPillar) {
+    const pr = (await db.execute(sql`SELECT key_messages, seo_keywords, forbidden_msgs, languages FROM content_pillars WHERE project_id = ${projectId} AND tenant_id = 'self'`)) as Array<Record<string, unknown>>;
+    if (pr.length) pillar = {
+      sellsAbout: dedup(pr.flatMap((x) => arr(x.key_messages))), keywords: dedup(pr.flatMap((x) => arr(x.seo_keywords))),
+      avoid: dedup(pr.flatMap((x) => arr(x.forbidden_msgs))), languages: dedup(pr.flatMap((x) => arr(x.languages))),
+    };
+  }
+
+  return okResponse({ badges, pillar });
 }
 function numOr(v: unknown): number | undefined { return typeof v === 'number' ? v : (typeof v === 'string' && v.trim() && Number.isFinite(Number(v)) ? Number(v) : undefined); }
+function arr(v: unknown): string[] { return Array.isArray(v) ? v.map((x) => String(x)) : []; }
+function dedup(xs: string[]): string[] { return [...new Set(xs.map((s) => s.trim()).filter(Boolean))]; }

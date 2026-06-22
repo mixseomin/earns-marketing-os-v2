@@ -26,15 +26,19 @@ export async function loadPillarContext(db: Db, projectId: string): Promise<Pill
     status: rows.map((p) => String(p.status ?? '')).join(','),
   };
 }
-// board topic signals = thin catalog + dominant/forbidden topics from any adopting habitat.
+// board topic signals = catalog-level (user-editable, override) → fall back to any adopting habitat.
+// Board-level signals (platform_boards.dominant_topics/...) are what the panel edits; they win so a
+// board the user has hand-tuned scores by those exact factors regardless of habitat state.
 export async function loadBoardContexts(db: Db, boardIds: number[]): Promise<Map<number, BoardContext>> {
   const out = new Map<number, BoardContext>();
   if (!boardIds.length) return out;
   const rows = (await db.execute(sql`
     SELECT pb.id, pb.name, pb.description, pb.members,
-           COALESCE(h.dominant_topics, '[]'::jsonb) AS dominant_topics,
-           COALESCE(h.forbidden_topics, '[]'::jsonb) AS forbidden_topics,
-           COALESCE(h.language, '') AS language
+           CASE WHEN jsonb_array_length(COALESCE(pb.dominant_topics, '[]'::jsonb)) > 0
+                THEN pb.dominant_topics ELSE COALESCE(h.dominant_topics, '[]'::jsonb) END AS dominant_topics,
+           CASE WHEN jsonb_array_length(COALESCE(pb.forbidden_topics, '[]'::jsonb)) > 0
+                THEN pb.forbidden_topics ELSE COALESCE(h.forbidden_topics, '[]'::jsonb) END AS forbidden_topics,
+           COALESCE(NULLIF(pb.language, ''), h.language, '') AS language
     FROM platform_boards pb
     LEFT JOIN LATERAL (
       SELECT dominant_topics, forbidden_topics, language FROM habitats
@@ -112,12 +116,18 @@ export async function scoreBoardLLM(board: BoardContext, pillar: PillarContext, 
 // Suggest a concrete bridging angle so the project can participate in a board it isn't obviously
 // about (e.g. astrology project on an entertainment board → "analyze celebrities' natal charts").
 export interface ApproachSuggestion { approach: string; fitLift: string; model: string; tokens: number }
-export async function suggestApproach(board: BoardContext, pillar: PillarContext): Promise<ApproachSuggestion | null> {
+// `samples` = live context scraped from the board page right now (recent topic titles / post +
+// reply snippets). Grounding the suggestion in what people are ACTUALLY discussing yields a far
+// more specific, authentic angle than the static catalog alone (request: "Đề xuất phải dựa vào
+// context hiện tại của board đó như post title, reply").
+export async function suggestApproach(board: BoardContext, pillar: PillarContext, samples?: string[]): Promise<ApproachSuggestion | null> {
   const ai = getOpenAI();
   if (!ai) return null;
-  const sys = 'You propose ONE concrete, authentic angle for a marketing project to participate in a community board it is not obviously about — bridging the project topic to the board audience WITHOUT spam or forced selling. Be specific and actionable (a content angle, not a slogan). If no honest bridge exists, say so. Output strict JSON {"approach": "one actionable sentence", "fit_lift": "low|medium|high"}.';
+  const clean = (samples || []).map((s) => String(s || '').replace(/\s+/g, ' ').trim()).filter((s) => s.length >= 3).slice(0, 20);
+  const sys = 'You propose ONE concrete, authentic angle for a marketing project to participate in a community board it is not obviously about — bridging the project topic to the board audience WITHOUT spam or forced selling. Be specific and actionable (a content angle, not a slogan). GROUND the angle in the board\'s recent_discussion samples when provided (reference what people are actually talking about). If no honest bridge exists, say so. Output strict JSON {"approach": "one actionable sentence", "fit_lift": "low|medium|high"}.';
   const usr = JSON.stringify({
     board: { name: board.name, description: board.description.slice(0, 600), topics: board.dominantTopics.slice(0, 20) },
+    recent_discussion: clean.length ? clean : undefined,
     project: { sells_about: pillar.keyMessages.slice(0, 20), keywords: pillar.seoKeywords.slice(0, 20), avoid: pillar.forbiddenMsgs.slice(0, 12) },
   });
   try {

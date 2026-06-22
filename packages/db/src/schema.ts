@@ -960,6 +960,11 @@ export const platformBoards = pgTable(
     description: text('description').notNull().default(''),
     members: integer('members').notNull().default(0),
     privacy: text('privacy').notNull().default(''),         // public|restricted|private (gate server-side trước khi trả ext)
+    // 0109: relevance signals editable từ panel (yếu tố chấm fit). Override habitat-level khi set;
+    // đổi → board_inputs_hash đổi → /boards/score auto re-score (không cần stale flag).
+    dominantTopics: jsonb('dominant_topics').notNull().default([]),
+    forbiddenTopics: jsonb('forbidden_topics').notNull().default([]),
+    language: text('language').notNull().default(''),
     rawMeta: jsonb('raw_meta').notNull().default({}),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
@@ -994,6 +999,11 @@ export const boardProjectScore = pgTable(
     // approach (vd "dùng astrology phân tích người nổi tiếng" cho board giải trí) → re-score cao
     // hơn. Vẫn ACCOUNT-FREE (project-level). Đổi approach → set stale → re-score dùng angle này.
     approach: text('approach').notNull().default(''),
+    // 0110: nếu angle này lấy từ thư viện dùng chung → link về playbook (hiển thị nguồn + đếm uses).
+    approachPlaybookId: bigint('approach_playbook_id', { mode: 'number' }),
+    // 0109: user override badge. 'SKIP' = bỏ qua board (dismiss), 'GO' = pin. NULL = auto-compose.
+    // Read-time overlay (badge), KHÔNG feed LLM/hash.
+    manualTier: text('manual_tier'),
     // sha256 pillar: id+keyMessages+seoKeywords+forbiddenMsgs+languages+status+tribeIds+threshold.
     projectInputsHash: text('project_inputs_hash').notNull(),
     // sha256 board signature: dominant_topics+forbidden_topics+description+members-bucket+language.
@@ -1009,6 +1019,32 @@ export const boardProjectScore = pgTable(
     uniqueIndex('board_project_score_uq').on(t.tenantId, t.boardId, t.projectId),
     index('board_project_score_project_idx').on(t.projectId),
     index('board_project_score_stale_idx').on(t.stale),
+  ],
+);
+
+// ── approach_playbooks (mig 0110) — thư viện phương án tiếp cận dùng chung CROSS-PROJECT ─
+// 1 angle để bridge project topic → board off-topic là kiến thức tái dùng (vd "dùng astrology
+// phân tích người nổi tiếng đang bàn ở board"). Lưu library tenant-wide → chọn áp dụng cho board
+// bất kỳ ở project bất kỳ. angle TEXT vẫn copy vào board_project_score.approach (scorer ko cần join).
+export const approachPlaybooks = pgTable(
+  'approach_playbooks',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    title: text('title').notNull(),                         // tên ngắn tái dùng
+    angle: text('angle').notNull(),                         // nội dung approach (cái /boards/score dùng)
+    category: text('category').notNull().default(''),
+    tags: jsonb('tags').notNull().default([]),
+    sourceProjectId: text('source_project_id').references(() => projects.id, { onDelete: 'set null' }),
+    platformKey: text('platform_key').references(() => platforms.key, { onDelete: 'set null' }), // null = any
+    uses: integer('uses').notNull().default(0),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('approach_playbooks_tenant_idx').on(t.tenantId),
+    index('approach_playbooks_platform_idx').on(t.platformKey),
   ],
 );
 

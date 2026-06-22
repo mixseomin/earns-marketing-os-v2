@@ -770,7 +770,7 @@ function fmtFull(v: unknown): string {
 // status/phase/kind → semantic color for a badge cell.
 function badgeColor(v: string): string {
   const s = v.toLowerCase();
-  if (['active', 'warming', 'live', 'posted', 'published', 'joined', 'approved', 'done', 'replied'].includes(s)) return 'var(--ok)';
+  if (['active', 'warming', 'live', 'posted', 'published', 'joined', 'approved', 'done', 'replied', 'verified'].includes(s)) return 'var(--ok)';
   if (['blocked', 'banned', 'rejected', 'failed', 'error', 'dead', 'left'].includes(s)) return 'var(--bad)';
   if (['limited', 'pending', 'hold', 'draft', 'todo', 'creating', 'queued', 'review'].includes(s)) return 'var(--warn)';
   return 'var(--fg-2)';
@@ -940,9 +940,12 @@ function InstanceBrowser({ obj, projects, defaultProject }: {
           const cAt = it.cols['created_at'];
           const ageDays = cAt ? (Date.now() - new Date(cAt as string | number | Date).getTime()) / 86400000 : 0;
           const stale = obj.key === 'account' && PENDING_C.has(sv) && ageDays > STALE_DAYS;
+          // viền trái = màu theo status (stale ưu tiên đỏ); status lạ → trong suốt.
+          const lbColor = stale ? 'var(--bad)' : badgeColor(sv);
+          const lbOn = stale || (!!sv && lbColor !== 'var(--fg-2)');
           return (
-          <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : 'Mở chi tiết item'}
-            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: stale ? '3px solid var(--bad)' : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+          <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : (sv ? `status: ${sv}` : 'Mở chi tiết item')}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>

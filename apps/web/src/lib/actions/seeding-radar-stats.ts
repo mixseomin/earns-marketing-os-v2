@@ -25,7 +25,7 @@ export interface SeedingFunnel {
   habitatsLinked: number;  // board đã adopt thành habitat
   briefs: number;          // habitat đã có brief
   posted: number;          // card đã đăng
-  backlog: Array<{ boardId: number; name: string; url: string; fit: number; manualTier: string | null }>;  // GO/fit cao chưa có brief = low-hanging
+  backlog: Array<{ boardId: number; name: string; platform: string; url: string; fit: number; manualTier: string | null }>;  // GO/fit cao chưa có brief = low-hanging
 }
 
 // Funnel + backlog cho 1 project. discovered(scored) → GO/ADD → tracked(habitat) → brief → posted.
@@ -46,7 +46,7 @@ export async function getSeedingFunnel(projectId: string): Promise<SeedingFunnel
   const r = (rows as unknown as Array<Record<string, unknown>>)[0] || {};
 
   const back = await db().execute(sql`
-    SELECT pb.id, pb.name, pb.url, bps.fit, bps.manual_tier
+    SELECT pb.id, pb.name, pb.url, COALESCE(pb.platform_key, pb.technology_key, '?') AS platform, bps.fit, bps.manual_tier
       FROM board_project_score bps JOIN platform_boards pb ON pb.id = bps.board_id
      WHERE bps.project_id = ${projectId}
        AND (bps.manual_tier='GO' OR bps.fit>=60) AND bps.manual_tier IS DISTINCT FROM 'SKIP'
@@ -59,7 +59,7 @@ export async function getSeedingFunnel(projectId: string): Promise<SeedingFunnel
     scored: num(r.scored), avgFit: num(r.avg_fit), skipped: num(r.skipped), withApproach: num(r.with_approach),
     goIsh: num(r.go_ish), mid: num(r.mid), habitatsLinked: num(r.habitats_linked), briefs: num(r.briefs), posted: num(r.posted),
     backlog: (back as unknown as Array<Record<string, unknown>>).map((x) => ({
-      boardId: num(x.id), name: String(x.name ?? ''), url: String(x.url ?? ''), fit: num(x.fit), manualTier: x.manual_tier ? String(x.manual_tier) : null,
+      boardId: num(x.id), name: String(x.name ?? ''), platform: String(x.platform ?? '?'), url: String(x.url ?? ''), fit: num(x.fit), manualTier: x.manual_tier ? String(x.manual_tier) : null,
     })),
   };
 }

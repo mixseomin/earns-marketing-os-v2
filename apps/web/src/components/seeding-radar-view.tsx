@@ -100,12 +100,13 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
           ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không còn board fit cao nào chưa được track. 👌</div>
           : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>fit</th><th style={th}>board</th><th style={th}></th></tr></thead>
+              <thead><tr><th style={th}>fit</th><th style={th}>board</th><th style={th}>platform</th><th style={th}></th></tr></thead>
               <tbody>
                 {funnel.backlog.map((b) => (
                   <tr key={b.boardId}>
                     <td style={{ ...td, fontWeight: 700, color: b.fit >= 70 ? '#4ade80' : '#fbbf24' }}>{b.manualTier === 'GO' ? '📌 ' : ''}{b.fit}</td>
-                    <td style={td}>{b.name || `#${b.boardId}`}</td>
+                    <td style={{ ...td, color: 'var(--fg-1)', fontWeight: 500 }}>{b.name || `#${b.boardId}`}</td>
+                    <td style={td}><span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-3)' }}>{b.platform}</span></td>
                     <td style={{ ...td, textAlign: 'right' }}>
                       {b.url ? <a href={b.url} target="_blank" rel="noopener noreferrer" style={{ color: '#93c5fd', fontSize: 11, marginRight: 10 }}>↗ mở board</a> : null}
                       <a href={boardUrl(b.boardId)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--fg-4)', fontSize: 11 }}>Studio</a>

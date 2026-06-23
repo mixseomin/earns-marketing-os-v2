@@ -36,6 +36,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com']);
 const SITE_META: Record<string, { project?: string; emoji: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
   'militarycalc.com': { emoji: '🪖' },
+  'govcalcs.com': { project: 'govcalcs', emoji: '🏛️' },
   'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },

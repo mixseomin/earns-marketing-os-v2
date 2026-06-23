@@ -105,7 +105,7 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
-  const special = new Set(['__projects', '__unread', '__platform']);
+  const special = new Set(['__projects', '__unread', '__platform', '__board']);
   let extraCols: string[] = [];
   let validCols = new Set<string>();
   if (opts.cols && opts.cols.length) {
@@ -129,6 +129,12 @@ export async function browseInstances(
     if (validCols.has('habitat_id')) selParts.push(`(SELECT platform_key FROM habitats WHERE id = t.habitat_id) AS __platform`);
     else if (validCols.has('platform_key')) selParts.push(`COALESCE(t.platform_key, t.technology_key) AS __platform`);
     else selParts.push(`NULL::text AS __platform`);
+  }
+  // __board: bảng có board_id (board_project_score…) → "tên board · platform" để readable thay vì id trần.
+  const wantBoard = !!opts.cols?.includes('__board');
+  if (wantBoard) {
+    if (validCols.has('board_id')) selParts.push(`(SELECT COALESCE(NULLIF(pb.name,''), 'board') || ' · ' || COALESCE(pb.platform_key, pb.technology_key, '?') FROM platform_boards pb WHERE pb.id = t.board_id) AS __board`);
+    else selParts.push(`NULL::text AS __board`);
   }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
@@ -163,6 +169,7 @@ export async function browseInstances(
       if (wantProjects) cols['__projects'] = r['__projects'] ?? null;
       if (wantUnread) cols['__unread'] = r['__unread'] ?? null;
       if (wantPlatform) cols['__platform'] = r['__platform'] ?? null;
+      if (wantBoard) cols['__board'] = r['__board'] ?? null;
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;

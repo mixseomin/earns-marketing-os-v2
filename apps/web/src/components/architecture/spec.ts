@@ -388,8 +388,8 @@ export const OBJECTS: ArchObject[] = [
     picker: { subExpr: "concat('fit ', t.fit)" },
     browseCols: [
       { col: 'project_id', label: 'project', kind: 'link', link: 'project' },
-      { col: 'board_id', label: 'board', kind: 'link', link: 'board' },
-      { col: 'fit', label: 'fit' },
+      { col: '__board', label: 'board' },                                    // tên board · platform (readable)
+      { col: 'board_id', label: '#', kind: 'link', link: 'board' },          // link drill xuống board
       { col: 'topic_tier', label: 'tier' },
       { col: 'manual_tier', label: 'manual' },
       { col: 'approach_playbook_id', label: 'playbook', kind: 'link', link: 'approach' },

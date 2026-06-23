@@ -25,6 +25,7 @@ import { getHabitatRowAction, reassignBriefAccount, autoFixBriefAccount, type Br
 import { fetchBriefModal, prefetchBriefModal, invalidateBriefModal } from '@/lib/brief-modal-cache';
 import { fmtCompactNum } from '@/lib/format';
 import { SwapAccountButton } from './swap-account-button';
+import { SeedingRadarView } from './seeding-radar-view';
 import type { TribeRow, PlatformRow, AccountRow, HabitatRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import { getAccountForEdit } from '@/lib/actions/accounts';
@@ -114,7 +115,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   habitats?: HabitatRow[];
   accounts?: AccountRow[];
   recentPosted?: RecentPostedCard[];
-  initialView?: 'queue' | 'posts' | 'habitats' | 'accounts' | 'today';
+  initialView?: 'queue' | 'posts' | 'habitats' | 'accounts' | 'today' | 'radar';
   postedOptions?: PostedFilterOptions;
   postedInitial?: AllPostedResult;
   postedInitialFilters?: AllPostedFilters;
@@ -129,7 +130,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   // View switcher — 'queue' (mặc định, lịch sắp tới) vs 'posts' (tất cả bài đã đăng + filter mạnh).
   // Sync vào URL ?st=posts để F5 giữ tab.
-  const [view, setView] = useState<'queue' | 'posts' | 'habitats' | 'accounts' | 'today'>(initialView);
+  const [view, setView] = useState<'queue' | 'posts' | 'habitats' | 'accounts' | 'today' | 'radar'>(initialView);
   // Đồng bộ tab vào URL — không reload page, chỉ replaceState.
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -138,6 +139,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     else if (view === 'habitats') qs.set('st', 'habitats');
     else if (view === 'accounts') qs.set('st', 'accounts');
     else if (view === 'today') qs.set('st', 'today');
+    else if (view === 'radar') qs.set('st', 'radar');
     else qs.delete('st');
     const next = qs.toString();
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
@@ -1775,6 +1777,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           { value: 'posts' as const, label: `📨 Tất cả bài đăng${postedInitial?.total ? ` (${postedInitial.total})` : ''}` },
           { value: 'habitats' as const, label: `🏘 Habitats${habitats.length ? ` (${habitats.length})` : ''}` },
           { value: 'accounts' as const, label: `🔐 Accounts${accounts.length ? ` (${accounts.length})` : ''}` },
+          { value: 'radar' as const, label: '📡 Radar' },
         ]).map((t) => {
           const on = view === t.value;
           return (
@@ -1899,6 +1902,9 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           onGoHabitats={() => setView('habitats')}
         />
       )}
+
+      {/* View 📡 Radar — aggregate stats Seeding Radar: funnel + backlog + approach effectiveness + coverage. */}
+      {view === 'radar' && <SeedingRadarView projectId={projectId} />}
 
       {/* Chip filter — click 1 chip = lọc queue bên dưới theo loại. 'ready'
           xanh = không issue, sẵn sàng seed. acct-dead đỏ; 3 loại còn lại

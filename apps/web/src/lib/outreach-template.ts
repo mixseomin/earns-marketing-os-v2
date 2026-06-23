@@ -5,15 +5,8 @@
 
 const SIGNATURE = 'Jake Miller';
 
-// CAN-SPAM (15 U.S.C. §7704): physical postal address + opt-out in every commercial email.
-// Shared usa2me mailbox reused across the portfolio.
-const FOOTER = [
-  ``,
-  `--`,
-  `MilitaryCalc - free tools for service members`,
-  `10685-B Hazelhurst Dr #43316, Houston, TX 77043, USA`,
-  `Not a fit? Just reply "no thanks" and I won't follow up.`,
-].join('\n');
+// These are personal 1:1 emails — a clean signature is enough, no bulk-style CAN-SPAM footer
+// (a postal-address + unsubscribe block reads as mass mail and hurts reply rate). User call 2026-06-23.
 
 function parts(p: { agentName?: string | null; base?: string | null }) {
   const name = (p.agentName || '').trim().split(/\s+/)[0] || 'there';
@@ -47,7 +40,6 @@ export function buildOutreachEmail(p: { agentName?: string | null; base?: string
     `Best,`,
     SIGNATURE,
     `MilitaryCalc - militarycalc.com`,
-    FOOTER,
   ].join('\n');
   return { subject, body };
 }
@@ -70,7 +62,6 @@ export function buildFollowupEmail(p: { agentName?: string | null; base?: string
     `Best,`,
     SIGNATURE,
     `MilitaryCalc - militarycalc.com`,
-    FOOTER,
   ].join('\n');
   return { subject, body };
 }

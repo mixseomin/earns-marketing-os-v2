@@ -864,10 +864,27 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [data, setData] = useState<InstancePage>({ rows: [], total: 0 });
   const [loading, setLoading] = useState(false);
   const PAGE = 25;
+  // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
+  const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
+  const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
+  // Resize cột: px theo [label, ...dataCols, pk]. Nhớ localStorage/node.
+  const _ndc = obj.browseCols?.length || 1;
+  const wKey = `mos2_arch_cols_${obj.key}`;
+  const [widths, setWidths] = useState<number[]>(() => {
+    try { const s = JSON.parse(localStorage.getItem(wKey) || 'null'); if (Array.isArray(s) && s.length === _ndc + 2) return s; } catch {}
+    return [170, ...Array(_ndc).fill(120), 58];
+  });
+  const startResize = (i: number, e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const startX = e.clientX; const startW = widths[i] ?? 120;
+    const onMove = (ev: MouseEvent) => { const w = Math.max(48, startW + (ev.clientX - startX)); setWidths((prev) => { const n = prev.slice(); n[i] = w; return n; }); };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); setWidths((prev) => { try { localStorage.setItem(wKey, JSON.stringify(prev)); } catch {} return prev; }); };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  };
 
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
-  useEffect(() => { setPage(0); }, [projectId, parentId]);
+  useEffect(() => { setPage(0); }, [projectId, parentId, sort]);
   // 1 drawer sửa status → patch row tương ứng trong bảng NGAY (badge + stale recompute) — ko refetch.
   useEffect(() => {
     const h = (e: Event) => {
@@ -886,9 +903,10 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       parentId: parent && parentId ? parentId : undefined,   // parentId rỗng = TẤT CẢ (ko gate)
       q: qDeb, limit: PAGE, offset: page * PAGE,
       cols: (obj.browseCols || []).map((c) => c.col),
+      sort: sort || undefined,
     }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page]);
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort]);
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const from = data.total === 0 ? 0 : page * PAGE + 1;
@@ -900,7 +918,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[] =
     bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
       : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
-  const grid = `minmax(90px,1.4fr) ${dataCols.map(() => 'minmax(0,1fr)').join(' ')} 48px`;
+  const grid = widths.map((w) => `${w}px`).join(' ');   // px cố định/cột → resize + scroll ngang
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
   const open = (it: InstanceRef) => openSub({
     title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
@@ -945,11 +963,25 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 
       {/* TABLE — header + paginated rows; click row mở drawer chi tiết.
           Cột link (platform…) click riêng → mở drawer entity đó (stopPropagation). */}
-      <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{obj.labelCol || 'name'}</span>
-          {dataCols.map((dc, j) => <span key={j} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dc.label}</span>)}
-          <span style={{ textAlign: 'right' }}>{obj.pk || 'id'}</span>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, minWidth: 'max-content', padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          {[{ label: obj.labelCol || 'name', key: '__label', right: false },
+            ...dataCols.map((dc) => ({ label: dc.label, key: dc.key, right: false })),
+            { label: obj.pk || 'id', key: obj.pk || 'id', right: true },
+          ].map((hc, i, arr) => {
+            const active = sort?.col === hc.key;
+            return (
+              <span key={i} onClick={() => toggleSort(hc.key)} title="Click = sort · kéo mép phải = đổi rộng cột"
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', justifyContent: hc.right ? 'flex-end' : 'flex-start', color: active ? 'var(--accent)' : undefined }}>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{hc.label}</span>
+                {active && <span style={{ flexShrink: 0 }}>{sort!.dir === 'asc' ? '▲' : '▼'}</span>}
+                {i < arr.length - 1 && (
+                  <span onMouseDown={(e) => startResize(i, e)} onClick={(e) => e.stopPropagation()}
+                    style={{ position: 'absolute', top: 0, right: -4, width: 9, height: '100%', cursor: 'col-resize' }} />
+                )}
+              </span>
+            );
+          })}
         </div>
         {data.rows.length === 0 ? (
           <div style={{ fontSize: 11.5, color: 'var(--fg-3)', padding: '12px 10px', textAlign: 'center' }}>{loading ? 'loading…' : 'Không có item nào.'}</div>
@@ -964,7 +996,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
           const lbOn = stale || (!!sv && lbColor !== 'var(--fg-2)');
           return (
           <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : (sv ? `status: ${sv}` : 'Mở chi tiết item')}
-            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', minWidth: 'max-content', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>

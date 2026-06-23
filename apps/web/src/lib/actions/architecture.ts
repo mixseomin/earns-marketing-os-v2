@@ -90,7 +90,7 @@ async function tableColumns(table: string): Promise<Set<string>> {
 
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[] } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' } } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -152,6 +152,17 @@ export async function browseInstances(
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
   const offset = Math.max(opts.offset ?? 0, 0);
 
+  // Sort server-side (qua phân trang). '__label' = cột label; pk; special col đã select (alias); real col.
+  let orderSql = sql`${pk} DESC`;
+  if (opts.sort?.col) {
+    const dir = opts.sort.dir === 'asc' ? sql.raw('ASC') : sql.raw('DESC');
+    const c = opts.sort.col;
+    if (c === '__label') orderSql = sql`(${labelSel}) ${dir} NULLS LAST`;
+    else if (c === (obj.pk || 'id')) orderSql = sql`${pk} ${dir}`;
+    else if (special.has(c) && opts.cols?.includes(c)) orderSql = sql`${sql.raw(ident(c))} ${dir} NULLS LAST`;
+    else if (validCols.has(c)) orderSql = sql`${sql.raw('t.' + ident(c))} ${dir} NULLS LAST`;
+  }
+
   try {
     const [listRes, countRes] = await Promise.all([
       db.execute(sql`
@@ -159,7 +170,7 @@ export async function browseInstances(
         FROM ${sql.raw(table)} t
         ${joinSql}
         ${whereSql}
-        ORDER BY ${pk} DESC
+        ORDER BY ${orderSql}
         LIMIT ${limit} OFFSET ${offset}`),
       db.execute(sql`SELECT COUNT(*)::int AS n FROM ${sql.raw(table)} t ${joinSql} ${whereSql}`),
     ]);

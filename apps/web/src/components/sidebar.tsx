@@ -142,6 +142,13 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
               </Link>
             )}
             {currentUser?.role === 'admin' && (
+              <Link href={`/p/${currentProjectId}/outreach`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }}>✉</div>
+                <div className="squad-name"><b>{t('nav.outreach', 'Outreach')}</b><span>widget embeds · pitch realtors</span></div>
+                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+              </Link>
+            )}
+            {currentUser?.role === 'admin' && (
               <Link href={`/p/${currentProjectId}/identities`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-pink)', color: 'var(--neon-pink)' }}>👤</div>
                 <div className="squad-name"><b>{t('nav.identities', 'Identities')}</b><span>preset persona · pre-fill</span></div>

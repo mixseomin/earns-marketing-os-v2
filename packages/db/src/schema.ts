@@ -2016,5 +2016,47 @@ export const adsenseDaily = pgTable(
   ],
 );
 
+// Outreach prospects — cold-email pipeline for the widget-embed pitch (e.g. militarycalc realtors).
+// Status advances by one-click in /p/[id]/outreach; 'embedded' is auto-flipped by the GA4
+// embed_host -> website_etld1 conversion cron (Phase 3). Decision: 2026-06-23-militarycalc-outreach-crm-mos2.
+export const outreachProspects = pgTable(
+  'outreach_prospects',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    agentName: text('agent_name').notNull(),
+    company: text('company'),
+    base: text('base'),                                          // installation the prospect serves (display/personalization)
+    email: text('email'),                                        // null = form-only target
+    contactUrl: text('contact_url'),                             // contact-form URL when no public email
+    website: text('website').notNull().default(''),
+    websiteEtld1: text('website_etld1'),                         // eTLD+1 join key for the embed conversion loop
+    status: text('status').notNull().default('to_send'),         // to_send|sent|followup_1|followup_2|replied|interested|embedded|declined|bounced|no_response
+    source: text('source').notNull().default('markdown_pack'),   // markdown_pack|orit|manual
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    repliedAt: timestamp('replied_at', { withTimezone: true }),
+    embeddedAt: timestamp('embedded_at', { withTimezone: true }),
+    embedHostMatched: text('embed_host_matched'),
+    embedItemId: text('embed_item_id'),
+    embedLoads: integer('embed_loads').notNull().default(0),
+    nextFollowupAt: timestamp('next_followup_at', { withTimezone: true }),
+    followupCount: integer('followup_count').notNull().default(0),
+    snoozeUntil: timestamp('snooze_until', { withTimezone: true }),
+    templateKey: text('template_key'),
+    notes: text('notes'),
+    owner: text('owner').notNull().default('me'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('outreach_prospects_proj_email_uidx').on(t.projectId, t.email),
+    index('outreach_prospects_project_idx').on(t.projectId),
+    index('outreach_prospects_status_idx').on(t.status),
+    index('outreach_prospects_followup_idx').on(t.projectId, t.nextFollowupAt),
+    index('outreach_prospects_etld1_idx').on(t.websiteEtld1),
+  ],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects };

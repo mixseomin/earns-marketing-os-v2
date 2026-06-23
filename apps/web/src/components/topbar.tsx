@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
 interface SubItem { label: string; href: string; icon?: string }
 

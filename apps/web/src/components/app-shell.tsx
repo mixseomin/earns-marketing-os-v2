@@ -13,7 +13,7 @@ import { VisibilityWatcher } from './visibility-watcher';
 import type { Mode, Project } from '@/lib/mock/types';
 import type { VisibilityConfig } from '@/lib/visibility';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
 export interface CurrentUserInfo {
   id: number;

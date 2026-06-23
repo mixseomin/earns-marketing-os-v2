@@ -851,6 +851,8 @@ export async function confirmCardPosted(
       posted_at = ${postedAt.toISOString()},
       post_screenshot_url = ${payload.postScreenshotUrl ?? null},
       post_note = ${payload.postNote ?? null},
+      -- Bài từng "pending-approval" giờ đã hiện public (mod duyệt xong → mark-posted) → clear flag.
+      post_lifecycle = CASE WHEN post_lifecycle = 'pending-approval' THEN NULL ELSE post_lifecycle END,
       updated_at = now()
     WHERE id = ${cardId} AND project_id = ${projectId}
   `);

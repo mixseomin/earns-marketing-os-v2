@@ -6,10 +6,11 @@ import { errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/update-lifecycle
 // Body: { cardId, lifecycle, note? }
-//   lifecycle: null | 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement'
+//   lifecycle: null | 'pending-approval' | 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement'
 //
-// User mark manual khi xem post Reddit thấy bị remove/ghost; hoặc cron
-// auto-detect (Phase D) gọi với context "anon fetch returned [removed]".
+// User mark manual khi xem post Reddit thấy bị remove/ghost; cron auto-detect
+// (Phase D) gọi với "anon fetch returned [removed]"; HOẶC ext bắt 'pending-approval'
+// NGAY trên trang confirm sau submit (forum bắt chờ mod duyệt).
 
 const VALID_LIFECYCLES = new Set<string | null>(VALID_LIFECYCLE_VALUES);   // 1 source: lib/lifecycle.ts
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
   const res = await updateCardLifecycle(
     cardId,
-    lifecycle as 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null,
+    lifecycle as 'pending-approval' | 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null,
     body.note ?? null,
   );
   if (!res.ok) {

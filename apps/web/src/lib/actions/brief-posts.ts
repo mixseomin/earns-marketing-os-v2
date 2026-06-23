@@ -415,7 +415,7 @@ export async function listEngagedThreadsForBrief(
 // Update post_lifecycle cho 1 card (manual mark hoặc cron auto-detect).
 export async function updateCardLifecycle(
   cardId: number,
-  lifecycle: 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null,
+  lifecycle: 'pending-approval' | 'live' | 'ghosted' | 'removed-by-mod' | 'self-deleted' | 'low-engagement' | null,
   note?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();

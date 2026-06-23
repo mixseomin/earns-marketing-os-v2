@@ -11,7 +11,11 @@ import { buildEmailForProspect } from '@/lib/outreach-template';
 const FROM_EMAIL = process.env.MAILJET_FROM || 'hello@militarycalc.com';
 const FROM_NAME = 'Jake Miller';
 
-export async function sendProspectEmail(projectId: string, id: number): Promise<{ ok: boolean; error?: string }> {
+export async function sendProspectEmail(
+  projectId: string,
+  id: number,
+  override?: { subject?: string; body?: string },
+): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'DB unavailable' };
   const key = process.env.MAILJET_API_KEY;
@@ -32,11 +36,14 @@ export async function sendProspectEmail(projectId: string, id: number): Promise<
     return { ok: false, error: `Already ${status} — not sending` };
   }
 
-  const { subject, body } = buildEmailForProspect({
+  const tpl = buildEmailForProspect({
     agentName: r.agent_name as string | null,
     base: r.base as string | null,
     status,
   });
+  // Use the operator's edited subject/body when provided (they fix the greeting etc. in the drawer).
+  const subject = override?.subject?.trim() || tpl.subject;
+  const body = override?.body?.trim() || tpl.body;
 
   let resp: Response;
   try {

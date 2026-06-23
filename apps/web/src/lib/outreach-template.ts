@@ -8,8 +8,19 @@ const SIGNATURE = 'Jake Miller';
 // These are personal 1:1 emails — a clean signature is enough, no bulk-style CAN-SPAM footer
 // (a postal-address + unsubscribe block reads as mass mail and hurts reply rate). User call 2026-06-23.
 
+// Only use a first name when the contact clearly reads as a person (1-2 plain words, no
+// company/brokerage keywords or digits). Otherwise greet "there" — better than "Hi Moving,"
+// off a brokerage name like "Moving With Meg". You can still edit the greeting before sending.
+const COMPANY_RE = /\b(realty|real estate|realtor|group|team|properties|property|homes?|associates|living|company|brokerage|agency|partners|re|pm|llc|inc)\b|[0-9|&()]/i;
+function firstNameOf(raw: string): string {
+  const words = raw.trim().split(/\s+/);
+  const w0 = words[0] || '';
+  const ok = words.length <= 2 && !COMPANY_RE.test(raw) && /^[A-Z][a-z'’-]+$/.test(w0);
+  return ok ? w0 : 'there';
+}
+
 function parts(p: { agentName?: string | null; base?: string | null }) {
-  const name = (p.agentName || '').trim().split(/\s+/)[0] || 'there';
+  const name = firstNameOf(p.agentName || '');
   const rawBase = (p.base || '').trim();
   const st = rawBase.match(/,\s*([A-Z]{2})$/)?.[1] || '';
   const baseName = rawBase.replace(/,\s*[A-Z]{2}$/, '').trim() || 'your area';

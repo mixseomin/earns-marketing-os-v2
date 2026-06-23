@@ -122,7 +122,6 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const urlTab = sp.get('tab');
   const [tab, setTabState] = useState<TabKey>(urlTab === 'pipeline' || urlTab === 'all' ? urlTab : 'due');
   const [pending, start] = useTransition();
-  const [copiedId, setCopiedId] = useState<number | null>(null);
   const [preview, setPreview] = useState<OutreachProspect | null>(null);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState('');
@@ -136,16 +135,6 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   };
 
   const act = (fn: () => Promise<unknown>) => start(async () => { await fn(); router.refresh(); });
-
-  const copy = async (p: OutreachProspect) => {
-    const { subject, body } = buildEmailForProspect(p);
-    const text = p.email ? `Subject: ${subject}\n\n${body}` : body;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(p.id);
-      setTimeout(() => setCopiedId((c) => (c === p.id ? null : c)), 1600);
-    } catch { /* clipboard blocked */ }
-  };
 
   const kpi = useMemo(() => {
     const c = (f: (p: OutreachProspect) => boolean) => prospects.filter(f).length;
@@ -381,8 +370,6 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
           pending={pending}
           onClose={() => setPreview(null)}
           onAfterAction={() => { setPreview(null); router.refresh(); }}
-          onCopy={() => copy(preview)}
-          copied={copiedId === preview.id}
         />
       )}
     </div>
@@ -390,24 +377,26 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
 }
 
 function EmailDrawer({
-  projectId, prospect: p, pending, onClose, onAfterAction, onCopy, copied,
+  projectId, prospect: p, pending, onClose, onAfterAction,
 }: {
   projectId: string;
   prospect: OutreachProspect;
   pending: boolean;
   onClose: () => void;
   onAfterAction: () => void;
-  onCopy: () => void;
-  copied: boolean;
 }) {
   const router = useRouter();
-  const { subject, body } = useMemo(() => buildEmailForProspect(p), [p]);
   const isFollowup = ACTIVE.has(p.status);
   const sendable = SENDABLE.has(p.status);
 
+  // Subject + body are editable so you can fix the greeting (e.g. "Hi Moving,") before it sends.
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [didCopy, setDidCopy] = useState(false);
   const [send, setSend] = useState<'idle' | 'confirm' | 'sending' | 'sent' | 'error'>('idle');
   const [err, setErr] = useState('');
   const [formBusy, setFormBusy] = useState(false);
+  const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
   // Local contact copy so edits ("field reality") flip FORM<->EMAIL live without reopening.
   const [cur, setCur] = useState({ email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' });
   const [editing, setEditing] = useState(false);
@@ -417,8 +406,10 @@ function EmailDrawer({
   useEffect(() => {
     const c = { email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' };
     setCur(c); setDraft(c); setEditing(false); setSaveErr('');
-    setSend('idle'); setErr(''); setFormBusy(false);
-  }, [p.id, p.email, p.contactUrl, p.website]);
+    setSend('idle'); setErr(''); setFormBusy(false); setDidCopy(false);
+    const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status });
+    setSubject(e.subject); setBody(e.body);
+  }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status]);
 
   const isForm = !cur.email.trim();
   const formLink = (cur.contactUrl || cur.website || '').trim();
@@ -428,7 +419,7 @@ function EmailDrawer({
 
   const doSend = async () => {
     setSend('sending');
-    const res = await sendProspectEmail(projectId, p.id);
+    const res = await sendProspectEmail(projectId, p.id, { subject, body });
     if (res.ok) { setSend('sent'); setTimeout(onAfterAction, 900); }
     else { setSend('error'); setErr(res.error || 'Send failed'); }
   };
@@ -503,15 +494,15 @@ function EmailDrawer({
               <CopyField label="Email" value={SENDER.email} />
               <CopyField label="Phone" value={SENDER.phone} />
               <CopyField label="Subject" value={subject} />
-              <div style={{ ...lbl, marginTop: 6 }}>Message</div>
-              <textarea readOnly value={body} rows={12} style={taStyle} />
+              <div style={{ ...lbl, marginTop: 6 }}>Message <span style={{ color: 'var(--fg-3)' }}>· editable</span></div>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12} style={taStyle} />
               <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
                 For radio / dropdown fields (e.g. &quot;I am interested in&quot;), pick <b>Other</b> or the closest option — this is a partnership pitch, not a buy/sell inquiry. Phone is optional, leave blank.
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy message'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(body)}>{didCopy ? '✓ Copied' : 'Copy message'}</button>
               {sendable && (
                 <>
                   <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>
@@ -540,12 +531,12 @@ function EmailDrawer({
               <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{cur.email}</div>
             </div>
             <div style={{ margin: '12px 0 0' }}>
-              <div style={lbl}>Subject {isFollowup && <span style={{ color: 'var(--neon-amber)' }}>· follow-up</span>}</div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{subject}</div>
+              <div style={lbl}>Subject <span style={{ color: 'var(--fg-3)' }}>· editable</span>{isFollowup && <span style={{ color: 'var(--neon-amber)' }}> · follow-up</span>}</div>
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} autoComplete="off" style={{ ...inputStyle, fontWeight: 600, marginBottom: 0 }} />
             </div>
             <div style={{ margin: '12px 0 0' }}>
-              <div style={lbl}>Body</div>
-              <textarea readOnly value={body} rows={16} style={taStyle} />
+              <div style={lbl}>Body <span style={{ color: 'var(--fg-3)' }}>· editable — fix the greeting/wording before sending</span></div>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={16} style={taStyle} />
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
@@ -566,7 +557,7 @@ function EmailDrawer({
 
               {send !== 'sending' && send !== 'sent' && (
                 <>
-                  <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy email'}</button>
+                  <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Copied' : 'Copy email'}</button>
                   <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
                 </>
               )}

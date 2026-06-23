@@ -267,7 +267,12 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
                 {g.items.map((p) => (
                   <div key={p.id} style={{ border: '1px solid var(--bg-3)', borderRadius: 8, padding: 8, background: 'var(--bg-1)' }}>
                     <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button>
-                    <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 6px' }}>{p.base || '—'}</div>
+                    <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 6px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span>{p.base || '—'}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '0 5px', borderRadius: 99, background: p.email ? 'color-mix(in srgb, var(--neon-cyan) 18%, transparent)' : 'color-mix(in srgb, var(--neon-amber) 22%, transparent)', color: p.email ? 'var(--neon-cyan)' : 'var(--neon-amber)' }}>
+                        {p.email ? 'EMAIL' : 'FORM'}
+                      </span>
+                    </div>
                     <Actions p={p} />
                   </div>
                 ))}
@@ -333,6 +338,12 @@ function EmailDrawer({
         </div>
 
         <div style={{ margin: '14px 0 0' }}>
+          <div style={lbl}>From</div>
+          <div style={{ fontSize: 13, color: 'var(--fg-1)' }}>Jake Miller &lt;hello@militarycalc.com&gt;</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Sent via Mailjet · replies land in your inbox</div>
+        </div>
+
+        <div style={{ margin: '12px 0 0' }}>
           <div style={lbl}>To</div>
           <div style={{ fontSize: 13, color: p.email ? 'var(--fg-0)' : 'var(--fg-3)' }}>
             {p.email || 'Form-only — no email. Use their contact form:'}

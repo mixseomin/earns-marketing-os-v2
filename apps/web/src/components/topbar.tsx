@@ -183,6 +183,7 @@ export function TopBar({
         { label: 'Team',         href: `/p/${pid}/team`,   icon: '👥' },
       ],
     },
+    { id: 'outreach', label: t('nav.outreach', 'Outreach'), adminOnly: true },
     { id: 'studio', label: t('nav.studio', 'Studio'), adminOnly: true },
     {
       id: 'plans', label: t('nav.plans', 'Kế hoạch'), adminOnly: true,

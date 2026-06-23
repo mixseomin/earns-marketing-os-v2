@@ -25,9 +25,21 @@ export async function setProspectStatus(projectId: string, id: number, status: s
       embedded_at = CASE WHEN ${status} = 'embedded'                    THEN COALESCE(embedded_at, now()) ELSE embedded_at END,
       next_followup_at = CASE
         WHEN ${status} = 'sent' THEN now() + interval '3 days'
-        WHEN ${status} IN ('replied','interested','embedded','declined','bounced','no_response') THEN NULL
+        WHEN ${status} IN ('replied','interested','embedded','declined','bounced','no_response','unreachable') THEN NULL
         ELSE next_followup_at END,
       updated_at = now()
+    WHERE id = ${id}`);
+  await rerender(projectId);
+}
+
+// Form-only prospect: you submitted their contact form by hand. Marks contacted (= 'sent') but
+// schedules NO email follow-up (you can't reliably nudge a web form). Conversion still comes from GA4.
+export async function markFormSubmitted(projectId: string, id: number) {
+  const db = getDb();
+  if (!db) throw new Error('DB unavailable');
+  await db.execute(sql`
+    UPDATE outreach_prospects SET status = 'sent', sent_at = COALESCE(sent_at, now()),
+      next_followup_at = NULL, updated_at = now()
     WHERE id = ${id}`);
   await rerender(projectId);
 }

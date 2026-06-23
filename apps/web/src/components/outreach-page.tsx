@@ -1,18 +1,21 @@
 'use client';
 
-// Outreach pipeline UI — cold-email-the-realtors tracker for the widget-embed pitch.
-// Tabs (synced to ?tab= so F5 keeps place): Due today | Pipeline | All.
-// Each prospect opens a drawer to PREVIEW the exact email (To + Subject + Body) before it goes out;
-// from there you can auto-send via Mailjet (hello@militarycalc.com), open it prefilled in Gmail, or
-// just copy it. 'Embedded' is the hero — auto-flipped by the GA4 embed_host conversion cron (Phase 3).
+// Outreach pipeline UI — cold-pitch the BAH map to base-area realtors.
+// Two channels, kept distinct: EMAIL prospects auto-send via Mailjet; FORM-only prospects
+// (no public email) are submitted by hand through the realtor's contact form. Tabs synced to
+// ?tab= so F5 keeps place. 'Embedded' is auto-flipped by the GA4 embed_host cron (Phase 3).
+// All external links open with no referrer so the target site never sees the internal tool URL.
 import { Suspense, useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
-import { setProspectStatus, markFollowupSent, snoozeProspect } from '@/lib/actions/outreach-mutations';
+import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 
 type TabKey = 'due' | 'pipeline' | 'all';
+
+// Open externals with no referrer + noopener: the realtor's site never sees mos2.on.tc in Referer.
+const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   to_send: { label: 'To send', color: 'var(--fg-3)' },
@@ -24,12 +27,13 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   embedded: { label: 'Embedded ★', color: 'var(--neon-lime)' },
   declined: { label: 'Declined', color: 'var(--fg-3)' },
   bounced: { label: 'Bounced', color: 'var(--bad)' },
+  unreachable: { label: 'Unreachable', color: 'var(--bad)' },
   no_response: { label: 'No response', color: 'var(--fg-3)' },
 };
 const meta = (s: string) => STATUS_META[s] || { label: s, color: 'var(--fg-2)' };
 
 const ACTIVE = new Set(['sent', 'followup_1', 'followup_2']);
-const DEAD = new Set(['declined', 'bounced', 'no_response']);
+const DEAD = new Set(['declined', 'bounced', 'no_response', 'unreachable']);
 const SENDABLE = new Set(['to_send', 'sent', 'followup_1', 'followup_2']);
 
 function dueNow(p: OutreachProspect): boolean {
@@ -43,10 +47,15 @@ function dueNow(p: OutreachProspect): boolean {
 const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—');
 const gmailUrl = (to: string, subject: string, body: string) =>
   `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
 const btn: CSSProperties = {
   fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line, var(--bg-3))',
   background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap',
+};
+const taStyle: CSSProperties = {
+  width: '100%', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.5, padding: 10,
+  borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical',
 };
 
 function Badge({ status }: { status: string }) {
@@ -54,6 +63,15 @@ function Badge({ status }: { status: string }) {
   return (
     <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, background: `color-mix(in srgb, ${m.color} 18%, transparent)`, color: m.color, fontWeight: 700, whiteSpace: 'nowrap' }}>
       {m.label}
+    </span>
+  );
+}
+
+function ChannelTag({ email }: { email: string | null }) {
+  const isForm = !email;
+  return (
+    <span style={{ fontSize: 9, fontWeight: 700, padding: '0 5px', borderRadius: 99, background: isForm ? 'color-mix(in srgb, var(--neon-amber) 22%, transparent)' : 'color-mix(in srgb, var(--neon-cyan) 18%, transparent)', color: isForm ? 'var(--neon-amber)' : 'var(--neon-cyan)' }}>
+      {isForm ? 'FORM' : 'EMAIL'}
     </span>
   );
 }
@@ -86,8 +104,9 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
 
   const copy = async (p: OutreachProspect) => {
     const { subject, body } = buildEmailForProspect(p);
+    const text = p.email ? `Subject: ${subject}\n\n${body}` : body;
     try {
-      await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+      await navigator.clipboard.writeText(text);
       setCopiedId(p.id);
       setTimeout(() => setCopiedId((c) => (c === p.id ? null : c)), 1600);
     } catch { /* clipboard blocked */ }
@@ -121,26 +140,28 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
       { key: 'followup', label: 'Following up', items: g(['followup_1', 'followup_2']) },
       { key: 'replied', label: 'Replied / Interested', items: g(['replied', 'interested']) },
       { key: 'embedded', label: 'Embedded ★', items: g(['embedded']) },
-      { key: 'dead', label: 'Closed', items: g(['declined', 'bounced', 'no_response']) },
+      { key: 'dead', label: 'Closed', items: g(['declined', 'bounced', 'no_response', 'unreachable']) },
     ];
   }, [prospects]);
 
   function Actions({ p }: { p: OutreachProspect }) {
     const s = p.status;
+    const isForm = !p.email;
     return (
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        <button style={{ ...btn, borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }} disabled={pending} onClick={() => setPreview(p)} title="Preview the email, then send or copy">Email →</button>
-        {s === 'to_send' && (
-          <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'sent'))} title="Mark sent without auto-sending (e.g. you sent it yourself)">Mark sent</button>
+        <button style={{ ...btn, borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }} disabled={pending} onClick={() => setPreview(p)} title={isForm ? 'Open their contact form + the message to paste' : 'Preview the email, then send or copy'}>
+          {isForm ? 'Form →' : 'Email →'}
+        </button>
+        {s === 'to_send' && !isForm && (
+          <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'sent'))} title="Mark sent without auto-sending (e.g. you sent it from Gmail)">Mark sent</button>
         )}
         {ACTIVE.has(s) && (
           <>
-            <button style={btn} disabled={pending} onClick={() => act(() => markFollowupSent(projectId, p.id))} title="Log a follow-up; schedules the next nudge (cap 2)">Follow-up logged</button>
+            {!isForm && <button style={btn} disabled={pending} onClick={() => act(() => markFollowupSent(projectId, p.id))} title="Log a follow-up; schedules the next nudge (cap 2)">Follow-up logged</button>}
             <button style={{ ...btn, borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'replied'))}>Replied</button>
             <button style={{ ...btn, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'interested'))}>Interested</button>
-            <button style={btn} disabled={pending} onClick={() => act(() => snoozeProspect(projectId, p.id, 7))} title="Hide from Due for 7 days">Snooze 7d</button>
+            {!isForm && <button style={btn} disabled={pending} onClick={() => act(() => snoozeProspect(projectId, p.id, 7))} title="Hide from Due for 7 days">Snooze 7d</button>}
             <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'declined'))}>Declined</button>
-            <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'bounced'))}>Bounced</button>
           </>
         )}
         {(s === 'replied' || s === 'interested') && (
@@ -166,7 +187,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr style={{ color: 'var(--fg-2)', borderBottom: '1px solid var(--bg-3)' }}>
-            <Th>Agent</Th><Th>Base</Th><Th>Contact</Th><Th>Site</Th><Th>Status</Th>
+            <Th>Agent</Th><Th>Base</Th><Th>Channel</Th><Th>Site</Th><Th>Status</Th>
             <Th>{dueCol ? 'Due' : 'Next'}</Th><Th>Actions</Th>
           </tr>
         </thead>
@@ -180,11 +201,12 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
                   {p.company && <div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.company}</div>}
                 </td>
                 <td style={{ padding: '6px 8px', color: 'var(--fg-2)' }}>{p.base || '—'}</td>
-                <td style={{ padding: '6px 8px', fontSize: 12 }}>
-                  {p.email ? <span style={{ color: 'var(--fg-2)' }}>{p.email}</span> : <span style={{ color: 'var(--fg-3)' }}>form-only</span>}
+                <td style={{ padding: '6px 8px' }}>
+                  <ChannelTag email={p.email} />
+                  {p.email && <div style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 2 }}>{p.email}</div>}
                 </td>
                 <td style={{ padding: '6px 8px' }}>
-                  {p.website ? <a href={p.website} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-2)' }}>{(p.websiteEtld1 || p.website).replace(/^https?:\/\//, '')}</a> : '—'}
+                  {p.website ? <a href={p.website} {...EXT} style={{ color: 'var(--fg-2)' }}>{(p.websiteEtld1 || p.website).replace(/^https?:\/\//, '')}</a> : '—'}
                 </td>
                 <td style={{ padding: '6px 8px' }}>
                   <Badge status={p.status} />
@@ -227,8 +249,8 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 4px' }}>Outreach · widget embeds</h1>
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
-        Pitch the free BAH map to base-area realtors. Open a prospect to preview the email, then{' '}
-        <b>send via MilitaryCalc</b> (hello@militarycalc.com) or copy it. <b>Embedded</b> is auto-detected from GA4.
+        Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects auto-send via Mailjet (hello@militarycalc.com);{' '}
+        <b style={{ color: 'var(--neon-amber)' }}>FORM</b> ones you submit by hand through their contact form. <b>Embedded</b> is auto-detected from GA4.
       </p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
@@ -269,9 +291,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
                     <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button>
                     <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 6px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span>{p.base || '—'}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: '0 5px', borderRadius: 99, background: p.email ? 'color-mix(in srgb, var(--neon-cyan) 18%, transparent)' : 'color-mix(in srgb, var(--neon-amber) 22%, transparent)', color: p.email ? 'var(--neon-cyan)' : 'var(--neon-amber)' }}>
-                        {p.email ? 'EMAIL' : 'FORM'}
-                      </span>
+                      <ChannelTag email={p.email} />
                     </div>
                     <Actions p={p} />
                   </div>
@@ -289,7 +309,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
           prospect={preview}
           pending={pending}
           onClose={() => setPreview(null)}
-          onAfterSend={() => { setPreview(null); router.refresh(); }}
+          onAfterAction={() => { setPreview(null); router.refresh(); }}
           onCopy={() => copy(preview)}
           copied={copiedId === preview.id}
         />
@@ -299,32 +319,42 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
 }
 
 function EmailDrawer({
-  projectId, prospect: p, pending, onClose, onAfterSend, onCopy, copied,
+  projectId, prospect: p, pending, onClose, onAfterAction, onCopy, copied,
 }: {
   projectId: string;
   prospect: OutreachProspect;
   pending: boolean;
   onClose: () => void;
-  onAfterSend: () => void;
+  onAfterAction: () => void;
   onCopy: () => void;
   copied: boolean;
 }) {
   const { subject, body } = useMemo(() => buildEmailForProspect(p), [p]);
+  const isForm = !p.email;
+  const isFollowup = ACTIVE.has(p.status);
+  const sendable = SENDABLE.has(p.status);
+
   const [send, setSend] = useState<'idle' | 'confirm' | 'sending' | 'sent' | 'error'>('idle');
   const [err, setErr] = useState('');
-  useEffect(() => { setSend('idle'); setErr(''); }, [p.id]);
+  const [formBusy, setFormBusy] = useState(false);
+  useEffect(() => { setSend('idle'); setErr(''); setFormBusy(false); }, [p.id]);
 
-  const canSend = !!p.email && SENDABLE.has(p.status);
-  const isFollowup = ACTIVE.has(p.status);
+  const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '0 0 3px' };
 
   const doSend = async () => {
     setSend('sending');
     const res = await sendProspectEmail(projectId, p.id);
-    if (res.ok) { setSend('sent'); setTimeout(onAfterSend, 900); }
+    if (res.ok) { setSend('sent'); setTimeout(onAfterAction, 900); }
     else { setSend('error'); setErr(res.error || 'Send failed'); }
   };
+  const doForm = async (kind: 'submitted' | 'unreachable') => {
+    setFormBusy(true);
+    if (kind === 'submitted') await markFormSubmitted(projectId, p.id);
+    else await setProspectStatus(projectId, p.id, 'unreachable');
+    onAfterAction();
+  };
 
-  const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '0 0 3px' };
+  const formLink = p.contactUrl || p.website || '';
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 60, display: 'flex', justifyContent: 'flex-end' }}>
@@ -332,66 +362,99 @@ function EmailDrawer({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{p.agentName}</div>
-            <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>{p.base || '—'} · <Badge status={p.status} /></div>
+            <div style={{ color: 'var(--fg-3)', fontSize: 12, display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
+              <span>{p.base || '—'}</span><ChannelTag email={p.email} /><Badge status={p.status} />
+            </div>
           </div>
           <button onClick={onClose} style={{ ...btn, fontSize: 14, padding: '2px 9px' }}>✕</button>
         </div>
 
-        <div style={{ margin: '14px 0 0' }}>
-          <div style={lbl}>From</div>
-          <div style={{ fontSize: 13, color: 'var(--fg-1)' }}>Jake Miller &lt;hello@militarycalc.com&gt;</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Sent via Mailjet · replies land in your inbox</div>
-        </div>
+        {isForm ? (
+          /* ── FORM-ONLY: submit by hand through their contact form ── */
+          <>
+            <div style={{ margin: '16px 0 0' }}>
+              <div style={lbl}>Submit via their contact form</div>
+              {formLink ? (
+                <a href={formLink} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block', borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)', fontWeight: 700 }}>
+                  Open {hostOf(formLink)} form ↗
+                </a>
+              ) : <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>No contact link on file.</div>}
+              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
+                Opens with no referrer — their site won&apos;t see this tool. Contact forms usually have one message box and no subject, so paste the message below into it.
+              </div>
+            </div>
 
-        <div style={{ margin: '12px 0 0' }}>
-          <div style={lbl}>To</div>
-          <div style={{ fontSize: 13, color: p.email ? 'var(--fg-0)' : 'var(--fg-3)' }}>
-            {p.email || 'Form-only — no email. Use their contact form:'}
-            {!p.email && p.contactUrl && <> <a href={p.contactUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>open form ↗</a></>}
-          </div>
-        </div>
+            <div style={{ margin: '14px 0 0' }}>
+              <div style={lbl}>Message to paste</div>
+              <textarea readOnly value={body} rows={16} style={taStyle} />
+            </div>
 
-        <div style={{ margin: '12px 0 0' }}>
-          <div style={lbl}>Subject {isFollowup && <span style={{ color: 'var(--neon-amber)' }}>· follow-up</span>}</div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{subject}</div>
-        </div>
-
-        <div style={{ margin: '12px 0 0' }}>
-          <div style={lbl}>Body</div>
-          <textarea readOnly value={body} rows={18} style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.5, padding: 10, borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical' }} />
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-          {canSend && send === 'idle' && (
-            <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => setSend('confirm')}>
-              {isFollowup ? 'Send follow-up via MilitaryCalc' : 'Send via MilitaryCalc'}
-            </button>
-          )}
-          {canSend && send === 'confirm' && (
-            <>
-              <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Confirm: email {p.email} now</button>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Cancel</button>
-            </>
-          )}
-          {send === 'sending' && <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Sending…</span>}
-          {send === 'sent' && <span style={{ fontSize: 13, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ Sent</span>}
-          {send === 'error' && <span style={{ fontSize: 12, color: 'var(--bad)' }}>✗ {err}</span>}
-
-          {send !== 'sending' && send !== 'sent' && (
-            <>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy email'}</button>
-              {p.email && (
-                <a href={gmailUrl(p.email, subject, body)} target="_blank" rel="noreferrer" style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy message'}</button>
+              {sendable && (
+                <>
+                  <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>
+                    {formBusy ? 'Saving…' : '✓ Submitted the form'}
+                  </button>
+                  <button style={{ ...btn, padding: '7px 12px', borderColor: 'var(--bad)', color: 'var(--bad)' }} disabled={formBusy} onClick={() => doForm('unreachable')} title="Broken form, not a real form, captcha-blocked, or won't send">
+                    Can&apos;t send / form broken
+                  </button>
+                </>
               )}
-            </>
-          )}
-        </div>
+            </div>
+            <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>
+              Open the form, paste the message, hit their submit. Then mark <b>Submitted</b>. If the form is broken, isn&apos;t a real contact form, or is captcha/login-blocked, hit <b>Can&apos;t send</b> — it moves them to <b>Unreachable</b> so they leave your queue (Reopen later from Closed if you find another way in).
+            </p>
+          </>
+        ) : (
+          /* ── EMAIL: preview the exact message, then auto-send or send by hand ── */
+          <>
+            <div style={{ margin: '16px 0 0' }}>
+              <div style={lbl}>From</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-1)' }}>Jake Miller &lt;hello@militarycalc.com&gt;</div>
+              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Sent via Mailjet · replies land in your inbox</div>
+            </div>
+            <div style={{ margin: '12px 0 0' }}>
+              <div style={lbl}>To</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{p.email}</div>
+            </div>
+            <div style={{ margin: '12px 0 0' }}>
+              <div style={lbl}>Subject {isFollowup && <span style={{ color: 'var(--neon-amber)' }}>· follow-up</span>}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{subject}</div>
+            </div>
+            <div style={{ margin: '12px 0 0' }}>
+              <div style={lbl}>Body</div>
+              <textarea readOnly value={body} rows={16} style={taStyle} />
+            </div>
 
-        <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>
-          {canSend
-            ? 'Send via MilitaryCalc goes out through Mailjet from hello@militarycalc.com (replies come to your inbox) and advances the pipeline. Or open it prefilled in Gmail to send by hand.'
-            : 'This prospect is not in a sendable state. Copy the email or use Gmail if needed.'}
-        </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
+              {sendable && send === 'idle' && (
+                <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => setSend('confirm')}>
+                  {isFollowup ? 'Send follow-up via MilitaryCalc' : 'Send via MilitaryCalc'}
+                </button>
+              )}
+              {sendable && send === 'confirm' && (
+                <>
+                  <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Confirm: email {p.email} now</button>
+                  <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Cancel</button>
+                </>
+              )}
+              {send === 'sending' && <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Sending…</span>}
+              {send === 'sent' && <span style={{ fontSize: 13, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ Sent</span>}
+              {send === 'error' && <span style={{ fontSize: 12, color: 'var(--bad)' }}>✗ {err}</span>}
+
+              {send !== 'sending' && send !== 'sent' && (
+                <>
+                  <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy email'}</button>
+                  <a href={gmailUrl(p.email!, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
+                </>
+              )}
+            </div>
+            <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>
+              Send via MilitaryCalc goes out through Mailjet from hello@militarycalc.com (replies come to your inbox) and advances the pipeline. Or open it prefilled in Gmail to send by hand.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

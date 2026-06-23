@@ -2040,6 +2040,8 @@ export const outreachProspects = pgTable(
     embedHostMatched: text('embed_host_matched'),
     embedItemId: text('embed_item_id'),
     embedLoads: integer('embed_loads').notNull().default(0),
+    emailSubject: text('email_subject'),                         // operator-edited subject (persists across send + reopen)
+    emailBody: text('email_body'),                               // operator-edited body; null = use generated template
     nextFollowupAt: timestamp('next_followup_at', { withTimezone: true }),
     followupCount: integer('followup_count').notNull().default(0),
     snoozeUntil: timestamp('snooze_until', { withTimezone: true }),

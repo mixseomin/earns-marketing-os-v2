@@ -82,6 +82,7 @@ export async function sendProspectEmail(
     await db.execute(sql`
       UPDATE outreach_prospects SET
         status = 'sent', sent_at = COALESCE(sent_at, now()),
+        email_subject = ${subject}, email_body = ${body},
         next_followup_at = now() + interval '3 days', updated_at = now()
       WHERE id = ${id}`);
   } else {
@@ -89,6 +90,7 @@ export async function sendProspectEmail(
       UPDATE outreach_prospects SET
         followup_count = followup_count + 1,
         status = CASE WHEN followup_count + 1 >= 2 THEN 'no_response' ELSE 'followup_' || (followup_count + 1)::text END,
+        email_subject = ${subject}, email_body = ${body},
         next_followup_at = CASE WHEN followup_count + 1 >= 2 THEN NULL ELSE now() + interval '4 days' END,
         updated_at = now()
       WHERE id = ${id}`);

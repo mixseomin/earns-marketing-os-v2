@@ -75,6 +75,16 @@ export async function updateProspectNotes(projectId: string, id: number, notes: 
   await rerender(projectId);
 }
 
+// Save the operator's edited email without sending — survives reopen.
+export async function updateProspectDraft(projectId: string, id: number, data: { subject: string; body: string }) {
+  const db = getDb();
+  if (!db) throw new Error('DB unavailable');
+  await db.execute(sql`
+    UPDATE outreach_prospects SET email_subject = ${data.subject}, email_body = ${data.body}, updated_at = now()
+    WHERE id = ${id}`);
+  await rerender(projectId);
+}
+
 function etld1FromUrl(u: string): string | null {
   if (!u) return null;
   try {

@@ -9,7 +9,7 @@ import { Suspense, useEffect, useMemo, useState, useTransition, type CSSProperti
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
-import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact } from '@/lib/actions/outreach-mutations';
+import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 
 type TabKey = 'due' | 'pipeline' | 'all';
@@ -393,10 +393,13 @@ function EmailDrawer({
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [didCopy, setDidCopy] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(false);
   const [send, setSend] = useState<'idle' | 'confirm' | 'sending' | 'sent' | 'error'>('idle');
   const [err, setErr] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
+  const saveDraft = async () => { await updateProspectDraft(projectId, p.id, { subject, body }); setSavedDraft(true); setTimeout(() => setSavedDraft(false), 1500); router.refresh(); };
+  const resetTpl = () => { const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status }); setSubject(e.subject); setBody(e.body); };
   // Local contact copy so edits ("field reality") flip FORM<->EMAIL live without reopening.
   const [cur, setCur] = useState({ email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' });
   const [editing, setEditing] = useState(false);
@@ -406,10 +409,14 @@ function EmailDrawer({
   useEffect(() => {
     const c = { email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' };
     setCur(c); setDraft(c); setEditing(false); setSaveErr('');
-    setSend('idle'); setErr(''); setFormBusy(false); setDidCopy(false);
-    const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status });
-    setSubject(e.subject); setBody(e.body);
-  }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status]);
+    setSend('idle'); setErr(''); setFormBusy(false); setDidCopy(false); setSavedDraft(false);
+    if (p.emailBody) {
+      setSubject(p.emailSubject ?? ''); setBody(p.emailBody);   // restore the operator's saved/sent edit
+    } else {
+      const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status });
+      setSubject(e.subject); setBody(e.body);
+    }
+  }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status, p.emailSubject, p.emailBody]);
 
   const isForm = !cur.email.trim();
   const formLink = (cur.contactUrl || cur.website || '').trim();
@@ -503,6 +510,8 @@ function EmailDrawer({
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
               <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(body)}>{didCopy ? '✓ Copied' : 'Copy message'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Save your edits without sending">{savedDraft ? '✓ Saved' : 'Save draft'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Regenerate from template (discards edits)">Reset</button>
               {sendable && (
                 <>
                   <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>
@@ -559,6 +568,8 @@ function EmailDrawer({
                 <>
                   <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Copied' : 'Copy email'}</button>
                   <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
+                  <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Save your edits without sending">{savedDraft ? '✓ Saved' : 'Save draft'}</button>
+                  <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Regenerate from template (discards edits)">Reset</button>
                 </>
               )}
             </div>

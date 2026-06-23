@@ -20,6 +20,8 @@ export type OutreachProspect = {
   embedHostMatched: string | null;
   embedItemId: string | null;
   embedLoads: number;
+  emailSubject: string | null;
+  emailBody: string | null;
   nextFollowupAt: string | null;
   followupCount: number;
   snoozeUntil: string | null;
@@ -55,6 +57,8 @@ export async function listOutreachProspects(projectId: string): Promise<Outreach
       embedHostMatched: r.embedHostMatched,
       embedItemId: r.embedItemId,
       embedLoads: Number(r.embedLoads),
+      emailSubject: r.emailSubject,
+      emailBody: r.emailBody,
       nextFollowupAt: iso(r.nextFollowupAt),
       followupCount: Number(r.followupCount),
       snoozeUntil: iso(r.snoozeUntil),

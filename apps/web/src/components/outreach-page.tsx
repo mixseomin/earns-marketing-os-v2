@@ -9,7 +9,7 @@ import { Suspense, useEffect, useMemo, useState, useTransition, type CSSProperti
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
-import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted } from '@/lib/actions/outreach-mutations';
+import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 
 type TabKey = 'due' | 'pipeline' | 'all';
@@ -57,6 +57,25 @@ const taStyle: CSSProperties = {
   width: '100%', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.5, padding: 10,
   borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical',
 };
+
+// Identity used to fill the realtor's contact-form fields (Name/Email), matching the email sender.
+const SENDER = { name: 'Jake Miller', email: 'hello@militarycalc.com', phone: '' };
+
+// One labelled contact-form field with its own Copy button (forms have Name/Email/Phone/Subject, not just a message).
+function CopyField({ label, value }: { label: string; value: string }) {
+  const [c, setC] = useState(false);
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '0 0 6px' }}>
+      <div style={{ width: 70, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
+      <div style={{ flex: 1, fontSize: 13, color: value ? 'var(--fg-0)' : 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '— (optional, leave blank)'}</div>
+      {value && (
+        <button style={btn} onClick={() => { navigator.clipboard?.writeText(value).then(() => { setC(true); setTimeout(() => setC(false), 1200); }).catch(() => {}); }}>
+          {c ? '✓' : 'Copy'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function Badge({ status }: { status: string }) {
   const m = meta(status);
@@ -329,17 +348,31 @@ function EmailDrawer({
   onCopy: () => void;
   copied: boolean;
 }) {
+  const router = useRouter();
   const { subject, body } = useMemo(() => buildEmailForProspect(p), [p]);
-  const isForm = !p.email;
   const isFollowup = ACTIVE.has(p.status);
   const sendable = SENDABLE.has(p.status);
 
   const [send, setSend] = useState<'idle' | 'confirm' | 'sending' | 'sent' | 'error'>('idle');
   const [err, setErr] = useState('');
   const [formBusy, setFormBusy] = useState(false);
-  useEffect(() => { setSend('idle'); setErr(''); setFormBusy(false); }, [p.id]);
+  // Local contact copy so edits ("field reality") flip FORM<->EMAIL live without reopening.
+  const [cur, setCur] = useState({ email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(cur);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState('');
+  useEffect(() => {
+    const c = { email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' };
+    setCur(c); setDraft(c); setEditing(false); setSaveErr('');
+    setSend('idle'); setErr(''); setFormBusy(false);
+  }, [p.id, p.email, p.contactUrl, p.website]);
+
+  const isForm = !cur.email.trim();
+  const formLink = (cur.contactUrl || cur.website || '').trim();
 
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '0 0 3px' };
+  const inputStyle: CSSProperties = { width: '100%', padding: '6px 9px', fontSize: 13, borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-0)', marginBottom: 8 };
 
   const doSend = async () => {
     setSend('sending');
@@ -353,8 +386,18 @@ function EmailDrawer({
     else await setProspectStatus(projectId, p.id, 'unreachable');
     onAfterAction();
   };
-
-  const formLink = p.contactUrl || p.website || '';
+  const copyAllFields = () => {
+    const txt = [`Name: ${SENDER.name}`, `Email: ${SENDER.email}`, `Phone: ${SENDER.phone}`, `Subject: ${subject}`, ``, `Message:`, body].join('\n');
+    navigator.clipboard?.writeText(txt).catch(() => {});
+  };
+  const openEdit = () => { setDraft(cur); setSaveErr(''); setEditing(true); };
+  const saveEdit = async () => {
+    setSaving(true); setSaveErr('');
+    const res = await updateProspectContact(projectId, p.id, draft);
+    setSaving(false);
+    if (res.ok) { setCur(draft); setEditing(false); router.refresh(); }
+    else setSaveErr(res.error || 'Save failed');
+  };
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 60, display: 'flex', justifyContent: 'flex-end' }}>
@@ -363,13 +406,35 @@ function EmailDrawer({
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{p.agentName}</div>
             <div style={{ color: 'var(--fg-3)', fontSize: 12, display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-              <span>{p.base || '—'}</span><ChannelTag email={p.email} /><Badge status={p.status} />
+              <span>{p.base || '—'}</span><ChannelTag email={cur.email || null} /><Badge status={p.status} />
             </div>
           </div>
-          <button onClick={onClose} style={{ ...btn, fontSize: 14, padding: '2px 9px' }}>✕</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {!editing && <button onClick={openEdit} style={{ ...btn, fontSize: 12, padding: '2px 9px' }} title="Fix the email / form link from what you found on their site">✎ Edit contact</button>}
+            <button onClick={onClose} style={{ ...btn, fontSize: 14, padding: '2px 9px' }}>✕</button>
+          </div>
         </div>
 
-        {isForm ? (
+        {editing ? (
+          /* ── EDIT CONTACT: correct email / form link / website from field reality ── */
+          <div style={{ margin: '16px 0 0' }}>
+            <div style={lbl}>Fix contact (from what is actually on their site)</div>
+            <div style={lbl}>Email</div>
+            <input value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="leave blank = form-only" autoComplete="off" style={inputStyle} />
+            <div style={lbl}>Contact form URL</div>
+            <input value={draft.contactUrl} onChange={(e) => setDraft({ ...draft, contactUrl: e.target.value })} placeholder="https://their-site.com/contact" autoComplete="off" style={inputStyle} />
+            <div style={lbl}>Website</div>
+            <input value={draft.website} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="https://their-site.com" autoComplete="off" style={inputStyle} />
+            {saveErr && <div style={{ fontSize: 12, color: 'var(--bad)', margin: '0 0 8px' }}>✗ {saveErr}</div>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={saving} onClick={saveEdit}>{saving ? 'Saving…' : 'Save'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} disabled={saving} onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+            <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>
+              Add an <b>email</b> to upgrade a FORM prospect to EMAIL (then you can auto-send). <b>Website</b> is what the GA4 embed-detector matches on — keep it their real homepage.
+            </p>
+          </div>
+        ) : isForm ? (
           /* ── FORM-ONLY: submit by hand through their contact form ── */
           <>
             <div style={{ margin: '16px 0 0' }}>
@@ -385,12 +450,21 @@ function EmailDrawer({
             </div>
 
             <div style={{ margin: '14px 0 0' }}>
-              <div style={lbl}>Message to paste</div>
-              <textarea readOnly value={body} rows={16} style={taStyle} />
+              <div style={lbl}>Form fields — fill each into their form</div>
+              <CopyField label="Name" value={SENDER.name} />
+              <CopyField label="Email" value={SENDER.email} />
+              <CopyField label="Phone" value={SENDER.phone} />
+              <CopyField label="Subject" value={subject} />
+              <div style={{ ...lbl, marginTop: 6 }}>Message</div>
+              <textarea readOnly value={body} rows={12} style={taStyle} />
+              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
+                For radio / dropdown fields (e.g. &quot;I am interested in&quot;), pick <b>Other</b> or the closest option — this is a partnership pitch, not a buy/sell inquiry. Phone is optional, leave blank.
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
               <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy message'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={copyAllFields}>Copy all fields</button>
               {sendable && (
                 <>
                   <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>
@@ -416,7 +490,7 @@ function EmailDrawer({
             </div>
             <div style={{ margin: '12px 0 0' }}>
               <div style={lbl}>To</div>
-              <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{p.email}</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{cur.email}</div>
             </div>
             <div style={{ margin: '12px 0 0' }}>
               <div style={lbl}>Subject {isFollowup && <span style={{ color: 'var(--neon-amber)' }}>· follow-up</span>}</div>
@@ -435,7 +509,7 @@ function EmailDrawer({
               )}
               {sendable && send === 'confirm' && (
                 <>
-                  <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Confirm: email {p.email} now</button>
+                  <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Confirm: email {cur.email} now</button>
                   <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Cancel</button>
                 </>
               )}
@@ -446,7 +520,7 @@ function EmailDrawer({
               {send !== 'sending' && send !== 'sent' && (
                 <>
                   <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy email'}</button>
-                  <a href={gmailUrl(p.email!, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
+                  <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
                 </>
               )}
             </div>

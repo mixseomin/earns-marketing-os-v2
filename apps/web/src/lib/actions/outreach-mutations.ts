@@ -74,3 +74,42 @@ export async function updateProspectNotes(projectId: string, id: number, notes: 
   await db.execute(sql`UPDATE outreach_prospects SET notes = ${notes}, updated_at = now() WHERE id = ${id}`);
   await rerender(projectId);
 }
+
+function etld1FromUrl(u: string): string | null {
+  if (!u) return null;
+  try {
+    return new URL(u.startsWith('http') ? u : `https://${u}`).hostname.replace(/^www\./, '') || null;
+  } catch {
+    return null;
+  }
+}
+
+// Fix a prospect's contact info from what you actually find on their site (field reality):
+// correct the form link, the website, or ADD an email you discovered (which upgrades a FORM-only
+// prospect to EMAIL so it can auto-send). website_etld1 is recomputed so the embed-conversion join stays correct.
+export async function updateProspectContact(
+  projectId: string,
+  id: number,
+  data: { email?: string | null; contactUrl?: string | null; website?: string | null },
+): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB unavailable' };
+  const norm = (v?: string | null) => { const s = (v ?? '').trim(); return s ? s : null; };
+  const email = norm(data.email);
+  const contactUrl = norm(data.contactUrl);
+  const website = norm(data.website) ?? '';
+  try {
+    await db.execute(sql`
+      UPDATE outreach_prospects SET
+        email = ${email}, contact_url = ${contactUrl},
+        website = ${website}, website_etld1 = ${etld1FromUrl(website)},
+        updated_at = now()
+      WHERE id = ${id} AND project_id = ${projectId}`);
+  } catch (e) {
+    const msg = String(e);
+    if (/unique|duplicate/i.test(msg)) return { ok: false, error: 'That email is already on another prospect' };
+    return { ok: false, error: msg.slice(0, 160) };
+  }
+  await rerender(projectId);
+  return { ok: true };
+}

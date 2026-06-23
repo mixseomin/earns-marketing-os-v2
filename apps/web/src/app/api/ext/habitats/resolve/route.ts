@@ -216,6 +216,40 @@ export async function GET(req: Request) {
     return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
   }
 
+  // phpBB-family forum (viewforum/viewtopic/posting.php?f=N): board = forum f=N. Trang topic/posting
+  // có URL KHÁC URL board (viewforum.php?f=N) nên generic host-match sẽ trả nhầm board khác cùng host.
+  // → match habitat theo f=N (board đã track url chứa ?f=N). Không thấy → rơi xuống generic (vẫn ra bar).
+  const phpbbF = (() => {
+    if (!/\b(viewforum|viewtopic|posting)\.php\b/i.test(parsedUrl.pathname + parsedUrl.search)) return null;
+    const f = parsedUrl.searchParams.get('f');
+    return f && /^\d+$/.test(f) ? f : null;
+  })();
+  if (phpbbF) {
+    const fPat = '[?&]f=' + phpbbF + '(&|$)';
+    const frows = await db.execute(sql`
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url, h.is_own,
+             (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
+      FROM habitats h
+      WHERE h.url ILIKE ${'%' + host + '%'} AND h.url ~* ${fPat}
+      ORDER BY ${projectPref} LENGTH(h.url) DESC
+      LIMIT 1
+    `);
+    const fr = firstRow(frows);
+    if (fr) {
+      return NextResponse.json({
+        habitat: {
+          id: Number(fr.id), name: String(fr.name), kind: String(fr.kind),
+          language: String(fr.language ?? ''), projectId: String(fr.project_id),
+          platformKey: fr.platform_key ? String(fr.platform_key) : null,
+          technologyKey: fr.technology_key ? String(fr.technology_key) : null,
+          url: fr.url ? String(fr.url) : null,
+          briefId: fr.brief_id ? Number(fr.brief_id) : null, isOwn: fr.is_own === true,
+        },
+      }, { headers: noStoreHeaders });
+    }
+    // không match đúng f → tiếp tục generic host-match bên dưới (board adjacent còn hơn không bar)
+  }
+
   // Generic URL substring match — fallback cho forum / host = 1 cộng đồng
   const rows = await db.execute(sql`
     SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url,

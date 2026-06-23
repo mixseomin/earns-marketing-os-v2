@@ -867,6 +867,54 @@ export async function confirmCardPosted(
   return { ok: true, laneType: seedRes.laneType, warnings: seedRes.warnings };
 }
 
+// ── reconcileMyPosts: track bài từ trang "my posts" (phpBB egosearch) ───────────
+// Trang my-posts liệt kê MỌI bài của account xuyên thread (mỗi row = permalink + full
+// body), kể cả bài VỪA ĐƯỢC DUYỆT (pending → live). scanTrk chỉ chạy trên 1 thread;
+// đây gom cross-thread → reconcile chuẩn hơn. Match theo BODY (text bài thật = khoá phân
+// biệt, gần như ko đụng card khác) với card CHƯA track (post_url NULL) hoặc đang
+// 'pending-approval'. Khớp → confirmCardPosted (tự clear pending → live). Body là discriminator
+// nên KHÔNG cần lọc platform (tránh lệch platform_key 'chickensmoothie' vs '-com').
+const _normBody = (s: string): string =>
+  String(s || '').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+export async function reconcileMyPosts(
+  posts: Array<{ permalink: string; body: string }>,
+): Promise<{ ok: boolean; matched: Array<{ cardId: number; projectId: string; permalink: string }>; scanned: number }> {
+  const db = ensureDb();
+  const valid = (posts || []).filter((p) => p && /^https?:\/\//i.test(String(p.permalink || '')) && _normBody(p.body).length >= 20);
+  if (!valid.length) return { ok: true, matched: [], scanned: 0 };
+
+  // Candidate = card chưa-đăng HOẶC đang chờ-duyệt, có brief, chưa archive. Bound 800 mới nhất.
+  const rows = await db.execute(sql`
+    SELECT c.id, c.project_id, c.brief_id, c.body_target
+      FROM cards c
+     WHERE c.archived_at IS NULL
+       AND c.brief_id IS NOT NULL
+       AND (c.post_url IS NULL OR c.post_lifecycle = 'pending-approval')
+     ORDER BY c.created_at DESC
+     LIMIT 800
+  `);
+  const cands = (rows as unknown as Array<{ id: number; project_id: string; brief_id: number; body_target: string }>)
+    .map((c) => ({ id: Number(c.id), projectId: String(c.project_id), briefId: Number(c.brief_id), norm: _normBody(c.body_target) }))
+    .filter((c) => c.norm.length >= 20);
+
+  const matched: Array<{ cardId: number; projectId: string; permalink: string }> = [];
+  const used = new Set<number>();
+  for (const p of valid) {
+    const nb = _normBody(p.body);
+    // Match 2 chiều: post body chứa đầu card (forum thêm quote/sig) hoặc card chứa đầu post.
+    const hit = cands.find((c) => {
+      if (used.has(c.id)) return false;
+      const cHead = c.norm.slice(0, 120); const pHead = nb.slice(0, 120);
+      return (cHead && nb.includes(cHead)) || (pHead && c.norm.includes(pHead));
+    });
+    if (!hit) continue;
+    const r = await confirmCardPosted(hit.projectId, hit.briefId, hit.id, { postUrl: p.permalink, postNote: 'reconciled from my-posts list' });
+    if (r.ok) { used.add(hit.id); matched.push({ cardId: hit.id, projectId: hit.projectId, permalink: p.permalink }); }
+  }
+  return { ok: true, matched, scanned: valid.length };
+}
+
 // Unpost: xoá metadata đã đăng (khi user lỡ bấm). KHÔNG xoá touch_log
 // (audit trail giữ nguyên).
 export async function unconfirmCardPosted(

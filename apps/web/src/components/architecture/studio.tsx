@@ -867,17 +867,33 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
-  // Resize cột: px theo [label, ...dataCols, pk]. Nhớ localStorage/node.
-  const _ndc = obj.browseCols?.length || 1;
+  // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
+  // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
+  // Thứ tự [label, ...dataCols, pk]. Nhớ localStorage/node.
   const wKey = `mos2_arch_cols_${obj.key}`;
-  const [widths, setWidths] = useState<number[]>(() => {
-    try { const s = JSON.parse(localStorage.getItem(wKey) || 'null'); if (Array.isArray(s) && s.length === _ndc + 2) return s; } catch {}
-    return [170, ...Array(_ndc).fill(120), 58];
-  });
+  const WIDE = /\b(name|title|description|desc|approach|reason|url|body|summary|message|note|bio|content|prompt)\b/i;
+  const defaultWidths = useCallback((): (number | null)[] => {
+    const cols = obj.browseCols?.length ? obj.browseCols.map((c) => ({ key: c.col, kind: c.kind as string | undefined })) : [{ key: '__sub', kind: undefined as string | undefined }];
+    const w = (key: string, kind?: string): number | null => {
+      if (key === '__board' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
+      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96;
+      if (kind === 'badge' || kind === 'unread') return 78;
+      return 76;                                                              // compact (fit/tier/manual/stale…)
+    };
+    return [WIDE.test(obj.labelCol || '') ? null : 110, ...cols.map((c) => w(c.key, c.kind)), 52];
+  }, [obj.browseCols, obj.labelCol]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const loadWidths = useCallback((): (number | null)[] => {
+    const def = defaultWidths();
+    try { const s = JSON.parse(localStorage.getItem(wKey) || 'null'); if (Array.isArray(s) && s.length === def.length) return s; } catch {}
+    return def;
+  }, [defaultWidths, wKey]);
+  const [widths, setWidths] = useState<(number | null)[]>(loadWidths);
+  useEffect(() => { setWidths(loadWidths()); }, [obj.key, loadWidths]);   // đổi node → nạp widths node đó
   const startResize = (i: number, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    const startX = e.clientX; const startW = widths[i] ?? 120;
-    const onMove = (ev: MouseEvent) => { const w = Math.max(48, startW + (ev.clientX - startX)); setWidths((prev) => { const n = prev.slice(); n[i] = w; return n; }); };
+    const cell = (e.currentTarget as HTMLElement).parentElement;
+    const startX = e.clientX; const startW = cell ? cell.offsetWidth : (widths[i] ?? 100);
+    const onMove = (ev: MouseEvent) => { const ww = Math.max(44, startW + (ev.clientX - startX)); setWidths((prev) => { const n = prev.slice(); n[i] = ww; return n; }); };
     const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); setWidths((prev) => { try { localStorage.setItem(wKey, JSON.stringify(prev)); } catch {} return prev; }); };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
   };
@@ -918,7 +934,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[] =
     bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
       : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
-  const grid = widths.map((w) => `${w}px`).join(' ');   // px cố định/cột → resize + scroll ngang
+  const grid = widths.map((w) => (w == null ? 'minmax(150px,1fr)' : `${w}px`)).join(' ');   // null=text tự do(1fr); số=px(compact/resize)
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
   const open = (it: InstanceRef) => openSub({
     title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
@@ -964,7 +980,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       {/* TABLE — header + paginated rows; click row mở drawer chi tiết.
           Cột link (platform…) click riêng → mở drawer entity đó (stopPropagation). */}
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, minWidth: 'max-content', padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {[{ label: obj.labelCol || 'name', key: '__label', right: false },
             ...dataCols.map((dc) => ({ label: dc.label, key: dc.key, right: false })),
             { label: obj.pk || 'id', key: obj.pk || 'id', right: true },
@@ -996,7 +1012,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
           const lbOn = stale || (!!sv && lbColor !== 'var(--fg-2)');
           return (
           <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : (sv ? `status: ${sv}` : 'Mở chi tiết item')}
-            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', minWidth: 'max-content', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>

@@ -57,6 +57,19 @@ const taStyle: CSSProperties = {
   width: '100%', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.5, padding: 10,
   borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical',
 };
+// Two visually distinct button families so channel actions never look like status actions:
+//  · CHANNEL (do the outreach) = solid 1.5px border + filled tint, pill — Email ✉ / Form 📝
+//  · RESPONSE (record what happened) = dashed border, transparent, square-ish chip — Replied/Declined/…
+const chanStyle = (c: string): CSSProperties => ({
+  fontSize: 11, fontWeight: 700, padding: '3px 11px', borderRadius: 999,
+  border: `1.5px solid ${c}`, background: `color-mix(in srgb, ${c} 16%, transparent)`,
+  color: c, cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4,
+});
+const respStyle = (c: string): CSSProperties => ({
+  fontSize: 11, padding: '2px 8px', borderRadius: 4,
+  border: `1px dashed color-mix(in srgb, ${c} 55%, transparent)`, background: 'transparent',
+  color: c, cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 3,
+});
 
 // Identity used to fill the realtor's contact-form fields (Name/Email), matching the email sender.
 const SENDER = { name: 'Jake Miller', email: 'hello@militarycalc.com', phone: '' };
@@ -111,6 +124,9 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const [pending, start] = useTransition();
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [preview, setPreview] = useState<OutreachProspect | null>(null);
+  const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
+  const [baseF, setBaseF] = useState('');
+  const [q, setQ] = useState('');
 
   const setTab = (k: TabKey) => {
     setTabState(k);
@@ -146,13 +162,25 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
     };
   }, [prospects]);
 
+  const bases = useMemo(() => Array.from(new Set(prospects.map((p) => p.base).filter(Boolean) as string[])).sort(), [prospects]);
+  const shown = useMemo(() => prospects.filter((p) => {
+    if (chan === 'email' && !p.email) return false;
+    if (chan === 'form' && p.email) return false;
+    if (baseF && p.base !== baseF) return false;
+    if (q) {
+      const t = q.toLowerCase();
+      if (![p.agentName, p.base, p.email, p.company].some((v) => (v || '').toLowerCase().includes(t))) return false;
+    }
+    return true;
+  }), [prospects, chan, baseF, q]);
+
   const dueList = useMemo(
-    () => prospects.filter(dueNow).sort((a, b) => (a.nextFollowupAt || '').localeCompare(b.nextFollowupAt || '')),
-    [prospects],
+    () => shown.filter(dueNow).sort((a, b) => (a.nextFollowupAt || '').localeCompare(b.nextFollowupAt || '')),
+    [shown],
   );
 
   const groups = useMemo(() => {
-    const g = (labels: string[]) => prospects.filter((p) => labels.includes(p.status));
+    const g = (labels: string[]) => shown.filter((p) => labels.includes(p.status));
     return [
       { key: 'to_send', label: 'To send', items: g(['to_send']) },
       { key: 'sent', label: 'Sent', items: g(['sent']) },
@@ -161,37 +189,46 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
       { key: 'embedded', label: 'Embedded ★', items: g(['embedded']) },
       { key: 'dead', label: 'Closed', items: g(['declined', 'bounced', 'no_response', 'unreachable']) },
     ];
-  }, [prospects]);
+  }, [shown]);
 
   function Actions({ p }: { p: OutreachProspect }) {
     const s = p.status;
     const isForm = !p.email;
+    const resp = (c: string, label: string, status: string, title?: string) => (
+      <button style={respStyle(c)} disabled={pending} title={title} onClick={() => act(() => setProspectStatus(projectId, p.id, status))}>{label}</button>
+    );
     return (
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        <button style={{ ...btn, borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }} disabled={pending} onClick={() => setPreview(p)} title={isForm ? 'Open their contact form + the message to paste' : 'Preview the email, then send or copy'}>
-          {isForm ? 'Form →' : 'Email →'}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* CHANNEL action — solid pill, channel-colored */}
+        <button
+          style={chanStyle(isForm ? 'var(--neon-amber)' : 'var(--neon-cyan)')}
+          disabled={pending}
+          onClick={() => setPreview(p)}
+          title={isForm ? 'Open their contact form + the field values to paste' : 'Preview the email, then send or copy'}
+        >
+          {isForm ? '📝 Form' : '✉ Email'} →
         </button>
+        {/* RESPONSE actions — dashed chips */}
         {s === 'to_send' && !isForm && (
-          <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'sent'))} title="Mark sent without auto-sending (e.g. you sent it from Gmail)">Mark sent</button>
+          <button style={respStyle('var(--fg-2)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'sent'))} title="Mark sent without auto-sending (e.g. you sent it from Gmail)">📤 Mark sent</button>
         )}
         {ACTIVE.has(s) && (
           <>
-            {!isForm && <button style={btn} disabled={pending} onClick={() => act(() => markFollowupSent(projectId, p.id))} title="Log a follow-up; schedules the next nudge (cap 2)">Follow-up logged</button>}
-            <button style={{ ...btn, borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'replied'))}>Replied</button>
-            <button style={{ ...btn, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'interested'))}>Interested</button>
-            {!isForm && <button style={btn} disabled={pending} onClick={() => act(() => snoozeProspect(projectId, p.id, 7))} title="Hide from Due for 7 days">Snooze 7d</button>}
-            <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'declined'))}>Declined</button>
+            {!isForm && <button style={respStyle('var(--neon-amber)')} disabled={pending} onClick={() => act(() => markFollowupSent(projectId, p.id))} title="Log a follow-up; schedules the next nudge (cap 2)">🔁 Follow-up</button>}
+            {resp('var(--neon-violet)', '💬 Replied', 'replied')}
+            {resp('var(--neon-lime)', '👍 Interested', 'interested')}
+            {!isForm && <button style={respStyle('var(--fg-2)')} disabled={pending} onClick={() => act(() => snoozeProspect(projectId, p.id, 7))} title="Hide from Due for 7 days">💤 Snooze 7d</button>}
+            {resp('var(--fg-3)', '✕ Declined', 'declined')}
+            {!isForm && resp('var(--bad)', '⚠ Bounced', 'bounced')}
           </>
         )}
         {(s === 'replied' || s === 'interested') && (
           <>
-            <button style={{ ...btn, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'embedded'))}>Mark embedded</button>
-            <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'declined'))}>Declined</button>
+            {resp('var(--neon-lime)', '🎯 Embedded', 'embedded')}
+            {resp('var(--fg-3)', '✕ Declined', 'declined')}
           </>
         )}
-        {DEAD.has(s) && (
-          <button style={btn} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'to_send'))}>Reopen</button>
-        )}
+        {DEAD.has(s) && resp('var(--fg-2)', '↩ Reopen', 'to_send')}
       </div>
     );
   }
@@ -282,10 +319,25 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
         <Kpi label="Due now" value={kpi.due} color={kpi.due ? 'var(--bad)' : undefined} />
       </div>
 
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 10px' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--bg-3)', borderRadius: 7, overflow: 'hidden' }}>
+          {([['all', 'All'], ['email', '✉ Email'], ['form', '📝 Form']] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setChan(k)} style={{ fontSize: 11, padding: '4px 11px', border: 'none', cursor: 'pointer', background: chan === k ? 'color-mix(in srgb, var(--neon-cyan) 16%, transparent)' : 'var(--bg-2)', color: chan === k ? 'var(--neon-cyan)' : 'var(--fg-2)', fontWeight: chan === k ? 700 : 400 }}>{label}</button>
+          ))}
+        </div>
+        <select value={baseF} onChange={(e) => setBaseF(e.target.value)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
+          <option value="">All bases</option>
+          {bases.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search agent / company / email…" autoComplete="off" style={{ fontSize: 12, padding: '4px 9px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-1)', minWidth: 200 }} />
+        {(chan !== 'all' || baseF || q) && <button onClick={() => { setChan('all'); setBaseF(''); setQ(''); }} style={{ ...btn, padding: '4px 10px' }}>Clear</button>}
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{shown.length}/{prospects.length} shown</span>
+      </div>
+
       <div style={{ display: 'flex', gap: 6, margin: '0 0 12px' }}>
         <TabBtn k="due" label="Due today" n={dueList.length} />
         <TabBtn k="pipeline" label="Pipeline" />
-        <TabBtn k="all" label="All" n={prospects.length} />
+        <TabBtn k="all" label="All" n={shown.length} />
       </div>
 
       {tab === 'due' && (
@@ -295,7 +347,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
         </>
       )}
 
-      {tab === 'all' && <Table rows={prospects} />}
+      {tab === 'all' && <Table rows={shown} />}
 
       {tab === 'pipeline' && (
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>

@@ -870,7 +870,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
   // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
   // Thứ tự [label, ...dataCols, pk]. Nhớ localStorage/node.
-  const wKey = `mos2_arch_cols_${obj.key}`;
+  const wKey = `mos2_arch_cols2_${obj.key}`;   // v2: default compact mới (invalidate width px cũ đã lưu)
   const WIDE = /\b(name|title|description|desc|approach|reason|url|body|summary|message|note|bio|content|prompt)\b/i;
   const defaultWidths = useCallback((): (number | null)[] => {
     const cols = obj.browseCols?.length ? obj.browseCols.map((c) => ({ key: c.col, kind: c.kind as string | undefined })) : [{ key: '__sub', kind: undefined as string | undefined }];

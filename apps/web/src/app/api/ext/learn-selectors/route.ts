@@ -109,7 +109,25 @@ export async function POST(req: Request) {
     ? `\nEngine detected: ${body.detected_engine}. Ưu tiên selectors generic engine (vd 'shreddit-*' cho Reddit, '.vbulletin-*' cho vBulletin).`
     : '';
 
-  const sysPrompt = `Bạn là CSS selector discovery agent cho ${body.platform_key} ${body.page_kind} page. User gửi FULL document.body của page Reddit → bạn phải:
+  // Forum composer/thread page (phpbb/xenforo/discourse…) — prompt RIÊNG, không phải Reddit-about.
+  const composerPrompt = `Bạn là CSS selector discovery agent cho forum engine "${body.detected_engine || body.platform_key}" — trang đọc thread + ô soạn reply (viewtopic/posting). User gửi FULL HTML. Cho MỖI field sinh 1 CSS selector STABLE (document.querySelector) trỏ ĐÚNG element.
+
+Field cần discover:
+${fieldsList}
+
+HƯỚNG DẪN (forum reply/thread):
+- composer.editor = ô nhập reply (textarea / [contenteditable]). KHÔNG phải ô search hay ô Subject.
+- composer.postBtn = nút submit reply trong form posting (vd input[name="post"], button[type="submit"]).
+- composer.anchor = cụm nút submit để neo thanh widget (vd fieldset.submit-buttons, .formButtonGroup).
+- post.item = element bao MỖI bài/post. post.body & post.author resolve BÊN TRONG post.item (relative selector, KHÔNG kèm post.item).
+- post.body = text nội dung 1 bài. post.author = tên người đăng trong bài đó. post.permalink = link tới bài (#pN / ?p=N).
+- thread.title = tiêu đề thread (h1/h2 chính của trang).
+- viewer.handle = username NGƯỜI ĐANG ĐĂNG NHẬP (vùng header / link logout), KHÔNG phải author của post. Nếu username nằm trong text kiểu "Logout [ NAME ]" thì vẫn trả selector tới element đó + notes ghi rõ "username nằm trong [ ]".
+
+OUTPUT JSON: {"selectors": {"composer.editor": {"css":"...","attr":"textContent","notes":"..."}, ...}}
+RULES: querySelector-compatible; CẤM :has(); CẤM jQuery/:contains; class LUÔN có dấu "." đầu; selector GENERIC cho MỌI site cùng engine (CẤM TUYỆT ĐỐI hardcode id/name/url của 1 site cụ thể, vd t=12345, sid=...); bỏ field nếu không chắc element tồn tại trong HTML.`;
+
+  const sysPrompt = body.page_kind === 'composer' ? composerPrompt : `Bạn là CSS selector discovery agent cho ${body.platform_key} ${body.page_kind} page. User gửi FULL document.body của page Reddit → bạn phải:
   STEP 1: LOCATE panel "About community" trong HTML (Reddit có nhiều aside: Promotion/Right-rail/About — chỉ pick About).
   STEP 2: Cho mỗi field trong list, sinh CSS selector STABLE trỏ trực tiếp tới element chứa data.
 

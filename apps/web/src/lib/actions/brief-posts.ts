@@ -627,10 +627,11 @@ export async function createPostForBriefPhase(
   if (!briefRow) {
     return { ok: false, error: 'brief not in project' };
   }
-  // Layer 1 GATE: account phải active (không phải todo/creating/limited/blocked/banned).
-  // Áp dụng cho mọi phase — account chưa tồn tại thì warmup cũng vô nghĩa.
+  // Layer 1 GATE: chặn account hỏng/chưa tạo (todo/creating/limited/blocked/banned/defunct).
+  // active + WARMING đều cho gen DRAFT (gen ≠ post; user review trước khi đăng). Warming là trạng
+  // thái bình thường của account mới → đừng chặn gen, kẻo account mới nào cũng kẹt.
   const accountStatus = String(briefRow.account_status ?? 'todo');
-  if (accountStatus !== 'active') {
+  if (['todo', 'creating', 'limited', 'blocked', 'banned', 'defunct'].includes(accountStatus)) {
     const { accountStatusMeta } = await import('@/lib/status-meta');
     const meta = accountStatusMeta(accountStatus);
     return {
@@ -772,7 +773,7 @@ export async function createPlaceholdersForBriefPhase(
   const br = (briefRow as unknown as Array<Record<string, unknown>>)[0];
   // Layer 1 GATE: account-level (xem comment trong createPostForBriefPhase)
   const accountStatus = String(br?.account_status ?? 'todo');
-  if (accountStatus !== 'active') {
+  if (['todo', 'creating', 'limited', 'blocked', 'banned', 'defunct'].includes(accountStatus)) {
     const { accountStatusMeta } = await import('@/lib/status-meta');
     const meta = accountStatusMeta(accountStatus);
     return {

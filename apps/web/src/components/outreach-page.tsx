@@ -386,10 +386,6 @@ function EmailDrawer({
     else await setProspectStatus(projectId, p.id, 'unreachable');
     onAfterAction();
   };
-  const copyAllFields = () => {
-    const txt = [`Name: ${SENDER.name}`, `Email: ${SENDER.email}`, `Phone: ${SENDER.phone}`, `Subject: ${subject}`, ``, `Message:`, body].join('\n');
-    navigator.clipboard?.writeText(txt).catch(() => {});
-  };
   const openEdit = () => { setDraft(cur); setSaveErr(''); setEditing(true); };
   const saveEdit = async () => {
     setSaving(true); setSaveErr('');
@@ -450,7 +446,7 @@ function EmailDrawer({
             </div>
 
             <div style={{ margin: '14px 0 0' }}>
-              <div style={lbl}>Form fields — fill each into their form</div>
+              <div style={lbl}>Form fields — copy each into the matching box on their form</div>
               <CopyField label="Name" value={SENDER.name} />
               <CopyField label="Email" value={SENDER.email} />
               <CopyField label="Phone" value={SENDER.phone} />
@@ -464,7 +460,6 @@ function EmailDrawer({
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
               <button style={{ ...btn, padding: '7px 12px' }} onClick={onCopy}>{copied ? '✓ Copied' : 'Copy message'}</button>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={copyAllFields}>Copy all fields</button>
               {sendable && (
                 <>
                   <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>

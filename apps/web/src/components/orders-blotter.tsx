@@ -224,7 +224,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     const m: Record<string, StrategyTradeRow[]> = {};
     visible.forEach((t) => { (m[t.strategy] ??= []).push(t); });
     return Object.entries(m)
-      .map(([name, rows]) => ({ name, rows: sortRows(rows), open: rows.filter((r) => r.isOpen).length, net: rows.filter((r) => !r.isOpen && r.profit != null).reduce((a, r) => a + usdOf(r), 0) }))
+      .map(([name, rows]) => ({ name, rows: sortRows(rows), open: rows.filter((r) => r.isOpen).length, float: rows.filter((r) => r.isOpen).reduce((a, r) => a + usdOf(r), 0), closed: rows.filter((r) => !r.isOpen && r.profit != null).length, net: rows.filter((r) => !r.isOpen && r.profit != null).reduce((a, r) => a + usdOf(r), 0) }))
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
@@ -272,7 +272,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                       {g.name}
                       <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
-                      <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {fmtPnlUsd(g.net)}</span>
+                      {g.open > 0 ? <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }} title="floating P&L of open positions">{fmtPnlUsd(g.float)} float</span> : null}
+                      {g.closed > 0 ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>net {fmtPnlUsd(g.net)}</span> : null}
                       {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }}>💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
                     </td>
                   </tr>

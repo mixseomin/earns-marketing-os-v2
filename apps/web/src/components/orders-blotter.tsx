@@ -42,6 +42,11 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào: đóng cửa > MA200\n' +
     '• Ra: đóng cửa < MA200\n' +
     '• Không SL/TP, bám trend dài.',
+  'Intraday index-drift basket':
+    '• Rổ 8 chỉ số cổ phiếu (SP500, NAS100, US30, DAX, FRA40, UK100, JPN225, AUS200)\n' +
+    '• Vào (LONG): mỗi sáng, nếu giá còn trên SMA100 → mua ở open phiên\n' +
+    '• Ra: bán ở close cùng phiên — KHÔNG giữ qua đêm (overnight âm)\n' +
+    '• Equal-weight, vol-target 10%/chân. Chỉ long, ngồi ngoài khi dưới SMA100.',
 };
 const VERDICT_COLOR: Record<string, string> = { dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4' };
 const FWD_STATUS_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };

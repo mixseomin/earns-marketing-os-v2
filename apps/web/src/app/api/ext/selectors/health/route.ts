@@ -7,6 +7,7 @@ import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+// (deploy: route added in 0114 cycle — force rebuild)
 
 // POST /api/ext/selectors/health — ext báo kết quả resolve 1 field trên trang THẬT.
 // matched=true → selector còn sống (last_ok_at, reset streak); matched=false → DOM đổi (last_miss_at,

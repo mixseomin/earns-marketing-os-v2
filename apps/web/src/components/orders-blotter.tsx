@@ -160,6 +160,7 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
 
 export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }: { trades: StrategyTradeRow[]; tests?: StrategyTestRow[]; forward?: StrategyForwardRow[]; brokerNowMs?: number | null }) {
   const [range, setRange] = useState('24h');
+  const [hideClosed, setHideClosed] = useState(false);
   const [grouped, setGrouped] = useState(true);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const router = useRouter();
@@ -193,8 +194,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
     if (!Number.isFinite(win)) return trades;
     const times = trades.map((t) => Date.parse(tRef(t))).filter((n) => !Number.isNaN(n));
     const cutoff = (times.length ? Math.max(...times) : 0) - win;
-    return trades.filter((t) => { if (t.isOpen) return true; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
-  }, [trades, range]);
+    return trades.filter((t) => { if (t.isOpen) return true; if (hideClosed) return false; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
+  }, [trades, range, hideClosed]);
 
   const openN = visible.filter((t) => t.isOpen).length;
   const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
@@ -222,6 +223,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
         </span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
+        <button type="button" onClick={() => setHideClosed((v) => !v)} style={chip(hideClosed)} title="show open positions only">Open only</button>
         <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
           {RANGES.map(([l], i) => (
             <button key={l} type="button" onClick={() => setRange(l)} style={{ fontSize: 11, padding: '3px 9px', border: 'none', borderLeft: i === 0 ? 'none' : '1px solid var(--line)', cursor: 'pointer', fontWeight: 600, background: range === l ? 'var(--accent,#00e5ff)' : 'transparent', color: range === l ? '#001018' : 'var(--muted)' }}>{l}</button>

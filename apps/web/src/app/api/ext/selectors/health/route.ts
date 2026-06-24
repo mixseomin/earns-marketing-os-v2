@@ -45,8 +45,11 @@ export async function POST(req: Request) {
         UPDATE selector_overrides SET ${setSql}
         WHERE page_kind = ${pageKind} AND field_name = ${fieldName}
           AND scope_kind IN ('platform','technology','engine')
-          AND scope_key IN (${keysIn})`);
-      updated += (res as unknown as { rowCount?: number }).rowCount || 0;
+          AND scope_key IN (${keysIn})
+        RETURNING id`);
+      // drizzle execute shape khác nhau theo driver → đếm rows trả về cho chắc (rowCount ko ổn định).
+      const rows = Array.isArray(res) ? res : ((res as unknown as { rows?: unknown[] }).rows || []);
+      updated += rows.length;
     } catch { /* skip bad row */ }
   }
   return NextResponse.json({ ok: true, updated });

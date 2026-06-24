@@ -90,7 +90,7 @@ async function tableColumns(table: string): Promise<Set<string>> {
 
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' } } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'partial' } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -170,6 +170,23 @@ export async function browseInstances(
     const parts: ReturnType<typeof sql>[] = [sql`(${labelSel})::text ILIKE ${like}`, sql`${pk}::text ILIKE ${like}`];
     if (pkr?.subExpr) parts.push(sql`(${sql.raw(pkr.subExpr)})::text ILIKE ${like}`);
     conds.push(sql`(${sql.join(parts, sql` OR `)})`);
+  }
+  // flt: lọc theo health selector (chỉ node platform — có technology_key + auto_post_supported).
+  // 'missing' = thiếu ≥1 CORE field; 'partial' = đã train ≥1 NHƯNG vẫn thiếu CORE (đang dùng mà hở).
+  if (opts.flt && wantMissingSel) {
+    const presentReq = sql.raw(`
+      WITH present AS (
+        SELECT DISTINCT so.page_kind || '.' || so.field_name AS fk FROM selector_overrides so
+        WHERE (so.scope_kind='platform' AND so.scope_key=t.key) OR (so.scope_kind='technology' AND so.scope_key=t.technology_key)
+      ), req AS (
+        SELECT unnest(ARRAY['composer.composer.anchor','composer.composer.editor','composer.viewer.handle','composer._adapter','composer.post.item','composer.post.author','composer.post.body','composer.post.permalink','platform-any.viewer.logged_in']
+          || CASE WHEN t.auto_post_supported THEN ARRAY['composer.composer.postBtn'] ELSE ARRAY[]::text[] END) AS fk
+      )
+      SELECT 1 FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)`);
+    conds.push(sql`EXISTS (${presentReq})`);
+    if (opts.flt === 'partial') {
+      conds.push(sql`EXISTS (SELECT 1 FROM selector_overrides so WHERE (so.scope_kind='platform' AND so.scope_key=t.key) OR (so.scope_kind='technology' AND so.scope_key=t.technology_key))`);
+    }
   }
   const whereSql = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
@@ -449,6 +466,9 @@ export async function systemScan(projectId?: string): Promise<ScanResult> {
     add('selector', 'error', "technology scope not in platform_technologies", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind IN ('engine','technology') AND NOT EXISTS (SELECT 1 FROM platform_technologies t WHERE t.key = s.scope_key)`),
     add('selector', 'error', "habitat scope not in habitats", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.scope_kind = 'habitat' AND NOT EXISTS (SELECT 1 FROM habitats h WHERE h.id::text = s.scope_key)`),
     add('selector', 'warn', 'spec.css empty', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE COALESCE(s.spec->>'css','') = ''`),
+    // health telemetry (ext báo từ trang thật): miss_streak cao = DOM đổi → selector hỏng.
+    add('selector', 'error', 'likely BROKEN — 5+ consecutive misses on live pages (retrain selector)', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.miss_streak >= 5`),
+    add('selector', 'warn', 'flaky — 3-4 recent misses on live pages (DOM may have changed)', sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.miss_streak >= 3 AND s.miss_streak < 5`),
     add('selector', 'warn', "Reddit page_kind (subreddit-*) on a non-reddit platform — taxonomy leak, rename to a platform-neutral kind", sql`SELECT count(*)::int AS n FROM selector_overrides s WHERE s.page_kind LIKE 'subreddit%' AND s.scope_key <> 'reddit'`),
     // interaction (global)
     add('interaction', 'error', 'people_id dangling', sql`SELECT count(*)::int AS n FROM interactions i WHERE NOT EXISTS (SELECT 1 FROM people pe WHERE pe.id = i.people_id)`),

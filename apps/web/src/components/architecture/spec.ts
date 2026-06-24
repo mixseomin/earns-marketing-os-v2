@@ -627,8 +627,15 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'selector', label: 'Selector override', group: 'infra',
     table: 'selector_overrides', pk: 'id', labelCol: 'field_name', projectScoped: false,
-    desc: 'Selector library row. Cascade habitat > platform > technology. Resolves DOM fields for detection/marking.',
+    desc: 'Selector library row. Cascade habitat > platform > technology. Resolves DOM fields for detection/marking. HEALTH: ext báo kết quả resolve trên trang thật → miss_streak (số lần liên tiếp tìm ko thấy). 0=khỏe, ≥3=flaky, ≥5=hỏng (DOM đổi → retrain). Xem cảnh báo ở System Scan.',
     picker: { subExpr: "concat(t.scope_kind,' · ',t.page_kind)" },
+    browseCols: [
+      { col: 'scope_key', label: 'scope' },
+      { col: 'page_kind', label: 'page' },
+      { col: 'miss_streak', label: 'miss⚠', kind: 'badge' },                 // ≥3 flaky, ≥5 broken
+      { col: 'last_ok_at', label: 'last ok', kind: 'time' },
+      { col: 'source', label: 'src' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'scopeKind', col: 'scope_kind', type: 'text', note: 'technology|platform|habitat (legacy: engine)' },
@@ -638,6 +645,10 @@ export const OBJECTS: ArchObject[] = [
       { name: 'spec', col: 'spec', type: 'jsonb', note: '{css,attr?} — NESTED under spec' },
       { name: 'source', col: 'source', type: 'text', note: 'llm|manual|promoted' },
       { name: 'confidence', col: 'confidence', type: 'int' },
+      { name: 'missStreak', col: 'miss_streak', type: 'int', note: 'consecutive live-page misses; ≥5 = retrain' },
+      { name: 'lastOkAt', col: 'last_ok_at', type: 'timestamp', note: 'last live resolve hit' },
+      { name: 'lastMissAt', col: 'last_miss_at', type: 'timestamp' },
+      { name: 'lastUrl', col: 'last_url', type: 'text', note: 'URL of last miss (debug)' },
     ],
     relations: [
       { to: 'platform', kind: 'scope', via: "scope_kind='platform'" },

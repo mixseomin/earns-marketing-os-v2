@@ -866,6 +866,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const PAGE = 25;
   // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
+  const hasMissingCol = (obj.browseCols || []).some((c) => c.col === '__missingSel');
+  const [flt, setFlt] = useState<'missing' | 'partial' | null>(null);
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
   // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
   // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
@@ -900,7 +902,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
-  useEffect(() => { setPage(0); }, [projectId, parentId, sort]);
+  useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt]);
   // 1 drawer sửa status → patch row tương ứng trong bảng NGAY (badge + stale recompute) — ko refetch.
   useEffect(() => {
     const h = (e: Event) => {
@@ -920,9 +922,10 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       q: qDeb, limit: PAGE, offset: page * PAGE,
       cols: (obj.browseCols || []).map((c) => c.col),
       sort: sort || undefined,
+      flt: flt || undefined,
     }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort]);
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt]);
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const from = data.total === 0 ? 0 : page * PAGE + 1;
@@ -968,6 +971,15 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
         )}
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`tìm trong ${data.total || '…'}…`}
           style={{ ...selStyle, flex: 1, minWidth: 150 }} />
+        {hasMissingCol && (
+          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} title="Lọc theo health selector">
+            {([['missing', '⚠ thiếu', 'Thiếu ≥1 CORE selector'], ['partial', '◑ hở', 'Đã train ≥1 nhưng vẫn thiếu CORE — đang dùng mà hở']] as const).map(([k, lbl, tip]) => (
+              <button key={k} type="button" title={tip}
+                onClick={() => setFlt((f) => (f === k ? null : k))}
+                style={{ ...btnStyle, padding: '5px 8px', fontSize: 11, background: flt === k ? 'var(--warn)' : undefined, color: flt === k ? '#000' : undefined, borderColor: flt === k ? 'var(--warn)' : undefined }}>{lbl}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* count + range */}

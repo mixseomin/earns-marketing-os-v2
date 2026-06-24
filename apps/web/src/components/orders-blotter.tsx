@@ -41,6 +41,7 @@ const fmtCagr = (n: number): string => {
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
+const RANGES: [label: string, hours: number][] = [['24h', 24], ['1W', 168], ['1M', 720], ['1Y', 8760], ['All', Infinity]];
 // P&L in account $ for ANY row (uniform): crypto stores % (convert via notional), MT5 stores $ directly. Never sum the raw `profit` (mixes units).
 const usdOf = (t: StrategyTradeRow): number => {
   const p = t.profit == null ? null : Number(t.profit);
@@ -158,7 +159,7 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
 }
 
 export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }: { trades: StrategyTradeRow[]; tests?: StrategyTestRow[]; forward?: StrategyForwardRow[]; brokerNowMs?: number | null }) {
-  const [showAll, setShowAll] = useState(false);
+  const [range, setRange] = useState('24h');
   const [grouped, setGrouped] = useState(true);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const router = useRouter();
@@ -186,18 +187,19 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
     return m;
   }, [trades, tests, forward]);
 
-  // scope: every open position + closed within 24h of the latest activity (relative -> tz-safe). "Show all" reveals older closed.
+  // scope: every open position + closed within the selected window of the latest activity (relative -> tz-safe).
   const visible = useMemo(() => {
+    const win = (RANGES.find(([l]) => l === range)?.[1] ?? Infinity) * 3.6e6;
+    if (!Number.isFinite(win)) return trades;
     const times = trades.map((t) => Date.parse(tRef(t))).filter((n) => !Number.isNaN(n));
-    const cutoff = (times.length ? Math.max(...times) : 0) - 24 * 3.6e6;
-    return trades.filter((t) => { if (t.isOpen || showAll) return true; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
-  }, [trades, showAll]);
+    const cutoff = (times.length ? Math.max(...times) : 0) - win;
+    return trades.filter((t) => { if (t.isOpen) return true; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
+  }, [trades, range]);
 
   const openN = visible.filter((t) => t.isOpen).length;
   const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
   const closedN = closedRows.length;
   const netClosed = closedRows.reduce((a, t) => a + usdOf(t), 0);
-  const hiddenN = trades.filter((t) => !t.isOpen).length - trades.filter((t) => !t.isOpen && (showAll || (() => { const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= ((() => { const ts = trades.map((x) => Date.parse(tRef(x))).filter((n) => !Number.isNaN(n)); return (ts.length ? Math.max(...ts) : 0) - 24 * 3.6e6; })()); })())).length;
 
   const sortRows = (rows: StrategyTradeRow[]) => [...rows].sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a)));
 
@@ -216,11 +218,15 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }:
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 12.5 }}>
-          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open · <b>{closedN}</b> closed{showAll ? '' : ' (24h)'} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
+          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
         </span>
         <span style={{ flex: 1 }} />
-        <button type="button" onClick={() => setGrouped((v) => !v)} style={chip(grouped)}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
-        <button type="button" onClick={() => setShowAll((v) => !v)} style={chip(showAll)}>{showAll ? 'All' : 'Last 24h'}{!showAll && hiddenN > 0 ? ` (+${hiddenN})` : ''}</button>
+        <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
+        <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
+          {RANGES.map(([l], i) => (
+            <button key={l} type="button" onClick={() => setRange(l)} style={{ fontSize: 11, padding: '3px 9px', border: 'none', borderLeft: i === 0 ? 'none' : '1px solid var(--line)', cursor: 'pointer', fontWeight: 600, background: range === l ? 'var(--accent,#00e5ff)' : 'transparent', color: range === l ? '#001018' : 'var(--muted)' }}>{l}</button>
+          ))}
+        </div>
         <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 20s</span>
       </div>
 

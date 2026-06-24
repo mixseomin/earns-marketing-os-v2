@@ -75,8 +75,15 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'platform', label: 'Platform', group: 'platform',
     table: 'platforms', pk: 'key', labelCol: 'label',
-    desc: 'Social platform catalog (x/reddit/fb/discord…). First-class rows, not hardcoded.',
+    desc: 'Social platform catalog (x/reddit/fb/discord…). First-class rows, not hardcoded. auto_post_supported=false = SUGGEST-ONLY mode (tool soạn + human copy-paste/đăng tay → ban-risk ≈ 0). DB-adapter mặc định cũng noPost=true (suggest) nên platform mới tự an toàn.',
     picker: { subExpr: 't.category' },
+    browseCols: [
+      { col: 'category', label: 'category' },
+      { col: 'priority', label: 'priority' },
+      { col: 'auto_post_supported', label: 'auto-post' },                    // false = suggest-only (manual)
+      { col: 'technology_key', label: 'engine', kind: 'link', link: 'technology' },
+      { col: 'region', label: 'region' },
+    ],
     attrs: [
       { name: 'key', col: 'key', type: 'text', pk: true, note: "canonical 'twitter' (ext uses 'x')" },
       { name: 'label', col: 'label', type: 'text' },

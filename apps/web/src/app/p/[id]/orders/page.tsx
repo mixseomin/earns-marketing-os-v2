@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { OrdersBlotter } from '@/components/orders-blotter';
@@ -11,6 +12,10 @@ export default async function OrdersRoute({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const project = await getProject(id);
   if (!project) notFound();
+
+  // filter state from cookie so SSR renders the saved filter -> no localStorage flash on F5
+  let initialFilter = { range: '24h', grouped: true, hideClosed: false };
+  try { const slf = (await cookies()).get('slf')?.value; if (slf) initialFilter = { ...initialFilter, ...JSON.parse(decodeURIComponent(slf)) }; } catch { /* ignore */ }
 
   const [, eff] = await Promise.all([getCurrentUser(), getEffectiveUser()]);
   const [mode, projects, tradeRows, testRows, forwardRows, brokerNowMs] = await Promise.all([
@@ -34,7 +39,7 @@ export default async function OrdersRoute({ params }: { params: Promise<{ id: st
           <span style={{ flex: 1 }} />
           <Link href={`/p/${id}/strategy-tests`} style={{ fontSize: 12, color: 'var(--accent,#00e5ff)', textDecoration: 'none' }}>🔬 Strategy Tests →</Link>
         </div>
-        <OrdersBlotter trades={tradeRows} tests={testRows} forward={forwardRows} brokerNowMs={brokerNowMs} />
+        <OrdersBlotter trades={tradeRows} tests={testRows} forward={forwardRows} brokerNowMs={brokerNowMs} initial={initialFilter} />
       </div>
     </AppShell>
   );

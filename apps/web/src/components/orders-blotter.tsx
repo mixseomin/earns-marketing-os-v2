@@ -267,6 +267,12 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
       .sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible]);
 
+  // grand total across the visible strategy sleeves: sum of their live equity (matches each group's 💰 badge) vs $10k/sleeve base
+  const sleeveEq = groups.map((g) => metaByStrategy[g.name]?.fwd?.equity).filter((e): e is number => e != null);
+  const totalEquity = sleeveEq.reduce((a, e) => a + e, 0);
+  const totalBase = sleeveEq.length * 10000;
+  const totalPnlPct = totalBase ? (totalEquity / totalBase - 1) * 100 : 0;
+
   const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''];
 
   return (
@@ -274,6 +280,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 12.5 }}>
           <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open{openN > 0 ? <span style={{ color: 'var(--muted)', opacity: 0.7, fontSize: 11 }} title="total unrealized / floating P&L of open positions"> ({fmtPnlUsd(openFloat)} float)</span> : null} · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
+          {sleeveEq.length > 0 ? <span title="combined live equity of all strategy sleeves vs $10k each (matches the 💰 badge per group)"> · 💰 total <b>${Math.round(totalEquity).toLocaleString()}</b> <b style={{ color: totalPnlPct >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>({totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%)</b></span> : null}
         </span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>

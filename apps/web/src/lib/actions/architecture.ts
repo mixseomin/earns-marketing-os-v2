@@ -157,7 +157,7 @@ export async function browseInstances(
       )
       SELECT COALESCE(NULLIF(string_agg(regexp_replace(r.fk, '^(composer|platform-any)\\.', ''), ', ' ORDER BY r.fk), ''), '✓ full')
       FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)
-    ) AS __missingSel`);
+    ) AS "__missingSel"`);   // QUOTE alias — unquoted Postgres lowercases → r['__missingsel'] ≠ r['__missingSel'] = null
   }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 

@@ -40,15 +40,48 @@ export async function POST(req: Request) {
   const pageKind = (body.pageKind || '').toString().trim() || guessPageKind(url);
   const note = (body.note || '').toString().slice(0, 500) || null;
   try {
+    // DEDUP: cùng "trang" (host + path + param định danh t/f/p…, BỎ noise hilit/sid) → GHI ĐÈ row cũ
+    // thay vì đẻ bản trùng. Trả replaced=true để ext báo "đã trùng → lưu đè".
+    let existingId: number | null = null;
+    if (url) {
+      const cand = await db.execute(sql`
+        SELECT id, url FROM dom_samples
+        WHERE (${host}::text IS NOT NULL AND hostname = ${host}) OR (${platformKey}::text IS NOT NULL AND platform_key = ${platformKey})
+        ORDER BY id DESC LIMIT 60`);
+      for (const r of (cand as unknown as Array<{ id: number; url: string }>)) {
+        if (sameDomPage(String(r.url || ''), url)) { existingId = Number(r.id); break; }
+      }
+    }
+    if (existingId) {
+      await db.execute(sql`
+        UPDATE dom_samples SET html = ${html}, bytes = ${html.length}, title = ${title},
+          technology_key = ${tech}, page_kind = ${pageKind}, url = ${url}, note = ${note}, captured_at = NOW()
+        WHERE id = ${existingId}`);
+      return NextResponse.json({ ok: true, id: existingId, replaced: true, pageKind, platformKey, technologyKey: tech, bytes: html.length });
+    }
     const ins = await db.execute(sql`
       INSERT INTO dom_samples (platform_key, technology_key, page_kind, url, hostname, title, html, bytes, note)
       VALUES (${platformKey}, ${tech}, ${pageKind}, ${url}, ${host}, ${title}, ${html}, ${html.length}, ${note})
       RETURNING id`);
     const id = (ins as unknown as Array<{ id: number }>)[0]?.id ?? null;
-    return NextResponse.json({ ok: true, id, pageKind, platformKey, technologyKey: tech, bytes: html.length });
+    return NextResponse.json({ ok: true, id, replaced: false, pageKind, platformKey, technologyKey: tech, bytes: html.length });
   } catch (e) {
     return errorResponse((e as Error).message, 200);
   }
+}
+
+// Cùng 1 trang? so host + pathname + param định danh (t/f/p/topic/thread), BỎ qua noise (hilit/sid/fragment).
+function sameDomPage(u1: string, u2: string): boolean {
+  if (!u1 || !u2) return false;
+  try {
+    const a = new URL(u1), b = new URL(u2);
+    if (a.hostname.replace(/^www\./, '') !== b.hostname.replace(/^www\./, '') || a.pathname !== b.pathname) return false;
+    for (const k of ['t', 'f', 'p', 'topic', 'thread', 'tid', 'fid', 'id']) {
+      const x = a.searchParams.get(k), y = b.searchParams.get(k);
+      if ((x != null || y != null) && x !== y) return false;
+    }
+    return true;
+  } catch { return u1 === u2; }
 }
 
 // GET /api/ext/dom-sample            → list (metadata, no html)

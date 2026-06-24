@@ -246,35 +246,43 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
   }, [trades, tests, forward]);
 
   // scope: every open position + closed within the selected window. Rolling = vs latest activity (tz-safe); calendar = vs broker now.
-  const visible = useMemo(() => {
+  // `visible` = rows to DISPLAY (Open-only hides closed rows). `periodClosed` = realized trades in the window IGNORING the
+  // Open-only toggle, so the period P&L stat always counts closed trades even when their rows are hidden.
+  const { visible, periodClosed } = useMemo(() => {
     const nowMs = brokerNowMs ?? Date.now();
     const times = trades.map((t) => Date.parse(tRef(t))).filter((n) => !Number.isNaN(n));
     const latest = times.length ? Math.max(...times) : nowMs;
     const cutoff = rangeCutoff(range, latest, nowMs);
-    return trades.filter((t) => { if (t.isOpen) return true; if (hideClosed) return false; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
+    const inWin = (t: StrategyTradeRow) => { const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; };
+    const vis = trades.filter((t) => { if (t.isOpen) return true; if (hideClosed) return false; return inWin(t); });
+    const pc = trades.filter((t) => !t.isOpen && t.profit != null && inWin(t));
+    return { visible: vis, periodClosed: pc };
   }, [trades, range, hideClosed, brokerNowMs]);
 
-  const openRows = visible.filter((t) => t.isOpen);
+  const openRows = trades.filter((t) => t.isOpen);
   const openN = openRows.length;
   const openFloat = openRows.reduce((a, t) => a + usdOf(t), 0);   // total unrealized $ of open positions
-  const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
-  const closedN = closedRows.length;
-  const netClosed = closedRows.reduce((a, t) => a + usdOf(t), 0);
+  const closedN = periodClosed.length;
+  const netClosed = periodClosed.reduce((a, t) => a + usdOf(t), 0);   // realized in window, regardless of Open-only
 
   const sortRows = (rows: StrategyTradeRow[]) => [...rows].sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a)));
 
-  // group by strategy: strategies with open positions first, then by name
+  // group by strategy: strategies with open positions first, then by name. Period P&L (net/closed) comes from periodClosed
+  // (NOT the displayed rows) so Open-only never zeroes it out.
   const groups = useMemo(() => {
-    const m: Record<string, StrategyTradeRow[]> = {};
-    visible.forEach((t) => { (m[t.strategy] ??= []).push(t); });
-    const built = Object.entries(m)
-      .map(([name, rows]) => ({ name, rows: sortRows(rows), open: rows.filter((r) => r.isOpen).length, float: rows.filter((r) => r.isOpen).reduce((a, r) => a + usdOf(r), 0), closed: rows.filter((r) => !r.isOpen && r.profit != null).length, net: rows.filter((r) => !r.isOpen && r.profit != null).reduce((a, r) => a + usdOf(r), 0) }));
-    // funded forward sleeves with no visible trades yet -> show as empty warming groups (so a new bot is visible before its 1st trade)
-    const have = new Set(built.map((g) => g.name));
-    const funded = Array.from(new Set(forward.filter((f) => f.equity != null).map((f) => f.strategy)));
-    const extras = funded.filter((n) => !have.has(n)).map((name) => ({ name, rows: [] as StrategyTradeRow[], open: 0, float: 0, closed: 0, net: 0 }));
-    return [...built, ...extras].sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
-  }, [visible, forward]);
+    const disp: Record<string, StrategyTradeRow[]> = {};
+    visible.forEach((t) => { (disp[t.strategy] ??= []).push(t); });
+    const closedBy: Record<string, StrategyTradeRow[]> = {};
+    periodClosed.forEach((t) => { (closedBy[t.strategy] ??= []).push(t); });
+    const funded = new Set(forward.filter((f) => f.equity != null).map((f) => f.strategy));
+    const names = new Set([...Object.keys(disp), ...Object.keys(closedBy), ...funded]);
+    return Array.from(names).map((name) => {
+      const rows = sortRows(disp[name] ?? []);
+      const openR = rows.filter((r) => r.isOpen);
+      const pc = closedBy[name] ?? [];
+      return { name, rows, open: openR.length, float: openR.reduce((a, r) => a + usdOf(r), 0), closed: pc.length, net: pc.reduce((a, r) => a + usdOf(r), 0) };
+    }).sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
+  }, [visible, periodClosed, forward]);
 
   // grand total across the visible strategy sleeves: sum of their live equity (matches each group's 💰 badge) vs $10k/sleeve base
   const sleeveEq = groups.map((g) => metaByStrategy[g.name]?.fwd?.equity).filter((e): e is number => e != null);
@@ -328,8 +336,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                       <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
                       {g.open > 0 ? <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }} title="floating P&L of open positions">{fmtPnlUsd(g.float)} float</span> : null}
-                      {g.rows.length > 0
-                        ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }} title={`realized P&L of trades closed in the selected window (${range})`}>P&L{range !== 'All' ? ` (${range})` : ''} {fmtPnlUsd(g.net)}</span>
+                      {g.open > 0 || g.closed > 0
+                        ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }} title={`realized P&L of ${g.closed} trade(s) closed in the selected window (${range})`}>P&L{range !== 'All' ? ` (${range})` : ''} {fmtPnlUsd(g.net)}</span>
                         : <span style={{ marginLeft: 8, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }}>warming · no trades yet</span>}
                       {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }} title="all-time live equity since this sleeve started ($10k base)">💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
                     </td>

@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
 import { and, desc, eq, exists, ilike, or, sql } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,9 @@ export async function GET(req: Request) {
 
   // Duplicate check
   if (platform && handle) {
-    const slug = platform.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    // canon alias (x→twitter, bsky→bluesky) — ext gửi key của nó, catalog + stats query canonical.
+    // Không canon = account ghi row 'x' nhưng stats query 'twitter' → account_not_found (bug P0).
+    const slug = canonPlatformKey(platform.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     const [row] = await db
       .select({ id: platformAccounts.id, handle: platformAccounts.handle })
       .from(platformAccounts)
@@ -40,7 +43,7 @@ export async function GET(req: Request) {
   // List accounts by platform (account chip picker trong ext) — chọn account
   // dùng cho habitat. Filter platform (+ project nếu truyền).
   if (platform && !handle) {
-    const slug = platform.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const slug = canonPlatformKey(platform.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     const rows = await db
       .select({
         id: platformAccounts.id,
@@ -132,7 +135,7 @@ export async function POST(req: Request) {
     notes?: string;
   };
 
-  const platformSlug = body.platform.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const platformSlug = canonPlatformKey(body.platform.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
 
   // Find or create platform
   const [existingPlatform] = await db

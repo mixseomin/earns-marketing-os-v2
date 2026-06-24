@@ -3,6 +3,7 @@ import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
   const body = (await req.json()) as { platformKey?: string; platform?: string; handle?: string; projectId?: string };
   const rawHandle = (body.handle ?? '').trim().replace(/^\/+/, '').replace(/^u\//i, '').replace(/^user\//i, '').replace(/^@/, '').trim();
   const platformRaw = (body.platformKey ?? body.platform ?? '').trim();
-  const platformSlug = platformRaw.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  // canon alias (x→twitter) — 1 nguồn key, khớp create/list/stats (tránh row-split x/twitter, bug P0).
+  const platformSlug = canonPlatformKey(platformRaw.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
   const projectId = (body.projectId ?? '').trim();
 
   if (!rawHandle || !platformSlug || !projectId) {

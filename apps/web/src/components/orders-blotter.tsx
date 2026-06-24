@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StrategyTradeRow, StrategyTestRow, StrategyForwardRow } from '@/lib/data';
 
@@ -42,6 +43,14 @@ const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
 const RANGES: [label: string, hours: number][] = [['24h', 24], ['1W', 168], ['1M', 720], ['1Y', 8760], ['All', Infinity]];
+// filter state that survives F5: server + first render use def (no hydration mismatch), then load/persist via localStorage.
+function usePersisted<T>(key: string, def: T): [T, Dispatch<SetStateAction<T>>] {
+  const [v, setV] = useState<T>(def);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { try { const s = localStorage.getItem(key); if (s != null) setV(JSON.parse(s) as T); } catch { /* ignore */ } setLoaded(true); }, [key]);
+  useEffect(() => { if (loaded) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* ignore */ } } }, [key, v, loaded]);
+  return [v, setV];
+}
 // P&L in account $ for ANY row (uniform): crypto stores % (convert via notional), MT5 stores $ directly. Never sum the raw `profit` (mixes units).
 const usdOf = (t: StrategyTradeRow): number => {
   const p = t.profit == null ? null : Number(t.profit);
@@ -159,9 +168,9 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
 }
 
 export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs }: { trades: StrategyTradeRow[]; tests?: StrategyTestRow[]; forward?: StrategyForwardRow[]; brokerNowMs?: number | null }) {
-  const [range, setRange] = useState('24h');
-  const [hideClosed, setHideClosed] = useState(false);
-  const [grouped, setGrouped] = useState(true);
+  const [range, setRange] = usePersisted('sl-orders-range', '24h');
+  const [hideClosed, setHideClosed] = usePersisted('sl-orders-hideClosed', false);
+  const [grouped, setGrouped] = usePersisted('sl-orders-grouped', true);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const router = useRouter();
   useEffect(() => { const id = setInterval(() => router.refresh(), 20000); return () => clearInterval(id); }, [router]);

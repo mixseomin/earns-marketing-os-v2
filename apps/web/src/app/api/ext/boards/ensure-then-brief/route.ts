@@ -3,18 +3,15 @@ import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { errorResponse, okResponse } from '@/lib/ext-route';
 import { resolveOrCreateBoard, boardKeyFromUrl } from '@/lib/board-radar';
+import { defaultKindForPlatformKey } from '@/lib/habitat-platform-map';
 
 export const dynamic = 'force-dynamic';
 
 const VALID_JOIN = new Set(['not_joined', 'pending', 'joined', 'rejected', 'kicked', 'left']);
-function kindFor(platformKey: string | null): string {
-  switch (platformKey) {
-    case 'reddit': return 'subreddit';
-    case 'discord': return 'discord';
-    case 'facebook': return 'fb-group';
-    default: return 'forum';
-  }
-}
+// platform_key → default habitat kind = 1 nguồn duy nhất (PLATFORM_TO_KIND). Trước đây re-derive
+// chỉ reddit/discord/facebook, gộp twitter/telegram/linkedin/slack/youtube → 'forum' SAI →
+// adopt board X/telegram/linkedin qua "Track" bị đóng dấu 'forum', vỡ platformKeysForHabitatKind (bug P0).
+const kindFor = (platformKey: string | null): string => defaultKindForPlatformKey(platformKey) ?? 'forum';
 
 // POST /api/ext/boards/ensure-then-brief
 // Body: { projectId, accountId, boardId?, url?, name?, platformKey?, technologyKey?, joinStatus? }

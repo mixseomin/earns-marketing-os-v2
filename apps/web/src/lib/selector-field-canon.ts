@@ -53,10 +53,21 @@ export function mechCanon(raw: string): string {
     .replace(/^_+|_+$/g, '');     // trim edges
 }
 
+// DOM-structural selector fields use a DOTTED convention that resolveSelectors() + buildDbAdapter()
+// read VERBATIM (viewer.handle, post.author, composer.editor, thread.title, parent.container,
+// metric.views, _adapter). mechCanon would turn '.'→'_' (viewer.handle → viewer_handle) and strip
+// _adapter's leading underscore → consumer lookup MISSES → widget can't detect handle/author (the
+// "Học lại lưu đúng nhưng widget ko nhận" bug). These bypass canon; signup/profile keep underscore.
+const PRESERVE_DOTTED = /^(composer|post|viewer|thread|parent|metric)\.[a-z0-9_]+$/i;
+
 // Full canonical: mechanical first, then page-kind alias fold. Returns '' for
 // empty input so callers can reject. Idempotent.
 export function canonField(raw: string, pageKind?: string): string {
-  const m = mechCanon(raw);
+  const t = String(raw || '').trim();
+  if (!t) return '';
+  if (t.toLowerCase() === '_adapter') return '_adapter';
+  if (PRESERVE_DOTTED.test(t)) return t.toLowerCase();
+  const m = mechCanon(t);
   if (!m) return '';
   const aliases = pageKind ? FIELD_ALIASES[pageKind] : undefined;
   return aliases?.[m] ?? m;

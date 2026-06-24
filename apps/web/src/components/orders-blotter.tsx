@@ -41,7 +41,17 @@ const fmtCagr = (n: number): string => {
 const fmtDT = (s: string | null) => { if (!s) return '—'; const d = new Date(s); const p = (x: number) => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const isCryptoSym = (s: string) => /USDT$/i.test(s);
 const tRef = (t: StrategyTradeRow) => (t.exitTime ?? t.entryTime) ?? '';
-const RANGES: [label: string, hours: number][] = [['24h', 24], ['1W', 168], ['1M', 720], ['1Y', 8760], ['All', Infinity]];
+const ROLL: Record<string, number> = { '24h': 24, '1W': 168, '1M': 720, '1Y': 8760 };   // rolling windows (hours) anchored to latest activity
+// cutoff (ms) for a range: rolling = latest - window; calendar = start of this week/month/year (broker now); All = none.
+const rangeCutoff = (range: string, latestMs: number, nowMs: number): number => {
+  const h = ROLL[range];
+  if (h !== undefined) return latestMs - h * 3.6e6;
+  const d = new Date(nowMs);
+  if (range === 'WTD') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7));   // Monday 00:00
+  if (range === 'MTD') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  if (range === 'YTD') return Date.UTC(d.getUTCFullYear(), 0, 1);
+  return -Infinity;   // All
+};
 type Filter = { range: string; grouped: boolean; hideClosed: boolean };
 // P&L in account $ for ANY row (uniform): crypto stores % (convert via notional), MT5 stores $ directly. Never sum the raw `profit` (mixes units).
 const usdOf = (t: StrategyTradeRow): number => {
@@ -191,14 +201,14 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     return m;
   }, [trades, tests, forward]);
 
-  // scope: every open position + closed within the selected window of the latest activity (relative -> tz-safe).
+  // scope: every open position + closed within the selected window. Rolling = vs latest activity (tz-safe); calendar = vs broker now.
   const visible = useMemo(() => {
-    const win = (RANGES.find(([l]) => l === range)?.[1] ?? Infinity) * 3.6e6;
-    if (!Number.isFinite(win)) return trades;
+    const nowMs = brokerNowMs ?? Date.now();
     const times = trades.map((t) => Date.parse(tRef(t))).filter((n) => !Number.isNaN(n));
-    const cutoff = (times.length ? Math.max(...times) : 0) - win;
+    const latest = times.length ? Math.max(...times) : nowMs;
+    const cutoff = rangeCutoff(range, latest, nowMs);
     return trades.filter((t) => { if (t.isOpen) return true; if (hideClosed) return false; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
-  }, [trades, range, hideClosed]);
+  }, [trades, range, hideClosed, brokerNowMs]);
 
   const openN = visible.filter((t) => t.isOpen).length;
   const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
@@ -227,11 +237,20 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
         <button type="button" onClick={() => setHideClosed((v) => !v)} style={chip(hideClosed)} title="show open positions only">Open only</button>
-        <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
-          {RANGES.map(([l], i) => (
-            <button key={l} type="button" onClick={() => setRange(l)} style={{ fontSize: 11, padding: '3px 9px', border: 'none', borderLeft: i === 0 ? 'none' : '1px solid var(--line)', cursor: 'pointer', fontWeight: 600, background: range === l ? 'var(--accent,#00e5ff)' : 'transparent', color: range === l ? '#001018' : 'var(--muted)' }}>{l}</button>
-          ))}
-        </div>
+        <select value={range} onChange={(e) => setRange(e.target.value)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--panel,#0e1420)', color: 'var(--fg)', fontWeight: 600, cursor: 'pointer' }}>
+          <optgroup label="Rolling">
+            <option value="24h">Last 24h</option>
+            <option value="1W">Last 7d</option>
+            <option value="1M">Last 30d</option>
+            <option value="1Y">Last 1y</option>
+          </optgroup>
+          <optgroup label="Calendar">
+            <option value="WTD">Week to date</option>
+            <option value="MTD">Month to date</option>
+            <option value="YTD">Year to date</option>
+          </optgroup>
+          <option value="All">All</option>
+        </select>
         <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 20s</span>
       </div>
 

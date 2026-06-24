@@ -227,6 +227,7 @@ ssh root@5.78.65.158 '/opt/earns-marketing-os-v2/deploy.sh'
 - `useLocalStorage` naive init in Next.js client: gate writes behind `hydrated` flag to avoid SSR clobber
 - Directus batch `PATCH /items/<coll>` silently no-ops — loop individual PATCH per id instead
 - All outbound dashboard links must route via `href.li` to strip referrer
+- **Raw-SQL aliases with an uppercase letter MUST be double-quoted**: `db.execute(sql\`… AS "fooBar"\`)`. Unquoted, Postgres folds it to `foobar`, so `row['fooBar']` reads `undefined` → silent null (bit Studio `__missingSel`). Same for `ORDER BY "fooBar"`. Enforced by `scripts/check-sql-aliases.mjs` (runs in deploy.sh before build). Prefer all-lowercase aliases when possible.
 
 ---
 

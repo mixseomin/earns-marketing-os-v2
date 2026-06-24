@@ -731,6 +731,94 @@ export const FLOWS: ArchFlow[] = [
 
 export const FLOW_BY_KEY: Record<string, ArchFlow> = Object.fromEntries(FLOWS.map((f) => [f.key, f]));
 
+// ── Canon registry (behavioral "x-entity") ──────────────────────────────────
+// One behavioral concept = one resolver, referenced by BOTH runtimes, shown ONCE
+// here. The cure for mirror-by-memory drift (viewer-handle whack-a-mole, x/twitter
+// row-split, vanillaforums engine-regex…). Backend home = lib/canon (re-exports the
+// real lib); ext home = MOS2.resolve.* (core/resolve.js). Phase B codegen emits
+// canon.generated.{ts,js} from the backend libs so the ext literal can't drift;
+// canonChecks() (Phase C) diffs them into a red drift edge.
+// See decisions/2026-06-25-crew-behavioral-registry-xentity.md.
+export interface CanonEntity {
+  key: string;
+  label: string;
+  group: 'infra';
+  signature: string;           // resolver shape, e.g. 'field(raw, pageKind) → canonicalKey'
+  backendRef: string;          // canon.* + source lib
+  extRef: string;              // MOS2.resolve.* / core file
+  generatedFrom?: string;      // codegen source (Phase B), if a cross-runtime contract
+  references: { file: string; line?: number }[];  // canonical home(s)
+}
+
+export const CANON: CanonEntity[] = [
+  {
+    key: 'fieldCanon', label: 'Field-name canon', group: 'infra',
+    signature: 'field(raw, pageKind) → canonical key (dotted-preserving + page-kind alias)',
+    backendRef: 'canon.field → lib/selector-field-canon.ts canonField',
+    extRef: 'MOS2.resolve.field → core/util.js canonFieldKey (mechanical; alias via Phase B)',
+    generatedFrom: 'FIELD_ALIASES + PRESERVE_DOTTED + mechCanon regex',
+    references: [
+      { file: 'apps/web/src/lib/selector-field-canon.ts', line: 65 },
+      { file: 'mos2-crew/core/util.js', line: 13 },
+    ],
+  },
+  {
+    key: 'platformKey', label: 'Platform key', group: 'infra',
+    signature: 'platformKey(host) → ext key; canonical(key) → catalog key (x→twitter)',
+    backendRef: 'canon.platformKey / canon.platformFromUrl → lib/habitat-platform-map.ts',
+    extRef: 'MOS2.resolve.platformKey/platformCanonical → core/platform.js',
+    generatedFrom: 'HOSTS table + CANON/PLATFORM_ALIAS',
+    references: [
+      { file: 'apps/web/src/lib/habitat-platform-map.ts', line: 73 },
+      { file: 'mos2-crew/core/platform.js', line: 13 },
+    ],
+  },
+  {
+    key: 'scopeKind', label: 'Scope tier', group: 'infra',
+    signature: "scopeKind(s) → 'technology'|'platform'|'habitat' (legacy 'engine'→'technology')",
+    backendRef: 'canon.scopeKind → lib/scope-kind.ts normScopeKind',
+    extRef: 'MOS2.resolve.scope → core/registry.js scopeFor',
+    references: [
+      { file: 'apps/web/src/lib/scope-kind.ts', line: 14 },
+      { file: 'mos2-crew/core/registry.js', line: 46 },
+    ],
+  },
+  {
+    key: 'engineKey', label: 'Forum engine', group: 'infra',
+    signature: 'isEngine(key) → bool (phpbb/xenforo/… known forum engine)',
+    backendRef: '(validated vs platform_technologies DB)',
+    extRef: 'MOS2.resolve.isEngine → core/registry.js ENGINE_KEYS',
+    generatedFrom: 'ENGINE_KEYS set',
+    references: [{ file: 'mos2-crew/core/registry.js', line: 32 }],
+  },
+  {
+    key: 'habitatKind', label: 'Habitat kind', group: 'infra',
+    signature: 'habitatKind(platformKey) → default kind (reddit→subreddit, twitter→hashtag)',
+    backendRef: 'canon.habitatKind → lib/habitat-platform-map.ts defaultKindForPlatformKey',
+    extRef: '(ext sends platformKey; backend stamps kind)',
+    references: [{ file: 'apps/web/src/lib/habitat-platform-map.ts', line: 46 }],
+  },
+  {
+    key: 'viewerHandle', label: 'Viewer handle', group: 'infra',
+    signature: 'viewerHandle(pk) → { handle, src, trusted } (db-first; single writer)',
+    backendRef: '(DOM-resolved; backend stores the viewer.handle selector row)',
+    extRef: 'MOS2.resolve.viewerHandle → MOS2.resolveViewerHandle; single writer = content.js myHandle',
+    references: [
+      { file: 'mos2-crew/crew-detector.js', line: 500 },
+      { file: 'mos2-crew/content.js', line: 608 },
+    ],
+  },
+  {
+    key: 'boardClass', label: 'Board / community identity', group: 'infra',
+    signature: 'boardKey(url) → { platformKey, externalId, kind, name } discriminator',
+    backendRef: 'canon.boardKey → lib/board-radar.ts boardKeyFromUrl',
+    extRef: '(content.js communityCandidate — unify pending, see decision risk note)',
+    references: [{ file: 'apps/web/src/lib/board-radar.ts' }],
+  },
+];
+
+export const CANON_BY_KEY: Record<string, CanonEntity> = Object.fromEntries(CANON.map((c) => [c.key, c]));
+
 // All object table names — allowlist for instance binding (guards SQL).
 export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
   OBJECTS.filter((o) => o.table).map((o) => [o.key, o]),

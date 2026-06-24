@@ -166,6 +166,29 @@ export async function GET(req: Request) {
     }
   }
 
+  // Forum board (phpBB/…): viewforum.php?f=N hoặc viewtopic.php?f=N — BOARD nằm ở query ?f= (KHÔNG
+  // pathname, vì viewforum.php chung mọi board). Match theo ext_external_id 'forum:<host>:f<N>' (ext
+  // ensure đã lưu). Return SỚM (kể cả null) — KHÔNG rơi xuống generic host-match (sẽ trả nhầm board khác).
+  const forumF = url.match(/[?&]f=(\d+)/);
+  if (forumF && /viewforum\.php|viewtopic\.php/.test(parsedUrl.pathname)) {
+    const eid = `forum:${host}:f${forumF[1]}`;
+    const rows = await db.execute(sql`
+      SELECT h.id, h.name, h.kind, h.language, h.project_id, h.platform_key, h.technology_key, h.url, h.is_own,
+             (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
+      FROM habitats h WHERE h.scraped_meta->>'ext_external_id' = ${eid}
+      ORDER BY ${projectPref} h.id LIMIT 1`);
+    const r = firstRow(rows);
+    if (r) return NextResponse.json({
+      habitat: {
+        id: Number(r.id), name: String(r.name), kind: String(r.kind), language: String(r.language ?? ''),
+        projectId: String(r.project_id), platformKey: r.platform_key ? String(r.platform_key) : null,
+        technologyKey: r.technology_key ? String(r.technology_key) : null, url: r.url ? String(r.url) : null,
+        briefId: r.brief_id ? Number(r.brief_id) : null, isOwn: r.is_own === true,
+      },
+    }, { headers: noStoreHeaders });
+    return NextResponse.json({ habitat: null }, { headers: noStoreHeaders });
+  }
+
   // Community-discriminator match — known platform nhiều community CÙNG host
   // (FB group/page, LinkedIn group/company, X community, YouTube channel). Khớp
   // theo phần ĐỊNH DANH trong path (group id / vanity), KHÔNG chỉ host → tránh

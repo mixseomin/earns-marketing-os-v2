@@ -53,20 +53,26 @@ export function mechCanon(raw: string): string {
     .replace(/^_+|_+$/g, '');     // trim edges
 }
 
-// DOM-structural selector fields use a DOTTED convention that resolveSelectors() + buildDbAdapter()
-// read VERBATIM (viewer.handle, post.author, composer.editor, thread.title, parent.container,
-// metric.views, _adapter). mechCanon would turn '.'→'_' (viewer.handle → viewer_handle) and strip
-// _adapter's leading underscore → consumer lookup MISSES → widget can't detect handle/author (the
-// "Học lại lưu đúng nhưng widget ko nhận" bug). These bypass canon; signup/profile keep underscore.
+// DOM-structural selector fields are read VERBATIM by resolveSelectors() + buildDbAdapter() and
+// the ext maps them CASE-SENSITIVELY (a.sel.postBtn / a.sel.replyAction by exact key). mechCanon
+// would turn '.'→'_' (viewer.handle → viewer_handle), strip _adapter's leading underscore, AND
+// lowercase camelCase (composer.postBtn → composer.postbtn) → consumer lookup MISSES (widget can't
+// detect handle/author; "Học lại lưu đúng nhưng widget ko nhận" + the postBtn re-train regression).
+// So they bypass canon and return VERBATIM (case preserved). Only FORM-INPUT fields (signup) get
+// mechCanon + page-kind alias fold.
+//   - dotted convention: composer.* / post.* / viewer.* / thread.* / parent.* / metric.*
 const PRESERVE_DOTTED = /^(composer|post|viewer|thread|parent|metric)\.[a-z0-9_]+$/i;
+//   - the whole 'composer' page_kind: every field is a selector entity name (incl non-dotted
+//     camelCase like 'replyAction') that the ext maps by exact key.
+const VERBATIM_PAGE_KINDS = new Set(['composer']);
 
-// Full canonical: mechanical first, then page-kind alias fold. Returns '' for
-// empty input so callers can reject. Idempotent.
+// Full canonical: structural fields verbatim; form fields → mechanical + page-kind alias fold.
+// Returns '' for empty input so callers can reject. Idempotent.
 export function canonField(raw: string, pageKind?: string): string {
   const t = String(raw || '').trim();
   if (!t) return '';
   if (t.toLowerCase() === '_adapter') return '_adapter';
-  if (PRESERVE_DOTTED.test(t)) return t.toLowerCase();
+  if ((pageKind && VERBATIM_PAGE_KINDS.has(pageKind)) || PRESERVE_DOTTED.test(t)) return t;
   const m = mechCanon(t);
   if (!m) return '';
   const aliases = pageKind ? FIELD_ALIASES[pageKind] : undefined;

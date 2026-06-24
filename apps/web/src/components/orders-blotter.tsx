@@ -10,6 +10,39 @@ const EDGE_ALIAS: Record<string, string> = {
   '5-day-low reversal': 'Index-MR portfolio', 'Double-7 low': 'Index-MR portfolio', '3-down-days': 'Index-MR portfolio',
   'FX NY-close reversion': 'FX NY-close reversion basket', 'FX London-breakout': 'FX London-breakout trend basket',
 };
+// Cách vào/ra lệnh (tiếng Việt) — keyed theo canonical edge name (t.name). Hiện trong hover card dưới phần notes.
+const ENTRY_RULES: Record<string, string> = {
+  'Index-MR portfolio':
+    '• Khung D1, rổ 8 chỉ số (SP500, NASDAQ, DAX…)\n' +
+    '• Vào (LONG): đóng cửa quá bán — RSI(2)<5 HOẶC IBS<0.2 HOẶC = đáy 5–7 ngày — VÀ giá còn trên MA200 (nền tăng)\n' +
+    '• Ra: đóng cửa hồi lên trên MA5, hoặc hết hạn giữ (MAXHOLD)\n' +
+    '• Chỉ long, không short. Mỗi sleeve 1 chỉ số, vào ở open phiên kế.',
+  'FX NY-close reversion basket':
+    '• 5 cặp FX major, khung intraday, cửa sổ 17–20 UTC (quanh giờ NY close)\n' +
+    '• Vào: giá lệch xa mean ngắn hạn → vào NGƯỢC chiều (fade), rollover-safe\n' +
+    '• Ra: giá hồi về mean, hoặc đóng cuối cửa sổ\n' +
+    '• Cả long lẫn short tùy hướng lệch.',
+  'FX London-breakout trend basket':
+    '• 5 cặp FX major, khung H1, breakout range phiên Á\n' +
+    '• Vào: chốt high/low của range phiên Asian; khi London mở, giá phá range VÀ cùng phía EMA200(H1) → vào theo hướng breakout\n' +
+    '• SL = 0.5R · TP = 2R · force-close 20:00 UTC\n' +
+    '• Long khi phá đỉnh trên EMA200, short khi phá đáy dưới EMA200.',
+  'Crypto-trend portfolio':
+    '• 12 coin, khung H1, time-series (mỗi coin tự bám trend của nó)\n' +
+    '• Vào LONG: giá phá Donchian-cao của coin đó; SHORT: phá Donchian-thấp\n' +
+    '• Ra: Donchian-20 trailing (không TP cố định)\n' +
+    '• Mỗi coin 1 sleeve độc lập.',
+  'Crypto X-sectional momentum':
+    '• 12 coin, rebalance mỗi 72h (cross-sectional: so các coin VỚI NHAU)\n' +
+    '• Vào: xếp hạng 12 coin theo return 120h qua → mua TOP-6 coin có return>0 (lọc absolute), chia đều vốn\n' +
+    '• Ra: tới mốc rebalance kế (72h) bán hết → xếp hạng lại từ đầu\n' +
+    '• Chỉ long, không short. <6 coin dương → phần còn lại giữ tiền mặt.',
+  'MA200 trend-timing':
+    '• NASDAQ, khung D1, long-only\n' +
+    '• Vào: đóng cửa > MA200\n' +
+    '• Ra: đóng cửa < MA200\n' +
+    '• Không SL/TP, bám trend dài.',
+};
 const VERDICT_COLOR: Record<string, string> = { dead: '#ff5470', marginal: '#f5a623', 'gold-only': '#d4af37', edge: '#2ecc71', discretionary: '#9b8cff', queued: '#7a8699', testing: '#00b8d4' };
 const FWD_STATUS_COLOR: Record<string, string> = { HOLDING: '#2ecc71', BELOW: '#ff5470', warming: '#7a8699' };
 const pfColor = (v: number) => (Number.isNaN(v) ? 'var(--muted)' : v >= 1.3 ? '#2ecc71' : v >= 1.0 ? '#f5a623' : '#ff5470');
@@ -134,7 +167,7 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
   const t = meta.test; const fwd = meta.fwd;
   const W = 340;
   const left = Math.min(x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1200) - W - 12);
-  const top = Math.min(y + 14, (typeof window !== 'undefined' ? window.innerHeight : 800) - 320);
+  const top = Math.min(y + 14, (typeof window !== 'undefined' ? window.innerHeight : 800) - 440);
   const cagr = t ? cagrPct(t) : NaN;
   return (
     <div style={{ position: 'fixed', left, top, width: W, zIndex: 100, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 14, pointerEvents: 'none' }}>
@@ -145,6 +178,12 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
       {t?.variant ? <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 6 }}>{t.variant}</div> : null}
       {t?.notes ? <div style={{ fontSize: 11, color: 'var(--fg)', opacity: 0.85, lineHeight: 1.5, marginBottom: 10 }}>{t.notes.length > 300 ? t.notes.slice(0, 300) + '…' : t.notes}</div>
         : <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>No backtest metadata linked for this strategy.</div>}
+      {(() => { const er = ENTRY_RULES[t?.name ?? name]; return er ? (
+        <div style={{ background: 'rgba(0,184,212,0.07)', border: '1px solid rgba(0,184,212,0.25)', borderRadius: 8, padding: '7px 9px', marginBottom: 10 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: '#00b8d4', marginBottom: 4 }}>📥 CÁCH VÀO LỆNH</div>
+          <div style={{ fontSize: 10.5, color: 'var(--fg)', opacity: 0.9, lineHeight: 1.55, whiteSpace: 'pre-line' }}>{er}</div>
+        </div>
+      ) : null; })()}
       {t ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: fwd ? 10 : 0 }}>
           <MetaPill label="Backtest PF" value={t.pf ?? '—'} color={t.pf ? pfColor(Number(t.pf)) : undefined} />

@@ -875,7 +875,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const defaultWidths = useCallback((): (number | null)[] => {
     const cols = obj.browseCols?.length ? obj.browseCols.map((c) => ({ key: c.col, kind: c.kind as string | undefined })) : [{ key: '__sub', kind: undefined as string | undefined }];
     const w = (key: string, kind?: string): number | null => {
-      if (key === '__board' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
+      if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
       if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96;
       if (kind === 'badge' || kind === 'unread') return 78;
       return 76;                                                              // compact (fit/tier/manual/stale…)

@@ -82,6 +82,7 @@ export const OBJECTS: ArchObject[] = [
       { col: 'priority', label: 'priority' },
       { col: 'auto_post_supported', label: 'auto-post' },                    // false = suggest-only (manual)
       { col: 'technology_key', label: 'engine', kind: 'link', link: 'technology' },
+      { col: '__missingSel', label: 'missing selectors' },                  // CORE composer/login fields chưa train (platform + inherited engine scope) → đi cập nhật
       { col: 'region', label: 'region' },
     ],
     attrs: [

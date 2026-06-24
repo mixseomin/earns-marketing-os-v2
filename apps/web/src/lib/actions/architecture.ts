@@ -105,7 +105,7 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
-  const special = new Set(['__projects', '__unread', '__platform', '__board']);
+  const special = new Set(['__projects', '__unread', '__platform', '__board', '__missingSel']);
   let extraCols: string[] = [];
   let validCols = new Set<string>();
   if (opts.cols && opts.cols.length) {
@@ -135,6 +135,29 @@ export async function browseInstances(
   if (wantBoard) {
     if (validCols.has('board_id')) selParts.push(`(SELECT COALESCE(NULLIF(pb.name,''), 'board') || ' · ' || COALESCE(pb.platform_key, pb.technology_key, '?') FROM platform_boards pb WHERE pb.id = t.board_id) AS __board`);
     else selParts.push(`NULL::text AS __board`);
+  }
+  // __missingSel: per platform, CORE selector fields chưa có (xét cả platform-scope + inherited
+  // technology-scope). Để Studio chỉ thẳng "thiếu loại nào" → chủ động đi train/cập nhật. postBtn
+  // chỉ bắt buộc khi auto_post_supported (suggest-only ko cần nút đăng).
+  const wantMissingSel = !!(opts.cols?.includes('__missingSel') && validCols.has('technology_key') && validCols.has('auto_post_supported'));
+  if (wantMissingSel) {
+    selParts.push(`(
+      WITH present AS (
+        SELECT DISTINCT so.page_kind || '.' || so.field_name AS fk
+        FROM selector_overrides so
+        WHERE (so.scope_kind = 'platform' AND so.scope_key = t.key)
+           OR (so.scope_kind = 'technology' AND so.scope_key = t.technology_key)
+      ), req AS (
+        SELECT unnest(
+          ARRAY['composer.composer.anchor','composer.composer.editor','composer.viewer.handle',
+                'composer._adapter','composer.post.item','composer.post.author',
+                'composer.post.body','composer.post.permalink','platform-any.viewer.logged_in']
+          || CASE WHEN t.auto_post_supported THEN ARRAY['composer.composer.postBtn'] ELSE ARRAY[]::text[] END
+        ) AS fk
+      )
+      SELECT COALESCE(NULLIF(string_agg(regexp_replace(r.fk, '^(composer|platform-any)\\.', ''), ', ' ORDER BY r.fk), ''), '✓ full')
+      FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)
+    ) AS __missingSel`);
   }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
@@ -181,6 +204,7 @@ export async function browseInstances(
       if (wantUnread) cols['__unread'] = r['__unread'] ?? null;
       if (wantPlatform) cols['__platform'] = r['__platform'] ?? null;
       if (wantBoard) cols['__board'] = r['__board'] ?? null;
+      if (wantMissingSel) cols['__missingSel'] = r['__missingSel'] ?? null;
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;

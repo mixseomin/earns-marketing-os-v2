@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { canonField } from '@/lib/selector-field-canon';
 import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,10 @@ export async function POST(req: Request) {
   let updated = 0;
   for (const r of reports) {
     const pageKind = String(r.pageKind || '').trim();
-    const fieldName = String(r.fieldName || '').trim();
+    // canon ext-originated field_name to match the canon-keyed stored row (bio→about…).
+    // Without this the UPDATE matched 0 rows → miss_streak never incremented → broken-selector
+    // warning silently never fired (read-side mirror of the selectors/set write bypass).
+    const fieldName = canonField(String(r.fieldName || '').trim(), pageKind);
     if (!pageKind || !fieldName) continue;
     const platformKey = r.platformKey ? canonPlatformKey(String(r.platformKey)) : null;
     const technologyKey = r.technologyKey ? String(r.technologyKey) : null;

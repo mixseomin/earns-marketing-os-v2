@@ -1233,3 +1233,50 @@ export async function templateAdoption(): Promise<TemplateAdoptionData> {
     return { techs, allTechs, unbound, detectedCount: dets.length, seedReadyCount };
   } catch { return empty; }
 }
+
+// canonChecks — LIVE drift for the behavioral registry (Studio "Canon" view). The backend
+// can't read the ext literals (other repo), so this checks the DB invariants the canon
+// resolvers exist to protect: platform_key rows under a non-canonical alias (x/bsky should
+// be twitter/bluesky) + selector_overrides field_name that isn't canon. drift=-1 = check failed.
+export interface CanonCheck { key: string; drift: number; detail: string }
+export async function canonChecks(): Promise<CanonCheck[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rowsOf = (res: unknown): Array<Record<string, unknown>> =>
+    Array.isArray(res) ? res : ((res as { rows?: Array<Record<string, unknown>> }).rows || []);
+  const out: CanonCheck[] = [];
+  try {
+    const r = rowsOf(await db.execute(sql`
+      SELECT
+        (SELECT count(*) FROM platform_accounts WHERE platform_key IN ('x','bsky')) AS acc,
+        (SELECT count(*) FROM habitats WHERE platform_key IN ('x','bsky')) AS hab,
+        (SELECT count(*) FROM platform_boards WHERE platform_key IN ('x','bsky')) AS brd,
+        (SELECT count(*) FROM platforms WHERE key IN ('x','bsky')) AS cat`));
+    const x = r[0] || {};
+    const n = (['acc', 'hab', 'brd', 'cat'] as const).reduce((a, k) => a + Number(x[k] ?? 0), 0);
+    out.push({
+      key: 'platformKey', drift: n,
+      detail: n
+        ? `${Number(x.acc ?? 0)} accounts · ${Number(x.hab ?? 0)} habitats · ${Number(x.brd ?? 0)} boards · ${Number(x.cat ?? 0)} catalog under alias key (x/bsky) — phải canonical (twitter/bluesky)`
+        : 'mọi platform_key row đã canonical (0 row x/bsky)',
+    });
+  } catch (e) { out.push({ key: 'platformKey', drift: -1, detail: (e as Error).message }); }
+  try {
+    // Structural fields are verbatim by design (composer page_kind + dotted convention), so an
+    // uppercase there is NOT drift. Flag only FORM fields: non-structural uppercase (mechCanon would
+    // lowercase) + known unfolded signup aliases (bio→about, website→profile_website…).
+    const r = rowsOf(await db.execute(sql`
+      SELECT count(*) AS n FROM selector_overrides
+      WHERE (field_name ~ '[A-Z]' AND page_kind <> 'composer'
+             AND field_name !~ '^(composer|post|viewer|thread|parent|metric)\.')
+         OR field_name IN ('bio','website','pronoun','pronouns','homepage','nickname','displayname')`));
+    const n = Number(r[0]?.n ?? 0);
+    out.push({
+      key: 'fieldCanon', drift: n,
+      detail: n
+        ? `${n} selector_overrides có field_name form chưa canon (hoa ngoài cấu trúc, hoặc alias chưa fold: bio/website/pronoun…)`
+        : 'mọi form field_name đã canon (structural verbatim không tính)',
+    });
+  } catch (e) { out.push({ key: 'fieldCanon', drift: -1, detail: (e as Error).message }); }
+  return out;
+}

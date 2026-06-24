@@ -14,7 +14,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { NODE_TYPES } from './nodes';
 import {
-  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY,
+  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON,
   type ArchObject, type ArchFlow, type RelKind,
 } from './spec';
 import { Drawer } from '@/components/drawer';
@@ -23,6 +23,7 @@ import {
   templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   listIdentities, getIdentity, updateIdentity,
+  canonChecks, type CanonCheck,
   type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
   type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
@@ -48,7 +49,7 @@ const MD_COMPONENTS: Components = {
 const looksMarkdown = (s: string) => /(^|\n)#{1,6}\s/.test(s) || /\*\*[^*\n]+\*\*/.test(s) || /(^|\n)\s*[-*]\s/.test(s) || /(^|\n)\s*\d+\.\s/.test(s) || /\[[^\]]+\]\([^)]+\)/.test(s);
 import { adoptTemplate } from '@/lib/actions/platforms';
 
-type ViewKey = 'objects' | 'onpage' | 'backend' | 'live';
+type ViewKey = 'objects' | 'onpage' | 'backend' | 'live' | 'canon';
 type Pos = { x: number; y: number };
 type Bound = { id: string; label: string; worst: 'error' | 'warn' | 'ok' | null };
 
@@ -1788,6 +1789,61 @@ function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string, objId?:
   );
 }
 
+// Canon · Behavioral registry — the "x-entity" surface. Each behavioral concept (field-canon,
+// platform-key, scope, engine, viewer-handle, board-class) shown ONCE: resolver signature, its
+// home file:line on BOTH runtimes, codegen source, + live DB drift. Reference this, don't grep
+// from memory. See decisions/2026-06-25-crew-behavioral-registry-xentity.md.
+function CanonRegistry() {
+  const [checks, setChecks] = useState<CanonCheck[] | null>(null);
+  useEffect(() => { canonChecks().then(setChecks).catch(() => setChecks([])); }, []);
+  const driftFor = (key: string) => (checks || []).find((c) => c.key === key);
+  const cell = (label: string, val: ReactNode) => (
+    <>
+      <span style={{ color: 'var(--fg-3)' }}>{label}</span>
+      <span style={{ color: 'var(--fg-1)' }}>{val}</span>
+    </>
+  );
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)' }}>Canon · Behavioral registry</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>// 1 khái niệm hành vi = 1 resolver · tham chiếu, đừng reimplement inline</span>
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)', marginBottom: 16, maxWidth: 780, lineHeight: 1.55 }}>
+        Backend <code style={{ color: 'var(--accent)' }}>canon.*</code> (lib/canon) ↔ ext <code style={{ color: 'var(--accent)' }}>MOS2.resolve.*</code> (core/resolve.js). Sửa 1 alias/host → sửa ĐÚNG file lib gốc; CẤM inline lowercase/host-match/engine-regex/querySelector-login tại call-site. CI guard <code style={{ color: 'var(--accent)' }}>check-canon.mjs</code> chặn tái diễn ở backend.
+      </div>
+      <div style={{ display: 'grid', gap: 10, maxWidth: 940 }}>
+        {CANON.map((c) => {
+          const d = driftFor(c.key);
+          const hasDrift = d != null && d.drift > 0;
+          const failed = d != null && d.drift < 0;
+          return (
+            <div key={c.key} style={{ border: `1px solid ${hasDrift ? 'var(--bad)' : 'var(--line)'}`, borderRadius: 8, background: 'var(--bg-1)', padding: '11px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>{c.label}</span>
+                <code style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' }}>{c.key}</code>
+                {d != null && (
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: hasDrift ? 'var(--bg-1)' : failed ? 'var(--warn)' : 'var(--ok)', background: hasDrift ? 'var(--bad)' : 'transparent', border: `1px solid ${hasDrift ? 'var(--bad)' : failed ? 'var(--warn)' : 'var(--ok)'}` }}>
+                    {failed ? '? check failed' : hasDrift ? `⚠ ${d.drift} drift` : '✓ no drift'}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', marginTop: 6 }}>{c.signature}</div>
+              {d && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: hasDrift ? 'var(--bad)' : 'var(--fg-3)', marginTop: 4 }}>{d.detail}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 10px', marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                {cell('backend', c.backendRef)}
+                {cell('ext', c.extRef)}
+                {c.generatedFrom && cell('codegen', c.generatedFrom)}
+                {cell('home', c.references.map((r) => `${r.file}${r.line ? `:${r.line}` : ''}`).join('  ·  '))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function StudioInner({ projects, defaultProjectId }: { projects: { id: string; name: string }[]; defaultProjectId: string }) {
   const [view, setView] = useState<ViewKey>('objects');
   const [proj, setProj] = useState(defaultProjectId || projects[0]?.id || '');
@@ -1825,7 +1881,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
     try {
       const sp = new URLSearchParams(window.location.search);
       const tab = sp.get('tab');
-      if (tab && ['objects', 'onpage', 'backend', 'live'].includes(tab)) setView(tab as ViewKey);
+      if (tab && ['objects', 'onpage', 'backend', 'live', 'canon'].includes(tab)) setView(tab as ViewKey);
       const obj = sp.get('obj'); const flow = sp.get('flow'); const step = sp.get('step');
       if (obj && OBJ_BY_KEY[obj]) setSel({ kind: 'object', key: obj });
       else if (flow && step && FLOW_BY_KEY[flow]) setSel({ kind: 'flow', flow, step });
@@ -1940,7 +1996,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architecture Studio</div>
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
-          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity']] as [ViewKey, string][]).map(([k, lbl]) => (
+          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry']] as [ViewKey, string][]).map(([k, lbl]) => (
             <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>
           ))}
         </div>
@@ -2014,6 +2070,8 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
             if (instId) setBound((prev) => ({ ...prev, [key]: { id: instId, label: label || instId, worst: null } }));
             setSel({ kind: 'object', key });
           }} />
+        ) : view === 'canon' ? (
+          <CanonRegistry />
         ) : (
         <ReactFlow
           nodes={nodes} edges={edges}

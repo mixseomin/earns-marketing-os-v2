@@ -210,7 +210,9 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     return trades.filter((t) => { if (t.isOpen) return true; if (hideClosed) return false; const r = Date.parse(tRef(t)); return Number.isNaN(r) || r >= cutoff; });
   }, [trades, range, hideClosed, brokerNowMs]);
 
-  const openN = visible.filter((t) => t.isOpen).length;
+  const openRows = visible.filter((t) => t.isOpen);
+  const openN = openRows.length;
+  const openFloat = openRows.reduce((a, t) => a + usdOf(t), 0);   // total unrealized $ of open positions
   const closedRows = visible.filter((t) => !t.isOpen && t.profit != null);
   const closedN = closedRows.length;
   const netClosed = closedRows.reduce((a, t) => a + usdOf(t), 0);
@@ -232,7 +234,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 12.5 }}>
-          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
+          <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open{openN > 0 ? <span style={{ color: 'var(--muted)', opacity: 0.7, fontSize: 11 }} title="total unrealized / floating P&L of open positions"> ({fmtPnlUsd(openFloat)} float)</span> : null} · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
         </span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>

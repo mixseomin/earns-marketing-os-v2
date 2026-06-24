@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     // scope keys khả dĩ: platform (host canon) + technology (engine). NULL bị lọc qua = ''.
     const scopeKeys = [platformKey, technologyKey].filter(Boolean) as string[];
     if (!scopeKeys.length) continue;
+    const keysIn = sql.join(scopeKeys.map((k) => sql`${k}`), sql`, `);   // ANY(array) ko bind ổn qua drizzle → dùng IN list
     const setSql = r.matched
       ? sql`last_ok_at = NOW(), miss_streak = 0`
       : sql`last_miss_at = NOW(), miss_streak = miss_streak + 1, last_url = ${url}`;
@@ -43,8 +44,8 @@ export async function POST(req: Request) {
       const res = await db.execute(sql`
         UPDATE selector_overrides SET ${setSql}
         WHERE page_kind = ${pageKind} AND field_name = ${fieldName}
-          AND ((scope_kind = 'platform' AND scope_key = ANY(${scopeKeys}))
-            OR (scope_kind IN ('technology','engine') AND scope_key = ANY(${scopeKeys})))`);
+          AND scope_kind IN ('platform','technology','engine')
+          AND scope_key IN (${keysIn})`);
       updated += (res as unknown as { rowCount?: number }).rowCount || 0;
     } catch { /* skip bad row */ }
   }

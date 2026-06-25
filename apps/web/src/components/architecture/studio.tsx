@@ -868,7 +868,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
   const hasMissingCol = (obj.browseCols || []).some((c) => c.col === '__missingSel');
-  const [flt, setFlt] = useState<'missing' | 'partial' | null>(null);
+  const [flt, setFlt] = useState<'empty' | 'partial' | 'full' | 'broken' | null>(null);
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
   // Column GROUPS (Info/Posting/Selectors/DOM) — colored bands + show/hide như SEO overview.
   const bc = obj.browseCols || [];
@@ -884,30 +884,33 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
   // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
   // Thứ tự [label, ...dataCols, pk]. Nhớ localStorage/node.
-  const wKey = `mos2_arch_cols2_${obj.key}`;   // v2: default compact mới (invalidate width px cũ đã lưu)
+  const wKey = `mos2_arch_colw_${obj.key}`;   // v3: width MAP {colKey: px} — bền qua toggle group / thêm cột (lưu theo TỪNG CỘT)
   const WIDE = /\b(name|title|description|desc|approach|reason|url|body|summary|message|note|bio|content|prompt)\b/i;
+  const pkCol = obj.pk || 'id';
+  // grid order = [__label, ...dataCols, pk] → col-key cho từng vị trí resize (để persist theo key, ko theo index).
+  const colKeyAt = (i: number): string => (i === 0 ? '__label' : i === dataCols.length + 1 ? pkCol : (dataCols[i - 1]?.key ?? `c${i}`));
+  const loadWMap = (): Record<string, number> => { try { const m = JSON.parse(localStorage.getItem(wKey) || '{}'); return (m && typeof m === 'object') ? m : {}; } catch { return {}; } };
   const computeWidths = (): (number | null)[] => {
-    const w = (key: string, kind?: string): number | null => {
+    const wmap = loadWMap();
+    const def = (key: string, kind?: string): number | null => {
       if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
       if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96;
       if (kind === 'badge' || kind === 'unread') return 78; if (kind === 'dom') return 60;
-      return 76;                                                              // compact (fit/tier/manual/stale…)
+      return 76;                                                              // compact
     };
-    return [WIDE.test(obj.labelCol || '') ? null : 110, ...dataCols.map((c) => w(c.key, c.kind)), 52];
+    return [wmap['__label'] ?? (WIDE.test(obj.labelCol || '') ? null : 110),
+      ...dataCols.map((c) => wmap[c.key] ?? def(c.key, c.kind)),
+      wmap[pkCol] ?? 52];
   };
-  const loadWidths = (): (number | null)[] => {
-    const def = computeWidths();
-    try { const s = JSON.parse(localStorage.getItem(wKey) || 'null'); if (Array.isArray(s) && s.length === def.length) return s; } catch {}
-    return def;
-  };
-  const [widths, setWidths] = useState<(number | null)[]>(loadWidths);
-  useEffect(() => { setWidths(loadWidths()); }, [obj.key, colSig]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const [widths, setWidths] = useState<(number | null)[]>(computeWidths);
+  useEffect(() => { setWidths(computeWidths()); }, [obj.key, colSig]);   // eslint-disable-line react-hooks/exhaustive-deps
   const startResize = (i: number, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     const cell = (e.currentTarget as HTMLElement).parentElement;
     const startX = e.clientX; const startW = cell ? cell.offsetWidth : (widths[i] ?? 100);
     const onMove = (ev: MouseEvent) => { const ww = Math.max(44, startW + (ev.clientX - startX)); setWidths((prev) => { const n = prev.slice(); n[i] = ww; return n; }); };
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); setWidths((prev) => { try { localStorage.setItem(wKey, JSON.stringify(prev)); } catch {} return prev; }); };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
+      setWidths((prev) => { const w = prev[i]; if (typeof w === 'number') { try { const m = loadWMap(); m[colKeyAt(i)] = w; localStorage.setItem(wKey, JSON.stringify(m)); } catch {} } return prev; }); };
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
   };
 
@@ -980,11 +983,19 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
         {hasMissingCol && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} title="Lọc theo health selector">
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>health</span>
-            {([['missing', '⚠ Chưa train', 'Lọc: platform thiếu ≥1 CORE selector — chưa train field bắt buộc nào'], ['partial', '◑ Đang hở', 'Lọc: đã train ≥1 nhưng VẪN thiếu CORE field — đang dùng mà hở']] as const).map(([k, lbl, tip]) => (
-              <button key={k} type="button" title={tip}
-                onClick={() => setFlt((f) => (f === k ? null : k))}
-                style={{ ...btnStyle, padding: '5px 8px', fontSize: 11, background: flt === k ? 'var(--warn)' : undefined, color: flt === k ? '#000' : undefined, borderColor: flt === k ? 'var(--warn)' : undefined }}>{lbl}</button>
-            ))}
+            {([
+              ['empty', '○ Trống', '#8a92a3', 'Chưa train field CORE nào (chưa có selector)'],
+              ['partial', '◑ Hở', '#ffb03c', 'Đã train ≥1 nhưng VẪN thiếu CORE — đang dùng mà hở'],
+              ['full', '✓ Đủ', '#22c55e', 'Đủ toàn bộ CORE selector'],
+              ['broken', '⚠ Hỏng', '#ef4444', 'Có selector HỎNG (miss_streak≥3 — ext báo lỗi từ trang thật)'],
+            ] as const).map(([k, lbl, c, tip]) => {
+              const on = flt === k;
+              return (
+                <button key={k} type="button" title={tip} onClick={() => setFlt((f) => (f === k ? null : k))}
+                  style={{ padding: '3px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10.5, whiteSpace: 'nowrap',
+                    background: on ? c : 'transparent', border: `1px solid ${on ? c : 'var(--line)'}`, color: on ? '#0b0f17' : c, fontWeight: on ? 700 : 500 }}>{lbl}</button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1017,7 +1028,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       {/* TABLE — header + paginated rows; click row mở drawer chi tiết.
           Cột link (platform…) click riêng → mở drawer entity đó (stopPropagation). */}
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 3, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {[{ label: obj.labelCol || 'name', key: '__label', right: false, group: undefined as BrowseGroup | undefined },
             ...dataCols.map((dc) => ({ label: dc.label, key: dc.key, right: false, group: dc.group })),
             { label: obj.pk || 'id', key: obj.pk || 'id', right: true, group: undefined as BrowseGroup | undefined },
@@ -1051,7 +1062,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
           const lbOn = stale || (!!sv && lbColor !== 'var(--fg-2)');
           return (
           <button key={it.id} onClick={() => open(it)} title={stale ? `⚠ Pending ${Math.floor(ageDays)}d (>${STALE_DAYS}d) — nên chuyển limited` : (sv ? `status: ${sv}` : 'Mở chi tiết item')}
-            style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
+            style={{ display: 'grid', gridTemplateColumns: grid, gap: 3, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, borderLeft: lbOn ? `3px solid ${lbColor}` : '3px solid transparent', padding: '6px 10px 6px 7px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ fontSize: 12, color: 'var(--fg-0)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>

@@ -90,7 +90,7 @@ async function tableColumns(table: string): Promise<Set<string>> {
 
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'partial' } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'empty' | 'partial' | 'full' | 'broken' } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -191,22 +191,23 @@ export async function browseInstances(
     if (pkr?.subExpr) parts.push(sql`(${sql.raw(pkr.subExpr)})::text ILIKE ${like}`);
     conds.push(sql`(${sql.join(parts, sql` OR `)})`);
   }
-  // flt: lọc theo health selector (chỉ node platform — có technology_key + auto_post_supported).
-  // 'missing' = thiếu ≥1 CORE field; 'partial' = đã train ≥1 NHƯNG vẫn thiếu CORE (đang dùng mà hở).
+  // flt: lọc health selector (node platform). 4 nhóm PHÂN BIỆT (vì ~all platform đều "missing" →
+  // filter missing vô dụng): empty=chưa train field nào · partial=đã train ≥1 nhưng vẫn HỞ CORE ·
+  // full=đủ CORE · broken=có selector HỎNG (miss_streak≥3). 'missing' giữ làm legacy (=empty+partial).
   if (opts.flt && wantMissingSel) {
-    const presentReq = sql.raw(`
-      WITH present AS (
-        SELECT DISTINCT so.page_kind || '.' || so.field_name AS fk FROM selector_overrides so
-        WHERE (so.scope_kind='platform' AND so.scope_key=t.key) OR (so.scope_kind='technology' AND so.scope_key=t.technology_key)
-      ), req AS (
-        SELECT unnest(ARRAY['composer.composer.anchor','composer.composer.editor','composer.viewer.handle','composer._adapter','composer.post.item','composer.post.author','composer.post.body','composer.post.permalink','platform-any.viewer.logged_in']
-          || CASE WHEN t.auto_post_supported THEN ARRAY['composer.composer.postBtn'] ELSE ARRAY[]::text[] END) AS fk
-      )
-      SELECT 1 FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)`);
-    conds.push(sql`EXISTS (${presentReq})`);
-    if (opts.flt === 'partial') {
-      conds.push(sql`EXISTS (SELECT 1 FROM selector_overrides so WHERE (so.scope_kind='platform' AND so.scope_key=t.key) OR (so.scope_kind='technology' AND so.scope_key=t.technology_key))`);
-    }
+    const scope = `((so.scope_kind='platform' AND so.scope_key=t.key) OR (so.scope_kind='technology' AND so.scope_key=t.technology_key))`;
+    const missingBody = `EXISTS (
+      WITH present AS (SELECT DISTINCT so.page_kind||'.'||so.field_name AS fk FROM selector_overrides so WHERE ${scope}),
+      req AS (SELECT unnest(ARRAY['composer.composer.anchor','composer.composer.editor','composer.viewer.handle','composer._adapter','composer.post.item','composer.post.author','composer.post.body','composer.post.permalink','platform-any.viewer.logged_in']
+        || CASE WHEN t.auto_post_supported THEN ARRAY['composer.composer.postBtn'] ELSE ARRAY[]::text[] END) AS fk)
+      SELECT 1 FROM req r WHERE r.fk NOT IN (SELECT fk FROM present))`;
+    const hasAny = `EXISTS (SELECT 1 FROM selector_overrides so WHERE ${scope})`;
+    const brokenEx = `EXISTS (SELECT 1 FROM selector_overrides so WHERE ${scope} AND COALESCE(so.miss_streak,0) >= 3)`;
+    if (opts.flt === 'empty') conds.push(sql.raw(`${missingBody} AND NOT ${hasAny}`));
+    else if (opts.flt === 'partial') conds.push(sql.raw(`${missingBody} AND ${hasAny}`));
+    else if (opts.flt === 'full') conds.push(sql.raw(`NOT ${missingBody}`));
+    else if (opts.flt === 'broken') conds.push(sql.raw(brokenEx));
+    else conds.push(sql.raw(missingBody));   // 'missing' legacy
   }
   const whereSql = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);

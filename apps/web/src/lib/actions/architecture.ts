@@ -797,12 +797,19 @@ export async function listDomSamplesForPlatform(platformKey: string): Promise<Do
   const db = getDb();
   if (!db || !platformKey) return [];
   // CHỈ sample của đúng platform này — KHÔNG gom theo technology (đừng kéo phpbb site khác vào).
-  try {
-    const rows = await db.execute(sql`
+  const q = sql`
       SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at, extract
       FROM dom_samples WHERE platform_key = ${platformKey}
-      ORDER BY (read_at IS NULL) DESC, captured_at DESC LIMIT 300`);
-    return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
+      ORDER BY (read_at IS NULL) DESC, captured_at DESC LIMIT 300`;
+  try {
+    let rows = (await db.execute(q) as unknown as Array<Record<string, unknown>>).map(mapDomRow);
+    // Backfill: sample ĐÃ ĐỌC nhưng chưa có extract (capture trước khi có cột) → tự parse 1 lần.
+    const stale = rows.filter((r) => r.readAt && !r.extract).map((r) => r.id);
+    if (stale.length) {
+      for (const id of stale) { try { await extractDomSample(id); } catch { /* skip */ } }
+      rows = (await db.execute(q) as unknown as Array<Record<string, unknown>>).map(mapDomRow);
+    }
+    return rows;
   } catch { return []; }
 }
 // Auto-extract entity LISTS từ HTML 1 sample (generic, regex theo href pattern) để

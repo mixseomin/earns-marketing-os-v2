@@ -2709,7 +2709,7 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', margin: '0 4px 8px' }}>
         <b style={{ color: 'var(--fg-1)' }}>{rows.length}</b> sample · <span style={{ color: unread ? 'var(--warn)' : 'var(--ok)', fontWeight: 700 }}>{unread} chưa đọc</span> · mở 1 sample = đánh dấu đã đọc + parse selector
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 50px 64px 64px', gap: 6, padding: '0 10px 4px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '26px 1fr 108px 50px 60px 60px', gap: 6, padding: '0 10px 4px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         <span /><span>title · fields tách được</span><span>page_kind</span><span style={{ textAlign: 'right' }}>size</span><span style={{ textAlign: 'right' }}>đọc</span><span style={{ textAlign: 'right' }}>chụp</span>
       </div>
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
@@ -2717,7 +2717,7 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
           const ex = r.extract;
           return (
           <button key={r.id} onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · parse selector', body: <DomSampleDetail id={r.id} />, route: { t: 'dom', id: r.id } })}
-            style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 50px 64px 64px', gap: 6, alignItems: 'start', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '7px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+            style={{ display: 'grid', gridTemplateColumns: '26px 1fr 108px 50px 60px 60px', gap: 6, alignItems: 'start', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '7px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11 }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ color: r.readAt ? 'var(--fg-4)' : 'var(--warn)', fontWeight: r.readAt ? 400 : 700, paddingTop: 1 }} title={r.readAt ? 'đã đọc' : 'chưa đọc'}>{r.readAt ? '✓' : '✉'}</span>
             <div style={{ overflow: 'hidden' }}>
@@ -2735,7 +2735,7 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
                 </div>
               ) : <span style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>{r.readAt ? 'mở lại để tách fields' : 'chưa đọc — mở để tách fields'}</span>}
             </div>
-            <span style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', paddingTop: 1 }}>{r.pageKind}</span>
+            <span style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 1 }} title={r.pageKind}>{r.pageKind}</span>
             <span style={{ color: 'var(--fg-3)', textAlign: 'right', paddingTop: 1 }}>{(r.bytes / 1024).toFixed(0)}KB</span>
             <span style={{ color: r.readAt ? 'var(--fg-2)' : 'var(--fg-4)', textAlign: 'right', paddingTop: 1 }} title={r.readAt ? fmtFull(r.readAt) : 'chưa đọc'}>{r.readAt ? relAgo(r.readAt) : '—'}</span>
             <span style={{ color: 'var(--fg-3)', textAlign: 'right', paddingTop: 1 }} title={fmtFull(r.capturedAt)}>{relAgo(r.capturedAt)}</span>

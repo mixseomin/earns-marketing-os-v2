@@ -270,7 +270,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/technologies',  icon: '⚙',  color: 'var(--neon-amber)',  label: 'Technologies',     sub: 'selectors · signup fields', role: 'admin' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },
-        { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architecture',     sub: 'system map · objects · flows', role: 'admin' },
+        { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architect',     sub: 'system map · objects · flows', role: 'admin' },
         {                         icon: '⚙',  color: 'var(--neon-cyan)',   label: 'Trust thresholds', sub: 'soon', soon: true },
         { href: '/',              icon: '⊞',  color: 'var(--neon-violet)', label: 'All Projects',     sub: 'portfolio' },
       ],

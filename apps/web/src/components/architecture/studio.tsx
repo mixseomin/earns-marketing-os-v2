@@ -2106,7 +2106,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       {/* top bar */}
       <div style={{ height: 48, flexShrink: 0, borderBottom: '1px solid var(--line)', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 14, padding: '0 14px' }}>
         <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architecture Studio</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architect</div>
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
           {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry'], ['surface', 'Ext · Surface']] as [ViewKey, string][]).map(([k, lbl]) => (
             <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>

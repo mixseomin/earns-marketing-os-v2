@@ -15,7 +15,8 @@ import '@xyflow/react/dist/style.css';
 import { NODE_TYPES } from './nodes';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
-  type ArchObject, type ArchFlow, type RelKind, type BrowseGroup,
+  EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
+  type ArchObject, type ArchFlow, type RelKind, type BrowseGroup, type SurfaceGroup,
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
@@ -49,7 +50,7 @@ const MD_COMPONENTS: Components = {
 const looksMarkdown = (s: string) => /(^|\n)#{1,6}\s/.test(s) || /\*\*[^*\n]+\*\*/.test(s) || /(^|\n)\s*[-*]\s/.test(s) || /(^|\n)\s*\d+\.\s/.test(s) || /\[[^\]]+\]\([^)]+\)/.test(s);
 import { adoptTemplate } from '@/lib/actions/platforms';
 
-type ViewKey = 'objects' | 'onpage' | 'backend' | 'live' | 'canon';
+type ViewKey = 'objects' | 'onpage' | 'backend' | 'live' | 'canon' | 'surface';
 type Pos = { x: number; y: number };
 type Bound = { id: string; label: string; worst: 'error' | 'warn' | 'ok' | null };
 
@@ -1846,6 +1847,60 @@ function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string, objId?:
   );
 }
 
+// Ext · Surface — catalog MỌI element MOS2 Crew inject trên thực địa (badge/pill/widget/menu/
+// HL box/popover/toast). Source kiểm soát để implement/nâng cấp: group theo loại + z-index ladder
+// (tránh đè nhau như RegKit widget bị HL phủ). EXT_SURFACE sống trong spec.ts.
+function ExtSurfaceRegistry() {
+  const groups = (['marker', 'overlay', 'panel', 'menu', 'toast'] as SurfaceGroup[])
+    .map((g) => ({ g, items: EXT_SURFACE.filter((e) => e.group === g) }))
+    .filter((x) => x.items.length);
+  return (
+    <div style={{ height: '100%', overflow: 'auto', padding: '16px 20px', background: 'var(--bg-0)' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginBottom: 12, maxWidth: 760, lineHeight: 1.5 }}>
+        Mọi element ext dựng trên trang thật — <b style={{ color: 'var(--fg-1)' }}>{EXT_SURFACE.length}</b> element. Đây là <b style={{ color: 'var(--accent)' }}>source kiểm soát</b>: thêm/nâng cấp badge·pill·widget·menu → khai báo ở <code style={{ fontFamily: 'var(--font-mono)' }}>spec.ts EXT_SURFACE</code> trước, rồi implement trong ext theo đúng layer.
+      </div>
+      {/* z-index ladder */}
+      <div style={{ marginBottom: 18, border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', maxWidth: 760 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-4)', padding: '6px 10px', background: 'var(--bg-2)' }}>z-index ladder (trên → dưới)</div>
+        {SURFACE_LAYERS.map((l) => (
+          <div key={l.z} style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, padding: '5px 10px', borderTop: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11, alignItems: 'center' }}>
+            <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{l.z === 0 ? '—' : l.z}</span>
+            <span style={{ color: 'var(--fg-2)' }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+      {groups.map(({ g, items }) => {
+        const meta = SURFACE_GROUP_META[g];
+        return (
+          <div key={g} style={{ marginBottom: 18, maxWidth: 980 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: meta.color }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>{meta.label}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>· {items.length}</span>
+            </div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+              {items.map((e, i) => (
+                <div key={e.key} style={{ display: 'grid', gridTemplateColumns: '180px 150px 78px 1fr', gap: 10, padding: '8px 11px', borderTop: i ? '1px solid var(--line)' : 0, background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'start' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }}>{e.label}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: meta.color, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.domId}>{e.domId}</div>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.file}>{e.file}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: e.zIndex == null ? 'var(--fg-4)' : 'var(--accent)', fontWeight: e.zIndex == null ? 400 : 700 }} title={e.zIndex == null ? 'inline (ăn theo flow trang)' : 'z-index'}>{e.zIndex == null ? 'inline' : 'z' + String(e.zIndex).slice(-3)}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)', lineHeight: 1.45 }}>{e.purpose}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', marginTop: 2 }}>⤷ {e.trigger}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Canon · Behavioral registry — the "x-entity" surface. Each behavioral concept (field-canon,
 // platform-key, scope, engine, viewer-handle, board-class) shown ONCE: resolver signature, its
 // home file:line on BOTH runtimes, codegen source, + live DB drift. Reference this, don't grep
@@ -1938,7 +1993,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
     try {
       const sp = new URLSearchParams(window.location.search);
       const tab = sp.get('tab');
-      if (tab && ['objects', 'onpage', 'backend', 'live', 'canon'].includes(tab)) setView(tab as ViewKey);
+      if (tab && ['objects', 'onpage', 'backend', 'live', 'canon', 'surface'].includes(tab)) setView(tab as ViewKey);
       const obj = sp.get('obj'); const flow = sp.get('flow'); const step = sp.get('step');
       if (obj && OBJ_BY_KEY[obj]) setSel({ kind: 'object', key: obj });
       else if (flow && step && FLOW_BY_KEY[flow]) setSel({ kind: 'flow', flow, step });
@@ -2053,7 +2108,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architecture Studio</div>
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
-          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry']] as [ViewKey, string][]).map(([k, lbl]) => (
+          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry'], ['surface', 'Ext · Surface']] as [ViewKey, string][]).map(([k, lbl]) => (
             <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>
           ))}
         </div>
@@ -2129,6 +2184,8 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
           }} />
         ) : view === 'canon' ? (
           <CanonRegistry />
+        ) : view === 'surface' ? (
+          <ExtSurfaceRegistry />
         ) : (
         <ReactFlow
           nodes={nodes} edges={edges}

@@ -843,6 +843,66 @@ export const CANON: CanonEntity[] = [
 
 export const CANON_BY_KEY: Record<string, CanonEntity> = Object.fromEntries(CANON.map((c) => [c.key, c]));
 
+// ── EXT SURFACE: mọi element MOS2 Crew inject TRÊN THỰC ĐỊA (trang thật) ──────
+// "x-entity cho UI ext." Trước đây mỗi element (badge/pill/widget/menu/HL box/popover)
+// nằm rải rác trong ext, không ai nắm hết → z-index đè nhau, sửa chỗ này hỏng chỗ kia.
+// Catalog này = SOURCE kiểm soát: thêm/nâng cấp element trên thực địa → khai báo Ở ĐÂY trước.
+// LAYER (z-index ladder): page < HL(overlay 2147483640/641) < marker/panel(2147483642-46) < FAB/menu/toast(2147483647).
+export type SurfaceGroup = 'marker' | 'overlay' | 'panel' | 'menu' | 'toast';
+export interface SurfaceEntry {
+  key: string;
+  label: string;
+  group: SurfaceGroup;
+  file: string;            // ext file dựng element (public/extensions/mos2-crew/…)
+  domId: string;           // id hoặc .class định danh trong DOM
+  trigger: string;         // khi nào xuất hiện
+  zIndex: number | null;   // layer; null = inline (ăn theo flow trang)
+  purpose: string;
+}
+export const SURFACE_LAYERS: { z: number; label: string }[] = [
+  { z: 2147483647, label: 'FAB · menu · toast (trên cùng)' },
+  { z: 2147483646, label: 'popover (board-radar / scene)' },
+  { z: 2147483642, label: 'panel ext (RegKit widget / pill / login)' },
+  { z: 2147483641, label: 'HL label' },
+  { z: 2147483640, label: 'HL box (overlay page)' },
+  { z: 0, label: 'nội dung trang' },
+];
+export const EXT_SURFACE: SurfaceEntry[] = [
+  // markers — badge/pill gắn INLINE vào content trang
+  { key: 'scene-marker', label: 'Scene marker (◎ familiarity)', group: 'marker', file: 'content.js', domId: '.mos2-who', trigger: 'Mỗi author post/comment/profile có trong scene', zIndex: null, purpose: 'Hiện familiarity 0-100 + status (warm/bridged…) cạnh handle. Click → popover .mos2-who-pop.' },
+  { key: 'scene-popover', label: 'Scene popover', group: 'marker', file: 'content.js', domId: '.mos2-who-pop', trigger: 'Hover/click scene marker', zIndex: 2147483646, purpose: 'Card familiarity + interactions + link MOS2. Flip lên trên khi gần đáy.' },
+  { key: 'board-badge', label: 'Board-radar badge', group: 'marker', file: 'crew-board-radar.js', domId: '.mos2-br', trigger: 'Trang liệt kê board/forum (thread-list)', zIndex: null, purpose: 'Tier fit board (TRACK/…); hover → popover Track/Re-score.' },
+  { key: 'board-popover', label: 'Board-radar popover', group: 'marker', file: 'crew-board-radar.js', domId: '.mos2-br-pop', trigger: 'Hover board badge', zIndex: 2147483646, purpose: 'Fit + reason + nút ★ Track / ↻ Re-score.' },
+  { key: 'seed-pill', label: 'Seeded-post pill', group: 'marker', file: 'content.js', domId: '.mos2-card-trk / .mos2-card-badge', trigger: 'Bài CỦA MÌNH (seeded) khớp card trên trang', zIndex: null, purpose: 'Lifecycle + metrics bài đã đăng; select đổi vòng đời.' },
+  { key: 'profile-pill', label: 'Profile-field pill (🤖/●/🎯/🖼)', group: 'marker', file: 'crew-profile-fields.js', domId: '.mos2-pf-ctrl', trigger: 'Form profile/signup có field nhận diện', zIndex: null, purpose: 'Decoration cạnh input: trạng thái field + train/fill.' },
+  { key: 'feed-engaged', label: 'Feed-engaged badge', group: 'marker', file: 'content.js', domId: '.mos2-feed-engaged', trigger: 'Item feed đã tương tác', zIndex: null, purpose: 'Đánh dấu đã engage.' },
+  // overlays — vẽ ĐÈ lên trang (HL/train), toạ độ fixed theo element
+  { key: 'hl-box', label: 'Highlight box', group: 'overlay', file: 'crew-detector.js', domId: '.mos2-hl-box', trigger: 'Bật 🔍 Highlight field', zIndex: 2147483640, purpose: 'Box quanh element selector match; AJAX mount muộn → MutationObserver bounded.' },
+  { key: 'hl-label', label: 'Highlight label', group: 'overlay', file: 'crew-detector.js', domId: '(label trong .mos2-hl-box)', trigger: 'Hover HL box', zIndex: 2147483641, purpose: 'field: value + scope; click → label menu.' },
+  { key: 'hl-label-menu', label: 'HL label menu', group: 'overlay', file: 'crew-detector.js', domId: '#mos2-label-menu', trigger: 'Click HL label', zIndex: 2147483647, purpose: 'Retrain / Clear / Copy CSS.' },
+  { key: 'train-banner', label: 'Train mode banner+overlay', group: 'overlay', file: 'crew-detector.js', domId: '#mos2-train-banner / #mos2-train-overlay', trigger: 'Bật 🎯 Train mode', zIndex: 2147483647, purpose: 'Banner hướng dẫn + overlay highlight element hover.' },
+  { key: 'train-picker', label: 'Train field picker', group: 'overlay', file: 'crew-detector.js', domId: '#mos2-train-picker', trigger: 'Click element trong train mode', zIndex: 2147483647, purpose: 'Chọn field cho element vừa pick.' },
+  { key: 'manual-input', label: 'Manual selector editor', group: 'overlay', file: 'crew-detector.js', domId: '#mos2-manual-input', trigger: 'Train/sửa 1 field', zIndex: 2147483647, purpose: 'Nhập css + live preview match + Save.' },
+  // panels — khung UI cố định góc màn hình
+  { key: 'fab', label: 'Detector FAB (🔍 🎯)', group: 'panel', file: 'crew-detector.js', domId: '#mos2-fab', trigger: 'Train mode / highlight kích hoạt', zIndex: 2147483647, purpose: 'Nút bật Highlight + Train; hiện sau khi trigger lần đầu.' },
+  { key: 'regwidget', label: 'RegKit đăng ký widget', group: 'panel', file: 'crew-register-widget.js', domId: '#mos2crew-regwidget', trigger: 'Trang signup (form đăng ký)', zIndex: 2147483642, purpose: 'Fill all + Submit + selector DB; pill #mos2crew-regwidget-pill thu nhỏ.' },
+  { key: 'login-pill', label: 'RegKit login pill', group: 'panel', file: 'crew-register-widget.js', domId: '#mos2crew-loginpill', trigger: 'Trang login', zIndex: 2147483642, purpose: 'Fill login nhanh.' },
+  { key: 'seeded-list', label: 'Seeded-list panel', group: 'panel', file: 'content.js', domId: '#mos2-seededlist', trigger: 'Menu 🤖 → Bài đã seed', zIndex: 2147483647, purpose: 'List bài đã đăng trên platform (xuyên habitat).' },
+  { key: 'selmgr', label: 'Selector composer', group: 'panel', file: 'content.js', domId: '#mos2-selmgr', trigger: 'Menu 🤖 → Selector composer', zIndex: 2147483646, purpose: 'Pick selector post.author/body/permalink.' },
+  { key: 'domsamples', label: 'DOM samples manage', group: 'panel', file: 'crew-detector.js', domId: '#mos2-domsamples', trigger: 'Menu 🤖 → HTML đã lưu', zIndex: 2147483647, purpose: 'List + xoá DOM sample đã chụp cho site.' },
+  // menu — launcher
+  { key: 'fab-launcher', label: '🤖 Launcher menu', group: 'menu', file: 'content.js', domId: '#mos2-assist-bar (BAR_ID)', trigger: 'Bấm FAB 🤖', zIndex: 2147483647, purpose: 'Menu Nơi này / Project / Công cụ (capture, highlight, config…).' },
+  // toast
+  { key: 'toast', label: 'Toast', group: 'toast', file: 'content.js / crew-detector.js', domId: '#mos2-toast-box / #mos2-crew-toast', trigger: 'Mọi thao tác báo kết quả', zIndex: 2147483647, purpose: 'Thông báo ngắn góc màn hình.' },
+];
+export const SURFACE_GROUP_META: Record<SurfaceGroup, { label: string; color: string }> = {
+  marker: { label: 'Marker (inline badge/pill)', color: '#22c55e' },
+  overlay: { label: 'Overlay (HL / train)', color: '#22d3ee' },
+  panel: { label: 'Panel (khung góc màn hình)', color: '#f59e0b' },
+  menu: { label: 'Menu (launcher)', color: '#a78bfa' },
+  toast: { label: 'Toast', color: '#9ca3af' },
+};
+
 // All object table names — allowlist for instance binding (guards SQL).
 export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
   OBJECTS.filter((o) => o.table).map((o) => [o.key, o]),

@@ -1847,6 +1847,57 @@ function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string, objId?:
   );
 }
 
+// Mock TRỰC QUAN từng element ext (tái dựng theo đúng style thật trong ext) — để Architect
+// hiện HÌNH DÁNG, không chỉ liệt kê. Style copy từ ext source (màu/viền/bo góc).
+function SurfacePreview({ k }: { k: string }) {
+  const mono = 'ui-monospace,SFMono-Regular,Menlo,monospace';
+  const sys = '-apple-system,system-ui,sans-serif';
+  switch (k) {
+    case 'scene-marker':
+      return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 999, background: '#fbbf241a', border: '1px solid #fbbf2440', color: '#fbbf24', font: `700 11px ${mono}` }}>◎ 90 · warm</span>;
+    case 'scene-popover':
+      return <div style={{ width: 184, background: '#11161c', border: '1px solid #fbbf24', borderRadius: 8, padding: '9px 11px', color: '#e5e9f0', font: `12px/1.5 ${sys}` }}><div style={{ fontWeight: 800, marginBottom: 4 }}>◎ @automoderator</div><div>Familiarity: <b style={{ color: '#fbbf24' }}>90/100</b> · warm</div><div>Interactions: <b>0</b></div><div style={{ marginTop: 6, color: '#60a5fa' }}>↗ Xem trên MOS2</div></div>;
+    case 'board-badge':
+      return <span style={{ padding: '2px 9px', borderRadius: 999, background: '#3a2c08', color: '#fbbf24', border: '1px solid #fbbf2440', font: `700 11px ${mono}` }}>◆ TRACK</span>;
+    case 'board-popover':
+      return <div style={{ width: 200, background: '#0d0d0d', border: '1px solid #262626', borderRadius: 9, padding: '9px 10px', color: '#e5e5e5', font: `12px ${sys}` }}><div style={{ fontWeight: 700, marginBottom: 3 }}><span style={{ color: '#fbbf24' }}>⚑ chưa đánh giá</span> <span style={{ color: '#9ca3af', fontWeight: 400 }}>Recording…</span></div><div style={{ color: '#9ca3af', fontSize: 11 }}>fit 72/100 · 1.2k members</div><div style={{ display: 'flex', gap: 6, marginTop: 8 }}><span style={{ background: '#3a2c08', color: '#fbbf24', borderRadius: 5, padding: '3px 9px', fontSize: 11 }}>★ Track</span><span style={{ background: '#1f2937', color: '#cbd5e1', borderRadius: 5, padding: '3px 9px', fontSize: 11 }}>↻ Re-score</span></div></div>;
+    case 'seed-pill':
+      return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', background: '#0d1117', border: '1px solid #30363d', borderRadius: 11, padding: '3px 9px', font: `10px ${mono}`, color: '#e6edf3' }}>📍 live · 👁 30 · 💬 2 · ⭐ 5</span>;
+    case 'profile-pill':
+      return <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontSize: 13 }}><span style={{ background: '#1f2430', border: '1px solid #30363d', borderRadius: 6, padding: '2px 6px' }}>🤖</span><span style={{ color: '#22c55e' }}>●</span><span>🎯</span><span>🖼</span></span>;
+    case 'feed-engaged':
+      return <span style={{ background: '#16351f', color: '#22c55e', border: '1px solid #22c55e55', borderRadius: 5, padding: '1px 7px', font: `700 10px ${mono}` }}>✓ engaged</span>;
+    case 'hl-box':
+      return <div style={{ position: 'relative', width: 130, height: 32, border: '1px solid #22d3ee99', background: '#22d3ee10', borderRadius: 3, marginTop: 14 }}><span style={{ position: 'absolute', top: -15, left: -1, background: '#22d3ee', color: '#08151a', font: `700 9px ${mono}`, padding: '1px 6px', borderRadius: '3px 3px 0 0' }}>user.handle</span></div>;
+    case 'hl-label':
+      return <span style={{ background: '#22d3ee', color: '#08151a', font: `700 10px ${mono}`, padding: '2px 7px', borderRadius: 3 }}>username ⚙phpbb: gsmarter17</span>;
+    case 'hl-label-menu':
+      return <div style={{ width: 130, background: '#12151c', border: '1px solid #2d2640', borderRadius: 8, padding: 5, color: '#e6edf3', font: `11px ${sys}` }}>{['↻ Retrain', '✕ Clear', '⧉ Copy CSS'].map((t) => <div key={t} style={{ padding: '3px 6px' }}>{t}</div>)}</div>;
+    case 'train-banner':
+      return <div style={{ background: 'linear-gradient(90deg,#7c3aed,#db2777)', color: '#fff', font: `700 10px ${sys}`, padding: '5px 11px', borderRadius: 5 }}>🎯 TRAIN MODE — hover element rồi click</div>;
+    case 'train-picker':
+      return <div style={{ width: 150, background: '#0a0a0a', border: '1px solid #3b82f6', borderRadius: 8, padding: 8, color: '#e5e5e5', font: `11px ${sys}` }}><div style={{ color: '#60a5fa', fontWeight: 700, marginBottom: 4 }}>Chọn field</div>{['👁 metric', 'profile', 'viewer'].map((t) => <div key={t} style={{ padding: '2px 5px' }}>{t}</div>)}</div>;
+    case 'manual-input':
+      return <div style={{ width: 170, background: '#0a0a0a', border: '1px solid #fbbf24', borderRadius: 8, padding: 8, color: '#e5e5e5', font: `11px ${sys}` }}><div style={{ color: '#fbbf24', font: `700 10px ${sys}`, textTransform: 'uppercase', marginBottom: 5 }}>✍️ Manual · username</div><div style={{ background: '#0d1117', border: '1px solid #2d3741', borderRadius: 5, padding: '4px 7px', font: `10px ${mono}`, color: '#8b949e' }}>{"input[name='name']"}</div></div>;
+    case 'fab':
+      return <div style={{ display: 'inline-flex', gap: 5, background: '#161616', borderRadius: 10, padding: 4 }}>{['🔍', '🎯'].map((t) => <span key={t} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#1f1f1f', border: '1px solid #2a2a2a', borderRadius: 6 }}>{t}</span>)}</div>;
+    case 'regwidget':
+      return <div style={{ width: 158, background: '#0d0d0d', border: '1px solid #2a2a2a', borderRadius: 9, color: '#e5e5e5', font: `11px ${mono}`, overflow: 'hidden' }}><div style={{ padding: '6px 8px', borderBottom: '1px solid #222', fontWeight: 700, fontSize: 10 }}>🪪 Đăng ký</div><div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 5 }}><div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 5, padding: '3px 6px', color: '#8b949e', fontSize: 10 }}>user · gsmarter17</div><div style={{ display: 'flex', gap: 5 }}><span style={{ background: '#7c3aed', color: '#fff', padding: '3px 9px', borderRadius: 6, fontSize: 10 }}>🪄 Fill all</span><span style={{ background: '#1f2937', color: '#cbd5e1', padding: '3px 9px', borderRadius: 6, fontSize: 10 }}>Submit →</span></div></div></div>;
+    case 'login-pill':
+      return <span style={{ background: '#7c3aed', color: '#fff', borderRadius: 999, padding: '7px 13px', font: `700 11px ${mono}`, boxShadow: '0 6px 20px rgba(0,0,0,.5)' }}>🪪</span>;
+    case 'fab-launcher':
+      return <div style={{ width: 150, background: '#12151c', border: '1px solid #5b3fa6', borderRadius: 11, padding: 6, color: '#fff', font: `12px ${sys}` }}><div style={{ fontWeight: 800, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid #2d2640' }}>🤖 MOS2 Crew</div>{['💾 Lưu HTML', '🔍 Highlight field', '⏳ Lưu HTML 5s'].map((t) => <div key={t} style={{ padding: '4px 5px', color: '#e6edf3', fontSize: 11 }}>{t}</div>)}</div>;
+    case 'seeded-list':
+    case 'selmgr':
+    case 'domsamples':
+      return <div style={{ width: 170, background: '#15101f', border: '1px solid #5b3fa6', borderRadius: 8, padding: '8px 10px', color: '#e7e3ff', font: `11px ${sys}` }}><div style={{ fontWeight: 700, marginBottom: 5 }}>{k === 'seeded-list' ? '📋 Bài đã seed' : k === 'selmgr' ? '🧷 Selector composer' : '🗂 DOM đã lưu'}</div><div style={{ borderTop: '1px solid #2a2340', padding: '4px 0', fontSize: 10, color: '#a99fce' }}>#1 · live · 👁 30</div><div style={{ borderTop: '1px solid #2a2340', padding: '4px 0', fontSize: 10, color: '#a99fce' }}>#2 · pending</div></div>;
+    case 'toast':
+      return <span style={{ background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', borderRadius: 8, padding: '6px 11px', font: `11px ${sys}` }}>💾 Đã lưu DOM #7</span>;
+    default:
+      return <span style={{ color: 'var(--fg-4)', fontFamily: mono, fontSize: 10 }}>—</span>;
+  }
+}
+
 // Ext · Surface — catalog MỌI element MOS2 Crew inject trên thực địa (badge/pill/widget/menu/
 // HL box/popover/toast). Source kiểm soát để implement/nâng cấp: group theo loại + z-index ladder
 // (tránh đè nhau như RegKit widget bị HL phủ). EXT_SURFACE sống trong spec.ts.
@@ -1878,18 +1929,22 @@ function ExtSurfaceRegistry() {
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>{meta.label}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>· {items.length}</span>
             </div>
-            <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-              {items.map((e, i) => (
-                <div key={e.key} style={{ display: 'grid', gridTemplateColumns: '180px 150px 78px 1fr', gap: 10, padding: '8px 11px', borderTop: i ? '1px solid var(--line)' : 0, background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', alignItems: 'start' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }}>{e.label}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: meta.color, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.domId}>{e.domId}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+              {items.map((e) => (
+                <div key={e.key} style={{ border: '1px solid var(--line)', borderLeft: `3px solid ${meta.color}`, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-1)' }}>
+                  {/* PREVIEW — faux page bg để thấy hình dáng thật trên nền trang */}
+                  <div style={{ minHeight: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 12px', background: 'repeating-linear-gradient(45deg, #0c0e12, #0c0e12 9px, #0f1217 9px, #0f1217 18px)', borderBottom: '1px solid var(--line)' }}>
+                    <SurfacePreview k={e.key} />
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.file}>{e.file}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: e.zIndex == null ? 'var(--fg-4)' : 'var(--accent)', fontWeight: e.zIndex == null ? 400 : 700 }} title={e.zIndex == null ? 'inline (ăn theo flow trang)' : 'z-index'}>{e.zIndex == null ? 'inline' : 'z' + String(e.zIndex).slice(-3)}</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)', lineHeight: 1.45 }}>{e.purpose}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', marginTop: 2 }}>⤷ {e.trigger}</div>
+                  {/* META */}
+                  <div style={{ padding: '8px 11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--fg-0)' }}>{e.label}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: e.zIndex == null ? 'var(--fg-4)' : 'var(--accent)', fontWeight: e.zIndex == null ? 400 : 700 }} title={e.zIndex == null ? 'inline (ăn theo flow trang)' : `z-index ${e.zIndex}`}>{e.zIndex == null ? 'inline' : 'z' + String(e.zIndex).slice(-3)}</span>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: meta.color, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.domId}>{e.domId}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 5 }}>{e.purpose}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', marginTop: 3, display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>⤷ {e.trigger}</span><span title={e.file} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0, maxWidth: 130 }}>{e.file}</span></div>
                   </div>
                 </div>
               ))}

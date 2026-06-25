@@ -285,7 +285,7 @@ type SubRoute =
   | { t: 'uxflow'; id: number }
   | { t: 'objpeek'; objKey: string }
   | { t: 'identity'; id: number }
-  | { t: 'domlist'; pk: string; tech?: string | null; label?: string }
+  | { t: 'domlist'; pk: string; label?: string }
   | { t: 'inst'; objKey: string; id: string; label?: string };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
@@ -297,7 +297,7 @@ function renderRoute(r: SubRoute): SubContent {
   switch (r.t) {
     case 'entity': return { title: r.key, sub: `${r.scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={r.scope} scopeKey={r.key} technologyKey={r.tech ?? null} />, route: r };
     case 'dom': return { title: `#${r.id}`, sub: 'extract preview', body: <DomSampleDetail id={r.id} />, route: r };
-    case 'domlist': return { title: `DOM · ${r.label || r.pk}`, sub: 'samples của platform', body: <DomSampleList platformKey={r.pk} technologyKey={r.tech ?? null} label={r.label} />, route: r };
+    case 'domlist': return { title: `DOM · ${r.label || r.pk}`, sub: 'samples của platform', body: <DomSampleList platformKey={r.pk} label={r.label} />, route: r };
     case 'sel': return { title: `selector #${r.id}`, sub: 'selector detail', body: <SelectorDetail id={r.id} />, route: r };
     case 'scopeSel': return { title: `${r.scopeKind} · ${r.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={r.scopeKind} scopeKey={r.scopeKey} />, route: r };
     case 'metric': return { title: `${r.metric} · ${r.platform}`, sub: 'train metric', body: <MetricTrainGuide metric={r.metric} platform={r.platform} via={r.via} />, route: r };
@@ -967,8 +967,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   // click cột DOM (✉/Σ) → drawer list sample của platform đó (KHÔNG mở row detail).
   const openDomList = (e: React.MouseEvent, it: BrowseRow) => {
     e.stopPropagation();
-    const tech = it.cols['technology_key'] ? String(it.cols['technology_key']) : null;
-    openSub({ title: `DOM · ${it.label}`, sub: `${it.cols['__domTotal'] ?? 0} sample · ${it.cols['__domNew'] ?? 0} chưa đọc`, body: <DomSampleList platformKey={it.id} technologyKey={tech} label={it.label} />, route: { t: 'domlist', pk: it.id, tech, label: it.label } });
+    openSub({ title: `DOM · ${it.label}`, sub: `${it.cols['__domTotal'] ?? 0} sample · ${it.cols['__domNew'] ?? 0} chưa đọc`, body: <DomSampleList platformKey={it.id} label={it.label} />, route: { t: 'domlist', pk: it.id, label: it.label } });
   };
 
   return (
@@ -2698,10 +2697,10 @@ function JsonBlock({ title, data }: { title: string; data: Record<string, unknow
 
 // DOM sample LIST cho 1 platform — mở khi click cột DOM ở browse table. Unread (✉) lên đầu;
 // click 1 sample → DomSampleDetail (mở = mark-read → ✉ của platform giảm + parse selector).
-function DomSampleList({ platformKey, technologyKey, label }: { platformKey: string; technologyKey?: string | null; label?: string }) {
+function DomSampleList({ platformKey, label }: { platformKey: string; label?: string }) {
   const openSub = useContext(SubCtx);
   const [rows, setRows] = useState<DomSampleRow[] | null>(null);
-  useEffect(() => { let dead = false; listDomSamplesForPlatform(platformKey, technologyKey ?? null).then((r) => { if (!dead) setRows(r); }).catch(() => { if (!dead) setRows([]); }); return () => { dead = true; }; }, [platformKey, technologyKey]);
+  useEffect(() => { let dead = false; listDomSamplesForPlatform(platformKey).then((r) => { if (!dead) setRows(r); }).catch(() => { if (!dead) setRows([]); }); return () => { dead = true; }; }, [platformKey]);
   if (!rows) return <div style={{ padding: 14, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>loading DOM samples…</div>;
   if (!rows.length) return <div style={{ padding: 14, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>Chưa có DOM sample nào cho <b style={{ color: 'var(--fg-1)' }}>{label || platformKey}</b>. Dùng ext capture trang để tạo.</div>;
   const unread = rows.filter((r) => !r.readAt).length;

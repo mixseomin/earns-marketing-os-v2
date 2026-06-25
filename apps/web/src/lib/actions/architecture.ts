@@ -171,13 +171,13 @@ export async function browseInstances(
       ), ''), '✓ full')
     ) AS "__missingSel"`);   // QUOTE alias — unquoted Postgres lowercases → r['__missingsel'] ≠ r['__missingSel'] = null
   }
-  // __domTotal / __domNew: DOM sample đã capture cho platform (platform_key=key HOẶC inherited
-  // technology) + số CHƯA ĐỌC (read_at NULL). Parse DOM → train selector → __missingSel giảm.
+  // __domTotal / __domNew: DOM sample đã capture cho ĐÚNG platform (platform_key=key) + số CHƯA
+  // ĐỌC (read_at NULL). KHÔNG gom theo technology. Parse DOM → train selector → __missingSel giảm.
   const wantDom = !!((opts.cols?.includes('__domTotal') || opts.cols?.includes('__domNew')) && validCols.has('key'));
   if (wantDom) {
-    const techMatch = validCols.has('technology_key') ? ` OR (t.technology_key IS NOT NULL AND ds.technology_key = t.technology_key)` : '';
-    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE ds.platform_key = t.key${techMatch}) AS "__domTotal"`);
-    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE (ds.platform_key = t.key${techMatch}) AND ds.read_at IS NULL) AS "__domNew"`);
+    // CHỈ đếm sample của đúng platform (platform_key=key) — khớp với drawer list. KHÔNG gom theo technology.
+    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE ds.platform_key = t.key) AS "__domTotal"`);
+    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE ds.platform_key = t.key AND ds.read_at IS NULL) AS "__domNew"`);
   }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
@@ -780,14 +780,14 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
 }
 // DOM samples cho 1 platform (platform_key trực tiếp HOẶC inherited technology) — click cột DOM ở
 // Studio mở list này. Unread (read_at NULL) lên đầu.
-export async function listDomSamplesForPlatform(platformKey: string, technologyKey?: string | null): Promise<DomSampleRow[]> {
+export async function listDomSamplesForPlatform(platformKey: string): Promise<DomSampleRow[]> {
   const db = getDb();
   if (!db || !platformKey) return [];
-  const techCond = technologyKey ? sql` OR technology_key = ${technologyKey}` : sql``;
+  // CHỈ sample của đúng platform này — KHÔNG gom theo technology (đừng kéo phpbb site khác vào).
   try {
     const rows = await db.execute(sql`
       SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
-      FROM dom_samples WHERE platform_key = ${platformKey}${techCond}
+      FROM dom_samples WHERE platform_key = ${platformKey}
       ORDER BY (read_at IS NULL) DESC, captured_at DESC LIMIT 300`);
     return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
   } catch { return []; }

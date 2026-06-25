@@ -105,7 +105,7 @@ export async function browseInstances(
 
   // extra columns (validated against the real table) → selected as t.<col>
   const reserved = new Set(['id', 'label', 'sub']);
-  const special = new Set(['__projects', '__unread', '__platform', '__board', '__missingSel']);
+  const special = new Set(['__projects', '__unread', '__platform', '__board', '__missingSel', '__domNew', '__domTotal']);
   let extraCols: string[] = [];
   let validCols = new Set<string>();
   if (opts.cols && opts.cols.length) {
@@ -141,12 +141,20 @@ export async function browseInstances(
   // chỉ bắt buộc khi auto_post_supported (suggest-only ko cần nút đăng).
   const wantMissingSel = !!(opts.cols?.includes('__missingSel') && validCols.has('technology_key') && validCols.has('auto_post_supported'));
   if (wantMissingSel) {
+    // missing = CORE field CHƯA train; broken = field ĐÃ train nhưng selector hỏng (miss_streak>=3,
+    // ext báo từ trang thật) → prefix '⚠'. Cột gộp cả hai để Studio chỉ thẳng "thiếu/hỏng loại nào".
     selParts.push(`(
       WITH present AS (
         SELECT DISTINCT so.page_kind || '.' || so.field_name AS fk
         FROM selector_overrides so
         WHERE (so.scope_kind = 'platform' AND so.scope_key = t.key)
            OR (so.scope_kind = 'technology' AND so.scope_key = t.technology_key)
+      ), broken AS (
+        SELECT DISTINCT so.page_kind || '.' || so.field_name AS fk
+        FROM selector_overrides so
+        WHERE ((so.scope_kind = 'platform' AND so.scope_key = t.key)
+            OR (so.scope_kind = 'technology' AND so.scope_key = t.technology_key))
+          AND COALESCE(so.miss_streak, 0) >= 3
       ), req AS (
         SELECT unnest(
           ARRAY['composer.composer.anchor','composer.composer.editor','composer.viewer.handle',
@@ -155,9 +163,21 @@ export async function browseInstances(
           || CASE WHEN t.auto_post_supported THEN ARRAY['composer.composer.postBtn'] ELSE ARRAY[]::text[] END
         ) AS fk
       )
-      SELECT COALESCE(NULLIF(string_agg(regexp_replace(r.fk, '^(composer|platform-any)\\.', ''), ', ' ORDER BY r.fk), ''), '✓ full')
-      FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)
+      SELECT COALESCE(NULLIF(concat_ws(', ',
+        (SELECT string_agg(regexp_replace(r.fk, '^(composer|platform-any)\\.', ''), ', ' ORDER BY r.fk)
+           FROM req r WHERE r.fk NOT IN (SELECT fk FROM present)),
+        (SELECT string_agg('⚠' || regexp_replace(b.fk, '^(composer|platform-any)\\.', ''), ', ' ORDER BY b.fk)
+           FROM broken b)
+      ), ''), '✓ full')
     ) AS "__missingSel"`);   // QUOTE alias — unquoted Postgres lowercases → r['__missingsel'] ≠ r['__missingSel'] = null
+  }
+  // __domTotal / __domNew: DOM sample đã capture cho platform (platform_key=key HOẶC inherited
+  // technology) + số CHƯA ĐỌC (read_at NULL). Parse DOM → train selector → __missingSel giảm.
+  const wantDom = !!((opts.cols?.includes('__domTotal') || opts.cols?.includes('__domNew')) && validCols.has('key'));
+  if (wantDom) {
+    const techMatch = validCols.has('technology_key') ? ` OR (t.technology_key IS NOT NULL AND ds.technology_key = t.technology_key)` : '';
+    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE ds.platform_key = t.key${techMatch}) AS "__domTotal"`);
+    selParts.push(`(SELECT count(*)::int FROM dom_samples ds WHERE (ds.platform_key = t.key${techMatch}) AND ds.read_at IS NULL) AS "__domNew"`);
   }
   const extraSel = selParts.length ? sql.raw(', ' + selParts.join(', ')) : sql``;
 
@@ -222,6 +242,7 @@ export async function browseInstances(
       if (wantPlatform) cols['__platform'] = r['__platform'] ?? null;
       if (wantBoard) cols['__board'] = r['__board'] ?? null;
       if (wantMissingSel) cols['__missingSel'] = r['__missingSel'] ?? null;
+      if (wantDom) { cols['__domTotal'] = r['__domTotal'] ?? null; cols['__domNew'] = r['__domNew'] ?? null; }
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;
@@ -801,6 +822,8 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   const rows = await db.execute(sql`SELECT html, url, title, bytes, page_kind, platform_key, technology_key FROM dom_samples WHERE id = ${id} LIMIT 1`);
   const row = (rows as unknown as Array<Record<string, unknown>>)[0];
   if (!row) return null;
+  // mark-read: mở sample trong Studio = đã đọc → giảm "DOM chưa đọc" của platform.
+  try { await db.execute(sql`UPDATE dom_samples SET read_at = now() WHERE id = ${id} AND read_at IS NULL`); } catch { /* non-fatal */ }
   const html = String(row.html ?? '');
   const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#0?39;/g, "'").replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
   const strip = (s: string) => decode(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();

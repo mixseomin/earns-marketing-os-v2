@@ -39,6 +39,17 @@ export interface ObjRelation {
   note?: string;
 }
 
+// Browse-table COLUMN groups — colored bands + show/hide toggle in the instance table,
+// mirroring the SEO Sites Overview (seo-sites-table.tsx). Each browseCol opts into a group
+// via `group`; ungrouped cols (label/id) always show, no tint.
+export type BrowseGroup = 'info' | 'posting' | 'selectors' | 'dom';
+export const BROWSE_GROUPS: Record<BrowseGroup, { label: string; fg: string; bg: string; bgSoft: string }> = {
+  info:      { label: 'Info',      fg: '#8a92a3', bg: 'rgba(138,146,163,0.20)', bgSoft: 'rgba(138,146,163,0.05)' }, // slate
+  posting:   { label: 'Posting',   fg: '#ffb03c', bg: 'rgba(255,176,60,0.20)',  bgSoft: 'rgba(255,176,60,0.05)' }, // amber
+  selectors: { label: 'Selectors', fg: '#ec4899', bg: 'rgba(236,72,153,0.20)',  bgSoft: 'rgba(236,72,153,0.05)' }, // pink
+  dom:       { label: 'DOM',       fg: '#22c55e', bg: 'rgba(34,197,94,0.20)',   bgSoft: 'rgba(34,197,94,0.05)' }, // green
+};
+
 export interface ArchObject {
   key: string;
   label: string;
@@ -64,7 +75,7 @@ export interface ArchObject {
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
   // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[];
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom'; link?: string; group?: BrowseGroup }[];
   // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
   // projects an instance belongs to, not just the legacy scalar project_id.
   projectsVia?: { table: string; fkCol: string };
@@ -78,12 +89,14 @@ export const OBJECTS: ArchObject[] = [
     desc: 'Social platform catalog (x/reddit/fb/discord…). First-class rows, not hardcoded. auto_post_supported=false = SUGGEST-ONLY mode (tool soạn + human copy-paste/đăng tay → ban-risk ≈ 0). DB-adapter mặc định cũng noPost=true (suggest) nên platform mới tự an toàn.',
     picker: { subExpr: 't.category' },
     browseCols: [
-      { col: 'category', label: 'category' },
-      { col: 'priority', label: 'priority' },
-      { col: 'auto_post_supported', label: 'auto-post' },                    // false = suggest-only (manual)
-      { col: 'technology_key', label: 'engine', kind: 'link', link: 'technology' },
-      { col: '__missingSel', label: 'missing selectors' },                  // CORE composer/login fields chưa train (platform + inherited engine scope) → đi cập nhật
-      { col: 'region', label: 'region' },
+      { col: 'category', label: 'category', group: 'info' },
+      { col: 'priority', label: 'priority', group: 'info' },
+      { col: 'region', label: 'region', group: 'info' },
+      { col: 'auto_post_supported', label: 'auto-post', group: 'posting' },          // false = suggest-only (manual)
+      { col: 'technology_key', label: 'engine', kind: 'link', link: 'technology', group: 'posting' },
+      { col: '__missingSel', label: 'missing / ⚠broken', group: 'selectors' },        // CORE fields chưa train + selector hỏng (miss_streak≥3) → đi cập nhật
+      { col: '__domNew', label: 'DOM ✉', kind: 'dom', group: 'dom' },                 // số DOM sample chưa đọc (read_at NULL) — parse → missing giảm
+      { col: '__domTotal', label: 'DOM Σ', group: 'dom' },                            // tổng DOM sample đã capture
     ],
     attrs: [
       { name: 'key', col: 'key', type: 'text', pk: true, note: "canonical 'twitter' (ext uses 'x')" },

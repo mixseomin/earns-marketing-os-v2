@@ -14,8 +14,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { NODE_TYPES } from './nodes';
 import {
-  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON,
-  type ArchObject, type ArchFlow, type RelKind,
+  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
+  type ArchObject, type ArchFlow, type RelKind, type BrowseGroup,
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import {
@@ -870,28 +870,38 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const hasMissingCol = (obj.browseCols || []).some((c) => c.col === '__missingSel');
   const [flt, setFlt] = useState<'missing' | 'partial' | null>(null);
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
+  // Column GROUPS (Info/Posting/Selectors/DOM) — colored bands + show/hide như SEO overview.
+  const bc = obj.browseCols || [];
+  const groupsPresent = [...new Set(bc.map((c) => c.group).filter(Boolean))] as BrowseGroup[];
+  const gKey = `mos2_arch_grp_${obj.key}`;
+  const [groupsOff, setGroupsOff] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(gKey) || '[]') as string[]); } catch { return new Set(); } });
+  const toggleGroup = (g: string) => setGroupsOff((prev) => { const n = new Set(prev); if (n.has(g)) n.delete(g); else n.add(g); try { localStorage.setItem(gKey, JSON.stringify([...n])); } catch {} return n; });
+  // visible data columns = browseCols minus hidden groups (no-group cols always show).
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom'; link?: string; group?: BrowseGroup }[] =
+    bc.length ? bc.filter((c) => !c.group || !groupsOff.has(c.group)).map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link, group: c.group }))
+      : [{ key: '__sub', label: parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object).toLowerCase() : 'ctx' }];
+  const colSig = dataCols.map((c) => c.key).join('|');   // đổi tập cột (toggle group) → nạp lại widths
   // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
   // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
   // Thứ tự [label, ...dataCols, pk]. Nhớ localStorage/node.
   const wKey = `mos2_arch_cols2_${obj.key}`;   // v2: default compact mới (invalidate width px cũ đã lưu)
   const WIDE = /\b(name|title|description|desc|approach|reason|url|body|summary|message|note|bio|content|prompt)\b/i;
-  const defaultWidths = useCallback((): (number | null)[] => {
-    const cols = obj.browseCols?.length ? obj.browseCols.map((c) => ({ key: c.col, kind: c.kind as string | undefined })) : [{ key: '__sub', kind: undefined as string | undefined }];
+  const computeWidths = (): (number | null)[] => {
     const w = (key: string, kind?: string): number | null => {
       if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
       if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96;
-      if (kind === 'badge' || kind === 'unread') return 78;
+      if (kind === 'badge' || kind === 'unread') return 78; if (kind === 'dom') return 60;
       return 76;                                                              // compact (fit/tier/manual/stale…)
     };
-    return [WIDE.test(obj.labelCol || '') ? null : 110, ...cols.map((c) => w(c.key, c.kind)), 52];
-  }, [obj.browseCols, obj.labelCol]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const loadWidths = useCallback((): (number | null)[] => {
-    const def = defaultWidths();
+    return [WIDE.test(obj.labelCol || '') ? null : 110, ...dataCols.map((c) => w(c.key, c.kind)), 52];
+  };
+  const loadWidths = (): (number | null)[] => {
+    const def = computeWidths();
     try { const s = JSON.parse(localStorage.getItem(wKey) || 'null'); if (Array.isArray(s) && s.length === def.length) return s; } catch {}
     return def;
-  }, [defaultWidths, wKey]);
+  };
   const [widths, setWidths] = useState<(number | null)[]>(loadWidths);
-  useEffect(() => { setWidths(loadWidths()); }, [obj.key, loadWidths]);   // đổi node → nạp widths node đó
+  useEffect(() => { setWidths(loadWidths()); }, [obj.key, colSig]);   // eslint-disable-line react-hooks/exhaustive-deps
   const startResize = (i: number, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     const cell = (e.currentTarget as HTMLElement).parentElement;
@@ -933,11 +943,6 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const to = Math.min(data.total, (page + 1) * PAGE);
   const parentLabel = parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object) : '';
   const projMap = new Map(projects.map((p) => [p.id, p.name]));   // id → name cho cột project
-  const bc = obj.browseCols || [];
-  // generic column model: spec browseCols when present, else the picker's sub-label as 1 ctx col.
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread'; link?: string }[] =
-    bc.length ? bc.map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link }))
-      : [{ key: '__sub', label: parent ? parentLabel.toLowerCase() : 'ctx' }];
   const grid = widths.map((w) => (w == null ? 'minmax(150px,1fr)' : `${w}px`)).join(' ');   // null=text tự do(1fr); số=px(compact/resize)
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
   const open = (it: InstanceRef) => openSub({
@@ -973,8 +978,9 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`tìm trong ${data.total || '…'}…`}
           style={{ ...selStyle, flex: 1, minWidth: 150 }} />
         {hasMissingCol && (
-          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} title="Lọc theo health selector">
-            {([['missing', '⚠ thiếu', 'Thiếu ≥1 CORE selector'], ['partial', '◑ hở', 'Đã train ≥1 nhưng vẫn thiếu CORE — đang dùng mà hở']] as const).map(([k, lbl, tip]) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} title="Lọc theo health selector">
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>health</span>
+            {([['missing', '⚠ Chưa train', 'Lọc: platform thiếu ≥1 CORE selector — chưa train field bắt buộc nào'], ['partial', '◑ Đang hở', 'Lọc: đã train ≥1 nhưng VẪN thiếu CORE field — đang dùng mà hở']] as const).map(([k, lbl, tip]) => (
               <button key={k} type="button" title={tip}
                 onClick={() => setFlt((f) => (f === k ? null : k))}
                 style={{ ...btnStyle, padding: '5px 8px', fontSize: 11, background: flt === k ? 'var(--warn)' : undefined, color: flt === k ? '#000' : undefined, borderColor: flt === k ? 'var(--warn)' : undefined }}>{lbl}</button>
@@ -990,18 +996,38 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
         {data.total > 0 && <span style={{ marginLeft: 'auto' }}>{from}–{to} / {data.total}</span>}
       </div>
 
+      {/* column-group toggles — màu chip khớp band cột bên dưới (như SEO overview) */}
+      {groupsPresent.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>nhóm:</span>
+          {groupsPresent.map((g) => {
+            const meta = BROWSE_GROUPS[g]; const on = !groupsOff.has(g);
+            return (
+              <button key={g} type="button" onClick={() => toggleGroup(g)}
+                title={on ? `Ẩn nhóm ${meta.label}` : `Hiện nhóm ${meta.label}`}
+                style={{ padding: '2px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  background: on ? meta.bg : 'transparent', border: `1px solid ${on ? meta.fg : 'var(--line)'}`, color: on ? meta.fg : 'var(--fg-4)', fontWeight: on ? 700 : 400 }}>
+                {on ? '✓ ' : '+ '}{meta.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* TABLE — header + paginated rows; click row mở drawer chi tiết.
           Cột link (platform…) click riêng → mở drawer entity đó (stopPropagation). */}
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: grid, gap: 8, padding: '5px 10px', background: 'var(--bg-3)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {[{ label: obj.labelCol || 'name', key: '__label', right: false },
-            ...dataCols.map((dc) => ({ label: dc.label, key: dc.key, right: false })),
-            { label: obj.pk || 'id', key: obj.pk || 'id', right: true },
+          {[{ label: obj.labelCol || 'name', key: '__label', right: false, group: undefined as BrowseGroup | undefined },
+            ...dataCols.map((dc) => ({ label: dc.label, key: dc.key, right: false, group: dc.group })),
+            { label: obj.pk || 'id', key: obj.pk || 'id', right: true, group: undefined as BrowseGroup | undefined },
           ].map((hc, i, arr) => {
             const active = sort?.col === hc.key;
+            const gm = hc.group ? BROWSE_GROUPS[hc.group] : null;
             return (
               <span key={i} onClick={() => toggleSort(hc.key)} title="Click = sort · kéo mép phải = đổi rộng cột"
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', justifyContent: hc.right ? 'flex-end' : 'flex-start', color: active ? 'var(--accent)' : undefined }}>
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', justifyContent: hc.right ? 'flex-end' : 'flex-start',
+                  color: active ? 'var(--accent)' : (gm ? gm.fg : undefined), background: gm ? gm.bg : undefined, margin: gm ? '-5px 0' : undefined, padding: gm ? '5px 6px' : undefined, borderRadius: gm ? 3 : undefined }}>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{hc.label}</span>
                 {active && <span style={{ flexShrink: 0 }}>{sort!.dir === 'asc' ? '▲' : '▼'}</span>}
                 {i < arr.length - 1 && (
@@ -1033,7 +1059,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
               const v = cellVal(it, dc.key);
               const empty = v == null || v === '';
               return (
-                <span key={j} title={empty ? '' : String(v)} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                <span key={j} title={empty ? '' : String(v)} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 10.5, ...(dc.group ? { background: BROWSE_GROUPS[dc.group].bgSoft, margin: '-6px 0', padding: '6px 6px', borderRadius: 3 } : {}) }}>
                   {empty ? <span style={{ color: 'var(--fg-4)' }}>—</span>
                     : dc.kind === 'link' && dc.link ? (
                       <span role="link" onClick={(e) => openLinked(e, dc.link!, String(v))}
@@ -1046,6 +1072,11 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                       const n = Number(v);
                       if (!Number.isFinite(n) || n <= 0) return <span style={{ color: 'var(--fg-4)' }}>{Number.isFinite(n) ? '0' : '—'}</span>;
                       return <span style={{ color: 'var(--warn)', fontWeight: 700 }} title={`✉ ${n} tin nhắn chưa đọc`}>✉ {n}</span>;
+                    })() : dc.kind === 'dom' ? (() => {
+                      const n = Number(v);
+                      if (!Number.isFinite(n)) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
+                      if (n <= 0) return <span style={{ color: 'var(--fg-4)' }} title="Không có DOM chưa đọc">0</span>;
+                      return <span style={{ color: 'var(--warn)', fontWeight: 700 }} title={`✉ ${n} DOM sample chưa đọc — mở 1 sample để parse selector (mở = đánh dấu đã đọc)`}>✉ {n}</span>;
                     })() : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : dc.kind === 'project' ? (() => {
@@ -2101,14 +2132,14 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
           onClose={() => { setSel(null); setStack([]); }}
           sub={drawerSub}
           title={drawerTitle}
-          width={1040}
+          width={1280}
           footer={null}
           pushPx={sel ? Math.min(stack.length * CASCADE_STEP, 600) : 0}
         >
           {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} onProjectChange={setProj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
           {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
         </Drawer>
-        <SubStack stack={sel ? stack : []} popTo={popTo} width={720} />
+        <SubStack stack={sel ? stack : []} popTo={popTo} width={860} />
       </SubCtx.Provider>
     </div>
   );

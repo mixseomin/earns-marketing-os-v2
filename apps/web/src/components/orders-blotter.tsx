@@ -328,12 +328,15 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                 <Fragment key={g.name}>
                   <tr style={{ background: 'rgba(0,229,255,0.06)' }}>
                     <td colSpan={HEADERS.length}
-                      onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
-                      onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
-                      onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
-                      style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)', cursor: 'help' }}>
+                      style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
                       {g.name}
-                      <span style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--accent,#00e5ff)', opacity: 0.7 }}>ⓘ</span>
+                      <span
+                        onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
+                        onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                        onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
+                        onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
+                        title="strategy rules & expected metrics"
+                        style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
                       {g.open > 0 ? <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }} title="floating P&L of open positions">{fmtPnlUsd(g.float)} float</span> : null}
                       {g.open > 0 || g.closed > 0
@@ -350,7 +353,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted); closed dimmed. <b>P&amp;L</b> = native number (crypto %, MT5 account $); <b>$</b> = same P&amp;L converted to account $. Net totals are in $. Hold counts to now for open positions. {grouped ? 'Hover a strategy header for its description & expected metrics.' : ''}</p>
+      <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 8 }}>Open positions on top (highlighted); closed dimmed. <b>P&amp;L</b> = native number (crypto %, MT5 account $); <b>$</b> = same P&amp;L converted to account $. Net totals are in $. Hold counts to now for open positions. {grouped ? 'Tap (or hover) the ⓘ next to a strategy for its rules & expected metrics.' : ''}</p>
       {(() => { const hm = hover ? metaByStrategy[hover.name] : undefined; return hover && hm ? <HoverCard name={hover.name} meta={hm} x={hover.x} y={hover.y} /> : null; })()}
     </div>
   );

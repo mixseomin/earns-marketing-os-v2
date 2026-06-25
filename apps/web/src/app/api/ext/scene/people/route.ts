@@ -24,16 +24,19 @@ export async function GET(req: Request) {
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   // 2-tier: handle ở scene_identities (global); familiarity ở people (relationship per account).
-  // Badge = mức THÂN NHẤT của mình với người đó trong project (DISTINCT ON handle, max familiarity).
-  const res = await db.execute(handles.length
-    ? sql`SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
-            FROM people p JOIN scene_identities i ON i.id = p.identity_id
-            WHERE p.project_id = ${projectId} AND i.handle = ANY(${handles}::text[])
-            ORDER BY i.handle, p.familiarity_score DESC NULLS LAST`
-    : sql`SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
-            FROM people p JOIN scene_identities i ON i.id = p.identity_id
-            WHERE p.project_id = ${projectId}
-            ORDER BY i.handle, p.familiarity_score DESC NULLS LAST LIMIT 200`);
+  // Badge = mức THÂN NHẤT của mình với người đó trong project. DISTINCT ON (handle) cần ORDER BY handle
+  // TRƯỚC → wrap subquery để vẫn sort theo familiarity (top-200) + limit. (drizzle bind ANY(array)
+  // lỗi 42846 → dùng IN-list tường minh qua sql.join.)
+  const handleFilter = handles.length
+    ? sql` AND i.handle IN (${sql.join(handles.map((h) => sql`${h}`), sql`, `)})`
+    : sql``;
+  const res = await db.execute(sql`
+    SELECT * FROM (
+      SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+      FROM people p JOIN scene_identities i ON i.id = p.identity_id
+      WHERE p.project_id = ${projectId}${handleFilter}
+      ORDER BY i.handle, p.familiarity_score DESC NULLS LAST
+    ) t ORDER BY familiarity_score DESC NULLS LAST LIMIT 200`);
   const rows = res as unknown as Array<Record<string, unknown>>;
 
   const people: Record<string, { familiarity: number; status: string; interactions: number; repliedBack: boolean }> = {};

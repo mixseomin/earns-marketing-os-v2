@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
+
+// Random password MẠNH (crypto, KHÔNG nhờ AI — AI sinh password yếu/đoán được). ≥1 mỗi lớp
+// (hoa/thường/số/ký hiệu), bỏ ký tự dễ nhầm (0/O, 1/l/I). Site nào cấm symbol thì user sửa tay sau.
+function genPassword(len = 16): string {
+  const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ', L = 'abcdefghijkmnpqrstuvwxyz', D = '23456789', S = '!@#$%^&*-_=+';
+  const all = U + L + D + S;
+  const b = Array.from(randomBytes(len + 4));
+  const pick = (set: string, byte: number) => set.charAt(byte % set.length);
+  let p = pick(U, b[0] ?? 0) + pick(L, b[1] ?? 0) + pick(D, b[2] ?? 0) + pick(S, b[3] ?? 0);
+  for (let i = 0; i < len - 4; i++) p += pick(all, b[i + 4] ?? 0);
+  return p;
+}
 
 // POST /api/ext/identities/generate { projectId, kind?, hint? }
 // AI sinh persona preset (KHÔNG lưu) → ext fill vào form tạo identity, user review.
@@ -58,6 +71,7 @@ ${kind === 'seeding' ? 'Anonymous regular member vibe. Do NOT mention the brand.
     });
     let out: Record<string, unknown> = {};
     try { out = JSON.parse(completion.choices[0]?.message?.content || '{}'); } catch { /* ignore */ }
+    out.password = genPassword();   // luôn kèm password random mạnh → tạo identity ko bị thiếu (create encrypt)
     return NextResponse.json({ ok: true, identity: out });
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : 'AI gen fail', 500);

@@ -2709,18 +2709,39 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', margin: '0 4px 8px' }}>
         <b style={{ color: 'var(--fg-1)' }}>{rows.length}</b> sample · <span style={{ color: unread ? 'var(--warn)' : 'var(--ok)', fontWeight: 700 }}>{unread} chưa đọc</span> · mở 1 sample = đánh dấu đã đọc + parse selector
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 50px 64px 64px', gap: 6, padding: '0 10px 4px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span /><span>title · fields tách được</span><span>page_kind</span><span style={{ textAlign: 'right' }}>size</span><span style={{ textAlign: 'right' }}>đọc</span><span style={{ textAlign: 'right' }}>chụp</span>
+      </div>
       <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-        {rows.map((r, i) => (
+        {rows.map((r, i) => {
+          const ex = r.extract;
+          return (
           <button key={r.id} onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · parse selector', body: <DomSampleDetail id={r.id} />, route: { t: 'dom', id: r.id } })}
-            style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 56px 64px', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '7px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+            style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 50px 64px 64px', gap: 6, alignItems: 'start', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '7px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11 }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
-            <span style={{ color: r.readAt ? 'var(--fg-4)' : 'var(--warn)', fontWeight: r.readAt ? 400 : 700 }} title={r.readAt ? 'đã đọc' : 'chưa đọc'}>{r.readAt ? '✓' : '✉'}</span>
-            <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.url || r.title || ''}>{r.title || r.url || r.hostname || `sample #${r.id}`}</span>
-            <span style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.pageKind}</span>
-            <span style={{ color: 'var(--fg-3)', textAlign: 'right' }}>{(r.bytes / 1024).toFixed(0)}KB</span>
-            <span style={{ color: 'var(--fg-3)', textAlign: 'right' }} title={fmtFull(r.capturedAt)}>{relAgo(r.capturedAt)}</span>
+            <span style={{ color: r.readAt ? 'var(--fg-4)' : 'var(--warn)', fontWeight: r.readAt ? 400 : 700, paddingTop: 1 }} title={r.readAt ? 'đã đọc' : 'chưa đọc'}>{r.readAt ? '✓' : '✉'}</span>
+            <div style={{ overflow: 'hidden' }}>
+              <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title={r.url || r.title || ''}>{r.title || r.url || r.hostname || `sample #${r.id}`}</span>
+              {ex ? (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3, fontSize: 9.5 }}>
+                  {ex.counts.users > 0 && <span style={{ color: '#b48cff' }}>◆{ex.counts.users}</span>}
+                  {ex.counts.threads > 0 && <span style={{ color: 'var(--accent)' }}>≡{ex.counts.threads}</span>}
+                  {ex.counts.boards > 0 && <span style={{ color: 'var(--ok)' }}>▦{ex.counts.boards}</span>}
+                  {ex.counts.inputs > 0 && <span style={{ color: 'var(--fg-3)' }}>⌨{ex.counts.inputs}</span>}
+                  {ex.engine && <span style={{ color: '#b48cff' }}>{ex.engine}</span>}
+                  {[...new Set([...(ex.selFields || []), ...(ex.inputs || [])])].slice(0, 8).map((f) => (
+                    <span key={f} style={{ color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>{f}</span>
+                  ))}
+                </div>
+              ) : <span style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>{r.readAt ? 'mở lại để tách fields' : 'chưa đọc — mở để tách fields'}</span>}
+            </div>
+            <span style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', paddingTop: 1 }}>{r.pageKind}</span>
+            <span style={{ color: 'var(--fg-3)', textAlign: 'right', paddingTop: 1 }}>{(r.bytes / 1024).toFixed(0)}KB</span>
+            <span style={{ color: r.readAt ? 'var(--fg-2)' : 'var(--fg-4)', textAlign: 'right', paddingTop: 1 }} title={r.readAt ? fmtFull(r.readAt) : 'chưa đọc'}>{r.readAt ? relAgo(r.readAt) : '—'}</span>
+            <span style={{ color: 'var(--fg-3)', textAlign: 'right', paddingTop: 1 }} title={fmtFull(r.capturedAt)}>{relAgo(r.capturedAt)}</span>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

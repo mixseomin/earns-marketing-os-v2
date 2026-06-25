@@ -754,18 +754,31 @@ export async function metricCoverage(): Promise<MetricCoverage> {
 }
 
 // ── DOM sample library (ext capture) ────────────────────────────────────────
+// Summary fields tách được khi ĐỌC (parse) 1 sample — lưu vào dom_samples.extract,
+// list hiển thị khỏi parse lại HTML mỗi lần.
+export interface DomExtractSummary {
+  counts: { users: number; threads: number; boards: number; inputs: number };
+  selFields: string[];   // field selector phát hiện (thread.title, user.url, username…)
+  inputs: string[];      // nhãn input form (non-button)
+  engine: string | null; loggedIn: boolean | null;
+}
 export interface DomSampleRow {
   id: number; platformKey: string | null; technologyKey: string | null;
   pageKind: string; url: string | null; hostname: string | null; title: string | null;
   bytes: number; capturedAt: string; readAt: string | null;
+  extract: DomExtractSummary | null;   // null = chưa đọc lần nào
 }
 function mapDomRow(r: Record<string, unknown>): DomSampleRow {
+  let extract: DomExtractSummary | null = null;
+  const ex = r.extract;
+  if (ex && typeof ex === 'object') extract = ex as DomExtractSummary;
+  else if (typeof ex === 'string' && ex) { try { extract = JSON.parse(ex); } catch { extract = null; } }
   return {
     id: Number(r.id), platformKey: (r.platform_key as string | null) ?? null,
     technologyKey: (r.technology_key as string | null) ?? null, pageKind: String(r.page_kind ?? 'page'),
     url: (r.url as string | null) ?? null, hostname: (r.hostname as string | null) ?? null,
     title: (r.title as string | null) ?? null, bytes: Number(r.bytes) || 0, capturedAt: String(r.captured_at),
-    readAt: (r.read_at as string | null) ?? null,
+    readAt: (r.read_at as string | null) ?? null, extract,
   };
 }
 export async function listDomSamples(): Promise<DomSampleRow[]> {
@@ -773,7 +786,7 @@ export async function listDomSamples(): Promise<DomSampleRow[]> {
   if (!db) return [];
   try {
     const rows = await db.execute(sql`
-      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
+      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at, extract
       FROM dom_samples ORDER BY captured_at DESC LIMIT 300`);
     return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
   } catch { return []; }
@@ -786,7 +799,7 @@ export async function listDomSamplesForPlatform(platformKey: string): Promise<Do
   // CHỈ sample của đúng platform này — KHÔNG gom theo technology (đừng kéo phpbb site khác vào).
   try {
     const rows = await db.execute(sql`
-      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
+      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at, extract
       FROM dom_samples WHERE platform_key = ${platformKey}
       ORDER BY (read_at IS NULL) DESC, captured_at DESC LIMIT 300`);
     return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
@@ -1018,7 +1031,7 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
   if (registerUrl) gaps.push('Signup đầy đủ: chỉ thấy form login → capture trang register (' + registerUrl + ') để seed email/password_confirm/display_name.');
   if (loggedIn === false) gaps.push('Viewer.*: trang đang LOGGED-OUT → capture 1 trang đã đăng nhập để seed viewer.handle/avatar/logout/unread.');
 
-  return {
+  const result: DomExtract = {
     id, url: (row.url as string | null) ?? null, title: (row.title as string | null) ?? null,
     bytes: Number(row.bytes) || 0, pageKind: String(row.page_kind ?? 'page'),
     platformKey: (row.platform_key as string | null) ?? null, technologyKey: (row.technology_key as string | null) ?? null,
@@ -1028,6 +1041,15 @@ export async function extractDomSample(id: number): Promise<DomExtract | null> {
     counts: { users: users.size, threads: threads.size, boards: boards.size, anchors, inputs: inputs.length },
     classHooks, seedSelectors: dedupSel, gaps,
   };
+  // Lưu SUMMARY fields tách được (đọc 1 lần, list khỏi parse lại) — đồng bộ với read_at.
+  const summary: DomExtractSummary = {
+    counts: result.counts,
+    selFields: dedupSel.map((s) => s.field),
+    inputs: inputs.filter((i) => i.type !== 'submit' && i.type !== 'button').map((i) => i.label || i.name || i.type).filter(Boolean).slice(0, 14),
+    engine: signals.engine, loggedIn: signals.loggedIn,
+  };
+  try { await db.execute(sql`UPDATE dom_samples SET extract = ${JSON.stringify(summary)}::jsonb WHERE id = ${id}`); } catch { /* non-fatal */ }
+  return result;
 }
 
 // Seed: ghi seedSelectors của 1 sample vào selector_overrides ở scope chọn (technology

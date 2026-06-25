@@ -20,7 +20,7 @@ import {
 import { Drawer } from '@/components/drawer';
 import {
   listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
-  templateAdoption, listDomSamples, deleteDomSample, extractDomSample, seedSelectorsFromSample,
+  templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   listIdentities, getIdentity, updateIdentity,
   canonChecks, type CanonCheck,
@@ -285,6 +285,7 @@ type SubRoute =
   | { t: 'uxflow'; id: number }
   | { t: 'objpeek'; objKey: string }
   | { t: 'identity'; id: number }
+  | { t: 'domlist'; pk: string; tech?: string | null; label?: string }
   | { t: 'inst'; objKey: string; id: string; label?: string };
 type SubContent = { title: string; sub?: string; body: ReactNode; route?: SubRoute };
 const SubCtx = createContext<(c: SubContent) => void>(() => { /* noop default */ });
@@ -296,6 +297,7 @@ function renderRoute(r: SubRoute): SubContent {
   switch (r.t) {
     case 'entity': return { title: r.key, sub: `${r.scope} hub · selectors + samples`, body: <EntityScopeDrawer scope={r.scope} scopeKey={r.key} technologyKey={r.tech ?? null} />, route: r };
     case 'dom': return { title: `#${r.id}`, sub: 'extract preview', body: <DomSampleDetail id={r.id} />, route: r };
+    case 'domlist': return { title: `DOM · ${r.label || r.pk}`, sub: 'samples của platform', body: <DomSampleList platformKey={r.pk} technologyKey={r.tech ?? null} label={r.label} />, route: r };
     case 'sel': return { title: `selector #${r.id}`, sub: 'selector detail', body: <SelectorDetail id={r.id} />, route: r };
     case 'scopeSel': return { title: `${r.scopeKind} · ${r.scopeKey}`, sub: 'mọi selector của scope', body: <ScopeSelectorList scopeKind={r.scopeKind} scopeKey={r.scopeKey} />, route: r };
     case 'metric': return { title: `${r.metric} · ${r.platform}`, sub: 'train metric', body: <MetricTrainGuide metric={r.metric} platform={r.platform} via={r.via} />, route: r };
@@ -957,6 +959,12 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id, label: id } });
   };
   const openProj = (pid: string) => openSub({ title: projMap.get(pid) || pid, sub: OBJ_BY_KEY['project']?.label || 'Project', body: <InstanceDetail objKey="project" id={pid} />, route: { t: 'inst', objKey: 'project', id: pid, label: projMap.get(pid) || pid } });
+  // click cột DOM (✉/Σ) → drawer list sample của platform đó (KHÔNG mở row detail).
+  const openDomList = (e: React.MouseEvent, it: BrowseRow) => {
+    e.stopPropagation();
+    const tech = it.cols['technology_key'] ? String(it.cols['technology_key']) : null;
+    openSub({ title: `DOM · ${it.label}`, sub: `${it.cols['__domTotal'] ?? 0} sample · ${it.cols['__domNew'] ?? 0} chưa đọc`, body: <DomSampleList platformKey={it.id} technologyKey={tech} label={it.label} />, route: { t: 'domlist', pk: it.id, tech, label: it.label } });
+  };
 
   return (
     <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
@@ -1069,8 +1077,11 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
             {dataCols.map((dc, j) => {
               const v = cellVal(it, dc.key);
               const empty = v == null || v === '';
+              const domClickable = (dc.key === '__domNew' || dc.key === '__domTotal') && Number(it.cols['__domTotal'] ?? 0) > 0;
               return (
-                <span key={j} title={empty ? '' : String(v)} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 10.5, ...(dc.group ? { background: BROWSE_GROUPS[dc.group].bgSoft, margin: '-6px 0', padding: '6px 6px', borderRadius: 3 } : {}) }}>
+                <span key={j} title={domClickable ? `Mở ${it.cols['__domTotal']} DOM sample của ${it.label}` : (empty ? '' : String(v))}
+                  {...(domClickable ? { role: 'button', onClick: (e: React.MouseEvent) => openDomList(e, it) } : {})}
+                  style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 10.5, ...(domClickable ? { cursor: 'pointer', textDecoration: 'underline dotted' } : {}), ...(dc.group ? { background: BROWSE_GROUPS[dc.group].bgSoft, margin: '-6px 0', padding: '6px 6px', borderRadius: 3 } : {}) }}>
                   {empty ? <span style={{ color: 'var(--fg-4)' }}>—</span>
                     : dc.kind === 'link' && dc.link ? (
                       <span role="link" onClick={(e) => openLinked(e, dc.link!, String(v))}
@@ -2676,6 +2687,37 @@ function JsonBlock({ title, data }: { title: string; data: Record<string, unknow
             ))}
           </div>
         )}
+    </div>
+  );
+}
+
+// DOM sample LIST cho 1 platform — mở khi click cột DOM ở browse table. Unread (✉) lên đầu;
+// click 1 sample → DomSampleDetail (mở = mark-read → ✉ của platform giảm + parse selector).
+function DomSampleList({ platformKey, technologyKey, label }: { platformKey: string; technologyKey?: string | null; label?: string }) {
+  const openSub = useContext(SubCtx);
+  const [rows, setRows] = useState<DomSampleRow[] | null>(null);
+  useEffect(() => { let dead = false; listDomSamplesForPlatform(platformKey, technologyKey ?? null).then((r) => { if (!dead) setRows(r); }).catch(() => { if (!dead) setRows([]); }); return () => { dead = true; }; }, [platformKey, technologyKey]);
+  if (!rows) return <div style={{ padding: 14, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>loading DOM samples…</div>;
+  if (!rows.length) return <div style={{ padding: 14, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-3)' }}>Chưa có DOM sample nào cho <b style={{ color: 'var(--fg-1)' }}>{label || platformKey}</b>. Dùng ext capture trang để tạo.</div>;
+  const unread = rows.filter((r) => !r.readAt).length;
+  return (
+    <div style={{ padding: '4px 2px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', margin: '0 4px 8px' }}>
+        <b style={{ color: 'var(--fg-1)' }}>{rows.length}</b> sample · <span style={{ color: unread ? 'var(--warn)' : 'var(--ok)', fontWeight: 700 }}>{unread} chưa đọc</span> · mở 1 sample = đánh dấu đã đọc + parse selector
+      </div>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+        {rows.map((r, i) => (
+          <button key={r.id} onClick={() => openSub({ title: `#${r.id} · ${r.platformKey || r.hostname || ''}`, sub: 'extract preview · parse selector', body: <DomSampleDetail id={r.id} />, route: { t: 'dom', id: r.id } })}
+            style={{ display: 'grid', gridTemplateColumns: '26px 1fr 92px 56px 64px', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', border: 0, borderTop: i ? '1px solid var(--line)' : 0, padding: '7px 10px', background: i % 2 ? 'var(--bg-1)' : 'var(--bg-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
+            <span style={{ color: r.readAt ? 'var(--fg-4)' : 'var(--warn)', fontWeight: r.readAt ? 400 : 700 }} title={r.readAt ? 'đã đọc' : 'chưa đọc'}>{r.readAt ? '✓' : '✉'}</span>
+            <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.url || r.title || ''}>{r.title || r.url || r.hostname || `sample #${r.id}`}</span>
+            <span style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.pageKind}</span>
+            <span style={{ color: 'var(--fg-3)', textAlign: 'right' }}>{(r.bytes / 1024).toFixed(0)}KB</span>
+            <span style={{ color: 'var(--fg-3)', textAlign: 'right' }} title={fmtFull(r.capturedAt)}>{relAgo(r.capturedAt)}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

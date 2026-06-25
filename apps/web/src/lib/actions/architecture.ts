@@ -757,21 +757,39 @@ export async function metricCoverage(): Promise<MetricCoverage> {
 export interface DomSampleRow {
   id: number; platformKey: string | null; technologyKey: string | null;
   pageKind: string; url: string | null; hostname: string | null; title: string | null;
-  bytes: number; capturedAt: string;
+  bytes: number; capturedAt: string; readAt: string | null;
+}
+function mapDomRow(r: Record<string, unknown>): DomSampleRow {
+  return {
+    id: Number(r.id), platformKey: (r.platform_key as string | null) ?? null,
+    technologyKey: (r.technology_key as string | null) ?? null, pageKind: String(r.page_kind ?? 'page'),
+    url: (r.url as string | null) ?? null, hostname: (r.hostname as string | null) ?? null,
+    title: (r.title as string | null) ?? null, bytes: Number(r.bytes) || 0, capturedAt: String(r.captured_at),
+    readAt: (r.read_at as string | null) ?? null,
+  };
 }
 export async function listDomSamples(): Promise<DomSampleRow[]> {
   const db = getDb();
   if (!db) return [];
   try {
     const rows = await db.execute(sql`
-      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at
+      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
       FROM dom_samples ORDER BY captured_at DESC LIMIT 300`);
-    return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
-      id: Number(r.id), platformKey: (r.platform_key as string | null) ?? null,
-      technologyKey: (r.technology_key as string | null) ?? null, pageKind: String(r.page_kind ?? 'page'),
-      url: (r.url as string | null) ?? null, hostname: (r.hostname as string | null) ?? null,
-      title: (r.title as string | null) ?? null, bytes: Number(r.bytes) || 0, capturedAt: String(r.captured_at),
-    }));
+    return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
+  } catch { return []; }
+}
+// DOM samples cho 1 platform (platform_key trực tiếp HOẶC inherited technology) — click cột DOM ở
+// Studio mở list này. Unread (read_at NULL) lên đầu.
+export async function listDomSamplesForPlatform(platformKey: string, technologyKey?: string | null): Promise<DomSampleRow[]> {
+  const db = getDb();
+  if (!db || !platformKey) return [];
+  const techCond = technologyKey ? sql` OR technology_key = ${technologyKey}` : sql``;
+  try {
+    const rows = await db.execute(sql`
+      SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
+      FROM dom_samples WHERE platform_key = ${platformKey}${techCond}
+      ORDER BY (read_at IS NULL) DESC, captured_at DESC LIMIT 300`);
+    return (rows as unknown as Array<Record<string, unknown>>).map(mapDomRow);
   } catch { return []; }
 }
 // Auto-extract entity LISTS từ HTML 1 sample (generic, regex theo href pattern) để

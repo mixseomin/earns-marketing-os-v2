@@ -150,6 +150,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
           50%      { opacity: 0.35; }
         }
         .live-text { animation: live-text-pulse 1.6s ease-in-out infinite; }
+        .seo-row:hover td { filter: brightness(1.6); }
       `}</style>
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
@@ -226,7 +227,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>;
             return (
-              <tr key={r.domain} style={{ cursor: 'pointer' }}
+              <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
                   onClick={() => setOpenDomain(r.domain)}
                   title={`Click → mở chart + top queries cho ${r.domain}`}>
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>

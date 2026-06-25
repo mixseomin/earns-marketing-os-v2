@@ -1857,6 +1857,8 @@ function SurfacePreview({ k }: { k: string }) {
       return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 999, background: '#fbbf241a', border: '1px solid #fbbf2440', color: '#fbbf24', font: `700 11px ${mono}` }}>◎ 90 · warm</span>;
     case 'scene-popover':
       return <div style={{ width: 184, background: '#11161c', border: '1px solid #fbbf24', borderRadius: 8, padding: '9px 11px', color: '#e5e9f0', font: `12px/1.5 ${sys}` }}><div style={{ fontWeight: 800, marginBottom: 4 }}>◎ @automoderator</div><div>Familiarity: <b style={{ color: '#fbbf24' }}>90/100</b> · warm</div><div>Interactions: <b>0</b></div><div style={{ marginTop: 6, color: '#60a5fa' }}>↗ Xem trên MOS2</div></div>;
+    case 'scene-out':
+      return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 999, background: '#7a869915', border: '1px solid #2a323c', color: '#7a8699', font: `700 10px ${mono}` }}>◎ +scene</span>;
     case 'board-badge':
       return <span style={{ padding: '2px 9px', borderRadius: 999, background: '#3a2c08', color: '#fbbf24', border: '1px solid #fbbf2440', font: `700 11px ${mono}` }}>◆ TRACK</span>;
     case 'board-popover':

@@ -220,6 +220,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
   // persist to a cookie so the server can render the saved filter on next load (no flash). 1-year, lax.
   useEffect(() => { document.cookie = `slf=${encodeURIComponent(JSON.stringify({ range, grouped, hideClosed }))};path=/;max-age=31536000;samesite=lax`; }, [range, grouped, hideClosed]);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());   // groups whose closed trades are revealed (overrides Open-only per group)
   const router = useRouter();
   useEffect(() => { const id = setInterval(() => router.refresh(), 20000); return () => clearInterval(id); }, [router]);
 
@@ -280,7 +281,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
       const rows = sortRows(disp[name] ?? []);
       const openR = rows.filter((r) => r.isOpen);
       const pc = closedBy[name] ?? [];
-      return { name, rows, open: openR.length, float: openR.reduce((a, r) => a + usdOf(r), 0), closed: pc.length, net: pc.reduce((a, r) => a + usdOf(r), 0) };
+      return { name, rows, closedRows: sortRows(pc), open: openR.length, float: openR.reduce((a, r) => a + usdOf(r), 0), closed: pc.length, net: pc.reduce((a, r) => a + usdOf(r), 0) };
     }).sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible, periodClosed, forward]);
 
@@ -340,12 +341,14 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                       <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
                       {g.open > 0 ? <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }} title="floating P&L of open positions">{fmtPnlUsd(g.float)} float</span> : null}
                       {g.open > 0 || g.closed > 0
-                        ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }} title={`realized P&L of ${g.closed} trade(s) closed in the selected window (${range})`}>P&L{range !== 'All' ? ` (${range})` : ''} {fmtPnlUsd(g.net)}<span style={{ color: 'var(--muted)', opacity: 0.7, fontWeight: 400 }}> · {g.closed} closed</span></span>
+                        ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }} title={`realized P&L of ${g.closed} trade(s) closed in the selected window (${range})`}>P&L{range !== 'All' ? ` (${range})` : ''} {fmtPnlUsd(g.net)}{g.closed > 0
+                          ? <span onClick={() => setExpanded((prev) => { const n = new Set(prev); n.has(g.name) ? n.delete(g.name) : n.add(g.name); return n; })} title="show/hide these closed trades" style={{ color: 'var(--muted)', opacity: 0.85, fontWeight: 400, cursor: 'pointer', marginLeft: 4, textDecoration: 'underline dotted' }}> · {g.closed} closed {expanded.has(g.name) ? '▾' : '▸'}</span>
+                          : null}</span>
                         : <span style={{ marginLeft: 8, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }}>warming · no trades yet</span>}
                       {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }} title="all-time live equity since this sleeve started ($10k base)">💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
                     </td>
                   </tr>
-                  {g.rows.map((t) => <Row key={String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
+                  {(expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [String(t.entryTime) + t.symbol + String(t.exitTime), t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
                 </Fragment>
               ))
               : sortRows(visible).map((t) => <Row key={t.strategy + String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy />)}

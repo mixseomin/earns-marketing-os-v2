@@ -295,8 +295,9 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
 
   return (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 12.5 }}>
+      <style>{`@media (max-width:640px){.lo-bar{gap:6px!important;margin-bottom:8px!important}.lo-summary{font-size:11px!important;flex-basis:100%}.lo-auto{display:none!important}.lo-bar select,.lo-bar button{font-size:10.5px!important;padding:3px 7px!important}}`}</style>
+      <div className="lo-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+        <span className="lo-summary" style={{ fontSize: 12.5 }}>
           <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open{openN > 0 ? <span style={{ color: 'var(--muted)', opacity: 0.7, fontSize: 11 }} title="total unrealized / floating P&L of open positions"> ({fmtPnlUsd(openFloat)} float)</span> : null} · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
           {sleeveEq.length > 0 ? <span title="combined live equity of all strategy sleeves vs $10k each (matches the 💰 badge per group)"> · 💰 total <b>${Math.round(totalEquity).toLocaleString()}</b> <b style={{ color: totalPnlPct >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>({totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%)</b></span> : null}
         </span>
@@ -317,7 +318,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
           </optgroup>
           <option value="All">All</option>
         </select>
-        <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 20s</span>
+        <span className="lo-auto" style={{ fontSize: 10.5, color: 'var(--muted)' }}>🟢 auto 20s</span>
       </div>
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>

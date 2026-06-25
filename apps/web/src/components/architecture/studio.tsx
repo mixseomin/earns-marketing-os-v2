@@ -2724,12 +2724,7 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
               <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title={r.url || r.title || ''}>{r.title || r.url || r.hostname || `sample #${r.id}`}</span>
               {ex ? (
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3, fontSize: 9.5 }}>
-                  {ex.counts.users > 0 && <span style={{ color: '#b48cff' }}>◆{ex.counts.users}</span>}
-                  {ex.counts.threads > 0 && <span style={{ color: 'var(--accent)' }}>≡{ex.counts.threads}</span>}
-                  {ex.counts.boards > 0 && <span style={{ color: 'var(--ok)' }}>▦{ex.counts.boards}</span>}
-                  {ex.counts.inputs > 0 && <span style={{ color: 'var(--fg-3)' }}>⌨{ex.counts.inputs}</span>}
-                  {ex.engine && <span style={{ color: '#b48cff' }}>{ex.engine}</span>}
-                  {[...new Set([...(ex.selFields || []), ...(ex.inputs || [])])].slice(0, 8).map((f) => (
+                  {[...new Set([...(ex.selFields || []), ...(ex.inputs || [])])].slice(0, 10).map((f) => (
                     <span key={f} style={{ color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>{f}</span>
                   ))}
                 </div>

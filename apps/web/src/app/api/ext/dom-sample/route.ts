@@ -10,15 +10,20 @@ export const revalidate = 0;
 
 const MAX_HTML = 6_000_000; // ~6MB guard
 
-// Đoán page_kind từ URL (phpBB + generic forum patterns). Chỉ là nhãn để xếp thư
-// viện — Claude vẫn đọc html thật để extract đúng field.
+// Đoán page_kind từ URL. Chỉ là nhãn để xếp thư viện — Claude vẫn đọc html thật
+// để extract đúng field. NAMING: page_kind phải PLATFORM-NEUTRAL — đừng mượn tên
+// riêng của 1 nền tảng làm nhãn chung. `subreddit-about` CHỈ dành cho Reddit
+// (cộng đồng /r/<sub>/about); board listing của forum thường = `thread-list`.
 function guessPageKind(url: string): string {
   const u = (url || '').toLowerCase();
-  if (/memberlist\.php[^#]*mode=viewprofile|\/u\/|\/user\/|\/users\/|\/profile|\/member\.|\/members\//.test(u)) return 'account-profile';
+  // Reddit community-about — namespaced, chỉ match URL reddit thật
+  if (/reddit\.com\/r\/[^/]+\/about|\/r\/[^/]+\/?$/.test(u)) return 'subreddit-about';
+  if (/memberlist\.php[^#]*mode=viewprofile|\/u\/|\/user\/|\/users\/|\/profile|\/member\.|\/members?\/\w/.test(u)) return 'account-profile';
   if (/posting\.php[^#]*mode=(reply|post|quote)|\/submit|\/compose|\/new-post|\/post\/new/.test(u)) return 'composer';
   if (/ucp\.php[^#]*mode=register|\/register|\/signup|\/sign-up|\/join\b/.test(u)) return 'signup';
   if (/viewtopic\.php|\/thread|\/topic|\/t\/\d|comments\//.test(u)) return 'post-metrics';
-  if (/viewforum\.php|\/forum|\/board|memberlist\.php/.test(u)) return 'subreddit-about';
+  if (/memberlist\.php/.test(u)) return 'member-list';
+  if (/viewforum\.php|\/forum|\/board|\/forums?\//.test(u)) return 'thread-list';
   return 'page';
 }
 

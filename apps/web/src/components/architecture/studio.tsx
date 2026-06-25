@@ -858,19 +858,24 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const parent = obj.picker?.parent;
   const crossProject = !!obj.picker?.crossProject;
   const projectScoped = !!obj.projectScoped && !crossProject && !parent;
-  const [projectId, setProjectId] = useState(defaultProject || projects[0]?.id || '');
-  const [parentId, setParentId] = useState('');
+  // Phiên làm việc bền qua F5: search/filter/sort/project nhớ theo TỪNG object (localStorage).
+  const sKey = `mos2_arch_sess_${obj.key}`;
+  const sess0 = (() => { try { const v = JSON.parse(localStorage.getItem(sKey) || '{}'); return (v && typeof v === 'object') ? v : {}; } catch { return {}; } })();
+  const [projectId, setProjectId] = useState(sess0.projectId || defaultProject || projects[0]?.id || '');
+  const [parentId, setParentId] = useState(sess0.parentId || '');
   const [parentInstances, setParentInstances] = useState<InstanceRef[]>([]);
-  const [q, setQ] = useState('');
-  const [qDeb, setQDeb] = useState('');
+  const [q, setQ] = useState(sess0.q || '');
+  const [qDeb, setQDeb] = useState(sess0.q ? String(sess0.q).trim() : '');   // seed để fetch đầu dùng luôn query đã lưu
   const [page, setPage] = useState(0);
   const [data, setData] = useState<InstancePage>({ rows: [], total: 0 });
   const [loading, setLoading] = useState(false);
   const PAGE = 25;
   // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
-  const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
+  const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(sess0.sort && sess0.sort.col ? sess0.sort : null);
   const hasMissingCol = (obj.browseCols || []).some((c) => c.col === '__missingSel');
-  const [flt, setFlt] = useState<'empty' | 'partial' | 'full' | 'broken' | null>(null);
+  const [flt, setFlt] = useState<'empty' | 'partial' | 'full' | 'broken' | null>(sess0.flt || null);
+  // Lưu phiên mỗi khi 1 trục thay đổi (page bỏ qua — reset effect dưới luôn về 0 khi mount).
+  useEffect(() => { try { localStorage.setItem(sKey, JSON.stringify({ q, sort, flt, projectId, parentId })); } catch {} }, [sKey, q, sort, flt, projectId, parentId]);
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
   // Column GROUPS (Info/Posting/Selectors/DOM) — colored bands + show/hide như SEO overview.
   const bc = obj.browseCols || [];

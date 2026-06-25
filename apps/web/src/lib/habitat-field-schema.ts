@@ -145,9 +145,10 @@ export const FIELD_SCHEMAS: Record<string, FieldSchemaEntry[]> = {
   // Future: subreddit-rules, fb-group-about, discord-server-about ...
 };
 
-// Field signup là interaction WRITE → selector cần attr='value' (fill), khác
-// các page_kind READ (textContent/parse). save-selector dùng để default attr.
-export const WRITE_PAGE_KINDS = new Set(['signup']);
+// Field WRITE (signup/composer) → selector cần attr='value' (fill), khác page_kind
+// READ (textContent/parse). Nguồn: lib/canon/page-kinds.ts (mode='write'). Re-export
+// để giữ import path cũ ổn định.
+export { WRITE_PAGE_KINDS } from './canon/page-kinds';
 
 export function getFieldSchema(pageKind: string): FieldSchemaEntry[] {
   return FIELD_SCHEMAS[pageKind] ?? [];

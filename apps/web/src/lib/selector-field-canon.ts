@@ -1,4 +1,5 @@
 // Canonical field-name normalizer for selector_overrides.
+import { VERBATIM_PAGE_KINDS } from './canon/page-kinds';
 //
 // PROBLEM: field_name was free-text. The same physical input got different
 // keys depending on which writer ran (LLM learn vs on-page train vs a typo):
@@ -64,7 +65,7 @@ export function mechCanon(raw: string): string {
 const PRESERVE_DOTTED = /^(composer|post|viewer|thread|parent|metric)\.[a-z0-9_]+$/i;
 //   - the whole 'composer' page_kind: every field is a selector entity name (incl non-dotted
 //     camelCase like 'replyAction') that the ext maps by exact key.
-const VERBATIM_PAGE_KINDS = new Set(['composer']);
+// Source: lib/canon/page-kinds.ts (verbatimFields flag) — import ở đầu file.
 
 // Full canonical: structural fields verbatim; form fields → mechanical + page-kind alias fold.
 // Returns '' for empty input so callers can reject. Idempotent.

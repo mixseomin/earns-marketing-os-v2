@@ -822,6 +822,17 @@ export const CANON: CanonEntity[] = [
     ],
   },
   {
+    key: 'pageKind', label: 'Page kind catalog', group: 'infra',
+    signature: 'guessPageKind(url) → key; mỗi page_kind = { mode, urlHint, verbatimFields, fillAttr }',
+    backendRef: 'PAGE_KINDS → lib/canon/page-kinds.ts (guessPageKind + WRITE/VERBATIM_PAGE_KINDS derive từ đây)',
+    extRef: '(ext gửi URL; backend stamp page_kind. /api/ext/page-kinds expose catalog — pending)',
+    generatedFrom: 'PAGE_KINDS catalog',
+    references: [
+      { file: 'apps/web/src/lib/canon/page-kinds.ts', line: 30 },
+      { file: 'apps/web/src/app/api/ext/dom-sample/route.ts' },
+    ],
+  },
+  {
     key: 'boardClass', label: 'Board / community identity', group: 'infra',
     signature: 'boardKey(url) → { platformKey, externalId, kind, name } discriminator',
     backendRef: 'canon.boardKey → lib/board-radar.ts boardKeyFromUrl',

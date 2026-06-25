@@ -23,11 +23,11 @@ import {
   listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
-  listIdentities, getIdentity, updateIdentity,
+  getIdentity, updateIdentity,
   canonChecks, type CanonCheck,
   type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
-  type UxFlowRow, type UxFlowDetailData, type IdentityRow, type IdentityDetailData,
+  type UxFlowRow, type UxFlowDetailData, type IdentityDetailData,
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
@@ -767,7 +767,9 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
 
 // Nodes đã có panel liệt kê item riêng (UI chuyên biệt) → KHÔNG hiện InstanceBrowser
 // generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
-const HAS_OWN_LIST = new Set(['identity', 'domSample', 'uxFlow', 'selector']);
+// identity ĐÃ chuyển sang InstanceBrowser chung (full list + paginate + filter + search) — click row
+// mở IdentityDetail editable. Chỉ còn dom/uxflow/selector giữ panel chuyên biệt.
+const HAS_OWN_LIST = new Set(['domSample', 'uxFlow', 'selector']);
 
 // relative "x ago" for time columns (hover = full timestamp via the cell title).
 function relAgo(v: unknown): string {
@@ -956,10 +958,17 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const projMap = new Map(projects.map((p) => [p.id, p.name]));   // id → name cho cột project
   const grid = widths.map((w) => (w == null ? 'minmax(150px,1fr)' : `${w}px`)).join(' ');   // null=text tự do(1fr); số=px(compact/resize)
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
-  const open = (it: InstanceRef) => openSub({
-    title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
-    body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id, label: it.label },
-  });
+  const open = (it: InstanceRef) => {
+    // identity: mở drawer EDITABLE (IdentityDetail) thay vì InstanceDetail read-only chung.
+    if (obj.key === 'identity') {
+      openSub({ title: it.label || `identity #${it.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={Number(it.id)} />, route: { t: 'identity', id: Number(it.id) } });
+      return;
+    }
+    openSub({
+      title: it.label || `#${it.id}`, sub: `${obj.label} · #${it.id}`,
+      body: <InstanceDetail objKey={obj.key} id={it.id} />, route: { t: 'inst', objKey: obj.key, id: it.id, label: it.label },
+    });
+  };
   const openLinked = (e: React.MouseEvent, objKey: string, id: string) => {
     e.stopPropagation();   // ko trigger row click (mở account); chỉ mở drawer của entity được link
     openSub({ title: id, sub: OBJ_BY_KEY[objKey]?.label || objKey, body: <InstanceDetail objKey={objKey} id={id} />, route: { t: 'inst', objKey, id, label: id } });
@@ -1529,13 +1538,6 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
       {obj.key === 'uxFlow' && (
         <Section title="UX Flows" sub="// need→action · click step mở drawer entity · drive thiết kế ext">
           <UxFlowsPanel />
-        </Section>
-      )}
-
-      {/* Identities — list per project → drawer xem chi tiết persona + edit inline */}
-      {obj.key === 'identity' && (
-        <Section title="Identities" sub="// theo project · click mở chi tiết + sửa · password ẩn">
-          <IdentitiesPanel projectId={projectId} />
         </Section>
       )}
 
@@ -2689,34 +2691,6 @@ function ObjPeek({ objKey }: { objKey: string }) {
       )}
       {o.routes.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', marginTop: 8, wordBreak: 'break-all' }}>{o.routes.join(' · ')}</div>}
       {o.deepLink && <a href={o.deepLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--accent)' }}>↗ manage real {o.label}</a>}
-    </div>
-  );
-}
-
-// ── Identities (node drawer) — list per project → open → view + edit ─────────
-function IdentitiesPanel({ projectId }: { projectId: string }) {
-  const openSub = useContext(SubCtx);
-  const [rows, setRows] = useState<IdentityRow[] | null>(null);
-  useEffect(() => { let dead = false; setRows(null); listIdentities(projectId || undefined).then((r) => { if (!dead) setRows(r); }); return () => { dead = true; }; }, [projectId]);
-  if (!rows) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
-  if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có identity cho project này. Tạo ở <a href="/identities" style={{ color: 'var(--accent)' }}>/identities</a>.</div>;
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {rows.map((it) => (
-        <button key={it.id} onClick={() => openSub({ title: it.name || `identity #${it.id}`, sub: `${it.kind || ''} · @${it.handleBase || '—'}`, body: <IdentityDetail id={it.id} />, route: { t: 'identity', id: it.id } })}
-          style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px', background: 'var(--bg-1)', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 600 }}>{it.name || `#${it.id}`}</span>
-            {it.kind && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 3, padding: '0 5px' }}>{it.kind}</span>}
-            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)' }}>edit ↗</span>
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', marginTop: 3 }}>
-            {it.handleBase ? <span style={{ color: 'var(--accent)' }}>@{it.handleBase}</span> : <span style={{ color: 'var(--fg-4)' }}>no handle</span>}
-            {it.email && <span> · {it.email}</span>}
-            {it.displayName && it.displayName !== it.name && <span> · “{it.displayName}”</span>}
-          </div>
-        </button>
-      ))}
     </div>
   );
 }

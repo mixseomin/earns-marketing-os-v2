@@ -210,6 +210,13 @@ export const OBJECTS: ArchObject[] = [
     table: 'identities', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'Reusable signup identity preset (persona template), defined per project. An account MAY be based on one — optional, not fixed.',
     picker: { subExpr: 't.kind' },
+    browseCols: [
+      { col: 'project_id', label: 'project', kind: 'project' },
+      { col: 'kind', label: 'kind', kind: 'badge' },
+      { col: 'handle_base', label: 'handle' },
+      { col: 'email', label: 'email' },
+      { col: 'updated_at', label: 'updated', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'projectId', col: 'project_id', type: 'fk' },

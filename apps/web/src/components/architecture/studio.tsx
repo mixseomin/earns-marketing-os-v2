@@ -2721,7 +2721,7 @@ function DomSampleList({ platformKey, label }: { platformKey: string; label?: st
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? 'var(--bg-1)' : 'var(--bg-2)')}>
             <span style={{ color: r.readAt ? 'var(--fg-4)' : 'var(--warn)', fontWeight: r.readAt ? 400 : 700, paddingTop: 1 }} title={r.readAt ? 'đã đọc' : 'chưa đọc'}>{r.readAt ? '✓' : '✉'}</span>
             <div style={{ overflow: 'hidden' }}>
-              <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title={r.url || r.title || ''}>{r.title || r.url || r.hostname || `sample #${r.id}`}</span>
+              <span style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }} title={r.url || r.title || ''}><span style={{ color: 'var(--accent)', fontWeight: 700 }}>#{r.id}</span> {r.title || r.url || r.hostname || `sample #${r.id}`}</span>
               {ex ? (
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3, fontSize: 9.5 }}>
                   {[...new Set([...(ex.selFields || []), ...(ex.inputs || [])])].slice(0, 10).map((f) => (

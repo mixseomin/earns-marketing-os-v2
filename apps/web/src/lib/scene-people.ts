@@ -8,6 +8,40 @@ import { sql } from 'drizzle-orm';
 type Executor = { execute: (q: ReturnType<typeof sql>) => Promise<unknown> };
 type Reply = { author?: string; body?: string; permalink?: string; repliedToYou?: boolean };
 
+// ── SCENE 2-tier (identity global + relationship per project/account) ─────────
+// scene_identities = 1 row/(platform,handle) GLOBAL. people = relationship (familiarity
+// per project + account). Canonical platform x→twitter (đồng nhất identity, khỏi tách đôi).
+const firstId = (res: unknown): number | null => Number((res as Array<Record<string, unknown>>)[0]?.id) || null;
+export function canonScenePlatform(pk: string): string {
+  const k = (pk || '').trim().toLowerCase();
+  return k === 'x' ? 'twitter' : k;
+}
+/** Resolve/create identity GLOBAL theo (platform canonical, handle). Trả identity_id. */
+export async function ensureIdentity(db: Executor, platformKey: string, handle: string, displayName?: string | null): Promise<number | null> {
+  const pk = canonScenePlatform(platformKey);
+  const h = String(handle || '').replace(/^@/, '').trim().toLowerCase();
+  if (!pk || !h) return null;
+  return firstId(await db.execute(sql`
+    INSERT INTO scene_identities (tenant_id, platform_key, handle, display_name)
+    VALUES ('self', ${pk}, ${h}, ${displayName ?? null})
+    ON CONFLICT (tenant_id, platform_key, handle)
+    DO UPDATE SET display_name = COALESCE(scene_identities.display_name, EXCLUDED.display_name), updated_at = now()
+    RETURNING id`));
+}
+/** Upsert relationship (people row) theo (project, identity, account). account 0 = project-level (observe). */
+export async function ensureRelationship(
+  db: Executor,
+  o: { projectId: string; identityId: number; accountId?: number | null; platformKey: string; handle: string; engaged?: boolean },
+): Promise<number | null> {
+  const acct = o.accountId != null ? Number(o.accountId) || 0 : 0;
+  const eng = o.engaged ? sql`, last_engaged_at = now()` : sql``;
+  return firstId(await db.execute(sql`
+    INSERT INTO people (tenant_id, project_id, identity_id, account_id, platform_key, handle, status, last_engaged_at, created_at, updated_at)
+    VALUES ('self', ${o.projectId}, ${o.identityId}, ${acct}, ${canonScenePlatform(o.platformKey)}, ${String(o.handle || '').replace(/^@/, '').trim().toLowerCase()}, 'observed', ${o.engaged ? sql`now()` : sql`NULL`}, now(), now())
+    ON CONFLICT (project_id, identity_id, account_id) DO UPDATE SET updated_at = now()${eng}
+    RETURNING id`));
+}
+
 // Recompute familiarity (0..100) — 1 SOURCE cho MỌI đường (forward-fill insights + outbound
 // /scene/interact). Nguyên tắc: **mọi tương tác = cơ hội tăng hiện diện** → mỗi interaction
 // cộng trọng số theo loại; reciprocation (direction='theirs', họ reply/engage lại mình) nặng
@@ -74,12 +108,10 @@ export async function recordReplierInteractions(db: Executor, cardId: number, re
       const threadUrl = (r.permalink ? String(r.permalink) : postUrl)?.slice(0, 400) ?? null;
       const bodyExcerpt = r.body ? String(r.body).slice(0, 600) : null;
 
-      const upRes = await db.execute(sql`
-        INSERT INTO people (tenant_id, project_id, platform_key, handle, habitat_id, status, last_engaged_at, created_at, updated_at)
-        VALUES ('self', ${projectId}, ${platformKey}, ${handle}, ${habitatId}, 'observed', now(), now(), now())
-        ON CONFLICT (project_id, platform_key, handle) DO UPDATE SET updated_at = now()
-        RETURNING id`);
-      const pid = Number((upRes as unknown as Array<Record<string, unknown>>)[0]?.id);
+      void habitatId;   // habitat KHÔNG còn buộc vào người (relationship per project/account)
+      const identityId = await ensureIdentity(db, platformKey, handle);
+      if (!identityId) continue;
+      const pid = await ensureRelationship(db, { projectId, identityId, accountId, platformKey, handle, engaged: true });
       if (!pid) continue;
 
       await db.execute(sql`

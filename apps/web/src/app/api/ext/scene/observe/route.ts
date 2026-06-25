@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { firstRow, errorResponse } from '@/lib/ext-route';
+import { ensureIdentity, ensureRelationship } from '@/lib/scene-people';
 
 // POST /api/ext/scene/observe
 // Passive participant logging — khi xem 1 thread/community, log MỌI participant
@@ -32,14 +33,14 @@ export async function POST(req: Request) {
     if (h && h.platform_key) pk = String(h.platform_key);
   }
 
+  // 2-tier: identity GLOBAL (platform+handle) + relationship per project (account 0 = observed-level).
   let added = 0;
   for (const handle of handles) {
-    const res = await db.execute(sql`
-      INSERT INTO people (tenant_id, project_id, platform_key, handle, habitat_id, status, created_at, updated_at)
-      VALUES ('self', ${projectId}, ${pk}, ${handle}, ${habitatId}, 'observed', now(), now())
-      ON CONFLICT (project_id, platform_key, handle) DO NOTHING
-      RETURNING id`);
-    if ((res as unknown as Array<unknown>).length) added++;
+    const identityId = await ensureIdentity(db, pk, handle);
+    if (!identityId) continue;
+    const before = firstRow(await db.execute(sql`SELECT id FROM people WHERE project_id = ${projectId} AND identity_id = ${identityId} AND account_id = 0 LIMIT 1`));
+    await ensureRelationship(db, { projectId, identityId, accountId: 0, platformKey: pk, handle });
+    if (!before) added++;
   }
   return NextResponse.json({ ok: true, count: added, total: handles.length });
 }

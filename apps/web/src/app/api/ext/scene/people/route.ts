@@ -23,12 +23,17 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
+  // 2-tier: handle ở scene_identities (global); familiarity ở people (relationship per account).
+  // Badge = mức THÂN NHẤT của mình với người đó trong project (DISTINCT ON handle, max familiarity).
   const res = await db.execute(handles.length
-    ? sql`SELECT handle, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE project_id = ${projectId} AND handle = ANY(${handles}::text[])`
-    : sql`SELECT handle, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE project_id = ${projectId}
-            ORDER BY familiarity_score DESC LIMIT 200`);
+    ? sql`SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+            FROM people p JOIN scene_identities i ON i.id = p.identity_id
+            WHERE p.project_id = ${projectId} AND i.handle = ANY(${handles}::text[])
+            ORDER BY i.handle, p.familiarity_score DESC NULLS LAST`
+    : sql`SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+            FROM people p JOIN scene_identities i ON i.id = p.identity_id
+            WHERE p.project_id = ${projectId}
+            ORDER BY i.handle, p.familiarity_score DESC NULLS LAST LIMIT 200`);
   const rows = res as unknown as Array<Record<string, unknown>>;
 
   const people: Record<string, { familiarity: number; status: string; interactions: number; repliedBack: boolean }> = {};

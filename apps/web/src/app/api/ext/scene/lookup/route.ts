@@ -22,14 +22,18 @@ export async function GET(req: Request) {
 
   // x/twitter duality: ext gửi 'x' nhưng habitat/feed lưu canonical 'twitter' → match CẢ HAI.
   // (drizzle bind JS array thành RECORD → `ANY(${arr}::text[])` lỗi 42846 → dùng OR tường minh.)
-  const pkAlt = pk === 'x' ? 'twitter' : pk === 'twitter' ? 'x' : pk;
+  // 2-tier: identity canonical (x→twitter đã merge thành 1 identity) → khỏi OR alias. people join
+  // identity, mỗi project lấy row THÂN NHẤT (DISTINCT ON project_id).
+  const pkCanon = pk === 'x' ? 'twitter' : pk;
   const list = rows(await db.execute(pk
-    ? sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE tenant_id = 'self' AND handle = ${handle} AND (platform_key = ${pk} OR platform_key = ${pkAlt})
-            ORDER BY familiarity_score DESC NULLS LAST`
-    : sql`SELECT project_id, familiarity_score, status, interaction_count, they_replied_back
-            FROM people WHERE tenant_id = 'self' AND handle = ${handle}
-            ORDER BY familiarity_score DESC NULLS LAST`));
+    ? sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+            FROM people p JOIN scene_identities i ON i.id = p.identity_id
+            WHERE i.tenant_id = 'self' AND i.handle = ${handle} AND i.platform_key = ${pkCanon}
+            ORDER BY p.project_id, p.familiarity_score DESC NULLS LAST) t ORDER BY familiarity_score DESC NULLS LAST`
+    : sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+            FROM people p JOIN scene_identities i ON i.id = p.identity_id
+            WHERE i.tenant_id = 'self' AND i.handle = ${handle}
+            ORDER BY p.project_id, p.familiarity_score DESC NULLS LAST) t ORDER BY familiarity_score DESC NULLS LAST`));
 
   if (!list.length) return NextResponse.json({ ok: true, person: null });
   const top = list[0] as Record<string, unknown>;

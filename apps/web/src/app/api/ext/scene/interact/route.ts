@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { firstRow, errorResponse } from '@/lib/ext-route';
-import { recomputeFamiliarity } from '@/lib/scene-people';
+import { recomputeFamiliarity, ensureIdentity, ensureRelationship } from '@/lib/scene-people';
 
 // POST /api/ext/scene/interact
 // Tương tác OUTBOUND mình→họ (like/reply/follow/repost/bookmark) với 1 scene person →
@@ -49,13 +49,12 @@ export async function POST(req: Request) {
   const bodyExcerpt = body.bodyExcerpt ? String(body.bodyExcerpt).slice(0, 600) : null;
   const accountId = body.accountId != null ? (Number(body.accountId) || null) : null;
 
-  // Upsert person (engaging tự lên qua recompute, KHÔNG ép status ở đây).
-  const upRes = await db.execute(sql`
-    INSERT INTO people (tenant_id, project_id, platform_key, handle, habitat_id, status, last_engaged_at, created_at, updated_at)
-    VALUES ('self', ${projectId}, ${pk}, ${handle}, ${habitatId}, 'observed', now(), now(), now())
-    ON CONFLICT (project_id, platform_key, handle) DO UPDATE SET updated_at = now(), last_engaged_at = now()
-    RETURNING id`);
-  const pid = Number(firstRow(upRes)?.id);
+  // 2-tier upsert: identity GLOBAL + relationship per (project, ACCOUNT) — familiarity riêng theo
+  // account mình tương tác (account A thân ≠ account B). account null → 0 (project-level).
+  void habitatId;   // người KHÔNG buộc vào habitat nữa
+  const identityId = await ensureIdentity(db, pk, handle);
+  if (!identityId) return errorResponse('identity upsert failed', 500);
+  const pid = await ensureRelationship(db, { projectId, identityId, accountId, platformKey: pk, handle, engaged: true });
   if (!pid) return errorResponse('person upsert failed', 500);
 
   // Dedup tay (card_id NULL): cùng người + cùng kind + cùng thread = đã log → bỏ qua.

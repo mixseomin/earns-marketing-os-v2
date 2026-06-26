@@ -81,11 +81,62 @@ export function buildFollowupEmail(p: { agentName?: string | null; base?: string
   return { subject, body };
 }
 
+// Resource/blog sites (military-spouse blogs, PCS guides, veteran resources) are a
+// different audience from realtors: they curate content for readers, not a single
+// base-relocation page. Pitched as a free, useful widget for their military readers.
+// Source 'resource-engine' marks these (set by the prospecting engine's resources mode).
+export function buildResourceEmail(p: { agentName?: string | null }, followup = false): {
+  subject: string;
+  body: string;
+} {
+  const name = firstNameOf(p.agentName || '');
+  const iframe = `<iframe src="https://militarycalc.com/embed/bah-map" width="100%" height="560" style="border:1.5px solid #1D1F27;border-radius:8px" loading="lazy" title="2026 BAH by state - MilitaryCalc"></iframe>\n<p style="font:13px/1.5 system-ui,sans-serif;margin:6px 0 0;color:#555">Powered by <a href="https://militarycalc.com/bah" target="_blank" rel="noopener">MilitaryCalc</a> - free 2026 BAH calculator for every U.S. base</p>`;
+  if (followup) {
+    return {
+      subject: `Following up - free 2026 BAH widget for your readers`,
+      body: [
+        `Hi ${name},`,
+        ``,
+        `Floating this back up - the free interactive BAH map is still yours if it is useful for your military audience. One copy-paste, no signup, and it stays current with the official DoD rates on its own.`,
+        ``,
+        `Preview and the other tools: https://militarycalc.com/tools`,
+        ``,
+        `No worries at all if it is not a fit.`,
+        ``,
+        `Best,`,
+        SIGNATURE,
+        `MilitaryCalc - militarycalc.com`,
+      ].join('\n'),
+    };
+  }
+  return {
+    subject: `A free 2026 BAH calculator for your military readers`,
+    body: [
+      `Hi ${name},`,
+      ``,
+      `I run MilitaryCalc, a free tools site for service members. Your content is a great fit for something I built and give away.`,
+      ``,
+      `It is an interactive 2026 BAH-by-state map: a reader taps their state and sees the current housing allowance for their paygrade and dependents, then a link to every base rate. Free, no signup, a quick copy-paste (works in a WordPress Custom HTML block or any site builder):`,
+      ``,
+      iframe,
+      ``,
+      `Live preview and the other calculators (VA loan, pay, GI Bill): https://militarycalc.com/tools`,
+      ``,
+      `Use it however helps your readers - the only ask is leaving the small "Powered by MilitaryCalc" link in place.`,
+      ``,
+      `Best,`,
+      SIGNATURE,
+      `MilitaryCalc - militarycalc.com`,
+    ].join('\n'),
+  };
+}
+
 /** Picks the initial pitch for fresh prospects, the short nudge once contacted. */
-export function buildEmailForProspect(p: { agentName?: string | null; base?: string | null; status?: string | null }): {
+export function buildEmailForProspect(p: { agentName?: string | null; base?: string | null; status?: string | null; source?: string | null }): {
   subject: string;
   body: string;
 } {
   const isFollowup = !!p.status && ['sent', 'followup_1', 'followup_2'].includes(p.status);
+  if (p.source === 'resource-engine') return buildResourceEmail(p, isFollowup);
   return isFollowup ? buildFollowupEmail(p) : buildOutreachEmail(p);
 }

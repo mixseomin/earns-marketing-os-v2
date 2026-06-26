@@ -510,7 +510,7 @@ function EmailDrawer({
   const [formBusy, setFormBusy] = useState(false);
   const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
   const saveDraft = async () => { await updateProspectDraft(projectId, p.id, { subject, body }); setSavedDraft(true); setTimeout(() => setSavedDraft(false), 1500); router.refresh(); };
-  const resetTpl = () => { const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status }); setSubject(e.subject); setBody(e.body); };
+  const resetTpl = () => { const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source }); setSubject(e.subject); setBody(e.body); };
   // Local contact copy so edits ("field reality") flip FORM<->EMAIL live without reopening.
   const [cur, setCur] = useState({ email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' });
   const [editing, setEditing] = useState(false);
@@ -524,7 +524,7 @@ function EmailDrawer({
     if (p.emailBody) {
       setSubject(p.emailSubject ?? ''); setBody(p.emailBody);   // restore the operator's saved/sent edit
     } else {
-      const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status });
+      const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source });
       setSubject(e.subject); setBody(e.body);
     }
   }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status, p.emailSubject, p.emailBody]);

@@ -23,7 +23,7 @@ export async function sendProspectEmail(
   if (!key || !secret) return { ok: false, error: 'Mailjet not configured on server' };
 
   const rows = await db.execute(sql`
-    SELECT agent_name, base, email, status FROM outreach_prospects
+    SELECT agent_name, base, email, status, source FROM outreach_prospects
     WHERE id = ${id} AND project_id = ${projectId} LIMIT 1`);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
   if (!r) return { ok: false, error: 'Prospect not found' };
@@ -40,6 +40,7 @@ export async function sendProspectEmail(
     agentName: r.agent_name as string | null,
     base: r.base as string | null,
     status,
+    source: r.source as string | null,
   });
   // Use the operator's edited subject/body when provided (they fix the greeting etc. in the drawer).
   const subject = override?.subject?.trim() || tpl.subject;

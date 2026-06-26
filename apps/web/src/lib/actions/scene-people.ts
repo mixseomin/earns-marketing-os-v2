@@ -3,6 +3,10 @@ import { getDb } from '@mos2/db';
 
 // Read side for the WHO-THEM Scenes view (migration 0099). Sorted by
 // familiarity so bridge-ready people surface first.
+export type SceneContacts = {
+  userId?: string; profile?: string; pm?: string; email?: string;
+  website?: string; location?: string; posts?: number; host?: string; engine?: string;
+};
 export type ScenePersonRow = {
   id: number;
   handle: string;
@@ -15,6 +19,7 @@ export type ScenePersonRow = {
   theyRepliedBack: boolean;
   status: string;
   lastEngagedAt: string | null;
+  contacts: SceneContacts | null;   // từ scene_identities.scraped_meta.contacts (scrape forum: userId/profile/PM/email)
 };
 
 export async function listProjectScenePeople(projectId: string): Promise<ScenePersonRow[]> {
@@ -24,9 +29,11 @@ export async function listProjectScenePeople(projectId: string): Promise<ScenePe
     const res = await db.execute(sql`
       SELECT p.id, p.handle, p.platform_key, p.scene_tag, p.habitat_id,
              h.name AS habitat_name, p.familiarity_score, p.interaction_count,
-             p.they_replied_back, p.status, p.last_engaged_at
+             p.they_replied_back, p.status, p.last_engaged_at,
+             i.scraped_meta -> 'contacts' AS contacts
       FROM people p
       LEFT JOIN habitats h ON h.id = p.habitat_id
+      LEFT JOIN scene_identities i ON i.id = p.identity_id
       WHERE p.project_id = ${projectId}
       ORDER BY p.familiarity_score DESC, p.interaction_count DESC, p.updated_at DESC
       LIMIT 500`);
@@ -43,6 +50,7 @@ export async function listProjectScenePeople(projectId: string): Promise<ScenePe
       theyRepliedBack: r.they_replied_back === true,
       status: String(r.status ?? 'observed'),
       lastEngagedAt: r.last_engaged_at != null ? String(r.last_engaged_at) : null,
+      contacts: (r.contacts && typeof r.contacts === 'object') ? (r.contacts as SceneContacts) : null,
     }));
   } catch {
     return [];

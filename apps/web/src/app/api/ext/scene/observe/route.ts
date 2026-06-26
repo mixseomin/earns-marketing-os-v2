@@ -15,12 +15,15 @@ export async function POST(req: Request) {
   const authErr = checkAuth(req);
   if (authErr) return authErr;
 
-  const body = await req.json().catch(() => ({})) as { projectId?: string; habitatId?: number; platformKey?: string; handles?: string[] };
+  const body = await req.json().catch(() => ({})) as { projectId?: string; habitatId?: number; platformKey?: string; handles?: string[]; contacts?: Record<string, Record<string, unknown>> };
   const projectId = (body.projectId || '').trim();
   const habitatId = Number(body.habitatId || 0) || null;
   const handles = Array.isArray(body.handles)
     ? [...new Set(body.handles.map((h) => String(h || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean))].slice(0, 60)
     : [];
+  // contacts: map handle(lowercased) → { userId, profile, pm, email, website, location, posts, host, engine }.
+  // Scrape từ forum (cực giá trị outreach) → merge vào scene_identities.scraped_meta.contacts. Latest-wins.
+  const contacts = (body.contacts && typeof body.contacts === 'object') ? body.contacts : {};
   if (!projectId || !handles.length) return errorResponse('projectId + handles required', 400);
 
   const db = getDb();
@@ -34,13 +37,21 @@ export async function POST(req: Request) {
   }
 
   // 2-tier: identity GLOBAL (platform+handle) + relationship per project (account 0 = observed-level).
-  let added = 0;
+  let added = 0, withContacts = 0;
   for (const handle of handles) {
     const identityId = await ensureIdentity(db, pk, handle);
     if (!identityId) continue;
     const before = firstRow(await db.execute(sql`SELECT id FROM people WHERE project_id = ${projectId} AND identity_id = ${identityId} AND account_id = 0 LIMIT 1`));
     await ensureRelationship(db, { projectId, identityId, accountId: 0, platformKey: pk, handle });
     if (!before) added++;
+    // Contacts → scraped_meta.contacts (GLOBAL trên identity vì contact = thuộc tính của người, ko per-project).
+    const c = contacts[handle];
+    if (c && typeof c === 'object' && Object.keys(c).length) {
+      try {
+        await db.execute(sql`UPDATE scene_identities SET scraped_meta = COALESCE(scraped_meta, '{}'::jsonb) || ${JSON.stringify({ contacts: c })}::jsonb, updated_at = now() WHERE id = ${identityId}`);
+        withContacts++;
+      } catch { /* non-fatal: contacts là bonus, ko được làm hỏng observe */ }
+    }
   }
-  return NextResponse.json({ ok: true, count: added, total: handles.length });
+  return NextResponse.json({ ok: true, count: added, total: handles.length, contacts: withContacts });
 }

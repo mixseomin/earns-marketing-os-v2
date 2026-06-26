@@ -1,7 +1,9 @@
 'use client';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { ScenePersonRow } from '@/lib/actions/scene-people';
+
+const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 20, padding: '0 5px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--bg-3)' };
 
 // WHO-THEM Scenes view. The interaction network — people engaging with us across
 // habitats, ranked by familiarity. ?focus=<handle> (deep-link từ Crew ext popover)
@@ -73,6 +75,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
               <th style={{ padding: '6px 8px' }}>Interactions</th>
               <th style={{ padding: '6px 8px' }}>Familiarity</th>
               <th style={{ padding: '6px 8px' }}>Status</th>
+              <th style={{ padding: '6px 8px' }}>Contacts</th>
             </tr>
           </thead>
           <tbody>
@@ -104,6 +107,19 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
                   </td>
                   <td style={{ padding: '6px 8px' }}>
                     <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{p.status}</span>
+                  </td>
+                  <td style={{ padding: '6px 8px' }}>
+                    {p.contacts ? (
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
+                        {p.contacts.profile && <a href={p.contacts.profile} target="_blank" rel="noreferrer" title="Mở profile" style={contactChip}>👤</a>}
+                        {p.contacts.pm && <a href={p.contacts.pm} target="_blank" rel="noreferrer" title="Gửi tin nhắn riêng (PM)" style={contactChip}>✉️</a>}
+                        {p.contacts.email && <a href={p.contacts.email} target="_blank" rel="noreferrer" title="Email qua form" style={contactChip}>@</a>}
+                        {p.contacts.website && <a href={p.contacts.website} target="_blank" rel="noreferrer" title={p.contacts.website} style={contactChip}>🌐</a>}
+                        {p.contacts.userId && <span title={`user id ${p.contacts.userId}${p.contacts.host ? ' · ' + p.contacts.host : ''}`} style={{ color: 'var(--fg-3)' }}>#{p.contacts.userId}</span>}
+                        {p.contacts.location && <span title="Vị trí" style={{ color: 'var(--fg-2)' }}>📍{p.contacts.location}</span>}
+                        {p.contacts.posts != null && <span title="Số bài trên forum" style={{ color: 'var(--fg-3)' }}>📝{p.contacts.posts}</span>}
+                      </div>
+                    ) : <span style={{ color: 'var(--fg-3)' }}>—</span>}
                   </td>
                 </tr>
               );

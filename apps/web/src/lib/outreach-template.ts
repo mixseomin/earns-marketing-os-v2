@@ -34,13 +34,17 @@ export function buildOutreachEmail(p: { agentName?: string | null; base?: string
 } {
   const { name, baseName, stateParam } = parts(p);
   const subject = `A free 2026 BAH map for your ${baseName} relocation page`;
-  const iframe = `<iframe src="https://militarycalc.com/embed/bah-map${stateParam}" width="100%" height="560" style="border:1.5px solid #1D1F27;border-radius:8px" loading="lazy" title="2026 BAH by state - MilitaryCalc"></iframe>`;
+  // The attribution <a> must sit OUTSIDE the iframe so it lands in the host page's
+  // DOM as a real crawlable backlink — a link inside the iframe passes no SEO equity
+  // (so the prior iframe-only snippet generated zero link value). Keyword anchor,
+  // deep-linked to /bah for topical relevance.
+  const iframe = `<iframe src="https://militarycalc.com/embed/bah-map${stateParam}" width="100%" height="560" style="border:1.5px solid #1D1F27;border-radius:8px" loading="lazy" title="2026 BAH by state - MilitaryCalc"></iframe>\n<p style="font:13px/1.5 system-ui,sans-serif;margin:6px 0 0;color:#555">Powered by <a href="https://militarycalc.com/bah" target="_blank" rel="noopener">MilitaryCalc</a> - free 2026 BAH calculator for every U.S. base</p>`;
   const body = [
     `Hi ${name},`,
     ``,
     `I run MilitaryCalc, a free tools site for service members. I came across your ${baseName} military relocation page - good fit for what I built.`,
     ``,
-    `It is an interactive 2026 BAH-by-state map: a visitor taps their state and sees the current housing allowance for their paygrade and dependents, then a link to every base rate. Free, no signup, one line of code (works in a WordPress Custom HTML block or any site builder):`,
+    `It is an interactive 2026 BAH-by-state map: a visitor taps their state and sees the current housing allowance for their paygrade and dependents, then a link to every base rate. Free, no signup, a quick copy-paste (works in a WordPress Custom HTML block or any site builder):`,
     ``,
     iframe,
     ``,

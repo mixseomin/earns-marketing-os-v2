@@ -3,9 +3,11 @@ import { getDb } from '@mos2/db';
 
 // Read side for the WHO-THEM Scenes view (migration 0099). Sorted by
 // familiarity so bridge-ready people surface first.
+export type SceneChannel = { type: string; value: string; url?: string; subtype?: string };
 export type SceneContacts = {
   userId?: string; profile?: string; pm?: string; email?: string; emailForm?: string;
   website?: string; location?: string; posts?: number; host?: string; engine?: string; model?: string;
+  channels?: SceneChannel[];   // Orit parseSocialHref classifier: social/messaging/donation… ~80 channel_type
 };
 export type ScenePersonRow = {
   id: number;

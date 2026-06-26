@@ -21,6 +21,8 @@ export async function POST(req: Request) {
     scopeKind?: string; scopeKey?: string; pageKind?: string; fieldName?: string; css?: string; attr?: string | null;
     // Metric selectors (page_kind='post-metrics'): cách đọc số (via) + parse hint.
     via?: string | null; parse?: string | null;
+    // value = GIÁ TRỊ MẶC ĐỊNH per-scope (vd locale 'ru' của platform) → ext tự điền lần sau.
+    value?: string | null;
   };
   // legacy 'engine' → 'technology'; anything but technology/habitat falls back to platform.
   const scopeKind = (b.scopeKind === 'engine' || b.scopeKind === 'technology' ? 'technology'
@@ -33,8 +35,9 @@ export async function POST(req: Request) {
     return errorResponse('scopeKey + pageKind + fieldName + css required', 400);
   }
 
-  const spec: { css: string; attr?: string; via?: string; parse?: string } = { css };
+  const spec: { css: string; attr?: string; via?: string; parse?: string; value?: string } = { css };
   if (b.attr) spec.attr = String(b.attr);
+  if (b.value != null && b.value !== '') spec.value = String(b.value);   // default value per-scope (locale platform)
   // via chỉ valid cho metric extraction — whitelist khớp branch MOS2.sel.metrics().
   const VIA = new Set(['text', 'attr', 'count', 'depthCount', 'aria']);
   if (b.via && VIA.has(String(b.via))) spec.via = String(b.via);

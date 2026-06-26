@@ -4,8 +4,8 @@ import { getDb } from '@mos2/db';
 // Read side for the WHO-THEM Scenes view (migration 0099). Sorted by
 // familiarity so bridge-ready people surface first.
 export type SceneContacts = {
-  userId?: string; profile?: string; pm?: string; email?: string;
-  website?: string; location?: string; posts?: number; host?: string; engine?: string;
+  userId?: string; profile?: string; pm?: string; email?: string; emailForm?: string;
+  website?: string; location?: string; posts?: number; host?: string; engine?: string; model?: string;
 };
 export type ScenePersonRow = {
   id: number;

@@ -10,11 +10,11 @@ const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center
 function deriveContacts(c: SceneContacts) {
   const host = c.host || '';
   const base = host ? `https://${host}` : '';
-  let profile = c.profile || '', pm = c.pm || '', emailForm = '';
+  let profile = c.profile || '', pm = c.pm || '', emailForm = c.emailForm || '';
   if (c.engine === 'phpbb' && c.userId && base) {
     if (!profile) profile = `${base}/memberlist.php?mode=viewprofile&u=${c.userId}`;
     if (!pm) pm = `${base}/ucp.php?i=pm&mode=compose&u=${c.userId}`;
-    emailForm = `${base}/memberlist.php?mode=email&u=${c.userId}`;
+    if (!emailForm) emailForm = `${base}/memberlist.php?mode=email&u=${c.userId}`;
   }
   let email = '';
   if (c.email) { if (/^https?:/i.test(c.email)) { emailForm = emailForm || c.email; } else { email = c.email; } }

@@ -173,8 +173,9 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   // "Needs you" = the only things automation can't do: submit web forms + fix bounced/broken contacts.
   const formsToSubmit = useMemo(() => shown.filter((p) => p.status === 'to_send' && !p.email), [shown]);
   const fixes = useMemo(() => shown.filter((p) => p.status === 'bounced' || p.status === 'unreachable'), [shown]);
+  const newReplies = useMemo(() => shown.filter((p) => p.status === 'replied'), [shown]); // auto-flagged by reply-watch cron — categorize
   const awaiting = useMemo(() => shown.filter((p) => ACTIVE.has(p.status)), [shown]);
-  const needsCount = formsToSubmit.length + fixes.length;
+  const needsCount = formsToSubmit.length + fixes.length + newReplies.length;
   const autoNew = useMemo(() => prospects.filter((p) => p.status === 'to_send' && p.email).length, [prospects]);
   const autoDue = useMemo(() => prospects.filter(dueNow).length, [prospects]);
 
@@ -255,6 +256,22 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
             {autoNew} cold {autoNew === 1 ? 'pitch' : 'pitches'} queued · {autoDue} follow-up{autoDue === 1 ? '' : 's'} due — emails go out automatically Mon–Fri 14:00 UTC. Nothing to click for those.
           </div>
         </div>
+
+        {newReplies.length > 0 && (
+          <Section title="🔔 New replies — categorize" color="var(--neon-violet)" hint="auto-detected from your inbox — a realtor wrote back">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {newReplies.map((p) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px', border: '1px solid color-mix(in srgb, var(--neon-violet) 45%, var(--bg-3))', borderRadius: 7, background: 'color-mix(in srgb, var(--neon-violet) 7%, var(--bg-1))', flexWrap: 'wrap' }}>
+                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button>
+                  <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.base || '—'}</span>
+                  <span style={{ flex: 1 }} />
+                  <button style={chanStyle('var(--neon-lime)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'interested'))}>👍 Interested</button>
+                  <button style={respStyle('var(--fg-3)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'declined'))}>✕ Not a fit</button>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         <Section title="📝 Forms to submit" color="var(--neon-amber)" hint="the bot can't fill web forms — these are on you">
           {formsToSubmit.length === 0 ? empty('No forms waiting. ✓') : (

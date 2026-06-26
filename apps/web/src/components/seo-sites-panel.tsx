@@ -7,6 +7,7 @@ import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
 import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
 import { loadGa4Events, pickGa4Events } from '@/lib/projects/ga4-events';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
+import { loadGa4AiReferrals, pickGa4Ai } from '@/lib/projects/ga4-ai-referrals';
 import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
@@ -93,7 +94,7 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
 // Pull the user's column-group preference out of cookies so the table SSR
 // renders with the right set hidden from frame one. Matches what the client
 // component would do on hydration — no FOUC, no layout jump on F5.
-async function readInitialCols(): Promise<Partial<Record<'live' | 'interactions' | 'gsc' | 'adsense' | 'bing', boolean>>> {
+async function readInitialCols(): Promise<Partial<Record<'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai', boolean>>> {
   try {
     const raw = (await cookies()).get('seo_cols')?.value;
     if (!raw) return {};
@@ -113,6 +114,7 @@ export async function SeoSitesPanel() {
   const ga4Realtime = await loadGa4Realtime();
   const ga4Events = await loadGa4Events();
   const bingPayload = await loadBingStats();
+  const ga4AiPayload = await loadGa4AiReferrals();
   const adsenseByDomain = await loadAdsenseByDomain(7);
   const initialCols = await readInitialCols();
 
@@ -158,6 +160,7 @@ export async function SeoSitesPanel() {
         rows={rows.map((r) => {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
           const bing = pickBing(bingPayload, r.domain);
+          const ai = pickGa4Ai(ga4AiPayload, r.domain);
           const rt = pickGa4Realtime(ga4Realtime, r.domain);
           const ev = pickGa4Events(ga4Events, r.domain);
           return {
@@ -181,6 +184,9 @@ export async function SeoSitesPanel() {
             bing_in_links: bing?.in_links ?? null,
             bing_errors_4xx_30d: bing?.errors_4xx_30d ?? null,
             bing_crawled_30d: bing?.crawled_pages_30d ?? null,
+            ai_sessions_7d: ai?.sessions_7d ?? null,
+            ai_sessions_28d: ai?.sessions_28d ?? null,
+            ai_by_engine: ai?.byEngine_28d ?? null,
             adsense_earnings_today: adsenseByDomain[r.domain]?.earnings_today_usd ?? null,
             adsense_impressions_today: adsenseByDomain[r.domain]?.impressions_today ?? null,
             adsense_clicks_today: adsenseByDomain[r.domain]?.clicks_today ?? null,

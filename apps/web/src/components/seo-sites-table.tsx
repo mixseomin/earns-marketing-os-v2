@@ -40,6 +40,10 @@ interface RowData {
   bing_in_links?: number | null;
   bing_errors_4xx_30d?: number | null;
   bing_crawled_30d?: number | null;
+  // AI answer-engine referrals (GA4 sessionSource = chatgpt/perplexity/gemini/copilot/claude)
+  ai_sessions_7d?: number | null;
+  ai_sessions_28d?: number | null;
+  ai_by_engine?: Record<string, number> | null;
 }
 
 interface Props {
@@ -49,8 +53,8 @@ interface Props {
   initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
-type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true };
+type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true };
 const STORAGE_KEY = 'seo-table-cols-v2';
 const COOKIE_KEY = 'seo_cols';
 
@@ -63,8 +67,9 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
   gsc:     { fg: '#3c9bff', bg: 'rgba(60,155,255,0.22)', bgSoft: 'rgba(60,155,255,0.06)' },  // blue = Google
   adsense: { fg: '#ffb03c', bg: 'rgba(255,176,60,0.22)', bgSoft: 'rgba(255,176,60,0.06)' },  // amber = money
   bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
+  ai:      { fg: '#10b981', bg: 'rgba(16,185,129,0.22)', bgSoft: 'rgba(16,185,129,0.06)' }, // emerald = AI/LLM referrals
 };
-const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing' };
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI' };
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -128,6 +133,8 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalBingIndex = rows.reduce((s, r) => s + (r.bing_in_index ?? 0), 0);
   const totalBingLinks = rows.reduce((s, r) => s + (r.bing_in_links ?? 0), 0);
   const totalBing4xx = rows.reduce((s, r) => s + (r.bing_errors_4xx_30d ?? 0), 0);
+  const totalAi7 = rows.reduce((s, r) => s + (r.ai_sessions_7d ?? 0), 0);
+  const totalAi28 = rows.reduce((s, r) => s + (r.ai_sessions_28d ?? 0), 0);
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
   const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
   const totalInteractions = rows.reduce((s, r) => s + (r.ga4_interactions_7d ?? 0), 0);
@@ -155,7 +162,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'interactions', 'gsc', 'adsense', 'bing'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -214,6 +221,10 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
               <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
               <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
+            </>}
+            {cols.ai && <>
+              <th style={headOf('ai', true)} title="Sessions referred by an AI answer engine (ChatGPT, Perplexity, Gemini, Copilot, Claude) in the last 7 days — GA4 sessionSource. Tier-3 proof of LLM SEO: the engine cited the page AND a human clicked through.">AI 7d</th>
+              <th style={headOf('ai')} title="AI answer-engine referred sessions, last 28 days. Hover a row for the per-engine breakdown.">AI 28d</th>
             </>}
           </tr>
         </thead>
@@ -317,6 +328,20 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
                   </td>
                 </>}
+                {cols.ai && <>
+                  <td style={cellOf('ai', true, { textAlign: 'right', ...tone((r.ai_sessions_7d ?? 0) > 0), fontWeight: (r.ai_sessions_7d ?? 0) > 0 ? 600 : 400 })}
+                    title={r.ai_by_engine && Object.keys(r.ai_by_engine).length
+                      ? Object.entries(r.ai_by_engine).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ') + ' (28d)'
+                      : 'No AI answer-engine referrals yet (ChatGPT/Perplexity/Gemini/Copilot/Claude). Crawl can be active before clicks appear.'}>
+                    {r.ai_sessions_7d == null ? '—' : r.ai_sessions_7d > 0 ? r.ai_sessions_7d.toLocaleString() : '0'}
+                  </td>
+                  <td style={cellOf('ai', false, { textAlign: 'right', ...tone((r.ai_sessions_28d ?? 0) > 0) })}
+                    title={r.ai_by_engine && Object.keys(r.ai_by_engine).length
+                      ? Object.entries(r.ai_by_engine).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ') + ' (28d)'
+                      : 'No AI referrals in last 28d'}>
+                    {r.ai_sessions_28d == null ? '—' : r.ai_sessions_28d > 0 ? r.ai_sessions_28d.toLocaleString() : '0'}
+                  </td>
+                </>}
               </tr>
             );
           })}
@@ -353,6 +378,10 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
               <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
               <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
+            </>}
+            {cols.ai && <>
+              <td style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
+              <td style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
             </>}
           </tr>
         </tbody>

@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     channelName?: string;
     formatKey?: string;     // preset loại nội dung (lib/format-presets) — ghép vào customInstruction
     targetWords?: number;   // fallback nếu ext cũ ko gửi formatKey
+    maxChars?: number;      // HARD char-limit theo nền tảng (X=280, free-tier forum…) — ext gửi khi page có giới hạn
   };
 
   const habitatId = Number(body.habitatId ?? 0);
@@ -114,7 +115,13 @@ export async function POST(req: Request) {
     acctStyle = sr?.s ? String(sr.s) : '';
   }
   const fmt = resolveFormatDirective(body.formatKey, body.targetWords, acctStyle);
-  const customInstruction = [body.customPrompt, fmt.directive && `[FORMAT & ĐỘ DÀI bắt buộc] ${fmt.directive}`]
+  // HARD char-cap nền tảng: nếu page giới hạn ký tự (X 280, forum free-tier…) → ÉP AI ≤ maxChars,
+  // đè cả format preset (preset = mục tiêu, cap = ràng buộc cứng platform sẽ cắt nếu vượt).
+  const maxChars = Number.isFinite(body.maxChars) && (body.maxChars as number) > 0 ? Math.floor(body.maxChars as number) : 0;
+  const capDirective = maxChars
+    ? `[GIỚI HẠN KÝ TỰ CỨNG] Bài đăng PHẢI ≤ ${maxChars} ký tự (kể cả dấu cách, emoji, link). Nền tảng sẽ CẮT nếu vượt. Viết gọn trong hạn này; nếu cần, ưu tiên ý chính, bỏ ý phụ. Tuyệt đối KHÔNG vượt ${maxChars} ký tự.`
+    : '';
+  const customInstruction = [body.customPrompt, fmt.directive && `[FORMAT & ĐỘ DÀI bắt buộc] ${fmt.directive}`, capDirective]
     .filter(Boolean).join('\n');
   const genStart = Date.now();
   // NGUYÊN TẮC ƯU TIÊN: format preset (lớp BÀI) đè length-knob humanizer (lớp style) — applyLengthPriority

@@ -12,7 +12,7 @@ import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 
-type TabKey = 'due' | 'pipeline' | 'all';
+type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
 // Open externals with no referrer + noopener: the realtor's site never sees mos2.on.tc in Referer.
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
@@ -120,7 +120,9 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const sp = useSearchParams();
   const router = useRouter();
   const urlTab = sp.get('tab');
-  const [tab, setTabState] = useState<TabKey>(urlTab === 'pipeline' || urlTab === 'all' ? urlTab : 'due');
+  const [tab, setTabState] = useState<TabKey>(
+    urlTab === 'pipeline' || urlTab === 'all' || urlTab === 'due' ? urlTab : 'needs',
+  );
   const [pending, start] = useTransition();
   const [preview, setPreview] = useState<OutreachProspect | null>(null);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
@@ -167,6 +169,14 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
     () => shown.filter(dueNow).sort((a, b) => (a.nextFollowupAt || '').localeCompare(b.nextFollowupAt || '')),
     [shown],
   );
+
+  // "Needs you" = the only things automation can't do: submit web forms + fix bounced/broken contacts.
+  const formsToSubmit = useMemo(() => shown.filter((p) => p.status === 'to_send' && !p.email), [shown]);
+  const fixes = useMemo(() => shown.filter((p) => p.status === 'bounced' || p.status === 'unreachable'), [shown]);
+  const awaiting = useMemo(() => shown.filter((p) => ACTIVE.has(p.status)), [shown]);
+  const needsCount = formsToSubmit.length + fixes.length;
+  const autoNew = useMemo(() => prospects.filter((p) => p.status === 'to_send' && p.email).length, [prospects]);
+  const autoDue = useMemo(() => prospects.filter(dueNow).length, [prospects]);
 
   const groups = useMemo(() => {
     const g = (labels: string[]) => shown.filter((p) => labels.includes(p.status));
@@ -218,6 +228,87 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
           </>
         )}
         {DEAD.has(s) && resp('var(--fg-2)', '↩ Reopen', 'to_send')}
+      </div>
+    );
+  }
+
+  // Automation-first view: surface only what needs a human (forms + fixes), record replies,
+  // and collapse the auto-sent bulk into a one-line banner.
+  function NeedsYou() {
+    const Section = ({ title, hint, color, children }: { title: string; hint: string; color: string; children: React.ReactNode }) => (
+      <div style={{ margin: '0 0 18px' }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+          {title} <span style={{ fontWeight: 400, color: 'var(--fg-3)', textTransform: 'none', letterSpacing: 0 }}>{hint}</span>
+        </div>
+        {children}
+      </div>
+    );
+    const empty = (txt: string) => <div style={{ border: '1px dashed var(--bg-3)', borderRadius: 8, padding: '14px 16px', color: 'var(--fg-3)', fontSize: 12 }}>{txt}</div>;
+    const grid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 8 };
+
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--neon-cyan) 30%, transparent)', margin: '0 0 18px' }}>
+          <span style={{ fontSize: 18 }}>🤖</span>
+          <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
+            <b style={{ color: 'var(--neon-cyan)' }}>Sending on autopilot.</b>{' '}
+            {autoNew} cold {autoNew === 1 ? 'pitch' : 'pitches'} queued · {autoDue} follow-up{autoDue === 1 ? '' : 's'} due — emails go out automatically Mon–Fri 14:00 UTC. Nothing to click for those.
+          </div>
+        </div>
+
+        <Section title="📝 Forms to submit" color="var(--neon-amber)" hint="the bot can't fill web forms — these are on you">
+          {formsToSubmit.length === 0 ? empty('No forms waiting. ✓') : (
+            <div style={grid}>
+              {formsToSubmit.map((p) => (
+                <div key={p.id} style={{ border: '1px solid var(--bg-3)', borderRadius: 8, padding: 10, background: 'var(--bg-1)' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{p.agentName}</div>
+                  <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 8px' }}>{p.base || '—'}</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button style={chanStyle('var(--neon-amber)')} onClick={() => setPreview(p)}>Open form →</button>
+                    <button style={respStyle('var(--neon-lime)')} disabled={pending} onClick={() => act(() => markFormSubmitted(projectId, p.id))}>✓ Submitted</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="⚠ Needs a fix" color="var(--bad)" hint="bounced or broken — fix the contact, then re-queue">
+          {fixes.length === 0 ? empty('Nothing bounced. ✓') : (
+            <div style={grid}>
+              {fixes.map((p) => (
+                <div key={p.id} style={{ border: '1px solid var(--bg-3)', borderRadius: 8, padding: 10, background: 'var(--bg-1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{p.agentName}</span><Badge status={p.status} />
+                  </div>
+                  <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 8px' }}>{p.base || '—'}</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button style={chanStyle('var(--neon-cyan)')} onClick={() => setPreview(p)}>✎ Fix contact</button>
+                    <button style={respStyle('var(--fg-2)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'to_send'))}>↩ Re-queue</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="💬 Awaiting reply" color="var(--neon-cyan)" hint="when a realtor replies in Gmail, log it here in one click">
+          {awaiting.length === 0 ? empty('No live threads yet.') : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {awaiting.map((p) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid var(--bg-3)', borderRadius: 7, background: 'var(--bg-1)', flexWrap: 'wrap' }}>
+                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button>
+                  <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.base || '—'}</span>
+                  <Badge status={p.status} />
+                  <span style={{ flex: 1 }} />
+                  <button style={respStyle('var(--neon-lime)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'interested'))}>👍 Interested</button>
+                  <button style={respStyle('var(--neon-violet)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'replied'))}>💬 Replied</button>
+                  <button style={respStyle('var(--fg-3)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'declined'))}>✕ Declined</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
       </div>
     );
   }
@@ -294,8 +385,8 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 4px' }}>Outreach · widget embeds</h1>
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
-        Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects auto-send via Mailjet (hello@militarycalc.com);{' '}
-        <b style={{ color: 'var(--neon-amber)' }}>FORM</b> ones you submit by hand through their contact form. <b>Embedded</b> is auto-detected from GA4.
+        Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects + follow-ups <b>auto-send on a daily cron</b> (Mailjet, hello@militarycalc.com);{' '}
+        <b style={{ color: 'var(--neon-amber)' }}>FORM</b> ones you submit by hand. <b>Needs you</b> shows only what the bot can&apos;t do; <b>Embedded</b> is auto-detected from GA4.
       </p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
@@ -324,10 +415,13 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
       </div>
 
       <div style={{ display: 'flex', gap: 6, margin: '0 0 12px' }}>
+        <TabBtn k="needs" label="Needs you" n={needsCount} />
         <TabBtn k="due" label="Due today" n={dueList.length} />
         <TabBtn k="pipeline" label="Pipeline" />
         <TabBtn k="all" label="All" n={shown.length} />
       </div>
+
+      {tab === 'needs' && <NeedsYou />}
 
       {tab === 'due' && (
         <>

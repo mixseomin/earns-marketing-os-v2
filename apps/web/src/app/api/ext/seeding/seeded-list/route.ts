@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   if (!db) return errorResponse('DB unavailable', 503);
   try {
     const rows = await db.execute(sql`
-      SELECT c.id, c.post_url, c.posted_at, c.post_lifecycle, c.brief_phase, c.scheduled_at,
+      SELECT c.id, c.project_id, c.post_url, c.posted_at, c.post_lifecycle, c.brief_phase, c.scheduled_at,
         COALESCE(NULLIF(c.parent_title,''), h.name, '') AS thread,
         LEFT(COALESCE(NULLIF(c.body_target,''), c.body, ''), 100) AS excerpt,
         c.insights_views_count AS views, c.insights_score AS score, c.insights_reply_count AS replies
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
       LIMIT 100`);
     const list = (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
       id: Number(r.id),
+      projectId: r.project_id ? String(r.project_id) : null,   // ext badge own-post: link badge theo project THẬT của card (cross-project)
       postUrl: r.post_url ? String(r.post_url) : null,
       postedAt: r.posted_at ? String(r.posted_at) : null,
       lifecycle: r.post_lifecycle ? String(r.post_lifecycle) : null,

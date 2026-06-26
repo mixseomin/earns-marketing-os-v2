@@ -34,11 +34,11 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com']);
 // Map domain → MOS2 project id + visual label.
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
-const SITE_META: Record<string, { project?: string; emoji: string }> = {
+const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
   'militarycalc.com': { emoji: '🪖' },
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️' },
-  'paydochub.com': { emoji: '🧾' },
+  'paydochub.com': { emoji: '🧾', review: '2026-07-09' },
   'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
@@ -167,6 +167,7 @@ export async function SeoSitesPanel() {
             domain: r.domain,
             emoji: meta.emoji,
             project: meta.project,
+            review: meta.review,
             ga4PropertyId: pickGa4(ga4Payload, r.domain),
             ga4_active_5min: rt?.last5min ?? null,
             ga4_active_30min: rt?.last30min ?? null,

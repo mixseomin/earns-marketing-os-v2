@@ -44,6 +44,7 @@ interface RowData {
   ai_sessions_7d?: number | null;
   ai_sessions_28d?: number | null;
   ai_by_engine?: Record<string, number> | null;
+  review?: string; // manual review/checkpoint date (YYYY-MM-DD), shown as AI-group countdown
 }
 
 interface Props {
@@ -71,11 +72,6 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
 };
 const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI' };
 
-// Manual review schedule per column group — surfaces as a countdown badge on the
-// group's toggle chip so a checkpoint is visible. Update the date after each review.
-// (ai: paydochub 2-week LLM/GEO performance check, set 2026-06-27.)
-const GROUP_REVIEW: Partial<Record<ColGroup, string>> = { ai: '2026-07-09' };
-
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   // Seed from server-supplied cookie value (passed via initialCols prop) so the
@@ -99,16 +95,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
     } catch {}
   }, [initialCols]);
 
-  // Days until each group's manual review date. Computed after mount (client-only)
-  // so SSR and first client render match — no hydration mismatch on the countdown.
-  const [reviewDays, setReviewDays] = useState<Partial<Record<ColGroup, number>>>({});
-  useEffect(() => {
-    const out: Partial<Record<ColGroup, number>> = {};
-    for (const [g, date] of Object.entries(GROUP_REVIEW)) {
-      out[g as ColGroup] = Math.ceil((new Date(date + 'T00:00:00Z').getTime() - Date.now()) / 86400000);
-    }
-    setReviewDays(out);
-  }, []);
+  // Client-only clock for per-site review countdowns (avoids SSR/CSR hydration mismatch).
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => { setNowMs(Date.now()); }, []);
 
   function toggle(g: ColGroup) {
     setCols(prev => {
@@ -192,16 +181,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                 fontWeight: cols[g] ? 600 : 400,
               }}>
               {cols[g] ? '✓ ' : '+ '}{GROUP_LABEL[g]}
-              {reviewDays[g] != null && (
-                <span title={`Next ${GROUP_LABEL[g]} review: ${GROUP_REVIEW[g]}`}
-                  style={{
-                    marginLeft: 5, fontSize: 9, padding: '1px 4px', borderRadius: 3, fontWeight: 700,
-                    background: reviewDays[g]! < 0 ? '#f87171' : reviewDays[g]! <= 7 ? '#e3b341' : 'var(--bg-1)',
-                    color: (reviewDays[g]! <= 7) ? '#1a1a1a' : 'var(--fg-3)',
-                  }}>
-                  ⏰ {reviewDays[g]! < 0 ? `${-reviewDays[g]!}d late` : reviewDays[g] === 0 ? 'today' : `${reviewDays[g]}d`}
-                </span>
-              )}
             </button>
           );
         })}
@@ -251,6 +230,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             {cols.ai && <>
               <th style={headOf('ai', true)} title="Sessions referred by an AI answer engine (ChatGPT, Perplexity, Gemini, Copilot, Claude) in the last 7 days — GA4 sessionSource. Tier-3 proof of LLM SEO: the engine cited the page AND a human clicked through.">AI 7d</th>
               <th style={headOf('ai')} title="AI answer-engine referred sessions, last 28 days. Hover a row for the per-engine breakdown.">AI 28d</th>
+              <th style={headOf('ai')} title="Manual review/checkpoint per site — countdown to the next scheduled SEO/AI review.">Review</th>
             </>}
           </tr>
         </thead>
@@ -367,6 +347,17 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                       : 'No AI referrals in last 28d'}>
                     {r.ai_sessions_28d == null ? '—' : r.ai_sessions_28d > 0 ? r.ai_sessions_28d.toLocaleString() : '0'}
                   </td>
+                  <td style={cellOf('ai', false, { textAlign: 'right', whiteSpace: 'nowrap' })}
+                    title={r.review ? `Next review: ${r.review}` : 'No review scheduled'}>
+                    {(() => {
+                      if (!r.review) return <span style={{ color: 'var(--fg-3)' }}>—</span>;
+                      if (nowMs == null) return <span style={{ color: 'var(--fg-3)' }}>·</span>;
+                      const days = Math.ceil((new Date(r.review + 'T00:00:00Z').getTime() - nowMs) / 86400000);
+                      const color = days < 0 ? '#f87171' : days <= 7 ? '#e3b341' : 'var(--fg-2)';
+                      const label = days < 0 ? `${-days}d late` : days === 0 ? 'today' : `${days}d`;
+                      return <span style={{ color, fontWeight: days <= 7 ? 700 : 400 }}>⏰ {label}</span>;
+                    })()}
+                  </td>
                 </>}
               </tr>
             );
@@ -408,6 +399,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             {cols.ai && <>
               <td style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
               <td style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
+              <td style={cellOf('ai', false)} />
             </>}
           </tr>
         </tbody>

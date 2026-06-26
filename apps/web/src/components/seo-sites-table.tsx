@@ -71,6 +71,11 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
 };
 const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI' };
 
+// Manual review schedule per column group — surfaces as a countdown badge on the
+// group's toggle chip so a checkpoint is visible. Update the date after each review.
+// (ai: paydochub 2-week LLM/GEO performance check, set 2026-06-27.)
+const GROUP_REVIEW: Partial<Record<ColGroup, string>> = { ai: '2026-07-09' };
+
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   // Seed from server-supplied cookie value (passed via initialCols prop) so the
@@ -93,6 +98,17 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       }
     } catch {}
   }, [initialCols]);
+
+  // Days until each group's manual review date. Computed after mount (client-only)
+  // so SSR and first client render match — no hydration mismatch on the countdown.
+  const [reviewDays, setReviewDays] = useState<Partial<Record<ColGroup, number>>>({});
+  useEffect(() => {
+    const out: Partial<Record<ColGroup, number>> = {};
+    for (const [g, date] of Object.entries(GROUP_REVIEW)) {
+      out[g as ColGroup] = Math.ceil((new Date(date + 'T00:00:00Z').getTime() - Date.now()) / 86400000);
+    }
+    setReviewDays(out);
+  }, []);
 
   function toggle(g: ColGroup) {
     setCols(prev => {
@@ -176,6 +192,16 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                 fontWeight: cols[g] ? 600 : 400,
               }}>
               {cols[g] ? '✓ ' : '+ '}{GROUP_LABEL[g]}
+              {reviewDays[g] != null && (
+                <span title={`Next ${GROUP_LABEL[g]} review: ${GROUP_REVIEW[g]}`}
+                  style={{
+                    marginLeft: 5, fontSize: 9, padding: '1px 4px', borderRadius: 3, fontWeight: 700,
+                    background: reviewDays[g]! < 0 ? '#f87171' : reviewDays[g]! <= 7 ? '#e3b341' : 'var(--bg-1)',
+                    color: (reviewDays[g]! <= 7) ? '#1a1a1a' : 'var(--fg-3)',
+                  }}>
+                  ⏰ {reviewDays[g]! < 0 ? `${-reviewDays[g]!}d late` : reviewDays[g] === 0 ? 'today' : `${reviewDays[g]}d`}
+                </span>
+              )}
             </button>
           );
         })}

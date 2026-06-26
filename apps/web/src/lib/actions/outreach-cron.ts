@@ -12,7 +12,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { sendProspectEmail } from './outreach-send';
 
-const INITIAL_DAILY_CAP = 8; // fresh cold pitches per run
+const INITIAL_DAILY_CAP = 15; // fresh cold pitches per run (warmup ramp from 8; raise as bounce/spam stays clean)
 const FOLLOWUP_PER_RUN = 25; // generous - follow-ups go to already-contacted, lower risk
 
 type Row = { id: number; project_id: string };

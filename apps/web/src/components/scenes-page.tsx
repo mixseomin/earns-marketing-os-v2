@@ -3,7 +3,23 @@ import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } fr
 import { useSearchParams } from 'next/navigation';
 import type { ScenePersonRow } from '@/lib/actions/scene-people';
 
-const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 20, padding: '0 5px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--bg-3)' };
+const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--bg-3)' };
+
+// Suy link contact từ CANONICAL lưu (userId+host+engine) — DRY với popover ext (deriveContactLinks).
+// phpBB → profile/PM/email-form formulaic (ko lưu dư); engine khác → href profile lưu sẵn. email = địa chỉ thật.
+function deriveContacts(c: SceneContacts) {
+  const host = c.host || '';
+  const base = host ? `https://${host}` : '';
+  let profile = c.profile || '', pm = c.pm || '', emailForm = '';
+  if (c.engine === 'phpbb' && c.userId && base) {
+    if (!profile) profile = `${base}/memberlist.php?mode=viewprofile&u=${c.userId}`;
+    if (!pm) pm = `${base}/ucp.php?i=pm&mode=compose&u=${c.userId}`;
+    emailForm = `${base}/memberlist.php?mode=email&u=${c.userId}`;
+  }
+  let email = '';
+  if (c.email) { if (/^https?:/i.test(c.email)) { emailForm = emailForm || c.email; } else { email = c.email; } }
+  return { profile, pm, email, emailForm, website: c.website || '', userId: c.userId || '', host, location: c.location || '', posts: c.posts };
+}
 
 // WHO-THEM Scenes view. The interaction network — people engaging with us across
 // habitats, ranked by familiarity. ?focus=<handle> (deep-link từ Crew ext popover)
@@ -109,17 +125,22 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
                     <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{p.status}</span>
                   </td>
                   <td style={{ padding: '6px 8px' }}>
-                    {p.contacts ? (
-                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
-                        {p.contacts.profile && <a href={p.contacts.profile} target="_blank" rel="noreferrer" title="Mở profile" style={contactChip}>👤</a>}
-                        {p.contacts.pm && <a href={p.contacts.pm} target="_blank" rel="noreferrer" title="Gửi tin nhắn riêng (PM)" style={contactChip}>✉️</a>}
-                        {p.contacts.email && <a href={p.contacts.email} target="_blank" rel="noreferrer" title="Email qua form" style={contactChip}>@</a>}
-                        {p.contacts.website && <a href={p.contacts.website} target="_blank" rel="noreferrer" title={p.contacts.website} style={contactChip}>🌐</a>}
-                        {p.contacts.userId && <span title={`user id ${p.contacts.userId}${p.contacts.host ? ' · ' + p.contacts.host : ''}`} style={{ color: 'var(--fg-3)' }}>#{p.contacts.userId}</span>}
-                        {p.contacts.location && <span title="Vị trí" style={{ color: 'var(--fg-2)' }}>📍{p.contacts.location}</span>}
-                        {p.contacts.posts != null && <span title="Số bài trên forum" style={{ color: 'var(--fg-3)' }}>📝{p.contacts.posts}</span>}
-                      </div>
-                    ) : <span style={{ color: 'var(--fg-3)' }}>—</span>}
+                    {p.contacts ? (() => {
+                      const d = deriveContacts(p.contacts);
+                      return (
+                        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
+                          {d.profile && <a href={d.profile} target="_blank" rel="noreferrer" title="Mở profile" style={contactChip}>👤</a>}
+                          {d.pm && <a href={d.pm} target="_blank" rel="noreferrer" title="Gửi tin nhắn riêng (PM)" style={contactChip}>✉️</a>}
+                          {d.email
+                            ? <a href={`mailto:${d.email}`} title={`Email trực tiếp: ${d.email}`} style={contactChip}>@ {d.email}</a>
+                            : d.emailForm && <a href={d.emailForm} target="_blank" rel="noreferrer" title="Email qua form" style={contactChip}>📧</a>}
+                          {d.website && <a href={d.website} target="_blank" rel="noreferrer" title={d.website} style={contactChip}>🌐</a>}
+                          {d.userId && <span title={`ID của họ trên ${d.host || 'forum'} (không phải số người đã lưu)`} style={{ color: 'var(--fg-3)' }}>{d.host || 'forum'} #{d.userId}</span>}
+                          {d.location && <span title="Vị trí" style={{ color: 'var(--fg-2)' }}>📍{d.location}</span>}
+                          {d.posts != null && <span title="Số bài trên forum" style={{ color: 'var(--fg-3)' }}>📝{d.posts}</span>}
+                        </div>
+                      );
+                    })() : <span style={{ color: 'var(--fg-3)' }}>—</span>}
                   </td>
                 </tr>
               );

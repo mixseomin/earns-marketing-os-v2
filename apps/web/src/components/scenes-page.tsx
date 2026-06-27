@@ -24,6 +24,31 @@ function deriveContacts(c: SceneContacts) {
 const CH_EMOJI: Record<string, string> = { email: '📧', website: '🌐', phone: '📞', twitter: '𝕏', x: '𝕏', telegram: '✈️', whatsapp: '🟢', signal: '🔵', discord: '🎮', github: '🐙', gitlab: '🦊', linkedin: '💼', instagram: '📷', facebook: '📘', youtube: '▶️', tiktok: '🎵', reddit: '👽', mastodon: '🐘', bluesky: '🦋', threads: '@', matrix: '⬢', linktree: '🌳', medium: '✍️', substack: '📰', devto: '👩‍💻', paypal: '💵', kofi: '☕', patreon: '🅿️', buymeacoffee: '☕', gumroad: '🛒', upwork: '💼', fiverr: '🟩', producthunt: '🐱', vk: '🆚', line: '💚', viber: '💜', wechat: '💬', snapchat: '👻', pinterest: '📌' };
 const chLabel = (t: string) => `${CH_EMOJI[t] || ''} ${(t || '').replace(/_/g, ' ')}`.trim();
 
+// Outreach helpers — gom email/channel của 1 người (DRY cho filter "có email" + copy-all + export CSV).
+function personEmails(p: ScenePersonRow): string[] {
+  if (!p.contacts) return [];
+  const d = deriveContacts(p.contacts);
+  const out = new Set<string>();
+  if (d.email) out.add(d.email.toLowerCase());
+  for (const ch of d.channels) if (ch.type === 'email' && ch.value) out.add(String(ch.value).toLowerCase());
+  return [...out];
+}
+function personChannels(p: ScenePersonRow): string[] {
+  if (!p.contacts) return [];
+  const d = deriveContacts(p.contacts);
+  const out: string[] = [];
+  if (d.email) out.push(`email:${d.email}`);
+  if (d.website) out.push(`website:${d.website}`);
+  for (const ch of d.channels) if (ch.value && !(ch.type === 'email' && ch.value.toLowerCase() === d.email.toLowerCase())) out.push(`${ch.type}:${ch.value}`);
+  return out;
+}
+function hasContact(p: ScenePersonRow): boolean {
+  if (!p.contacts) return false;
+  const d = deriveContacts(p.contacts);
+  return !!(d.email || d.website || d.profile || d.pm || (d.channels && d.channels.length));
+}
+const csvCell = (v: unknown) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+
 // WHO-THEM Scenes view. The interaction network — people engaging with us across
 // habitats, ranked by familiarity. ?focus=<handle> (deep-link từ Crew ext popover)
 // → auto-filter + scroll + highlight đúng người (khỏi search trong danh sách dài).
@@ -35,17 +60,49 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
   const sp = useSearchParams();
   const focus = (sp.get('focus') || '').replace(/^@/, '').trim().toLowerCase();
   const [q, setQ] = useState(focus);
+  const [cf, setCf] = useState<'all' | 'contact' | 'email'>('all');
+  const [sortBy, setSortBy] = useState<'familiarity' | 'recent' | 'interactions'>('familiarity');
+  const [copied, setCopied] = useState('');
   const warm = people.filter((p) => p.familiarityScore >= 60).length;
+  const withContactCount = useMemo(() => people.filter(hasContact).length, [people]);
+  const withEmailCount = useMemo(() => people.filter((p) => personEmails(p).length > 0).length, [people]);
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return people;
-    return people.filter((p) =>
-      p.handle.toLowerCase().includes(s) ||
-      (p.habitatName || '').toLowerCase().includes(s) ||
-      (p.sceneTag || '').toLowerCase().includes(s));
-  }, [people, q]);
+    const list = people.filter((p) =>
+      (!s || p.handle.toLowerCase().includes(s) || (p.habitatName || '').toLowerCase().includes(s) || (p.sceneTag || '').toLowerCase().includes(s)) &&
+      (cf === 'all' || (cf === 'email' ? personEmails(p).length > 0 : hasContact(p))));
+    const by = sortBy === 'recent' ? (a: ScenePersonRow, b: ScenePersonRow) => (b.lastEngagedAt || '').localeCompare(a.lastEngagedAt || '')
+      : sortBy === 'interactions' ? (a: ScenePersonRow, b: ScenePersonRow) => b.interactionCount - a.interactionCount
+        : (a: ScenePersonRow, b: ScenePersonRow) => b.familiarityScore - a.familiarityScore;
+    return [...list].sort(by);
+  }, [people, q, cf, sortBy]);
+  const filteredEmails = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of filtered) for (const e of personEmails(p)) set.add(e);
+    return [...set];
+  }, [filtered]);
+
+  const flash = (m: string) => { setCopied(m); setTimeout(() => setCopied((c) => (c === m ? '' : c)), 2500); };
+  const copyEmails = async () => {
+    if (!filteredEmails.length) { flash('Không có email trong danh sách'); return; }
+    try { await navigator.clipboard.writeText(filteredEmails.join(', ')); flash(`Đã copy ${filteredEmails.length} email`); }
+    catch { flash('Copy lỗi — trình duyệt chặn clipboard'); }
+  };
+  const exportCsv = () => {
+    if (!filtered.length) return;
+    const head = ['handle', 'platform', 'familiarity', 'status', 'interactions', 'replied_back', 'joined', 'karma', 'email', 'website', 'channels', 'profile', 'habitat', 'last_engaged'];
+    const rows = filtered.map((p) => {
+      const d = p.contacts ? deriveContacts(p.contacts) : null;
+      return [p.handle, p.platformKey, p.familiarityScore, p.status, p.interactionCount, p.theyRepliedBack ? 'yes' : '', d?.joined || '', d?.karma ?? '', personEmails(p).join('; '), d?.website || '', personChannels(p).join('; '), d?.profile || '', p.habitatName || p.sceneTag || '', p.lastEngagedAt || ''].map(csvCell).join(',');
+    });
+    const csv = head.join(',') + '\n' + rows.join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = `scene-contacts-${projectId}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    flash(`Đã xuất ${filtered.length} dòng CSV`);
+  };
 
   useEffect(() => {
     if (focus && rowRef.current) rowRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -75,6 +132,31 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
         )}
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
+        {(['all', 'contact', 'email'] as const).map((k) => (
+          <button key={k} onClick={() => setCf(k)} style={{ fontSize: 12, padding: '5px 11px', borderRadius: 99, cursor: 'pointer', border: '1px solid var(--bg-3)', background: cf === k ? 'var(--neon-lime)' : 'var(--bg-2)', color: cf === k ? '#04210f' : 'var(--fg-2)', fontWeight: cf === k ? 700 : 500 }}>
+            {k === 'all' ? `Tất cả (${people.length})` : k === 'contact' ? `Có contact (${withContactCount})` : `Có email (${withEmailCount})`}
+          </button>
+        ))}
+        <span style={{ width: 1, height: 18, background: 'var(--bg-3)' }} />
+        <label style={{ fontSize: 12, color: 'var(--fg-2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          Sắp xếp
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer' }}>
+            <option value="familiarity">Familiarity</option>
+            <option value="recent">Mới tương tác</option>
+            <option value="interactions">Số interactions</option>
+          </select>
+        </label>
+        <span style={{ flex: 1 }} />
+        {copied && <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 600 }}>{copied}</span>}
+        <button onClick={copyEmails} disabled={!filteredEmails.length} title="Copy mọi email trong danh sách đã lọc vào clipboard" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 8, cursor: filteredEmails.length ? 'pointer' : 'not-allowed', border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: filteredEmails.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+          📋 Copy {filteredEmails.length} email
+        </button>
+        <button onClick={exportCsv} disabled={!filtered.length} title="Xuất danh sách đã lọc ra CSV (handle, familiarity, email, channels…)" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 8, cursor: filtered.length ? 'pointer' : 'not-allowed', border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: filtered.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+          ⬇ Export CSV ({filtered.length})
+        </button>
+      </div>
+
       {people.length === 0 ? (
         <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 24, color: 'var(--fg-2)', fontSize: 13, lineHeight: 1.6 }}>
           Chưa có ai trong scene. Người <b>tự xuất hiện</b> khi mình tương tác (like/reply/follow
@@ -82,7 +164,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 16, color: 'var(--fg-2)', fontSize: 13 }}>
-          Không tìm thấy <b>@{q}</b> trong scene của project này.
+          {q ? <>Không tìm thấy <b>@{q}</b></> : 'Không có ai khớp bộ lọc'} trong scene của project này.
         </div>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

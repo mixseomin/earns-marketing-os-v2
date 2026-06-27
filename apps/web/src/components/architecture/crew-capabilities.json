@@ -27,133 +27,247 @@
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "bsky.app"
+      "host": "bsky.app",
+      "notes": {
+        "recognize": "HOSTS: bsky.app → bsky",
+        "login": "VIEWER_RESOLVERS.bsky — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.bsky — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "devto": {
       "recognize": true,
       "login": false,
       "badge": true,
       "contact": false,
-      "host": "dev.to"
+      "host": "dev.to",
+      "notes": {
+        "recognize": "HOSTS: dev.to → devto",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "LITE_AUTHOR_CFG.devto — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "discord": {
       "recognize": true,
       "login": true,
       "badge": false,
       "contact": false,
-      "host": "discord.com"
+      "host": "discord.com",
+      "notes": {
+        "recognize": "HOSTS: discord.com → discord",
+        "login": "VIEWER_RESOLVERS.discord — detect viewer handle (mình là ai)",
+        "badge": "chưa có author-cfg (ko badge)",
+        "contact": "chưa có profile-capture"
+      }
     },
     "facebook": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "facebook.com"
+      "host": "facebook.com",
+      "notes": {
+        "recognize": "HOSTS: facebook.com → facebook",
+        "login": "VIEWER_RESOLVERS.facebook — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.facebook — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "hackernews": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": true,
-      "host": "news.ycombinator.com"
+      "host": "news.ycombinator.com",
+      "notes": {
+        "recognize": "HOSTS: news.ycombinator.com → hackernews",
+        "login": "VIEWER_RESOLVERS.hackernews — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.hackernews — badge familiarity",
+        "contact": "captureHnUserProfile — HN page (karma/about/links)"
+      }
     },
     "indiehackers": {
       "recognize": true,
       "login": false,
       "badge": false,
       "contact": false,
-      "host": "indiehackers.com"
+      "host": "indiehackers.com",
+      "notes": {
+        "recognize": "HOSTS: indiehackers.com → indiehackers",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "chưa có author-cfg (ko badge)",
+        "contact": "chưa có profile-capture"
+      }
     },
     "instagram": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "instagram.com"
+      "host": "instagram.com",
+      "notes": {
+        "recognize": "HOSTS: instagram.com → instagram",
+        "login": "VIEWER_RESOLVERS.instagram — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.instagram — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "linkedin": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "linkedin.com"
+      "host": "linkedin.com",
+      "notes": {
+        "recognize": "HOSTS: linkedin.com → linkedin",
+        "login": "VIEWER_RESOLVERS.linkedin — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.linkedin — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "mastodon": {
       "recognize": true,
       "login": false,
       "badge": true,
       "contact": true,
-      "host": "mastodon.social"
+      "host": "mastodon.social",
+      "notes": {
+        "recognize": "HOSTS: mastodon.social → mastodon",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "LITE_AUTHOR_CFG.mastodon — badge familiarity",
+        "contact": "_PROFILE_APIS: GET /api/v1/accounts/lookup?acct=…"
+      }
     },
     "medium": {
       "recognize": true,
       "login": false,
       "badge": true,
       "contact": false,
-      "host": "medium.com"
+      "host": "medium.com",
+      "notes": {
+        "recognize": "HOSTS: medium.com → medium",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "LITE_AUTHOR_CFG.medium — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "pinterest": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "pinterest.com"
+      "host": "pinterest.com",
+      "notes": {
+        "recognize": "HOSTS: pinterest.com → pinterest",
+        "login": "VIEWER_RESOLVERS.pinterest — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.pinterest — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "producthunt": {
       "recognize": true,
       "login": false,
       "badge": true,
       "contact": false,
-      "host": "producthunt.com"
+      "host": "producthunt.com",
+      "notes": {
+        "recognize": "HOSTS: producthunt.com → producthunt",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "LITE_AUTHOR_CFG.producthunt — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "quora": {
       "recognize": true,
       "login": false,
       "badge": true,
       "contact": false,
-      "host": "quora.com"
+      "host": "quora.com",
+      "notes": {
+        "recognize": "HOSTS: quora.com → quora",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "LITE_AUTHOR_CFG.quora — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "reddit": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "reddit.com"
+      "host": "reddit.com",
+      "notes": {
+        "recognize": "HOSTS: reddit.com → reddit",
+        "login": "VIEWER_RESOLVERS.reddit — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.reddit — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "substack": {
       "recognize": true,
       "login": true,
       "badge": false,
       "contact": false,
-      "host": "substack.com"
+      "host": "substack.com",
+      "notes": {
+        "recognize": "HOSTS: substack.com → substack",
+        "login": "VIEWER_RESOLVERS.substack — detect viewer handle (mình là ai)",
+        "badge": "chưa có author-cfg (ko badge)",
+        "contact": "chưa có profile-capture"
+      }
     },
     "threads": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "threads.net"
+      "host": "threads.net",
+      "notes": {
+        "recognize": "HOSTS: threads.net → threads",
+        "login": "VIEWER_RESOLVERS.threads — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.threads — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "tiktok": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "tiktok.com"
+      "host": "tiktok.com",
+      "notes": {
+        "recognize": "HOSTS: tiktok.com → tiktok",
+        "login": "VIEWER_RESOLVERS.tiktok — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.tiktok — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "x": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "x.com"
+      "host": "x.com",
+      "notes": {
+        "recognize": "HOSTS: x.com → x",
+        "login": "VIEWER_RESOLVERS.x — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.x — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "youtube": {
       "recognize": true,
       "login": true,
       "badge": true,
       "contact": false,
-      "host": "youtube.com"
+      "host": "youtube.com",
+      "notes": {
+        "recognize": "HOSTS: youtube.com → youtube",
+        "login": "VIEWER_RESOLVERS.youtube — detect viewer handle (mình là ai)",
+        "badge": "LITE_AUTHOR_CFG.youtube — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     }
   },
   "tech": {
@@ -161,31 +275,61 @@
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": true
+      "contact": true,
+      "notes": {
+        "recognize": "chưa map host (platform.js HOSTS)",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "ENGINE_AUTHOR_CFG.discourse — badge familiarity",
+        "contact": "_PROFILE_APIS: GET /u/…"
+      }
     },
     "nodebb": {
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": false
+      "contact": false,
+      "notes": {
+        "recognize": "chưa map host (platform.js HOSTS)",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "ENGINE_AUTHOR_CFG.nodebb — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "flarum": {
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": false
+      "contact": false,
+      "notes": {
+        "recognize": "chưa map host (platform.js HOSTS)",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "ENGINE_AUTHOR_CFG.flarum — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "vanilla": {
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": false
+      "contact": false,
+      "notes": {
+        "recognize": "chưa map host (platform.js HOSTS)",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "ENGINE_AUTHOR_CFG.vanilla — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
     },
     "lemmy": {
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": true
+      "contact": true,
+      "notes": {
+        "recognize": "chưa map host (platform.js HOSTS)",
+        "login": "chưa có viewer-resolver (ko biết login)",
+        "badge": "ENGINE_AUTHOR_CFG.lemmy — badge familiarity",
+        "contact": "_PROFILE_APIS: GET /api/v3/user?username=…"
+      }
     }
   },
   "bbcodeNote": "Forum bbcode tech (phpbb/xenforo/vbulletin/mybb/smf/invision/...) = badge + contact in-thread qua fingerprint DOM, ko liệt kê per-host.",

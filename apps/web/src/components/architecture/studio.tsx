@@ -1919,7 +1919,7 @@ function SurfacePreview({ k }: { k: string }) {
 // Crew ext · Coverage matrix — platform/tech × tầng support, AUTO-DERIVE từ 5 bảng cfg thật trong ext
 // (HOSTS/VIEWER_RESOLVERS/LITE+ENGINE_AUTHOR_CFG/_PROFILE_APIS) qua gen-capabilities.mjs. Single source =
 // code; regen sau khi sửa cfg. NHÚNG vào drawer Platform (social) + Technology (tech) — ko phải grep.
-type CapRow = { recognize: boolean; login: boolean; badge: boolean; contact: boolean; host?: string };
+type CapRow = { recognize: boolean; login: boolean; badge: boolean; contact: boolean; host?: string; notes?: Record<string, string> };
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const dims = crewCaps.dimensions as { key: string; label: string; desc: string }[];
   const socials = Object.entries(crewCaps.platforms as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
@@ -1939,7 +1939,11 @@ function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
           <thead><tr><th style={{ ...th, textAlign: 'left' }}>Tech</th><th style={th}>Badge</th><th style={th}>Contact</th></tr></thead>
           <tbody>
             {tech.map((r) => (
-              <tr key={r.k}><td style={{ ...td, textAlign: 'left', color: 'var(--fg-0)', fontWeight: 600 }}>{r.k}</td><td style={td}><Cell on={r.badge} /></td><td style={td}><Cell on={r.contact} /></td></tr>
+              <tr key={r.k}>
+                <td style={{ ...td, textAlign: 'left', color: 'var(--fg-0)', fontWeight: 600 }}>{r.k}</td>
+                <td style={td}><Tip text={`Badge: ${r.badge ? '✓ có' : '— chưa'}\n${r.notes?.badge || ''}`} style={{ cursor: 'help' }}><Cell on={r.badge} /></Tip></td>
+                <td style={td}><Tip text={`Contact: ${r.contact ? '✓ có' : '— chưa'}\n${r.notes?.contact || ''}`} style={{ cursor: 'help' }}><Cell on={r.contact} /></Tip></td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -1963,7 +1967,9 @@ function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
           {socialSorted.map((r) => { const s = score(r); const isFull = s === 4; return (
             <tr key={r.k} style={{ background: isFull ? 'color-mix(in srgb, var(--ok) 9%, transparent)' : undefined }}>
               <td style={{ ...td, textAlign: 'left', color: 'var(--fg-0)', fontWeight: 600 }}>{r.k}{isFull && <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--ok)', fontWeight: 700 }}>FULL</span>}<span style={{ color: 'var(--fg-4)', fontWeight: 400, marginLeft: 6 }}>{r.host}</span></td>
-              <td style={td}><Cell on={r.recognize} /></td><td style={td}><Cell on={r.login} /></td><td style={td}><Cell on={r.badge} /></td><td style={td}><Cell on={r.contact} /></td>
+              {dims.map((d) => { const on = Boolean((r as unknown as Record<string, boolean>)[d.key]); return (
+                <td key={d.key} style={td}><Tip text={`${d.label}: ${on ? '✓ có' : '— chưa'}\n${r.notes?.[d.key] || d.desc}`} style={{ cursor: 'help' }}><Cell on={on} /></Tip></td>
+              ); })}
               <td style={{ ...td, color: isFull ? 'var(--ok)' : 'var(--fg-3)', fontWeight: 700 }}>{s}</td>
             </tr>
           ); })}

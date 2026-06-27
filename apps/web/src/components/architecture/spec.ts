@@ -640,7 +640,7 @@ export const OBJECTS: ArchObject[] = [
       { to: 'platform', kind: 'fk', via: 'platform_key' },
       { to: 'people', kind: 'ref', via: 'people.identity_id' },
     ],
-    routes: ['/scene/observe', '/scene/people', '/scene/lookup'],
+    routes: ['/scene/observe', '/scene/people', '/scene/lookup', '/extract-contact'],
   },
   {
     key: 'interaction', label: 'Interaction (tracking)', group: 'scene',

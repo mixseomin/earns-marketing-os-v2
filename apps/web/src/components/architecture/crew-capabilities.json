@@ -156,7 +156,7 @@
       "host": "youtube.com"
     }
   },
-  "engines": {
+  "tech": {
     "discourse": {
       "recognize": false,
       "login": false,
@@ -188,6 +188,6 @@
       "contact": true
     }
   },
-  "bbcodeNote": "Forum bbcode (phpbb/xenforo/vbulletin/mybb/smf/invision/...) = badge + contact in-thread qua engine-fingerprint, ko liệt kê per-host.",
+  "bbcodeNote": "Forum bbcode tech (phpbb/xenforo/vbulletin/mybb/smf/invision/...) = badge + contact in-thread qua fingerprint DOM, ko liệt kê per-host.",
   "generatedAt": "2026-06-27"
 }

@@ -1500,6 +1500,13 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
     <div>
       <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 14 }}>{obj.desc}</div>
 
+      {/* Crew ext coverage — nhúng vào drawer Platform (social) + Technology (tech): platform/tech nào support tầng nào */}
+      {(obj.key === 'platform' || obj.key === 'technology') && (
+        <Section title="Crew ext · Coverage" sub="// auto-derive từ cfg ext (gen-capabilities.mjs)">
+          <CoverageMatrix kind={obj.key === 'technology' ? 'tech' : 'social'} />
+        </Section>
+      )}
+
       {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
@@ -1909,40 +1916,49 @@ function SurfacePreview({ k }: { k: string }) {
 // Ext · Surface — catalog MỌI element MOS2 Crew inject trên thực địa (badge/pill/widget/menu/
 // HL box/popover/toast). Source kiểm soát để implement/nâng cấp: group theo loại + z-index ladder
 // (tránh đè nhau như RegKit widget bị HL phủ). EXT_SURFACE sống trong spec.ts.
-// Crew ext · Coverage matrix — platform × tầng support, AUTO-DERIVE từ 5 bảng cfg thật trong ext
+// Crew ext · Coverage matrix — platform/tech × tầng support, AUTO-DERIVE từ 5 bảng cfg thật trong ext
 // (HOSTS/VIEWER_RESOLVERS/LITE+ENGINE_AUTHOR_CFG/_PROFILE_APIS) qua gen-capabilities.mjs. Single source =
-// code; regen sau khi sửa cfg. Trả lời "platform nào support full trên ext crew" mà ko phải grep.
+// code; regen sau khi sửa cfg. NHÚNG vào drawer Platform (social) + Technology (tech) — ko phải grep.
 type CapRow = { recognize: boolean; login: boolean; badge: boolean; contact: boolean; host?: string };
-function CrewCoverage() {
+function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const dims = crewCaps.dimensions as { key: string; label: string; desc: string }[];
   const socials = Object.entries(crewCaps.platforms as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
-  const engines = Object.entries(crewCaps.engines as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
+  const tech = Object.entries(crewCaps.tech as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
   const score = (r: CapRow) => [r.recognize, r.login, r.badge, r.contact].filter(Boolean).length;
-  const socialSorted = [...socials].sort((a, b) => score(b) - score(a) || a.k.localeCompare(b.k));
-  const fullCount = socialSorted.filter((r) => score(r) === 4).length;
-  const withContact = socials.filter((r) => r.contact).length;
   const Cell = ({ on }: { on: boolean }) => <span style={{ color: on ? 'var(--ok)' : 'var(--fg-4)', fontWeight: on ? 700 : 400 }}>{on ? '✓' : '·'}</span>;
   const th: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-4)', padding: '6px 10px', textAlign: 'center', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const td: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 12, padding: '5px 10px', textAlign: 'center', borderBottom: '1px solid var(--line)' };
+  const note: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.5 };
+  const intro = <div style={note}>Auto-derive từ <b style={{ color: 'var(--accent)' }}>code thật</b> (5 bảng cfg) qua <code style={{ fontFamily: 'var(--font-mono)' }}>gen-capabilities.mjs</code> · sinh {crewCaps.generatedAt}. Sửa cfg → regen.</div>;
+
+  if (kind === 'tech') {
+    return (
+      <div style={{ overflow: 'auto' }}>
+        {intro}
+        <table style={{ borderCollapse: 'collapse', maxWidth: 420, marginBottom: 10, width: '100%' }}>
+          <thead><tr><th style={{ ...th, textAlign: 'left' }}>Tech</th><th style={th}>Badge</th><th style={th}>Contact</th></tr></thead>
+          <tbody>
+            {tech.map((r) => (
+              <tr key={r.k}><td style={{ ...td, textAlign: 'left', color: 'var(--fg-0)', fontWeight: 600 }}>{r.k}</td><td style={td}><Cell on={r.badge} /></td><td style={td}><Cell on={r.contact} /></td></tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={note}>{crewCaps.bbcodeNote}</div>
+      </div>
+    );
+  }
+  const socialSorted = [...socials].sort((a, b) => score(b) - score(a) || a.k.localeCompare(b.k));
+  const fullCount = socialSorted.filter((r) => score(r) === 4).length;
+  const withContact = socials.filter((r) => r.contact).length;
   return (
     <div style={{ overflow: 'auto' }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginBottom: 12, maxWidth: 820, lineHeight: 1.55 }}>
-        Năng lực Crew ext theo từng tầng — <b style={{ color: 'var(--accent)' }}>auto-derive từ code thật</b> (5 bảng cfg) bằng <code style={{ fontFamily: 'var(--font-mono)' }}>gen-capabilities.mjs</code>, KHÔNG hand-type. Sửa cfg → chạy lại generator → re-deploy. Sinh ngày <b style={{ color: 'var(--fg-1)' }}>{crewCaps.generatedAt}</b>.
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span style={legendChip}>{socials.length} social platform</span>
-        <span style={legendChip}>{engines.length} forum engine</span>
+      {intro}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ ...legendChip, color: 'var(--ok)' }}>{fullCount} full 4 tầng</span>
         <span style={{ ...legendChip, color: 'var(--accent)' }}>{withContact} có Contact</span>
       </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        {dims.map((d) => (
-          <span key={d.key} style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)' }} title={d.desc}><b style={{ color: 'var(--fg-2)' }}>{d.label}</b> · {d.desc}</span>
-        ))}
-      </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Social platform</div>
-      <table style={{ borderCollapse: 'collapse', maxWidth: 720, marginBottom: 22, width: '100%' }}>
-        <thead><tr><th style={{ ...th, textAlign: 'left' }}>Platform</th>{dims.map((d) => <th key={d.key} style={th}>{d.label}</th>)}<th style={th}>Σ</th></tr></thead>
+      <table style={{ borderCollapse: 'collapse', maxWidth: 720, width: '100%' }}>
+        <thead><tr><th style={{ ...th, textAlign: 'left' }}>Platform</th>{dims.map((d) => <th key={d.key} style={th} title={d.desc}>{d.label}</th>)}<th style={th}>Σ</th></tr></thead>
         <tbody>
           {socialSorted.map((r) => { const s = score(r); const isFull = s === 4; return (
             <tr key={r.k} style={{ background: isFull ? 'color-mix(in srgb, var(--ok) 9%, transparent)' : undefined }}>
@@ -1953,19 +1969,6 @@ function CrewCoverage() {
           ); })}
         </tbody>
       </table>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Forum engine <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>(detect = fingerprint DOM, ko theo host)</span></div>
-      <table style={{ borderCollapse: 'collapse', maxWidth: 420, marginBottom: 18, width: '100%' }}>
-        <thead><tr><th style={{ ...th, textAlign: 'left' }}>Engine</th><th style={th}>Badge</th><th style={th}>Contact</th></tr></thead>
-        <tbody>
-          {engines.map((r) => (
-            <tr key={r.k}>
-              <td style={{ ...td, textAlign: 'left', color: 'var(--fg-0)', fontWeight: 600 }}>{r.k}</td>
-              <td style={td}><Cell on={r.badge} /></td><td style={td}><Cell on={r.contact} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', maxWidth: 760, lineHeight: 1.5 }}>{crewCaps.bbcodeNote}</div>
     </div>
   );
 }
@@ -2343,9 +2346,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
           footer={null}
           pushPx={sel ? Math.min(stack.length * CASCADE_STEP, 600) : 0}
         >
-          {selObj && (selObj.key === 'crew-coverage'
-            ? <CrewCoverage />
-            : <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} onProjectChange={setProj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />)}
+          {selObj && <ObjectDrawerBody obj={selObj} projects={projects} defaultProject={proj} onProjectChange={setProj} bound={bound[selObj.key]} onBind={(b) => setBound((prev) => { const next = { ...prev }; if (b) next[selObj.key] = b; else delete next[selObj.key]; return next; })} />}
           {selFlow && sel?.kind === 'flow' && <FlowDrawerBody flow={selFlow} stepId={sel.step} />}
         </Drawer>
         <SubStack stack={sel ? stack : []} popTo={popTo} width={860} />

@@ -21,7 +21,7 @@ function deriveContacts(c: SceneContacts) {
   return { profile, pm, email, emailForm, website: c.website || '', userId: c.userId || '', host, location: c.location || '', posts: c.posts, karma: c.karma, joined: c.joined || '', about: c.about || '', channels: Array.isArray(c.channels) ? c.channels : [] };
 }
 // Emoji ngắn cho channel phổ biến (reuse vocab Orit) — thiếu → tên type. Scale mọi channel_type.
-const CH_EMOJI: Record<string, string> = { twitter: '𝕏', x: '𝕏', telegram: '✈️', whatsapp: '🟢', signal: '🔵', discord: '🎮', github: '🐙', gitlab: '🦊', linkedin: '💼', instagram: '📷', facebook: '📘', youtube: '▶️', tiktok: '🎵', reddit: '👽', mastodon: '🐘', bluesky: '🦋', threads: '@', matrix: '⬢', linktree: '🌳', medium: '✍️', substack: '📰', devto: '👩‍💻', paypal: '💵', kofi: '☕', patreon: '🅿️', buymeacoffee: '☕', gumroad: '🛒', upwork: '💼', fiverr: '🟩', producthunt: '🐱', vk: '🆚', line: '💚', viber: '💜', wechat: '💬', snapchat: '👻', pinterest: '📌' };
+const CH_EMOJI: Record<string, string> = { email: '📧', website: '🌐', phone: '📞', twitter: '𝕏', x: '𝕏', telegram: '✈️', whatsapp: '🟢', signal: '🔵', discord: '🎮', github: '🐙', gitlab: '🦊', linkedin: '💼', instagram: '📷', facebook: '📘', youtube: '▶️', tiktok: '🎵', reddit: '👽', mastodon: '🐘', bluesky: '🦋', threads: '@', matrix: '⬢', linktree: '🌳', medium: '✍️', substack: '📰', devto: '👩‍💻', paypal: '💵', kofi: '☕', patreon: '🅿️', buymeacoffee: '☕', gumroad: '🛒', upwork: '💼', fiverr: '🟩', producthunt: '🐱', vk: '🆚', line: '💚', viber: '💜', wechat: '💬', snapchat: '👻', pinterest: '📌' };
 const chLabel = (t: string) => `${CH_EMOJI[t] || ''} ${(t || '').replace(/_/g, ' ')}`.trim();
 
 // WHO-THEM Scenes view. The interaction network — people engaging with us across
@@ -145,7 +145,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
                           {d.userId && <span title={`ID của họ trên ${d.host || 'forum'} (không phải số người đã lưu)`} style={{ color: 'var(--fg-3)' }}>{d.host || 'forum'} #{d.userId}</span>}
                           {d.location && <span title="Vị trí" style={{ color: 'var(--fg-2)' }}>📍{d.location}</span>}
                           {d.posts != null && <span title="Số bài trên forum" style={{ color: 'var(--fg-3)' }}>📝{d.posts}</span>}
-                          {d.channels.map((ch, i) => ch.value ? <a key={`${ch.type}-${i}`} href={ch.url || '#'} target="_blank" rel="noreferrer" title={`${ch.type}: ${ch.value}`} style={{ ...contactChip, background: 'var(--bg-3)', minWidth: 'auto', padding: '0 6px' }}>{chLabel(ch.type)} {String(ch.value).slice(0, 18)}</a> : null)}
+                          {d.channels.filter((ch) => ch.value && !(ch.type === 'email' && ch.value === d.email) && !(ch.type === 'website' && (ch.url === d.website || ch.value === d.website))).map((ch, i) => <a key={`${ch.type}-${i}`} href={ch.url || '#'} target="_blank" rel="noreferrer" title={`${ch.type}: ${ch.value}`} style={{ ...contactChip, background: 'var(--bg-3)', minWidth: 'auto', padding: '0 6px' }}>{chLabel(ch.type)} {String(ch.value).slice(0, 18)}</a>)}
                           {d.about && <span title={d.about} style={{ color: 'var(--fg-3)', fontStyle: 'italic', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>“{d.about}”</span>}
                         </div>
                       );

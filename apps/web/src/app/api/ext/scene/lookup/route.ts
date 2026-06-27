@@ -26,11 +26,11 @@ export async function GET(req: Request) {
   // identity, mỗi project lấy row THÂN NHẤT (DISTINCT ON project_id).
   const pkCanon = pk === 'x' ? 'twitter' : pk;
   const list = rows(await db.execute(pk
-    ? sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+    ? sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back, i.scraped_meta -> 'contacts' AS contacts
             FROM people p JOIN scene_identities i ON i.id = p.identity_id
             WHERE i.tenant_id = 'self' AND i.handle = ${handle} AND i.platform_key = ${pkCanon}
             ORDER BY p.project_id, p.familiarity_score DESC NULLS LAST) t ORDER BY familiarity_score DESC NULLS LAST`
-    : sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+    : sql`SELECT * FROM (SELECT DISTINCT ON (p.project_id) p.project_id, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back, i.scraped_meta -> 'contacts' AS contacts
             FROM people p JOIN scene_identities i ON i.id = p.identity_id
             WHERE i.tenant_id = 'self' AND i.handle = ${handle}
             ORDER BY p.project_id, p.familiarity_score DESC NULLS LAST) t ORDER BY familiarity_score DESC NULLS LAST`));
@@ -46,6 +46,7 @@ export async function GET(req: Request) {
       interactions: Number(top.interaction_count ?? 0),
       repliedBack: top.they_replied_back === true,
       projectId: String(top.project_id ?? ''),
+      contacts: (top.contacts && typeof top.contacts === 'object') ? top.contacts : null,   // scraped channels (incl manual) → popover ext F5 vẫn hiện
       projects: list.map((r) => ({
         projectId: String((r as Record<string, unknown>).project_id ?? ''),
         familiarity: Number((r as Record<string, unknown>).familiarity_score ?? 0),

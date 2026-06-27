@@ -48,7 +48,16 @@ export async function POST(req: Request) {
     const c = contacts[handle];
     if (c && typeof c === 'object' && Object.keys(c).length) {
       try {
-        await db.execute(sql`UPDATE scene_identities SET scraped_meta = COALESCE(scraped_meta, '{}'::jsonb) || ${JSON.stringify({ contacts: c })}::jsonb, updated_at = now() WHERE id = ${identityId}`);
+        // MERGE channels: auto-capture KHÔNG được wipe channel thêm tay (subtype='manual') hay channel cũ chưa
+        // tìm lại lần này. Đọc channels hiện có → incoming (auto) win key trùng, GIỮ manual + prior-not-replaced.
+        const exRow = firstRow(await db.execute(sql`SELECT scraped_meta -> 'contacts' -> 'channels' AS ch FROM scene_identities WHERE id = ${identityId} LIMIT 1`));
+        const existing = Array.isArray(exRow?.ch) ? (exRow!.ch as Array<Record<string, unknown>>) : [];
+        const incoming = Array.isArray((c as { channels?: unknown }).channels) ? ((c as { channels: Array<Record<string, unknown>> }).channels) : [];
+        const byKey = new Map<string, Record<string, unknown>>();
+        for (const ch of incoming) { if (ch && ch.type && ch.value) byKey.set(String(ch.type).toLowerCase() + ':' + String(ch.value).toLowerCase(), ch); }
+        for (const ch of existing) { if (!ch || !ch.type || !ch.value) continue; const k = String(ch.type).toLowerCase() + ':' + String(ch.value).toLowerCase(); if (ch.subtype === 'manual' || !byKey.has(k)) byKey.set(k, ch); }
+        const c2 = { ...(c as Record<string, unknown>), channels: [...byKey.values()] };
+        await db.execute(sql`UPDATE scene_identities SET scraped_meta = COALESCE(scraped_meta, '{}'::jsonb) || ${JSON.stringify({ contacts: c2 })}::jsonb, updated_at = now() WHERE id = ${identityId}`);
         withContacts++;
       } catch { /* non-fatal: contacts là bonus, ko được làm hỏng observe */ }
     }

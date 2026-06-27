@@ -277,22 +277,142 @@
       "badge": true,
       "contact": true,
       "notes": {
-        "recognize": "chưa map host (platform.js HOSTS)",
-        "login": "chưa có viewer-resolver (ko biết login)",
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
         "badge": "ENGINE_AUTHOR_CFG.discourse — badge familiarity",
         "contact": "_PROFILE_APIS: GET /u/…"
       }
     },
-    "nodebb": {
+    "fluxbb": {
       "recognize": false,
       "login": false,
       "badge": true,
-      "contact": false,
+      "contact": true,
       "notes": {
-        "recognize": "chưa map host (platform.js HOSTS)",
-        "login": "chưa có viewer-resolver (ko biết login)",
-        "badge": "ENGINE_AUTHOR_CFG.nodebb — badge familiarity",
-        "contact": "chưa có profile-capture"
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "invision": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "lemmy": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "ENGINE_AUTHOR_CFG.lemmy — badge familiarity",
+        "contact": "_PROFILE_APIS: GET /api/v3/user?username=…"
+      }
+    },
+    "mybb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "phorum": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "phpbb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread: profile/PM/email-form/website/userId (formulaic phpBB)"
+      }
+    },
+    "punbb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "smf": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "vbulletin": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "woltlab": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "xenforo": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
+        "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
       }
     },
     "flarum": {
@@ -301,9 +421,21 @@
       "badge": true,
       "contact": false,
       "notes": {
-        "recognize": "chưa map host (platform.js HOSTS)",
-        "login": "chưa có viewer-resolver (ko biết login)",
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
         "badge": "ENGINE_AUTHOR_CFG.flarum — badge familiarity",
+        "contact": "chưa có profile-capture"
+      }
+    },
+    "nodebb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": false,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "ENGINE_AUTHOR_CFG.nodebb — badge familiarity",
         "contact": "chưa có profile-capture"
       }
     },
@@ -313,25 +445,13 @@
       "badge": true,
       "contact": false,
       "notes": {
-        "recognize": "chưa map host (platform.js HOSTS)",
-        "login": "chưa có viewer-resolver (ko biết login)",
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
         "badge": "ENGINE_AUTHOR_CFG.vanilla — badge familiarity",
         "contact": "chưa có profile-capture"
       }
-    },
-    "lemmy": {
-      "recognize": false,
-      "login": false,
-      "badge": true,
-      "contact": true,
-      "notes": {
-        "recognize": "chưa map host (platform.js HOSTS)",
-        "login": "chưa có viewer-resolver (ko biết login)",
-        "badge": "ENGINE_AUTHOR_CFG.lemmy — badge familiarity",
-        "contact": "_PROFILE_APIS: GET /api/v3/user?username=…"
-      }
     }
   },
-  "bbcodeNote": "Forum bbcode tech (phpbb/xenforo/vbulletin/mybb/smf/invision/...) = badge + contact in-thread qua fingerprint DOM, ko liệt kê per-host.",
+  "bbcodeNote": "Tech detect = fingerprint DOM (ko theo host). bbcode family (phpbb/xenforo/…) contact = IN-THREAD (scrape post block: profile/PM/email/website/userId) — khác discourse/lemmy contact qua JSON API. Alias gộp: smf=simplemachines · invision=invisionpower/ipboard/ips.",
   "generatedAt": "2026-06-27"
 }

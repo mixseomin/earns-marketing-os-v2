@@ -305,6 +305,21 @@ export const OBJECTS: ArchObject[] = [
     routes: ['/ux-flows', '/ux-flows/{id}'],
   },
   {
+    key: 'crew-coverage', label: 'Crew ext · Coverage', group: 'infra',
+    table: null,
+    desc: 'Ma trận năng lực Crew ext × platform theo 4 tầng (nhận diện/login/badge/contact) — AUTO-DERIVE từ 5 bảng cfg THẬT trong ext (HOSTS · VIEWER_RESOLVERS · LITE+ENGINE_AUTHOR_CFG · _PROFILE_APIS) qua gen-capabilities.mjs. Bấm node = mở matrix. Single source = code; sửa cfg → chạy lại generator → re-deploy. Trả lời "platform nào support full" mà ko phải grep code.',
+    attrs: [
+      { name: 'recognize', col: '—', type: 'derived', note: 'platform.js HOSTS (host→key)' },
+      { name: 'login', col: '—', type: 'derived', note: 'VIEWER_RESOLVERS (viewer handle)' },
+      { name: 'badge', col: '—', type: 'derived', note: 'LITE/ENGINE_AUTHOR_CFG (familiarity)' },
+      { name: 'contact', col: '—', type: 'derived', note: '_PROFILE_APIS + HN deep (capture liên hệ)' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'ref', via: 'capability per platform-key' },
+    ],
+    routes: [],
+  },
+  {
     key: 'habitat', label: 'Habitat', group: 'place',
     table: 'habitats', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'A community the operator works in (subreddit/fb-group/discord/forum). Links platform+technology+tribe.',

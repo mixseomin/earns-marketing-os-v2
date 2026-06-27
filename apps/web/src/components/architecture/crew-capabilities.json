@@ -1,0 +1,193 @@
+{
+  "dimensions": [
+    {
+      "key": "recognize",
+      "label": "Nhận diện",
+      "desc": "platform.js HOSTS: host→key"
+    },
+    {
+      "key": "login",
+      "label": "Login",
+      "desc": "VIEWER_RESOLVERS: biết mình là ai (viewer handle)"
+    },
+    {
+      "key": "badge",
+      "label": "Badge",
+      "desc": "LITE/ENGINE_AUTHOR_CFG: familiarity người khác"
+    },
+    {
+      "key": "contact",
+      "label": "Contact",
+      "desc": "_PROFILE_APIS + HN deep: capture liên hệ"
+    }
+  ],
+  "platforms": {
+    "bsky": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "bsky.app"
+    },
+    "devto": {
+      "recognize": true,
+      "login": false,
+      "badge": true,
+      "contact": false,
+      "host": "dev.to"
+    },
+    "discord": {
+      "recognize": true,
+      "login": true,
+      "badge": false,
+      "contact": false,
+      "host": "discord.com"
+    },
+    "facebook": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "facebook.com"
+    },
+    "hackernews": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": true,
+      "host": "news.ycombinator.com"
+    },
+    "indiehackers": {
+      "recognize": true,
+      "login": false,
+      "badge": false,
+      "contact": false,
+      "host": "indiehackers.com"
+    },
+    "instagram": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "instagram.com"
+    },
+    "linkedin": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "linkedin.com"
+    },
+    "mastodon": {
+      "recognize": true,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "host": "mastodon.social"
+    },
+    "medium": {
+      "recognize": true,
+      "login": false,
+      "badge": true,
+      "contact": false,
+      "host": "medium.com"
+    },
+    "pinterest": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "pinterest.com"
+    },
+    "producthunt": {
+      "recognize": true,
+      "login": false,
+      "badge": true,
+      "contact": false,
+      "host": "producthunt.com"
+    },
+    "quora": {
+      "recognize": true,
+      "login": false,
+      "badge": true,
+      "contact": false,
+      "host": "quora.com"
+    },
+    "reddit": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "reddit.com"
+    },
+    "substack": {
+      "recognize": true,
+      "login": true,
+      "badge": false,
+      "contact": false,
+      "host": "substack.com"
+    },
+    "threads": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "threads.net"
+    },
+    "tiktok": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "tiktok.com"
+    },
+    "x": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "x.com"
+    },
+    "youtube": {
+      "recognize": true,
+      "login": true,
+      "badge": true,
+      "contact": false,
+      "host": "youtube.com"
+    }
+  },
+  "engines": {
+    "discourse": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true
+    },
+    "nodebb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": false
+    },
+    "flarum": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": false
+    },
+    "vanilla": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": false
+    },
+    "lemmy": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true
+    }
+  },
+  "bbcodeNote": "Forum bbcode (phpbb/xenforo/vbulletin/mybb/smf/invision/...) = badge + contact in-thread qua engine-fingerprint, ko liệt kê per-host.",
+  "generatedAt": "2026-06-27"
+}

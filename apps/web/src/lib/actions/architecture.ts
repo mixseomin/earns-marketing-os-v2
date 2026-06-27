@@ -428,6 +428,18 @@ export async function busiestProjectId(): Promise<string | null> {
   } catch { return null; }
 }
 
+// Crew ext capability matrix — latest row self-reported by ext buildCapabilities(). null = chưa report
+// (Architecture Studio fallback bản bundled). Single source = ext cfg LIVE.
+export async function getCrewCapabilities(): Promise<Record<string, unknown> | null> {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const r = await db.execute(sql`SELECT data FROM crew_capabilities ORDER BY updated_at DESC LIMIT 1`);
+    const rows = r as unknown as Array<{ data: Record<string, unknown> }>;
+    return rows[0]?.data ?? null;
+  } catch { return null; }
+}
+
 // ── system-wide health scan (set-based anti-joins — scans ALL rows, finds every
 //    cross-layer inconsistency, not a sample). The QC payoff for "lỗi vặt do chồng chéo". ──
 export interface ScanItem { level: 'error' | 'warn'; msg: string; count: number }

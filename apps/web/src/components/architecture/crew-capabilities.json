@@ -283,6 +283,18 @@
         "contact": "_PROFILE_APIS: GET /u/…"
       }
     },
+    "flarum": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "ENGINE_AUTHOR_CFG.flarum — badge familiarity",
+        "contact": "in-thread forum scrape"
+      }
+    },
     "fluxbb": {
       "recognize": false,
       "login": false,
@@ -329,6 +341,18 @@
         "login": "engine forum ko gắn viewer riêng",
         "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
         "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
+      }
+    },
+    "nodebb": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "ENGINE_AUTHOR_CFG.nodebb — badge familiarity",
+        "contact": "in-thread forum scrape"
       }
     },
     "phorum": {
@@ -379,6 +403,18 @@
         "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
       }
     },
+    "vanilla": {
+      "recognize": false,
+      "login": false,
+      "badge": true,
+      "contact": true,
+      "notes": {
+        "recognize": "detect = fingerprint DOM (ko theo host)",
+        "login": "engine forum ko gắn viewer riêng",
+        "badge": "ENGINE_AUTHOR_CFG.vanilla — badge familiarity",
+        "contact": "in-thread forum scrape"
+      }
+    },
     "vbulletin": {
       "recognize": false,
       "login": false,
@@ -414,44 +450,10 @@
         "badge": "bbcode cfg: b.postauthor / a.username[-coloured] — author byline (mọi theme bbcode)",
         "contact": "in-thread forum: scrape profile/PM/email/website từ post block"
       }
-    },
-    "flarum": {
-      "recognize": false,
-      "login": false,
-      "badge": true,
-      "contact": false,
-      "notes": {
-        "recognize": "detect = fingerprint DOM (ko theo host)",
-        "login": "engine forum ko gắn viewer riêng",
-        "badge": "ENGINE_AUTHOR_CFG.flarum — badge familiarity",
-        "contact": "chưa có profile-capture"
-      }
-    },
-    "nodebb": {
-      "recognize": false,
-      "login": false,
-      "badge": true,
-      "contact": false,
-      "notes": {
-        "recognize": "detect = fingerprint DOM (ko theo host)",
-        "login": "engine forum ko gắn viewer riêng",
-        "badge": "ENGINE_AUTHOR_CFG.nodebb — badge familiarity",
-        "contact": "chưa có profile-capture"
-      }
-    },
-    "vanilla": {
-      "recognize": false,
-      "login": false,
-      "badge": true,
-      "contact": false,
-      "notes": {
-        "recognize": "detect = fingerprint DOM (ko theo host)",
-        "login": "engine forum ko gắn viewer riêng",
-        "badge": "ENGINE_AUTHOR_CFG.vanilla — badge familiarity",
-        "contact": "chưa có profile-capture"
-      }
     }
   },
+  "scopeNote": "Matrix = năng lực BUILT-IN (cfg tĩnh ext). (a) Site/engine TRAIN TAY (Pick-on-page → selector_overrides DB) thêm badge/contact/login runtime mà bản built-in KHÔNG thấy. (b) 4 tầng = scene/contact; ext còn compose/reply (ADAPTERS) + signup-fill + card-detect — chưa là tầng riêng.",
   "bbcodeNote": "Tech detect = fingerprint DOM (ko theo host). bbcode family (phpbb/xenforo/…) contact = IN-THREAD (scrape post block: profile/PM/email/website/userId) — khác discourse/lemmy contact qua JSON API. Alias gộp: smf=simplemachines · invision=invisionpower/ipboard/ips.",
-  "generatedAt": "2026-06-27"
+  "generatedAt": "2026-06-27",
+  "note": "SEED/FALLBACK — nguồn TRUTH = ext buildCapabilities() self-report (DB crew_capabilities). File này chỉ dùng khi ext chưa report."
 }

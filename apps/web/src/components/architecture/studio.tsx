@@ -1916,20 +1916,27 @@ function SurfacePreview({ k }: { k: string }) {
 // Ext · Surface — catalog MỌI element MOS2 Crew inject trên thực địa (badge/pill/widget/menu/
 // HL box/popover/toast). Source kiểm soát để implement/nâng cấp: group theo loại + z-index ladder
 // (tránh đè nhau như RegKit widget bị HL phủ). EXT_SURFACE sống trong spec.ts.
-// Crew ext · Coverage matrix — platform/tech × tầng support, AUTO-DERIVE từ 5 bảng cfg thật trong ext
-// (HOSTS/VIEWER_RESOLVERS/LITE+ENGINE_AUTHOR_CFG/_PROFILE_APIS) qua gen-capabilities.mjs. Single source =
-// code; regen sau khi sửa cfg. NHÚNG vào drawer Platform (social) + Technology (tech) — ko phải grep.
+// Crew ext · Coverage matrix — platform/tech × tầng support. SINGLE SOURCE = ext buildCapabilities()
+// (đọc cfg tables LIVE → POST DB crew_capabilities); CapsCtx mang data đó xuống, fallback bản bundled
+// crew-capabilities.json khi ext chưa report. NHÚNG vào drawer Platform (social) + Technology (tech).
 type CapRow = { recognize: boolean; login: boolean; badge: boolean; contact: boolean; host?: string; notes?: Record<string, string> };
+type CapsData = typeof crewCaps;
+const CapsCtx = createContext<CapsData>(crewCaps);
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
-  const dims = crewCaps.dimensions as { key: string; label: string; desc: string }[];
-  const socials = Object.entries(crewCaps.platforms as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
-  const tech = Object.entries(crewCaps.tech as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
+  const caps = useContext(CapsCtx);
+  const dims = caps.dimensions as { key: string; label: string; desc: string }[];
+  const socials = Object.entries(caps.platforms as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
+  const tech = Object.entries(caps.tech as Record<string, CapRow>).map(([k, v]) => ({ k, ...v }));
   const score = (r: CapRow) => [r.recognize, r.login, r.badge, r.contact].filter(Boolean).length;
   const Cell = ({ on }: { on: boolean }) => <span style={{ color: on ? 'var(--ok)' : 'var(--fg-4)', fontWeight: on ? 700 : 400 }}>{on ? '✓' : '·'}</span>;
   const th: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-4)', padding: '6px 10px', textAlign: 'center', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const td: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 12, padding: '5px 10px', textAlign: 'center', borderBottom: '1px solid var(--line)' };
   const note: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.5 };
-  const intro = <div style={note}>Auto-derive từ <b style={{ color: 'var(--accent)' }}>code thật</b> (5 bảng cfg) qua <code style={{ fontFamily: 'var(--font-mono)' }}>gen-capabilities.mjs</code> · sinh {crewCaps.generatedAt}. Sửa cfg → regen.</div>;
+  const v = (caps as { version?: string }).version;
+  const intro = <div style={note}>Ext <b style={{ color: 'var(--accent)' }}>tự assemble + report</b> (buildCapabilities đọc cfg tables LIVE){v ? <> · ext v<b style={{ color: 'var(--fg-1)' }}>{v}</b></> : <> · <span style={{ color: 'var(--warn)' }}>chưa report (bản bundled)</span></>}. Thêm platform vào cfg = tự có, ko regex/drift.</div>;
+  const caveat = (caps as { scopeNote?: string }).scopeNote
+    ? <div style={{ ...note, marginTop: 10, marginBottom: 0, borderTop: '1px solid var(--line)', paddingTop: 8, color: 'var(--fg-4)' }}>⚠ {(caps as { scopeNote?: string }).scopeNote}</div>
+    : null;
 
   if (kind === 'tech') {
     return (
@@ -1947,7 +1954,8 @@ function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
             ))}
           </tbody>
         </table>
-        <div style={note}>{crewCaps.bbcodeNote}</div>
+        <div style={note}>{(caps as { bbcodeNote?: string }).bbcodeNote}</div>
+        {caveat}
       </div>
     );
   }
@@ -1975,6 +1983,7 @@ function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
           ); })}
         </tbody>
       </table>
+      {caveat}
     </div>
   );
 }
@@ -2361,10 +2370,12 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   );
 }
 
-export function ArchitectureStudio({ projects, defaultProjectId }: { projects: { id: string; name: string }[]; defaultProjectId?: string }) {
+export function ArchitectureStudio({ projects, defaultProjectId, caps }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null }) {
   return (
     <ReactFlowProvider>
-      <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+      <CapsCtx.Provider value={(caps && caps.platforms ? caps : crewCaps) as CapsData}>
+        <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+      </CapsCtx.Provider>
     </ReactFlowProvider>
   );
 }

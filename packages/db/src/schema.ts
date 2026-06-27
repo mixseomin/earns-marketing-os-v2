@@ -508,6 +508,16 @@ export const platformTechDetections = pgTable('platform_tech_detections', {
   url: text('url'),
 }, (t) => [index('platform_tech_detections_tech_idx').on(t.technologyKey), index('platform_tech_detections_pkey_idx').on(t.platformKey)]);
 
+// ── crew_capabilities (migration 0115) ───────────────────────────
+// Ext buildCapabilities() (đọc cfg tables LIVE) POST matrix năng lực vào đây (1 row/version, upsert).
+// Architecture Studio đọc row mới nhất. Single source = ext cfg thật → ko regex/drift.
+export const crewCapabilities = pgTable('crew_capabilities', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  version: text('version'),
+  data: jsonb('data').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex('crew_capabilities_version_idx').on(t.version)]);
+
 // ── dom_samples (migration 0106) ─────────────────────────────────
 // Ext (browser ĐÃ LOGIN) chụp full rendered HTML 1 trang cần track → lưu đây theo
 // platform/technology/page_kind. Giải login-gated (server không curl được trang auth)

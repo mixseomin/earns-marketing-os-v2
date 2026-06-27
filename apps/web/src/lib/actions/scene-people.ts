@@ -7,6 +7,7 @@ export type SceneChannel = { type: string; value: string; url?: string; subtype?
 export type SceneContacts = {
   userId?: string; profile?: string; pm?: string; email?: string; emailForm?: string;
   website?: string; location?: string; posts?: number; host?: string; engine?: string; model?: string;
+  karma?: number; joined?: string; joinedTs?: number; about?: string;   // profile-page stats (HN user?id=… : karma/created/about)
   channels?: SceneChannel[];   // Orit parseSocialHref classifier: social/messaging/donation… ~80 channel_type
 };
 export type ScenePersonRow = {

@@ -610,13 +610,37 @@ export const OBJECTS: ArchObject[] = [
       { name: 'interactionCount', col: 'interaction_count', type: 'int' },
       { name: 'theyRepliedBack', col: 'they_replied_back', type: 'bool' },
       { name: 'status', col: 'status', type: 'text', note: 'observed|engaging|warm|bridged|ignore' },
+      { name: 'identityId', col: 'identity_id', type: 'fk', fk: 'identity', note: 'GLOBAL person (cross-project) → contacts' },
+      { name: 'sceneTag', col: 'scene_tag', type: 'text', note: 'nhãn nhóm scene' },
+      { name: 'lastEngagedAt', col: 'last_engaged_at', type: 'timestamp' },
     ],
     relations: [
       { to: 'platform', kind: 'fk', via: 'platform_key' },
       { to: 'habitat', kind: 'fk', via: 'habitat_id' },
+      { to: 'identity', kind: 'fk', via: 'identity_id' },
       { to: 'interaction', kind: 'tracking', via: 'interactions.people_id' },
     ],
     routes: ['/scene/people', '/scene/observe', '/scene/interact', '/scene/lookup'],
+  },
+  {
+    key: 'identity', label: 'Identity (scene · global contacts)', group: 'scene',
+    table: 'scene_identities', pk: 'id', labelCol: 'handle', projectScoped: false,
+    desc: 'GLOBAL person-identity per platform+handle (1 dòng/người, tái dùng across project — khác `people` = quan hệ per-project). scraped_meta.contacts = TOÀN BỘ contact/profile ext cào (extractContact forum+social + HN/forum profile-page deep): userId · profile · pm · email(thật, de-obfusc \'X at gmail\') · emailForm · website · location · posts · ⭐KARMA · 📅JOINED(ngày tham gia)+joinedTs · about(bio) · host · engine · channels[] (Orit classifier ~80 type: telegram/discord/github/paypal/kofi…). LEAN: phpBB id số → derive profile/PM/email URL lúc render; field social/HN lưu thẳng. Surface: cột Contacts/Joined/Karma + popover ◎ /p/[id]/scenes.',
+    browseCols: [
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'handle', label: 'handle' },
+    ],
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'platformKey', col: 'platform_key', type: 'fk', fk: 'platform', note: "canonical 'twitter'/'hackernews'" },
+      { name: 'handle', col: 'handle', type: 'text' },
+      { name: 'scrapedMeta', col: 'scraped_meta', type: 'jsonb', note: 'contacts{userId·profile·pm·email·emailForm·website·location·posts·karma·joined·joinedTs·about·host·engine·channels[]}' },
+    ],
+    relations: [
+      { to: 'platform', kind: 'fk', via: 'platform_key' },
+      { to: 'people', kind: 'ref', via: 'people.identity_id' },
+    ],
+    routes: ['/scene/observe', '/scene/people', '/scene/lookup'],
   },
   {
     key: 'interaction', label: 'Interaction (tracking)', group: 'scene',

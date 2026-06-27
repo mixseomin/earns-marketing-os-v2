@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
-import type { ScenePersonRow } from '@/lib/actions/scene-people';
+import type { ScenePersonRow, SceneContacts } from '@/lib/actions/scene-people';
 
 const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--bg-3)' };
 
@@ -18,7 +18,7 @@ function deriveContacts(c: SceneContacts) {
   }
   let email = '';
   if (c.email) { if (/^https?:/i.test(c.email)) { emailForm = emailForm || c.email; } else { email = c.email; } }
-  return { profile, pm, email, emailForm, website: c.website || '', userId: c.userId || '', host, location: c.location || '', posts: c.posts, channels: Array.isArray(c.channels) ? c.channels : [] };
+  return { profile, pm, email, emailForm, website: c.website || '', userId: c.userId || '', host, location: c.location || '', posts: c.posts, karma: c.karma, joined: c.joined || '', about: c.about || '', channels: Array.isArray(c.channels) ? c.channels : [] };
 }
 // Emoji ngắn cho channel phổ biến (reuse vocab Orit) — thiếu → tên type. Scale mọi channel_type.
 const CH_EMOJI: Record<string, string> = { twitter: '𝕏', x: '𝕏', telegram: '✈️', whatsapp: '🟢', signal: '🔵', discord: '🎮', github: '🐙', gitlab: '🦊', linkedin: '💼', instagram: '📷', facebook: '📘', youtube: '▶️', tiktok: '🎵', reddit: '👽', mastodon: '🐘', bluesky: '🦋', threads: '@', matrix: '⬢', linktree: '🌳', medium: '✍️', substack: '📰', devto: '👩‍💻', paypal: '💵', kofi: '☕', patreon: '🅿️', buymeacoffee: '☕', gumroad: '🛒', upwork: '💼', fiverr: '🟩', producthunt: '🐱', vk: '🆚', line: '💚', viber: '💜', wechat: '💬', snapchat: '👻', pinterest: '📌' };
@@ -94,6 +94,8 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
               <th style={{ padding: '6px 8px' }}>Interactions</th>
               <th style={{ padding: '6px 8px' }}>Familiarity</th>
               <th style={{ padding: '6px 8px' }}>Status</th>
+              <th style={{ padding: '6px 8px' }}>Joined</th>
+              <th style={{ padding: '6px 8px' }}>Karma</th>
               <th style={{ padding: '6px 8px' }}>Contacts</th>
             </tr>
           </thead>
@@ -127,6 +129,8 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
                   <td style={{ padding: '6px 8px' }}>
                     <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{p.status}</span>
                   </td>
+                  <td style={{ padding: '6px 8px', color: 'var(--fg-2)', whiteSpace: 'nowrap', fontSize: 12 }} title={p.contacts?.joined ? `Tham gia ${p.contacts.host || ''}` : ''}>{p.contacts?.joined || '—'}</td>
+                  <td style={{ padding: '6px 8px' }}>{p.contacts?.karma != null ? <b style={{ color: 'var(--neon-amber)' }}>⭐{p.contacts.karma.toLocaleString()}</b> : <span style={{ color: 'var(--fg-3)' }}>—</span>}</td>
                   <td style={{ padding: '6px 8px' }}>
                     {p.contacts ? (() => {
                       const d = deriveContacts(p.contacts);
@@ -142,6 +146,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
                           {d.location && <span title="Vị trí" style={{ color: 'var(--fg-2)' }}>📍{d.location}</span>}
                           {d.posts != null && <span title="Số bài trên forum" style={{ color: 'var(--fg-3)' }}>📝{d.posts}</span>}
                           {d.channels.map((ch, i) => ch.value ? <a key={`${ch.type}-${i}`} href={ch.url || '#'} target="_blank" rel="noreferrer" title={`${ch.type}: ${ch.value}`} style={{ ...contactChip, background: 'var(--bg-3)', minWidth: 'auto', padding: '0 6px' }}>{chLabel(ch.type)} {String(ch.value).slice(0, 18)}</a> : null)}
+                          {d.about && <span title={d.about} style={{ color: 'var(--fg-3)', fontStyle: 'italic', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>“{d.about}”</span>}
                         </div>
                       );
                     })() : <span style={{ color: 'var(--fg-3)' }}>—</span>}

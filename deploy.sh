@@ -96,13 +96,15 @@ WEB_CHANGED=false
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
   WEB_CHANGED=true
 fi
-if [ "$WEB_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -d "apps/web/.next" ]; then
+if [ "$WEB_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f "apps/web/.next/BUILD_ID" ]; then
   # Guard: unquoted camelCase SQL aliases (Postgres lowercases → row read returns null). Cheap, fail-fast.
   node scripts/check-sql-aliases.mjs || { echo "✗ SQL alias guard failed — abort deploy"; exit 1; }
   # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
   # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
   node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
-  npm run build:web
+  # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
+  # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
+  NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
   echo "✓ Web build done"
 else
   echo "↺ Skip build (no source changes)"

@@ -37,7 +37,6 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
     for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active }); }
     return [...m.values()];
   })();
-  const userName = (id: number | null): string => id == null ? '' : (grouped.find((x) => x.userId === id)?.name ?? `#${id}`);
 
   const loadDetail = (uid: number) => { setDetail((d) => ({ ...d, [uid]: 'loading' })); getMemberAssignments(uid).then((s) => setDetail((d) => ({ ...d, [uid]: s }))); };
   const toggle = (uid: number) => { if (open === uid) { setOpen(null); return; } setOpen(uid); setMgr(null); if (!detail[uid]) loadDetail(uid); };
@@ -153,7 +152,17 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                                           <td style={{ ...td, textAlign: 'center' }}><input type="checkbox" checked={checked} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} /></td>
                                                           <td style={td}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><SiteFavicon {...platformFaviconProps(a.platformKey)} size={13} title={a.platformKey} />{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-0)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : (a.handle || '(no handle)')}</span></td>
                                                           <td style={{ ...td, color: 'var(--fg-3)' }}>{onOpen ? <a role="button" onClick={() => onOpen('platform', a.platformKey, a.platformKey)} style={{ color: 'var(--fg-3)', cursor: 'pointer', textDecoration: 'none' }}>{a.platformKey}</a> : a.platformKey}</td>
-                                                          <td style={td}>{mine ? <span style={{ color: 'var(--neon-lime)' }}>✓ {g.name}</span> : other ? <span style={{ color: 'var(--neon-amber)' }} title="tick để chuyển sang người này">{userName(a.ownerUserId)}</span> : <span style={{ color: 'var(--fg-4)' }}>— chưa giao —</span>}</td>
+                                                          <td style={td}>{(() => {
+                                                            if (!mine && !other) return <span style={{ color: 'var(--fg-4)' }}>— chưa giao —</span>;
+                                                            const oid = mine ? g.userId : a.ownerUserId!;
+                                                            const ow = grouped.find((x) => x.userId === oid);
+                                                            const nm = mine ? g.name : (ow?.name ?? `#${oid}`);
+                                                            const tip = `${ow?.email ?? ''}${other ? ` · tick để chuyển sang ${g.name}` : ''}`.trim();
+                                                            const col = mine ? 'var(--neon-lime)' : 'var(--neon-amber)';
+                                                            return onOpen
+                                                              ? <a role="button" onClick={() => onOpen('teamUser', oid, nm)} title={tip || 'mở thành viên'} style={{ color: col, cursor: 'pointer', textDecoration: 'none' }}>{mine ? '✓ ' : ''}{nm}</a>
+                                                              : <span style={{ color: col }} title={tip}>{mine ? '✓ ' : ''}{nm}</span>;
+                                                          })()}</td>
                                                         </tr>
                                                       );
                                                     })}

@@ -27,7 +27,7 @@ import {
 import { Drawer } from '@/components/drawer';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
 import {
-  listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, isInstanceFieldEditable, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   getIdentity, updateIdentity,
@@ -1174,6 +1174,49 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 // One key→value row in an instance drawer. Long/multiline values truncate to 1 line with "▸ xem";
 // click expands to a full wrapped, scrollable, selectable block + copy (fixes drawer field cut-off).
 const miniBtn: CSSProperties = { fontSize: 10, padding: '2px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-3)', color: 'var(--fg-1)', cursor: 'pointer', flexShrink: 0 };
+// Hàng SỬA ĐƯỢC: click value/✎ → input/select/textarea → lưu thẳng DB (updateInstanceField).
+// type quyết định widget: bool→select, jsonb/dài→textarea, còn lại input. FK vẫn có link mở drawer.
+function EditableRow({ name, value, type, zebra, chips, link, onSave }: {
+  name: string; value: unknown; type?: string; zebra: number; chips?: ReactNode;
+  link?: { label: string; onOpen: () => void }; onSave: (v: string | null) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const has = value != null && value !== '';
+  const isObj = value != null && typeof value === 'object';
+  const full = !has ? '' : (isObj ? JSON.stringify(value, null, 2) : String(value));
+  const isBool = /bool/.test(type || '') || typeof value === 'boolean';
+  const isJson = /json/.test(type || '') || isObj;
+  const long = isJson || full.length > 46 || full.includes('\n');
+  const bg = zebra % 2 ? 'var(--bg-1)' : 'var(--bg-2)';
+  const start = () => { setErr(''); setDraft(has ? full : ''); setEditing(true); };
+  const save = async () => { setBusy(true); setErr(''); const r = await onSave(draft.trim() === '' ? null : draft); setBusy(false); if (r.ok) setEditing(false); else setErr(r.error || 'lỗi'); };
+  const nameBlock = <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}><span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-0)' }}>{name}</span>{chips}</div>;
+  if (editing) {
+    return (
+      <div style={{ padding: '6px 10px', background: bg, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>{nameBlock}<div style={{ display: 'flex', gap: 6 }}><button type="button" onClick={save} disabled={busy} style={miniBtn}>{busy ? '…' : '✓ lưu'}</button><button type="button" onClick={() => setEditing(false)} style={miniBtn}>✕</button></div></div>
+        {isBool ? <select value={draft} onChange={(e) => setDraft(e.target.value)} style={selStyle}><option value="">—</option><option value="true">true</option><option value="false">false</option></select>
+          : long ? <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={isJson ? 6 : 3} autoFocus style={{ ...selStyle, width: '100%', fontFamily: 'var(--font-mono)', resize: 'vertical' }} />
+            : <input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }} style={{ ...selStyle, width: '100%' }} />}
+        {err && <span style={{ fontSize: 10, color: 'var(--bad)' }}>{err}</span>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: '6px 10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      {nameBlock}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: '72%' }}>
+        {link && <a role="button" onClick={link.onOpen} style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.label}</a>}
+        {!link && <span onClick={start} title="click để sửa" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: has ? 'var(--fg-1)' : 'var(--fg-4)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{has ? full.replace(/\s+/g, ' ').slice(0, 64) : '—'}</span>}
+        <button type="button" onClick={start} title="sửa" style={miniBtn}>✎</button>
+      </div>
+    </div>
+  );
+}
+
 function FieldRow({ name, nameColor = 'var(--fg-0)', chips, value, link, zebra }: {
   name: string; nameColor?: string; chips?: ReactNode; value: unknown;
   link?: { label: string; onOpen: () => void }; zebra: number;
@@ -1306,6 +1349,12 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   const selfId = useRef(Math.random().toString(36).slice(2));
   const load = useCallback(() => { let dead = false; setD('loading'); getInstance(objKey, id).then((r) => { if (!dead) setD(r ?? null); }); return () => { dead = true; }; }, [objKey, id]);
   useEffect(() => load(), [load]);
+  // SỬA 1 field → lưu DB rồi reload record (giá trị canonical sau cast). Đổi status account → patch row + emit.
+  const saveField = useCallback((col: string) => async (v: string | null) => {
+    const r = await updateInstanceField(objKey, id, col, v);
+    if (r.ok) { getInstance(objKey, id).then((x) => setD(x ?? null)); if (col === 'status') emitInstUpdate(objKey, id, { status: v ?? '' }, selfId.current); }
+    return r;
+  }, [objKey, id]);
   useEffect(() => { if (d && d !== 'loading' && d.row) setStatus(String(d.row.status ?? '')); }, [d]);
   // Drawer KHÁC (cùng record) sửa → đồng bộ d ở đây luôn (bỏ qua event do CHÍNH drawer này phát).
   useEffect(() => {
@@ -1376,26 +1425,29 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
         </Section>
       )}
       {objKey === 'project' && <ProjectRelevanceEditor projectId={id} />}
-      <Section title="Attributes" sub={`// ${obj.table || 'doc-only'}`}>
+      <Section title="Attributes" sub={`// ${obj.table || 'doc-only'} · ✎ sửa thẳng`}>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
           {obj.attrs.map((a, i) => {
             const val = a.col != null ? d.row[a.col] : null;
             const has = val != null && val !== '';
             const fkObj = a.fk ? OBJ_BY_KEY[a.fk] : null;
             const canOpen = !!(fkObj?.table && has);   // FK trỏ tới node có bảng + có value → mở được
-            return (
-              <FieldRow key={a.name} zebra={i} value={val} name={a.name}
-                chips={<>{a.pk && <span style={chip('var(--accent)')}>PK</span>}{a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}</>}
-                link={canOpen ? { label: `${fkObj!.label} #${val}`, onOpen: () => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val), label: String(val) } }) } : undefined} />
-            );
+            const chips = <>{a.pk && <span style={chip('var(--accent)')}>PK</span>}{a.fk && <span style={chip('#b48cff')}>→ {a.fk}</span>}</>;
+            const link = canOpen ? { label: `${fkObj!.label} #${val}`, onOpen: () => push({ title: String(val), sub: `${fkObj!.label} · #${val}`, body: <InstanceDetail objKey={a.fk!} id={String(val)} />, route: { t: 'inst', objKey: a.fk!, id: String(val), label: String(val) } }) } : undefined;
+            const editable = !!a.col && !a.pk && !!obj.table && isInstanceFieldEditable(objKey, a.col);
+            return editable
+              ? <EditableRow key={a.name} zebra={i} value={val} name={a.name} type={a.type} chips={chips} link={link} onSave={saveField(a.col!)} />
+              : <FieldRow key={a.name} zebra={i} value={val} name={a.name} chips={chips} link={link} />;
           })}
         </div>
       </Section>
       {others.length > 0 && (
-        <Section title="Other columns" sub={`// ${others.length} ngoài model`}>
+        <Section title="Other columns" sub={`// ${others.length} ngoài model · ✎ sửa thẳng`}>
           <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
             {others.map((k, i) => (
-              <FieldRow key={k} zebra={i} value={d.row[k]} name={k} nameColor="var(--fg-2)" />
+              (!!obj.table && isInstanceFieldEditable(objKey, k))
+                ? <EditableRow key={k} zebra={i} value={d.row[k]} name={k} onSave={saveField(k)} />
+                : <FieldRow key={k} zebra={i} value={d.row[k]} name={k} nameColor="var(--fg-2)" />
             ))}
           </div>
         </Section>

@@ -254,6 +254,36 @@ export async function browseInstances(
 }
 
 // ── instance mutation (narrow, sanctioned exception to the read-only map) ─────
+// Generic field edit cho InstanceDetail (sửa thẳng trong drawer). Gửi VALUE string|null,
+// Postgres tự cast theo kiểu cột (text/int/bool/jsonb/date). DENY: pk + cột hệ thống + secret.
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at']);
+const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
+export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table || !col) return false;
+  if (col === (obj.pk || 'id') || FIELD_RO_SYS.has(col) || FIELD_RO_SENS.test(col)) return false;
+  return /^[a-z_][a-z0-9_]*$/.test(col);
+}
+export async function updateInstanceField(
+  objectKey: string, id: string, col: string, value: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table) return { ok: false, error: 'unknown object' };
+  if (!isInstanceFieldEditable(objectKey, col)) return { ok: false, error: `cột '${col}' không cho sửa` };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  const cols = await tableColumns(obj.table);
+  if (!cols.has(col)) return { ok: false, error: 'no such column' };
+  const v = (value == null || value === '') ? null : value;
+  const sets: ReturnType<typeof sql>[] = [sql`${sql.raw(ident(col))} = ${v}`];
+  if (cols.has('updated_at')) sets.push(sql`updated_at = now()`);
+  const pk = ident(obj.pk || 'id');
+  try {
+    await db.execute(sql`UPDATE ${sql.raw(ident(obj.table))} SET ${sql.join(sets, sql`, `)} WHERE ${sql.raw(pk)}::text = ${id}`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
+}
+
 // Studio triage: đổi status + append note cho 1 account ngay trên /architecture.
 const ACCOUNT_STATUS = ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'];
 export async function updateInstance(

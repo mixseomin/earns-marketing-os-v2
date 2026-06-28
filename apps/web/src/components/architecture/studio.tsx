@@ -20,14 +20,14 @@ import { PillarCoveragePanel } from '@/components/architecture/pillar-coverage-p
 import { AccountInfraPanel } from '@/components/architecture/account-infra-panel';
 import { TeamPanel } from '@/components/architecture/team-panel';
 import {
-  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
+  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS, isInstanceFieldEditable,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
   type ArchObject, type ArchFlow, type RelKind, type BrowseGroup, type SurfaceGroup,
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
 import {
-  listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, isInstanceFieldEditable, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   getIdentity, updateIdentity,

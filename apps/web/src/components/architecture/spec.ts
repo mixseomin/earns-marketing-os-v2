@@ -1000,3 +1000,14 @@ export const SURFACE_GROUP_META: Record<SurfaceGroup, { label: string; color: st
 export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
   OBJECTS.filter((o) => o.table).map((o) => [o.key, o]),
 );
+
+// Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
+// → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at']);
+const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
+export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table || !col) return false;
+  if (col === (obj.pk || 'id') || FIELD_RO_SYS.has(col) || FIELD_RO_SENS.test(col)) return false;
+  return /^[a-z_][a-z0-9_]*$/.test(col);
+}

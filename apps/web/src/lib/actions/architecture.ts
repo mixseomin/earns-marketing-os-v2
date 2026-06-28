@@ -6,7 +6,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { BINDABLE_TABLES, OBJ_BY_KEY } from '@/components/architecture/spec';
+import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
 
@@ -255,15 +255,8 @@ export async function browseInstances(
 
 // ── instance mutation (narrow, sanctioned exception to the read-only map) ─────
 // Generic field edit cho InstanceDetail (sửa thẳng trong drawer). Gửi VALUE string|null,
-// Postgres tự cast theo kiểu cột (text/int/bool/jsonb/date). DENY: pk + cột hệ thống + secret.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at']);
-const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
-export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
-  const obj = BINDABLE_TABLES[objectKey];
-  if (!obj || !obj.table || !col) return false;
-  if (col === (obj.pk || 'id') || FIELD_RO_SYS.has(col) || FIELD_RO_SENS.test(col)) return false;
-  return /^[a-z_][a-z0-9_]*$/.test(col);
-}
+// Postgres tự cast theo kiểu cột (text/int/bool/jsonb/date). isInstanceFieldEditable ở spec.ts
+// (sync helper — 'use server' chỉ export được async fn).
 export async function updateInstanceField(
   objectKey: string, id: string, col: string, value: string | null,
 ): Promise<{ ok: boolean; error?: string }> {

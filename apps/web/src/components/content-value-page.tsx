@@ -1,7 +1,68 @@
 'use client';
 import { useMemo, useState, type CSSProperties } from 'react';
-import type { ContentValue, Durability } from '@/lib/actions/content-value-types';
-import { DURABILITY_META } from '@/lib/actions/content-value-types';
+import type { ContentValue, Durability, ContentCadence, CadenceBucket } from '@/lib/actions/content-value-types';
+import { DURABILITY_META, CADENCE_META } from '@/lib/actions/content-value-types';
+
+const CAD_ORDER: CadenceBucket[] = ['due', 'cold', 'watch', 'weak'];
+
+// Pha B — "Đến hạn → đăng nơi bền" theo habitat. Embedded trong drawer node `habitat` (KHÔNG page riêng).
+// due = đăng tiếp ở đây · weak = nơi không ra giá trị, cân nhắc bỏ.
+export function ContentCadenceTable({ data, projects }: { data: ContentCadence; projects: { id: string; name: string }[] }) {
+  const [proj, setProj] = useState('');
+  const [bucket, setBucket] = useState<CadenceBucket | ''>('');
+  const scope = useMemo(() => (proj ? data.rows.filter((r) => r.projectId === proj) : data.rows), [data.rows, proj]);
+  const rows = useMemo(() => (bucket ? scope.filter((r) => r.bucket === bucket) : scope), [scope, bucket]);
+  const counts = useMemo(() => { const c = { due: 0, watch: 0, cold: 0, weak: 0 } as Record<CadenceBucket, number>; for (const r of scope) c[r.bucket]++; return c; }, [scope]);
+
+  const chip: CSSProperties = { fontSize: 12, padding: '4px 10px', borderRadius: 99, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' };
+  const th: CSSProperties = { padding: '6px 8px', textAlign: 'left', color: 'var(--fg-2)', fontSize: 11, fontWeight: 600, borderBottom: '1px solid var(--bg-3)', whiteSpace: 'nowrap' };
+  const td: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--bg-2)' };
+
+  if (data.rows.length === 0) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có bài đăng gắn habitat để tính cadence.</div>;
+  return (
+    <div>
+      <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 10px' }}>
+        {scope.length} nơi đã đăng · <b style={{ color: 'var(--neon-lime)' }}>Đến hạn</b> = nơi bền (best ≥ {data.durableCut}) nhưng ≥10 ngày chưa đăng → ưu tiên đăng tiếp. <b style={{ color: 'var(--bad)' }}>Yếu</b> = best≈0 → cân nhắc bỏ.
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 10px' }}>
+        <select value={proj} onChange={(e) => setProj(e.target.value)} style={{ ...chip, cursor: 'pointer' }}>
+          <option value="">Mọi project</option>
+          {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <span style={{ width: 1, height: 18, background: 'var(--bg-3)' }} />
+        {CAD_ORDER.map((b) => {
+          const m = CADENCE_META[b]; const on = bucket === b;
+          return <button key={b} title={m.hint} onClick={() => setBucket(on ? '' : b)} style={{ ...chip, borderColor: on ? m.color : 'var(--bg-3)', color: on ? m.color : 'var(--fg-2)', fontWeight: on ? 700 : 500 }}>{m.label} <b style={{ color: m.color }}>{counts[b]}</b></button>;
+        })}
+      </div>
+      {rows.length === 0 ? <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 16, color: 'var(--fg-2)', fontSize: 13 }}>Không có nơi khớp bộ lọc.</div> : (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr>
+            <th style={th}>Nơi (habitat)</th><th style={th}>Platform</th>{!proj && <th style={th}>Project</th>}
+            <th style={{ ...th, textAlign: 'right' }}>Bài</th><th style={{ ...th, textAlign: 'right' }}>Lâu chưa đăng</th>
+            <th style={{ ...th, textAlign: 'right' }}>Best</th><th style={th}>Trạng thái</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const m = CADENCE_META[r.bucket];
+              return (
+                <tr key={r.habitatId}>
+                  <td style={{ ...td, maxWidth: 280 }}>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-0)', textDecoration: 'none' }}>{r.name}</a> : <span style={{ color: 'var(--fg-1)' }}>{r.name}</span>}</td>
+                  <td style={{ ...td, color: 'var(--fg-2)' }}>{r.platformKey || '—'}</td>
+                  {!proj && <td style={{ ...td, color: 'var(--fg-3)' }}>{r.projectName || '—'}</td>}
+                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{r.posts}</td>
+                  <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', color: r.daysSince >= 10 ? 'var(--neon-amber)' : 'var(--fg-2)' }}>{r.daysSince}d</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--neon-cyan)' }}>{r.bestValue}</td>
+                  <td style={td}><span title={m.hint} style={{ fontSize: 11, padding: '1px 8px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color, cursor: 'help' }}>{m.label}</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
 
 const ORDER: Durability[] = ['winner', 'rising', 'steady', 'decaying', 'dead'];
 

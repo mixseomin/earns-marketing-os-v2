@@ -14,8 +14,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { NODE_TYPES } from './nodes';
 import crewCaps from './crew-capabilities.json';
-import { ContentValuePage } from '@/components/content-value-page';
-import type { ContentValue } from '@/lib/actions/content-value-types';
+import { ContentValuePage, ContentCadenceTable } from '@/components/content-value-page';
+import type { ContentValue, ContentCadence } from '@/lib/actions/content-value-types';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
@@ -1515,6 +1515,12 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
         </Section>
       )}
 
+      {obj.key === 'habitat' && (
+        <Section title="Cadence · Pha B" sub="// đến hạn → đăng nơi bền · bỏ nơi yếu (#3)">
+          <ContentCadenceInline projects={projects} />
+        </Section>
+      )}
+
       {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
@@ -1938,6 +1944,14 @@ function ContentValueInline({ projects }: { projects: { id: string; name: string
   const cv = useContext(ContentValueCtx);
   if (!cv) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu insights.</div>;
   return <ContentValuePage data={cv} projects={projects} embedded />;
+}
+
+// Pha B cadence — NHÚNG vào drawer node `habitat`. Data load 1 lần ở route → ContentCadenceCtx.
+const ContentCadenceCtx = createContext<ContentCadence | null>(null);
+function ContentCadenceInline({ projects }: { projects: { id: string; name: string }[] }) {
+  const cad = useContext(ContentCadenceCtx);
+  if (!cad) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu cadence.</div>;
+  return <ContentCadenceTable data={cad} projects={projects} />;
 }
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const caps = useContext(CapsCtx);
@@ -2387,12 +2401,14 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   );
 }
 
-export function ArchitectureStudio({ projects, defaultProjectId, caps, contentValue }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null; contentValue?: ContentValue | null }) {
+export function ArchitectureStudio({ projects, defaultProjectId, caps, contentValue, contentCadence }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null; contentValue?: ContentValue | null; contentCadence?: ContentCadence | null }) {
   return (
     <ReactFlowProvider>
       <CapsCtx.Provider value={(caps && caps.platforms ? caps : crewCaps) as CapsData}>
         <ContentValueCtx.Provider value={contentValue ?? null}>
-          <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+          <ContentCadenceCtx.Provider value={contentCadence ?? null}>
+            <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+          </ContentCadenceCtx.Provider>
         </ContentValueCtx.Provider>
       </CapsCtx.Provider>
     </ReactFlowProvider>

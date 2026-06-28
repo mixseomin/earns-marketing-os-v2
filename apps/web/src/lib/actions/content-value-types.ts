@@ -18,3 +18,18 @@ export interface CardValueRow {
 }
 export interface PillarRollup { key: string; pillarName: string; posts: number; totalValue: number; winners: number; }
 export interface ContentValue { cards: CardValueRow[]; pillars: PillarRollup[]; counts: Record<Durability, number>; total: number; truncated: boolean; }
+
+// Pha B — cadence "đến hạn → đăng nơi bền" theo habitat (xem content-cadence.ts).
+export type CadenceBucket = 'due' | 'watch' | 'cold' | 'weak';
+export const CADENCE_META: Record<CadenceBucket, { label: string; color: string; hint: string }> = {
+  due:   { label: 'Đến hạn', color: 'var(--neon-lime)',  hint: 'Nơi bền (từng ra giá trị) + đã lâu chưa đăng → ĐĂNG TIẾP ở đây.' },
+  watch: { label: 'Ổn',      color: 'var(--fg-2)',        hint: 'Mới đăng gần đây → để yên, chưa tới hạn.' },
+  cold:  { label: 'Nguội',   color: 'var(--neon-amber)',  hint: 'Giá trị trung bình + lâu chưa đăng → thử lại hoặc giảm ưu tiên.' },
+  weak:  { label: 'Yếu',     color: 'var(--bad)',         hint: 'Gần như không ra giá trị (best≈0) → cân nhắc bỏ nơi này.' },
+};
+export interface CadenceRow {
+  habitatId: number; name: string; url: string | null; platformKey: string | null; status: string | null;
+  projectId: string | null; projectName: string | null;
+  posts: number; daysSince: number; avgValue: number; bestValue: number; bucket: CadenceBucket;
+}
+export interface ContentCadence { rows: CadenceRow[]; durableCut: number; }

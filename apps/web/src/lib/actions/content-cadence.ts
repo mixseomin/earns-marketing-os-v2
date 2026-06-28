@@ -76,7 +76,7 @@ export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlay
         WHERE b.habitat_id = ${habitatId}
         ORDER BY (b.current_phase IS NOT NULL) DESC, b.id DESC LIMIT 1`),
       db.execute(sql`
-        SELECT title, content_kind, post_url,
+        SELECT id, title, content_kind, post_url,
                ROUND((COALESCE(insights_score,0) + log(10, COALESCE(insights_views_count,0)+1)*5)::numeric, 1) AS value,
                (now()::date - posted_at::date)::int AS days_ago
         FROM cards WHERE habitat_id = ${habitatId} AND posted_at IS NOT NULL
@@ -101,7 +101,7 @@ export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlay
     const b = (bR as unknown as Array<Record<string, unknown>>)[0] || {};
     const phase = b.current_phase ? String(b.current_phase) : null;
     const topPosts: PlaybookPost[] = (pR as unknown as Array<Record<string, unknown>>).map((x) => ({
-      title: String(x.title || '(untitled)'), value: Number(x.value ?? 0),
+      id: Number(x.id), title: String(x.title || '(untitled)'), value: Number(x.value ?? 0),
       contentKind: x.content_kind ? String(x.content_kind) : null, url: x.post_url ? String(x.post_url) : null,
       daysAgo: Number(x.days_ago ?? 0),
     }));

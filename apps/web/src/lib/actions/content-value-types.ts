@@ -35,7 +35,7 @@ export interface CadenceRow {
 export interface ContentCadence { rows: CadenceRow[]; durableCut: number; }
 
 // Pha B+ — "đăng gì" khi 1 nơi đến hạn: kế hoạch giai đoạn (brief.current_phase) + winner cũ để lặp.
-export interface PlaybookPost { title: string; value: number; contentKind: string | null; url: string | null; daysAgo: number; }
+export interface PlaybookPost { id: number; title: string; value: number; contentKind: string | null; url: string | null; daysAgo: number; }
 // Tài khoản đăng ở nơi này + browser/proxy quản lý nó (mọi thứ liên quan để đăng).
 export interface PlaybookAccount {
   id: number; handle: string; platformKey: string | null; status: string | null; accountKind: string | null;

@@ -1939,19 +1939,30 @@ const CapsCtx = createContext<CapsData>(crewCaps);
 
 // Pha A content-value — NHÚNG vào drawer node `card` (KHÔNG page riêng; xem feedback_no_new_pages).
 // Data load 1 lần ở route, mang xuống qua ContentValueCtx (giống CapsCtx). null = chưa load.
+// onOpen chung: entity có node → mở InstanceDetail thành lớp cascade (giống FK click). Dùng cho Pha A/B.
+function useOpenInstance() {
+  const openSub = useContext(SubCtx);
+  return (objKey: string, id: string | number, label: string) => openSub({
+    title: label || `#${id}`, sub: OBJ_BY_KEY[objKey]?.label || objKey,
+    body: <InstanceDetail objKey={objKey} id={String(id)} />, route: { t: 'inst', objKey, id: String(id), label },
+  });
+}
+
 const ContentValueCtx = createContext<ContentValue | null>(null);
 function ContentValueInline({ projects }: { projects: { id: string; name: string }[] }) {
   const cv = useContext(ContentValueCtx);
+  const onOpen = useOpenInstance();
   if (!cv) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu insights.</div>;
-  return <ContentValuePage data={cv} projects={projects} embedded />;
+  return <ContentValuePage data={cv} projects={projects} embedded onOpen={onOpen} />;
 }
 
 // Pha B cadence — NHÚNG vào drawer node `habitat`. Data load 1 lần ở route → ContentCadenceCtx.
 const ContentCadenceCtx = createContext<ContentCadence | null>(null);
 function ContentCadenceInline({ projects }: { projects: { id: string; name: string }[] }) {
   const cad = useContext(ContentCadenceCtx);
+  const onOpen = useOpenInstance();
   if (!cad) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu cadence.</div>;
-  return <ContentCadenceTable data={cad} projects={projects} />;
+  return <ContentCadenceTable data={cad} projects={projects} onOpen={onOpen} />;
 }
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const caps = useContext(CapsCtx);

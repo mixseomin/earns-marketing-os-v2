@@ -108,36 +108,46 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             </div>
                           </div>
 
-                          {/* ACCOUNT: theo từng project phụ trách */}
+                          {/* ACCOUNT: theo từng project phụ trách; picker hiện NGAY DƯỚI dòng bấm */}
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Account được giao ({dd.accounts.length})</div>
                             {dd.projects.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Thêm project trước để giao account.</div> : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                                 {dd.projects.map((p) => {
                                   const accs = dd.accounts.filter((a) => a.projectId === p.projectId);
+                                  const showMgr = !!mgr && mgr.userId === g.userId && mgr.projectId === p.projectId;
+                                  // CHỈ account của project này + chưa thuộc ai HOẶC đã của chính người này (ẩn acc người khác)
+                                  const assignable = mgr ? mgr.accts.filter((a) => a.ownerUserId == null || a.ownerUserId === g.userId) : [];
+                                  const otherCnt = mgr ? mgr.accts.length - assignable.length : 0;
                                   return (
-                                    <div key={p.projectId} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
-                                      <span style={{ color: 'var(--fg-3)', minWidth: 120 }}>{p.projectName}:</span>
-                                      {accs.length === 0 && <span style={{ color: 'var(--fg-4)' }}>chưa account</span>}
-                                      {accs.map((a) => <span key={a.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}<span style={{ color: 'var(--fg-4)' }}>{a.platformLabel}</span></span>)}
-                                      <button onClick={() => openMgr(g.userId, p.projectId)} disabled={busy} style={btn('var(--neon-cyan)')}>giao</button>
-                                    </div>
+                                    <Fragment key={p.projectId}>
+                                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
+                                        <span style={{ color: 'var(--fg-3)', minWidth: 120 }}>{p.projectName}:</span>
+                                        {accs.length === 0 && <span style={{ color: 'var(--fg-4)' }}>chưa account</span>}
+                                        {accs.map((a) => <span key={a.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}<span style={{ color: 'var(--fg-4)' }}>{a.platformLabel}</span></span>)}
+                                        <button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy} style={btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)')}>{showMgr ? 'đóng' : 'giao'}</button>
+                                      </div>
+                                      {showMgr && (
+                                        <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 4px' }}>
+                                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} (chưa giao ai / của {g.name}) → tick để giao:</div>
+                                          {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 4, marginBottom: 8 }}>
+                                              {assignable.map((a) => (
+                                                <label key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11, cursor: 'pointer', color: 'var(--fg-1)' }}>
+                                                  <input type="checkbox" checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} />
+                                                  {a.handle || '(no handle)'} <span style={{ color: 'var(--fg-4)' }}>{a.platformKey}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          )}
+                                          {otherCnt > 0 && <div style={{ fontSize: 10, color: 'var(--fg-4)', marginBottom: 6 }}>· {otherCnt} account đang thuộc người khác (ẩn)</div>}
+                                          <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
+                                          <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>
+                                        </div>
+                                      )}
+                                    </Fragment>
                                   );
                                 })}
-                              </div>
-                            )}
-                            {mgr && mgr.userId === g.userId && (
-                              <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', marginTop: 6 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {projName(mgr.projectId)} → giao cho {g.name}:</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 4, marginBottom: 8 }}>
-                                  {mgr.accts.map((a) => { const other = a.ownerUserId != null && a.ownerUserId !== g.userId; return (
-                                    <label key={a.id} title={other ? 'đang thuộc người khác' : ''} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11, cursor: 'pointer', color: other ? 'var(--neon-amber)' : 'var(--fg-1)' }}>
-                                      <input type="checkbox" checked={mgr.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} />
-                                      {a.handle || '(no handle)'} <span style={{ color: 'var(--fg-4)' }}>{a.platformKey}</span>
-                                    </label>); })}
-                                </div>
-                                <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
-                                <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>
                               </div>
                             )}
                           </div>

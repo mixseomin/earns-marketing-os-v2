@@ -163,9 +163,10 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
         }
         .live-text { animation: live-text-pulse 1.6s ease-in-out infinite; }
         .seo-row:hover td { filter: brightness(1.6); }
+        @media (max-width: 768px) { .seo-extlink { display: none; } }
       `}</style>
       {/* Column-group toggles — chip color matches the column band below */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
         {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
@@ -251,18 +252,18 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   {SiteCell}
                   <a href={wrapExternalUrl(`https://${r.domain}/`)} target="_blank" rel="noopener noreferrer"
                     title={`Open ${r.domain} homepage`}
-                    style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Web&nbsp;↗</a>
+                    className="seo-extlink" style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Web&nbsp;↗</a>
                   <a href={wrapExternalUrl(gscUrl)} target="_blank" rel="noopener noreferrer"
                     title={`Open ${r.domain} in Google Search Console`}
-                    style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GSC&nbsp;↗</a>
+                    className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GSC&nbsp;↗</a>
                   {r.ga4PropertyId && (
                     <a href={wrapExternalUrl(`https://analytics.google.com/analytics/web/#/p${r.ga4PropertyId}/reports/intelligenthome`)} target="_blank" rel="noopener noreferrer"
                       title={`Open ${r.domain} in Google Analytics (GA4)`}
-                      style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GA&nbsp;↗</a>
+                      className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GA&nbsp;↗</a>
                   )}
                   <a href={wrapExternalUrl(`https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`)} target="_blank" rel="noopener noreferrer"
                     title={`Open ${r.domain} in Bing Webmaster Tools`}
-                    style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Bing&nbsp;↗</a>
+                    className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Bing&nbsp;↗</a>
                 </td>
                 {cols.live && <>
                   <td style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>

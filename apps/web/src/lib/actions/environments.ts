@@ -314,5 +314,39 @@ export async function updateAccountEnvironment(
   if (patch.environment !== undefined) set.environment = patch.environment;
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, accountId));
   revalidatePath('/p/[id]/resources', 'page');
+  revalidatePath('/architecture');
   return { ok: true };
+}
+
+// "Setup node Account" — ma trận account × (browser profile, proxy): nơi nào CHƯA gắn để gán nhanh.
+// Trả kèm danh sách profile/proxy cho dropdown. Account chưa gắn đủ lên đầu (ưu tiên setup).
+export interface AccountInfraRow {
+  id: number; handle: string; platformKey: string | null; status: string | null;
+  browserProfileId: number | null; browserLabel: string | null; browserTool: string | null;
+  proxyId: number | null; proxyLabel: string | null; proxyType: string | null;
+}
+export async function accountsInfraMatrix(): Promise<{ accounts: AccountInfraRow[]; browserProfiles: BrowserProfileRow[]; proxies: ProxyRow[] }> {
+  const db = getDb();
+  if (!db) return { accounts: [], browserProfiles: [], proxies: [] };
+  const [aR, bp, px] = await Promise.all([
+    db.execute(sql`
+      SELECT a.id, a.handle, a.platform_key, a.status,
+             a.browser_profile_id, b.label AS bp_label, b.tool AS bp_tool,
+             a.proxy_id, p.label AS px_label, p.type AS px_type
+      FROM platform_accounts a
+      LEFT JOIN browser_profiles b ON b.id = a.browser_profile_id
+      LEFT JOIN proxies p ON p.id = a.proxy_id
+      ORDER BY (a.browser_profile_id IS NOT NULL AND a.proxy_id IS NOT NULL), a.handle`),
+    listBrowserProfiles(),
+    listProxies(),
+  ]);
+  const accounts: AccountInfraRow[] = (aR as unknown as Array<Record<string, unknown>>).map((x) => ({
+    id: Number(x.id), handle: String(x.handle || '(no handle)'), platformKey: x.platform_key ? String(x.platform_key) : null,
+    status: x.status ? String(x.status) : null,
+    browserProfileId: x.browser_profile_id != null ? Number(x.browser_profile_id) : null,
+    browserLabel: x.bp_label ? String(x.bp_label) : null, browserTool: x.bp_tool ? String(x.bp_tool) : null,
+    proxyId: x.proxy_id != null ? Number(x.proxy_id) : null,
+    proxyLabel: x.px_label ? String(x.px_label) : null, proxyType: x.px_type ? String(x.px_type) : null,
+  }));
+  return { accounts, browserProfiles: bp, proxies: px };
 }

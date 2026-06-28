@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import type { CadenceRow, ContentCadence, HabitatPlaybook, PlaybookPost, PlaybookAccount } from './content-value-types';
 import { phaseAction } from './content-value-types';
+import { upsertBrief, initPhasePlanFromDefaults } from './community-briefs';
 
 // Pha B — "Đến hạn → đăng nơi bền" (#3 cadence + #1 đăng tiện). Cadence/độ-bền KHÔNG có cột riêng →
 // DERIVE từ lịch sử đăng theo HABITAT (pillar_id rỗng trên bài posted; 64/66 bài có habitat_id).
@@ -120,4 +121,47 @@ export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlay
       nextAction: phaseAction(phase), topPosts, accounts,
     };
   } catch { return empty; }
+}
+
+// Pha C — ĐÓNG VÒNG: nơi đến hạn mà CHƯA có kế hoạch (brief) → sinh brief gợi ý từ winner đã landed
+// ở chính nơi đó (Pha A insight → kế hoạch). Chọn account đăng nhiều nhất ở đây làm chủ brief, seed
+// approach = lặp công thức winner, đặt current_phase='warm-up' để Pha B hiện ngay.
+export async function createBriefFromWinners(habitatId: number): Promise<{ ok: boolean; briefId?: number; error?: string }> {
+  const db = getDb();
+  if (!db || !habitatId) return { ok: false, error: 'no db' };
+  try {
+    const hR = await db.execute(sql`SELECT project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`);
+    const projectId = String(((hR as unknown as Array<Record<string, unknown>>)[0]?.project_id) || '');
+    if (!projectId) return { ok: false, error: 'habitat không thuộc project' };
+
+    // account đăng nhiều nhất ở nơi này (ưu tiên đang theo brief), fallback brief account
+    const aR = await db.execute(sql`
+      SELECT account_id, count(*)::int AS n FROM cards
+      WHERE habitat_id = ${habitatId} AND account_id IS NOT NULL AND posted_at IS NOT NULL
+      GROUP BY account_id ORDER BY n DESC LIMIT 1`);
+    let accountId = Number(((aR as unknown as Array<Record<string, unknown>>)[0]?.account_id) || 0);
+    if (!accountId) {
+      const bR = await db.execute(sql`SELECT account_id FROM community_briefs WHERE habitat_id = ${habitatId} AND account_id IS NOT NULL LIMIT 1`);
+      accountId = Number(((bR as unknown as Array<Record<string, unknown>>)[0]?.account_id) || 0);
+    }
+    if (!accountId) return { ok: false, error: 'chưa có account nào đăng ở đây để gắn brief' };
+
+    const wR = await db.execute(sql`
+      SELECT title, content_kind,
+             ROUND((COALESCE(insights_score,0) + log(10, COALESCE(insights_views_count,0)+1)*5)::numeric, 1) AS value
+      FROM cards WHERE habitat_id = ${habitatId} AND posted_at IS NOT NULL
+      ORDER BY value DESC NULLS LAST LIMIT 3`);
+    const winners = (wR as unknown as Array<Record<string, unknown>>);
+    const approachMd = winners.length
+      ? 'Lặp công thức đã hiệu quả ở nơi này:\n' + winners.map((w) => `- (${w.value}) [${w.content_kind || 'post'}] ${w.title}`).join('\n')
+      : 'Bắt đầu warm-up: tương tác giá trị, chưa nhắc sản phẩm.';
+    const templates = winners.map((w) => ({ label: String(w.content_kind || 'post'), body: String(w.title || '') })).filter((t) => t.body);
+
+    const up = await upsertBrief(projectId, accountId, habitatId, { approachMd, templates });
+    if (!up.ok || !up.id) return { ok: false, error: up.error || 'upsert fail' };
+    // đặt phase khởi đầu để Pha B hiện kế hoạch ngay (warm-up an toàn, ko cần account joined)
+    await db.execute(sql`UPDATE community_briefs SET current_phase = COALESCE(current_phase, 'warm-up'), updated_at = now() WHERE id = ${up.id}`);
+    try { await initPhasePlanFromDefaults(projectId, up.id); } catch { /* phase plan optional */ }
+    return { ok: true, briefId: up.id };
+  } catch (e) { return { ok: false, error: (e as Error).message }; }
 }

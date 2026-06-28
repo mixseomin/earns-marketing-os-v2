@@ -9,8 +9,9 @@
 //   card > channel.override > pillar > habitat > 'regular'
 
 import { eq, and, sql } from 'drizzle-orm';
-import { getDb, contentPillars, contentPillarTribes } from '@mos2/db';
+import { getDb, contentPillars, contentPillarTribes, projects } from '@mos2/db';
 import { isValidVoiceProfile, type VoiceProfile, type FewShotExample } from '@/lib/ai/voice-profile';
+import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -152,6 +153,94 @@ function rowToPillar(r: Record<string, unknown>): ContentPillarRow {
     createdAt: r.created_at ? new Date(String(r.created_at)).toISOString() : '',
     updatedAt: r.updated_at ? new Date(String(r.updated_at)).toISOString() : '',
   };
+}
+
+// "Biết thiếu để thêm" — coverage pillar TOÀN portfolio: mỗi project có mấy pillar + đã đăng bao nhiêu bài.
+// none = 0 pillar (thiếu hẳn) · thin = 1-2 (mỏng) · ok ≥3. Sắp project thiếu/đăng-nhiều lên đầu (ưu tiên bổ sung).
+export interface PillarCoverageRow { projectId: string; projectName: string; pillars: number; posted: number; status: 'none' | 'thin' | 'ok'; }
+export async function pillarCoverage(): Promise<PillarCoverageRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const r = await db.execute(sql`
+      SELECT pr.id, pr.name,
+        (SELECT count(*)::int FROM content_pillars cp WHERE cp.project_id = pr.id AND COALESCE(cp.status,'') <> 'archived') AS pillars,
+        (SELECT count(*)::int FROM cards c WHERE c.project_id = pr.id AND c.posted_at IS NOT NULL) AS posted
+      FROM projects pr ORDER BY pillars ASC, posted DESC`);
+    return (r as unknown as Array<Record<string, unknown>>).map((x) => {
+      const pillars = Number(x.pillars ?? 0);
+      return { projectId: String(x.id), projectName: String(x.name || x.id), pillars, posted: Number(x.posted ?? 0),
+        status: (pillars === 0 ? 'none' : pillars < 3 ? 'thin' : 'ok') as PillarCoverageRow['status'] };
+    });
+  } catch { return []; }
+}
+
+// AI gợi ý 4-6 pillar cho 1 project (từ brand + website). save=true → tạo thật. DÙNG CHUNG cho
+// route /api/ext/pillars/suggest và server action (drawer Pillar). "Làm sao biết thiếu để thêm".
+export interface PillarSuggestion { name: string; tagline: string; keyMessages: string[]; }
+export async function generatePillarSuggestions(
+  projectId: string, save = false,
+): Promise<{ ok: boolean; error?: string; suggested: PillarSuggestion[]; created: number; pillars: Array<{ id: number; name: string; tagline: string; keyMessages: string[]; slug: string }> }> {
+  const fail = (error: string) => ({ ok: false, error, suggested: [], created: 0, pillars: [] });
+  if (!aiEnabled()) return fail('OPENAI_API_KEY not set');
+  const db = getDb(); if (!db) return fail('DB unavailable');
+  projectId = (projectId ?? '').trim(); if (!projectId) return fail('projectId required');
+  const [p] = await db.select({ name: projects.name, oneLiner: projects.oneLiner, persona: projects.persona, website: projects.website, contentStrategy: projects.contentStrategy })
+    .from(projects).where(eq(projects.id, projectId)).limit(1);
+  if (!p) return fail('project not found');
+
+  let siteText = '';
+  if (p.website) {
+    try {
+      const res = await fetch(p.website, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-Pillars/1.0)' }, signal: AbortSignal.timeout(6000) });
+      const html = await res.text();
+      siteText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3500);
+    } catch { siteText = ''; }
+  }
+  const sysPrompt = `You are a content strategist. Define 4-6 CONTENT PILLARS (recurring topic groups) for this project's organic social presence. Output STRICT JSON:
+{ "pillars": [ { "name": "...", "tagline": "...", "keyMessages": ["...","..."] }, ... ] }
+- name: short pillar label (2-4 words), the topic group.
+- tagline: one line on what this pillar covers / why it matters.
+- keyMessages: 2-4 concrete angles/sub-topics under this pillar (each a short phrase a writer could turn into a post).
+Cover distinct angles (educational, social-proof, behind-the-scenes, news/timely, community), grounded in what the project actually offers. ENGLISH. No em-dashes.`;
+  const userPrompt = `# Project
+Name: ${p.name}
+One-liner: ${p.oneLiner || '(none)'}
+Voice: ${p.persona || '(none)'}
+Strategy: ${p.contentStrategy || '(none)'}
+Website: ${p.website || '(none)'}
+
+# Website content
+${siteText || '(infer from name + one-liner)'}
+
+# Task
+Output STRICT JSON with 4-6 pillars.`;
+  let suggested: PillarSuggestion[] = [];
+  try {
+    const ai = getOpenAI(); if (!ai) return fail('AI client unavailable');
+    const completion = await ai.chat.completions.create({
+      model: DEFAULT_MODEL, temperature: 0.7, max_tokens: 1100, response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userPrompt }],
+    });
+    const parsed = JSON.parse(completion.choices[0]?.message?.content?.trim() ?? '{}') as { pillars?: unknown };
+    const arr = Array.isArray(parsed.pillars) ? parsed.pillars : [];
+    suggested = arr.map((x) => {
+      const o = (x ?? {}) as Record<string, unknown>;
+      const km = Array.isArray(o.keyMessages) ? o.keyMessages.map((m) => String(m ?? '').trim()).filter(Boolean) : (typeof o.keyMessages === 'string' ? [String(o.keyMessages)] : []);
+      return { name: String(o.name ?? '').trim(), tagline: String(o.tagline ?? '').trim(), keyMessages: km };
+    }).filter((x) => x.name);
+  } catch (e) { return fail(`AI error: ${(e as Error).message}`); }
+
+  let created = 0;
+  if (save && suggested.length) {
+    for (const s of suggested) {
+      try { const r = await createContentPillar(projectId, { name: s.name, tagline: s.tagline, keyMessages: s.keyMessages, positioningMd: '' }); if (r.ok) created++; } catch { /* skip dup */ }
+    }
+  }
+  const pillars = ((await listContentPillars(projectId)) || [])
+    .filter((p2) => (p2 as { status?: string }).status !== 'archived')
+    .map((p2) => ({ id: p2.id, name: p2.name, tagline: p2.tagline, keyMessages: p2.keyMessages, slug: p2.slug }));
+  return { ok: true, suggested, created, pillars };
 }
 
 export async function createContentPillar(

@@ -16,6 +16,8 @@ import { NODE_TYPES } from './nodes';
 import crewCaps from './crew-capabilities.json';
 import { ContentValuePage, ContentCadenceTable } from '@/components/content-value-page';
 import type { ContentValue, ContentCadence } from '@/lib/actions/content-value-types';
+import { PillarCoveragePanel } from '@/components/architecture/pillar-coverage-panel';
+import { AccountInfraPanel } from '@/components/architecture/account-infra-panel';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
@@ -1521,6 +1523,18 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
         </Section>
       )}
 
+      {obj.key === 'pillar' && (
+        <Section title="Coverage · biết thiếu để thêm" sub="// pillar/project · + tay · ✨ AI gợi ý">
+          <PillarCoverageInline />
+        </Section>
+      )}
+
+      {obj.key === 'account' && (
+        <Section title="Setup · Browser & Proxy" sub="// gán profile + IP riêng cho từng account">
+          <AccountInfraInline />
+        </Section>
+      )}
+
       {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
@@ -1964,6 +1978,10 @@ function ContentCadenceInline({ projects }: { projects: { id: string; name: stri
   if (!cad) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu cadence.</div>;
   return <ContentCadenceTable data={cad} projects={projects} onOpen={onOpen} />;
 }
+
+// Pha 1 (pillar coverage) + Setup account (browser/proxy) — self-fetch lúc mount (lazy, ko cần route/context).
+function PillarCoverageInline() { const onOpen = useOpenInstance(); return <PillarCoveragePanel onOpen={onOpen} />; }
+function AccountInfraInline() { const onOpen = useOpenInstance(); return <AccountInfraPanel onOpen={onOpen} />; }
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const caps = useContext(CapsCtx);
   const dims = caps.dimensions as { key: string; label: string; desc: string }[];

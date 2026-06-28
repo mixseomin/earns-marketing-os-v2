@@ -2,7 +2,7 @@
 import { Fragment, useMemo, useState, type CSSProperties } from 'react';
 import type { ContentValue, Durability, ContentCadence, CadenceBucket, HabitatPlaybook } from '@/lib/actions/content-value-types';
 import { DURABILITY_META, CADENCE_META } from '@/lib/actions/content-value-types';
-import { getHabitatPlaybook } from '@/lib/actions/content-cadence';
+import { getHabitatPlaybook, createBriefFromWinners } from '@/lib/actions/content-cadence';
 
 const CAD_ORDER: CadenceBucket[] = ['due', 'cold', 'watch', 'weak'];
 
@@ -17,8 +17,17 @@ function EntityLink({ onOpen, objKey, id, label, href, style }: { onOpen?: OpenF
 }
 
 // Panel "đăng gì ở đây" khi bung 1 nơi: giai đoạn kế hoạch (brief.phase → nextAction) + winner cũ để LẶP công thức + link soạn.
-function Playbook({ pb, onOpen }: { pb: HabitatPlaybook | 'loading' | undefined; onOpen?: OpenFn }) {
+// Pha C: nếu CHƯA có brief (phase null) → nút sinh brief từ winner (đóng vòng A→C→B).
+function Playbook({ pb, onOpen, onRefresh }: { pb: HabitatPlaybook | 'loading' | undefined; onOpen?: OpenFn; onRefresh?: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   if (!pb || pb === 'loading') return <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--fg-3)' }}>Đang tải gợi ý…</div>;
+  const genBrief = async () => {
+    setBusy(true); setErr('');
+    const r = await createBriefFromWinners(pb.habitatId);
+    setBusy(false);
+    if (r.ok) onRefresh?.(); else setErr(r.error || 'lỗi');
+  };
   return (
     <div style={{ padding: '10px 14px 14px 34px', background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ fontSize: 12 }}>
@@ -26,6 +35,15 @@ function Playbook({ pb, onOpen }: { pb: HabitatPlaybook | 'loading' | undefined;
         <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', marginRight: 6 }}>{pb.phase || 'no brief'}</span>
         <span style={{ color: 'var(--fg-1)' }}>{pb.nextAction}</span>
       </div>
+      {!pb.phase && (
+        <div style={{ fontSize: 12 }}>
+          <button onClick={genBrief} disabled={busy} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--neon-lime)', background: 'transparent', color: 'var(--neon-lime)', cursor: busy ? 'wait' : 'pointer' }}>
+            {busy ? 'Đang tạo…' : '✨ Tạo brief từ winner (Pha C)'}
+          </button>
+          {err && <span style={{ color: 'var(--bad)', marginLeft: 8 }}>{err}</span>}
+          <span style={{ color: 'var(--fg-3)', marginLeft: 8 }}>sinh kế hoạch từ công thức đã landed ở đây</span>
+        </div>
+      )}
       {(pb.tone || pb.pillarName) && (
         <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
           {pb.tone && <>Giọng: <b style={{ color: 'var(--fg-2)' }}>{pb.tone}</b>{pb.pillarName ? ' · ' : ''}</>}
@@ -90,10 +108,11 @@ export function ContentCadenceTable({ data, projects, onOpen }: { data: ContentC
   const [bucket, setBucket] = useState<CadenceBucket | ''>('');
   const [open, setOpen] = useState<number | null>(null);
   const [pb, setPb] = useState<Record<number, HabitatPlaybook | 'loading'>>({});
+  const load = (habitatId: number) => { setPb((m) => ({ ...m, [habitatId]: 'loading' })); getHabitatPlaybook(habitatId).then((p) => setPb((m) => ({ ...m, [habitatId]: p }))); };
   const toggle = (habitatId: number) => {
     if (open === habitatId) { setOpen(null); return; }
     setOpen(habitatId);
-    if (!pb[habitatId]) { setPb((m) => ({ ...m, [habitatId]: 'loading' })); getHabitatPlaybook(habitatId).then((p) => setPb((m) => ({ ...m, [habitatId]: p }))); }
+    if (!pb[habitatId]) load(habitatId);
   };
   const scope = useMemo(() => (proj ? data.rows.filter((r) => r.projectId === proj) : data.rows), [data.rows, proj]);
   const rows = useMemo(() => (bucket ? scope.filter((r) => r.bucket === bucket) : scope), [scope, bucket]);
@@ -144,7 +163,7 @@ export function ContentCadenceTable({ data, projects, onOpen }: { data: ContentC
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--neon-cyan)' }}>{r.bestValue}</td>
                     <td style={td}><span title={m.hint} style={{ fontSize: 11, padding: '1px 8px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color, cursor: 'help' }}>{m.label}</span></td>
                   </tr>
-                  {isOpen && <tr><td colSpan={cols} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}><Playbook pb={pb[r.habitatId]} onOpen={onOpen} /></td></tr>}
+                  {isOpen && <tr><td colSpan={cols} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}><Playbook pb={pb[r.habitatId]} onOpen={onOpen} onRefresh={() => load(r.habitatId)} /></td></tr>}
                 </Fragment>
               );
             })}

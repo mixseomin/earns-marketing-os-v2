@@ -1,19 +1,10 @@
 'use client';
 import { Fragment, useEffect, useState, type CSSProperties } from 'react';
 import { listTeamMembers, createTeamMember, type TeamMemberRow } from '@/lib/actions/team';
-import { getMemberAssignments, assignAccountsToMember, setProjectMembership, listProjectAccountsForAssignment, listAllProjectsForAssignment, setEntityOwner, type MemberAssignmentSummary } from '@/lib/actions/assignments';
+import { getMemberAssignments, assignAccountsToMember, setProjectMembership, listProjectAccountsForAssignment, listAllProjectsForAssignment, setEntityOwner, projectAccountCounts, type MemberAssignmentSummary } from '@/lib/actions/assignments';
 import { listBrowserProfiles, listProxies, type BrowserProfileRow, type ProxyRow } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
-
-// platform: favicon + click mở node Platform (label hiển thị; key để favicon + drawer)
-function PlatformTag({ pkey, label, onOpen }: { pkey: string; label?: string; onOpen?: OpenFn }) {
-  if (!pkey) return null;
-  const inner = <><SiteFavicon {...platformFaviconProps(pkey)} size={12} title={pkey} /> {label || pkey}</>;
-  return onOpen
-    ? <a role="button" onClick={() => onOpen('platform', pkey, label || pkey)} title="mở platform" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--fg-4)', cursor: 'pointer', textDecoration: 'none' }}>{inner}</a>
-    : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--fg-4)' }}>{inner}</span>;
-}
 
 // Node Team — quản lý nhân sự + ASSIGN project/account/browser/proxy (mô hình staff seeding).
 // Drive từ getMemberAssignments (membership THẬT). Trình bày CHIP + dropdown-thêm, KHÔNG list phẳng.
@@ -30,11 +21,13 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [busy, setBusy] = useState(false);
   const [nu, setNu] = useState({ email: '', name: '', role: 'operator' as string });
   const [mgr, setMgr] = useState<{ userId: number; projectId: string; accts: { id: number; handle: string | null; platformKey: string; ownerUserId: number | null }[]; checked: Set<number> } | null>(null);
+  const [acctCounts, setAcctCounts] = useState<Record<string, number>>({});
 
   const reloadLists = () => { listBrowserProfiles().then(setProfiles); listProxies().then(setProxies); };
   useEffect(() => {
     listTeamMembers().then(setRows);
     listAllProjectsForAssignment().then((p) => setProjects((p as { id: string; name: string }[]).map((x) => ({ id: x.id, name: x.name }))));
+    projectAccountCounts().then(setAcctCounts);
     reloadLists();
   }, []);
 
@@ -118,48 +111,58 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             </div>
                           </div>
 
-                          {/* ACCOUNT: theo từng project phụ trách; picker hiện NGAY DƯỚI dòng bấm */}
+                          {/* ACCOUNT: table thẳng hàng (Project · đã giao · pool · giao); picker bung full-width dưới dòng */}
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Account được giao ({dd.accounts.length})</div>
                             {dd.projects.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Thêm project trước để giao account.</div> : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6, alignItems: 'start' }}>
-                                {dd.projects.map((p) => {
-                                  const accs = dd.accounts.filter((a) => a.projectId === p.projectId);
-                                  const showMgr = !!mgr && mgr.userId === g.userId && mgr.projectId === p.projectId;
-                                  // CHỈ account của project này + chưa thuộc ai HOẶC đã của chính người này (ẩn acc người khác)
-                                  const assignable = mgr ? mgr.accts.filter((a) => a.ownerUserId == null || a.ownerUserId === g.userId) : [];
-                                  const otherCnt = mgr ? mgr.accts.length - assignable.length : 0;
-                                  return (
-                                    <Fragment key={p.projectId}>
-                                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11, border: '1px solid var(--bg-3)', borderRadius: 7, padding: '5px 8px', background: showMgr ? 'var(--bg-2)' : 'var(--bg-0)' }}>
-                                        {onOpen ? <a role="button" onClick={() => onOpen('project', p.projectId, p.projectName)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none', fontWeight: 600 }}>{p.projectName}</a> : <span style={{ color: 'var(--fg-2)', fontWeight: 600 }}>{p.projectName}</span>}
-                                        {accs.length === 0 && <span style={{ color: 'var(--fg-4)' }}>chưa account</span>}
-                                        {accs.map((a) => <span key={a.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}<PlatformTag pkey={a.platformKey} label={a.platformLabel} onOpen={onOpen} /></span>)}
-                                        <button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy} style={{ ...btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)'), marginLeft: 'auto' }}>{showMgr ? 'đóng' : 'giao'}</button>
-                                      </div>
-                                      {showMgr && (
-                                        <div style={{ gridColumn: '1 / -1', border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 4px' }}>
-                                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} (chưa giao ai / của {g.name}) → tick để giao:</div>
-                                          {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 4, marginBottom: 8 }}>
-                                              {assignable.map((a) => (
-                                                <span key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
-                                                  <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
-                                                  {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
-                                                  <PlatformTag pkey={a.platformKey} onOpen={onOpen} />
-                                                </span>
-                                              ))}
+                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead><tr><th style={th}>Project</th><th style={th}>Account đã giao</th><th style={{ ...th, textAlign: 'right' }}>Pool</th><th style={{ ...th, width: 64 }} /></tr></thead>
+                                <tbody>
+                                  {dd.projects.map((p) => {
+                                    const accs = dd.accounts.filter((a) => a.projectId === p.projectId);
+                                    const showMgr = !!mgr && mgr.userId === g.userId && mgr.projectId === p.projectId;
+                                    const assignable = mgr ? mgr.accts.filter((a) => a.ownerUserId == null || a.ownerUserId === g.userId) : [];
+                                    const otherCnt = mgr ? mgr.accts.length - assignable.length : 0;
+                                    const pool = acctCounts[p.projectId] ?? 0;
+                                    return (
+                                      <Fragment key={p.projectId}>
+                                        <tr style={{ background: showMgr ? 'var(--bg-2)' : undefined }}>
+                                          <td style={{ ...td, fontWeight: 600 }}>{onOpen ? <a role="button" onClick={() => onOpen('project', p.projectId, p.projectName)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{p.projectName}</a> : p.projectName}</td>
+                                          <td style={td}>{accs.length === 0 ? <span style={{ color: 'var(--fg-4)' }}>—</span> : <span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{accs.map((a) => (
+                                            <span key={a.id} style={chip()}>
+                                              {onOpen ? <a role="button" onClick={() => onOpen('platform', a.platformKey, a.platformLabel)} title={a.platformLabel} style={{ display: 'inline-flex', cursor: 'pointer' }}><SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} title={a.platformLabel} /></a> : <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} />}
+                                              {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}
+                                            </span>
+                                          ))}</span>}</td>
+                                          <td style={{ ...td, textAlign: 'right' }}><span title={`${pool} account trong project`} style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${pool > 0 ? 'var(--neon-cyan)' : 'var(--bg-3)'}`, color: pool > 0 ? 'var(--neon-cyan)' : 'var(--fg-4)' }}>{pool}</span></td>
+                                          <td style={{ ...td, textAlign: 'right' }}><button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy || (pool === 0 && !showMgr)} title={pool === 0 ? 'project chưa có account' : 'giao account'} style={{ ...btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)'), opacity: (pool === 0 && !showMgr) ? 0.4 : 1 }}>{showMgr ? 'đóng' : 'giao'}</button></td>
+                                        </tr>
+                                        {showMgr && (
+                                          <tr><td colSpan={4} style={{ padding: 0 }}>
+                                            <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 6px' }}>
+                                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} (chưa giao ai / của {g.name}) → tick để giao:</div>
+                                              {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 4, marginBottom: 8 }}>
+                                                  {assignable.map((a) => (
+                                                    <span key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
+                                                      <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
+                                                      <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} title={a.platformKey} />
+                                                      {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              {otherCnt > 0 && <div style={{ fontSize: 10, color: 'var(--fg-4)', marginBottom: 6 }}>· {otherCnt} account đang thuộc người khác (ẩn)</div>}
+                                              <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
+                                              <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>
                                             </div>
-                                          )}
-                                          {otherCnt > 0 && <div style={{ fontSize: 10, color: 'var(--fg-4)', marginBottom: 6 }}>· {otherCnt} account đang thuộc người khác (ẩn)</div>}
-                                          <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
-                                          <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>
-                                        </div>
-                                      )}
-                                    </Fragment>
-                                  );
-                                })}
-                              </div>
+                                          </td></tr>
+                                        )}
+                                      </Fragment>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
                             )}
                           </div>
 

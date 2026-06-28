@@ -386,6 +386,16 @@ export async function assignAccountsToMember(
 }
 
 // List all accounts in a project with their current owner
+// Số account mỗi project có (qua project_accounts) → biết project nào có acc để giao.
+export async function projectAccountCounts(): Promise<Record<string, number>> {
+  const db = getDb();
+  if (!db) return {};
+  const rows = await db.execute(sql`SELECT project_id, count(*)::int AS n FROM project_accounts GROUP BY project_id`);
+  const out: Record<string, number> = {};
+  for (const r of rows as unknown as Array<{ project_id: string; n: number }>) out[String(r.project_id)] = Number(r.n);
+  return out;
+}
+
 export async function listProjectAccountsForAssignment(projectId: string): Promise<Array<{
   id: number;
   platformKey: string;

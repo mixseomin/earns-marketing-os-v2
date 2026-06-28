@@ -5,33 +5,41 @@ import { DURABILITY_META } from '@/lib/actions/content-value-types';
 
 const ORDER: Durability[] = ['winner', 'rising', 'steady', 'decaying', 'dead'];
 
-// Pha A — "Đo giá trị & độ bền" bài đã đăng (#4). Rank theo value × aliveness → Winner/Decaying/Dead +
-// rollup pillar (pillar nào ra winner → nhân đôi). Data = insights ĐÃ capture (ko nhập tay).
-export function ContentValuePage({ data, projects }: { data: ContentValue; projects: { id: string; name: string }[] }) {
+// Pha A — "Đo giá trị & độ bền" bài đã đăng (#4). Rank value × aliveness → Winner/Decaying/Dead +
+// rollup pillar (pillar ra winner → nhân đôi). Data = insights ĐÃ capture. SỐNG TRONG drawer node `card`
+// của Architecture Studio (embedded=true bỏ chrome) — KHÔNG page riêng (xem feedback_no_new_pages).
+// counts/pillars/total lấy thẳng từ SQL (scale 1M); bảng chỉ top-500 (data.truncated báo nếu cắt).
+export function ContentValuePage({ data, projects, embedded = false }: { data: ContentValue; projects: { id: string; name: string }[]; embedded?: boolean }) {
   const [proj, setProj] = useState('');
   const [filterDur, setFilterDur] = useState<Durability | ''>('');
-  const cards = useMemo(() => {
-    let cs = proj ? data.cards.filter((c) => c.projectId === proj) : data.cards;
-    if (filterDur) cs = cs.filter((c) => c.durability === filterDur);
-    return cs;
-  }, [data.cards, proj, filterDur]);
+  // proj filter chỉ lọc bảng top-500 client-side (đủ ở quy mô hiện tại). counts/pillars KHÔNG lọc theo proj
+  // khi ko chọn → dùng SQL (chính xác mọi quy mô); khi chọn proj → recompute từ cards đang thấy.
   const scopeCards = useMemo(() => (proj ? data.cards.filter((c) => c.projectId === proj) : data.cards), [data.cards, proj]);
-  const counts = useMemo(() => { const c = { winner: 0, rising: 0, steady: 0, decaying: 0, dead: 0 } as Record<Durability, number>; for (const x of scopeCards) c[x.durability]++; return c; }, [scopeCards]);
+  const cards = useMemo(() => (filterDur ? scopeCards.filter((c) => c.durability === filterDur) : scopeCards), [scopeCards, filterDur]);
+
+  const counts = useMemo(() => {
+    if (!proj) return data.counts; // SQL-accurate, scale-safe
+    const c = { winner: 0, rising: 0, steady: 0, decaying: 0, dead: 0 } as Record<Durability, number>;
+    for (const x of scopeCards) c[x.durability]++; return c;
+  }, [data.counts, proj, scopeCards]);
+  const total = proj ? scopeCards.length : data.total;
+
   const pillars = useMemo(() => {
+    if (!proj) return data.pillars.map((p) => ({ name: p.pillarName, posts: p.posts, val: p.totalValue, win: p.winners }));
     const m = new Map<string, { name: string; posts: number; val: number; win: number }>();
     for (const x of scopeCards) { const k = x.pillarName || '(no pillar)'; const cur = m.get(k) || { name: k, posts: 0, val: 0, win: 0 }; cur.posts++; cur.val = Math.round((cur.val + x.valueScore) * 10) / 10; if (x.durability === 'winner') cur.win++; m.set(k, cur); }
     return [...m.values()].sort((a, b) => b.val - a.val);
-  }, [scopeCards]);
+  }, [data.pillars, proj, scopeCards]);
 
   const chip: CSSProperties = { fontSize: 12, padding: '4px 10px', borderRadius: 99, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' };
   const th: CSSProperties = { padding: '6px 8px', textAlign: 'left', color: 'var(--fg-2)', fontSize: 11, fontWeight: 600, borderBottom: '1px solid var(--bg-3)', whiteSpace: 'nowrap' };
   const td: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--bg-2)' };
 
   return (
-    <div style={{ padding: 16, maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 4px' }}>Content · Giá trị & Độ bền</h1>
+    <div style={embedded ? undefined : { padding: 16, maxWidth: 1100 }}>
+      {!embedded && <h1 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 4px' }}>Content · Giá trị & Độ bền</h1>}
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
-        {scopeCards.length} bài đã đăng · rank theo <b>value</b> (score + views) × <b>độ bền</b> (tuổi + lifecycle). Mục tiêu: nhân đôi <b style={{ color: 'var(--neon-lime)' }}>Winner</b>, refresh/bỏ <b style={{ color: 'var(--neon-amber)' }}>Decaying/Dead</b>.
+        {total} bài đã đăng · rank theo <b>value</b> (score + views) × <b>độ bền</b> (tuổi + lifecycle). Mục tiêu: nhân đôi <b style={{ color: 'var(--neon-lime)' }}>Winner</b>, refresh/bỏ <b style={{ color: 'var(--neon-amber)' }}>Decaying/Dead</b>.
       </p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 12px' }}>
@@ -92,6 +100,7 @@ export function ContentValuePage({ data, projects }: { data: ContentValue; proje
           </tbody>
         </table>
       )}
+      {data.truncated && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--fg-3)' }}>Bảng hiện top {data.cards.length} theo value (tổng {data.total}). Counts + pillar tính trên toàn bộ trong SQL.</div>}
     </div>
   );
 }

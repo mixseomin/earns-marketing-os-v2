@@ -17,4 +17,4 @@ export interface CardValueRow {
   ageDays: number; valueScore: number; durability: Durability;
 }
 export interface PillarRollup { key: string; pillarName: string; posts: number; totalValue: number; winners: number; }
-export interface ContentValue { cards: CardValueRow[]; pillars: PillarRollup[]; counts: Record<Durability, number>; total: number; }
+export interface ContentValue { cards: CardValueRow[]; pillars: PillarRollup[]; counts: Record<Durability, number>; total: number; truncated: boolean; }

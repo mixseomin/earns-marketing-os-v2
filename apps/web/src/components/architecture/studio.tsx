@@ -14,6 +14,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { NODE_TYPES } from './nodes';
 import crewCaps from './crew-capabilities.json';
+import { ContentValuePage } from '@/components/content-value-page';
+import type { ContentValue } from '@/lib/actions/content-value-types';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
@@ -1507,6 +1509,12 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
         </Section>
       )}
 
+      {obj.key === 'card' && (
+        <Section title="Giá trị & Độ bền · Pha A" sub="// value × độ bền · nhân đôi winner, bỏ dead (#4)">
+          <ContentValueInline projects={projects} />
+        </Section>
+      )}
+
       {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
@@ -1922,6 +1930,15 @@ function SurfacePreview({ k }: { k: string }) {
 type CapRow = { recognize: boolean; login: boolean; badge: boolean; contact: boolean; host?: string; notes?: Record<string, string> };
 type CapsData = typeof crewCaps;
 const CapsCtx = createContext<CapsData>(crewCaps);
+
+// Pha A content-value — NHÚNG vào drawer node `card` (KHÔNG page riêng; xem feedback_no_new_pages).
+// Data load 1 lần ở route, mang xuống qua ContentValueCtx (giống CapsCtx). null = chưa load.
+const ContentValueCtx = createContext<ContentValue | null>(null);
+function ContentValueInline({ projects }: { projects: { id: string; name: string }[] }) {
+  const cv = useContext(ContentValueCtx);
+  if (!cv) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa có dữ liệu insights.</div>;
+  return <ContentValuePage data={cv} projects={projects} embedded />;
+}
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const caps = useContext(CapsCtx);
   const dims = caps.dimensions as { key: string; label: string; desc: string }[];
@@ -2370,11 +2387,13 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   );
 }
 
-export function ArchitectureStudio({ projects, defaultProjectId, caps }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null }) {
+export function ArchitectureStudio({ projects, defaultProjectId, caps, contentValue }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null; contentValue?: ContentValue | null }) {
   return (
     <ReactFlowProvider>
       <CapsCtx.Provider value={(caps && caps.platforms ? caps : crewCaps) as CapsData}>
-        <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+        <ContentValueCtx.Provider value={contentValue ?? null}>
+          <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+        </ContentValueCtx.Provider>
       </CapsCtx.Provider>
     </ReactFlowProvider>
   );

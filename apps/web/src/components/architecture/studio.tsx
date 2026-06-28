@@ -775,7 +775,7 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
 // generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
 // identity ĐÃ chuyển sang InstanceBrowser chung (full list + paginate + filter + search) — click row
 // mở IdentityDetail editable. Chỉ còn dom/uxflow/selector giữ panel chuyên biệt.
-const HAS_OWN_LIST = new Set(['domSample', 'uxFlow', 'selector', 'teamUser']);
+const HAS_OWN_LIST = new Set(['domSample', 'uxFlow', 'selector']);
 
 // relative "x ago" for time columns (hover = full timestamp via the cell title).
 function relAgo(v: unknown): string {

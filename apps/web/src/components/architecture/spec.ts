@@ -273,6 +273,12 @@ export const OBJECTS: ArchObject[] = [
     key: 'teamUser', label: 'Team member (operator)', group: 'team',
     table: 'users', pk: 'id', labelCol: 'name', projectScoped: false,
     desc: 'CỦA TA — người vận hành (admin/operator/viewer) chạy seeding. 1 user = N membership (members: user×project+role) + sở hữu account/proxy/browser-profile/persona (owner_user_id) + nhận human_tasks (hàng đợi đăng tay ở /inbox). Quản lý + assign nhóm project/account ngay trong drawer dưới.',
+    picker: { join: 'LEFT JOIN members m ON m.user_id = t.id AND m.project_id IS NULL', subExpr: 'm.role' },
+    browseCols: [
+      { col: 'email', label: 'email' },
+      { col: 'auth_kind', label: 'auth' },
+      { col: 'created_at', label: 'created', kind: 'time' },
+    ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'email', col: 'email', type: 'text' },

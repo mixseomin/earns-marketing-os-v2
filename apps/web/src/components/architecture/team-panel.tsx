@@ -122,7 +122,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                   return (
                                     <Fragment key={p.projectId}>
                                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
-                                        <span style={{ color: 'var(--fg-3)', minWidth: 120 }}>{p.projectName}:</span>
+                                        <span style={{ minWidth: 120 }}>{onOpen ? <a role="button" onClick={() => onOpen('project', p.projectId, p.projectName)} style={{ color: 'var(--fg-2)', cursor: 'pointer', textDecoration: 'none' }}>{p.projectName}</a> : <span style={{ color: 'var(--fg-3)' }}>{p.projectName}</span>}<span style={{ color: 'var(--fg-3)' }}>:</span></span>
                                         {accs.length === 0 && <span style={{ color: 'var(--fg-4)' }}>chưa account</span>}
                                         {accs.map((a) => <span key={a.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}<span style={{ color: 'var(--fg-4)' }}>{a.platformLabel}</span></span>)}
                                         <button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy} style={btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)')}>{showMgr ? 'đóng' : 'giao'}</button>
@@ -133,10 +133,11 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                           {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 4, marginBottom: 8 }}>
                                               {assignable.map((a) => (
-                                                <label key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11, cursor: 'pointer', color: 'var(--fg-1)' }}>
-                                                  <input type="checkbox" checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} />
-                                                  {a.handle || '(no handle)'} <span style={{ color: 'var(--fg-4)' }}>{a.platformKey}</span>
-                                                </label>
+                                                <span key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
+                                                  <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
+                                                  {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
+                                                  <span style={{ color: 'var(--fg-4)' }}>{a.platformKey}</span>
+                                                </span>
                                               ))}
                                             </div>
                                           )}
@@ -157,7 +158,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             <div>
                               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Browser profile ({dd.profiles.length})</div>
                               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {dd.profiles.map((p) => <span key={p.id} style={chip()}>{p.label} <span style={{ color: 'var(--fg-4)' }}>{p.tool}</span><button onClick={() => assignEntity(g.userId, 'browser_profile', p.id, null)} disabled={busy} title="bỏ gán" style={xbtn}>×</button></span>)}
+                                {dd.profiles.map((p) => <span key={p.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('browserProfile', p.id, p.label)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{p.label}</a> : p.label} <span style={{ color: 'var(--fg-4)' }}>{p.tool}</span><button onClick={() => assignEntity(g.userId, 'browser_profile', p.id, null)} disabled={busy} title="bỏ gán" style={xbtn}>×</button></span>)}
                                 <select value="" onChange={(e) => assignEntity(g.userId, 'browser_profile', e.target.value ? Number(e.target.value) : null, g.userId)} disabled={busy} style={{ ...inp, maxWidth: 150 }}>
                                   <option value="">＋ gán browser…</option>
                                   {profiles.filter((p) => !dd.profiles.some((x) => x.id === p.id)).map((p) => <option key={p.id} value={p.id}>{p.label} ({p.tool})</option>)}
@@ -167,7 +168,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             <div>
                               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Proxy ({dd.proxies.length})</div>
                               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {dd.proxies.map((p) => <span key={p.id} style={chip()}>{p.label} <span style={{ color: 'var(--fg-4)' }}>{p.type}</span><button onClick={() => assignEntity(g.userId, 'proxy', p.id, null)} disabled={busy} title="bỏ gán" style={xbtn}>×</button></span>)}
+                                {dd.proxies.map((p) => <span key={p.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('proxy', p.id, p.label)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{p.label}</a> : p.label} <span style={{ color: 'var(--fg-4)' }}>{p.type}</span><button onClick={() => assignEntity(g.userId, 'proxy', p.id, null)} disabled={busy} title="bỏ gán" style={xbtn}>×</button></span>)}
                                 <select value="" onChange={(e) => assignEntity(g.userId, 'proxy', e.target.value ? Number(e.target.value) : null, g.userId)} disabled={busy} style={{ ...inp, maxWidth: 150 }}>
                                   <option value="">＋ gán proxy…</option>
                                   {proxies.filter((p) => !dd.proxies.some((x) => x.id === p.id)).map((p) => <option key={p.id} value={p.id}>{p.label} ({p.type})</option>)}

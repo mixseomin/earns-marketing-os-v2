@@ -317,8 +317,34 @@ export const OBJECTS: ArchObject[] = [
     ],
     relations: [
       { to: 'account', kind: 'ref', via: 'account ↔ browser_profile (assign)' },
+      { to: 'proxy', kind: 'fk', via: 'default_proxy_id' },
     ],
     routes: ['/browser-profiles'],
+  },
+  {
+    key: 'proxy', label: 'Proxy', group: 'infra',
+    table: 'proxies', pk: 'id', labelCol: 'label', projectScoped: false,
+    desc: 'Proxy/IP cho account chạy an toàn (mobile/residential/datacenter/isp). Gán cho account hoặc làm default của browser profile. Health + location theo dõi.',
+    picker: { subExpr: 't.type' },
+    browseCols: [
+      { col: 'type', label: 'type', kind: 'badge' },
+      { col: 'location', label: 'location' },
+      { col: 'health', label: 'health', kind: 'badge' },
+      { col: 'updated_at', label: 'updated', kind: 'time' },
+    ],
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'label', col: 'label', type: 'text' },
+      { name: 'type', col: 'type', type: 'text', note: 'mobile|residential|datacenter|isp' },
+      { name: 'endpoint', col: 'endpoint', type: 'text' },
+      { name: 'location', col: 'location', type: 'text' },
+      { name: 'health', col: 'health', type: 'text', note: 'ok|degraded|down|unknown' },
+    ],
+    relations: [
+      { to: 'account', kind: 'ref', via: 'platform_accounts.proxy_id' },
+      { to: 'browserProfile', kind: 'ref', via: 'browser_profiles.default_proxy_id' },
+    ],
+    routes: ['/proxies'],
   },
   {
     key: 'uxFlow', label: 'UX Flows (need→action)', group: 'infra',

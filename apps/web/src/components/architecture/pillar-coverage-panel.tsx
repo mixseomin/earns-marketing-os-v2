@@ -51,7 +51,7 @@ export function PillarCoveragePanel({ onOpen }: { onOpen?: OpenFn }) {
             const s = ST[r.status]!;
             return (
               <tr key={r.projectId} style={{ background: r.status === 'none' ? 'color-mix(in srgb, var(--bad) 8%, transparent)' : undefined }}>
-                <td style={{ ...td, fontWeight: 600 }}>{r.projectName}</td>
+                <td style={{ ...td, fontWeight: 600 }}>{onOpen ? <a role="button" onClick={() => onOpen('project', r.projectId, r.projectName)} style={{ color: 'var(--fg-0)', cursor: 'pointer', textDecoration: 'none' }}>{r.projectName}</a> : r.projectName}</td>
                 <td style={{ ...td, textAlign: 'right', color: r.status === 'none' ? 'var(--bad)' : 'var(--fg-1)' }}>{r.pillars}</td>
                 <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{r.posted}</td>
                 <td style={td}><span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${s.color}`, color: s.color }}>{s.label}</span></td>

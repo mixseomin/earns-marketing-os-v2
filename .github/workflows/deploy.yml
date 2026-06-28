@@ -15,6 +15,10 @@ concurrency:
   # Serialize deploys: QUEUE a new push behind the running one instead of cancelling
   # it. Cancelling a deploy mid `next build` corrupts .next on the shared server dir
   # → `next start` exits 1 → 502 (incident 2026-06-17, two sessions pushing at once).
+  # Also: deploy.sh now does atomic swap (.next ↔ .next.bak) so build failure
+  # rolls back to last-known-good (incident 2026-06-28: build SIGKILL left
+  # .next/server/ writing new CSS hashes but .next/static/css/ wiped, server
+  # kept serving HTML that 400'd on every <link>).
   cancel-in-progress: false
 
 jobs:

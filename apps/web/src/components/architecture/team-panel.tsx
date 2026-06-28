@@ -37,6 +37,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
     for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active }); }
     return [...m.values()];
   })();
+  const userName = (id: number | null): string => id == null ? '' : (grouped.find((x) => x.userId === id)?.name ?? `#${id}`);
 
   const loadDetail = (uid: number) => { setDetail((d) => ({ ...d, [uid]: 'loading' })); getMemberAssignments(uid).then((s) => setDetail((d) => ({ ...d, [uid]: s }))); };
   const toggle = (uid: number) => { if (open === uid) { setOpen(null); return; } setOpen(uid); setMgr(null); if (!detail[uid]) loadDetail(uid); };
@@ -121,8 +122,6 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                   {dd.projects.map((p) => {
                                     const accs = dd.accounts.filter((a) => a.projectId === p.projectId);
                                     const showMgr = !!mgr && mgr.userId === g.userId && mgr.projectId === p.projectId;
-                                    const assignable = mgr ? mgr.accts.filter((a) => a.ownerUserId == null || a.ownerUserId === g.userId) : [];
-                                    const otherCnt = mgr ? mgr.accts.length - assignable.length : 0;
                                     const pool = acctCounts[p.projectId] ?? 0;
                                     return (
                                       <Fragment key={p.projectId}>
@@ -140,19 +139,22 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                         {showMgr && (
                                           <tr><td colSpan={4} style={{ padding: 0 }}>
                                             <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 6px' }}>
-                                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} (chưa giao ai / của {g.name}) → tick để giao:</div>
-                                              {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 4, marginBottom: 8 }}>
-                                                  {assignable.map((a) => (
-                                                    <span key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
-                                                      <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
-                                                      <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} title={a.platformKey} />
-                                                      {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
-                                                    </span>
-                                                  ))}
+                                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} → tick để giao cho {g.name} (tick acc của người khác = chuyển sang {g.name}):</div>
+                                              {mgr!.accts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Project này chưa có account nào.</div> : (
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 4, marginBottom: 8 }}>
+                                                  {mgr!.accts.map((a) => {
+                                                    const other = a.ownerUserId != null && a.ownerUserId !== g.userId;
+                                                    return (
+                                                      <span key={a.id} title={other ? `đang thuộc ${userName(a.ownerUserId)} — tick = chuyển sang ${g.name}` : ''} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
+                                                        <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
+                                                        <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} title={a.platformKey} />
+                                                        {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
+                                                        {other && <span style={{ color: 'var(--neon-amber)', fontSize: 10 }}>· {userName(a.ownerUserId)}</span>}
+                                                      </span>
+                                                    );
+                                                  })}
                                                 </div>
                                               )}
-                                              {otherCnt > 0 && <div style={{ fontSize: 10, color: 'var(--fg-4)', marginBottom: 6 }}>· {otherCnt} account đang thuộc người khác (ẩn)</div>}
                                               <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
                                               <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>
                                             </div>

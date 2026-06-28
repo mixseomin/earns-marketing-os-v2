@@ -139,21 +139,26 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                         {showMgr && (
                                           <tr><td colSpan={4} style={{ padding: 0 }}>
                                             <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 6px' }}>
-                                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} → tick để giao cho {g.name} (tick acc của người khác = chuyển sang {g.name}):</div>
+                                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} → tick để giao cho {g.name} (tick acc của người khác = chuyển chủ):</div>
                                               {mgr!.accts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Project này chưa có account nào.</div> : (
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 4, marginBottom: 8 }}>
-                                                  {mgr!.accts.map((a) => {
-                                                    const other = a.ownerUserId != null && a.ownerUserId !== g.userId;
-                                                    return (
-                                                      <span key={a.id} title={other ? `đang thuộc ${userName(a.ownerUserId)} — tick = chuyển sang ${g.name}` : ''} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 11 }}>
-                                                        <input type="checkbox" id={`acc-${g.userId}-${a.id}`} checked={mgr!.checked.has(a.id)} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} />
-                                                        <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} title={a.platformKey} />
-                                                        {onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : <label htmlFor={`acc-${g.userId}-${a.id}`} style={{ cursor: 'pointer' }}>{a.handle || '(no handle)'}</label>}
-                                                        {other && <span style={{ color: 'var(--neon-amber)', fontSize: 10 }}>· {userName(a.ownerUserId)}</span>}
-                                                      </span>
-                                                    );
-                                                  })}
-                                                </div>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+                                                  <thead><tr><th style={{ ...th, width: 26 }} /><th style={th}>Account</th><th style={th}>Platform</th><th style={th}>Chủ hiện tại</th></tr></thead>
+                                                  <tbody>
+                                                    {mgr!.accts.map((a) => {
+                                                      const mine = a.ownerUserId === g.userId;
+                                                      const other = a.ownerUserId != null && !mine;
+                                                      const checked = mgr!.checked.has(a.id);
+                                                      return (
+                                                        <tr key={a.id} style={{ background: checked ? 'color-mix(in srgb, var(--neon-lime) 10%, transparent)' : undefined }}>
+                                                          <td style={{ ...td, textAlign: 'center' }}><input type="checkbox" checked={checked} onChange={(e) => setMgr((m) => m ? ({ ...m, checked: (() => { const s = new Set(m.checked); if (e.target.checked) s.add(a.id); else s.delete(a.id); return s; })() }) : m)} style={{ cursor: 'pointer' }} /></td>
+                                                          <td style={td}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><SiteFavicon {...platformFaviconProps(a.platformKey)} size={13} title={a.platformKey} />{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle || String(a.id))} title="mở account" style={{ color: 'var(--fg-0)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle || '(no handle)'}</a> : (a.handle || '(no handle)')}</span></td>
+                                                          <td style={{ ...td, color: 'var(--fg-3)' }}>{onOpen ? <a role="button" onClick={() => onOpen('platform', a.platformKey, a.platformKey)} style={{ color: 'var(--fg-3)', cursor: 'pointer', textDecoration: 'none' }}>{a.platformKey}</a> : a.platformKey}</td>
+                                                          <td style={td}>{mine ? <span style={{ color: 'var(--neon-lime)' }}>✓ {g.name}</span> : other ? <span style={{ color: 'var(--neon-amber)' }} title="tick để chuyển sang người này">{userName(a.ownerUserId)}</span> : <span style={{ color: 'var(--fg-4)' }}>— chưa giao —</span>}</td>
+                                                        </tr>
+                                                      );
+                                                    })}
+                                                  </tbody>
+                                                </table>
                                               )}
                                               <button onClick={saveMgr} disabled={busy} style={btn('var(--neon-lime)')}>Lưu giao việc</button>
                                               <button onClick={() => setMgr(null)} style={{ ...btn('var(--fg-3)'), marginLeft: 6 }}>huỷ</button>

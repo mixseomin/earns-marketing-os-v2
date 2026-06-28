@@ -3,7 +3,7 @@
 // pull live values and consistency-checks can validate. This file documents
 // HOW MOS2 is wired; keep it in sync with packages/db/src/schema.ts.
 
-export type ObjGroup = 'platform' | 'identity' | 'place' | 'content' | 'scene' | 'infra' | 'resource';
+export type ObjGroup = 'platform' | 'identity' | 'place' | 'content' | 'scene' | 'infra' | 'resource' | 'team';
 
 export interface GroupDef {
   key: ObjGroup;
@@ -19,6 +19,7 @@ export const GROUPS: GroupDef[] = [
   { key: 'scene', label: 'Scene layer (WHO-THEM)', color: '#ff7ab0' },
   { key: 'infra', label: 'Infra / detection', color: '#8a92a3' },
   { key: 'resource', label: 'Resource layer', color: '#c9a46a' },
+  { key: 'team', label: 'Team / Ops', color: '#5be3a0' },
 ];
 
 export type RelKind = 'fk' | 'brief' | 'tracking' | 'm2m' | 'scope' | 'gen' | 'ref';
@@ -206,9 +207,9 @@ export const OBJECTS: ArchObject[] = [
     routes: ['/accounts', '/accounts/profile', '/accounts/{id}', '/accounts/map', '/scene/interact'],
   },
   {
-    key: 'identity', label: 'Identity (signup)', group: 'identity',
+    key: 'identity', label: 'Persona · signup (ours)', group: 'identity',
     table: 'identities', pk: 'id', labelCol: 'name', projectScoped: true,
-    desc: 'Reusable signup identity preset (persona template), defined per project. An account MAY be based on one — optional, not fixed.',
+    desc: 'CỦA TA. Preset persona để TẠO/ĐĂNG KÝ account (handle_base/email/password/custom_fields signup), per project. 1 account CÓ THỂ dựa trên 1 persona (optional). KHÁC: Account = bản ghi login đã có; Persona = khuôn để đẻ account mới. KHÁC HẲN "Contact · global" (scene) = danh tính của NGƯỜI TA tương tác.',
     picker: { subExpr: 't.kind' },
     browseCols: [
       { col: 'project_id', label: 'project', kind: 'project' },
@@ -253,8 +254,8 @@ export const OBJECTS: ArchObject[] = [
     deepLink: '/projects',
   },
   {
-    key: 'profileOnsite', label: 'Profile (on-site)', group: 'identity', table: null,
-    desc: 'KHÔNG phải entity lưu riêng — là VIEW dẫn xuất của Account. Account = bản ghi đăng nhập (credential + status, có thật trong platform_accounts). Profile (on-site) = "mặt hiển thị" của account đó trên trang profile = chiếu account.persona + identity.custom_fields LÊN site qua selectors page_kind=account-profile. Cùng data, khác VAI TRÒ: Account trả lời "đăng nhập được? handle/status?", Profile trả lời "trang hồ sơ hiện gì?". Doc-only vì không lưu tách khỏi account.',
+    key: 'profileOnsite', label: 'Profile · on-site (ours)', group: 'identity', table: null,
+    desc: 'CỦA TA. KHÔNG phải entity lưu riêng — là VIEW dẫn xuất của Account: "mặt hiển thị" của account TA trên trang profile = chiếu account.persona + Persona·signup.custom_fields LÊN site qua selectors page_kind=account-profile. Account trả lời "đăng nhập được? handle/status?"; Profile·on-site trả lời "trang hồ sơ account TA hiện gì?". Doc-only (không lưu tách khỏi account). ĐỪNG nhầm với "Contact · global" (scene) = profile của NGƯỜI TA tương tác.',
     attrs: [
       { name: 'displayName', type: 'text', note: 'account.persona.display_name' },
       { name: 'bio', type: 'text', note: 'account.persona.bio / identity.bio' },
@@ -267,6 +268,25 @@ export const OBJECTS: ArchObject[] = [
       { to: 'selector', kind: 'scope', via: "page_kind='account-profile' (cách chiếu lên trang)" },
     ],
     routes: ['/profile-fields/suggest', '/accounts/{id}', '/selectors/resolve'],
+  },
+  {
+    key: 'teamUser', label: 'Team member (operator)', group: 'team',
+    table: 'users', pk: 'id', labelCol: 'name', projectScoped: false,
+    desc: 'CỦA TA — người vận hành (admin/operator/viewer) chạy seeding. 1 user = N membership (members: user×project+role) + sở hữu account/proxy/browser-profile/persona (owner_user_id) + nhận human_tasks (hàng đợi đăng tay ở /inbox). Quản lý + assign nhóm project/account ngay trong drawer dưới.',
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'email', col: 'email', type: 'text' },
+      { name: 'name', col: 'name', type: 'text' },
+      { name: 'authKind', col: 'auth_kind', type: 'text', note: 'session/…' },
+      { name: 'role', col: 'members.role', type: 'text', note: 'admin|operator|viewer (per membership)' },
+      { name: 'specialty', col: 'members.specialty', type: 'text', note: 'ops|outreach|writer…' },
+    ],
+    relations: [
+      { to: 'project', kind: 'ref', via: 'members.user_id × project_id (membership + role)' },
+      { to: 'account', kind: 'ref', via: 'platform_accounts.owner_user_id (account được giao)' },
+      { to: 'identity', kind: 'ref', via: 'identities/proxies/browser_profiles.owner_user_id' },
+    ],
+    routes: ['/team', '/department'],
   },
   {
     key: 'browserProfile', label: 'Browser profile', group: 'infra',
@@ -589,9 +609,9 @@ export const OBJECTS: ArchObject[] = [
     ],
   },
   {
-    key: 'people', label: 'People (scene)', group: 'scene',
+    key: 'people', label: 'Contact · per-project (them)', group: 'scene',
     table: 'people', pk: 'id', labelCol: 'handle', projectScoped: true,
-    desc: 'WHO-THEM: a person the operator interacts with. Familiarity score + status.',
+    desc: 'HỌ (WHO-THEM), mức PER-PROJECT: quan hệ của TA với 1 người trong 1 project (familiarity 0-100 + status + interaction_count). 1 người xuất hiện ở N project → N dòng `people`, tất cả trỏ về 1 "Contact · global" (sceneIdentity) qua identity_id. Đây là bản ghi LÀM VIỆC per-project; global là bản gộp danh bạ.',
     picker: { join: 'LEFT JOIN habitats h ON h.id = t.habitat_id', subExpr: 'h.name' },
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
@@ -610,22 +630,22 @@ export const OBJECTS: ArchObject[] = [
       { name: 'interactionCount', col: 'interaction_count', type: 'int' },
       { name: 'theyRepliedBack', col: 'they_replied_back', type: 'bool' },
       { name: 'status', col: 'status', type: 'text', note: 'observed|engaging|warm|bridged|ignore' },
-      { name: 'identityId', col: 'identity_id', type: 'fk', fk: 'identity', note: 'GLOBAL person (cross-project) → contacts' },
+      { name: 'identityId', col: 'identity_id', type: 'fk', fk: 'sceneIdentity', note: 'GLOBAL person (cross-project) → Contact · global' },
       { name: 'sceneTag', col: 'scene_tag', type: 'text', note: 'nhãn nhóm scene' },
       { name: 'lastEngagedAt', col: 'last_engaged_at', type: 'timestamp' },
     ],
     relations: [
       { to: 'platform', kind: 'fk', via: 'platform_key' },
       { to: 'habitat', kind: 'fk', via: 'habitat_id' },
-      { to: 'identity', kind: 'fk', via: 'identity_id' },
+      { to: 'sceneIdentity', kind: 'fk', via: 'identity_id' },
       { to: 'interaction', kind: 'tracking', via: 'interactions.people_id' },
     ],
     routes: ['/scene/people', '/scene/observe', '/scene/interact', '/scene/lookup'],
   },
   {
-    key: 'identity', label: 'Identity (scene · global contacts)', group: 'scene',
+    key: 'sceneIdentity', label: 'Contact · global (them)', group: 'scene',
     table: 'scene_identities', pk: 'id', labelCol: 'handle', projectScoped: false,
-    desc: 'GLOBAL person-identity per platform+handle (1 dòng/người, tái dùng across project — khác `people` = quan hệ per-project). scraped_meta.contacts = TOÀN BỘ contact/profile ext cào (extractContact forum+social + HN/forum profile-page deep): userId · profile · pm · email(thật, de-obfusc \'X at gmail\') · emailForm · website · location · posts · ⭐KARMA · 📅JOINED(ngày tham gia)+joinedTs · about(bio) · host · engine · channels[] (Orit classifier ~80 type: telegram/discord/github/paypal/kofi…). LEAN: phpBB id số → derive profile/PM/email URL lúc render; field social/HN lưu thẳng. Surface: cột Contacts/Joined/Karma + popover ◎ /p/[id]/scenes.',
+    desc: 'HỌ (WHO-THEM), mức GLOBAL: 1 dòng/người theo platform+handle, gộp danh bạ across project (khác "Contact · per-project" = quan hệ từng project trỏ về đây). CỦA NGƯỜI TA TƯƠNG TÁC — ĐỪNG nhầm "Persona · signup"/"Profile · on-site" (= của TA). scraped_meta.contacts = TOÀN BỘ contact/profile ext cào (extractContact forum+social + HN/forum profile-page deep): userId · profile · pm · email(thật, de-obfusc \'X at gmail\') · emailForm · website · location · posts · ⭐KARMA · 📅JOINED(ngày tham gia)+joinedTs · about(bio) · host · engine · channels[] (Orit classifier ~80 type: telegram/discord/github/paypal/kofi…). LEAN: phpBB id số → derive profile/PM/email URL lúc render; field social/HN lưu thẳng. Surface: cột Contacts/Joined/Karma + popover ◎ /p/[id]/scenes.',
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
       { col: 'handle', label: 'handle' },

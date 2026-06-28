@@ -18,6 +18,7 @@ import { ContentValuePage, ContentCadenceTable } from '@/components/content-valu
 import type { ContentValue, ContentCadence } from '@/lib/actions/content-value-types';
 import { PillarCoveragePanel } from '@/components/architecture/pillar-coverage-panel';
 import { AccountInfraPanel } from '@/components/architecture/account-infra-panel';
+import { TeamPanel } from '@/components/architecture/team-panel';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
@@ -774,7 +775,7 @@ function SearchSelect({ value, options, placeholder, onChange, disabled, width }
 // generic để khỏi trùng. Các node còn lại (account/people/habitat/brief/card/…) dùng browser.
 // identity ĐÃ chuyển sang InstanceBrowser chung (full list + paginate + filter + search) — click row
 // mở IdentityDetail editable. Chỉ còn dom/uxflow/selector giữ panel chuyên biệt.
-const HAS_OWN_LIST = new Set(['domSample', 'uxFlow', 'selector']);
+const HAS_OWN_LIST = new Set(['domSample', 'uxFlow', 'selector', 'teamUser']);
 
 // relative "x ago" for time columns (hover = full timestamp via the cell title).
 function relAgo(v: unknown): string {
@@ -1535,6 +1536,12 @@ function ObjectDrawerBody({ obj, projects, defaultProject, bound, onBind, onProj
         </Section>
       )}
 
+      {obj.key === 'teamUser' && (
+        <Section title="Quản lý team · Assign" sub="// nhân sự × project × account · thêm/giao việc">
+          <TeamInline />
+        </Section>
+      )}
+
       {/* LIVE ITEMS — danh sách thực tế mọi item của node này lên ĐẦU: filter + select
           full option + phân trang (account/people… có thể rất nhiều) → click mở drawer
           chi tiết. Bỏ qua node đã có panel-list riêng (identity/dom/uxflow/selector). */}
@@ -1982,6 +1989,7 @@ function ContentCadenceInline({ projects }: { projects: { id: string; name: stri
 // Pha 1 (pillar coverage) + Setup account (browser/proxy) — self-fetch lúc mount (lazy, ko cần route/context).
 function PillarCoverageInline() { const onOpen = useOpenInstance(); return <PillarCoveragePanel onOpen={onOpen} />; }
 function AccountInfraInline() { const onOpen = useOpenInstance(); return <AccountInfraPanel onOpen={onOpen} />; }
+function TeamInline() { const onOpen = useOpenInstance(); return <TeamPanel onOpen={onOpen} />; }
 function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
   const caps = useContext(CapsCtx);
   const dims = caps.dimensions as { key: string; label: string; desc: string }[];

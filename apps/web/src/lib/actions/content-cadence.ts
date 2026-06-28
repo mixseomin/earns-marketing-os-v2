@@ -1,7 +1,7 @@
 'use server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import type { CadenceRow, ContentCadence, HabitatPlaybook, PlaybookPost } from './content-value-types';
+import type { CadenceRow, ContentCadence, HabitatPlaybook, PlaybookPost, PlaybookAccount } from './content-value-types';
 import { phaseAction } from './content-value-types';
 
 // Pha B — "Đến hạn → đăng nơi bền" (#3 cadence + #1 đăng tiện). Cadence/độ-bền KHÔNG có cột riêng →
@@ -64,11 +64,11 @@ export async function getContentCadence(projectId?: string): Promise<ContentCade
 // "Đăng gì" khi 1 nơi đến hạn — lazy-load lúc bung row (detail-on-demand, scale-safe).
 // = kế hoạch giai đoạn (brief mới nhất của habitat: phase + tone + pillar) + top winner để LẶP công thức.
 export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlaybook> {
-  const empty: HabitatPlaybook = { habitatId, name: '', url: null, projectId: null, phase: null, tone: null, pillarName: null, nextAction: phaseAction(null), topPosts: [] };
+  const empty: HabitatPlaybook = { habitatId, name: '', url: null, projectId: null, phase: null, tone: null, pillarName: null, nextAction: phaseAction(null), topPosts: [], accounts: [] };
   const db = getDb();
   if (!db || !habitatId) return empty;
   try {
-    const [hR, bR, pR] = await Promise.all([
+    const [hR, bR, pR, aR] = await Promise.all([
       db.execute(sql`SELECT name, url, project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`),
       db.execute(sql`
         SELECT b.current_phase, b.tone, p.name AS pillar_name
@@ -81,6 +81,21 @@ export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlay
                (now()::date - posted_at::date)::int AS days_ago
         FROM cards WHERE habitat_id = ${habitatId} AND posted_at IS NOT NULL
         ORDER BY value DESC NULLS LAST LIMIT 3`),
+      // accounts đăng ở nơi này (từ cards thực + brief) + browser profile + proxy quản lý
+      db.execute(sql`
+        SELECT a.id, a.handle, a.platform_key, a.status, a.account_kind, a.has_2fa, a.auth_method, a.cookie_session_needed,
+               bp.label AS bp_label, bp.tool AS bp_tool, bp.user_agent AS bp_ua,
+               px.label AS px_label, px.type AS px_type, px.location AS px_loc, px.health AS px_health,
+               (SELECT count(*)::int FROM cards c WHERE c.account_id = a.id AND c.habitat_id = ${habitatId} AND c.posted_at IS NOT NULL) AS posts_here,
+               EXISTS (SELECT 1 FROM community_briefs br WHERE br.account_id = a.id AND br.habitat_id = ${habitatId}) AS from_brief
+        FROM platform_accounts a
+        LEFT JOIN browser_profiles bp ON bp.id = a.browser_profile_id
+        LEFT JOIN proxies px ON px.id = a.proxy_id
+        WHERE a.id IN (
+          SELECT account_id FROM cards WHERE habitat_id = ${habitatId} AND account_id IS NOT NULL
+          UNION SELECT account_id FROM community_briefs WHERE habitat_id = ${habitatId} AND account_id IS NOT NULL
+        )
+        ORDER BY posts_here DESC, a.handle`),
     ]);
     const h = (hR as unknown as Array<Record<string, unknown>>)[0] || {};
     const b = (bR as unknown as Array<Record<string, unknown>>)[0] || {};
@@ -90,11 +105,19 @@ export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlay
       contentKind: x.content_kind ? String(x.content_kind) : null, url: x.post_url ? String(x.post_url) : null,
       daysAgo: Number(x.days_ago ?? 0),
     }));
+    const accounts: PlaybookAccount[] = (aR as unknown as Array<Record<string, unknown>>).map((x) => ({
+      id: Number(x.id), handle: String(x.handle || '(no handle)'), platformKey: x.platform_key ? String(x.platform_key) : null,
+      status: x.status ? String(x.status) : null, accountKind: x.account_kind ? String(x.account_kind) : null,
+      has2fa: !!x.has_2fa, authMethod: x.auth_method ? String(x.auth_method) : null, cookieNeeded: !!x.cookie_session_needed,
+      postsHere: Number(x.posts_here ?? 0), fromBrief: !!x.from_brief,
+      browser: (x.bp_label || x.bp_tool || x.bp_ua) ? { label: x.bp_label ? String(x.bp_label) : null, tool: x.bp_tool ? String(x.bp_tool) : null, userAgent: x.bp_ua ? String(x.bp_ua) : null } : null,
+      proxy: (x.px_label || x.px_type || x.px_loc) ? { label: x.px_label ? String(x.px_label) : null, type: x.px_type ? String(x.px_type) : null, location: x.px_loc ? String(x.px_loc) : null, health: x.px_health ? String(x.px_health) : null } : null,
+    }));
     return {
       habitatId, name: String(h.name || ''), url: h.url ? String(h.url) : null,
       projectId: h.project_id ? String(h.project_id) : null,
       phase, tone: b.tone ? String(b.tone) : null, pillarName: b.pillar_name ? String(b.pillar_name) : null,
-      nextAction: phaseAction(phase), topPosts,
+      nextAction: phaseAction(phase), topPosts, accounts,
     };
   } catch { return empty; }
 }

@@ -22,6 +22,33 @@ function Playbook({ pb }: { pb: HabitatPlaybook | 'loading' | undefined }) {
           {pb.pillarName && <>Pillar: <b style={{ color: 'var(--fg-2)' }}>{pb.pillarName}</b></>}
         </div>
       )}
+
+      {/* Đăng BẰNG tài khoản nào + browser/proxy quản lý nó (mọi thứ liên quan) */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '2px 0 4px' }}>Tài khoản đăng ở đây:</div>
+        {pb.accounts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có account gắn nơi này (chưa brief, chưa đăng).</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {pb.accounts.map((a) => (
+              <div key={a.id} style={{ border: '1px solid var(--bg-3)', borderRadius: 8, padding: '6px 9px', background: 'var(--bg-0)', fontSize: 12 }}>
+                <div style={{ display: 'flex', gap: 7, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <a href="/architecture?obj=account" title="Mở node Account để quản lý" style={{ fontWeight: 700, color: 'var(--fg-0)', textDecoration: 'none' }}>{a.handle}</a>
+                  {a.platformKey && <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.platformKey}</span>}
+                  {a.status && <span style={{ fontSize: 10, padding: '0 6px', borderRadius: 99, border: `1px solid ${a.status === 'active' ? 'var(--neon-lime)' : a.status === 'blocked' || a.status === 'banned' ? 'var(--bad)' : 'var(--neon-amber)'}`, color: a.status === 'active' ? 'var(--neon-lime)' : a.status === 'blocked' || a.status === 'banned' ? 'var(--bad)' : 'var(--neon-amber)' }}>{a.status}</span>}
+                  {a.accountKind && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>{a.accountKind}</span>}
+                  {a.fromBrief && <span title="Có brief = đúng account theo kế hoạch" style={{ fontSize: 10, color: 'var(--neon-cyan)' }}>★ theo brief</span>}
+                  {a.postsHere > 0 && <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>· {a.postsHere} bài ở đây</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 3, fontSize: 10, color: 'var(--fg-3)' }}>
+                  <span title="Cách đăng nhập">🔑 {a.authMethod || '—'}{a.has2fa ? ' · 2FA' : ''}{a.cookieNeeded ? ' · cần cookie session' : ''}</span>
+                  <span title="Browser quản lý account" style={{ color: a.browser ? 'var(--fg-2)' : 'var(--neon-amber)' }}>🌐 {a.browser ? `${a.browser.tool || 'browser'}${a.browser.label ? ' · ' + a.browser.label : ''}` : 'chưa gắn browser'}</span>
+                  <span title="Proxy / IP" style={{ color: a.proxy ? 'var(--fg-2)' : 'var(--neon-amber)' }}>🛡 {a.proxy ? `${a.proxy.type || 'proxy'}${a.proxy.location ? ' · ' + a.proxy.location : ''}${a.proxy.health ? ' · ' + a.proxy.health : ''}` : 'chưa gắn proxy'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '2px 0 4px' }}>Công thức từng landed ở đây — lặp lại:</div>
         {pb.topPosts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có bài nào ở đây — đây là nơi mới.</div> : (

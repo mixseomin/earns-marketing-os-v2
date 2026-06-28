@@ -36,10 +36,17 @@ export interface ContentCadence { rows: CadenceRow[]; durableCut: number; }
 
 // Pha B+ — "đăng gì" khi 1 nơi đến hạn: kế hoạch giai đoạn (brief.current_phase) + winner cũ để lặp.
 export interface PlaybookPost { title: string; value: number; contentKind: string | null; url: string | null; daysAgo: number; }
+// Tài khoản đăng ở nơi này + browser/proxy quản lý nó (mọi thứ liên quan để đăng).
+export interface PlaybookAccount {
+  id: number; handle: string; platformKey: string | null; status: string | null; accountKind: string | null;
+  has2fa: boolean; authMethod: string | null; cookieNeeded: boolean; postsHere: number; fromBrief: boolean;
+  browser: { label: string | null; tool: string | null; userAgent: string | null } | null;
+  proxy: { label: string | null; type: string | null; location: string | null; health: string | null } | null;
+}
 export interface HabitatPlaybook {
   habitatId: number; name: string; url: string | null; projectId: string | null;
   phase: string | null; tone: string | null; pillarName: string | null;
-  nextAction: string; topPosts: PlaybookPost[];
+  nextAction: string; topPosts: PlaybookPost[]; accounts: PlaybookAccount[];
 }
 // gợi ý hành động theo giai đoạn seeding (brief.current_phase) — "đăng KIỂU gì" ở giai đoạn này.
 export const PHASE_ACTION: Record<string, string> = {

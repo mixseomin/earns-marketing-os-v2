@@ -33,3 +33,22 @@ export interface CadenceRow {
   posts: number; daysSince: number; avgValue: number; bestValue: number; bucket: CadenceBucket;
 }
 export interface ContentCadence { rows: CadenceRow[]; durableCut: number; }
+
+// Pha B+ — "đăng gì" khi 1 nơi đến hạn: kế hoạch giai đoạn (brief.current_phase) + winner cũ để lặp.
+export interface PlaybookPost { title: string; value: number; contentKind: string | null; url: string | null; daysAgo: number; }
+export interface HabitatPlaybook {
+  habitatId: number; name: string; url: string | null; projectId: string | null;
+  phase: string | null; tone: string | null; pillarName: string | null;
+  nextAction: string; topPosts: PlaybookPost[];
+}
+// gợi ý hành động theo giai đoạn seeding (brief.current_phase) — "đăng KIỂU gì" ở giai đoạn này.
+export const PHASE_ACTION: Record<string, string> = {
+  'warm-up': 'Tương tác/comment giá trị, CHƯA nhắc sản phẩm. Lặp công thức winner bên dưới.',
+  value: 'Đăng nội dung giá trị thuần (guide/insight hữu ích). Chưa bán.',
+  bridge: 'Bắc cầu: nối chủ đề cộng đồng → vấn đề mà sản phẩm giải.',
+  seed: 'Gieo mềm: nhắc sản phẩm tự nhiên trong ngữ cảnh trả lời.',
+  direct: 'Đăng/nhắc trực tiếp sản phẩm + link.',
+  cooldown: 'Nghỉ, tránh spam. Chỉ tương tác nhẹ để giữ nhiệt.',
+};
+export const phaseAction = (phase: string | null): string =>
+  (phase && PHASE_ACTION[phase]) || 'Chưa có brief cho nơi này → lặp công thức winner bên dưới, hoặc tạo brief để định giai đoạn.';

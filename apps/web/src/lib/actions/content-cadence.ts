@@ -1,6 +1,8 @@
+'use server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import type { CadenceRow, ContentCadence } from './content-value-types';
+import type { CadenceRow, ContentCadence, HabitatPlaybook, PlaybookPost } from './content-value-types';
+import { phaseAction } from './content-value-types';
 
 // Pha B — "Đến hạn → đăng nơi bền" (#3 cadence + #1 đăng tiện). Cadence/độ-bền KHÔNG có cột riêng →
 // DERIVE từ lịch sử đăng theo HABITAT (pillar_id rỗng trên bài posted; 64/66 bài có habitat_id).
@@ -8,7 +10,7 @@ import type { CadenceRow, ContentCadence } from './content-value-types';
 //  - bestValue = max(value) habitat đó từng đạt → "nơi bền" (chỗ bài từng landed)
 //  - bucket: due (bền + lâu chưa đăng → ĐĂNG TIẾP) · watch (bền + mới) · cold (nguội) · weak (value≈0, cân nhắc bỏ)
 // SỐNG TRONG drawer node `habitat` của Architecture Studio (KHÔNG page riêng — feedback_no_new_pages).
-export type { CadenceRow, ContentCadence } from './content-value-types';
+// 'use server' → getHabitatPlaybook gọi được trực tiếp từ client (bung row "đăng gì").
 
 const OVERDUE_DAYS = 10;  // chưa đăng ≥10 ngày = đến hạn (tunable)
 const WEAK_VALUE = 2;     // best_value < 2 = nơi gần như ko ra giá trị
@@ -57,4 +59,42 @@ export async function getContentCadence(projectId?: string): Promise<ContentCade
     rows.sort((a, b) => rank[a.bucket] - rank[b.bucket] || b.daysSince - a.daysSince);
     return { rows, durableCut: Math.round(durableCut * 10) / 10 };
   } catch { return { rows: [], durableCut: 0 }; }
+}
+
+// "Đăng gì" khi 1 nơi đến hạn — lazy-load lúc bung row (detail-on-demand, scale-safe).
+// = kế hoạch giai đoạn (brief mới nhất của habitat: phase + tone + pillar) + top winner để LẶP công thức.
+export async function getHabitatPlaybook(habitatId: number): Promise<HabitatPlaybook> {
+  const empty: HabitatPlaybook = { habitatId, name: '', url: null, projectId: null, phase: null, tone: null, pillarName: null, nextAction: phaseAction(null), topPosts: [] };
+  const db = getDb();
+  if (!db || !habitatId) return empty;
+  try {
+    const [hR, bR, pR] = await Promise.all([
+      db.execute(sql`SELECT name, url, project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`),
+      db.execute(sql`
+        SELECT b.current_phase, b.tone, p.name AS pillar_name
+        FROM community_briefs b LEFT JOIN content_pillars p ON p.id = b.primary_pillar_id
+        WHERE b.habitat_id = ${habitatId}
+        ORDER BY (b.current_phase IS NOT NULL) DESC, b.id DESC LIMIT 1`),
+      db.execute(sql`
+        SELECT title, content_kind, post_url,
+               ROUND((COALESCE(insights_score,0) + log(10, COALESCE(insights_views_count,0)+1)*5)::numeric, 1) AS value,
+               (now()::date - posted_at::date)::int AS days_ago
+        FROM cards WHERE habitat_id = ${habitatId} AND posted_at IS NOT NULL
+        ORDER BY value DESC NULLS LAST LIMIT 3`),
+    ]);
+    const h = (hR as unknown as Array<Record<string, unknown>>)[0] || {};
+    const b = (bR as unknown as Array<Record<string, unknown>>)[0] || {};
+    const phase = b.current_phase ? String(b.current_phase) : null;
+    const topPosts: PlaybookPost[] = (pR as unknown as Array<Record<string, unknown>>).map((x) => ({
+      title: String(x.title || '(untitled)'), value: Number(x.value ?? 0),
+      contentKind: x.content_kind ? String(x.content_kind) : null, url: x.post_url ? String(x.post_url) : null,
+      daysAgo: Number(x.days_ago ?? 0),
+    }));
+    return {
+      habitatId, name: String(h.name || ''), url: h.url ? String(h.url) : null,
+      projectId: h.project_id ? String(h.project_id) : null,
+      phase, tone: b.tone ? String(b.tone) : null, pillarName: b.pillar_name ? String(b.pillar_name) : null,
+      nextAction: phaseAction(phase), topPosts,
+    };
+  } catch { return empty; }
 }

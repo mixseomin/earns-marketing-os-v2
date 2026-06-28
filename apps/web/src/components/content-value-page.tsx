@@ -1,15 +1,62 @@
 'use client';
-import { useMemo, useState, type CSSProperties } from 'react';
-import type { ContentValue, Durability, ContentCadence, CadenceBucket } from '@/lib/actions/content-value-types';
+import { Fragment, useMemo, useState, type CSSProperties } from 'react';
+import type { ContentValue, Durability, ContentCadence, CadenceBucket, HabitatPlaybook } from '@/lib/actions/content-value-types';
 import { DURABILITY_META, CADENCE_META } from '@/lib/actions/content-value-types';
+import { getHabitatPlaybook } from '@/lib/actions/content-cadence';
 
 const CAD_ORDER: CadenceBucket[] = ['due', 'cold', 'watch', 'weak'];
+
+// Panel "đăng gì ở đây" khi bung 1 nơi: giai đoạn kế hoạch (brief.phase → nextAction) + winner cũ để LẶP công thức + link soạn.
+function Playbook({ pb }: { pb: HabitatPlaybook | 'loading' | undefined }) {
+  if (!pb || pb === 'loading') return <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--fg-3)' }}>Đang tải gợi ý…</div>;
+  return (
+    <div style={{ padding: '10px 14px 14px 34px', background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 12 }}>
+        <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>Đăng gì:</span>{' '}
+        <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 99, border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', marginRight: 6 }}>{pb.phase || 'no brief'}</span>
+        <span style={{ color: 'var(--fg-1)' }}>{pb.nextAction}</span>
+      </div>
+      {(pb.tone || pb.pillarName) && (
+        <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          {pb.tone && <>Giọng: <b style={{ color: 'var(--fg-2)' }}>{pb.tone}</b>{pb.pillarName ? ' · ' : ''}</>}
+          {pb.pillarName && <>Pillar: <b style={{ color: 'var(--fg-2)' }}>{pb.pillarName}</b></>}
+        </div>
+      )}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '2px 0 4px' }}>Công thức từng landed ở đây — lặp lại:</div>
+        {pb.topPosts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Chưa có bài nào ở đây — đây là nơi mới.</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {pb.topPosts.map((p, i) => (
+              <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700, color: 'var(--neon-cyan)', minWidth: 34 }}>{p.value}</span>
+                {p.contentKind && <span style={{ fontSize: 10, color: 'var(--fg-3)', minWidth: 38 }}>{p.contentKind}</span>}
+                {p.url ? <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-0)', textDecoration: 'none' }}>{p.title}</a> : <span style={{ color: 'var(--fg-1)' }}>{p.title}</span>}
+                <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>{p.daysAgo}d</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 10, fontSize: 12, marginTop: 2 }}>
+        {pb.url && <a href={pb.url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-lime)', textDecoration: 'none' }}>↗ Tới nơi để đăng</a>}
+        {pb.projectId && <a href={`/p/${pb.projectId}`} style={{ color: 'var(--neon-cyan)', textDecoration: 'none' }}>✍️ Soạn ở board</a>}
+      </div>
+    </div>
+  );
+}
 
 // Pha B — "Đến hạn → đăng nơi bền" theo habitat. Embedded trong drawer node `habitat` (KHÔNG page riêng).
 // due = đăng tiếp ở đây · weak = nơi không ra giá trị, cân nhắc bỏ.
 export function ContentCadenceTable({ data, projects }: { data: ContentCadence; projects: { id: string; name: string }[] }) {
   const [proj, setProj] = useState('');
   const [bucket, setBucket] = useState<CadenceBucket | ''>('');
+  const [open, setOpen] = useState<number | null>(null);
+  const [pb, setPb] = useState<Record<number, HabitatPlaybook | 'loading'>>({});
+  const toggle = (habitatId: number) => {
+    if (open === habitatId) { setOpen(null); return; }
+    setOpen(habitatId);
+    if (!pb[habitatId]) { setPb((m) => ({ ...m, [habitatId]: 'loading' })); getHabitatPlaybook(habitatId).then((p) => setPb((m) => ({ ...m, [habitatId]: p }))); }
+  };
   const scope = useMemo(() => (proj ? data.rows.filter((r) => r.projectId === proj) : data.rows), [data.rows, proj]);
   const rows = useMemo(() => (bucket ? scope.filter((r) => r.bucket === bucket) : scope), [scope, bucket]);
   const counts = useMemo(() => { const c = { due: 0, watch: 0, cold: 0, weak: 0 } as Record<CadenceBucket, number>; for (const r of scope) c[r.bucket]++; return c; }, [scope]);
@@ -38,23 +85,29 @@ export function ContentCadenceTable({ data, projects }: { data: ContentCadence; 
       {rows.length === 0 ? <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 16, color: 'var(--fg-2)', fontSize: 13 }}>Không có nơi khớp bộ lọc.</div> : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
-            <th style={th}>Nơi (habitat)</th><th style={th}>Platform</th>{!proj && <th style={th}>Project</th>}
+            <th style={{ ...th, width: 22 }} /><th style={th}>Nơi (habitat)</th><th style={th}>Platform</th>{!proj && <th style={th}>Project</th>}
             <th style={{ ...th, textAlign: 'right' }}>Bài</th><th style={{ ...th, textAlign: 'right' }}>Lâu chưa đăng</th>
             <th style={{ ...th, textAlign: 'right' }}>Best</th><th style={th}>Trạng thái</th>
           </tr></thead>
           <tbody>
             {rows.map((r) => {
               const m = CADENCE_META[r.bucket];
+              const isOpen = open === r.habitatId;
+              const cols = (!proj ? 8 : 7);
               return (
-                <tr key={r.habitatId}>
-                  <td style={{ ...td, maxWidth: 280 }}>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-0)', textDecoration: 'none' }}>{r.name}</a> : <span style={{ color: 'var(--fg-1)' }}>{r.name}</span>}</td>
-                  <td style={{ ...td, color: 'var(--fg-2)' }}>{r.platformKey || '—'}</td>
-                  {!proj && <td style={{ ...td, color: 'var(--fg-3)' }}>{r.projectName || '—'}</td>}
-                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{r.posts}</td>
-                  <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', color: r.daysSince >= 10 ? 'var(--neon-amber)' : 'var(--fg-2)' }}>{r.daysSince}d</td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--neon-cyan)' }}>{r.bestValue}</td>
-                  <td style={td}><span title={m.hint} style={{ fontSize: 11, padding: '1px 8px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color, cursor: 'help' }}>{m.label}</span></td>
-                </tr>
+                <Fragment key={r.habitatId}>
+                  <tr onClick={() => toggle(r.habitatId)} style={{ cursor: 'pointer', background: isOpen ? 'var(--bg-1)' : undefined }} title="Click: đăng gì ở đây?">
+                    <td style={{ ...td, textAlign: 'center', color: 'var(--fg-3)' }}>{isOpen ? '▾' : '▸'}</td>
+                    <td style={{ ...td, maxWidth: 280 }}>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-0)', textDecoration: 'none' }}>{r.name}</a> : <span style={{ color: 'var(--fg-1)' }}>{r.name}</span>}</td>
+                    <td style={{ ...td, color: 'var(--fg-2)' }}>{r.platformKey || '—'}</td>
+                    {!proj && <td style={{ ...td, color: 'var(--fg-3)' }}>{r.projectName || '—'}</td>}
+                    <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{r.posts}</td>
+                    <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', color: r.daysSince >= 10 ? 'var(--neon-amber)' : 'var(--fg-2)' }}>{r.daysSince}d</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--neon-cyan)' }}>{r.bestValue}</td>
+                    <td style={td}><span title={m.hint} style={{ fontSize: 11, padding: '1px 8px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color, cursor: 'help' }}>{m.label}</span></td>
+                  </tr>
+                  {isOpen && <tr><td colSpan={cols} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}><Playbook pb={pb[r.habitatId]} /></td></tr>}
+                </Fragment>
               );
             })}
           </tbody>

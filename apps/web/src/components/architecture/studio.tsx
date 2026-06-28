@@ -25,7 +25,7 @@ import {
   type ArchObject, type ArchFlow, type RelKind, type BrowseGroup, type SurfaceGroup,
 } from './spec';
 import { Drawer } from '@/components/drawer';
-import { SiteFavicon } from '@/components/ui/site-favicon';
+import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
 import {
   listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
@@ -861,13 +861,6 @@ function ProjectCell({ ids, projMap, onOpen }: { ids: string[]; projMap: Map<str
 
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
-// platform_key → favicon props: key dạng domain-dash (soundonsound-com→soundonsound.com,
-// lemmy-world→lemmy.world) → url; canonical (twitter/reddit/discord…) → kind (KIND_DOMAIN map).
-function platformFaviconProps(key: string): { url?: string; kind?: string } {
-  const k = key.toLowerCase();
-  return /-[a-z0-9]{2,5}$/.test(k) ? { url: k.replace(/-([a-z0-9]+)$/, '.$1'), kind: k } : { kind: k };
-}
-
 function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string; onProjectChange?: (pid: string) => void;
 }) {

@@ -24,6 +24,13 @@ const KIND_DOMAIN: Record<string, string> = {
   feed: 'bsky.app', bluesky: 'bsky.app',
 };
 
+// platform_key → SiteFavicon props: dạng domain-dash (soundonsound-com→soundonsound.com,
+// lemmy-world→lemmy.world) → url; canonical (twitter/reddit/discord…) → kind (KIND_DOMAIN).
+export function platformFaviconProps(key: string): { url?: string; kind?: string } {
+  const k = (key || '').toLowerCase();
+  return /-[a-z0-9]{2,5}$/.test(k) ? { url: k.replace(/-([a-z0-9]+)$/, '.$1'), kind: k } : { kind: k };
+}
+
 function hostFromUrl(u?: string | null): string | null {
   if (!u) return null;
   try {

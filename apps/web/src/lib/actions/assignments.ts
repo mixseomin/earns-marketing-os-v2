@@ -167,7 +167,7 @@ const TABLE_BY_TYPE: Record<OwnableEntity, string> = {
 // ── Member assignment summary (for /team inventory + visibility audit) ──
 export interface MemberAssignmentSummary {
   projects: Array<{ projectId: string; projectName: string; role: string }>;
-  accounts: Array<{ id: number; handle: string; platformLabel: string; projectId: string }>;
+  accounts: Array<{ id: number; handle: string; platformKey: string; platformLabel: string; projectId: string }>;
   proxies: Array<{ id: number; label: string; type: string }>;
   profiles: Array<{ id: number; label: string; tool: string }>;
   tribes: Array<{ id: number; label: string; projectId: string }>;
@@ -187,7 +187,7 @@ export async function getMemberAssignments(userId: number): Promise<MemberAssign
       ORDER BY p.name
     `),
     db.execute(sql`
-      SELECT pa.id, pa.handle, COALESCE(pl.label, pa.platform_key) AS platform_label, pa.project_id
+      SELECT pa.id, pa.handle, pa.platform_key, COALESCE(pl.label, pa.platform_key) AS platform_label, pa.project_id
       FROM platform_accounts pa LEFT JOIN platforms pl ON pl.key = pa.platform_key
       WHERE pa.owner_user_id = ${userId}
       ORDER BY pa.project_id, pa.platform_key
@@ -221,7 +221,7 @@ export async function getMemberAssignments(userId: number): Promise<MemberAssign
     })),
     accounts: (accRows as unknown as Array<Record<string, unknown>>).map((r) => ({
       id: Number(r.id), handle: String(r.handle ?? '(no-handle)'),
-      platformLabel: String(r.platform_label), projectId: String(r.project_id),
+      platformKey: String(r.platform_key ?? ''), platformLabel: String(r.platform_label), projectId: String(r.project_id),
     })),
     proxies: (pxRows as unknown as Array<Record<string, unknown>>).map((r) => ({
       id: Number(r.id), label: String(r.label), type: String(r.type),

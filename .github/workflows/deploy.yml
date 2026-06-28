@@ -12,18 +12,54 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  # Serialize deploys: QUEUE a new push behind the running one instead of cancelling
-  # it. Cancelling a deploy mid `next build` corrupts .next on the shared server dir
-  # → `next start` exits 1 → 502 (incident 2026-06-17, two sessions pushing at once).
-  # Also: deploy.sh now does atomic swap (.next ↔ .next.bak) so build failure
-  # rolls back to last-known-good (incident 2026-06-28: build SIGKILL left
-  # .next/server/ writing new CSS hashes but .next/static/css/ wiped, server
-  # kept serving HTML that 400'd on every <link>).
   cancel-in-progress: false
 
+# Build on GitHub-hosted runner (7GB RAM, clean) instead of as.on.tc self-hosted
+# (CX22 4GB, swap-thrashing → next build OOM SIGKILL → wiped .next/static/, served
+# HTML referencing dead CSS hashes; incident 2026-06-28). Server still runs migrations,
+# deps install, and `next start` — only the build moved.
 jobs:
-  deploy:
-    runs-on: [self-hosted, mos2]
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Deploy
-        run: sudo /opt/earns-marketing-os-v2/deploy.sh
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - run: node scripts/check-sql-aliases.mjs
+      - run: node scripts/check-canon.mjs
+      - run: npm run build:web
+      # Tar so rsync transfers one file (faster + atomic on receive)
+      - run: tar -C apps/web -czf next.tar.gz .next
+      - uses: actions/upload-artifact@v4
+        with: { name: next-build, path: next.tar.gz, retention-days: 1 }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: next-build }
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+      - name: Ship build artifact
+        run: |
+          scp -i ~/.ssh/id_ed25519 next.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/
+          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
+            set -e
+            cd /opt/earns-marketing-os-v2/apps/web
+            rm -rf .next.new
+            mkdir .next.new
+            tar -xzf /tmp/next.tar.gz -C /tmp/
+            mv /tmp/.next/* .next.new/
+            rm -rf /tmp/.next /tmp/next.tar.gz
+          '
+      - name: Run server-side deploy (migrations + swap + restart)
+        run: |
+          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} 'SKIP_BUILD=1 /opt/earns-marketing-os-v2/deploy.sh'

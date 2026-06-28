@@ -260,7 +260,6 @@ export const OBJECTS: ArchObject[] = [
     picker: { crossProject: true, labelExpr: "t.handle", subExpr: "coalesce(t.persona->>'display_name', t.persona->>'bio', t.platform_key)" },
     browseCols: [
       { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
-      { col: 'handle', label: 'handle' },
       { col: 'status', label: 'status', kind: 'badge' },
       { col: 'updated_at', label: 'updated', kind: 'time' },
     ],

@@ -25,6 +25,7 @@ import {
   type ArchObject, type ArchFlow, type RelKind, type BrowseGroup, type SurfaceGroup,
 } from './spec';
 import { Drawer } from '@/components/drawer';
+import { SiteFavicon } from '@/components/ui/site-favicon';
 import {
   listInstances, browseInstances, getInstance, updateInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
@@ -860,6 +861,13 @@ function ProjectCell({ ids, projMap, onOpen }: { ids: string[]; projMap: Map<str
 
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
+// platform_key → favicon props: key dạng domain-dash (soundonsound-com→soundonsound.com,
+// lemmy-world→lemmy.world) → url; canonical (twitter/reddit/discord…) → kind (KIND_DOMAIN map).
+function platformFaviconProps(key: string): { url?: string; kind?: string } {
+  const k = key.toLowerCase();
+  return /-[a-z0-9]{2,5}$/.test(k) ? { url: k.replace(/-([a-z0-9]+)$/, '.$1'), kind: k } : { kind: k };
+}
+
 function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   obj: ArchObject; projects: { id: string; name: string }[]; defaultProject: string; onProjectChange?: (pid: string) => void;
 }) {
@@ -964,6 +972,19 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const projMap = new Map(projects.map((p) => [p.id, p.name]));   // id → name cho cột project
   const grid = widths.map((w) => (w == null ? 'minmax(150px,1fr)' : `${w}px`)).join(' ');   // null=text tự do(1fr); số=px(compact/resize)
   const cellVal = (it: BrowseRow, key: string) => (key === '__sub' ? it.sub : it.cols[key]);
+  // double-click mép cột → FIT theo nội dung rộng nhất (header + mọi row đang hiện). mono ~6.6px/char.
+  const fitColumn = (i: number) => {
+    const key = colKeyAt(i);
+    const header = i === 0 ? (obj.labelCol || 'name') : (i === dataCols.length + 1 ? pkCol : (dataCols[i - 1]?.label || ''));
+    let maxChars = header.length;
+    for (const it of data.rows) {
+      const s = i === 0 ? String(it.label ?? '') : (i === dataCols.length + 1 ? String(it.id ?? '') : (() => { const v = cellVal(it, key); return v == null ? '' : String(v); })());
+      if (s.length > maxChars) maxChars = s.length;
+    }
+    const px = Math.min(380, Math.max(50, Math.round(maxChars * 6.6) + (dataCols[i - 1]?.kind === 'link' ? 40 : 22)));
+    setWidths((prev) => { const n = prev.slice(); n[i] = px; return n; });
+    try { const m = loadWMap(); m[key] = px; localStorage.setItem(wKey, JSON.stringify(m)); } catch { /* ignore */ }
+  };
   const open = (it: InstanceRef) => {
     // identity: mở drawer EDITABLE (IdentityDetail) thay vì InstanceDetail read-only chung.
     if (obj.key === 'identity') {
@@ -1070,7 +1091,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{hc.label}</span>
                 {active && <span style={{ flexShrink: 0 }}>{sort!.dir === 'asc' ? '▲' : '▼'}</span>}
                 {i < arr.length - 1 && (
-                  <span onMouseDown={(e) => startResize(i, e)} onClick={(e) => e.stopPropagation()}
+                  <span onMouseDown={(e) => startResize(i, e)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); fitColumn(i); }}
+                    title="Kéo = đổi rộng · double-click = fit nội dung"
                     style={{ position: 'absolute', top: 0, right: -4, width: 9, height: '100%', cursor: 'col-resize' }} />
                 )}
               </span>
@@ -1105,7 +1127,10 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                   {empty ? <span style={{ color: 'var(--fg-4)' }}>—</span>
                     : dc.kind === 'link' && dc.link ? (
                       <span role="link" onClick={(e) => openLinked(e, dc.link!, String(v))}
-                        style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted' }}>{String(v)}</span>
+                        style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                        {dc.link === 'platform' && <SiteFavicon {...platformFaviconProps(String(v))} size={13} title={String(v)} />}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(v)}</span>
+                      </span>
                     ) : dc.kind === 'badge' ? (() => {
                       const hot = stale && dc.key === 'status';
                       const sc = hot ? 'var(--bad)' : badgeColor(String(v));

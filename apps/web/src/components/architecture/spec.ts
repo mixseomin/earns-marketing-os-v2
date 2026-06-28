@@ -210,7 +210,7 @@ export const OBJECTS: ArchObject[] = [
     key: 'identity', label: 'Persona · signup (ours)', group: 'identity',
     table: 'identities', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'CỦA TA. Preset persona để TẠO/ĐĂNG KÝ account (handle_base/email/password/custom_fields signup), per project. 1 account CÓ THỂ dựa trên 1 persona (optional). KHÁC: Account = bản ghi login đã có; Persona = khuôn để đẻ account mới. KHÁC HẲN "Contact · global" (scene) = danh tính của NGƯỜI TA tương tác.',
-    picker: { subExpr: 't.kind' },
+    picker: { crossProject: true, subExpr: 't.kind' },
     browseCols: [
       { col: 'project_id', label: 'project', kind: 'project' },
       { col: 'kind', label: 'kind', kind: 'badge' },
@@ -254,13 +254,22 @@ export const OBJECTS: ArchObject[] = [
     deepLink: '/projects',
   },
   {
-    key: 'profileOnsite', label: 'Profile · on-site (ours)', group: 'identity', table: null,
-    desc: 'CỦA TA. KHÔNG phải entity lưu riêng — là VIEW dẫn xuất của Account: "mặt hiển thị" của account TA trên trang profile = chiếu account.persona + Persona·signup.custom_fields LÊN site qua selectors page_kind=account-profile. Account trả lời "đăng nhập được? handle/status?"; Profile·on-site trả lời "trang hồ sơ account TA hiện gì?". Doc-only (không lưu tách khỏi account). ĐỪNG nhầm với "Contact · global" (scene) = profile của NGƯỜI TA tương tác.',
+    key: 'profileOnsite', label: 'Profile · on-site (ours)', group: 'identity',
+    table: 'platform_accounts', pk: 'id', labelCol: 'handle', projectScoped: false,
+    desc: 'CỦA TA. VIEW dẫn xuất của Account qua "lăng kính profile" — CÙNG bảng platform_accounts, khác CỘT: list ở đây nhấn persona/hiển thị (display_name/bio) thay vì login/status. = "trang hồ sơ account TA hiện gì" (chiếu account.persona + Persona·signup.custom_fields lên site qua selectors page_kind=account-profile). ĐỪNG nhầm "Contact · global" (scene) = profile của NGƯỜI TA tương tác.',
+    picker: { crossProject: true, labelExpr: "t.handle", subExpr: "coalesce(t.persona->>'display_name', t.persona->>'bio', t.platform_key)" },
+    browseCols: [
+      { col: 'platform_key', label: 'platform', kind: 'link', link: 'platform' },
+      { col: 'handle', label: 'handle' },
+      { col: 'status', label: 'status', kind: 'badge' },
+      { col: 'updated_at', label: 'updated', kind: 'time' },
+    ],
     attrs: [
-      { name: 'displayName', type: 'text', note: 'account.persona.display_name' },
-      { name: 'bio', type: 'text', note: 'account.persona.bio / identity.bio' },
-      { name: 'avatar', type: 'text', note: 'identity.avatar_url' },
-      { name: 'customFields', type: 'jsonb', note: 'identity.custom_fields (pronoun/dob/…) → reuse mọi site' },
+      { name: 'handle', col: 'handle', type: 'text' },
+      { name: 'persona', col: 'persona', type: 'jsonb', note: 'display_name/bio/avatar/replyStyle → mặt hiển thị' },
+      { name: 'displayName', type: 'text', note: 'persona.display_name (chiếu lên site)' },
+      { name: 'bio', type: 'text', note: 'persona.bio / Persona·signup.bio' },
+      { name: 'customFields', type: 'jsonb', note: 'Persona·signup.custom_fields → reuse mọi site' },
     ],
     relations: [
       { to: 'account', kind: 'ref', via: 'IS-A view of account (account.persona = nơi lưu thật)' },

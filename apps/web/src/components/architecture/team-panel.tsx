@@ -122,7 +122,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Account được giao ({dd.accounts.length})</div>
                             {dd.projects.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Thêm project trước để giao account.</div> : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6, alignItems: 'start' }}>
                                 {dd.projects.map((p) => {
                                   const accs = dd.accounts.filter((a) => a.projectId === p.projectId);
                                   const showMgr = !!mgr && mgr.userId === g.userId && mgr.projectId === p.projectId;
@@ -131,14 +131,14 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                   const otherCnt = mgr ? mgr.accts.length - assignable.length : 0;
                                   return (
                                     <Fragment key={p.projectId}>
-                                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
-                                        <span style={{ minWidth: 120 }}>{onOpen ? <a role="button" onClick={() => onOpen('project', p.projectId, p.projectName)} style={{ color: 'var(--fg-2)', cursor: 'pointer', textDecoration: 'none' }}>{p.projectName}</a> : <span style={{ color: 'var(--fg-3)' }}>{p.projectName}</span>}<span style={{ color: 'var(--fg-3)' }}>:</span></span>
+                                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11, border: '1px solid var(--bg-3)', borderRadius: 7, padding: '5px 8px', background: showMgr ? 'var(--bg-2)' : 'var(--bg-0)' }}>
+                                        {onOpen ? <a role="button" onClick={() => onOpen('project', p.projectId, p.projectName)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none', fontWeight: 600 }}>{p.projectName}</a> : <span style={{ color: 'var(--fg-2)', fontWeight: 600 }}>{p.projectName}</span>}
                                         {accs.length === 0 && <span style={{ color: 'var(--fg-4)' }}>chưa account</span>}
                                         {accs.map((a) => <span key={a.id} style={chip()}>{onOpen ? <a role="button" onClick={() => onOpen('account', a.id, a.handle)} style={{ color: 'var(--fg-1)', cursor: 'pointer', textDecoration: 'none' }}>{a.handle}</a> : a.handle}<PlatformTag pkey={a.platformKey} label={a.platformLabel} onOpen={onOpen} /></span>)}
-                                        <button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy} style={btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)')}>{showMgr ? 'đóng' : 'giao'}</button>
+                                        <button onClick={() => showMgr ? setMgr(null) : openMgr(g.userId, p.projectId)} disabled={busy} style={{ ...btn(showMgr ? 'var(--fg-3)' : 'var(--neon-cyan)'), marginLeft: 'auto' }}>{showMgr ? 'đóng' : 'giao'}</button>
                                       </div>
                                       {showMgr && (
-                                        <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 4px' }}>
+                                        <div style={{ gridColumn: '1 / -1', border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 4px' }}>
                                           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} (chưa giao ai / của {g.name}) → tick để giao:</div>
                                           {assignable.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Không có account trống trong project này.</div> : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 4, marginBottom: 8 }}>

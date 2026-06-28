@@ -1,25 +1,12 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import type { Durability, CardValueRow, PillarRollup, ContentValue } from './content-value-types';
 
 // Pha A — "Đo giá trị & độ bền" bài đã đăng. Đọc insights ĐÃ capture (cards.insights_* + lifecycle +
 // posted_at) → value × aliveness → phân loại Winner/Rising/Steady/Decaying/Dead + rollup theo pillar.
 // Mục tiêu #4: biết bài nào giá trị cao + tồn tại lâu để NHÂN ĐÔI; bài nào chết để bỏ.
-export type Durability = 'winner' | 'rising' | 'steady' | 'decaying' | 'dead';
-export const DURABILITY_META: Record<Durability, { label: string; color: string; hint: string }> = {
-  winner: { label: 'Winner', color: 'var(--neon-lime)', hint: 'Cũ (≥14d) + value cao → tồn tại lâu & giá trị. Nhân đôi pillar/surface này.' },
-  rising: { label: 'Rising', color: 'var(--neon-cyan)', hint: 'Mới (<14d) + value cao → đang lên, theo dõi để thành winner.' },
-  steady: { label: 'Steady', color: 'var(--fg-2)', hint: 'Value trung bình, còn sống.' },
-  decaying: { label: 'Decaying', color: 'var(--neon-amber)', hint: 'Cũ (≥21d) + value thấp → phai. Cân nhắc refresh/bump hoặc bỏ.' },
-  dead: { label: 'Dead', color: 'var(--bad)', hint: 'Bị xoá/removed/reject → mất giá trị.' },
-};
-export interface CardValueRow {
-  id: number; title: string; postUrl: string | null; postedAt: string | null;
-  pillarId: number | null; pillarName: string | null; projectId: string | null; projectName: string | null;
-  views: number; score: number; upvoteRatio: number | null; lifecycle: string | null;
-  ageDays: number; valueScore: number; durability: Durability;
-}
-export interface PillarRollup { key: string; pillarName: string; posts: number; totalValue: number; winners: number; }
-export interface ContentValue { cards: CardValueRow[]; pillars: PillarRollup[]; counts: Record<Durability, number>; total: number; }
+// Types + DURABILITY_META = file riêng content-value-types.ts (client-safe; file này import @mos2/db = server-only).
+export type { Durability, CardValueRow, PillarRollup, ContentValue } from './content-value-types';
 
 const EMPTY_COUNTS = (): Record<Durability, number> => ({ winner: 0, rising: 0, steady: 0, decaying: 0, dead: 0 });
 const DEAD_RE = /removed|dead|reject|delet|takedown|ban/i;

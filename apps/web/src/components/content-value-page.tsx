@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, type CSSProperties } from 'react';
-import type { ContentValue, Durability } from '@/lib/actions/content-value';
-import { DURABILITY_META } from '@/lib/actions/content-value';
+import type { ContentValue, Durability } from '@/lib/actions/content-value-types';
+import { DURABILITY_META } from '@/lib/actions/content-value-types';
 
 const ORDER: Durability[] = ['winner', 'rising', 'steady', 'decaying', 'dead'];
 

@@ -1,6 +1,6 @@
 'use client';
 import { Fragment, useEffect, useState, type CSSProperties } from 'react';
-import { listTeamMembers, createTeamMember, type TeamMemberRow } from '@/lib/actions/team';
+import { listTeamMembers, createTeamMember, updateTeamMember, type TeamMemberRow, type MemberRole, type Specialty } from '@/lib/actions/team';
 import { getMemberAssignments, assignAccountsToMember, setProjectMembership, listProjectAccountsForAssignment, listAllProjectsForAssignment, setEntityOwner, projectAccountCounts, type MemberAssignmentSummary } from '@/lib/actions/assignments';
 import { listBrowserProfiles, listProxies, type BrowserProfileRow, type ProxyRow } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
@@ -9,7 +9,9 @@ import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon'
 // Node Team — quản lý nhân sự + ASSIGN project/account/browser/proxy (mô hình staff seeding).
 // Drive từ getMemberAssignments (membership THẬT). Trình bày CHIP + dropdown-thêm, KHÔNG list phẳng.
 const ROLES = ['admin', 'operator', 'viewer'] as const;
+const SPECIALTIES = ['founder', 'writer', 'community', 'designer', 'video', 'outreach', 'analytics', 'ops', 'marketing-lead', 'other'] as const;
 type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean };
+type EditForm = { name: string; email: string; role: string; specialty: string; active: boolean };
 
 export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [rows, setRows] = useState<TeamMemberRow[] | null>(null);
@@ -22,6 +24,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [nu, setNu] = useState({ email: '', name: '', role: 'operator' as string });
   const [mgr, setMgr] = useState<{ userId: number; projectId: string; accts: { id: number; handle: string | null; platformKey: string; ownerUserId: number | null }[]; checked: Set<number> } | null>(null);
   const [acctCounts, setAcctCounts] = useState<Record<string, number>>({});
+  const [ef, setEf] = useState<Record<number, EditForm>>({});
 
   const reloadLists = () => { listBrowserProfiles().then(setProfiles); listProxies().then(setProxies); };
   useEffect(() => {
@@ -39,9 +42,16 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   })();
 
   const loadDetail = (uid: number) => { setDetail((d) => ({ ...d, [uid]: 'loading' })); getMemberAssignments(uid).then((s) => setDetail((d) => ({ ...d, [uid]: s }))); };
-  const toggle = (uid: number) => { if (open === uid) { setOpen(null); return; } setOpen(uid); setMgr(null); if (!detail[uid]) loadDetail(uid); };
+  const toggle = (uid: number) => {
+    if (open === uid) { setOpen(null); return; }
+    setOpen(uid); setMgr(null);
+    const gg = grouped.find((x) => x.userId === uid);
+    if (gg) setEf((f) => ({ ...f, [uid]: { name: gg.name, email: gg.email, role: gg.role, specialty: gg.specialty, active: gg.active } }));
+    if (!detail[uid]) loadDetail(uid);
+  };
 
   const addMember = async () => { if (!nu.email.trim() || !nu.name.trim()) return; setBusy(true); await createTeamMember({ email: nu.email.trim(), name: nu.name.trim(), role: nu.role as 'operator' }); setNu({ email: '', name: '', role: 'operator' }); listTeamMembers().then(setRows); setBusy(false); };
+  const saveMember = async (uid: number) => { const f = ef[uid]; if (!f || !f.name.trim() || !f.email.trim()) return; setBusy(true); await updateTeamMember(uid, { name: f.name.trim(), email: f.email.trim(), role: f.role as MemberRole, specialty: f.specialty as Specialty, active: f.active }); await new Promise<void>((r) => listTeamMembers().then((x) => { setRows(x); r(); })); setBusy(false); };
   const addProject = async (uid: string | number, pid: string) => { if (!pid) return; setBusy(true); await setProjectMembership(Number(uid), pid, true, 'operator'); loadDetail(Number(uid)); setBusy(false); };
   const removeProject = async (uid: number, pid: string) => { setBusy(true); await setProjectMembership(uid, pid, false); loadDetail(uid); setBusy(false); };
   const openMgr = async (uid: number, projectId: string) => { setBusy(true); const accts = await listProjectAccountsForAssignment(projectId); setMgr({ userId: uid, projectId, accts, checked: new Set(accts.filter((a) => a.ownerUserId === uid).map((a) => a.id)) }); setBusy(false); };
@@ -92,6 +102,18 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                     <div style={{ padding: '12px 14px 14px 34px', background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {!dd ? <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang tải phân công…</span> : (
                         <>
+                          {/* SỬA member: tên + email + role + chuyên + active */}
+                          {(() => { const f = ef[g.userId] ?? { name: g.name, email: g.email, role: g.role, specialty: g.specialty, active: g.active }; const set = (patch: Partial<EditForm>) => setEf((s) => ({ ...s, [g.userId]: { ...f, ...patch } })); return (
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11, paddingBottom: 9, borderBottom: '1px solid var(--bg-2)' }}>
+                              <span style={{ color: 'var(--fg-3)', fontWeight: 700 }}>Sửa:</span>
+                              <input value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="tên" style={{ ...inp, width: 160 }} />
+                              <input value={f.email} onChange={(e) => set({ email: e.target.value })} placeholder="email" style={{ ...inp, width: 190 }} />
+                              <select value={f.role} onChange={(e) => set({ role: e.target.value })} title="role" style={inp}>{ROLES.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+                              <select value={f.specialty} onChange={(e) => set({ specialty: e.target.value })} title="chuyên môn" style={inp}>{SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+                              <label style={{ display: 'flex', gap: 4, alignItems: 'center', color: 'var(--fg-2)', cursor: 'pointer' }}><input type="checkbox" checked={f.active} onChange={(e) => set({ active: e.target.checked })} /> active</label>
+                              <button onClick={() => saveMember(g.userId)} disabled={busy || !f.name.trim() || !f.email.trim()} style={btn('var(--neon-lime)')}>Lưu</button>
+                            </div>
+                          ); })()}
                           <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Việc: <b style={{ color: 'var(--neon-amber)' }}>{dd.pendingTasks}</b> pending · <b style={{ color: 'var(--neon-cyan)' }}>{dd.inProgressTasks}</b> đang làm</div>
 
                           {/* PROJECT: chip + dropdown thêm (ko list phẳng 25 cái) */}

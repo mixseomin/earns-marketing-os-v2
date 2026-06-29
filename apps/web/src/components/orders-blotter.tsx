@@ -42,6 +42,11 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào: đóng cửa > MA200\n' +
     '• Ra: đóng cửa < MA200\n' +
     '• Không SL/TP, bám trend dài.',
+  'Cross-asset trend basket':
+    '• 13 instrument FX-broker trend-friendly (8 chỉ số + vàng/bạc + WTI/Brent/đồng), khung D1, long-only\n' +
+    '• Vào (LONG): theo "độ mạnh trend" = tỷ lệ SMA[20/50/100/200] mà giá đang nằm TRÊN (0→100%)\n' +
+    '• Size = tỷ lệ đó × vol-target 15%; càng nhiều SMA ở dưới giá → vào càng nặng\n' +
+    '• Ra/giảm: khi giá rớt xuống dưới các SMA (tỷ lệ giảm). Không short. Đa-tốc-độ → DD thấp.',
   'Crypto drift basket':
     '• 12 coin, khung H1, long-only (drift-grind)\n' +
     '• Vào (LONG): khi giá đóng cửa > SMA200 của coin đó\n' +

@@ -47,6 +47,11 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào (LONG): theo "độ mạnh trend" = tỷ lệ SMA[20/50/100/200] mà giá đang nằm TRÊN (0→100%)\n' +
     '• Size = tỷ lệ đó × vol-target 15%; càng nhiều SMA ở dưới giá → vào càng nặng\n' +
     '• Ra/giảm: khi giá rớt xuống dưới các SMA (tỷ lệ giảm). Không short. Đa-tốc-độ → DD thấp.',
+  'Crypto Keltner breakout':
+    '• 12 coin, khung H1, long-only (vol-breakout)\n' +
+    '• Vào (LONG): khi giá đóng cửa > EMA100 + 2×ATR100 (bứt phá khi biên độ NỞ RỘNG — khác Donchian phá đỉnh giá thuần)\n' +
+    '• Ra: khi giá đóng cửa < EMA100 (về đường giữa)\n' +
+    '• Chia đều 1/12, không short. ⚠️ Edge có tính chu kỳ — đang forward-test xem còn sống.',
   'Crypto drift basket':
     '• 12 coin, khung H1, long-only (drift-grind)\n' +
     '• Vào (LONG): khi giá đóng cửa > SMA200 của coin đó\n' +

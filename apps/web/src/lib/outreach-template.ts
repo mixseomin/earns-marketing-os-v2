@@ -131,12 +131,104 @@ export function buildResourceEmail(p: { agentName?: string | null }, followup = 
   };
 }
 
+// Resource-listing ask (source 'listing'): sites with a "resources / helpful links"
+// page for military families. Lower friction than an embed - just asking for a link,
+// which is also a stronger editorial backlink than an iframe widget.
+export function buildListingEmail(p: { agentName?: string | null }, followup = false): {
+  subject: string;
+  body: string;
+} {
+  const name = firstNameOf(p.agentName || '');
+  if (followup) {
+    return {
+      subject: `Following up - free military pay tool for your resources page`,
+      body: [
+        `Hi ${name},`,
+        ``,
+        `Just floating this back up - if your resources page for military families could use a free, no-signup BAH / pay / GI Bill / VA calculator, MilitaryCalc is happy to be on it. No ask beyond the link.`,
+        ``,
+        `https://militarycalc.com`,
+        ``,
+        `No worries if it is not a fit.`,
+        ``,
+        `Best,`,
+        SIGNATURE,
+        `MilitaryCalc - militarycalc.com`,
+      ].join('\n'),
+    };
+  }
+  return {
+    subject: `A free military pay tool for your resources page`,
+    body: [
+      `Hi ${name},`,
+      ``,
+      `I run MilitaryCalc - free, no-signup calculators for military money (BAH, pay, GI Bill, VA disability), every figure pulled from a public DoD, VA, or DFAS source.`,
+      ``,
+      `If you keep a resources or helpful-links page for service members or military families, it might earn a spot - it is free, no email wall, no ads funnel, just the tools.`,
+      ``,
+      `Link if it is useful to your readers: https://militarycalc.com`,
+      ``,
+      `That is the only ask - happy to answer anything.`,
+      ``,
+      `Best,`,
+      SIGNATURE,
+      `MilitaryCalc - militarycalc.com`,
+    ].join('\n'),
+  };
+}
+
+// Data-PR pitch (source 'pr-engine'): writers/editors at military & personal-finance
+// outlets. Leads with the unique dataset, offers to be a source - earns editorial
+// links and citations (incl. ones AI engines lift).
+export function buildPrEmail(p: { agentName?: string | null }, followup = false): {
+  subject: string;
+  body: string;
+} {
+  const name = firstNameOf(p.agentName || '');
+  if (followup) {
+    return {
+      subject: `Following up - 2026 BAH data for a story`,
+      body: [
+        `Hi ${name},`,
+        ``,
+        `Circling back - if a piece on 2026 military pay, PCS costs, or VA benefits is on your list, I am glad to pull the numbers (BAH by city, the year-over-year change, VA combined-rating math) and send clean figures + links.`,
+        ``,
+        `https://militarycalc.com`,
+        ``,
+        `No worries if not.`,
+        ``,
+        `Best,`,
+        SIGNATURE,
+        `MilitaryCalc - militarycalc.com`,
+      ].join('\n'),
+    };
+  }
+  return {
+    subject: `2026 BAH data + military pay calculators for your readers`,
+    body: [
+      `Hi ${name},`,
+      ``,
+      `I built MilitaryCalc - free calculators plus a clean dataset: 2026 BAH for all 339 housing areas, the military pay tables, and the VA combined-rating ("VA math") formula, all sourced from DoD, VA, and DFAS.`,
+      ``,
+      `If you cover military pay, PCS, or benefits, I am happy to be a data source - for example, how much BAH changed in 2026 by city, or why a 70% and 30% rating combines to 80%, not 100%. I can pull specific numbers for a piece.`,
+      ``,
+      `Tool and data: https://militarycalc.com`,
+      ``,
+      `Best,`,
+      SIGNATURE,
+      `MilitaryCalc - militarycalc.com`,
+    ].join('\n'),
+  };
+}
+
 /** Picks the initial pitch for fresh prospects, the short nudge once contacted. */
 export function buildEmailForProspect(p: { agentName?: string | null; base?: string | null; status?: string | null; source?: string | null }): {
   subject: string;
   body: string;
 } {
   const isFollowup = !!p.status && ['sent', 'followup_1', 'followup_2'].includes(p.status);
+  if (p.source === 'pr-engine') return buildPrEmail(p, isFollowup);
+  if (p.source === 'listing') return buildListingEmail(p, isFollowup);
   if (p.source === 'resource-engine') return buildResourceEmail(p, isFollowup);
   return isFollowup ? buildFollowupEmail(p) : buildOutreachEmail(p);
 }

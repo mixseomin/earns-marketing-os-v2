@@ -76,7 +76,7 @@ export interface ArchObject {
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
   // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url'; link?: string; group?: BrowseGroup }[];
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus'; link?: string; group?: BrowseGroup }[];
   // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
   // projects an instance belongs to, not just the legacy scalar project_id.
   projectsVia?: { table: string; fkCol: string };
@@ -661,8 +661,8 @@ export const OBJECTS: ArchObject[] = [
       { col: 'da', label: 'DA' },                                     // chỉ số: domain authority
       { col: 'dofollow', label: 'F', kind: 'badge' },                 // dofollow | nofollow | mixed
       { col: 'traffic', label: 'traffic', kind: 'badge' },            // high | medium | low
-      { col: 'applies_to', label: 'áp dụng cho', kind: 'project' },   // đề xuất project (derived, read-only)
-      { col: 'status', label: 'status', kind: 'badge' },              // pending→claimed→completed→verified (sửa trong drawer)
+      { col: 'site_status', label: 'site · status', kind: 'sitestatus' }, // Option B: pill mỗi site, click đổi status + dán URL
+      { col: 'status', label: 'overall', kind: 'badge' },             // tổng (filter/sort) — chi tiết per-site ở pill bên trái
       { col: 'publish_url', label: 'live ↗', kind: 'url' },           // backlink đã đặt được
       { col: 'created_at', label: 'added', kind: 'time' },
     ],
@@ -1043,7 +1043,7 @@ export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
 
 // Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
 // → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status']);
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status', 'site_url']);
 const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
 export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
   const obj = BINDABLE_TABLES[objectKey];

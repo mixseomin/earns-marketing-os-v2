@@ -295,6 +295,25 @@ export async function updateInstanceField(
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
 }
 
+// Backlink node (Option B): set per-site status + per-site live URL trong prep_payload
+// (site_status[site] + site_url[site]). site validated; jsonb_set path qua bound param (no injection).
+export async function setBacklinkSite(taskId: number, site: string, status: string, url: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
+  if (!['pending', 'claimed', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
+  const u = (url || '').trim();
+  try {
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload = jsonb_set(
+        jsonb_set(COALESCE(prep_payload, '{}'::jsonb), ARRAY['site_status', ${site}], to_jsonb(${status}::text), true),
+        ARRAY['site_url', ${site}], to_jsonb(${u}::text), true),
+        updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 // Studio triage: đổi status + append note cho 1 account ngay trên /architecture.
 const ACCOUNT_STATUS = ['todo', 'creating', 'warming', 'active', 'limited', 'blocked', 'banned'];
 export async function updateInstance(

@@ -31,7 +31,7 @@ import {
   listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
-  getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects,
+  getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects, setBacklinkSite,
   canonChecks, type CanonCheck,
   type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
@@ -919,6 +919,64 @@ function IdentityProjectsCell({ identityId, ids, projMap, onOpen }: { identityId
   );
 }
 
+// Backlink node (Option B): per-site STATUS PILLS. 1 pill / site (từ site_status object),
+// màu theo status; click → popover chọn status + dán live URL cho ĐÚNG site đó (setBacklinkSite).
+const BL_STATUS: { k: string; label: string; color: string }[] = [
+  { k: 'pending', label: 'pending', color: '#8a92a3' },
+  { k: 'claimed', label: 'claimed', color: '#ffb03c' },
+  { k: 'completed', label: 'completed', color: '#5badff' },
+  { k: 'verified', label: 'verified', color: '#22c55e' },
+];
+function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: number; siteStatus: Record<string, string>; siteUrl: Record<string, string>; projMap: Map<string, string> }) {
+  const [st, setSt] = useState<Record<string, string>>(siteStatus);
+  const [urls, setUrls] = useState<Record<string, string>>(siteUrl);
+  const [edit, setEdit] = useState<{ site: string; x: number; y: number } | null>(null);
+  const [statusDraft, setStatusDraft] = useState('pending');
+  const [urlDraft, setUrlDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const sig = JSON.stringify(siteStatus) + '|' + JSON.stringify(siteUrl);
+  useEffect(() => { setSt(siteStatus); setUrls(siteUrl); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sig]);
+  useEffect(() => { if (!edit) return; const c = () => setEdit(null); window.addEventListener('scroll', c, true); return () => window.removeEventListener('scroll', c, true); }, [edit]);
+  const sites = Object.keys(st);
+  if (!sites.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
+  const col = (s: string) => BL_STATUS.find((x) => x.k === s)?.color || '#8a92a3';
+  const abbr = (site: string) => (projMap.get(site) || site).slice(0, 3).toUpperCase();
+  const open = (e: React.MouseEvent, site: string) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setStatusDraft(st[site] || 'pending'); setUrlDraft(urls[site] || ''); setEdit({ site, x: r.left, y: r.bottom + 4 }); };
+  const save = () => { if (!edit) return; const site = edit.site; setBusy(true); setSt((p) => ({ ...p, [site]: statusDraft })); setUrls((p) => ({ ...p, [site]: urlDraft })); setBacklinkSite(taskId, site, statusDraft, urlDraft).finally(() => { setBusy(false); setEdit(null); }); };
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, minWidth: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+      {sites.map((site) => {
+        const s = st[site] || 'pending'; const c = col(s); const hasUrl = !!urls[site];
+        return (
+          <span key={site} role="button" onClick={(e) => open(e, site)}
+            title={`${projMap.get(site) || site} · ${s}${hasUrl ? ' · có link' : ''} — click đổi`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 999, cursor: 'pointer', background: c, color: '#0b0f17', border: `1px solid ${c}` }}>
+            {abbr(site)}{hasUrl ? ' ↗' : ''}
+          </span>
+        );
+      })}
+      {edit && createPortal(
+        <>
+          <div onMouseDown={() => setEdit(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: edit.x, top: edit.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 8, width: 234 }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginBottom: 6 }}>{projMap.get(edit.site) || edit.site}{busy ? ' · lưu…' : ''}</div>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+              {BL_STATUS.map((o) => {
+                const on = statusDraft === o.k;
+                return <button key={o.k} type="button" onClick={() => setStatusDraft(o.k)}
+                  style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', background: on ? o.color : 'transparent', color: on ? '#0b0f17' : o.color, border: `1px solid ${o.color}` }}>{o.label}</button>;
+              })}
+            </div>
+            <input value={urlDraft} onChange={(e) => setUrlDraft(e.target.value)} placeholder="live URL (link đã đặt được)…" autoComplete="off"
+              style={{ width: '100%', padding: '4px 7px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)', fontSize: 11, boxSizing: 'border-box' }} />
+            <button type="button" onClick={save} disabled={busy}
+              style={{ marginTop: 6, width: '100%', fontSize: 11, fontWeight: 700, padding: '4px', borderRadius: 5, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none' }}>Lưu</button>
+          </div>
+        </>, document.body)}
+    </span>
+  );
+}
+
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
 function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
@@ -958,7 +1016,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [groupsOff, setGroupsOff] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(gKey) || '[]') as string[]); } catch { return new Set(); } });
   const toggleGroup = (g: string) => setGroupsOff((prev) => { const n = new Set(prev); if (n.has(g)) n.delete(g); else n.add(g); try { localStorage.setItem(gKey, JSON.stringify([...n])); } catch {} return n; });
   // visible data columns = browseCols minus hidden groups (no-group cols always show).
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url'; link?: string; group?: BrowseGroup }[] =
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus'; link?: string; group?: BrowseGroup }[] =
     bc.length ? bc.filter((c) => !c.group || !groupsOff.has(c.group)).map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link, group: c.group }))
       : [{ key: '__sub', label: parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object).toLowerCase() : 'ctx' }];
   const colSig = dataCols.map((c) => c.key).join('|');   // đổi tập cột (toggle group) → nạp lại widths
@@ -977,7 +1035,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     const wmap = loadWMap();
     const def = (key: string, kind?: string): number | null => {
       if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
-      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96; if (kind === 'url') return 124;
+      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96; if (kind === 'url') return 124; if (kind === 'sitestatus') return 150;
       if (kind === 'badge' || kind === 'unread') return 78; if (kind === 'dom') return 60;
       return 76;                                                              // compact
     };
@@ -1018,7 +1076,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       projectId: projectScoped ? projectId : undefined,
       parentId: parent && parentId ? parentId : undefined,   // parentId rỗng = TẤT CẢ (ko gate)
       q: qDeb, limit: PAGE, offset: page * PAGE,
-      cols: (obj.browseCols || []).map((c) => c.col),
+      cols: [...(obj.browseCols || []).map((c) => c.col), ...(obj.key === 'backlink' ? ['site_url'] : [])],
       sort: sort || undefined,
       flt: flt || undefined,
       filters: colFilters,
@@ -1232,6 +1290,10 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                       let host = u; try { host = new URL(u).hostname.replace(/^www\./, ''); } catch { /* keep raw */ }
                       return <a href={u} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title={u}
                         style={{ color: 'var(--accent)', textDecoration: 'underline dotted', display: 'inline-flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>↗ {host}</a>;
+                    })() : dc.kind === 'sitestatus' ? (() => {
+                      const ss = (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, string> : {};
+                      const su = (it.cols['site_url'] && typeof it.cols['site_url'] === 'object') ? it.cols['site_url'] as Record<string, string> : {};
+                      return <BacklinkStatusCell taskId={Number(it.id)} siteStatus={ss} siteUrl={su} projMap={projMap} />;
                     })() : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
                       // identity: cell editable (toggle nhiều project inline). Khác: read-only.

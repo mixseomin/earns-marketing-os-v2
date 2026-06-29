@@ -46,7 +46,7 @@ async function cjCount(rel: 'joined' | 'notjoined'): Promise<number | null> {
 }
 
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!CJ_PAT) return NextResponse.json({ error: 'CJ_PAT not set' }, { status: 503 });
 

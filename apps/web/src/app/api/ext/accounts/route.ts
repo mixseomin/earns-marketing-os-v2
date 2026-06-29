@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/ext/accounts?platform=Reddit&handle=u/john   → duplicate check
 // GET /api/ext/accounts?host=reddit.com&projectId=orit  → site accounts for regkit
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
 // POST /api/ext/accounts — create new account from extension
 // Body: { projectId, platform, handle, notes }
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

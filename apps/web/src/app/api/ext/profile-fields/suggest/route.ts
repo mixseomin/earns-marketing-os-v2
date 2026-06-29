@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 // phone, dob) → để chuỗi RỖNG. User review rồi mới Lưu vào identity.customFields +
 // account.persona (KHÔNG tự ghi đè — xem feedback_no_silent_overrides).
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);

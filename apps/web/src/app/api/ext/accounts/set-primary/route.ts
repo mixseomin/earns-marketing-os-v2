@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // Account VẪN tham gia project cũ (junction tụt 'shared', KHÔNG xoá). Chỉ đổi junction
 // nào là 'primary' (= profile-target, mirror platform_accounts.project_id). 2-step confirm.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

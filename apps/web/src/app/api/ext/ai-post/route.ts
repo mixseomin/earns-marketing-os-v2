@@ -40,7 +40,7 @@ function pickFormat(host: string): PostFormat {
 // Generates a NEW post (not reply) using project voice + habitat rules.
 // Saves draft to content_pieces. Returns ID for later mark-posted flow.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);

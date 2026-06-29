@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 interface Body { handle?: string; platformKey?: string; stats?: Record<string, unknown> }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as Body;
   const handle = String(body.handle ?? '').replace(/^@/, '').replace(/^u\//i, '').trim();

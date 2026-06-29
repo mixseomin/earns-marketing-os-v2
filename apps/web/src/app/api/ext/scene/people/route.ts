@@ -8,7 +8,7 @@ import { errorResponse } from '@/lib/ext-route';
 // WHO-THEM familiarity lookup for the Crew ext — enrich replier rows in-context
 // (badge familiarity/status next to each handle). migration 0099.
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url);

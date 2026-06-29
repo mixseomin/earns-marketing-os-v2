@@ -12,7 +12,7 @@ export const revalidate = 0;
 // Mọi bài ĐÃ seed (có post_url HOẶC lifecycle posted/pending-approval) trên platform/engine này,
 // xuyên habitat — để ext show "danh sách bài đã đăng trên site này". Filter project tuỳ chọn.
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const p = new URL(req.url).searchParams;
   const platformKey = p.get('platformKey') ? canonPlatformKey(p.get('platformKey')!) : null;
   const technologyKey = p.get('technologyKey') || null;

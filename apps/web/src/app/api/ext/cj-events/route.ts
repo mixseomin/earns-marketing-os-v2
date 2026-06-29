@@ -43,7 +43,7 @@ async function dx(method: string, path: string, body?: unknown) {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!DIRECTUS_TOKEN) return NextResponse.json({ error: 'Directus not configured' }, { status: 503 });
 

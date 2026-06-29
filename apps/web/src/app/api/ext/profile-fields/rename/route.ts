@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 // stores again. Returns the name actually saved (may differ if the CSS-identity
 // guard folded it onto an existing field) + how many accounts had a value moved.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const body = (await req.json().catch(() => ({}))) as {

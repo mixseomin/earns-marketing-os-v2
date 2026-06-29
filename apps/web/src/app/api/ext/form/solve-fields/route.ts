@@ -25,7 +25,7 @@ const MAX_IMAGES = 6;
 type InField = { key?: string; label?: string; question?: string; type?: string; options?: string[]; images?: string[] };
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY chưa cấu hình', 503);
 

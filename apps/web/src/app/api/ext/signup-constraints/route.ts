@@ -37,7 +37,7 @@ async function upsertPlatformField(db: ReturnType<typeof getDb>, platformKey: st
 }
 
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const key = (new URL(req.url).searchParams.get('platformKey') ?? '').trim();
   if (!key) return errorResponse('platformKey required', 400);
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = await req.json().catch(() => ({})) as { platformKey?: string; field?: Partial<SignupField> & { key?: string }; parseError?: string };
   const key = (body.platformKey ?? '').trim();

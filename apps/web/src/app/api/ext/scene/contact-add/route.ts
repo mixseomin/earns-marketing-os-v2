@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // auto-extract sót hoặc biết từ nguồn khác). APPEND vào scene_identities.scraped_meta.contacts.channels (dedupe,
 // subtype='manual') — KHÔNG ghi đè các field/channel khác. Body: { platformKey, handle, type, value, url? }.
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const b = (await req.json().catch(() => ({}))) as { platformKey?: string; handle?: string; type?: string; value?: string; url?: string };

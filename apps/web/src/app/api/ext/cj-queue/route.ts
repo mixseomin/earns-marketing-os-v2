@@ -66,7 +66,7 @@ function parseRow(r: Row): Parsed | null {
 }
 
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!DIRECTUS_TOKEN) return NextResponse.json({ error: 'Directus not configured' }, { status: 503 });
 

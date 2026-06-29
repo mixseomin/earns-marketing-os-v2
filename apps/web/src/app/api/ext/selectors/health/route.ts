@@ -16,7 +16,7 @@ export const revalidate = 0;
 // Update CẢ 2 scope khả dĩ (platform của host + technology engine) vì ext không biết row nào thắng cascade.
 // Body: { reports: [{ platformKey?, technologyKey?, pageKind, fieldName, matched, url? }] }
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
   const b = (await req.json().catch(() => ({}))) as {
     reports?: Array<{ platformKey?: string; technologyKey?: string; pageKind?: string; fieldName?: string; matched?: boolean; url?: string }>;

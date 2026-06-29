@@ -18,7 +18,7 @@ import type { Phase } from '@/lib/phase-plan';
 // "Promote to seed" = card này đã là card, chỉ cần AI rewrite sau nếu muốn.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

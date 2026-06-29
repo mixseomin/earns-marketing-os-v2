@@ -14,7 +14,7 @@ export const maxDuration = 30;
 // the platform context. Used in the extension's warming panel — user pastes
 // a post/comment to reply to and gets a context-aware draft.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);

@@ -12,7 +12,7 @@ export const revalidate = 0;
 //   urls=u1,u2                     → forum mode (match by globally-unique url; phpBB etc.)
 // 3-layer lookup per board → composed GO/ADD/TRACK/SKIP tier. Private boards gated server-side.
 export async function GET(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const p = new URL(req.url).searchParams;
   const projectId = (p.get('projectId') || '').trim();

@@ -13,7 +13,7 @@ import { errorResponse } from '@/lib/ext-route';
 // commit thật vào community_briefs.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

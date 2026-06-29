@@ -18,7 +18,7 @@ import { firstRow, errorResponse } from '@/lib/ext-route';
 //   4. Trả structured object — ext render UI
 
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url);

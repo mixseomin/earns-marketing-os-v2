@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 // FK: community_briefs/project_accounts/account_grants CASCADE, cards.brief_id SET NULL
 // (content cards GIỮ LẠI, chỉ unlink), human_tasks.account_id SET NULL. + xoá Directus mirror.
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
@@ -35,7 +35,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
 // GET /api/ext/accounts/[id]?reveal=1 → account (password plain CHỈ khi reveal=1).
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const db = getDb();
   if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
@@ -64,7 +64,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // Body: { notes?, handle?, email?, status?, password?, personaUpdates?, checklistUpdates? }
 // password → mã hoá vào password_enc (KHÔNG lưu plain). personaUpdates merge JSONB.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

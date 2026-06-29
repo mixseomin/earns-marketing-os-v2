@@ -10,7 +10,7 @@ const fieldTitle = (slug: string, type: string) =>
 
 // GET /api/ext/platform-fields/[slug]?type=selectors|fields
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();
@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
 // POST /api/ext/platform-fields/[slug] — upsert
 // Body: { content: string, type?: 'selectors'|'fields' }
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

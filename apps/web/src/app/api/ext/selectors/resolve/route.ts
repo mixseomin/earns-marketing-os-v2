@@ -11,7 +11,7 @@ export const revalidate = 0;
 // Trả selector resolved theo cascade habitat > platform > engine (resolveSelectors).
 // Ext widget kéo về để build adapter.sel.* động (fallback hardcode khi field thiếu).
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const p = new URL(req.url).searchParams;
   const pageKind = (p.get('pageKind') || '').trim();
   if (!pageKind) return errorResponse('pageKind required', 400);

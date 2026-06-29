@@ -28,7 +28,7 @@ import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 export async function POST(req: Request) {
   const startedAt = Date.now();
   const extMeta = extractExtMeta(req);
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

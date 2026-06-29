@@ -31,7 +31,7 @@ interface BriefReq {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const startedAt = Date.now();

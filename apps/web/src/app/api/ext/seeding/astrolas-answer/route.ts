@@ -91,7 +91,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;   // Astrolas deep/max (Sonnet/Opus) + retry: cần > 60s mặc định
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
   const extVer = req.headers.get('x-ext-version') || '?';
 

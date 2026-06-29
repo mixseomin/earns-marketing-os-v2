@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // POST /api/ext/crew-capabilities — ext buildCapabilities() (đọc cfg tables LIVE) self-report matrix năng lực.
 // Upsert theo version (1 row/version). Architecture Studio đọc row mới nhất. Single source = ext cfg thật.
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = (await req.json().catch(() => null)) as { version?: string; platforms?: unknown; tech?: unknown } | null;

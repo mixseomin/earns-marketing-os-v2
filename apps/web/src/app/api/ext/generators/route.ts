@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // BEHAVIOR (payload/fmt/preCheck) vẫn ở ext theo key. GATING vẫn theo projects.capabilities.generators
 // (per-project allow-list; legacy `capabilities.engines` vẫn đọc fallback trong transition).
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return NextResponse.json({ generators: [] });
   const rows = await db.execute(sql`
     SELECT key, label, endpoint, color, title, working, needs_depth, needs_vision, default_model

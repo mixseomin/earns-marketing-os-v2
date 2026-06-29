@@ -12,7 +12,7 @@ import { ensureIdentity, ensureRelationship } from '@/lib/scene-people';
 // Skip owned habitat (sân nhà). platform_key lấy từ habitat (khớp forward-fill →
 // tránh duplicate row x/twitter). Idempotent. Body: { projectId, habitatId?, platformKey?, handles[] }
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as { projectId?: string; habitatId?: number; platformKey?: string; handles?: string[]; contacts?: Record<string, Record<string, unknown>> };

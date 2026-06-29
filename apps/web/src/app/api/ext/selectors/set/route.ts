@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 // Body: { scopeKind:'platform'|'technology'|'habitat', scopeKey, pageKind, fieldName, css, attr?, via?, parse? }
 //        (legacy 'engine' accepted; setOverride/normScopeKind → 'technology').
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const b = (await req.json().catch(() => ({}))) as {

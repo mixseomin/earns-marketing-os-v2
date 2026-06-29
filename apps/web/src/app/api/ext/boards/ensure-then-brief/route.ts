@@ -19,7 +19,7 @@ const kindFor = (platformKey: string | null): string => defaultKindForPlatformKe
 // upsert a BARE community_brief (account×habitat). Does NOT run the LLM suggestBrief (deferred
 // to dashboard). Idempotent: respects habitats dedup (mig-0104) + community_briefs UNIQUE.
 export async function POST(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as {
     projectId?: string; accountId?: number; boardId?: number; url?: string; name?: string;

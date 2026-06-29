@@ -15,7 +15,7 @@ const MAX_LLM_PER_REQ = 15;    // cost cap per request (cache skip handles the r
 // Pipeline A handled by /badge overlay; here B (keyword prefilter) → B-HARD (forbidden) →
 // C (LLM top-N) → write board_project_score. ACCOUNT-FREE. Cache-skip on matching dual hash.
 export async function POST(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as { projectId?: string; boardIds?: number[] };
   const projectId = (body.projectId || '').trim();

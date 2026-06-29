@@ -10,7 +10,7 @@ import { firstRow, errorResponse } from '@/lib/ext-route';
 // Ext sau khi user copy + paste vào Reddit + đăng thành công → POST đây.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

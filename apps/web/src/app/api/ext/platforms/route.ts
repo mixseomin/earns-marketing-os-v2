@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/ext/platforms?q=&category=
 // List platforms (slim) cho PlatformPicker khi map forum habitat (Req#1).
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const sp = new URL(req.url).searchParams;
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
 // POST /api/ext/platforms { key?, label, signupUrl?, technologyKey?, category? }
 // Tạo platform mới khi forum lạ chưa có platform phù hợp (Req#1).
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const body = await req.json().catch(() => ({})) as {

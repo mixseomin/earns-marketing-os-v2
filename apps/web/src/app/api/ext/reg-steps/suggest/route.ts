@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // (habitat) theo context. User review + lưu (không tự ghi đè). Cách "sinh steps cho
 // platform/habitat MỚI": default có sẵn + nút này gợi ý đặc thù + sửa tay.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);

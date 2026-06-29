@@ -23,7 +23,7 @@ let cache: { ts: number; models: AstrolasModel[] } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const apiUrl = process.env.ASTROLAS_API_URL;

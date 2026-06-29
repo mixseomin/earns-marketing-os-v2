@@ -26,7 +26,7 @@ interface Body {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json()) as Body;
 

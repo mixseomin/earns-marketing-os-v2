@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useEffect, useState, type CSSProperties } from 'react';
 import { listTeamMembers, createTeamMember, updateTeamMember, type TeamMemberRow, type MemberRole, type Specialty } from '@/lib/actions/team';
+import { issueExtToken, revokeExtToken } from '@/lib/actions/ext-tokens';
 import { getMemberAssignments, assignAccountsToMember, setProjectMembership, listProjectAccountsForAssignment, listAllProjectsForAssignment, setEntityOwner, projectAccountCounts, type MemberAssignmentSummary } from '@/lib/actions/assignments';
 import { listBrowserProfiles, listProxies, type BrowserProfileRow, type ProxyRow } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
@@ -11,17 +12,16 @@ import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon'
 const ROLES = ['admin', 'operator', 'viewer'] as const;
 const SPECIALTIES = ['founder', 'writer', 'community', 'designer', 'video', 'outreach', 'analytics', 'ops', 'marketing-lead', 'other'] as const;
 // Bàn giao Crew ext (thủ công tới khi token per-user của Pha 2 có). login/last-seen/usage thật của ext
-// Trạng thái AUTO từ tín hiệu thật (login web + active) — KHÔNG nhập tay.
-// Ext handover thật (giao token per-user → ext heartbeat) là Pha 2; lúc đó status tự derive từ ext_call_log.
-function actStatus(g: { active: boolean; lastLoginAt: string | null }): { label: string; color: string } {
-  if (!g.active) return { label: 'tắt', color: 'var(--fg-4)' };
-  if (!g.lastLoginAt) return { label: 'chưa đăng nhập', color: 'var(--neon-amber)' };
-  const days = (Date.now() - new Date(g.lastLoginAt).getTime()) / 86400000;
-  if (days <= 7) return { label: 'đang hoạt động', color: 'var(--neon-lime)' };
-  if (days <= 30) return { label: `ngủ ${Math.round(days)}d`, color: 'var(--neon-cyan)' };
+// Ext handover status AUTO từ vòng đời token (cấp → heartbeat → thu hồi) — KHÔNG nhập tay.
+function extStatus(g: { extTokenIssuedAt: string | null; extTokenLastSeen: string | null }): { label: string; color: string } {
+  if (!g.extTokenIssuedAt) return { label: 'chưa cấp', color: 'var(--fg-4)' };
+  if (!g.extTokenLastSeen) return { label: 'đã giao', color: 'var(--neon-cyan)' };
+  const days = (Date.now() - new Date(g.extTokenLastSeen).getTime()) / 86400000;
+  if (days <= 2) return { label: 'đang dùng', color: 'var(--neon-lime)' };
+  if (days <= 14) return { label: `ngủ ${Math.round(days)}d`, color: 'var(--neon-amber)' };
   return { label: `vắng ${Math.round(days)}d`, color: 'var(--bad)' };
 }
-type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean; extStatus: string | null; lastLoginAt: string | null };
+type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean; extTokenIssuedAt: string | null; extTokenLastSeen: string | null; lastLoginAt: string | null };
 type EditForm = { name: string; email: string; role: string; specialty: string; active: boolean };
 
 export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
@@ -33,6 +33,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [detail, setDetail] = useState<Record<number, MemberAssignmentSummary | 'loading'>>({});
   const [busy, setBusy] = useState(false);
   const [nu, setNu] = useState({ email: '', name: '', role: 'operator' as string });
+  const [newToken, setNewToken] = useState<Record<number, string>>({}); // plaintext token hiện 1 lần sau khi cấp
   const [mgr, setMgr] = useState<{ userId: number; projectId: string; accts: { id: number; handle: string | null; platformKey: string; ownerUserId: number | null }[]; checked: Set<number> } | null>(null);
   const [acctCounts, setAcctCounts] = useState<Record<string, number>>({});
   const [ef, setEf] = useState<Record<number, EditForm>>({});
@@ -48,7 +49,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const grouped: Grouped[] = (() => {
     if (!rows) return [];
     const m = new Map<number, Grouped>();
-    for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active, extStatus: r.extStatus, lastLoginAt: r.lastLoginAt }); }
+    for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active, extTokenIssuedAt: r.extTokenIssuedAt, extTokenLastSeen: r.extTokenLastSeen, lastLoginAt: r.lastLoginAt }); }
     return [...m.values()];
   })();
 
@@ -63,6 +64,8 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
 
   const addMember = async () => { if (!nu.email.trim() || !nu.name.trim()) return; setBusy(true); await createTeamMember({ email: nu.email.trim(), name: nu.name.trim(), role: nu.role as 'operator' }); setNu({ email: '', name: '', role: 'operator' }); listTeamMembers().then(setRows); setBusy(false); };
   const saveMember = async (uid: number) => { const f = ef[uid]; if (!f || !f.name.trim() || !f.email.trim()) return; setBusy(true); await updateTeamMember(uid, { name: f.name.trim(), email: f.email.trim(), role: f.role as MemberRole, specialty: f.specialty as Specialty, active: f.active }); await new Promise<void>((r) => listTeamMembers().then((x) => { setRows(x); r(); })); setBusy(false); };
+  const issueToken = async (uid: number) => { setBusy(true); const r = await issueExtToken(uid); if (r.ok && r.token) setNewToken((s) => ({ ...s, [uid]: r.token! })); await new Promise<void>((res) => listTeamMembers().then((x) => { setRows(x); res(); })); setBusy(false); };
+  const revokeToken = async (uid: number) => { setBusy(true); await revokeExtToken(uid); setNewToken((s) => { const n = { ...s }; delete n[uid]; return n; }); await new Promise<void>((res) => listTeamMembers().then((x) => { setRows(x); res(); })); setBusy(false); };
   const addProject = async (uid: string | number, pid: string) => { if (!pid) return; setBusy(true); await setProjectMembership(Number(uid), pid, true, 'operator'); loadDetail(Number(uid)); setBusy(false); };
   const removeProject = async (uid: number, pid: string) => { setBusy(true); await setProjectMembership(uid, pid, false); loadDetail(uid); setBusy(false); };
   const openMgr = async (uid: number, projectId: string) => { setBusy(true); const accts = await listProjectAccountsForAssignment(projectId); setMgr({ userId: uid, projectId, accts, checked: new Set(accts.filter((a) => a.ownerUserId === uid).map((a) => a.id)) }); setBusy(false); };
@@ -107,7 +110,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                   <td style={{ ...td, color: 'var(--fg-3)' }}>{g.email}</td>
                   <td style={td}><span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${g.role === 'admin' ? 'var(--neon-violet)' : 'var(--bg-3)'}`, color: g.role === 'admin' ? 'var(--neon-violet)' : 'var(--fg-2)' }}>{g.role}</span></td>
                   <td style={{ ...td, color: 'var(--fg-2)' }}>{g.specialty}</td>
-                  <td style={td}>{(() => { const m = actStatus(g); return <span title="auto từ login web + active (ext handover thật = Pha 2)" style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color }}>{m.label}</span>; })()}</td>
+                  <td style={td}>{(() => { const m = extStatus(g); return <span title="ext handover auto: chưa cấp → đã giao (cấp token) → đang dùng (ext heartbeat) → thu hồi" style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color }}>{m.label}</span>; })()}</td>
                 </tr>
                 {isOpen && (
                   <tr><td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}>
@@ -124,8 +127,20 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                               <select value={f.specialty} onChange={(e) => set({ specialty: e.target.value })} title="chuyên môn" style={inp}>{SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
                               <label style={{ display: 'flex', gap: 4, alignItems: 'center', color: 'var(--fg-2)', cursor: 'pointer' }}><input type="checkbox" checked={f.active} onChange={(e) => set({ active: e.target.checked })} /> active</label>
                               <button onClick={() => saveMember(g.userId)} disabled={busy || !f.name.trim() || !f.email.trim()} style={btn('var(--neon-lime)')}>Lưu</button>
+                              <span style={{ width: 1, height: 16, background: 'var(--bg-3)' }} />
+                              <span style={{ color: 'var(--fg-3)' }}>Ext token:</span>
+                              <button onClick={() => issueToken(g.userId)} disabled={busy} title="sinh token mới (revoke token cũ); plaintext hiện 1 lần" style={btn('var(--neon-cyan)')}>{g.extTokenIssuedAt ? 'Cấp lại' : 'Cấp'}</button>
+                              {g.extTokenIssuedAt && <button onClick={() => revokeToken(g.userId)} disabled={busy} title="thu hồi token — ext mất quyền ngay" style={btn('var(--bad)')}>Thu hồi</button>}
                             </div>
                           ); })()}
+                          {newToken[g.userId] && (
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11, padding: '7px 9px', border: '1px solid var(--neon-cyan)', borderRadius: 6, background: 'var(--bg-2)' }}>
+                              <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Token (copy ngay — chỉ hiện 1 lần):</span>
+                              <code style={{ fontFamily: 'monospace', color: 'var(--fg-1)', wordBreak: 'break-all' }}>{newToken[g.userId]}</code>
+                              <button onClick={() => navigator.clipboard?.writeText(newToken[g.userId]!)} style={btn('var(--neon-lime)')}>Copy</button>
+                              <button onClick={() => setNewToken((s) => { const n = { ...s }; delete n[g.userId]; return n; })} style={btn('var(--fg-3)')}>Ẩn</button>
+                            </div>
+                          )}
                           {/* HIỆU SUẤT: xong / tổng + 7 ngày + tỉ lệ + gần nhất */}
                           <div style={{ fontSize: 12, color: 'var(--fg-2)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                             <span>✓ <b style={{ color: 'var(--neon-lime)' }}>{dd.doneTasks}</b>/{dd.totalTasks} xong{dd.totalTasks > 0 && <span style={{ color: 'var(--fg-3)' }}> ({Math.round((dd.doneTasks / dd.totalTasks) * 100)}%)</span>}</span>
@@ -134,9 +149,9 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             {dd.lastDone && <span style={{ color: 'var(--fg-3)' }}>việc gần nhất {new Date(dd.lastDone).toLocaleDateString('vi-VN')}</span>}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                            <span>trạng thái: <b style={{ color: actStatus(g).color }}>{actStatus(g).label}</b></span>
+                            <span>🔌 Ext: <b style={{ color: extStatus(g).color }}>{extStatus(g).label}</b></span>
+                            <span>ext heartbeat cuối: {g.extTokenLastSeen ? new Date(g.extTokenLastSeen).toLocaleString('vi-VN') : '—'}</span>
                             <span>login web cuối: {g.lastLoginAt ? new Date(g.lastLoginAt).toLocaleString('vi-VN') : '—'}</span>
-                            <span style={{ color: 'var(--fg-4)' }}>· Ext handover (giao token per-user → heartbeat “đang dùng”) tự derive khi ext bản nhân sự ship (Pha 2)</span>
                           </div>
 
                           {/* PROJECT: chip + dropdown thêm (ko list phẳng 25 cái) */}

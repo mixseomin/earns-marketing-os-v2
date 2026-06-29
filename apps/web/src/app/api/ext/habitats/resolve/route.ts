@@ -19,7 +19,7 @@ export const revalidate = 0;              // disable ISR
 const noStoreHeaders = { 'Cache-Control': 'no-store, max-age=0' };
 
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const params = new URL(req.url).searchParams;

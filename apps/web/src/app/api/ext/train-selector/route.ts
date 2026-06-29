@@ -44,7 +44,7 @@ interface TrainReq {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) {
     return errorResponse('OPENAI_API_KEY not set', 503);

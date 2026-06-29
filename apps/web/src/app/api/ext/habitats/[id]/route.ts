@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // platform khác). Ensure platform tồn tại trước (FK), create nếu mới.
 // isOwn = đánh dấu "site của tôi" → tắt tracking (scene/WHO-THEM/scanner).
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const { id } = await params;
   const body = await req.json().catch(() => ({})) as { platform_key?: string; kind?: string; isOwn?: boolean };

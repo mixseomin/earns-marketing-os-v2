@@ -146,7 +146,7 @@ async function webSearchImage(query: string): Promise<{ buf: Buffer; mime: strin
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   let body: { projectId?: string; accountId?: number; handle?: string; field?: string; source?: string; prompt?: string; url?: string; dataUrl?: string };
   try { body = await req.json(); } catch { return errorResponse('bad json', 400); }

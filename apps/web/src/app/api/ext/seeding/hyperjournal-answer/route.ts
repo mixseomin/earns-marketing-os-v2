@@ -17,7 +17,7 @@ import { firstRow, errorResponse } from '@/lib/ext-route';
 // Returns { ok:false, noWallet:true } if no full 0x address is present.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

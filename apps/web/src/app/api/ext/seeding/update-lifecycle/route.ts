@@ -15,7 +15,7 @@ import { errorResponse } from '@/lib/ext-route';
 const VALID_LIFECYCLES = new Set<string | null>(VALID_LIFECYCLE_VALUES);   // 1 source: lib/lifecycle.ts
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

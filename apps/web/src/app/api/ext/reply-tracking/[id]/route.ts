@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // also inserts into the `publications` table so the URL is auto-tracked
 // (cron checks engagement metrics) and visible on /p/[id]/publications.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

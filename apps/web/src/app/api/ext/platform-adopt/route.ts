@@ -13,7 +13,7 @@ export const revalidate = 0;
 // (= inherit selector pack ngay). Upsert stub platform nếu forum chưa có row,
 // rồi xoá detection (đã xử lý). Tương đương adoptTemplate() nhưng gọi từ ext.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
   let body: { platformKey?: string; technologyKey?: string; hostname?: string };
   try { body = await req.json(); } catch { return errorResponse('bad json', 400); }

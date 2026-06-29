@@ -25,7 +25,7 @@ const MODEL = 'gpt-4o';   // 4o native multimodal; mini không hỗ trợ vision
 const DETAIL: 'low' | 'high' | 'auto' = 'high';
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
   if (!aiEnabled()) {
     return errorResponse('OPENAI_API_KEY chưa cấu hình', 503);

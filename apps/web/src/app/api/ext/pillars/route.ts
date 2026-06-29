@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 // Content pillars (nhóm chủ đề) của project → composer pick nhanh theo khung nội dung.
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const projectId = (new URL(req.url).searchParams.get('projectId') ?? '').trim();
   if (!projectId) return errorResponse('projectId required', 400);
   const rows = await listContentPillars(projectId);

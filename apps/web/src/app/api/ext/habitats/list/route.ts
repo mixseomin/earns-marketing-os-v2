@@ -14,7 +14,7 @@ export const revalidate = 0;
 // Trả thêm accounts[] của project×platform cho ext account-picker.
 // Sort: status='target' (chưa engage = đề xuất nên seed tiếp) lên đầu → rồi members desc.
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

@@ -16,7 +16,7 @@ export const runtime = 'nodejs';
 // sync-channel-rules (dùng chung sync-channel-core). Channel.rules có → draft tự áp.
 // Body: { habitatId, url, name, description?, stickyThreads?: string[], recentThreads?: string[], notice? }
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   if (!aiEnabled()) return errorResponse('OpenAI chưa cấu hình', 503);
   const db = getDb(); if (!db) return errorResponse('DATABASE_URL not configured', 503);
 

@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // can show per-target tech state and update each independently
 // (a site may run WordPress on main + phpBB on /forum subpath).
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();
@@ -89,7 +89,7 @@ export async function GET(req: Request) {
 // POST /api/ext/platform-info — explicit target update
 // Body: { target: 'habitat' | 'platform', id (habitatId) | key (platformKey), technologyKey }
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

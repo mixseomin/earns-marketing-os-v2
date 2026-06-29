@@ -12,7 +12,7 @@ const FIELDS = ['persona', 'bio', 'oneLiner', 'hashtags', 'website', 'contentStr
 type Field = typeof FIELDS[number];
 
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const projectId = (new URL(req.url).searchParams.get('projectId') ?? '').trim();
   if (!projectId) return errorResponse('projectId required', 400);
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json()) as { projectId?: string } & Partial<Record<Field, string>>;
   const projectId = (body.projectId ?? '').trim();

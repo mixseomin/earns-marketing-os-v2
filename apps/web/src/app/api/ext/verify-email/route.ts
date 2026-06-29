@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 const VERIFY_SCRIPT = '/opt/orit-inbox-bot/verify-one.mjs';
 
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const body = await req.json().catch(() => ({})) as { email?: string; click?: string };
   const email = (body.email || '').trim();
   if (!email || !email.includes('@')) return errorResponse('email required', 400);

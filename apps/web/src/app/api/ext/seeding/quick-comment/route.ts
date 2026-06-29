@@ -20,7 +20,7 @@ import type { Phase } from '@/lib/phase-plan';
 // Flow ext side panel: scan thread → POST endpoint này → fill draft trong panel.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

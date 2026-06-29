@@ -11,7 +11,7 @@ export const revalidate = 0;
 //   POST { title, angle, category?, tags?, sourceProjectId?, platformKey? } → create
 //   DELETE ?id=               → remove a playbook
 export async function GET(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const p = new URL(req.url).searchParams;
   const q = (p.get('q') || '').trim().toLowerCase();
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const b = (await req.json().catch(() => ({}))) as { title?: string; angle?: string; category?: string; tags?: string[]; sourceProjectId?: string; platformKey?: string };
   const title = String(b.title ?? '').trim().slice(0, 160);
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const id = Number(new URL(req.url).searchParams.get('id'));
   if (!Number.isFinite(id)) return errorResponse('id required', 400);

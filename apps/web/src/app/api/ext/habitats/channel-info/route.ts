@@ -43,7 +43,7 @@ function buildGates(prev: unknown, noPosting: boolean): Record<string, unknown> 
 // GET /api/ext/habitats/channel-info?habitatId=18&channelId=1069825483178520607
 // Trả channel info đã sync (nếu có) để sidepanel hiển thị rules + topic + noPosting.
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const sp = new URL(req.url).searchParams;
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
 // PATCH — upsert channel với noPosting flag (ghi vào postingGates.skip_for_post
 // để đồng bộ với modal habitat-form-modal). Auto-create channel nếu chưa có.
 export async function PATCH(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const db = getDb();
@@ -180,7 +180,7 @@ export async function PATCH(req: Request) {
 // Body: { projectId, guildId, channelId, guildName?, channelName?,
 //         channelUrl?, noPosting?, language? }
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const db = getDb();

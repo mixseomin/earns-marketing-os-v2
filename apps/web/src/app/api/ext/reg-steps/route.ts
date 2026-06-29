@@ -25,7 +25,7 @@ function normSteps(raw: unknown): Step[] {
 
 // GET /api/ext/reg-steps?scope=platform&key=resetera-com  |  scope=habitat&key=<id>
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const sp = new URL(req.url).searchParams;
   const scope = sp.get('scope'); const key = (sp.get('key') ?? '').trim();
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
 // POST /api/ext/reg-steps { scope, key, steps:[{key,label,tip?,actionUrl?}] }
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = await req.json() as { scope?: string; key?: string; steps?: unknown };
   const key = (body.key ?? '').trim();

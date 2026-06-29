@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Backfill thread_key = normalizeParentUrl(parent_url) cho card cũ — dùng ĐÚNG
 // hàm canonical (KHÔNG replicate logic SQL). Idempotent: chỉ update khi lệch.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb();
   if (!db) return errorResponse('db unavailable', 503);
 

@@ -11,7 +11,7 @@ export const maxDuration = 60;
 // AI gợi ý brand/context fields cho bài GỐC — sinh từ tên/oneLiner/website project
 // (+ nội dung site để grounding). Trả suggestion, KHÔNG tự lưu (user review rồi Lưu).
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   if (!aiEnabled()) return errorResponse('OPENAI_API_KEY not set', 503);
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
 

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // Versions của gen-post (composer) cho 1 account — sống qua F5 (đọc lại từ content_pieces).
 // GET ?accountId=&projectId=  → bản mới nhất trước.
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const url = new URL(req.url);
   const accountId = Number(url.searchParams.get('accountId') || 0);

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Used by extension's "📌 Track URL" button when user already posted (or
 // found someone else's post worth monitoring) and just wants to add it.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const body = await req.json() as {

@@ -14,7 +14,7 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 // pickers). Project-scoped — media_assets has no per-account column; callers
 // rank by tag match to the field client-side.
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const { searchParams } = new URL(req.url);

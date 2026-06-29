@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 // List card ĐÃ ĐĂNG (post_url not null) thuộc 1 sub-forum/channel → ext sub-forum
 // reader hiện "đã đăng N bài · time ago · link · lifecycle" ưu tiên.
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 

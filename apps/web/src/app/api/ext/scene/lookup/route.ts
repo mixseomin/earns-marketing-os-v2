@@ -9,7 +9,7 @@ import { errorResponse, rows } from '@/lib/ext-route';
 // feed). Trả familiarity của MÌNH với 1 người trên MỌI project (tenant 'self') — row engaged
 // nhất lên đầu + list per-project. Khác /scene/people (per-project, theo handles[] trong feed).
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url);

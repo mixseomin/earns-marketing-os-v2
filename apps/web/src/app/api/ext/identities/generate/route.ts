@@ -23,7 +23,7 @@ function genPassword(len = 16): string {
 // POST /api/ext/identities/generate { projectId, kind?, hint? }
 // AI sinh persona preset (KHÔNG lưu) → ext fill vào form tạo identity, user review.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) return errorResponse('AI chưa cấu hình (OPENAI_API_KEY)', 503);
 

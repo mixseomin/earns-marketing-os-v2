@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Post-queue (0094): đặt giờ DỰ ĐỊNH đăng cho 1 draft. Surface qua list-drafts.scheduledAt → ext queue
 // hiện "⏰ {giờ}" / "due". KHÔNG auto-post server-side (X đăng qua ext/manual) — đây là lớp data + nhắc.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as { cardId?: number; scheduledAt?: string | null };
   const cardId = Number(body.cardId ?? 0);

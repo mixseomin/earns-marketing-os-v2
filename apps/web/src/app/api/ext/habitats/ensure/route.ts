@@ -15,7 +15,7 @@ export const revalidate = 0;
 // Body: { projectId, platformKey, kind, name, externalId?, url?, title? }
 // → { ok, created, habitat: { id, name, kind, projectId, platformKey, briefId } }
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb();
   if (!db) return errorResponse('DB not configured', 503);
 

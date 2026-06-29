@@ -11,7 +11,7 @@ export const maxDuration = 20;
 // OpenAI infra (như learn-selectors). Ext gọi khi heuristic (_collectChannels) ra thiếu → "cover lần tới không
 // cần Claude thêm regex". Trả channels[] kiểu Orit (type/value/url) → ext merge vào scene_identities.scraped_meta.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) return errorResponse('AI off', 503);
 

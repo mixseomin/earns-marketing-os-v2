@@ -15,7 +15,7 @@ export const revalidate = 0;
 // technology selector pack. We DO NOT bind automatically (no silent override) and
 // skip platforms already bound to the detected tech. Unknown tech keys are ignored.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
   let body: { platformKey?: string; technologyKey?: string; hostname?: string; url?: string };
   try { body = await req.json(); } catch { return errorResponse('bad json', 400); }

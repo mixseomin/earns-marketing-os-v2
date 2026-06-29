@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Full identity (persona + custom_fields) để pre-fill form. password CHỈ trả
 // khi ?reveal=1 (decrypt just-in-time, auth = ext key = admin).
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const { id } = await params;
   const reveal = new URL(req.url).searchParams.get('reveal') === '1';
@@ -43,7 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 // PATCH /api/ext/identities/[id] — update fields (password → re-encrypt).
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const { id } = await params;
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;

@@ -6,7 +6,7 @@ import { eq, isNull } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

@@ -48,7 +48,7 @@ interface ExtHabitatPayload {
 
 // GET /api/ext/habitats?platform_key=reddit&name=r%2Fastrology → duplicate check
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
 //   → upsert habitat (UNIQUE per project + platform_key + name)
 //   → trả id + auto-detected fields (topics, posting_rules, members)
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const startedAt = Date.now();

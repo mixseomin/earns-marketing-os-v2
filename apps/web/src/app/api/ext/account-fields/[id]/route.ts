@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 // snippets — merged via getEffectiveSignupFields().
 // Snippet templates are pre-rendered with project + account vars.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

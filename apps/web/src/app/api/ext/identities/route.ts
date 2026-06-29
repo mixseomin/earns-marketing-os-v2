@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/ext/identities?projectId=&kind=
 // List identity presets (slim) cho picker — KHÔNG trả password/email plain.
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const sp = new URL(req.url).searchParams;
   const projectId = (sp.get('projectId') ?? '').trim();
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 // POST /api/ext/identities { projectId, name, kind?, handleBase?, email?, password?,
 //   displayName?, bio?, avatarUrl?, persona?, customFields? }
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const projectId = String(body.projectId ?? '').trim();

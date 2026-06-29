@@ -37,7 +37,7 @@ const PAGE_KIND_PLATFORM: Record<string, string[]> = {
 };
 
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const url = new URL(req.url);

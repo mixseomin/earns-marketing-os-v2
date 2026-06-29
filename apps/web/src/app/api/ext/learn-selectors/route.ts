@@ -34,7 +34,7 @@ interface LearnReq {
 //   &habitat_id=6&technology_key=shreddit (optional cho cascade)
 // → trả về resolved map + source-of-truth per field.
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const { searchParams } = new URL(req.url);
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
 
 // POST: LLM discover selectors → lưu vào target_scope (default platform).
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!aiEnabled()) {
     return errorResponse('OPENAI_API_KEY not set', 503);

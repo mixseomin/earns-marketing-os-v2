@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // discriminator derives platformKey/externalId/name (mirrors /habitats/resolve). Idempotent;
 // converges with the migration-0107 name-keyed backfill (fills external_id on first real hit).
 export async function POST(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as {
     url?: string; name?: string; platformKey?: string | null; technologyKey?: string | null;

@@ -53,7 +53,7 @@ interface InsightsBody {
 // Endpoint này chỉ dispatch theo platform_key → thêm platform = thêm spec ở module đó.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as InsightsBody;

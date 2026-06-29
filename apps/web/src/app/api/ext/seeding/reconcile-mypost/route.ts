@@ -12,7 +12,7 @@ import { errorResponse } from '@/lib/ext-route';
 // Idempotent: chỉ chạm card chưa có post_url (hoặc pending) → quét lại nhiều lần an toàn.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as { posts?: Array<{ permalink?: string; body?: string }> };

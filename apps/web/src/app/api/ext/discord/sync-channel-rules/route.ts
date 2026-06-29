@@ -21,7 +21,7 @@ import { errorResponse } from '@/lib/ext-route';
 // AI summarize + save habitat_channels.
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
   if (!aiEnabled()) {
     return errorResponse('OpenAI chưa cấu hình', 503);

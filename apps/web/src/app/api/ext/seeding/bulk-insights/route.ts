@@ -33,7 +33,7 @@ interface BulkItem {
 }
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as { items?: BulkItem[]; platformKey?: string };

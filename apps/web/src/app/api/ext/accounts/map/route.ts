@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 //  - cùng project đã primary → idempotent.
 // Đổi profile-target dùng /accounts/set-primary (non-destructive).
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
 
   const db = getDb();

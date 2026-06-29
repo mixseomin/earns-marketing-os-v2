@@ -9,7 +9,7 @@ import { listEngagementsByParentUrl } from '@/lib/actions/brief-posts';
 // trực tiếp, không qua endpoint).
 
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url);

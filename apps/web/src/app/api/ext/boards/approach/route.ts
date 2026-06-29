@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 //                                                  next /boards/score auto re-scores (no stale needed).
 // All ACCOUNT-FREE. approach/manualTier are per-(board×project); signals are per-board (shared).
 export async function POST(req: Request) {
-  const authErr = checkAuth(req); if (authErr) return authErr;
+  const authErr = await checkAuth(req); if (authErr) return authErr;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as {
     projectId?: string; boardId?: number; approach?: string; suggest?: boolean; samples?: string[];

@@ -12,7 +12,7 @@ import { errorResponse } from '@/lib/ext-route';
 // switch giữa drafts + display meta cost/duration/model/confidence.
 
 export async function GET(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const url = new URL(req.url);

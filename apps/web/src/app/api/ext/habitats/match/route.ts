@@ -12,7 +12,7 @@ export const revalidate = 0;
 // trong project — ưu tiên cái CÓ brief. Dùng để: reply comment-của-comment map vào
 // habitat/brief SẴN CÓ thay vì đoán root sai / tạo habitat thừa.
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb();
   if (!db) return errorResponse('DB not configured', 503);
   const p = new URL(req.url).searchParams;

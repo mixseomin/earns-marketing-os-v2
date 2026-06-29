@@ -17,7 +17,7 @@ import { recomputeFamiliarity, ensureIdentity, ensureRelationship } from '@/lib/
 const KINDS = new Set(['like', 'reply', 'follow', 'repost', 'bookmark', 'mention']);
 
 export async function POST(req: Request) {
-  const authErr = checkAuth(req);
+  const authErr = await checkAuth(req);
   if (authErr) return authErr;
 
   const body = await req.json().catch(() => ({})) as {

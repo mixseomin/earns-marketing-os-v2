@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 // /forums/<slug>.<id>/, vBulletin/phpBB/Discourse) → 1-click thêm làm channels.
 // → { ok, added, skipped, total, addedNames }
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = await req.json().catch(() => ({})) as {
     habitatId?: number;

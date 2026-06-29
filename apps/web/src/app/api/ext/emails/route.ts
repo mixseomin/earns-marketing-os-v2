@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 // MOS2 table — Directus is the single source of truth for owned emails so the
 // ext picks the real inventory + does gmail +tag (xyz+forum@gmail.com).
 export async function GET(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!directusEnabled()) {
     return errorResponse('Directus bridge disabled', 503);
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 // Persist a NEW owned email to Directus accounts (the library) so it shows up
 // next time. gmail → platform 'Google', else 'Email'. handle = local-part.
 export async function POST(req: Request) {
-  const err = checkAuth(req);
+  const err = await checkAuth(req);
   if (err) return err;
   if (!directusEnabled()) {
     return errorResponse('Directus bridge disabled', 503);

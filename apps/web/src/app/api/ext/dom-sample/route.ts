@@ -15,7 +15,7 @@ const MAX_HTML = 6_000_000; // ~6MB guard
 
 // POST /api/ext/dom-sample — ext lưu full HTML 1 trang vào thư viện DOM.
 export async function POST(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
   let body: { platformKey?: string; technologyKey?: string; pageKind?: string; url?: string; hostname?: string; title?: string; html?: string; note?: string };
   try { body = await req.json(); } catch { return errorResponse('bad json', 400); }
@@ -79,7 +79,7 @@ function sameDomPage(u1: string, u2: string): boolean {
 // GET /api/ext/dom-sample?id=N&format=html  → raw html của 1 sample (Claude đọc)
 // GET /api/ext/dom-sample?technologyKey=phpbb / ?platformKey=... → filter list
 export async function GET(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
   const p = new URL(req.url).searchParams;
   const id = p.get('id');
@@ -105,7 +105,7 @@ export async function GET(req: Request) {
 
 // DELETE /api/ext/dom-sample?id=N — xoá 1 sample (vd chụp lỗi/chưa load xong).
 export async function DELETE(req: Request) {
-  const err = checkAuth(req); if (err) return err;
+  const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('db unavailable', 200);
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return errorResponse('id required', 400);

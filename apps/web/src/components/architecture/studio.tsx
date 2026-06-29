@@ -813,7 +813,7 @@ const STALE_DAYS = 7;
 // Đồng bộ MỌI surface đang mở (table + các drawer cùng record) khi 1 chỗ sửa status/note.
 // `from` = id component phát → bỏ qua chính nó (đã optimistic update, tránh double-apply note).
 const INST_EVT = 'mos2-inst-updated';
-function emitInstUpdate(objKey: string, id: string, patch: { status?: string; noteAppend?: string }, from: string) {
+function emitInstUpdate(objKey: string, id: string, patch: { status?: string; noteAppend?: string; label?: string; cols?: Record<string, string | null> }, from: string) {
   try { window.dispatchEvent(new CustomEvent(INST_EVT, { detail: { objKey, id: String(id), patch, from } })); } catch { /* noop */ }
 }
 
@@ -934,12 +934,13 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
   useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt]);
-  // 1 drawer sửa status → patch row tương ứng trong bảng NGAY (badge + stale recompute) — ko refetch.
+  // 1 drawer sửa field → patch row tương ứng trong bảng NGAY (status/label/cols) — ko refetch.
   useEffect(() => {
     const h = (e: Event) => {
-      const det = (e as CustomEvent).detail as { objKey: string; id: string; patch: { status?: string } };
-      if (!det || det.objKey !== obj.key || det.patch.status == null) return;
-      setData((prev) => ({ ...prev, rows: prev.rows.map((r) => String(r.id) === det.id ? { ...r, sub: det.patch.status, cols: { ...r.cols, status: det.patch.status } } : r) }));
+      const det = (e as CustomEvent).detail as { objKey: string; id: string; patch: { status?: string; label?: string; cols?: Record<string, string | null> } };
+      if (!det || det.objKey !== obj.key) return;
+      const p = det.patch; if (p.status == null && p.label == null && !p.cols) return;
+      setData((prev) => ({ ...prev, rows: prev.rows.map((r) => String(r.id) === det.id ? { ...r, ...(p.label != null ? { label: p.label } : {}), ...(p.status != null ? { sub: p.status } : {}), cols: { ...r.cols, ...(p.status != null ? { status: p.status } : {}), ...(p.cols || {}) } } : r) }));
     };
     window.addEventListener(INST_EVT, h);
     return () => window.removeEventListener(INST_EVT, h);
@@ -1352,9 +1353,13 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
   // SỬA 1 field → lưu DB rồi reload record (giá trị canonical sau cast). Đổi status account → patch row + emit.
   const saveField = useCallback((col: string) => async (v: string | null) => {
     const r = await updateInstanceField(objKey, id, col, v);
-    if (r.ok) { getInstance(objKey, id).then((x) => setD(x ?? null)); if (col === 'status') emitInstUpdate(objKey, id, { status: v ?? '' }, selfId.current); }
+    if (r.ok) {
+      getInstance(objKey, id).then((x) => setD(x ?? null));
+      const label = col === (obj?.labelCol || '') && v != null ? v : undefined;   // labelCol đổi → title + list theo
+      emitInstUpdate(objKey, id, { cols: { [col]: v }, ...(col === 'status' ? { status: v ?? '' } : {}), ...(label != null ? { label } : {}) }, selfId.current);
+    }
     return r;
-  }, [objKey, id]);
+  }, [objKey, id, obj?.labelCol]);
   useEffect(() => { if (d && d !== 'loading' && d.row) setStatus(String(d.row.status ?? '')); }, [d]);
   // Drawer KHÁC (cùng record) sửa → đồng bộ d ở đây luôn (bỏ qua event do CHÍNH drawer này phát).
   useEffect(() => {
@@ -2248,6 +2253,16 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   const [stack, setStack] = useState<SubContent[]>([]); // cascade drawer layers above the base
   const pushSub = useCallback((c: SubContent) => setStack((s) => [...s, c]), []);
   const popTo = useCallback((n: number) => setStack((s) => s.slice(0, n)), []);
+  // labelCol của instance đổi → cập nhật title các lớp drawer đang mở cùng record.
+  useEffect(() => {
+    const h = (e: Event) => {
+      const det = (e as CustomEvent).detail as { objKey: string; id: string; patch: { label?: string } };
+      if (!det?.patch?.label) return;
+      setStack((s) => s.map((c) => (c.route?.t === 'inst' && c.route.objKey === det.objKey && String(c.route.id) === String(det.id)) ? { ...c, title: det.patch.label! } : c));
+    };
+    window.addEventListener(INST_EVT, h);
+    return () => window.removeEventListener(INST_EVT, h);
+  }, []);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const rf = useReactFlow();

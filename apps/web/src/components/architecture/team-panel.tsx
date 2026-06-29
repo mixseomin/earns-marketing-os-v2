@@ -114,7 +114,13 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                               <button onClick={() => saveMember(g.userId)} disabled={busy || !f.name.trim() || !f.email.trim()} style={btn('var(--neon-lime)')}>Lưu</button>
                             </div>
                           ); })()}
-                          <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Việc: <b style={{ color: 'var(--neon-amber)' }}>{dd.pendingTasks}</b> pending · <b style={{ color: 'var(--neon-cyan)' }}>{dd.inProgressTasks}</b> đang làm</div>
+                          {/* HIỆU SUẤT: xong / tổng + 7 ngày + tỉ lệ + gần nhất */}
+                          <div style={{ fontSize: 12, color: 'var(--fg-2)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            <span>✓ <b style={{ color: 'var(--neon-lime)' }}>{dd.doneTasks}</b>/{dd.totalTasks} xong{dd.totalTasks > 0 && <span style={{ color: 'var(--fg-3)' }}> ({Math.round((dd.doneTasks / dd.totalTasks) * 100)}%)</span>}</span>
+                            <span><b style={{ color: 'var(--neon-cyan)' }}>{dd.done7d}</b> xong 7 ngày</span>
+                            <span><b style={{ color: 'var(--neon-amber)' }}>{dd.pendingTasks}</b> chờ · <b style={{ color: 'var(--neon-cyan)' }}>{dd.inProgressTasks}</b> đang làm{dd.failedTasks > 0 && <span style={{ color: 'var(--bad)' }}> · {dd.failedTasks} fail</span>}</span>
+                            {dd.lastDone && <span style={{ color: 'var(--fg-3)' }}>gần nhất {new Date(dd.lastDone).toLocaleDateString('vi-VN')}</span>}
+                          </div>
 
                           {/* PROJECT: chip + dropdown thêm (ko list phẳng 25 cái) */}
                           <div>

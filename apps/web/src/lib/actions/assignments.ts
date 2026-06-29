@@ -173,11 +173,16 @@ export interface MemberAssignmentSummary {
   tribes: Array<{ id: number; label: string; projectId: string }>;
   pendingTasks: number;
   inProgressTasks: number;
+  doneTasks: number;
+  done7d: number;
+  failedTasks: number;
+  totalTasks: number;
+  lastDone: string | null;
 }
 
 export async function getMemberAssignments(userId: number): Promise<MemberAssignmentSummary> {
   const db = getDb();
-  const empty: MemberAssignmentSummary = { projects: [], accounts: [], proxies: [], profiles: [], tribes: [], pendingTasks: 0, inProgressTasks: 0 };
+  const empty: MemberAssignmentSummary = { projects: [], accounts: [], proxies: [], profiles: [], tribes: [], pendingTasks: 0, inProgressTasks: 0, doneTasks: 0, done7d: 0, failedTasks: 0, totalTasks: 0, lastDone: null };
   if (!db) return empty;
   const [projRows, accRows, pxRows, bpRows, trRows, taskRows] = await Promise.all([
     db.execute(sql`
@@ -210,11 +215,16 @@ export async function getMemberAssignments(userId: number): Promise<MemberAssign
     db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_count,
-        COUNT(*) FILTER (WHERE status IN ('claimed', 'in_progress'))::int AS in_progress_count
+        COUNT(*) FILTER (WHERE status IN ('claimed', 'in_progress'))::int AS in_progress_count,
+        COUNT(*) FILTER (WHERE status IN ('completed', 'verified'))::int AS done_count,
+        COUNT(*) FILTER (WHERE status IN ('completed', 'verified') AND completed_at > now() - interval '7 days')::int AS done_7d,
+        COUNT(*) FILTER (WHERE status = 'failed')::int AS failed_count,
+        COUNT(*)::int AS total_count,
+        MAX(completed_at) AS last_done
       FROM human_tasks WHERE assigned_user_id = ${userId}
     `),
   ]);
-  const taskR = (taskRows as unknown as Array<{ pending_count: number; in_progress_count: number }>)[0];
+  const taskR = (taskRows as unknown as Array<{ pending_count: number; in_progress_count: number; done_count: number; done_7d: number; failed_count: number; total_count: number; last_done: string | null }>)[0];
   return {
     projects: (projRows as unknown as Array<Record<string, unknown>>).map((r) => ({
       projectId: String(r.project_id), projectName: String(r.project_name), role: String(r.role ?? 'operator'),
@@ -234,6 +244,11 @@ export async function getMemberAssignments(userId: number): Promise<MemberAssign
     })),
     pendingTasks: taskR?.pending_count ?? 0,
     inProgressTasks: taskR?.in_progress_count ?? 0,
+    doneTasks: taskR?.done_count ?? 0,
+    done7d: taskR?.done_7d ?? 0,
+    failedTasks: taskR?.failed_count ?? 0,
+    totalTasks: taskR?.total_count ?? 0,
+    lastDone: taskR?.last_done ?? null,
   };
 }
 

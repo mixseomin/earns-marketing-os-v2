@@ -304,10 +304,12 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   if (!['pending', 'claimed', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
   try {
+    // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
     await db.execute(sql`
-      UPDATE human_tasks SET prep_payload = jsonb_set(
-        jsonb_set(COALESCE(prep_payload, '{}'::jsonb), ARRAY['site_status', ${site}], to_jsonb(${status}::text), true),
-        ARRAY['site_url', ${site}], to_jsonb(${u}::text), true),
+      UPDATE human_tasks SET prep_payload =
+        COALESCE(prep_payload, '{}'::jsonb)
+        || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
+        || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text))),
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true };

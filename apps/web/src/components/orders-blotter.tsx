@@ -42,6 +42,11 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào: đóng cửa > MA200\n' +
     '• Ra: đóng cửa < MA200\n' +
     '• Không SL/TP, bám trend dài.',
+  'Crypto drift basket':
+    '• 12 coin, khung H1, long-only (drift-grind)\n' +
+    '• Vào (LONG): khi giá đóng cửa > SMA200 của coin đó\n' +
+    '• Ra: khi giá đóng cửa < SMA200 (về flat, ngồi ngoài downtrend)\n' +
+    '• Vol-target 20%/coin, chia đều 12 sleeve. Chỉ long, không short.',
   'Intraday index-drift basket':
     '• Rổ 8 chỉ số cổ phiếu (SP500, NAS100, US30, DAX, FRA40, UK100, JPN225, AUS200)\n' +
     '• Vào (LONG): mỗi sáng, nếu giá còn trên SMA100 → mua ở open phiên\n' +

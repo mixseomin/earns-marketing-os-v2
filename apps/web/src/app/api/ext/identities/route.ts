@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, or, isNull } from 'drizzle-orm';
 import { getDb, identities } from '@mos2/db';
 import { checkAuth } from '../_auth';
 import { encryptValue } from '@/lib/crypto';
@@ -27,9 +27,10 @@ export async function GET(req: Request) {
       passwordEnc: identities.passwordEnc,
     })
     .from(identities)
+    // project-owned + shared (project_id NULL) so a portfolio persona shows in every picker.
     .where(kind
-      ? and(eq(identities.projectId, projectId), eq(identities.kind, kind))
-      : eq(identities.projectId, projectId))
+      ? and(or(eq(identities.projectId, projectId), isNull(identities.projectId)), eq(identities.kind, kind))
+      : or(eq(identities.projectId, projectId), isNull(identities.projectId)))
     .orderBy(desc(identities.updatedAt));
   // Slim + an toàn: cờ hasPassword (boolean) cho picker hiện pwd:✓, KHÔNG ship
   // ciphertext/email plain (email lộ sau reveal khi user chủ động chọn).
@@ -45,8 +46,9 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const projectId = String(body.projectId ?? '').trim();
   const name = String(body.name ?? '').trim();
-  if (!projectId || !name) {
-    return errorResponse('projectId + name required', 400);
+  const shared = body.shared === true;
+  if ((!projectId && !shared) || !name) {
+    return errorResponse('projectId (or shared) + name required', 400);
   }
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
@@ -57,7 +59,7 @@ export async function POST(req: Request) {
   const passwordVariantsEnc = pwVars.length ? await encryptValue(JSON.stringify(pwVars)) : null;
 
   const inserted = await db.insert(identities).values({
-    projectId,
+    projectId: shared ? null : projectId,
     name,
     kind: body.kind === 'brand' ? 'brand' : 'seeding',
     handleBase: String(body.handleBase ?? ''),

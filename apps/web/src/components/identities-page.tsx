@@ -40,6 +40,7 @@ export function IdentitiesPage({
     password: undefined,                       // undefined = leave alone
     displayName: r.displayName, bio: r.bio, avatarUrl: r.avatarUrl,
     persona: r.persona, customFields: r.customFields,
+    shared: r.projectId === null,
   });
   const closeModal = () => setEditing(null);
 
@@ -136,7 +137,12 @@ export function IdentitiesPage({
               {rows.map((r) => (
                 <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                   <td style={td}>
-                    <div style={{ fontWeight: 600, color: 'var(--fg-0)' }}>{r.name}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {r.name}
+                      {r.projectId === null && (
+                        <span title="Shared across all projects" style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent)' }}>SHARED</span>
+                      )}
+                    </div>
                     {r.bio && <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.bio}</div>}
                   </td>
                   <td style={td}>
@@ -257,6 +263,12 @@ function IdentityFormModal({
           <option value="seeding">seeding — alt account để seeding</option>
           <option value="brand">brand — official account</option>
         </SelectField>
+
+        <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-1)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={form.shared ?? false}
+            onChange={(e) => update('shared', e.target.checked)} />
+          <span><b>Shared</b> — dùng chung cho MỌI project (1 persona toàn portfolio). Bỏ tick = chỉ project này.</span>
+        </label>
 
         <TextField label="Handle base" value={form.handleBase ?? ''}
           onChange={(e) => update('handleBase', e.target.value)}

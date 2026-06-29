@@ -616,7 +616,9 @@ export const identities = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     tenantId: text('tenant_id').notNull().default('self'),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    // Nullable = SHARED across all projects (one portfolio-wide persona). A non-null
+    // projectId scopes the identity to that project. Lists show project-owned + shared.
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     kind: text('kind').notNull().default('seeding'),       // brand | seeding
     handleBase: text('handle_base').notNull().default(''),

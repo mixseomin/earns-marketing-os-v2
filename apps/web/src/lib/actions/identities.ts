@@ -5,7 +5,7 @@
 // password lưu pgcrypto qua encryptValue() — chỉ reveal khi user chủ động bấm.
 
 import { revalidatePath } from 'next/cache';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, or, isNull } from 'drizzle-orm';
 import { getDb, identities } from '@mos2/db';
 import { encryptValue, decryptValue } from '../crypto';
 
@@ -13,7 +13,7 @@ export type IdentityKind = 'brand' | 'seeding';
 
 export interface IdentityRow {
   id: number;
-  projectId: string;
+  projectId: string | null; // null = shared across all projects
   name: string;
   kind: IdentityKind;
   handleBase: string;
@@ -39,6 +39,7 @@ export interface IdentityInput {
   avatarUrl?: string;
   persona?: Record<string, unknown>;
   customFields?: Record<string, unknown>;
+  shared?: boolean;           // true → project_id NULL (portfolio-wide persona)
 }
 
 function ensureDb() {
@@ -68,10 +69,11 @@ function toRow(r: typeof identities.$inferSelect): IdentityRow {
 
 export async function listIdentities(projectId: string): Promise<IdentityRow[]> {
   const db = ensureDb();
+  // project-owned + shared (project_id NULL) identities both show in a project.
   const rows = await db
     .select()
     .from(identities)
-    .where(eq(identities.projectId, projectId))
+    .where(or(eq(identities.projectId, projectId), isNull(identities.projectId)))
     .orderBy(desc(identities.updatedAt));
   return rows.map(toRow);
 }
@@ -83,14 +85,16 @@ export async function getIdentity(id: number): Promise<IdentityRow | null> {
   return r ? toRow(r) : null;
 }
 
-export async function createIdentity(projectId: string, input: IdentityInput): Promise<number> {
+export async function createIdentity(projectId: string | null, input: IdentityInput): Promise<number> {
   const db = ensureDb();
   const name = (input.name ?? '').trim();
   if (!name) throw new Error('name required');
   const pw = input.password ? String(input.password) : '';
   const passwordEnc = pw ? await encryptValue(pw) : null;
+  // shared persona → project_id NULL (shows in every project).
+  const ownerProjectId = input.shared ? null : projectId;
   const inserted = await db.insert(identities).values({
-    projectId,
+    projectId: ownerProjectId,
     name,
     kind: input.kind === 'brand' ? 'brand' : 'seeding',
     handleBase: input.handleBase ?? '',
@@ -104,7 +108,7 @@ export async function createIdentity(projectId: string, input: IdentityInput): P
   }).returning({ id: identities.id });
   const row = inserted[0];
   if (!row) throw new Error('insert returned no row');
-  revalidatePath(`/p/${projectId}/identities`);
+  if (projectId) revalidatePath(`/p/${projectId}/identities`);
   return row.id;
 }
 
@@ -120,18 +124,21 @@ export async function updateIdentity(id: number, input: IdentityInput): Promise<
   if (input.avatarUrl !== undefined) patch.avatarUrl = input.avatarUrl;
   if (input.persona !== undefined) patch.persona = input.persona;
   if (input.customFields !== undefined) patch.customFields = input.customFields;
+  // ponytail: only supports flipping TO shared (project_id NULL). To re-scope a shared
+  // identity back to one project, pass a projectId — add when actually needed.
+  if (input.shared === true) patch.projectId = null;
   if (input.password !== undefined) {
     const pw = String(input.password);
     patch.passwordEnc = pw ? await encryptValue(pw) : null;
   }
   const [updated] = await db.update(identities).set(patch).where(eq(identities.id, id)).returning({ projectId: identities.projectId });
-  if (updated) revalidatePath(`/p/${updated.projectId}/identities`);
+  if (updated?.projectId) revalidatePath(`/p/${updated.projectId}/identities`);
 }
 
 export async function deleteIdentity(id: number): Promise<void> {
   const db = ensureDb();
   const [deleted] = await db.delete(identities).where(eq(identities.id, id)).returning({ projectId: identities.projectId });
-  if (deleted) revalidatePath(`/p/${deleted.projectId}/identities`);
+  if (deleted?.projectId) revalidatePath(`/p/${deleted.projectId}/identities`);
 }
 
 // Reveal password — decrypt just-in-time. UI hits this only when user clicks "show".

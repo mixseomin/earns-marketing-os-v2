@@ -11,8 +11,8 @@ import { sql } from 'drizzle-orm';
 //           siết thành ALLOW-list khi flow ext bản nhân sự chốt + test được.
 const STAFF_DENY = [
   '/admin/', 'train-selector', 'learn-selectors', 'save-selector', 'clear-selector',
-  'suggest-selector', 'selectors/set', 'crew-capabilities', 'vision/', 'brief/update',
-  'project-brand', 'profile-fields/rename', 'media/generate',
+  'suggest-selector', 'suggest-adapter', 'adapter/', 'selectors/set', 'selectors/verify',
+  'crew-capabilities', 'vision/', 'brief/update', 'project-brand', 'profile-fields/rename', 'media/generate',
 ];
 
 function deniedForStaff(req: Request): boolean {

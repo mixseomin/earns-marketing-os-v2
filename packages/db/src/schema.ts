@@ -638,6 +638,24 @@ export const identities = pgTable(
   (t) => [index('identities_project_idx').on(t.projectId)],
 );
 
+// ── identity_projects (pivot, multi-project persona) ─────────────
+// 1 persona/identity dùng cho NHIỀU project (vd: "Colino" seeding cho cả
+// MilitaryCalc + GovCalcs). Mirror project_accounts. role: 'primary' (home) | 'shared'.
+// Thay cho cơ chế cũ project_id IS NULL = global (đã bỏ — user muốn CHỌN project, ko global).
+export const identityProjects = pgTable(
+  'identity_projects',
+  {
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    identityId: bigint('identity_id', { mode: 'number' }).notNull().references(() => identities.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('shared'),                  // 'primary' | 'shared'
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.projectId, t.identityId] }),
+    index('identity_projects_identity_idx').on(t.identityId),
+  ],
+);
+
 // ── emails (H1) — thư viện email active để chọn khi tạo account ───
 export const emails = pgTable(
   'emails',

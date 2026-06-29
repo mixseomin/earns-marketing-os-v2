@@ -26,11 +26,12 @@ import {
 } from './spec';
 import { Drawer } from '@/components/drawer';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
-  getIdentity, updateIdentity,
+  getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects,
   canonChecks, type CanonCheck,
   type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,

@@ -14,7 +14,8 @@
 //   - 'chip': pill rounded với label inline prefix (table header filter,
 //             vd all-posts-tab advanced filter row)
 
-import { useState } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { IconChevron } from './icons';
 
 export interface MultiSelectOption<T> {
@@ -38,15 +39,26 @@ export interface MultiSelectProps<T extends string | number> {
   hideSearch?: boolean;
   /** Visual variant. 'default' button bordered, 'chip' pill rounded. */
   variant?: 'default' | 'chip';
+  /** Render popup qua portal (position:fixed) — cho table cell overflow:hidden. */
+  portal?: boolean;
 }
 
 export function MultiSelect<T extends string | number>({
   label, options, selected, onChange,
   searchPlaceholder, popupWidth, compact = false, hideSearch = false,
-  variant = 'default',
+  variant = 'default', portal = false,
 }: MultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const triggerWrapRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ left: number; top: number; minW: number } | null>(null);
+  const toggle = () => {
+    if (!open && portal) {
+      const r = triggerWrapRef.current?.getBoundingClientRect();
+      if (r) setCoords({ left: r.left, top: r.bottom + 4, minW: r.width });
+    }
+    setOpen((v) => !v);
+  };
   const selectedSet = new Set(selected);
   const filtered = search.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
@@ -61,7 +73,7 @@ export function MultiSelect<T extends string | number>({
   const showSearch = !hideSearch && options.length >= 8;
 
   const trigger = variant === 'chip' ? (
-    <button type="button" onClick={() => setOpen((v) => !v)}
+    <button type="button" onClick={toggle}
             title={selected.length > 0
               ? `${selected.length} ${label.toLowerCase()} selected · click toggle`
               : `Lọc theo ${label.toLowerCase()}`}
@@ -77,7 +89,7 @@ export function MultiSelect<T extends string | number>({
       <IconChevron dir={open ? 'down' : 'right'} size={9} />
     </button>
   ) : (
-    <button type="button" onClick={() => setOpen((v) => !v)}
+    <button type="button" onClick={toggle}
             title={selected.length > 0
               ? `${selected.length} ${label.toLowerCase()} selected · click toggle`
               : `Lọc theo ${label.toLowerCase()}`}
@@ -97,17 +109,14 @@ export function MultiSelect<T extends string | number>({
     </button>
   );
 
-  const popup = (
+  const boxStyle: CSSProperties = {
+    maxHeight: 360, overflowY: 'auto', background: 'var(--bg-1)',
+    border: '1px solid var(--line-2)', borderRadius: 6,
+    boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 6,
+  };
+  const popupBody = (
     <>
-      <div onClick={() => setOpen(false)}
-           style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 41,
-                    minWidth: popupWidth ?? 240,
-                    maxWidth: popupWidth ?? 320,
-                    maxHeight: 360, overflowY: 'auto',
-                    background: 'var(--bg-1)', border: '1px solid var(--line-2)',
-                    borderRadius: 6, boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 6 }}>
-        {showSearch && (
+      {showSearch && (
           <input value={search} onChange={(e) => setSearch(e.target.value)}
                  placeholder={searchPlaceholder ?? `Tìm ${label.toLowerCase()}…`}
                  autoComplete="off"
@@ -162,6 +171,24 @@ export function MultiSelect<T extends string | number>({
             </label>
           );
         })}
+    </>
+  );
+
+  const overlay = <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />;
+  const popup = portal ? createPortal(
+    <>
+      {overlay}
+      <div style={{ position: 'fixed', left: coords?.left ?? 0, top: coords?.top ?? 0, zIndex: 41,
+                    minWidth: Math.max(popupWidth ?? 220, coords?.minW ?? 0), maxWidth: popupWidth ?? 340, ...boxStyle }}>
+        {popupBody}
+      </div>
+    </>, document.body,
+  ) : (
+    <>
+      {overlay}
+      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 41,
+                    minWidth: popupWidth ?? 240, maxWidth: popupWidth ?? 320, ...boxStyle }}>
+        {popupBody}
       </div>
     </>
   );
@@ -173,7 +200,7 @@ export function MultiSelect<T extends string | number>({
         <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
           {label}:
         </span>
-        <div style={{ position: 'relative' }}>
+        <div ref={triggerWrapRef} style={{ position: 'relative' }}>
           {trigger}
           {open && popup}
         </div>
@@ -182,7 +209,7 @@ export function MultiSelect<T extends string | number>({
   }
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex' }}>
+    <div ref={triggerWrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
       {trigger}
       {open && popup}
     </div>

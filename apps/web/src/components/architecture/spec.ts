@@ -211,8 +211,10 @@ export const OBJECTS: ArchObject[] = [
     table: 'identities', pk: 'id', labelCol: 'name', projectScoped: true,
     desc: 'CỦA TA. Preset persona để TẠO/ĐĂNG KÝ account (handle_base/email/password/custom_fields signup), per project. 1 account CÓ THỂ dựa trên 1 persona (optional). KHÁC: Account = bản ghi login đã có; Persona = khuôn để đẻ account mới. KHÁC HẲN "Contact · global" (scene) = danh tính của NGƯỜI TA tương tác.',
     picker: { crossProject: true, subExpr: 't.kind' },
+    // multi-project: 1 persona dùng cho N project qua pivot identity_projects.
+    projectsVia: { table: 'identity_projects', fkCol: 'identity_id' },
     browseCols: [
-      { col: 'project_id', label: 'project', kind: 'project' },
+      { col: '__projects', label: 'projects', kind: 'project' },
       { col: 'kind', label: 'kind', kind: 'badge' },
       { col: 'handle_base', label: 'handle' },
       { col: 'email', label: 'email' },

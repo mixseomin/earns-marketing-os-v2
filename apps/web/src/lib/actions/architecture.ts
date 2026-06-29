@@ -1188,7 +1188,7 @@ export async function listIdentities(projectId?: string): Promise<IdentityRow[]>
     SELECT i.id, i.name, i.kind, i.handle_base, i.email, i.display_name, p.name AS project
     FROM identities i LEFT JOIN projects p ON p.id = i.project_id`;
   const rows = await db.execute(projectId
-    ? sql`${base} WHERE (i.project_id = ${projectId} OR i.project_id IS NULL) ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`
+    ? sql`${base} WHERE EXISTS (SELECT 1 FROM identity_projects ip WHERE ip.identity_id = i.id AND ip.project_id = ${projectId}) ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`
     : sql`${base} ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id), name: String(r.name ?? ''),
@@ -1217,13 +1217,12 @@ export async function getIdentity(id: number): Promise<IdentityDetailData | null
   };
 }
 
-// shared: true → project_id NULL (portfolio-wide). false → scope to projectId (the
-// studio's current project). undefined → leave project_id untouched.
-export interface IdentityPatch { name?: string; kind?: string; handleBase?: string; email?: string; displayName?: string; bio?: string; shared?: boolean; projectId?: string | null }
+export interface IdentityPatch { name?: string; kind?: string; handleBase?: string; email?: string; displayName?: string; bio?: string }
 export async function updateIdentity(id: number, patch: IdentityPatch): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   // COALESCE → only provided (non-null) fields change; omit a field to keep it.
+  // Project membership = pivot identity_projects (setIdentityProjects), KHÔNG ở đây.
   try {
     await db.execute(sql`
       UPDATE identities SET
@@ -1235,11 +1234,57 @@ export async function updateIdentity(id: number, patch: IdentityPatch): Promise<
         bio = COALESCE(${patch.bio ?? null}, bio),
         updated_at = now()
       WHERE id = ${id}`);
-    // Separate statement because COALESCE can't set a column TO null (un-share).
-    if (patch.shared !== undefined) {
-      const pid = patch.shared ? null : (patch.projectId ?? null);
-      await db.execute(sql`UPDATE identities SET project_id = ${pid}, updated_at = now() WHERE id = ${id}`);
-    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// ── identity ↔ projects (pivot, mirror accountProjectsPanel) ──────────────────
+// 1 persona dùng cho N project. participations = project đang link; allProjects =
+// project có thể chọn thêm. role 'primary' = home (đồng bộ identities.project_id).
+export async function identityProjectsPanel(identityId: number): Promise<{
+  participations: Array<{ projectId: string; name: string; emoji: string; role: string }>;
+  allProjects: Array<{ id: string; name: string; emoji: string }>;
+}> {
+  const db = getDb();
+  if (!db) return { participations: [], allProjects: [] };
+  const parts = await db.execute(sql`
+    SELECT ip.project_id, ip.role, p.name, p.emoji
+    FROM identity_projects ip LEFT JOIN projects p ON p.id = ip.project_id
+    WHERE ip.identity_id = ${identityId}
+    ORDER BY (ip.role = 'primary') DESC, p.name`);
+  const all = await db.execute(sql`
+    SELECT id, name, emoji FROM projects WHERE is_demo = false AND archived_at IS NULL ORDER BY name`);
+  return {
+    participations: (parts as unknown as Array<Record<string, unknown>>).map((r) => ({
+      projectId: String(r['project_id']), name: String(r['name'] ?? r['project_id']), emoji: r['emoji'] ? String(r['emoji']) : '', role: String(r['role'] ?? 'shared'),
+    })),
+    allProjects: (all as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r['id']), name: String(r['name'] ?? r['id']), emoji: r['emoji'] ? String(r['emoji']) : '',
+    })),
+  };
+}
+
+// Batch set: persona dùng cho ĐÚNG tập projectIds. Giữ home cũ làm 'primary' nếu còn
+// trong tập, else project đầu. Đồng bộ scalar identities.project_id = primary (để picker
+// cũ + getIdentity vẫn đúng). Empty = gỡ khỏi mọi project (orphan, hiện ở global view).
+export async function setIdentityProjects(identityId: number, projectIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const ids = Array.from(new Set(projectIds.filter(Boolean)));
+  try {
+    const cur = await db.execute(sql`SELECT project_id FROM identities WHERE id = ${identityId} LIMIT 1`);
+    const home = (cur as unknown as Array<{ project_id: string | null }>)[0]?.project_id ?? null;
+    const primary = (home && ids.includes(home)) ? home : (ids[0] ?? null);
+    await db.transaction(async (tx) => {
+      // ponytail: delete-all + re-insert (≤ vài chục project) — đơn giản, đúng trong 1 tx.
+      await tx.execute(sql`DELETE FROM identity_projects WHERE identity_id = ${identityId}`);
+      for (const pid of ids) {
+        await tx.execute(sql`INSERT INTO identity_projects (project_id, identity_id, role) VALUES (${pid}, ${identityId}, ${pid === primary ? 'primary' : 'shared'})`);
+      }
+      await tx.execute(sql`UPDATE identities SET project_id = ${primary}, updated_at = now() WHERE id = ${identityId}`);
+    });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

@@ -22,6 +22,23 @@ function deniedForStaff(req: Request): boolean {
   return STAFF_DENY.some((d) => u.pathname.includes(d));
 }
 
+// Resolve token → ai. admin = shared key · staff = per-user token (ext_tokens). null = invalid.
+export async function resolveExtUser(req: Request): Promise<{ mode: 'admin' } | { mode: 'staff'; userId: number } | null> {
+  const key = process.env.MOS2_EXT_KEY;
+  const auth = req.headers.get('authorization') ?? '';
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!bearer) return null;
+  if (key && bearer === key) return { mode: 'admin' };
+  const db = getDb();
+  if (db) {
+    const hash = createHash('sha256').update(bearer).digest('hex');
+    const rows = await db.execute(sql`SELECT user_id FROM ext_tokens WHERE token_hash = ${hash} AND revoked_at IS NULL LIMIT 1`);
+    const arr = rows as unknown as Array<{ user_id: number }>;
+    if (arr.length) return { mode: 'staff', userId: Number(arr[0]!.user_id) };
+  }
+  return null;
+}
+
 export async function checkAuth(req: Request): Promise<NextResponse | null> {
   const key = process.env.MOS2_EXT_KEY;
   const auth = req.headers.get('authorization') ?? '';

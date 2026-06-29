@@ -26,13 +26,15 @@ export async function POST(req: Request) {
   let fields: string[] = [];
 
   if (pageKind && getFieldSchema(pageKind).length) {
-    fields = getFieldSchema(pageKind).map((f) => f.key);          // page_kind đã biết → field từ schema (0 LLM)
+    fields = getFieldSchema(pageKind).map((f) => f.key);          // ext gửi page_kind ĐÃ BIẾT → field từ schema (0 LLM)
   } else {
-    const cls = await classify(html, platformKey);                // page_kind lạ → 1 LLM call phân loại + suy field
+    // Tự phân loại trang THẬT của platform này (KHÔNG ép vào kind Reddit) + đọc field thực tế trên trang.
+    const cls = await classify(html, platformKey);
     if (!pageKind) pageKind = cls.pageKind;
-    fields = getFieldSchema(pageKind).length ? getFieldSchema(pageKind).map((f) => f.key) : cls.fields;
+    // Ưu tiên field AI đọc được trên trang; chỉ fallback schema nếu trùng đúng known-kind mà AI ko trả field.
+    fields = cls.fields.length ? cls.fields : getFieldSchema(pageKind).map((f) => f.key);
   }
-  if (!fields.length) return errorResponse('Không suy được field — thử trang about/composer/thread-list', 422, { pageKind });
+  if (!fields.length) return errorResponse('Không đọc được field nào trên trang — thử trang có nội dung (profile/feed/thread/about)', 422, { pageKind });
 
   const r = await discoverSelectors({ platformKey, pageKind, fields, html, detectedEngine });
   return NextResponse.json({
@@ -52,10 +54,15 @@ export async function POST(req: Request) {
 async function classify(html: string, platformKey: string): Promise<{ pageKind: string; fields: string[] }> {
   const ai = getOpenAI();
   if (!ai) return { pageKind: 'unknown', fields: [] };
-  const sys = `Phân loại trang web của platform "${platformKey}" + liệt kê field hữu ích để scrape.
-page_kind ưu tiên 1 trong: ${KNOWN_KINDS.join(', ')}; không khớp thì đặt tên mới ngắn (kebab-case).
-Trả JSON {"page_kind":"...","fields":["..."]}. fields = tên ngắn cho dữ liệu CHÍNH trên trang
-(vd: title, members, description, privacy, post.body, post.author, post.permalink, composer.editor, composer.postBtn).`;
+  const sys = `Bạn phân loại MỘT trang web của platform "${platformKey}" và liệt kê field dữ liệu THỰC SỰ HIỂN THỊ trên trang đó (đọc HTML, đừng đoán).
+
+page_kind = tên ngắn kebab-case mô tả ĐÚNG loại trang. Ví dụ generic: profile, feed, post, thread, composer, signup, community-about, member-list, settings.
+⚠ CHỈ dùng tên "subreddit-*" khi platform THẬT SỰ là Reddit. "${platformKey}" KHÁC Reddit thì TUYỆT ĐỐI không trả subreddit-*; đặt tên hợp với chính platform này (vd dev.to profile → "profile").
+Known-kind có schema sẵn (dùng LẠI nếu trang đúng loại): ${KNOWN_KINDS.join(', ')}.
+
+fields = danh sách field CÓ TRÊN TRANG NÀY (theo HTML thực tế), tên ngắn snake/dot-case. Ví dụ tùy trang: display_name, bio, followers, following, post_count, joined_date, post.title, post.author, post.body, post.permalink, composer.editor, composer.postBtn. KHÔNG bịa field không có trên trang.
+
+Trả JSON {"page_kind":"...","fields":["..."]}.`;
   try {
     const c = await ai.chat.completions.create({
       model: 'gpt-4.1-mini', temperature: 0, max_tokens: 300,

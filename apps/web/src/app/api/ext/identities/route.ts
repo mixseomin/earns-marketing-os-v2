@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { and, desc, eq, or, isNull } from 'drizzle-orm';
-import { getDb, identities } from '@mos2/db';
+import { and, desc, eq, or, inArray } from 'drizzle-orm';
+import { getDb, identities, identityProjects } from '@mos2/db';
 import { checkAuth } from '../_auth';
 import { encryptValue } from '@/lib/crypto';
 import { errorResponse } from '@/lib/ext-route';
@@ -20,6 +20,10 @@ export async function GET(req: Request) {
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
 
+  // multi-project: persona link với projectId qua pivot identity_projects
+  // (home project_id fallback cho hàng chưa backfill).
+  const linked = db.select({ id: identityProjects.identityId }).from(identityProjects).where(eq(identityProjects.projectId, projectId));
+  const inProject = or(inArray(identities.id, linked), eq(identities.projectId, projectId));
   const raw = await db
     .select({
       id: identities.id, name: identities.name, kind: identities.kind,
@@ -27,10 +31,7 @@ export async function GET(req: Request) {
       passwordEnc: identities.passwordEnc,
     })
     .from(identities)
-    // project-owned + shared (project_id NULL) so a portfolio persona shows in every picker.
-    .where(kind
-      ? and(or(eq(identities.projectId, projectId), isNull(identities.projectId)), eq(identities.kind, kind))
-      : or(eq(identities.projectId, projectId), isNull(identities.projectId)))
+    .where(kind ? and(inProject, eq(identities.kind, kind)) : inProject)
     .orderBy(desc(identities.updatedAt));
   // Slim + an toàn: cờ hasPassword (boolean) cho picker hiện pwd:✓, KHÔNG ship
   // ciphertext/email plain (email lộ sau reveal khi user chủ động chọn).
@@ -46,9 +47,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const projectId = String(body.projectId ?? '').trim();
   const name = String(body.name ?? '').trim();
-  const shared = body.shared === true;
-  if ((!projectId && !shared) || !name) {
-    return errorResponse('projectId (or shared) + name required', 400);
+  if (!projectId || !name) {
+    return errorResponse('projectId + name required', 400);
   }
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   const passwordVariantsEnc = pwVars.length ? await encryptValue(JSON.stringify(pwVars)) : null;
 
   const inserted = await db.insert(identities).values({
-    projectId: shared ? null : projectId,
+    projectId,
     name,
     kind: body.kind === 'brand' ? 'brand' : 'seeding',
     handleBase: String(body.handleBase ?? ''),
@@ -74,5 +74,8 @@ export async function POST(req: Request) {
     fieldVariants: (body.fieldVariants && typeof body.fieldVariants === 'object') ? body.fieldVariants as object : {},
   }).returning({ id: identities.id });
 
-  return NextResponse.json({ ok: true, id: inserted[0]?.id });
+  const newId = inserted[0]?.id;
+  // pivot 'primary' cho home project (multi-project: thêm project khác ở studio).
+  if (newId) await db.insert(identityProjects).values({ projectId, identityId: newId, role: 'primary' }).onConflictDoNothing();
+  return NextResponse.json({ ok: true, id: newId });
 }

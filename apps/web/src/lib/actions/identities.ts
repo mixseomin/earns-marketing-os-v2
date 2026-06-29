@@ -5,8 +5,8 @@
 // password lưu pgcrypto qua encryptValue() — chỉ reveal khi user chủ động bấm.
 
 import { revalidatePath } from 'next/cache';
-import { desc, eq, or, isNull } from 'drizzle-orm';
-import { getDb, identities } from '@mos2/db';
+import { desc, eq, or, inArray } from 'drizzle-orm';
+import { getDb, identities, identityProjects } from '@mos2/db';
 import { encryptValue, decryptValue } from '../crypto';
 
 export type IdentityKind = 'brand' | 'seeding';
@@ -39,7 +39,6 @@ export interface IdentityInput {
   avatarUrl?: string;
   persona?: Record<string, unknown>;
   customFields?: Record<string, unknown>;
-  shared?: boolean;           // true → project_id NULL (portfolio-wide persona)
 }
 
 function ensureDb() {
@@ -69,11 +68,13 @@ function toRow(r: typeof identities.$inferSelect): IdentityRow {
 
 export async function listIdentities(projectId: string): Promise<IdentityRow[]> {
   const db = ensureDb();
-  // project-owned + shared (project_id NULL) identities both show in a project.
+  // multi-project: identities linked to projectId via pivot identity_projects
+  // (home project_id giữ làm fallback cho hàng chưa có pivot — sau backfill thì đã đủ).
+  const linked = db.select({ id: identityProjects.identityId }).from(identityProjects).where(eq(identityProjects.projectId, projectId));
   const rows = await db
     .select()
     .from(identities)
-    .where(or(eq(identities.projectId, projectId), isNull(identities.projectId)))
+    .where(or(inArray(identities.id, linked), eq(identities.projectId, projectId)))
     .orderBy(desc(identities.updatedAt));
   return rows.map(toRow);
 }
@@ -91,10 +92,8 @@ export async function createIdentity(projectId: string | null, input: IdentityIn
   if (!name) throw new Error('name required');
   const pw = input.password ? String(input.password) : '';
   const passwordEnc = pw ? await encryptValue(pw) : null;
-  // shared persona → project_id NULL (shows in every project).
-  const ownerProjectId = input.shared ? null : projectId;
   const inserted = await db.insert(identities).values({
-    projectId: ownerProjectId,
+    projectId,                          // home/primary project (scalar, đồng bộ pivot)
     name,
     kind: input.kind === 'brand' ? 'brand' : 'seeding',
     handleBase: input.handleBase ?? '',
@@ -108,7 +107,11 @@ export async function createIdentity(projectId: string | null, input: IdentityIn
   }).returning({ id: identities.id });
   const row = inserted[0];
   if (!row) throw new Error('insert returned no row');
-  if (projectId) revalidatePath(`/p/${projectId}/identities`);
+  // pivot 'primary' cho home project (multi-project add từ studio/drawer).
+  if (projectId) {
+    await db.insert(identityProjects).values({ projectId, identityId: row.id, role: 'primary' }).onConflictDoNothing();
+    revalidatePath(`/p/${projectId}/identities`);
+  }
   return row.id;
 }
 
@@ -124,9 +127,7 @@ export async function updateIdentity(id: number, input: IdentityInput): Promise<
   if (input.avatarUrl !== undefined) patch.avatarUrl = input.avatarUrl;
   if (input.persona !== undefined) patch.persona = input.persona;
   if (input.customFields !== undefined) patch.customFields = input.customFields;
-  // ponytail: only supports flipping TO shared (project_id NULL). To re-scope a shared
-  // identity back to one project, pass a projectId — add when actually needed.
-  if (input.shared === true) patch.projectId = null;
+  // project membership = pivot identity_projects (setIdentityProjects), KHÔNG ở đây.
   if (input.password !== undefined) {
     const pw = String(input.password);
     patch.passwordEnc = pw ? await encryptValue(pw) : null;

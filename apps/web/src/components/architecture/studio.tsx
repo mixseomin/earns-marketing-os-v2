@@ -860,6 +860,65 @@ function ProjectCell({ ids, projMap, onOpen }: { ids: string[]; projMap: Map<str
   );
 }
 
+// identity row: project cell EDITABLE inline — toggle nhiều project (pivot
+// identity_projects) NGAY trong table. Pattern span+portal như ProjectCell vì
+// row là <button> (ko lồng <button>); checkbox nằm trong portal = ngoài row button.
+function IdentityProjectsCell({ identityId, ids, projMap, onOpen }: { identityId: number; ids: string[]; projMap: Map<string, string>; onOpen: (id: string) => void }) {
+  const [sel, setSel] = useState<string[]>(ids);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const idsKey = ids.join(',');
+  useEffect(() => { setSel(ids); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [idsKey]);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, [open]);
+  const names = sel.map((id) => projMap.get(id) || id);
+  const all = [...projMap.entries()];
+  const openEditor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setPos({ x: r.left, y: r.bottom + 4 });
+    setOpen(true);
+  };
+  const toggle = (pid: string) => {
+    const next = sel.includes(pid) ? sel.filter((x) => x !== pid) : [...sel, pid];
+    setSel(next); setBusy(true);
+    setIdentityProjects(identityId, next).finally(() => setBusy(false));
+  };
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, minWidth: 0, alignItems: 'center' }}>
+      {sel.length === 0
+        ? <span style={{ color: 'var(--fg-4)' }}>—</span>
+        : <span role="link" title={names.join(', ')} onClick={(e) => { e.stopPropagation(); onOpen(String(sel[0])); }}
+            style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline dotted', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {names[0]}{sel.length > 1 ? ` +${sel.length - 1}` : ''}</span>}
+      <span role="button" onClick={openEditor} title="Sửa project dùng persona này"
+        style={{ color: 'var(--fg-3)', cursor: 'pointer', flexShrink: 0, fontSize: 11 }}>✎</span>
+      {open && pos && createPortal(
+        <>
+          <div onMouseDown={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', minWidth: 190, maxHeight: 300, overflowY: 'auto', padding: 6 }}>
+            <div style={{ fontSize: 9.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '2px 4px 6px' }}>Persona dùng ở project{busy ? ' · lưu…' : ''}</div>
+            {all.map(([id, name]) => {
+              const on = sel.includes(id);
+              return (
+                <label key={id} onMouseDown={(e) => e.stopPropagation()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px', borderRadius: 4, cursor: 'pointer', background: on ? 'var(--accent-soft)' : 'transparent', fontSize: 11.5 }}>
+                  <input type="checkbox" checked={on} onChange={() => toggle(id)} style={{ accentColor: 'var(--accent)', flexShrink: 0 }} />
+                  <span style={{ flex: 1, color: on ? 'var(--accent)' : 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: on ? 600 : 400 }}>{name}</span>
+                </label>
+              );
+            })}
+          </div>
+        </>, document.body)}
+    </span>
+  );
+}
+
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
 function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
@@ -983,7 +1042,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const open = (it: InstanceRef) => {
     // identity: mở drawer EDITABLE (IdentityDetail) thay vì InstanceDetail read-only chung.
     if (obj.key === 'identity') {
-      openSub({ title: it.label || `identity #${it.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={Number(it.id)} projectId={projectId} />, route: { t: 'identity', id: Number(it.id) } });
+      openSub({ title: it.label || `identity #${it.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={Number(it.id)} />, route: { t: 'identity', id: Number(it.id) } });
       return;
     }
     openSub({
@@ -1143,6 +1202,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
                     ) : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
+                      // identity: cell editable (toggle nhiều project inline). Khác: read-only.
+                      if (obj.key === 'identity') return <IdentityProjectsCell identityId={Number(it.id)} ids={ids} projMap={projMap} onOpen={openProj} />;
                       if (!ids.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
                       return <ProjectCell ids={ids} projMap={projMap} onOpen={openProj} />;
                     })() : (
@@ -2938,10 +2999,12 @@ function ObjPeek({ objKey }: { objKey: string }) {
   );
 }
 
-function IdentityDetail({ id, projectId }: { id: number; projectId?: string }) {
+function IdentityDetail({ id }: { id: number }) {
   const [d, setD] = useState<IdentityDetailData | null | 'loading'>('loading');
   const [form, setForm] = useState<{ name: string; kind: string; handleBase: string; email: string; displayName: string; bio: string } | null>(null);
-  const [shared, setShared] = useState(false); // project_id === null
+  const [projSel, setProjSel] = useState<string[]>([]);
+  const [projSel0, setProjSel0] = useState<string[]>([]); // initial set (dirty compare)
+  const [allProj, setAllProj] = useState<Array<{ id: string; name: string; emoji: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -2950,19 +3013,26 @@ function IdentityDetail({ id, projectId }: { id: number; projectId?: string }) {
     getIdentity(id).then((r) => {
       if (dead) return;
       setD(r ?? null);
-      if (r) { setForm({ name: r.name || '', kind: r.kind || '', handleBase: r.handleBase || '', email: r.email || '', displayName: r.displayName || '', bio: r.bio || '' }); setShared(r.projectId === null); }
+      if (r) setForm({ name: r.name || '', kind: r.kind || '', handleBase: r.handleBase || '', email: r.email || '', displayName: r.displayName || '', bio: r.bio || '' });
+    });
+    identityProjectsPanel(id).then((p) => {
+      if (dead) return;
+      const cur = p.participations.map((x) => x.projectId);
+      setProjSel(cur); setProjSel0(cur); setAllProj(p.allProjects);
     });
     return () => { dead = true; };
   }, [id]);
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
   if (!d || !form) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>identity không tìm thấy.</div>;
-  const dirty = !!d && (form.name !== (d.name || '') || form.kind !== (d.kind || '') || form.handleBase !== (d.handleBase || '') || form.email !== (d.email || '') || form.displayName !== (d.displayName || '') || form.bio !== (d.bio || '') || shared !== (d.projectId === null));
+  const projDirty = projSel.slice().sort().join(',') !== projSel0.slice().sort().join(',');
+  const dirty = !!d && (form.name !== (d.name || '') || form.kind !== (d.kind || '') || form.handleBase !== (d.handleBase || '') || form.email !== (d.email || '') || form.displayName !== (d.displayName || '') || form.bio !== (d.bio || '') || projDirty);
   const save = async () => {
     setSaving(true); setErr(null);
-    const res = await updateIdentity(id, { name: form.name, kind: form.kind, handleBase: form.handleBase, email: form.email, displayName: form.displayName, bio: form.bio, shared, projectId });
+    const res = await updateIdentity(id, { name: form.name, kind: form.kind, handleBase: form.handleBase, email: form.email, displayName: form.displayName, bio: form.bio });
+    const res2 = projDirty ? await setIdentityProjects(id, projSel) : { ok: true as const };
     setSaving(false);
-    if (res.ok) { setD({ ...d, ...form, projectId: shared ? null : (projectId ?? d.projectId) }); setSaved(true); setTimeout(() => setSaved(false), 1800); }
-    else setErr(res.error || 'save failed');
+    if (res.ok && res2.ok) { setD({ ...d, ...form }); setProjSel0(projSel); setSaved(true); setTimeout(() => setSaved(false), 1800); }
+    else setErr(res.error || res2.error || 'save failed');
   };
   const inp: CSSProperties = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, padding: '5px 8px', color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontSize: 11.5, boxSizing: 'border-box' };
   const lbl: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -2978,9 +3048,7 @@ function IdentityDetail({ id, projectId }: { id: number; projectId?: string }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 10 }}>
         <span>#{d.id}</span>
-        {shared
-          ? <span style={{ fontWeight: 700, padding: '0 5px', borderRadius: 4, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent)' }}>SHARED · all projects</span>
-          : d.projectId && <span>· project <b style={{ color: 'var(--fg-2)' }}>{d.projectId}</b></span>}
+        <span style={{ fontWeight: 700, padding: '0 5px', borderRadius: 4, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent)' }}>{projSel.length} project{projSel.length === 1 ? '' : 's'}</span>
         <span style={{ marginLeft: 'auto', color: d.hasPassword ? 'var(--ok)' : 'var(--fg-4)' }}>{d.hasPassword ? '🔒 password set' : '○ no password'}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
@@ -2992,14 +3060,24 @@ function IdentityDetail({ id, projectId }: { id: number; projectId?: string }) {
       {field('displayName', 'display name (on-site)')}
       {field('bio', 'bio', { area: true })}
 
-      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '4px 0 10px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)', cursor: 'pointer' }}>
-        <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} style={{ marginTop: 1 }} />
-        <span><b style={{ color: 'var(--accent)' }}>Shared</b> — dùng chung cho MỌI project (persona toàn portfolio).{' '}
-          {shared
-            ? <span style={{ color: 'var(--fg-3)' }}>Bỏ tick → gán về project {projectId ? <b>{projectId}</b> : 'hiện tại'}.</span>
-            : <span style={{ color: 'var(--fg-3)' }}>Hiện chỉ project này.</span>}
-        </span>
-      </label>
+      {/* Multi-project: 1 persona dùng cho NHIỀU project (pivot identity_projects).
+          Component MultiSelect chuẩn (portal — tránh clip trong drawer). */}
+      <div style={{ marginBottom: 11 }}>
+        <label style={lbl}>dùng ở project (chọn nhiều)</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MultiSelect<string>
+            label="chọn project"
+            options={allProj.map((p) => ({ value: p.id, label: (p.emoji ? p.emoji + ' ' : '') + p.name }))}
+            selected={projSel}
+            onChange={setProjSel}
+            portal
+            popupWidth={250}
+          />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)' }}>
+            {projSel.length === 0 ? 'chưa gán project nào' : `persona hiện ở ${projSel.length} project`}
+          </span>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2, marginBottom: 12 }}>
         <button onClick={save} disabled={!dirty || saving} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 6, cursor: !dirty || saving ? 'default' : 'pointer', border: '1px solid var(--accent)', color: dirty && !saving ? 'var(--bg-1)' : 'var(--fg-4)', background: dirty && !saving ? 'var(--accent)' : 'transparent', opacity: !dirty && !saving ? 0.6 : 1 }}>{saving ? 'saving…' : 'Save'}</button>

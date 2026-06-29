@@ -75,7 +75,7 @@ export async function listInstances(objectKey: string, projectId?: string, paren
 // listInstances tops out at 400 for the picker; the node drawer needs to walk
 // ALL rows (accounts can be huge) → page + text filter + total count.
 export interface BrowseRow extends InstanceRef { cols: Record<string, unknown> }
-export interface InstancePage { rows: BrowseRow[]; total: number }
+export interface InstancePage { rows: BrowseRow[]; total: number; facets?: Record<string, { value: string; count: number }[]> }
 
 // real columns of a table → used to validate browseCols so a spec typo just drops the
 // column instead of throwing (which would silently empty the whole table).
@@ -90,7 +90,7 @@ async function tableColumns(table: string): Promise<Set<string>> {
 
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'empty' | 'partial' | 'full' | 'broken' } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'empty' | 'partial' | 'full' | 'broken'; filters?: Record<string, string[]>; facetCols?: string[] } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -209,7 +209,16 @@ export async function browseInstances(
     else if (opts.flt === 'broken') conds.push(sql.raw(brokenEx));
     else conds.push(sql.raw(missingBody));   // 'missing' legacy
   }
+  // generic per-column value filters (categorical cols). facets reflect the scope BEFORE these.
+  const facetConds = conds.slice();
+  if (opts.filters) {
+    for (const [col, vals] of Object.entries(opts.filters)) {
+      if (!vals?.length || !/^[a-z_][a-z0-9_]*$/.test(col) || !validCols.has(col) || reserved.has(col)) continue;
+      conds.push(sql`(${sql.raw('t.' + ident(col))})::text IN (${sql.join(vals.map((v) => sql`${v}`), sql`, `)})`);
+    }
+  }
   const whereSql = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  const facetWhereSql = facetConds.length ? sql`WHERE ${sql.join(facetConds, sql` AND `)}` : sql``;
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
   const offset = Math.max(opts.offset ?? 0, 0);
 
@@ -247,7 +256,16 @@ export async function browseInstances(
       return { id: String(r.id), label: (r.label as string) || String(r.id), sub: (r.sub as string) || undefined, cols };
     });
     const total = (countRes as unknown as Array<{ n: number }>)[0]?.n ?? rows.length;
-    return { rows, total };
+    // facets: distinct values + counts per requested categorical column (scope = base, ignores its own filter).
+    const facets: Record<string, { value: string; count: number }[]> = {};
+    const fcols = (opts.facetCols || []).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c) && validCols.has(c) && !reserved.has(c));
+    if (fcols.length) {
+      await Promise.all(fcols.map(async (c) => {
+        const fr = await db.execute(sql`SELECT (${sql.raw('t.' + ident(c))})::text AS v, count(*)::int AS n FROM ${sql.raw(table)} t ${joinSql} ${facetWhereSql} GROUP BY 1 ORDER BY n DESC NULLS LAST LIMIT 50`);
+        facets[c] = (fr as unknown as Array<{ v: string | null; n: number }>).map((x) => ({ value: String(x.v ?? ''), count: Number(x.n) })).filter((x) => x.value !== '' && x.value !== 'null');
+      }));
+    }
+    return { rows, total, facets };
   } catch {
     return { rows: [], total: 0 };
   }

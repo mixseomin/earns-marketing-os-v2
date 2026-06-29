@@ -944,8 +944,12 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(sess0.sort && sess0.sort.col ? sess0.sort : null);
   const hasMissingCol = (obj.browseCols || []).some((c) => c.col === '__missingSel');
   const [flt, setFlt] = useState<'empty' | 'partial' | 'full' | 'broken' | null>(sess0.flt || null);
+  // Per-column value filters (badge/site cols) + facets (distinct values from server).
+  const [colFilters, setColFilters] = useState<Record<string, string[]>>(sess0.colFilters && typeof sess0.colFilters === 'object' ? sess0.colFilters : {});
+  const [facets, setFacets] = useState<Record<string, { value: string; count: number }[]>>({});
+  const cfSig = JSON.stringify(colFilters);
   // Lưu phiên mỗi khi 1 trục thay đổi (page bỏ qua — reset effect dưới luôn về 0 khi mount).
-  useEffect(() => { try { localStorage.setItem(sKey, JSON.stringify({ q, sort, flt, projectId, parentId })); } catch {} }, [sKey, q, sort, flt, projectId, parentId]);
+  useEffect(() => { try { localStorage.setItem(sKey, JSON.stringify({ q, sort, flt, projectId, parentId, colFilters })); } catch {} }, [sKey, q, sort, flt, projectId, parentId, cfSig]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
   // Column GROUPS (Info/Posting/Selectors/DOM) — colored bands + show/hide như SEO overview.
   const bc = obj.browseCols || [];
@@ -958,6 +962,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     bc.length ? bc.filter((c) => !c.group || !groupsOff.has(c.group)).map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link, group: c.group }))
       : [{ key: '__sub', label: parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object).toLowerCase() : 'ctx' }];
   const colSig = dataCols.map((c) => c.key).join('|');   // đổi tập cột (toggle group) → nạp lại widths
+  // Cột lọc được = categorical (badge) + site (project_id scalar). MultiSelect facet-driven.
+  const filterCols = dataCols.filter((c) => c.kind === 'badge' || c.key === 'project_id');
   // Resize cột — DEFAULT thu gọn SÁT NỘI DUNG: px nhỏ theo loại cột ngắn; cột TEXT DÀI = null →
   // minmax(150px,1fr) tự do (fill remaining). widths[i]: number=px(user resize) | null=token co giãn.
   // Thứ tự [label, ...dataCols, pk]. Nhớ localStorage/node.
@@ -993,7 +999,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
-  useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt]);
+  useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt, cfSig]);
   // 1 drawer sửa field → patch row tương ứng trong bảng NGAY (status/label/cols) — ko refetch.
   useEffect(() => {
     const h = (e: Event) => {
@@ -1015,9 +1021,11 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       cols: (obj.browseCols || []).map((c) => c.col),
       sort: sort || undefined,
       flt: flt || undefined,
-    }).then((r) => { if (!dead) setData(r); }).finally(() => { if (!dead) setLoading(false); });
+      filters: colFilters,
+      facetCols: filterCols.map((c) => c.key),
+    }).then((r) => { if (!dead) { setData(r); setFacets(r.facets || {}); } }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt]);
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt, cfSig, colSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const from = data.total === 0 ? 0 : page * PAGE + 1;
@@ -1102,6 +1110,24 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
           </div>
         )}
       </div>
+
+      {/* per-column filters — MultiSelect (facet-driven) cho cột badge + site. Áp mọi object. */}
+      {filterCols.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>lọc:</span>
+          {filterCols.map((c) => {
+            const opts = (facets[c.key] || []).map((f) => ({ value: f.value, label: c.key === 'project_id' ? (projMap.get(f.value) || f.value) : f.value, count: f.count }));
+            return (
+              <MultiSelect<string> key={c.key} label={c.label} options={opts} selected={colFilters[c.key] || []} variant="chip" portal
+                onChange={(vals) => setColFilters((prev) => { const n = { ...prev }; if (vals.length) n[c.key] = vals; else delete n[c.key]; return n; })} />
+            );
+          })}
+          {Object.keys(colFilters).length > 0 && (
+            <button type="button" onClick={() => setColFilters({})} title="Bỏ tất cả filter"
+              style={{ padding: '2px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10, background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-3)' }}>× bỏ lọc</button>
+          )}
+        </div>
+      )}
 
       {/* count + range */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 6 }}>

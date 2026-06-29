@@ -330,23 +330,32 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                 <Fragment key={g.name}>
                   <tr style={{ background: 'rgba(0,229,255,0.06)' }}>
                     <td colSpan={HEADERS.length}
-                      style={{ padding: '5px 10px', fontSize: 11.5, fontWeight: 700, borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
-                      {g.name}
-                      <span
-                        onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
-                        onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
-                        onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
-                        onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
-                        title="strategy rules & expected metrics"
-                        style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
-                      <span style={{ marginLeft: 8, fontSize: 10, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }}>{g.open} open</span>
-                      {g.open > 0 ? <span style={{ marginLeft: 6, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }} title="floating P&L of open positions">{fmtPnlUsd(g.float)} float</span> : null}
-                      {g.open > 0 || g.closed > 0
-                        ? <span style={{ marginLeft: 8, fontSize: 10, color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }} title={`realized P&L of ${g.closed} trade(s) closed in the selected window (${range})`}>P&L{range !== 'All' ? ` (${range})` : ''} {fmtPnlUsd(g.net)}{g.closed > 0
-                          ? <span onClick={() => setExpanded((prev) => { const n = new Set(prev); n.has(g.name) ? n.delete(g.name) : n.add(g.name); return n; })} title="show/hide these closed trades" style={{ color: 'var(--muted)', opacity: 0.85, fontWeight: 400, cursor: 'pointer', marginLeft: 4 }}> · {g.closed} closed {expanded.has(g.name) ? '▾' : '▸'}</span>
-                          : null}</span>
-                        : <span style={{ marginLeft: 8, fontSize: 9.5, color: 'var(--muted)', opacity: 0.7 }}>warming · no trades yet</span>}
-                      {metaByStrategy[g.name]?.fwd?.equity != null ? <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--muted)' }} title="all-time live equity since this sleeve started ($10k base)">💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></span> : null}
+                      style={{ padding: '5px 10px', borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, fontWeight: 700 }}>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {g.name}
+                          <span
+                            onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
+                            onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                            onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
+                            onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
+                            title="strategy rules & expected metrics"
+                            style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
+                        </span>
+                        {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
+                        <span style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
+                        <span style={{ width: 74, textAlign: 'right', fontSize: 9.5, color: 'var(--muted)', opacity: 0.75 }} title="floating P&L of open positions">{g.open > 0 ? `${fmtPnlUsd(g.float)} float` : ''}</span>
+                        <span style={{ width: 130, textAlign: 'right', fontSize: 10 }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>
+                          {g.open > 0 || g.closed > 0
+                            ? <><span style={{ color: 'var(--muted)', opacity: 0.6, fontWeight: 400 }}>P&L </span><span style={{ color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(g.net)}</span>{g.closed > 0
+                              ? <span onClick={() => setExpanded((prev) => { const n = new Set(prev); n.has(g.name) ? n.delete(g.name) : n.add(g.name); return n; })} title="show/hide these closed trades" style={{ color: 'var(--muted)', opacity: 0.85, fontWeight: 400, cursor: 'pointer' }}> ·{g.closed}cl{expanded.has(g.name) ? '▾' : '▸'}</span>
+                              : null}</>
+                            : <span style={{ color: 'var(--muted)', opacity: 0.7, fontWeight: 400 }}>warming</span>}
+                        </span>
+                        <span style={{ width: 120, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="all-time live equity since this sleeve started ($10k base)">
+                          {metaByStrategy[g.name]?.fwd?.equity != null ? <>💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></> : ''}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                   {(expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [String(t.entryTime) + t.symbol + String(t.exitTime), t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}

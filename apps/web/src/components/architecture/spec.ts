@@ -661,6 +661,7 @@ export const OBJECTS: ArchObject[] = [
       { col: 'da', label: 'DA' },                                     // chỉ số: domain authority
       { col: 'dofollow', label: 'F', kind: 'badge' },                 // dofollow | nofollow | mixed
       { col: 'traffic', label: 'traffic', kind: 'badge' },            // high | medium | low
+      { col: 'has_draft', label: '📋', kind: 'badge' },               // 'ready' = đã có nội dung paste-ready (xem drawer)
       { col: 'site_status', label: 'site · status', kind: 'sitestatus' }, // Option B: pill mỗi site, click đổi status + dán URL
       { col: 'status', label: 'overall', kind: 'badge' },             // tổng (filter/sort) — chi tiết per-site ở pill bên trái
       { col: 'publish_url', label: 'live ↗', kind: 'url' },           // backlink đã đặt được
@@ -678,6 +679,7 @@ export const OBJECTS: ArchObject[] = [
       { name: 'mechanism', col: 'mechanism', type: 'text', note: 'cách đặt link (tóm tắt)' },
       { name: 'status', col: 'status', type: 'text', note: 'pending|claimed|completed|verified' },
       { name: 'instructions', col: 'instructions', type: 'text', note: 'CÁCH BUILD từng bước' },
+      { name: 'draft', col: 'draft', type: 'text', note: '📋 NỘI DUNG paste-ready (English) — copy + đăng' },
       { name: 'publishUrl', col: 'publish_url', type: 'text', note: 'URL backlink live (khi xong)' },
       { name: 'claimedBy', col: 'claimed_by', type: 'text', note: 'nhân sự đang làm' },
       { name: 'screenshotUrl', col: 'screenshot_url', type: 'text' },
@@ -1043,7 +1045,7 @@ export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
 
 // Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
 // → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status', 'site_url']);
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status', 'site_url', 'draft', 'has_draft']);
 const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
 export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
   const obj = BINDABLE_TABLES[objectKey];

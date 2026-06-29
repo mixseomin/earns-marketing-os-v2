@@ -53,10 +53,10 @@ const ENTRY_RULES: Record<string, string> = {
     '• Ra: khi giá đóng cửa < EMA100 (về đường giữa)\n' +
     '• Chia đều 1/12, không short. ⚠️ Edge có tính chu kỳ — đang forward-test xem còn sống.',
   'Crypto drift basket':
-    '• 12 coin, khung H1, long-only (drift-grind)\n' +
-    '• Vào (LONG): khi giá đóng cửa > SMA200 của coin đó\n' +
-    '• Ra: khi giá đóng cửa < SMA200 (về flat, ngồi ngoài downtrend)\n' +
-    '• Vol-target 20%/coin, chia đều 12 sleeve. Chỉ long, không short.',
+    '• 12 coin × 4 tốc-độ SMA[100/200/400/800] = 48 sleeve, H1, long-only (multi-speed)\n' +
+    '• Vào (LONG): mỗi sleeve long khi giá > SMA(tốc-độ đó); 1 coin có thể có 1-4 sleeve cùng long\n' +
+    '• Ra: sleeve nào thoát khi giá < SMA của nó (về flat, ngồi ngoài downtrend)\n' +
+    '• Vol-target 20%, chia đều 1/48. Đa tốc-độ → DD giảm ~40% so với SMA200 đơn. Chỉ long.',
   'Intraday index-drift basket':
     '• Rổ 8 chỉ số cổ phiếu (SP500, NAS100, US30, DAX, FRA40, UK100, JPN225, AUS200)\n' +
     '• Vào (LONG): mỗi sáng, nếu giá còn trên SMA100 → mua ở open phiên\n' +

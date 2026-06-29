@@ -651,6 +651,35 @@ export const OBJECTS: ArchObject[] = [
     ],
   },
   {
+    key: 'backlink', label: 'Backlink', group: 'resource',
+    table: 'backlinks', pk: 'id', labelCol: 'title', projectScoped: true,
+    desc: 'Backlink command center — TẤT CẢ task đặt backlink ($0, traffic-first) gom 1 chỗ, cross-project. View trên human_tasks (platform_key=backlink): mỗi hàng = 1 nguồn + cách đặt link + status + URL live. project = SITE (militarycalc/govcalcs/visagps…). Nguồn + rank + ready-copy đầy đủ: resources/new-backlink-sources-2026-06-30.md + self-serve-backlinks.md. Drawer = instructions chi tiết từng bước cho nhân sự; nhân sự claim/làm tại mos2.on.tc/p/<site> rồi dán link live + screenshot.',
+    picker: { crossProject: true, subExpr: 't.status' },
+    browseCols: [
+      { col: 'project_id', label: 'site', kind: 'project' },
+      { col: 'applies_to', label: 'áp dụng cho', kind: 'project' },   // đề xuất project (derived, read-only)
+      { col: 'status', label: 'status', kind: 'badge' },
+      { col: 'publish_url', label: 'live link' },
+      { col: 'claimed_by', label: 'who' },
+      { col: 'created_at', label: 'added', kind: 'time' },
+    ],
+    attrs: [
+      { name: 'id', col: 'id', type: 'bigint', pk: true },
+      { name: 'title', col: 'title', type: 'text', note: 'nguồn + hành động' },
+      { name: 'projectId', col: 'project_id', type: 'fk', fk: 'project', note: '= site nhận backlink' },
+      { name: 'status', col: 'status', type: 'text', note: 'pending|claimed|completed|verified' },
+      { name: 'instructions', col: 'instructions', type: 'text', note: 'cách đặt link từng bước' },
+      { name: 'publishUrl', col: 'publish_url', type: 'text', note: 'URL backlink live (khi xong)' },
+      { name: 'claimedBy', col: 'claimed_by', type: 'text', note: 'nhân sự đang làm' },
+      { name: 'screenshotUrl', col: 'screenshot_url', type: 'text' },
+      { name: 'notes', col: 'notes', type: 'text' },
+    ],
+    relations: [
+      { to: 'project', kind: 'fk', via: 'project_id (= site)' },
+    ],
+    routes: [],
+  },
+  {
     key: 'people', label: 'Contact · per-project (them)', group: 'scene',
     table: 'people', pk: 'id', labelCol: 'handle', projectScoped: true,
     desc: 'HỌ (WHO-THEM), mức PER-PROJECT: quan hệ của TA với 1 người trong 1 project (familiarity 0-100 + status + interaction_count). 1 người xuất hiện ở N project → N dòng `people`, tất cả trỏ về 1 "Contact · global" (sceneIdentity) qua identity_id. Đây là bản ghi LÀM VIỆC per-project; global là bản gộp danh bạ.',
@@ -1005,7 +1034,7 @@ export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
 
 // Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
 // → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at']);
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to']);
 const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
 export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
   const obj = BINDABLE_TABLES[objectKey];

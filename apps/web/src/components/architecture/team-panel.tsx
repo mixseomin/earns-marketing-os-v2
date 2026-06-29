@@ -1,6 +1,6 @@
 'use client';
 import { Fragment, useEffect, useState, type CSSProperties } from 'react';
-import { listTeamMembers, createTeamMember, updateTeamMember, type TeamMemberRow, type MemberRole, type Specialty } from '@/lib/actions/team';
+import { listTeamMembers, createTeamMember, updateTeamMember, setMemberExtStatus, type TeamMemberRow, type MemberRole, type Specialty } from '@/lib/actions/team';
 import { getMemberAssignments, assignAccountsToMember, setProjectMembership, listProjectAccountsForAssignment, listAllProjectsForAssignment, setEntityOwner, projectAccountCounts, type MemberAssignmentSummary } from '@/lib/actions/assignments';
 import { listBrowserProfiles, listProxies, type BrowserProfileRow, type ProxyRow } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
@@ -10,7 +10,15 @@ import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon'
 // Drive từ getMemberAssignments (membership THẬT). Trình bày CHIP + dropdown-thêm, KHÔNG list phẳng.
 const ROLES = ['admin', 'operator', 'viewer'] as const;
 const SPECIALTIES = ['founder', 'writer', 'community', 'designer', 'video', 'outreach', 'analytics', 'ops', 'marketing-lead', 'other'] as const;
-type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean };
+// Bàn giao Crew ext (thủ công tới khi token per-user của Pha 2 có). login/last-seen/usage thật của ext
+// sẽ derive từ ext_call_log khi Pha 2 ship; giờ surface tín hiệu có thật: login web + hoạt động task.
+const EXT_STATES = ['none', 'handed', 'active', 'revoked'] as const;
+const EXT_META: Record<string, { label: string; color: string }> = {
+  none: { label: 'chưa cấp', color: 'var(--fg-4)' }, handed: { label: 'đã giao', color: 'var(--neon-cyan)' },
+  active: { label: 'đang dùng', color: 'var(--neon-lime)' }, revoked: { label: 'thu hồi', color: 'var(--bad)' },
+};
+const extMeta = (s: string | null | undefined) => EXT_META[s || 'none'] ?? EXT_META.none!;
+type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean; extStatus: string | null; lastLoginAt: string | null };
 type EditForm = { name: string; email: string; role: string; specialty: string; active: boolean };
 
 export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
@@ -37,7 +45,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const grouped: Grouped[] = (() => {
     if (!rows) return [];
     const m = new Map<number, Grouped>();
-    for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active }); }
+    for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active, extStatus: r.extStatus, lastLoginAt: r.lastLoginAt }); }
     return [...m.values()];
   })();
 
@@ -52,6 +60,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
 
   const addMember = async () => { if (!nu.email.trim() || !nu.name.trim()) return; setBusy(true); await createTeamMember({ email: nu.email.trim(), name: nu.name.trim(), role: nu.role as 'operator' }); setNu({ email: '', name: '', role: 'operator' }); listTeamMembers().then(setRows); setBusy(false); };
   const saveMember = async (uid: number) => { const f = ef[uid]; if (!f || !f.name.trim() || !f.email.trim()) return; setBusy(true); await updateTeamMember(uid, { name: f.name.trim(), email: f.email.trim(), role: f.role as MemberRole, specialty: f.specialty as Specialty, active: f.active }); await new Promise<void>((r) => listTeamMembers().then((x) => { setRows(x); r(); })); setBusy(false); };
+  const saveExt = async (uid: number, status: string) => { setBusy(true); await setMemberExtStatus(uid, status); await new Promise<void>((r) => listTeamMembers().then((x) => { setRows(x); r(); })); setBusy(false); };
   const addProject = async (uid: string | number, pid: string) => { if (!pid) return; setBusy(true); await setProjectMembership(Number(uid), pid, true, 'operator'); loadDetail(Number(uid)); setBusy(false); };
   const removeProject = async (uid: number, pid: string) => { setBusy(true); await setProjectMembership(uid, pid, false); loadDetail(uid); setBusy(false); };
   const openMgr = async (uid: number, projectId: string) => { setBusy(true); const accts = await listProjectAccountsForAssignment(projectId); setMgr({ userId: uid, projectId, accts, checked: new Set(accts.filter((a) => a.ownerUserId === uid).map((a) => a.id)) }); setBusy(false); };
@@ -81,7 +90,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={{ ...th, width: 22 }} /><th style={th}>Tên</th><th style={th}>Email</th><th style={th}>Role</th><th style={th}>Chuyên</th></tr></thead>
+        <thead><tr><th style={{ ...th, width: 22 }} /><th style={th}>Tên</th><th style={th}>Email</th><th style={th}>Role</th><th style={th}>Chuyên</th><th style={th}>Ext</th></tr></thead>
         <tbody>
           {grouped.map((g) => {
             const isOpen = open === g.userId;
@@ -96,9 +105,10 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                   <td style={{ ...td, color: 'var(--fg-3)' }}>{g.email}</td>
                   <td style={td}><span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${g.role === 'admin' ? 'var(--neon-violet)' : 'var(--bg-3)'}`, color: g.role === 'admin' ? 'var(--neon-violet)' : 'var(--fg-2)' }}>{g.role}</span></td>
                   <td style={{ ...td, color: 'var(--fg-2)' }}>{g.specialty}</td>
+                  <td style={td}>{(() => { const m = extMeta(g.extStatus); return <span title="trạng thái bàn giao Crew ext" style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, border: `1px solid ${m.color}`, color: m.color }}>{m.label}</span>; })()}</td>
                 </tr>
                 {isOpen && (
-                  <tr><td colSpan={5} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}>
+                  <tr><td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--bg-3)' }}>
                     <div style={{ padding: '12px 14px 14px 34px', background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {!dd ? <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang tải phân công…</span> : (
                         <>
@@ -112,6 +122,9 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                               <select value={f.specialty} onChange={(e) => set({ specialty: e.target.value })} title="chuyên môn" style={inp}>{SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
                               <label style={{ display: 'flex', gap: 4, alignItems: 'center', color: 'var(--fg-2)', cursor: 'pointer' }}><input type="checkbox" checked={f.active} onChange={(e) => set({ active: e.target.checked })} /> active</label>
                               <button onClick={() => saveMember(g.userId)} disabled={busy || !f.name.trim() || !f.email.trim()} style={btn('var(--neon-lime)')}>Lưu</button>
+                              <span style={{ width: 1, height: 16, background: 'var(--bg-3)' }} />
+                              <span style={{ color: 'var(--fg-3)' }}>Ext:</span>
+                              <select value={g.extStatus ?? 'none'} onChange={(e) => saveExt(g.userId, e.target.value)} disabled={busy} title="bàn giao Crew ext" style={inp}>{EXT_STATES.map((s) => <option key={s} value={s}>{extMeta(s).label}</option>)}</select>
                             </div>
                           ); })()}
                           {/* HIỆU SUẤT: xong / tổng + 7 ngày + tỉ lệ + gần nhất */}
@@ -119,7 +132,12 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                             <span>✓ <b style={{ color: 'var(--neon-lime)' }}>{dd.doneTasks}</b>/{dd.totalTasks} xong{dd.totalTasks > 0 && <span style={{ color: 'var(--fg-3)' }}> ({Math.round((dd.doneTasks / dd.totalTasks) * 100)}%)</span>}</span>
                             <span><b style={{ color: 'var(--neon-cyan)' }}>{dd.done7d}</b> xong 7 ngày</span>
                             <span><b style={{ color: 'var(--neon-amber)' }}>{dd.pendingTasks}</b> chờ · <b style={{ color: 'var(--neon-cyan)' }}>{dd.inProgressTasks}</b> đang làm{dd.failedTasks > 0 && <span style={{ color: 'var(--bad)' }}> · {dd.failedTasks} fail</span>}</span>
-                            {dd.lastDone && <span style={{ color: 'var(--fg-3)' }}>gần nhất {new Date(dd.lastDone).toLocaleDateString('vi-VN')}</span>}
+                            {dd.lastDone && <span style={{ color: 'var(--fg-3)' }}>việc gần nhất {new Date(dd.lastDone).toLocaleDateString('vi-VN')}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            <span>🌐 Ext: <b style={{ color: extMeta(g.extStatus).color }}>{extMeta(g.extStatus).label}</b></span>
+                            <span>login web cuối: {g.lastLoginAt ? new Date(g.lastLoginAt).toLocaleString('vi-VN') : '—'}</span>
+                            <span style={{ color: 'var(--fg-4)' }}>· login/last-seen/usage thật của ext sẽ có khi ext bản nhân sự (Pha 2, token per-user) ship</span>
                           </div>
 
                           {/* PROJECT: chip + dropdown thêm (ko list phẳng 25 cái) */}

@@ -39,6 +39,7 @@ export interface TeamMemberRow {
   active: boolean;
   projectId: string | null;       // null = tenant-wide
   lastLoginAt: string | null;
+  extStatus: string | null;       // none|handed|active|revoked (bàn giao ext, thủ công)
   createdAt: string;
   // workload
   pendingTasksCount: number;
@@ -50,7 +51,7 @@ export async function listTeamMembers(): Promise<TeamMemberRow[]> {
   if (!db) return [];
   const rows = await db.execute(sql`
     SELECT m.id AS member_id, u.id AS user_id, u.email, u.name, u.avatar_url,
-           m.display_name, m.role, m.specialty, m.bio, m.active, m.project_id,
+           m.display_name, m.role, m.specialty, m.bio, m.active, m.project_id, m.ext_status,
            u.last_login_at, m.created_at,
            (SELECT COUNT(*)::int FROM human_tasks WHERE assigned_user_id = u.id AND status = 'pending') AS pending_count,
            (SELECT COUNT(*)::int FROM human_tasks WHERE assigned_user_id = u.id AND status IN ('claimed','in_progress')) AS in_progress_count
@@ -73,6 +74,7 @@ export async function listTeamMembers(): Promise<TeamMemberRow[]> {
     active: Boolean(r.active),
     projectId: (r.project_id as string | null) ?? null,
     lastLoginAt: toIso(r.last_login_at),
+    extStatus: (r.ext_status as string | null) ?? null,
     createdAt: toIso(r.created_at) ?? '',
     pendingTasksCount: Number(r.pending_count) || 0,
     inProgressTasksCount: Number(r.in_progress_count) || 0,
@@ -189,6 +191,19 @@ export async function updateTeamMember(userId: number, patch: Partial<MemberInpu
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+}
+
+// Bàn giao ext: đặt trạng thái thủ công (none|handed|active|revoked) trên member tenant-wide.
+const EXT_STATUSES = ['none', 'handed', 'active', 'revoked'];
+export async function setMemberExtStatus(userId: number, status: string): Promise<{ ok: boolean; error?: string }> {
+  const g = await adminGuard(); if (!g.ok) return g;
+  if (!EXT_STATUSES.includes(status)) return { ok: false, error: 'status không hợp lệ' };
+  const db = ensureDb();
+  await db.update(members)
+    .set({ extStatus: status, updatedAt: new Date() })
+    .where(and(eq(members.tenantId, TENANT), eq(members.userId, userId), sql`${members.projectId} IS NULL`));
+  revalidatePath('/team');
+  return { ok: true };
 }
 
 export async function archiveTeamMember(userId: number): Promise<{ ok: boolean; error?: string }> {

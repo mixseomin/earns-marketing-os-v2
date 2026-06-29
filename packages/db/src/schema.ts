@@ -1901,6 +1901,7 @@ export const members = pgTable(
     specialty: text('specialty'),                                        // writer | community | designer | video | outreach | analytics | ops | founder
     bio: text('bio'),                                                    // short bio for AI persona/voice
     active: boolean('active').notNull().default(true),
+    extStatus: text('ext_status'),                                       // none|handed|active|revoked — bàn giao Crew ext
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

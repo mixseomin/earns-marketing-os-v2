@@ -954,7 +954,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [groupsOff, setGroupsOff] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(gKey) || '[]') as string[]); } catch { return new Set(); } });
   const toggleGroup = (g: string) => setGroupsOff((prev) => { const n = new Set(prev); if (n.has(g)) n.delete(g); else n.add(g); try { localStorage.setItem(gKey, JSON.stringify([...n])); } catch {} return n; });
   // visible data columns = browseCols minus hidden groups (no-group cols always show).
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom'; link?: string; group?: BrowseGroup }[] =
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url'; link?: string; group?: BrowseGroup }[] =
     bc.length ? bc.filter((c) => !c.group || !groupsOff.has(c.group)).map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link, group: c.group }))
       : [{ key: '__sub', label: parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object).toLowerCase() : 'ctx' }];
   const colSig = dataCols.map((c) => c.key).join('|');   // đổi tập cột (toggle group) → nạp lại widths
@@ -971,7 +971,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     const wmap = loadWMap();
     const def = (key: string, kind?: string): number | null => {
       if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
-      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96;
+      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96; if (kind === 'url') return 124;
       if (kind === 'badge' || kind === 'unread') return 78; if (kind === 'dom') return 60;
       return 76;                                                              // compact
     };
@@ -1200,7 +1200,13 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                       return <span style={{ color: 'var(--warn)', fontWeight: 700 }} title={`✉ ${n} DOM sample chưa đọc — mở 1 sample để parse selector (mở = đánh dấu đã đọc)`}>✉ {n}</span>;
                     })() : dc.kind === 'time' ? (
                       <span title={fmtFull(v)} style={{ color: 'var(--fg-2)' }}>{relAgo(v)}</span>
-                    ) : dc.kind === 'project' ? (() => {
+                    ) : dc.kind === 'url' ? (() => {
+                      const u = String(v);
+                      if (!u || u === 'null') return <span style={{ color: 'var(--fg-4)' }}>—</span>;
+                      let host = u; try { host = new URL(u).hostname.replace(/^www\./, ''); } catch { /* keep raw */ }
+                      return <a href={u} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title={u}
+                        style={{ color: 'var(--accent)', textDecoration: 'underline dotted', display: 'inline-flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>↗ {host}</a>;
+                    })() : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
                       // identity: cell editable (toggle nhiều project inline). Khác: read-only.
                       if (obj.key === 'identity') return <IdentityProjectsCell identityId={Number(it.id)} ids={ids} projMap={projMap} onOpen={openProj} />;

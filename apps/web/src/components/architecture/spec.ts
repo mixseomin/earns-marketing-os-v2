@@ -76,7 +76,7 @@ export interface ArchObject {
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
   // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom'; link?: string; group?: BrowseGroup }[];
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url'; link?: string; group?: BrowseGroup }[];
   // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
   // projects an instance belongs to, not just the legacy scalar project_id.
   projectsVia?: { table: string; fkCol: string };
@@ -657,18 +657,27 @@ export const OBJECTS: ArchObject[] = [
     picker: { crossProject: true, subExpr: 't.status' },
     browseCols: [
       { col: 'project_id', label: 'site', kind: 'project' },
+      { col: 'source_url', label: 'nguồn ↗', kind: 'url' },          // đi ĐÂU để đặt backlink (clickable)
+      { col: 'da', label: 'DA' },                                     // chỉ số: domain authority
+      { col: 'dofollow', label: 'F', kind: 'badge' },                 // dofollow | nofollow | mixed
+      { col: 'traffic', label: 'traffic', kind: 'badge' },            // high | medium | low
       { col: 'applies_to', label: 'áp dụng cho', kind: 'project' },   // đề xuất project (derived, read-only)
-      { col: 'status', label: 'status', kind: 'badge' },
-      { col: 'publish_url', label: 'live link' },
-      { col: 'claimed_by', label: 'who' },
+      { col: 'status', label: 'status', kind: 'badge' },              // pending→claimed→completed→verified (sửa trong drawer)
+      { col: 'publish_url', label: 'live ↗', kind: 'url' },           // backlink đã đặt được
       { col: 'created_at', label: 'added', kind: 'time' },
     ],
     attrs: [
       { name: 'id', col: 'id', type: 'bigint', pk: true },
       { name: 'title', col: 'title', type: 'text', note: 'nguồn + hành động' },
       { name: 'projectId', col: 'project_id', type: 'fk', fk: 'project', note: '= site nhận backlink' },
+      { name: 'sourceUrl', col: 'source_url', type: 'text', note: 'LINK đi đâu để đặt backlink' },
+      { name: 'da', col: 'da', type: 'text', note: 'domain authority' },
+      { name: 'dofollow', col: 'dofollow', type: 'text', note: 'dofollow|nofollow|mixed' },
+      { name: 'traffic', col: 'traffic', type: 'text', note: 'high|medium|low' },
+      { name: 'rank', col: 'rank', type: 'text', note: 'ưu tiên 1(top)..4' },
+      { name: 'mechanism', col: 'mechanism', type: 'text', note: 'cách đặt link (tóm tắt)' },
       { name: 'status', col: 'status', type: 'text', note: 'pending|claimed|completed|verified' },
-      { name: 'instructions', col: 'instructions', type: 'text', note: 'cách đặt link từng bước' },
+      { name: 'instructions', col: 'instructions', type: 'text', note: 'CÁCH BUILD từng bước' },
       { name: 'publishUrl', col: 'publish_url', type: 'text', note: 'URL backlink live (khi xong)' },
       { name: 'claimedBy', col: 'claimed_by', type: 'text', note: 'nhân sự đang làm' },
       { name: 'screenshotUrl', col: 'screenshot_url', type: 'text' },
@@ -1034,7 +1043,7 @@ export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
 
 // Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
 // → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to']);
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status']);
 const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
 export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
   const obj = BINDABLE_TABLES[objectKey];

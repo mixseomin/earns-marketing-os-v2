@@ -1188,7 +1188,7 @@ export async function listIdentities(projectId?: string): Promise<IdentityRow[]>
     SELECT i.id, i.name, i.kind, i.handle_base, i.email, i.display_name, p.name AS project
     FROM identities i LEFT JOIN projects p ON p.id = i.project_id`;
   const rows = await db.execute(projectId
-    ? sql`${base} WHERE i.project_id = ${projectId} ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`
+    ? sql`${base} WHERE (i.project_id = ${projectId} OR i.project_id IS NULL) ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`
     : sql`${base} ORDER BY i.updated_at DESC NULLS LAST, i.id DESC`);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id), name: String(r.name ?? ''),
@@ -1217,7 +1217,9 @@ export async function getIdentity(id: number): Promise<IdentityDetailData | null
   };
 }
 
-export interface IdentityPatch { name?: string; kind?: string; handleBase?: string; email?: string; displayName?: string; bio?: string }
+// shared: true → project_id NULL (portfolio-wide). false → scope to projectId (the
+// studio's current project). undefined → leave project_id untouched.
+export interface IdentityPatch { name?: string; kind?: string; handleBase?: string; email?: string; displayName?: string; bio?: string; shared?: boolean; projectId?: string | null }
 export async function updateIdentity(id: number, patch: IdentityPatch): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
@@ -1233,6 +1235,11 @@ export async function updateIdentity(id: number, patch: IdentityPatch): Promise<
         bio = COALESCE(${patch.bio ?? null}, bio),
         updated_at = now()
       WHERE id = ${id}`);
+    // Separate statement because COALESCE can't set a column TO null (un-share).
+    if (patch.shared !== undefined) {
+      const pid = patch.shared ? null : (patch.projectId ?? null);
+      await db.execute(sql`UPDATE identities SET project_id = ${pid}, updated_at = now() WHERE id = ${id}`);
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

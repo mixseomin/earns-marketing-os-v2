@@ -982,7 +982,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const open = (it: InstanceRef) => {
     // identity: mở drawer EDITABLE (IdentityDetail) thay vì InstanceDetail read-only chung.
     if (obj.key === 'identity') {
-      openSub({ title: it.label || `identity #${it.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={Number(it.id)} />, route: { t: 'identity', id: Number(it.id) } });
+      openSub({ title: it.label || `identity #${it.id}`, sub: 'persona · view + edit', body: <IdentityDetail id={Number(it.id)} projectId={projectId} />, route: { t: 'identity', id: Number(it.id) } });
       return;
     }
     openSub({
@@ -2937,9 +2937,10 @@ function ObjPeek({ objKey }: { objKey: string }) {
   );
 }
 
-function IdentityDetail({ id }: { id: number }) {
+function IdentityDetail({ id, projectId }: { id: number; projectId?: string }) {
   const [d, setD] = useState<IdentityDetailData | null | 'loading'>('loading');
   const [form, setForm] = useState<{ name: string; kind: string; handleBase: string; email: string; displayName: string; bio: string } | null>(null);
+  const [shared, setShared] = useState(false); // project_id === null
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -2948,18 +2949,18 @@ function IdentityDetail({ id }: { id: number }) {
     getIdentity(id).then((r) => {
       if (dead) return;
       setD(r ?? null);
-      if (r) setForm({ name: r.name || '', kind: r.kind || '', handleBase: r.handleBase || '', email: r.email || '', displayName: r.displayName || '', bio: r.bio || '' });
+      if (r) { setForm({ name: r.name || '', kind: r.kind || '', handleBase: r.handleBase || '', email: r.email || '', displayName: r.displayName || '', bio: r.bio || '' }); setShared(r.projectId === null); }
     });
     return () => { dead = true; };
   }, [id]);
   if (d === 'loading') return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>;
   if (!d || !form) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>identity không tìm thấy.</div>;
-  const dirty = !!d && (form.name !== (d.name || '') || form.kind !== (d.kind || '') || form.handleBase !== (d.handleBase || '') || form.email !== (d.email || '') || form.displayName !== (d.displayName || '') || form.bio !== (d.bio || ''));
+  const dirty = !!d && (form.name !== (d.name || '') || form.kind !== (d.kind || '') || form.handleBase !== (d.handleBase || '') || form.email !== (d.email || '') || form.displayName !== (d.displayName || '') || form.bio !== (d.bio || '') || shared !== (d.projectId === null));
   const save = async () => {
     setSaving(true); setErr(null);
-    const res = await updateIdentity(id, { name: form.name, kind: form.kind, handleBase: form.handleBase, email: form.email, displayName: form.displayName, bio: form.bio });
+    const res = await updateIdentity(id, { name: form.name, kind: form.kind, handleBase: form.handleBase, email: form.email, displayName: form.displayName, bio: form.bio, shared, projectId });
     setSaving(false);
-    if (res.ok) { setD({ ...d, ...form }); setSaved(true); setTimeout(() => setSaved(false), 1800); }
+    if (res.ok) { setD({ ...d, ...form, projectId: shared ? null : (projectId ?? d.projectId) }); setSaved(true); setTimeout(() => setSaved(false), 1800); }
     else setErr(res.error || 'save failed');
   };
   const inp: CSSProperties = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, padding: '5px 8px', color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontSize: 11.5, boxSizing: 'border-box' };
@@ -2976,8 +2977,9 @@ function IdentityDetail({ id }: { id: number }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)', marginBottom: 10 }}>
         <span>#{d.id}</span>
-        {d.projectId && <span>· project <b style={{ color: 'var(--fg-2)' }}>{d.projectId}</b></span>
-        }
+        {shared
+          ? <span style={{ fontWeight: 700, padding: '0 5px', borderRadius: 4, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent)' }}>SHARED · all projects</span>
+          : d.projectId && <span>· project <b style={{ color: 'var(--fg-2)' }}>{d.projectId}</b></span>}
         <span style={{ marginLeft: 'auto', color: d.hasPassword ? 'var(--ok)' : 'var(--fg-4)' }}>{d.hasPassword ? '🔒 password set' : '○ no password'}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
@@ -2988,6 +2990,15 @@ function IdentityDetail({ id }: { id: number }) {
       </div>
       {field('displayName', 'display name (on-site)')}
       {field('bio', 'bio', { area: true })}
+
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '4px 0 10px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} style={{ marginTop: 1 }} />
+        <span><b style={{ color: 'var(--accent)' }}>Shared</b> — dùng chung cho MỌI project (persona toàn portfolio).{' '}
+          {shared
+            ? <span style={{ color: 'var(--fg-3)' }}>Bỏ tick → gán về project {projectId ? <b>{projectId}</b> : 'hiện tại'}.</span>
+            : <span style={{ color: 'var(--fg-3)' }}>Hiện chỉ project này.</span>}
+        </span>
+      </label>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2, marginBottom: 12 }}>
         <button onClick={save} disabled={!dirty || saving} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 6, cursor: !dirty || saving ? 'default' : 'pointer', border: '1px solid var(--accent)', color: dirty && !saving ? 'var(--bg-1)' : 'var(--fg-4)', background: dirty && !saving ? 'var(--accent)' : 'transparent', opacity: !dirty && !saving ? 0.6 : 1 }}>{saving ? 'saving…' : 'Save'}</button>

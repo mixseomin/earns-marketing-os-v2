@@ -1,0 +1,213 @@
+'use client';
+
+// Per-project backlink task surface (CRM-style, /p/[id]/backlinks). Lists the backlink
+// sources that apply to THIS project's site (membership = site_status[slug]) and lets the
+// admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
+// the live placed URL. A source is shared across sites; here we focus on this site.
+import { useMemo, useState, useTransition, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
+import { wrapExternalUrl } from '@/lib/external-url';
+import { setBacklinkSite } from '@/lib/actions/architecture';
+import { AssigneeCell } from '@/components/assignee-chip';
+import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
+
+type TabKey = 'todo' | 'progress' | 'done' | 'all';
+
+const SITE_STATUS: Record<string, { label: string; color: string }> = {
+  pending:   { label: 'To do',      color: '#8a92a3' },
+  claimed:   { label: 'In progress', color: '#ffb03c' },
+  completed: { label: 'Completed',  color: '#5badff' },
+  verified:  { label: 'Verified',   color: '#22c55e' },
+};
+const STATUS_ORDER = ['pending', 'claimed', 'completed', 'verified'];
+const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' ? 'progress' : 'done');
+
+const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
+const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
+const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
+const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
+
+function Pill({ status }: { status: string }) {
+  const m = SITE_STATUS[status] || { label: status, color: 'var(--fg-2)' };
+  return <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: `color-mix(in srgb, ${m.color} 18%, transparent)`, color: m.color, whiteSpace: 'nowrap' }}>{m.label}</span>;
+}
+function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; color?: string }) {
+  return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
+}
+
+export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
+  projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
+}) {
+  const router = useRouter();
+  const [, start] = useTransition();
+  const [tab, setTab] = useState<TabKey>('todo');
+  const [q, setQ] = useState('');
+  const [follow, setFollow] = useState<string>('');   // dofollow filter
+  const [traf, setTraf] = useState<string>('');        // traffic filter
+  const [draftOnly, setDraftOnly] = useState(false);
+  const [openId, setOpenId] = useState<number | null>(null);
+
+  const kpi = useMemo(() => {
+    const k = { total: tasks.length, todo: 0, progress: 0, done: 0 };
+    for (const t of tasks) { const tb = tabOf(t.siteState); if (tb === 'todo') k.todo++; else if (tb === 'progress') k.progress++; else k.done++; }
+    return k;
+  }, [tasks]);
+
+  const shown = useMemo(() => {
+    let rows = tasks.filter((t) => tab === 'all' || tabOf(t.siteState) === tab);
+    if (follow) rows = rows.filter((t) => (t.dofollow || '') === follow);
+    if (traf) rows = rows.filter((t) => (t.traffic || '') === traf);
+    if (draftOnly) rows = rows.filter((t) => t.hasDraft);
+    const s = q.trim().toLowerCase();
+    if (s) rows = rows.filter((t) => t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s));
+    // To do: unassigned first; then by created (desc already from query).
+    if (tab === 'todo') rows = [...rows].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId));
+    return rows;
+  }, [tasks, tab, follow, traf, draftOnly, q]);
+
+  const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
+
+  const setSite = (taskId: number, status: string, url: string) => {
+    if (!slug) return;
+    start(async () => { await setBacklinkSite(taskId, slug, status, url); router.refresh(); });
+  };
+
+  if (!slug) {
+    return (
+      <div style={{ padding: 24, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+        Project này chưa phải site theo dõi backlink. Thêm site vào <code>BACKLINK_SITES</code> (lib/backlink-sites.ts) để bật.
+      </div>
+    );
+  }
+
+  const TabBtn = ({ k, label, n }: { k: TabKey; label: string; n?: number }) => (
+    <button type="button" onClick={() => setTab(k)} style={{ ...btn, fontWeight: tab === k ? 700 : 500, borderColor: tab === k ? 'var(--neon-cyan)' : 'var(--line)', background: tab === k ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)', color: tab === k ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>
+      {label}{n != null ? <span style={{ marginLeft: 6, opacity: 0.75 }}>{n}</span> : null}
+    </button>
+  );
+
+  return (
+    <div style={{ padding: '12px 16px 40px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, margin: 0 }}>
+          Backlinks <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {siteLabel} · {kpi.total} sources</small>
+        </h1>
+        <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
+      </div>
+
+      {/* KPI */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        {([['total', 'Total', 'var(--fg-1)'], ['todo', 'To do', '#8a92a3'], ['progress', 'In progress', '#ffb03c'], ['done', 'Done', '#22c55e']] as const).map(([k, label, c]) => (
+          <div key={k} style={{ flex: '1 1 90px', minWidth: 90, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: c, fontFamily: 'var(--font-mono)' }}>{kpi[k]}</div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* tabs + filters */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TabBtn k="todo" label="To do" n={kpi.todo} />
+        <TabBtn k="progress" label="In progress" n={kpi.progress} />
+        <TabBtn k="done" label="Done" n={kpi.done} />
+        <TabBtn k="all" label="All" n={kpi.total} />
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm nguồn / source…" autoComplete="off"
+          style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
+        {['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={chip('#9d6cff', follow === f)}>{f}</button>)}
+        <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
+        {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
+        <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
+        {(q || follow || traf || draftOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); }} style={btn}>Clear</button>}
+      </div>
+
+      {/* cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {shown.map((t) => (
+          <div key={t.id} onClick={() => setOpenId(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
+                {t.da && <Tag>DA {t.da}</Tag>}
+                {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
+                {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
+                {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+                {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
+              </div>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+            <Pill status={t.siteState} />
+            {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+          </div>
+        ))}
+        {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
+      </div>
+
+      {open && <Drawer task={open} slug={slug} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} />}
+    </div>
+  );
+}
+
+function Drawer({ task, slug, onClose, setSite, onChange }: {
+  task: BacklinkTask; slug: string; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+}) {
+  const [url, setUrl] = useState(task.siteLiveUrl || '');
+  const [copied, setCopied] = useState(false);
+  const copy = (txt: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); };
+  const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)' }} />
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(460px, 94vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
+          <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} {...EXT} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
+          {task.da && <Tag>DA {task.da}</Tag>}
+          {task.dofollow && <Tag color="#9d6cff">{task.dofollow}</Tag>}
+          {task.traffic && <Tag color="#22c55e">{task.traffic}</Tag>}
+          {task.rank && <Tag color="#ffb03c">rank {task.rank}</Tag>}
+        </div>
+
+        <div style={lbl}>Assign to</div>
+        <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onChange} />
+
+        <div style={lbl}>Status @ {slug}</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {STATUS_ORDER.map((s) => {
+            const m = SITE_STATUS[s] ?? { label: s, color: 'var(--fg-2)' }; const on = task.siteState === s;
+            return <button key={s} type="button" onClick={() => setSite(task.id, s, url)}
+              style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', border: `1px solid ${m.color}`, background: on ? m.color : 'transparent', color: on ? '#0b0f17' : m.color }}>{m.label}</button>;
+          })}
+        </div>
+
+        <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
+            style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
+          <button type="button" onClick={() => setSite(task.id, task.siteState, url)} style={{ ...btn, fontWeight: 700 }}>Lưu</button>
+        </div>
+
+        {task.draft && (<>
+          <div style={lbl}>📋 Draft (paste-ready) <button type="button" onClick={() => copy(task.draft!)} style={{ ...btn, padding: '1px 8px', marginLeft: 6 }}>{copied ? '✓' : 'Copy'}</button></div>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{task.draft}</pre>
+        </>)}
+
+        {task.instructions && (<><div style={lbl}>Cách build (instructions)</div>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, color: 'var(--fg-1)', margin: 0, fontFamily: 'var(--font-mono)' }}>{task.instructions}</pre></>)}
+
+        {task.mechanism && (<><div style={lbl}>Mechanism</div><div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{task.mechanism}</div></>)}
+
+        {task.appliesTo.length > 1 && (<><div style={lbl}>Cũng áp dụng cho ({task.appliesTo.length} sites)</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{task.appliesTo.map((s) => { const st = task.siteStatus[s] || ''; return <Tag key={s} color={s === slug ? 'var(--accent)' : undefined}>{s} · {SITE_STATUS[st]?.label || st || '—'}</Tag>; })}</div></>)}
+
+        {task.notes && (<><div style={lbl}>Notes</div><div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'pre-wrap' }}>{task.notes}</div></>)}
+      </div>
+    </>
+  );
+}

@@ -14,9 +14,20 @@ export const BACKLINK_SITES: { slug: string; domain: string; label: string; emoj
 ];
 
 const BY_DOMAIN = new Map(BACKLINK_SITES.map((s) => [s.domain, s.slug]));
+const BY_SLUG = new Set(BACKLINK_SITES.map((s) => s.slug));
+
+// MOS2 project id → backlink site slug when they differ (most are identical).
+const PROJECT_SLUG_OVERRIDE: Record<string, string> = { 'cities-gg': 'cities' };
 
 // domain (with/without trailing slash, www) → backlink site slug, or null.
 export function siteSlugForDomain(domain: string): string | null {
   const d = domain.replace(/^www\./, '').replace(/\/$/, '');
   return BY_DOMAIN.get(d) ?? null;
+}
+
+// MOS2 project id → backlink site slug (key in human_tasks.site_status), or null
+// if the project isn't a backlink-tracked site.
+export function resolveSiteSlug(projectId: string): string | null {
+  const slug = PROJECT_SLUG_OVERRIDE[projectId] ?? projectId;
+  return BY_SLUG.has(slug) ? slug : null;
 }

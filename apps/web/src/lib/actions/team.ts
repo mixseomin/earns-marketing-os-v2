@@ -225,6 +225,7 @@ export async function assignTaskToUser(taskId: number, userId: number | null): P
     await db.execute(sql`UPDATE human_tasks SET assigned_user_id = ${userId}, updated_at = NOW() WHERE id = ${taskId}`);
     revalidatePath('/inbox');
     revalidatePath('/p/[id]/inbox', 'page');
+    revalidatePath('/p/[id]/backlinks', 'page');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

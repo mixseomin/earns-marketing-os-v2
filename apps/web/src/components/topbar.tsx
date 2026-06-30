@@ -6,7 +6,7 @@ import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 import { SiteMenu } from './site-menu';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
 interface SubItem { label: string; href: string; icon?: string }
 

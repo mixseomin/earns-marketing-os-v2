@@ -662,7 +662,7 @@ export const OBJECTS: ArchObject[] = [
       { col: 'traffic', label: 'traffic', kind: 'badge' },            // high | medium | low
       { col: 'has_draft', label: '📋', kind: 'badge' },               // 'ready' = đã có nội dung paste-ready (xem drawer)
       { col: 'site_status', label: 'sites · status', kind: 'sitestatus' }, // membership + status mỗi site; click pill đổi status/URL, '+' thêm site
-      { col: 'assignee', label: 'staff', kind: 'assignee' },          // assign cho team user → ext /my-tasks
+      { col: 'assignee', label: 'staff', kind: 'badge' },             // read-only (giao việc ở /p/<site>/backlinks, ko phải trong grid)
       { col: 'status', label: 'overall', kind: 'badge' },             // tổng (filter/sort) — chi tiết per-site ở pill
       { col: 'publish_url', label: 'live ↗', kind: 'url' },           // backlink đã đặt được
       { col: 'created_at', label: 'added', kind: 'time' },

@@ -94,11 +94,13 @@ export async function GET(req: Request) {
   }
   const tech = p.get('technologyKey');
   const plat = p.get('platformKey') ? canonPlatformKey(p.get('platformKey')!) : null;
+  const pendingOnly = p.get('pending') === '1';   // chỉ DOM CHƯA parse (read_at NULL) → "học dom mới" foolproof
   const rows = await db.execute(sql`
-    SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at
+    SELECT id, platform_key, technology_key, page_kind, url, hostname, title, bytes, captured_at, read_at
     FROM dom_samples
     WHERE (${tech}::text IS NULL OR technology_key = ${tech})
       AND (${plat}::text IS NULL OR platform_key = ${plat})
+      AND (${pendingOnly} = false OR read_at IS NULL)
     ORDER BY captured_at DESC LIMIT 200`);
   return NextResponse.json({ ok: true, samples: rows });
 }

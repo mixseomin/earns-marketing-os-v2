@@ -39,6 +39,7 @@ import {
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
+import { anchoredPos } from '@/lib/anchored-pos';
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
 import ReactMarkdown, { type Components } from 'react-markdown';
 
@@ -947,11 +948,11 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
   const sites = Object.keys(st);
   const col = (s: string) => BL_STATUS.find((x) => x.k === s)?.color || '#8a92a3';
   const abbr = (site: string) => (projMap.get(site) || site).slice(0, 3).toUpperCase();
-  const open = (e: React.MouseEvent, site: string) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setStatusDraft(st[site] || 'pending'); setUrlDraft(urls[site] || ''); setEdit({ site, x: r.left, y: r.bottom + 4 }); };
+  const open = (e: React.MouseEvent, site: string) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setStatusDraft(st[site] || 'pending'); setUrlDraft(urls[site] || ''); const p = anchoredPos(r, 234, 170); setEdit({ site, x: p.left, y: p.top }); };
   const save = () => { if (!edit) return; const site = edit.site; setBusy(true); setSt((p) => ({ ...p, [site]: statusDraft })); setUrls((p) => ({ ...p, [site]: urlDraft })); setBacklinkSite(taskId, site, statusDraft, urlDraft).finally(() => { setBusy(false); setEdit(null); }); };
   const addSite = (slug: string) => { setAddAt(null); setSt((p) => ({ ...p, [slug]: 'pending' })); setBacklinkSite(taskId, slug, 'pending', ''); };
   const removeSite = (site: string) => { setBusy(true); setSt((p) => { const n = { ...p }; delete n[site]; return n; }); setUrls((p) => { const n = { ...p }; delete n[site]; return n; }); removeBacklinkSite(taskId, site).finally(() => { setBusy(false); setEdit(null); }); };
-  const openAdd = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setAddAt({ x: r.left, y: r.bottom + 4 }); };
+  const openAdd = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); const p = anchoredPos(r, 180, 220); setAddAt({ x: p.left, y: p.top }); };
   const addable = BACKLINK_SITES.filter((s) => !(s.slug in st));
   return (
     <span style={{ display: 'inline-flex', gap: 3, minWidth: 0, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2322,6 +2323,8 @@ function SurfacePreview({ k }: { k: string }) {
     case 'selmgr':
     case 'domsamples':
       return <div style={{ width: 170, background: '#15101f', border: '1px solid #5b3fa6', borderRadius: 8, padding: '8px 10px', color: '#e7e3ff', font: `11px ${sys}` }}><div style={{ fontWeight: 700, marginBottom: 5 }}>{k === 'seeded-list' ? '📋 Bài đã seed' : k === 'selmgr' ? '🧷 Selector composer' : '🗂 DOM đã lưu'}</div><div style={{ borderTop: '1px solid #2a2340', padding: '4px 0', fontSize: 10, color: '#a99fce' }}>#1 · live · 👁 30</div><div style={{ borderTop: '1px solid #2a2340', padding: '4px 0', fontSize: 10, color: '#a99fce' }}>#2 · pending</div></div>;
+    case 'anchored-popover':
+      return <div style={{ position: 'relative', width: 150, height: 56 }}><span style={{ position: 'absolute', right: 0, top: 0, background: '#1f2937', color: '#cbd5e1', borderRadius: 6, padding: '2px 8px', font: `700 10px ${mono}` }}>+ giao</span><div style={{ position: 'absolute', right: 0, top: 22, width: 120, background: '#0d0d0d', border: '1px solid #2a2a2a', borderRadius: 8, padding: 5, font: `10px ${sys}`, color: '#e5e5e5' }}><div style={{ padding: '2px 5px' }}>👤 Hoàng Tuấn</div><div style={{ padding: '2px 5px' }}>👤 Linh</div></div><span style={{ position: 'absolute', left: -2, top: 30, color: '#22c55e', fontSize: 12 }}>↤</span></div>;
     case 'toast':
       return <span style={{ background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', borderRadius: 8, padding: '6px 11px', font: `11px ${sys}` }}>💾 Đã lưu DOM #7</span>;
     default:

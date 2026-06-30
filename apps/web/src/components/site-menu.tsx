@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { siteSlugForDomain } from '@/lib/backlink-sites';
+import { anchoredPos } from '@/lib/anchored-pos';
 
 // Per-site "⋯" menu in the SEO Sites table. Replaces the inline Web/GSC/GA/Bing
 // links with one grouped dropdown of every surface for that site + the internal
@@ -70,7 +71,7 @@ export function SiteMenu({ domain, project, ga4PropertyId, onOpenDetail }: {
   function toggle() {
     if (open) { setOpen(false); return; }
     const r = btnRef.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 230) });
+    if (r) setPos(anchoredPos(r, 218, 380));
     setOpen(true);
   }
 

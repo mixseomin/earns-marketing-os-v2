@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { listTeamMembers, assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
+import { anchoredPos } from '@/lib/anchored-pos';
 
 // Team members cached once across all cells — avoid N fetches.
 let _teamMembersP: Promise<TeamMemberRow[]> | null = null;
@@ -16,14 +17,14 @@ export function AssigneeCell({ taskId, name, assignedId, onChange }: {
   onChange?: (userId: number | null, name: string) => void;
 }) {
   const [cur, setCur] = useState<{ id: number | null; name: string }>({ id: assignedId, name });
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
   const [members, setMembers] = useState<TeamMemberRow[] | null>(null);
   const [qf, setQf] = useState('');
   const [busy, setBusy] = useState(false);
   const sig = `${assignedId}|${name}`;
   useEffect(() => { setCur({ id: assignedId, name }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sig]);
   useEffect(() => { if (!at) return; const c = () => setAt(null); window.addEventListener('scroll', c, true); return () => window.removeEventListener('scroll', c, true); }, [at]);
-  const open = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setAt({ x: r.left, y: r.bottom + 4 }); if (members == null) getTeamMembers().then(setMembers).catch(() => setMembers([])); };
+  const open = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setAt(anchoredPos(r, 210, 300)); if (members == null) getTeamMembers().then(setMembers).catch(() => setMembers([])); };
   const pick = (m: TeamMemberRow) => { setAt(null); const nm = m.displayName || m.name; setCur({ id: m.userId, name: nm }); setBusy(true); assignTaskToUser(taskId, m.userId).finally(() => setBusy(false)); onChange?.(m.userId, nm); };
   const clear = () => { setAt(null); setCur({ id: null, name: '' }); setBusy(true); assignTaskToUser(taskId, null).finally(() => setBusy(false)); onChange?.(null, ''); };
   const list = (members || []).filter((m) => m.active && (!qf || (m.displayName || m.name).toLowerCase().includes(qf.toLowerCase())));
@@ -37,7 +38,7 @@ export function AssigneeCell({ taskId, name, assignedId, onChange }: {
       {at && createPortal(
         <>
           <div onMouseDown={() => setAt(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
-          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: at.x, top: at.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 210, maxHeight: '60vh', overflowY: 'auto' }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: at.left, top: at.top, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 210, maxHeight: '60vh', overflowY: 'auto' }}>
             <input value={qf} onChange={(e) => setQf(e.target.value)} placeholder="tìm nhân sự…" autoComplete="off"
               style={{ width: '100%', padding: '4px 7px', marginBottom: 4, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)', fontSize: 11, boxSizing: 'border-box' }} />
             {members == null && <div style={{ padding: '6px 8px', fontSize: 11, color: 'var(--fg-4)' }}>loading…</div>}

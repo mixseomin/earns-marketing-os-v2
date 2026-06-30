@@ -14,7 +14,13 @@ export async function GET(req: Request) {
   const db = getDb(); if (!db) return NextResponse.json({ ok: false }, { status: 503 });
   const rows = await db.execute(sql`
     SELECT ht.id, ht.title, ht.instructions, ht.prep_payload, ht.platform_key, ht.status,
-           ht.sla_due_at, ht.project_id, p.name AS project_name, ht.publish_url
+           ht.sla_due_at, ht.project_id, p.name AS project_name, ht.publish_url,
+           -- backlink = shared entity: list the sites STILL to do (per-site completion).
+           CASE WHEN ht.platform_key = 'backlink' THEN
+             (SELECT jsonb_agg(kv.key ORDER BY kv.key)
+                FROM jsonb_each_text(COALESCE(ht.prep_payload->'site_status', '{}'::jsonb)) kv
+                WHERE kv.value IN ('pending', 'claimed'))
+           ELSE NULL END AS sites
     FROM human_tasks ht
     LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.tenant_id = ${TENANT} AND ht.assigned_user_id = ${who.userId}

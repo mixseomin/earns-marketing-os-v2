@@ -149,21 +149,21 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       {showStrategy ? <td style={{ ...cell, fontWeight: t.isOpen ? 600 : 400 }}>{t.strategy}</td> : null}
       <td style={{ ...cell, fontWeight: t.isOpen ? 700 : 500 }}>{t.symbol}</td>
       <td style={{ ...cell, color: t.dir === 'BUY' ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 700 }}>{t.dir}</td>
-      <td style={cell}>{t.lots != null ? <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{fmtVol(t.lots)}</span>{t.notional != null ? <span style={{ color: 'var(--muted)', opacity: 0.55, fontSize: 9.5 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
-      <td style={cell}>{fmtDT(t.entryTime)}</td>
-      <td style={cell}>{t.entryPrice ?? '—'}</td>
-      <td style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>
-      <td style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
-      <td style={cell} title={isCryptoSym(t.symbol) ? 'SL = Donchian-20 trailing exit (no fixed TP, trend-following)' : 'broker SL / TP orders'}>
+      <td className="lo-hm" style={cell}>{t.lots != null ? <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{fmtVol(t.lots)}</span>{t.notional != null ? <span style={{ color: 'var(--muted)', opacity: 0.55, fontSize: 9.5 }}>{fmtUsd(t.notional)}</span> : null}</span> : '—'}</td>
+      <td className="lo-hm" style={cell}>{fmtDT(t.entryTime)}</td>
+      <td className="lo-hm" style={cell}>{t.entryPrice ?? '—'}</td>
+      <td className="lo-hm" style={cell}>{t.isOpen ? <span style={{ color: 'var(--ok,#5ac882)' }}>open</span> : fmtDT(t.exitTime)}</td>
+      <td className="lo-hm" style={cell} title={t.isOpen ? 'live mark price' : undefined}>{t.exitPrice ?? '—'}</td>
+      <td className="lo-hm" style={cell} title={isCryptoSym(t.symbol) ? 'SL = Donchian-20 trailing exit (no fixed TP, trend-following)' : 'broker SL / TP orders'}>
         {t.sl != null || t.tp != null
           ? <span><span style={{ color: '#ff8a8a' }}>{t.sl != null ? t.sl : '—'}</span><span style={{ color: 'var(--muted)' }}> / </span><span style={{ color: 'var(--ok,#5ac882)' }}>{t.tp != null ? t.tp : '—'}</span></span>
           : '—'}
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
-      <td style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
+      <td className="lo-hm" style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
       <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtUsd2(usd) : '—'}</td>
       <td style={{ ...cell, textAlign: 'right', color: pnlColor, fontSize: 9.5 }} title="return % = P&L $ ÷ Lots $ (notional)">{pct != null ? `${f2(pct)}%` : '—'}</td>
-      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.7, fontSize: 9.5 }} title="naive annualized-equivalent (CAGR) of this hold's return — short holds extrapolate to huge values">{cagr != null ? fmtCagr(cagr) : '—'}</td>
+      <td className="lo-hm" style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.7, fontSize: 9.5 }} title="naive annualized-equivalent (CAGR) of this hold's return — short holds extrapolate to huge values">{cagr != null ? fmtCagr(cagr) : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>
     </tr>
   );
@@ -307,10 +307,11 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
   const totalPnlPct = totalBase ? (totalEquity / totalBase - 1) * 100 : 0;
 
   const HEADERS = grouped ? ['Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''] : ['Strategy', 'Symbol', 'Dir', 'Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'Hold', 'P&L', '$', '%', 'CAGR', ''];
+  const HIDE_M = new Set(['Lots', 'Entry', 'In px', 'Exit', 'Out px', 'SL/TP', 'P&L', 'CAGR']);   // secondary cols hidden on mobile
 
   return (
     <div>
-      <style>{`@media (max-width:640px){.lo-bar{gap:6px!important;margin-bottom:8px!important}.lo-summary{font-size:11px!important;flex-basis:100%}.lo-auto{display:none!important}.lo-bar select,.lo-bar button{font-size:10.5px!important;padding:3px 7px!important}}`}</style>
+      <style>{`@media (max-width:640px){.lo-bar{gap:6px!important;margin-bottom:8px!important}.lo-summary{font-size:11px!important;flex-basis:100%}.lo-auto{display:none!important}.lo-bar select,.lo-bar button{font-size:10.5px!important;padding:3px 7px!important}.lo-hm,.lo-ghs{display:none!important}.lo-table{min-width:0!important}.lo-table td,.lo-table th{padding-left:6px!important;padding-right:6px!important;font-size:11px!important}}`}</style>
       <div className="lo-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <span className="lo-summary" style={{ fontSize: 12.5 }}>
           <b style={{ color: 'var(--ok,#5ac882)' }}>{openN}</b> open{openN > 0 ? <span style={{ color: 'var(--muted)', opacity: 0.7, fontSize: 11 }} title="total unrealized / floating P&L of open positions"> ({fmtPnlUsd(openFloat)} float)</span> : null} · <b>{closedN}</b> closed{range !== 'All' ? ` (${range})` : ''} · net <b style={{ color: netClosed >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(netClosed)}</b>
@@ -337,8 +338,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
       </div>
 
       <div style={{ overflow: 'auto', maxHeight: '76vh', border: '1px solid var(--line)', borderRadius: 10 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: grouped ? 520 : 640 }}>
-          <thead><tr>{HEADERS.map((h) => <th key={h} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' || h === 'CAGR' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+        <table className="lo-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: grouped ? 520 : 640 }}>
+          <thead><tr>{HEADERS.map((h) => <th key={h} className={HIDE_M.has(h) ? 'lo-hm' : undefined} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' || h === 'CAGR' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
               ? groups.map((g) => (
@@ -358,8 +359,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                             style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
                         </span>
                         {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
-                        <span style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
-                        <span style={{ width: 74, textAlign: 'right', fontSize: 9.5, color: 'var(--muted)', opacity: 0.75 }} title="floating P&L of open positions">{g.open > 0 ? `${fmtPnlUsd(g.float)} float` : ''}</span>
+                        <span className="lo-ghs" style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
+                        <span className="lo-ghs" style={{ width: 74, textAlign: 'right', fontSize: 9.5, color: 'var(--muted)', opacity: 0.75 }} title="floating P&L of open positions">{g.open > 0 ? `${fmtPnlUsd(g.float)} float` : ''}</span>
                         <span style={{ width: 130, textAlign: 'right', fontSize: 10 }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>
                           {g.open > 0 || g.closed > 0
                             ? <><span style={{ color: 'var(--muted)', opacity: 0.6, fontWeight: 400 }}>P&L </span><span style={{ color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(g.net)}</span>{g.closed > 0

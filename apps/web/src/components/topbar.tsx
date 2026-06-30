@@ -185,6 +185,7 @@ export function TopBar({
       ],
     },
     { id: 'outreach', label: t('nav.outreach', 'Outreach'), adminOnly: true },
+    { id: 'backlinks', label: t('nav.backlinks', 'Backlinks'), adminOnly: true },
     { id: 'studio', label: t('nav.studio', 'Studio'), adminOnly: true },
     {
       id: 'plans', label: t('nav.plans', 'Kế hoạch'), adminOnly: true,

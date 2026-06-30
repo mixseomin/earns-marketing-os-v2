@@ -13,7 +13,7 @@ import { siteSlugForDomain } from '@/lib/backlink-sites';
 type Item = { label: string; emoji: string; href?: string; external?: boolean; onClick?: () => void };
 type Group = { label: string; items: Item[] };
 
-function buildGroups(domain: string, project: string | undefined, ga4: string | undefined, onOpenDetail: () => void): Group[] {
+function buildGroups(domain: string, project: string | undefined, ga4: string | undefined, onOpenDetail?: () => void): Group[] {
   const enc = encodeURIComponent('https://' + domain + '/');
   const slug = siteSlugForDomain(domain);
   const groups: Group[] = [
@@ -35,17 +35,20 @@ function buildGroups(domain: string, project: string | undefined, ga4: string | 
       { label: 'AdSense', emoji: '💰', href: 'https://www.google.com/adsense/new/u/0/home', external: true },
     ] },
     { label: 'Manage', items: [
-      ...(project ? [{ label: 'Project', emoji: '📁', href: `/p/${project}` }] : []),
+      ...(project ? [
+        { label: 'Project', emoji: '📁', href: `/p/${project}` },
+        { label: 'Outreach', emoji: '📣', href: `/p/${project}/outreach` },
+      ] : []),
       { label: 'Backlinks', emoji: '🔗', href: `/architecture?obj=backlink${slug ? `&site=${slug}` : ''}` },
       { label: 'Keyword Research', emoji: '🔍', href: '/seo/keyword-research' },
-      { label: 'GSC Detail', emoji: '📈', onClick: onOpenDetail },
+      ...(onOpenDetail ? [{ label: 'GSC Detail', emoji: '📈', onClick: onOpenDetail }] : []),
     ] },
   ];
   return groups;
 }
 
 export function SiteMenu({ domain, project, ga4PropertyId, onOpenDetail }: {
-  domain: string; project?: string; ga4PropertyId?: string; onOpenDetail: () => void;
+  domain: string; project?: string; ga4PropertyId?: string; onOpenDetail?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -71,7 +74,7 @@ export function SiteMenu({ domain, project, ga4PropertyId, onOpenDetail }: {
     setOpen(true);
   }
 
-  const groups = buildGroups(domain, project, ga4PropertyId, () => { setOpen(false); onOpenDetail(); });
+  const groups = buildGroups(domain, project, ga4PropertyId, onOpenDetail ? () => { setOpen(false); onOpenDetail(); } : undefined);
 
   const itemStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',

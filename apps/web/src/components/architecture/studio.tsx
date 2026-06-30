@@ -39,6 +39,11 @@ import {
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
+import { listTeamMembers, assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
+
+// Team members cached once (assignee picker) — avoid N fetches across rows.
+let _teamMembersP: Promise<TeamMemberRow[]> | null = null;
+const getTeamMembers = () => (_teamMembersP ??= listTeamMembers());
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
 import ReactMarkdown, { type Components } from 'react-markdown';
 
@@ -1009,6 +1014,51 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
   );
 }
 
+// Assignee cell: assign 1 backlink task cho team user → human_tasks.assigned_user_id.
+// Nhân sự thấy task ở ext (/api/ext/my-tasks). Click → popover list member (active) + Bỏ giao.
+function AssigneeCell({ taskId, name, assignedId }: { taskId: number; name: string; assignedId: number | null }) {
+  const [cur, setCur] = useState<{ id: number | null; name: string }>({ id: assignedId, name });
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const [members, setMembers] = useState<TeamMemberRow[] | null>(null);
+  const [qf, setQf] = useState('');
+  const [busy, setBusy] = useState(false);
+  const sig = `${assignedId}|${name}`;
+  useEffect(() => { setCur({ id: assignedId, name }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sig]);
+  useEffect(() => { if (!at) return; const c = () => setAt(null); window.addEventListener('scroll', c, true); return () => window.removeEventListener('scroll', c, true); }, [at]);
+  const open = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setAt({ x: r.left, y: r.bottom + 4 }); if (members == null) getTeamMembers().then(setMembers).catch(() => setMembers([])); };
+  const pick = (m: TeamMemberRow) => { setAt(null); setCur({ id: m.userId, name: m.displayName || m.name }); setBusy(true); assignTaskToUser(taskId, m.userId).finally(() => setBusy(false)); };
+  const clear = () => { setAt(null); setCur({ id: null, name: '' }); setBusy(true); assignTaskToUser(taskId, null).finally(() => setBusy(false)); };
+  const list = (members || []).filter((m) => m.active && (!qf || (m.displayName || m.name).toLowerCase().includes(qf.toLowerCase())));
+  return (
+    <span style={{ display: 'inline-flex', minWidth: 0 }}>
+      <span role="button" onClick={open} title={cur.id ? `Giao cho ${cur.name} — click đổi` : 'Giao cho team user'}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', maxWidth: '100%',
+          background: cur.id ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: cur.id ? 'var(--accent)' : 'var(--fg-3)', border: cur.id ? '1px solid var(--accent-line)' : '1px dashed var(--line-2)' }}>
+        {busy ? '…' : cur.id ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {cur.name}</span> : '+ giao'}
+      </span>
+      {at && createPortal(
+        <>
+          <div onMouseDown={() => setAt(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: at.x, top: at.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 210, maxHeight: '60vh', overflowY: 'auto' }}>
+            <input value={qf} onChange={(e) => setQf(e.target.value)} placeholder="tìm nhân sự…" autoComplete="off"
+              style={{ width: '100%', padding: '4px 7px', marginBottom: 4, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)', fontSize: 11, boxSizing: 'border-box' }} />
+            {members == null && <div style={{ padding: '6px 8px', fontSize: 11, color: 'var(--fg-4)' }}>loading…</div>}
+            {cur.id != null && <button type="button" onClick={clear} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px', fontSize: 11, fontFamily: 'var(--font-mono)', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}>✕ Bỏ giao</button>}
+            {list.map((m) => (
+              <button key={m.userId} type="button" onClick={() => pick(m)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '5px 8px', fontSize: 11, fontFamily: 'var(--font-mono)', color: m.userId === cur.id ? 'var(--accent)' : 'var(--fg-1)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
+                👤 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.displayName || m.name}</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--fg-4)', fontSize: 9 }}>{m.pendingTasksCount + m.inProgressTasksCount || ''}</span>
+              </button>
+            ))}
+            {members != null && !list.length && <div style={{ padding: '6px 8px', fontSize: 11, color: 'var(--fg-4)' }}>không có nhân sự</div>}
+          </div>
+        </>, document.body)}
+    </span>
+  );
+}
+
 // Generic CREATE form (modal). Fields = attrs editable (col chuẩn snake_case từ spec; dùng chung
 // filter isInstanceFieldEditable với createInstance). projectScoped → project_id tự gán.
 function CreateOverlay({ obj, projectId, onClose, onCreated }: { obj: ArchObject; projectId: string; onClose: () => void; onCreated: () => void }) {
@@ -1142,7 +1192,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [groupsOff, setGroupsOff] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(gKey) || '[]') as string[]); } catch { return new Set(); } });
   const toggleGroup = (g: string) => setGroupsOff((prev) => { const n = new Set(prev); if (n.has(g)) n.delete(g); else n.add(g); try { localStorage.setItem(gKey, JSON.stringify([...n])); } catch {} return n; });
   // visible data columns = browseCols minus hidden groups (no-group cols always show).
-  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus'; link?: string; group?: BrowseGroup }[] =
+  const dataCols: { key: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus' | 'assignee'; link?: string; group?: BrowseGroup }[] =
     bc.length ? bc.filter((c) => !c.group || !groupsOff.has(c.group)).map((c) => ({ key: c.col, label: c.label, kind: c.kind, link: c.link, group: c.group }))
       : [{ key: '__sub', label: parent ? (OBJ_BY_KEY[parent.object]?.label || parent.object).toLowerCase() : 'ctx' }];
   const colSig = dataCols.map((c) => c.key).join('|');   // đổi tập cột (toggle group) → nạp lại widths
@@ -1161,7 +1211,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     const wmap = loadWMap();
     const def = (key: string, kind?: string): number | null => {
       if (key === '__board' || key === '__missingSel' || (!kind && WIDE.test(key))) return null;        // text dài → tự do (1fr)
-      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96; if (kind === 'url') return 124; if (kind === 'sitestatus') return 150;
+      if (kind === 'time') return 86; if (kind === 'project') return 104; if (kind === 'link') return 96; if (kind === 'url') return 124; if (kind === 'sitestatus') return 150; if (kind === 'assignee') return 116;
       if (kind === 'badge' || kind === 'unread') return 78; if (kind === 'dom') return 60;
       return 76;                                                              // compact
     };
@@ -1208,7 +1258,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       projectId: projectScoped ? projectId : undefined,
       parentId: parent && parentId ? parentId : undefined,   // parentId rỗng = TẤT CẢ (ko gate)
       q: qDeb, limit: PAGE, offset: page * PAGE,
-      cols: [...(obj.browseCols || []).map((c) => c.col), ...(obj.key === 'backlink' ? ['site_url'] : [])],
+      cols: [...(obj.browseCols || []).map((c) => c.col), ...(obj.key === 'backlink' ? ['site_url', 'assigned_user_id'] : [])],
       sort: sort || undefined,
       flt: flt || undefined,
       filters: colFilters,
@@ -1443,7 +1493,9 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                       const ss = (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, string> : {};
                       const su = (it.cols['site_url'] && typeof it.cols['site_url'] === 'object') ? it.cols['site_url'] as Record<string, string> : {};
                       return <BacklinkStatusCell taskId={Number(it.id)} siteStatus={ss} siteUrl={su} projMap={projMap} />;
-                    })() : dc.kind === 'project' ? (() => {
+                    })() : dc.kind === 'assignee' ? (
+                      <AssigneeCell taskId={Number(it.id)} name={v == null ? '' : String(v)} assignedId={it.cols['assigned_user_id'] != null ? Number(it.cols['assigned_user_id']) : null} />
+                    ) : dc.kind === 'project' ? (() => {
                       const ids = (Array.isArray(v) ? v : [v]).filter((x) => x != null && x !== '').map(String);
                       // identity: cell editable (toggle nhiều project inline). Khác: read-only.
                       if (obj.key === 'identity') return <IdentityProjectsCell identityId={Number(it.id)} ids={ids} projMap={projMap} onOpen={openProj} />;

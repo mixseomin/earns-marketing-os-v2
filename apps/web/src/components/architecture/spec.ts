@@ -76,7 +76,7 @@ export interface ArchObject {
   // REAL column on `table`; browseInstances validates against information_schema so a typo
   // just drops the column (never empties the table). kind=link → cell opens that object's drawer.
   // Special col '__projects' (kind=project) resolves projects via `projectsVia` junction.
-  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus'; link?: string; group?: BrowseGroup }[];
+  browseCols?: { col: string; label: string; kind?: 'time' | 'badge' | 'link' | 'project' | 'unread' | 'dom' | 'url' | 'sitestatus' | 'assignee'; link?: string; group?: BrowseGroup }[];
   // many-to-many project membership (account ↔ project_accounts). Lets the table show ALL
   // projects an instance belongs to, not just the legacy scalar project_id.
   projectsVia?: { table: string; fkCol: string };
@@ -653,17 +653,17 @@ export const OBJECTS: ArchObject[] = [
   {
     key: 'backlink', label: 'Backlink', group: 'resource',
     table: 'backlinks', pk: 'id', labelCol: 'title', projectScoped: true,
-    desc: 'Backlink command center — TẤT CẢ task đặt backlink ($0, traffic-first) gom 1 chỗ, cross-project. View trên human_tasks (platform_key=backlink): mỗi hàng = 1 nguồn + cách đặt link + status + URL live. project = SITE (militarycalc/govcalcs/visagps…). Nguồn + rank + ready-copy đầy đủ: resources/new-backlink-sources-2026-06-30.md + self-serve-backlinks.md. Drawer = instructions chi tiết từng bước cho nhân sự; nhân sự claim/làm tại mos2.on.tc/p/<site> rồi dán link live + screenshot.',
+    desc: 'Backlink command center — TẤT CẢ task đặt backlink ($0, traffic-first) gom 1 chỗ, cross-project SHARED ENTITY: 1 nguồn = 1 hàng áp dụng cho NHIỀU site (cột "sites · status" = membership + status từng site; lọc theo site ở dropdown "site:"). KHÔNG nhân bản theo site. Assign cho 1 team user (cột "staff") → nhân sự thấy task ở ext (/my-tasks) rồi claim/làm + dán link live + screenshot. Nguồn + rank + ready-copy: resources/new-backlink-sources-2026-06-30.md + self-serve-backlinks.md. Drawer = instructions chi tiết từng bước.',
     picker: { crossProject: true, subExpr: 't.status' },
     browseCols: [
-      { col: 'project_id', label: 'site', kind: 'project' },
       { col: 'source_url', label: 'nguồn ↗', kind: 'url' },          // đi ĐÂU để đặt backlink (clickable)
       { col: 'da', label: 'DA' },                                     // chỉ số: domain authority
       { col: 'dofollow', label: 'F', kind: 'badge' },                 // dofollow | nofollow | mixed
       { col: 'traffic', label: 'traffic', kind: 'badge' },            // high | medium | low
       { col: 'has_draft', label: '📋', kind: 'badge' },               // 'ready' = đã có nội dung paste-ready (xem drawer)
-      { col: 'site_status', label: 'site · status', kind: 'sitestatus' }, // Option B: pill mỗi site, click đổi status + dán URL
-      { col: 'status', label: 'overall', kind: 'badge' },             // tổng (filter/sort) — chi tiết per-site ở pill bên trái
+      { col: 'site_status', label: 'sites · status', kind: 'sitestatus' }, // membership + status mỗi site; click pill đổi status/URL, '+' thêm site
+      { col: 'assignee', label: 'staff', kind: 'assignee' },          // assign cho team user → ext /my-tasks
+      { col: 'status', label: 'overall', kind: 'badge' },             // tổng (filter/sort) — chi tiết per-site ở pill
       { col: 'publish_url', label: 'live ↗', kind: 'url' },           // backlink đã đặt được
       { col: 'created_at', label: 'added', kind: 'time' },
     ],
@@ -1070,7 +1070,7 @@ export const BINDABLE_TABLES: Record<string, ArchObject> = Object.fromEntries(
 
 // Field nào trong InstanceDetail cho SỬA inline. DENY pk + cột hệ thống + secret. SYNC helper
 // → để Ở ĐÂY (spec, non-'use server') để cả client (studio) lẫn server action dùng chung.
-const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status', 'site_url', 'draft', 'has_draft']);
+const FIELD_RO_SYS = new Set(['id', 'created_at', 'updated_at', 'tenant_id', 'last_login_at', 'password_set_at', 'last_verified_at', 'applies_to', 'source_url', 'da', 'dofollow', 'traffic', 'rank', 'mechanism', 'site_status', 'site_url', 'draft', 'has_draft', 'assignee', 'assigned_user_id']);
 const FIELD_RO_SENS = /pass(word)?|token|secret|_enc$|_hash$|api_key|client_secret|bot_token/i;
 export function isInstanceFieldEditable(objectKey: string, col: string): boolean {
   const obj = BINDABLE_TABLES[objectKey];

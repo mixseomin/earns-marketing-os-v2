@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
+import { SiteMenu } from './site-menu';
 
 type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans';
 
@@ -252,9 +253,12 @@ export function TopBar({
           shortcut quay về Board / Tribes / Studio mà không phải qua sidebar. */}
       {currentProject && (
         <>
-          <div className="topbar-project-indicator" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="topbar-project-indicator" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', marginRight: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: 14 }}>{currentProject.emoji}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentProject.name}</span>
+            <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentProject.name}</span>
+            {currentProject.website && (
+              <SiteMenu domain={currentProject.website.replace(/^https?:\/\//, '').replace(/\/$/, '')} project={currentProject.id} />
+            )}
           </div>
           <nav className="tabs">
             {projectTabs.map((pt) => (

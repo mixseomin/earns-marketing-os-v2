@@ -20,7 +20,7 @@ import { PillarCoveragePanel } from '@/components/architecture/pillar-coverage-p
 import { AccountInfraPanel } from '@/components/architecture/account-infra-panel';
 import { TeamPanel } from '@/components/architecture/team-panel';
 import {
-  GROUPS, OBJECTS, OBJ_BY_KEY, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS, isInstanceFieldEditable,
+  GROUPS, OBJECTS, OBJ_BY_KEY, OBJ_CRUD, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS, isInstanceFieldEditable,
   EXT_SURFACE, SURFACE_GROUP_META, SURFACE_LAYERS,
   type ArchObject, type ArchFlow, type RelKind, type BrowseGroup, type SurfaceGroup,
 } from './spec';
@@ -28,7 +28,7 @@ import { Drawer } from '@/components/drawer';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
 import { MultiSelect } from '@/components/ui/multi-select';
 import {
-  listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
+  listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, createInstance, deleteInstance, restoreInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
   getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects, setBacklinkSite,
@@ -817,6 +817,11 @@ const INST_EVT = 'mos2-inst-updated';
 function emitInstUpdate(objKey: string, id: string, patch: { status?: string; noteAppend?: string; label?: string; cols?: Record<string, string | null> }, from: string) {
   try { window.dispatchEvent(new CustomEvent(INST_EVT, { detail: { objKey, id: String(id), patch, from } })); } catch { /* noop */ }
 }
+// Create/Delete/Restore → bảng đang mở cùng object refetch (thêm/bớt row).
+const INST_CHANGED = 'mos2-inst-changed';
+function emitInstChanged(objKey: string) {
+  try { window.dispatchEvent(new CustomEvent(INST_CHANGED, { detail: { objKey } })); } catch { /* noop */ }
+}
 
 // project cell: 1st project = link; the "+N" opens a popover listing EVERY project,
 // each clickable → mở drawer của project đó (mọi ref mở được phải mở ngay).
@@ -977,6 +982,93 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
   );
 }
 
+// Generic CREATE form (modal). Fields = attrs editable (col chuẩn snake_case từ spec; dùng chung
+// filter isInstanceFieldEditable với createInstance). projectScoped → project_id tự gán.
+function CreateOverlay({ obj, projectId, onClose, onCreated }: { obj: ArchObject; projectId: string; onClose: () => void; onCreated: () => void }) {
+  const fields = obj.attrs.filter((a) => !!a.col && !a.pk && isInstanceFieldEditable(obj.key, a.col!));
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const submit = async () => {
+    setBusy(true); setErr('');
+    const r = await createInstance(obj.key, vals, projectId);
+    setBusy(false);
+    if (r.ok) onCreated(); else setErr(r.error || 'tạo thất bại');
+  };
+  return createPortal(
+    <>
+      <div onMouseDown={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,.45)' }} />
+      <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', zIndex: 401, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 380, maxHeight: '80vh', overflowY: 'auto', background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, boxShadow: '0 16px 48px rgba(0,0,0,.6)', padding: 14 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, marginBottom: 2 }}>+ {obj.label} mới</div>
+        <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 10 }}>{obj.projectScoped ? `project: ${projectId || '—'} (tự gán)` : 'cross-project'} · điền field cần thiết (thiếu cột bắt buộc sẽ báo lỗi)</div>
+        {fields.map((a) => (
+          <div key={a.name} style={{ marginBottom: 8 }}>
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 2 }}>{a.name}{a.note ? <span style={{ textTransform: 'none', color: 'var(--fg-4)', fontWeight: 400 }}> · {a.note}</span> : ''}</label>
+            {a.type === 'bool'
+              ? <select value={vals[a.col!] ?? ''} onChange={(e) => setVals((p) => ({ ...p, [a.col!]: e.target.value }))} style={{ ...selStyle, width: '100%' }}><option value="">—</option><option value="true">true</option><option value="false">false</option></select>
+              : <input value={vals[a.col!] ?? ''} onChange={(e) => setVals((p) => ({ ...p, [a.col!]: e.target.value }))} autoComplete="off" style={{ width: '100%', padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontFamily: 'var(--font-mono)', fontSize: 11.5, boxSizing: 'border-box' }} />}
+          </div>
+        ))}
+        {err && <div style={{ fontSize: 11, color: 'var(--bad)', marginBottom: 8 }}>✗ {err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button type="button" onClick={submit} disabled={busy} style={{ flex: 1, fontWeight: 700, fontSize: 12, padding: '7px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--accent)', color: '#fff' }}>{busy ? 'tạo…' : 'Tạo'}</button>
+          <button type="button" onClick={onClose} style={{ ...btnStyle, padding: '7px 14px' }}>Huỷ</button>
+        </div>
+      </div>
+    </>, document.body);
+}
+
+// Generic DELETE (drawer) — confirm 2 bước + undo 10s (restoreInstance). View ko hỗ trợ undo.
+function DeleteRow({ objKey, id, label }: { objKey: string; id: string; label: string }) {
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [deleted, setDeleted] = useState<Record<string, unknown> | null>(null);
+  const [secs, setSecs] = useState(0);
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    if (!deleted || secs <= 0) return;
+    const t = setTimeout(() => setSecs((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [deleted, secs]);
+  const doDelete = async () => {
+    setBusy(true); setMsg('');
+    const r = await deleteInstance(objKey, id);
+    setBusy(false); setConfirm(false);
+    if (r.ok) { setDeleted(r.row ?? {}); setSecs(10); emitInstChanged(objKey); }
+    else setMsg('✗ ' + (r.error || 'lỗi'));
+  };
+  const undo = async () => {
+    setBusy(true);
+    const r = await restoreInstance(objKey, deleted!);
+    setBusy(false);
+    if (r.ok) { setDeleted(null); setSecs(0); setMsg('↩ đã hoàn tác'); emitInstChanged(objKey); }
+    else setMsg('✗ ' + (r.error || 'không hoàn tác được'));
+  };
+  if (deleted) {
+    const canUndo = secs > 0 && Object.keys(deleted).length > 0;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-2)', paddingTop: 4 }}>
+        🗑 Đã xoá {label.toLowerCase()} #{id}.
+        {canUndo
+          ? <button type="button" onClick={undo} disabled={busy} style={{ ...btnStyle, padding: '3px 10px', color: 'var(--accent)' }}>↩ Hoàn tác ({secs}s)</button>
+          : <span style={{ color: 'var(--fg-4)' }}>{msg || 'hết hạn hoàn tác'}</span>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
+      {!confirm
+        ? <button type="button" onClick={() => setConfirm(true)} style={{ ...btnStyle, padding: '4px 11px', color: 'var(--bad)', borderColor: 'var(--bad)' }}>🗑 Xoá</button>
+        : <>
+            <span style={{ fontSize: 11, color: 'var(--bad)', fontWeight: 700 }}>Xoá {label.toLowerCase()} này?</span>
+            <button type="button" onClick={doDelete} disabled={busy} style={{ padding: '4px 11px', borderRadius: 5, border: 'none', cursor: 'pointer', background: 'var(--bad)', color: '#fff', fontWeight: 700, fontSize: 11 }}>{busy ? '…' : 'Xoá thật'}</button>
+            <button type="button" onClick={() => setConfirm(false)} style={{ ...btnStyle, padding: '4px 10px' }}>Huỷ</button>
+          </>}
+      {msg && <span style={{ fontSize: 11, color: 'var(--warn)' }}>{msg}</span>}
+    </div>
+  );
+}
+
 // ── live instance browser (node drawer) — danh sách thực tế + filter + phân trang.
 // Mỗi row click → mở drawer chi tiết (InstanceDetail) ở lớp cascade kế. ───────────
 function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
@@ -997,6 +1089,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [page, setPage] = useState(0);
   const [data, setData] = useState<InstancePage>({ rows: [], total: 0 });
   const [loading, setLoading] = useState(false);
+  const [reloadN, setReloadN] = useState(0);   // bump → refetch (sau create/delete/restore)
+  const [creating, setCreating] = useState(false);
   const PAGE = 25;
   // Sort server-side (click header: none→desc→asc→none). '__label' = cột label đầu.
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(sess0.sort && sess0.sort.col ? sess0.sort : null);
@@ -1069,6 +1163,12 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
     window.addEventListener(INST_EVT, h);
     return () => window.removeEventListener(INST_EVT, h);
   }, [obj.key]);
+  // create/delete/restore ở object này → refetch list.
+  useEffect(() => {
+    const h = (e: Event) => { if ((e as CustomEvent).detail?.objKey === obj.key) setReloadN((n) => n + 1); };
+    window.addEventListener(INST_CHANGED, h);
+    return () => window.removeEventListener(INST_CHANGED, h);
+  }, [obj.key]);
   useEffect(() => {
     let dead = false;
     setLoading(true);
@@ -1083,7 +1183,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       facetCols: filterCols.map((c) => c.key),
     }).then((r) => { if (!dead) { setData(r); setFacets(r.facets || {}); } }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt, cfSig, colSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt, cfSig, colSig, reloadN]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const from = data.total === 0 ? 0 : page * PAGE + 1;
@@ -1129,8 +1229,17 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 
   return (
     <Section title={obj.label} sub="// live · filter · phân trang · click row mở chi tiết">
+      {creating && (
+        <CreateOverlay obj={obj} projectId={projectId}
+          onClose={() => setCreating(false)}
+          onCreated={() => { setCreating(false); emitInstChanged(obj.key); }} />
+      )}
       {/* filters: project + parent (optional, ko bắt buộc chọn) + search */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+        {OBJ_CRUD[obj.key]?.create && (
+          <button type="button" onClick={() => setCreating(true)} title={`Tạo ${obj.label} mới`}
+            style={{ ...btnStyle, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent-line)', flexShrink: 0 }}>+ New</button>
+        )}
         {projectScoped && (
           <select value={projectId} onChange={(e) => { setProjectId(e.target.value); onProjectChange?.(e.target.value); }} style={selStyle}>
             {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1619,6 +1728,7 @@ function InstanceDetail({ objKey, id }: { objKey: string; id: string }) {
         </div>
       </Section>
       {obj.deepLink && <a href={obj.deepLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>↗ manage real {obj.label}</a>}
+      {OBJ_CRUD[objKey]?.del && <DeleteRow objKey={objKey} id={id} label={obj.label} />}
     </div>
   );
 }
@@ -3184,6 +3294,7 @@ function IdentityDetail({ id }: { id: number }) {
       {/* persona + custom_fields = read-only JSON (canonical, dùng để fill profile on-site) */}
       <JsonBlock title="persona" data={d.persona} />
       <JsonBlock title="custom_fields (→ profile on-site, reuse mọi site)" data={d.customFields} />
+      {OBJ_CRUD['identity']?.del && <DeleteRow objKey="identity" id={String(id)} label="Identity" />}
     </div>
   );
 }

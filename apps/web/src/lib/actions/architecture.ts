@@ -347,6 +347,70 @@ export async function updateInstance(
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
 }
 
+// ── generic CREATE / DELETE / RESTORE (CRUD trong studio) ────────────────────
+// Allowlist = BINDABLE_TABLES. Reject VIEW cho create/restore. Values text → Postgres
+// cast theo cột. Cột NOT NULL thiếu → insert fail rõ ràng (surface error).
+async function isView(db: NonNullable<ReturnType<typeof getDb>>, table: string): Promise<boolean> {
+  const r = await db.execute(sql`SELECT relkind::text AS k FROM pg_class WHERE relname = ${table} LIMIT 1`);
+  return (r as unknown as Array<{ k: string }>)[0]?.k === 'v';
+}
+export async function createInstance(objectKey: string, values: Record<string, string | null>, projectId?: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table) return { ok: false, error: 'unknown object' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  if (await isView(db, obj.table)) return { ok: false, error: 'view — không tạo trực tiếp' };
+  const cols = await tableColumns(obj.table);
+  const names: string[] = []; const vals: ReturnType<typeof sql>[] = [];
+  for (const [c, v] of Object.entries(values)) {
+    if (!isInstanceFieldEditable(objectKey, c) || !cols.has(c) || v == null || v === '') continue;
+    names.push(ident(c)); vals.push(sql`${v}`);
+  }
+  if (obj.projectScoped && cols.has('project_id') && projectId && !names.includes(ident('project_id'))) {
+    names.push(ident('project_id')); vals.push(sql`${projectId}`);
+  }
+  if (!names.length) return { ok: false, error: 'chưa nhập field nào' };
+  const pk = ident(obj.pk || 'id');
+  try {
+    const r = await db.execute(sql`INSERT INTO ${sql.raw(ident(obj.table))} (${sql.raw(names.join(', '))}) VALUES (${sql.join(vals, sql`, `)}) RETURNING ${sql.raw(pk)}::text AS id`);
+    return { ok: true, id: (r as unknown as Array<{ id: string }>)[0]?.id };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'insert failed' }; }
+}
+// Trả về snapshot row đã xoá (cho undo). View auto-updatable → xoá row base.
+export async function deleteInstance(objectKey: string, id: string): Promise<{ ok: boolean; row?: Record<string, unknown>; error?: string }> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table) return { ok: false, error: 'unknown object' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  const pk = ident(obj.pk || 'id');
+  try {
+    const snap = await db.execute(sql`SELECT * FROM ${sql.raw(ident(obj.table))} WHERE ${sql.raw(pk)}::text = ${id} LIMIT 1`);
+    const row = (snap as unknown as Array<Record<string, unknown>>)[0];
+    await db.execute(sql`DELETE FROM ${sql.raw(ident(obj.table))} WHERE ${sql.raw(pk)}::text = ${id}`);
+    return { ok: true, row };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'delete failed' }; }
+}
+// Undo: re-insert toàn bộ cột (gồm pk) từ snapshot. Best-effort (con cascade ko khôi phục, view ko hỗ trợ).
+export async function restoreInstance(objectKey: string, row: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+  const obj = BINDABLE_TABLES[objectKey];
+  if (!obj || !obj.table || !row) return { ok: false, error: 'bad restore' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  if (await isView(db, obj.table)) return { ok: false, error: 'view — không khôi phục được' };
+  const cols = await tableColumns(obj.table);
+  const names: string[] = []; const vals: ReturnType<typeof sql>[] = [];
+  for (const [c, v] of Object.entries(row)) {
+    if (!cols.has(c) || v == null) continue;
+    names.push(ident(c));
+    vals.push(typeof v === 'object' ? sql`${JSON.stringify(v)}` : sql`${v as string | number | boolean}`);
+  }
+  if (!names.length) return { ok: false, error: 'empty row' };
+  try {
+    await db.execute(sql`INSERT INTO ${sql.raw(ident(obj.table))} (${sql.raw(names.join(', '))}) VALUES (${sql.join(vals, sql`, `)})`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'restore failed' }; }
+}
+
 // ── instance detail + consistency checks ─────────────────────────────────────
 export async function getInstance(objectKey: string, id: string): Promise<InstanceDetail | null> {
   const obj = BINDABLE_TABLES[objectKey];

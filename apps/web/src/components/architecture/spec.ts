@@ -824,6 +824,27 @@ export const OBJECTS: ArchObject[] = [
 
 export const OBJ_BY_KEY: Record<string, ArchObject> = Object.fromEntries(OBJECTS.map((o) => [o.key, o]));
 
+// CRUD capability per object (từ CRUD-safety map 2026-06-30). create = generic insert form
+// (fields = attrs editable, validate cột thật + surface NOT-NULL error); del = generic delete
+// (confirm + undo 10s). Object vắng mặt = read/edit-only. View/none (backlink/profileOnsite/
+// domSample/uxFlow/externalApi/sceneIdentity) KHÔNG create/delete generic. account/boardScore:
+// chỉ delete (insert cần cột mã hoá / hash tính sẵn → form đơn giản không tạo đúng).
+// create CHỈ cho object insert đơn-giản (required = field text, KHÔNG FK cha bắt buộc /
+// cột mã hoá / side-effect). FK-heavy + side-effect (identity→pivot, brief/channel→FK cha,
+// account→enc, card/project→phức tạp) = del-only, dùng flow tạo riêng.
+export const OBJ_CRUD: Record<string, { create?: boolean; del?: boolean }> = {
+  knowledge: { create: true, del: true }, proxy: { create: true, del: true },
+  browserProfile: { create: true, del: true }, platform: { create: true, del: true },
+  technology: { create: true, del: true }, generator: { create: true, del: true },
+  board: { create: true, del: true }, approach: { create: true, del: true },
+  pillar: { create: true, del: true }, habitat: { create: true, del: true },
+  people: { create: true, del: true }, selector: { create: true, del: true },
+  // delete-only (tạo qua flow riêng):
+  identity: { del: true }, account: { del: true }, card: { del: true }, project: { del: true },
+  teamUser: { del: true }, interaction: { del: true }, brief: { del: true }, channel: { del: true },
+  boardScore: { del: true },
+};
+
 // ── Flows ──────────────────────────────────────────────────────────────────
 export type FlowFamily = 'onpage' | 'backend';
 

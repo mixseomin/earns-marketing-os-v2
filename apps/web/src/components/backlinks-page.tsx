@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
+import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
 
 type TabKey = 'todo' | 'progress' | 'done' | 'all';
@@ -36,6 +37,21 @@ function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; c
   return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 
+// Account-readiness chip on a backlink card — is the platform account ready to post?
+function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.MouseEvent) => void }) {
+  const m = READINESS_META[task.readiness];
+  const showHandle = (task.readiness === 'ready' || task.readiness === 'warming' || task.readiness === 'setup') && task.accountHandle;
+  const label = showHandle ? task.accountHandle! : task.readiness === 'missing' ? 'need acct' : task.readiness === 'no-account' ? 'no acct' : m.label;
+  const title = `${m.label}${task.platformLabel ? ' · ' + task.platformLabel : ''}${task.accountHandle ? ' · @' + task.accountHandle : ''}${task.accountStatus ? ' (' + task.accountStatus + ')' : ''}`;
+  return (
+    <span role="button" onClick={onClick} title={title}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', maxWidth: 132,
+        background: `color-mix(in srgb, ${m.color} 15%, transparent)`, color: m.color, border: `1px solid color-mix(in srgb, ${m.color} 45%, transparent)` }}>
+      <span>{m.icon}</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </span>
+  );
+}
+
 export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
 }) {
@@ -47,6 +63,23 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
   const [traf, setTraf] = useState<string>('');        // traffic filter
   const [draftOnly, setDraftOnly] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [prepOpen, setPrepOpen] = useState(false);
+
+  // Account-readiness rollup (prepare before posting): counts per bucket + the distinct
+  // platforms still missing an account (deep-link to create each).
+  const prep = useMemo(() => {
+    const c: Record<ReadinessBucket, number> = { ready: 0, warming: 0, setup: 0, missing: 0, locked: 0, 'no-account': 0 };
+    const missing = new Map<string, string>();
+    for (const t of tasks) { c[t.readiness]++; if (t.readiness === 'missing' && t.platformKey) missing.set(t.platformKey, t.platformLabel || t.platformKey); }
+    return { c, missing: [...missing.entries()] };
+  }, [tasks]);
+
+  const goAccount = (e: React.MouseEvent, t: BacklinkTask) => {
+    e.stopPropagation();
+    if (t.readiness === 'no-account') { setOpenId(t.id); return; }
+    const base = `/p/${projectId}/resources?vault=accounts`;
+    router.push(t.readiness === 'missing' && t.platformKey ? `${base}&m=new&platform=${t.platformKey}` : base);
+  };
 
   const kpi = useMemo(() => {
     const k = { total: tasks.length, todo: 0, progress: 0, done: 0 };
@@ -106,6 +139,24 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
         ))}
       </div>
 
+      {/* account-readiness rollup — prepare before posting */}
+      <div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
+        <div onClick={() => setPrepOpen((v) => !v)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', cursor: prep.missing.length ? 'pointer' : 'default' }}>
+          <span style={{ color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 9.5 }}>Accounts</span>
+          {(['ready', 'missing', 'warming', 'setup', 'locked', 'no-account'] as ReadinessBucket[]).map((b) => prep.c[b] ? (
+            <span key={b} style={{ color: READINESS_META[b].color, fontWeight: 700 }} title={READINESS_META[b].label}>{READINESS_META[b].icon} {prep.c[b]} {b === 'no-account' ? 'email-only' : b === 'missing' ? 'need acct' : b}</span>
+          ) : null)}
+          {prep.missing.length > 0 && <span style={{ marginLeft: 'auto', color: 'var(--fg-3)' }}>{prepOpen ? '▾ ẩn' : `▸ ${prep.missing.length} platform cần tạo`}</span>}
+        </div>
+        {prepOpen && prep.missing.length > 0 && (
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {prep.missing.map(([k, label]) => (
+              <a key={k} href={`/p/${projectId}/resources?vault=accounts&m=new&platform=${k}`} style={{ ...btn, textDecoration: 'none', color: 'var(--accent)' }}>➕ {label}</a>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* tabs + filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <TabBtn k="todo" label="To do" n={kpi.todo} />
@@ -138,6 +189,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
               </div>
             </div>
+            <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
             <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
             <Pill status={t.siteState} />
             {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
@@ -146,13 +198,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
 
-      {open && <Drawer task={open} slug={slug} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} />}
+      {open && <Drawer task={open} slug={slug} projectId={projectId} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} />}
     </div>
   );
 }
 
-function Drawer({ task, slug, onClose, setSite, onChange }: {
-  task: BacklinkTask; slug: string; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+function Drawer({ task, slug, projectId, onClose, setSite, onChange }: {
+  task: BacklinkTask; slug: string; projectId: string; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
 }) {
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copied, setCopied] = useState(false);
@@ -173,6 +225,27 @@ function Drawer({ task, slug, onClose, setSite, onChange }: {
           {task.traffic && <Tag color="#22c55e">{task.traffic}</Tag>}
           {task.rank && <Tag color="#ffb03c">rank {task.rank}</Tag>}
         </div>
+
+        {/* Account readiness — phải có account platform trước khi post */}
+        <div style={lbl}>Account · {task.platformLabel || 'platform ?'}</div>
+        {task.readiness === 'no-account' ? (
+          <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
+        ) : task.accountHandle ? (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
+            <span style={{ fontWeight: 700 }}>@{task.accountHandle}</span>
+            <Tag color={READINESS_META[task.readiness].color}>{READINESS_META[task.readiness].icon} {task.accountStatus}</Tag>
+            {task.has2fa && <Tag>🔐 2FA</Tag>}
+            {task.authMethod && <Tag>{task.authMethod}</Tag>}
+            {task.hasProxy && <Tag color="#9d6cff">🌐 proxy</Tag>}
+            {task.hasProfile && <Tag color="#5badff">🧭 profile</Tag>}
+            <a href={`/p/${projectId}/resources?vault=accounts`} style={{ ...btn, textDecoration: 'none', padding: '2px 8px' }}>→ Vault</a>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+            <span style={{ color: READINESS_META.missing.color }}>➕ Chưa có account trên {task.platformLabel}</span>
+            <a href={`/p/${projectId}/resources?vault=accounts&m=new&platform=${task.platformKey}`} style={{ ...btn, textDecoration: 'none', color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</a>
+          </div>
+        )}
 
         <div style={lbl}>Assign to</div>
         <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onChange} />

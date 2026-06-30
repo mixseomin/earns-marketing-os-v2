@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { listAccountMedia } from '@/lib/actions/post-media';
 import { renameProfileField, listProfileFields } from '@/lib/actions/profile-fields';
@@ -749,6 +749,8 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
   const modal = useModalParam();
   const editingId = modal.is('edit') ? modal.numId : null;
   const creating = modal.is('new');
+  // Deep-link prefill: /resources?vault=accounts&m=new&platform=<key> (from backlink prep).
+  const presetPlatform = useSearchParams().get('platform') || undefined;
   // filterStatus chấp nhận: 'all', StatusGroup key (setup/warming/ready/locked),
   // hoặc AccountStatus thẳng (legacy URL param). Resolver xử lý cả 3 trường hợp.
   const [filterStatus, setFilterStatus] = useState<AccountStatus | StatusGroup | 'all'>('all');
@@ -941,6 +943,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           browserProfiles={browserProfiles}
           onClose={() => modal.close()}
           onSwitchToEdit={(localId) => modal.open("edit", localId)}
+          presetPlatformKey={creating ? presetPlatform : undefined}
         />
       )}
     </div>

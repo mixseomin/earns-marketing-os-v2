@@ -90,7 +90,7 @@ async function tableColumns(table: string): Promise<Set<string>> {
 
 export async function browseInstances(
   objectKey: string,
-  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'empty' | 'partial' | 'full' | 'broken'; filters?: Record<string, string[]>; facetCols?: string[] } = {},
+  opts: { projectId?: string; parentId?: string; q?: string; limit?: number; offset?: number; cols?: string[]; sort?: { col: string; dir: 'asc' | 'desc' }; flt?: 'missing' | 'empty' | 'partial' | 'full' | 'broken'; filters?: Record<string, string[]>; facetCols?: string[]; siteMember?: string } = {},
 ): Promise<InstancePage> {
   const obj = BINDABLE_TABLES[objectKey];
   if (!obj || !obj.table) return { rows: [], total: 0 };
@@ -209,6 +209,11 @@ export async function browseInstances(
     else if (opts.flt === 'broken') conds.push(sql.raw(brokenEx));
     else conds.push(sql.raw(missingBody));   // 'missing' legacy
   }
+  // site membership (backlink shared entity): row's site_status jsonb has this site as a key.
+  // Scoping filter (like project) → included in facetConds so facets reflect the site too.
+  if (opts.siteMember && /^[a-z0-9_-]+$/.test(opts.siteMember) && validCols.has('site_status')) {
+    conds.push(sql`jsonb_exists(t.site_status, ${opts.siteMember})`);
+  }
   // generic per-column value filters (categorical cols). facets reflect the scope BEFORE these.
   const facetConds = conds.slice();
   if (opts.filters) {
@@ -310,6 +315,24 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
         || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text))),
+        updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Backlink shared entity: remove a site from membership (drop the key from both
+// site_status + site_url). Inverse of setBacklinkSite for the Sites multi-select.
+export async function removeBacklinkSite(taskId: number, site: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
+  try {
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload =
+        COALESCE(prep_payload, '{}'::jsonb)
+        || jsonb_build_object('site_status', (COALESCE(prep_payload->'site_status', '{}'::jsonb) - ${site}::text))
+        || jsonb_build_object('site_url',    (COALESCE(prep_payload->'site_url',    '{}'::jsonb) - ${site}::text)),
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true };

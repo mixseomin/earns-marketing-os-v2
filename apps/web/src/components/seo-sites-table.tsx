@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Sparkline } from './sparkline';
 import { GscDetailDrawer } from './gsc-detail-drawer';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
-import { wrapExternalUrl } from '@/lib/external-url';
+import { SiteMenu } from './site-menu';
 
 interface RowData {
   domain: string;
@@ -240,7 +240,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             const ctr = r.impressions_7d ? (r.clicks_7d / r.impressions_7d * 100) : 0;
             const pts = timeseries[r.domain] || [];
             const sparkValues = pts.slice(-30).map((p) => p.impressions);
-            const gscUrl = `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`;
             const SiteCell = r.project
               ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>;
@@ -250,20 +249,8 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   title={`Click → mở chart + top queries cho ${r.domain}`}>
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
-                  <a href={wrapExternalUrl(`https://${r.domain}/`)} target="_blank" rel="noopener noreferrer"
-                    title={`Open ${r.domain} homepage`}
-                    className="seo-extlink" style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Web&nbsp;↗</a>
-                  <a href={wrapExternalUrl(gscUrl)} target="_blank" rel="noopener noreferrer"
-                    title={`Open ${r.domain} in Google Search Console`}
-                    className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GSC&nbsp;↗</a>
-                  {r.ga4PropertyId && (
-                    <a href={wrapExternalUrl(`https://analytics.google.com/analytics/web/#/p${r.ga4PropertyId}/reports/intelligenthome`)} target="_blank" rel="noopener noreferrer"
-                      title={`Open ${r.domain} in Google Analytics (GA4)`}
-                      className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>GA&nbsp;↗</a>
-                  )}
-                  <a href={wrapExternalUrl(`https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`)} target="_blank" rel="noopener noreferrer"
-                    title={`Open ${r.domain} in Bing Webmaster Tools`}
-                    className="seo-extlink" style={{ marginLeft: 6, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', letterSpacing: '0.04em' }}>Bing&nbsp;↗</a>
+                  <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId}
+                    onOpenDetail={() => setOpenDomain(r.domain)} />
                 </td>
                 {cols.live && <>
                   <td style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>

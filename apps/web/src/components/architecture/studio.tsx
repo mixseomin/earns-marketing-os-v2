@@ -31,13 +31,14 @@ import {
   listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, createInstance, deleteInstance, restoreInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
   listUxFlows, getUxFlow,
-  getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects, setBacklinkSite,
+  getIdentity, updateIdentity, identityProjectsPanel, setIdentityProjects, setBacklinkSite, removeBacklinkSite,
   canonChecks, type CanonCheck,
   type InstanceRef, type InstancePage, type BrowseRow, type Issue, type ScanResult, type SelRow, type SelCatRow, type SelDetail, type ExtActivity, type ExtCall,
   type MetricCoverage, type MetricCell, type TemplateAdoptionData, type DomSampleRow, type DomExtract, type ExtractedEntity, type SeedSelector, type SeedFieldState,
   type UxFlowRow, type UxFlowDetailData, type IdentityDetailData,
 } from '@/lib/actions/architecture';
 import { listContentPillars, updateContentPillar, type ContentPillarRow } from '@/lib/actions/content-pillars';
+import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { listTribesForProject } from '@/lib/actions/tribes-crud';
 import ReactMarkdown, { type Components } from 'react-markdown';
 
@@ -939,15 +940,19 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
   const [statusDraft, setStatusDraft] = useState('pending');
   const [urlDraft, setUrlDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [addAt, setAddAt] = useState<{ x: number; y: number } | null>(null);   // "+ thêm site" menu
   const sig = JSON.stringify(siteStatus) + '|' + JSON.stringify(siteUrl);
   useEffect(() => { setSt(siteStatus); setUrls(siteUrl); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sig]);
   useEffect(() => { if (!edit) return; const c = () => setEdit(null); window.addEventListener('scroll', c, true); return () => window.removeEventListener('scroll', c, true); }, [edit]);
   const sites = Object.keys(st);
-  if (!sites.length) return <span style={{ color: 'var(--fg-4)' }}>—</span>;
   const col = (s: string) => BL_STATUS.find((x) => x.k === s)?.color || '#8a92a3';
   const abbr = (site: string) => (projMap.get(site) || site).slice(0, 3).toUpperCase();
   const open = (e: React.MouseEvent, site: string) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setStatusDraft(st[site] || 'pending'); setUrlDraft(urls[site] || ''); setEdit({ site, x: r.left, y: r.bottom + 4 }); };
   const save = () => { if (!edit) return; const site = edit.site; setBusy(true); setSt((p) => ({ ...p, [site]: statusDraft })); setUrls((p) => ({ ...p, [site]: urlDraft })); setBacklinkSite(taskId, site, statusDraft, urlDraft).finally(() => { setBusy(false); setEdit(null); }); };
+  const addSite = (slug: string) => { setAddAt(null); setSt((p) => ({ ...p, [slug]: 'pending' })); setBacklinkSite(taskId, slug, 'pending', ''); };
+  const removeSite = (site: string) => { setBusy(true); setSt((p) => { const n = { ...p }; delete n[site]; return n; }); setUrls((p) => { const n = { ...p }; delete n[site]; return n; }); removeBacklinkSite(taskId, site).finally(() => { setBusy(false); setEdit(null); }); };
+  const openAdd = (e: React.MouseEvent) => { e.stopPropagation(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setAddAt({ x: r.left, y: r.bottom + 4 }); };
+  const addable = BACKLINK_SITES.filter((s) => !(s.slug in st));
   return (
     <span style={{ display: 'inline-flex', gap: 3, minWidth: 0, alignItems: 'center', flexWrap: 'wrap' }}>
       {sites.map((site) => {
@@ -960,6 +965,24 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
           </span>
         );
       })}
+      {!sites.length && <span style={{ color: 'var(--fg-4)' }}>—</span>}
+      {addable.length > 0 && (
+        <span role="button" onClick={openAdd} title="Thêm site áp dụng backlink này"
+          style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 999, cursor: 'pointer', background: 'transparent', color: 'var(--fg-3)', border: '1px dashed var(--line-2)' }}>+</span>
+      )}
+      {addAt && createPortal(
+        <>
+          <div onMouseDown={() => setAddAt(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: addAt.x, top: addAt.y, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 180, maxHeight: '60vh', overflowY: 'auto' }}>
+            {addable.map((s) => (
+              <button key={s.slug} type="button" onClick={() => addSite(s.slug)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '5px 8px', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
+                <span>{s.emoji}</span><span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </>, document.body)}
       {edit && createPortal(
         <>
           <div onMouseDown={() => setEdit(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
@@ -974,8 +997,12 @@ function BacklinkStatusCell({ taskId, siteStatus, siteUrl, projMap }: { taskId: 
             </div>
             <input value={urlDraft} onChange={(e) => setUrlDraft(e.target.value)} placeholder="live URL (link đã đặt được)…" autoComplete="off"
               style={{ width: '100%', padding: '4px 7px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)', fontSize: 11, boxSizing: 'border-box' }} />
-            <button type="button" onClick={save} disabled={busy}
-              style={{ marginTop: 6, width: '100%', fontSize: 11, fontWeight: 700, padding: '4px', borderRadius: 5, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none' }}>Lưu</button>
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+              <button type="button" onClick={save} disabled={busy}
+                style={{ flex: 1, fontSize: 11, fontWeight: 700, padding: '4px', borderRadius: 5, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none' }}>Lưu</button>
+              <button type="button" onClick={() => removeSite(edit.site)} disabled={busy} title="Gỡ site này khỏi backlink (không còn áp dụng)"
+                style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444' }}>Gỡ</button>
+            </div>
           </div>
         </>, document.body)}
     </span>
@@ -1100,8 +1127,13 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
   const [colFilters, setColFilters] = useState<Record<string, string[]>>(sess0.colFilters && typeof sess0.colFilters === 'object' ? sess0.colFilters : {});
   const [facets, setFacets] = useState<Record<string, { value: string; count: number }[]>>({});
   const cfSig = JSON.stringify(colFilters);
+  // Backlink shared entity: lọc theo SITE (membership). Seed từ ?site= (menu site list) → fallback session.
+  const [siteMember, setSiteMember] = useState<string>(() => {
+    if (obj.key !== 'backlink') return '';
+    try { return new URLSearchParams(window.location.search).get('site') || sess0.siteMember || ''; } catch { return sess0.siteMember || ''; }
+  });
   // Lưu phiên mỗi khi 1 trục thay đổi (page bỏ qua — reset effect dưới luôn về 0 khi mount).
-  useEffect(() => { try { localStorage.setItem(sKey, JSON.stringify({ q, sort, flt, projectId, parentId, colFilters })); } catch {} }, [sKey, q, sort, flt, projectId, parentId, cfSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { try { localStorage.setItem(sKey, JSON.stringify({ q, sort, flt, projectId, parentId, colFilters, siteMember })); } catch {} }, [sKey, q, sort, flt, projectId, parentId, cfSig, siteMember]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleSort = (col: string) => setSort((s) => (s && s.col === col ? (s.dir === 'desc' ? { col, dir: 'asc' } : null) : { col, dir: 'desc' }));
   // Column GROUPS (Info/Posting/Selectors/DOM) — colored bands + show/hide như SEO overview.
   const bc = obj.browseCols || [];
@@ -1151,7 +1183,7 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
 
   useEffect(() => { let dead = false; if (!parent) { setParentInstances([]); return; } listInstances(parent.object).then((r) => { if (!dead) setParentInstances(r); }); return () => { dead = true; }; }, [parent?.object]);
   useEffect(() => { const h = setTimeout(() => { setQDeb(q.trim()); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
-  useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt, cfSig]);
+  useEffect(() => { setPage(0); }, [projectId, parentId, sort, flt, cfSig, siteMember]);
   // 1 drawer sửa field → patch row tương ứng trong bảng NGAY (status/label/cols) — ko refetch.
   useEffect(() => {
     const h = (e: Event) => {
@@ -1181,9 +1213,10 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       flt: flt || undefined,
       filters: colFilters,
       facetCols: filterCols.map((c) => c.key),
+      siteMember: obj.key === 'backlink' && siteMember ? siteMember : undefined,
     }).then((r) => { if (!dead) { setData(r); setFacets(r.facets || {}); } }).finally(() => { if (!dead) setLoading(false); });
     return () => { dead = true; };
-  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt, cfSig, colSig, reloadN]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [obj.key, projectScoped, projectId, parent?.object, parentId, qDeb, page, sort, flt, cfSig, colSig, reloadN, siteMember]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const from = data.total === 0 ? 0 : page * PAGE + 1;
@@ -1279,9 +1312,16 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
       </div>
 
       {/* per-column filters — MultiSelect (facet-driven) cho cột badge + site. Áp mọi object. */}
-      {filterCols.length > 0 && (
+      {(filterCols.length > 0 || obj.key === 'backlink') && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>lọc:</span>
+          {obj.key === 'backlink' && (
+            <select value={siteMember} onChange={(e) => setSiteMember(e.target.value)} title="Lọc backlink theo site áp dụng (membership)"
+              style={{ ...selStyle, color: siteMember ? 'var(--accent)' : undefined, borderColor: siteMember ? 'var(--accent-line)' : undefined }}>
+              <option value="">site: tất cả</option>
+              {BACKLINK_SITES.map((s) => <option key={s.slug} value={s.slug}>{s.emoji} {s.label}</option>)}
+            </select>
+          )}
           {filterCols.map((c) => {
             const opts = (facets[c.key] || []).map((f) => ({ value: f.value, label: c.key === 'project_id' ? (projMap.get(f.value) || f.value) : f.value, count: f.count }));
             return (
@@ -1289,8 +1329,8 @@ function InstanceBrowser({ obj, projects, defaultProject, onProjectChange }: {
                 onChange={(vals) => setColFilters((prev) => { const n = { ...prev }; if (vals.length) n[c.key] = vals; else delete n[c.key]; return n; })} />
             );
           })}
-          {Object.keys(colFilters).length > 0 && (
-            <button type="button" onClick={() => setColFilters({})} title="Bỏ tất cả filter"
+          {(Object.keys(colFilters).length > 0 || siteMember) && (
+            <button type="button" onClick={() => { setColFilters({}); setSiteMember(''); }} title="Bỏ tất cả filter"
               style={{ padding: '2px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10, background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-3)' }}>× bỏ lọc</button>
           )}
         </div>

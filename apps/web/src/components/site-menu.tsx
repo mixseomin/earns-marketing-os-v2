@@ -39,7 +39,7 @@ function buildGroups(domain: string, project: string | undefined, ga4: string | 
         { label: 'Project', emoji: '📁', href: `/p/${project}` },
         { label: 'Outreach', emoji: '📣', href: `/p/${project}/outreach` },
       ] : []),
-      { label: 'Backlinks', emoji: '🔗', href: `/architecture?obj=backlink${slug ? `&site=${slug}` : ''}` },
+      { label: 'Backlinks', emoji: '🔗', href: project ? `/p/${project}/backlinks` : `/architecture?obj=backlink${slug ? `&site=${slug}` : ''}` },
       { label: 'Keyword Research', emoji: '🔍', href: '/seo/keyword-research' },
       ...(onOpenDetail ? [{ label: 'GSC Detail', emoji: '📈', onClick: onOpenDetail }] : []),
     ] },
@@ -95,6 +95,11 @@ export function SiteMenu({ domain, project, ga4PropertyId, onOpenDetail }: {
           style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 1000, width: 218,
             background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8,
             boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4, maxHeight: '70vh', overflowY: 'auto' }}>
+          {/* dim name header — "Site Menu" + which site */}
+          <div style={{ padding: '4px 10px 5px', marginBottom: 2, borderBottom: '1px solid var(--line)' }}>
+            <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>Site Menu</div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</div>
+          </div>
           {groups.map((g) => (
             <div key={g.label}>
               <div style={{ padding: '6px 10px 2px', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{g.label}</div>

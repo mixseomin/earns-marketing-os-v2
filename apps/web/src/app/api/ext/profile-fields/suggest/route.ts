@@ -108,8 +108,9 @@ export async function POST(req: Request) {
     + `- location/place → "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
     + `- gender → đúng gender persona. pronoun/pronouns → suy từ gender (he / she / they).\n`
     + `- occupation/job/headline/tagline → suy từ vai trò với dự án (vd founder/maker) + brand, ngắn gọn.\n`
+    + `- MỌI field VĂN BẢN TỰ DO mô tả bản thân (currently learning, available for, skills/languages, what I'm working on, currently hacking on, hobbies, interests, fun fact, "about you"…) → LUÔN sinh 1-2 câu English tự nhiên từ persona (interests/backstory/bio) + lĩnh vực dự án. TUYỆT ĐỐI KHÔNG để trống — field sáng tạo, suy diễn hợp lý được. KHÔNG markdown/em-dash.\n`
     + `- Nếu field trùng "giá trị ĐÃ LƯU" → trả ĐÚNG giá trị đó. Giữ "đang có" nếu đã hợp lý.\n`
-    + `- Field cần DỮ LIỆU THẬT/định danh ngoài (Steam ID, Friend Code, phone, ID số, dob nếu thiếu) → "" (user điền tay).\n`
+    + `- CHỈ field định danh/dữ liệu THẬT ngoài đời (phone, government/Steam/Friend ID, mã số, 2FA, dob khi persona ko có) → "" (user nhập tay). Field mô tả/sáng tạo thì KHÔNG được trống.\n`
     + `Trả JSON: {"values":{"<key>":"<value>"}}. CHỈ JSON, không giải thích.`;
 
   // Nếu LLM ko còn field nào (chỉ có website forced) → trả luôn forced.

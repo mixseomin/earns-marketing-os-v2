@@ -374,10 +374,10 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                       </div>
                     </td>
                   </tr>
-                  {(expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [String(t.entryTime) + t.symbol + String(t.exitTime), t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
+                  {(expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
                 </Fragment>
               ))
-              : sortRows(visible).map((t) => <Row key={t.strategy + String(t.entryTime) + t.symbol + String(t.exitTime)} t={t} brokerNowMs={brokerNowMs} showStrategy />)}
+              : sortRows(visible).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy />)}
             {visible.length === 0 && <tr><td colSpan={HEADERS.length} style={{ ...cell, textAlign: 'center', color: 'var(--muted)', padding: 28 }}>No orders.</td></tr>}
           </tbody>
         </table>

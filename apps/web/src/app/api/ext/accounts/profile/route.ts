@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { firstRow, errorResponse } from '@/lib/ext-route';
+import { canonPlatformKey } from '@/lib/habitat-platform-map';
 
 // GET /api/ext/accounts/profile?handle=<h>&platformKey=<k>&habitatId=<id>
 //
@@ -30,7 +31,8 @@ export async function GET(req: Request) {
     .replace(/^user\//i, '')
     .replace(/^@/, '')
     .trim();
-  const platformKey = (url.searchParams.get('platformKey') ?? '').trim().toLowerCase();
+  // canon (dev.to→devto, x→twitter…) — KHÔNG chỉ lowercase: account ghi 'dev-to' vs ext gửi 'devto' → miss.
+  const platformKey = canonPlatformKey(url.searchParams.get('platformKey') ?? '');
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
   // projectId (optional) — PREFER account trong project đang chọn khi 1 handle
   // dùng ở nhiều project. KHÔNG hard-filter (vẫn resolve cross-project).

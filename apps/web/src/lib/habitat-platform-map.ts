@@ -116,6 +116,11 @@ const PLATFORM_ALIAS: Record<string, string> = {
   twitter: 'twitter',
   bsky: 'bluesky',
   bluesky: 'bluesky',
+  // dev.to: label slugify ra 'dev-to'/'dev.to' nhưng ext + selector_overrides dùng 'devto'
+  // → account ghi 'dev-to' ko khớp khi resolve. Gom mọi biến thể về 'devto'.
+  'dev-to': 'devto',
+  'dev.to': 'devto',
+  devto: 'devto',
 };
 export function canonPlatformKey(raw?: string | null): string {
   const k = String(raw ?? '').trim().toLowerCase();

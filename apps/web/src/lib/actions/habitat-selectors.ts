@@ -284,11 +284,12 @@ export async function setMap(opts: {
         WHERE selector_overrides.source != 'manual' OR EXCLUDED.source = 'manual'
         RETURNING field_name
       `);
-      // pg returns rowCount on the result; nếu rowCount = 0 nghĩa là
-      // ON CONFLICT WHERE filter chặn (đã có manual) → skipped.
-      // Drizzle/pg shape: res.rowCount hoặc res.rows.length tùy driver.
-      const updated = (res as { rowCount?: number; rows?: unknown[] }).rowCount
-        ?? (res as { rows?: unknown[] }).rows?.length ?? 0;
+      // RETURNING field_name → 0 rows nghĩa là ON CONFLICT WHERE chặn (đã có manual) = skipped.
+      // Driver này (db.execute) trả MẢNG rows TRỰC TIẾP (res.length), KHÔNG phải {rowCount}/{rows}.
+      // Bug cũ check res.rowCount/res.rows.length (đều undefined) → saved LUÔN = 0. Fix: ưu tiên Array length.
+      const updated = Array.isArray(res)
+        ? res.length
+        : ((res as { rowCount?: number; rows?: unknown[] }).rowCount ?? (res as { rows?: unknown[] }).rows?.length ?? 0);
       if (updated > 0) saved++; else skipped++;
     }
     revalidatePath('/platforms');

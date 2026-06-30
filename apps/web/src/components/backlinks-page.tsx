@@ -9,8 +9,13 @@ import { useRouter } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
+import { AccountFormModal } from '@/components/accounts-vault';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
+import type { PlatformRow, AccountRow } from '@/lib/data';
+import type { Project } from '@/lib/mock/types';
+import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
+import type { TeamMemberRow } from '@/lib/actions/team';
 
 type TabKey = 'todo' | 'progress' | 'done' | 'all';
 
@@ -52,8 +57,10 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
+  project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
+  teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[];
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -64,6 +71,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
   const [draftOnly, setDraftOnly] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
   const [prepOpen, setPrepOpen] = useState(false);
+  // Create/edit a platform account in-place (no page jump). null = closed.
+  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
+  const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
+  const openEditAccount = (account: AccountRow) => setAcctModal({ account });
 
   // Account-readiness rollup (prepare before posting): counts per bucket + the distinct
   // platforms still missing an account (deep-link to create each).
@@ -74,12 +85,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
     return { c, missing: [...missing.entries()] };
   }, [tasks]);
 
-  const goAccount = (e: React.MouseEvent, t: BacklinkTask) => {
-    e.stopPropagation();
-    if (t.readiness === 'no-account') { setOpenId(t.id); return; }
-    const base = `/p/${projectId}/resources?vault=accounts`;
-    router.push(t.readiness === 'missing' && t.platformKey ? `${base}&m=new&platform=${t.platformKey}` : base);
-  };
+  // Chip click → open the task drawer (account section lives there). No page jump.
+  const goAccount = (e: React.MouseEvent, t: BacklinkTask) => { e.stopPropagation(); setOpenId(t.id); };
 
   const kpi = useMemo(() => {
     const k = { total: tasks.length, todo: 0, progress: 0, done: 0 };
@@ -151,7 +158,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
         {prepOpen && prep.missing.length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {prep.missing.map(([k, label]) => (
-              <a key={k} href={`/p/${projectId}/resources?vault=accounts&m=new&platform=${k}`} style={{ ...btn, textDecoration: 'none', color: 'var(--accent)' }}>➕ {label}</a>
+              <button key={k} type="button" onClick={() => openCreateAccount(k)} style={{ ...btn, color: 'var(--accent)' }}>➕ {label}</button>
             ))}
           </div>
         )}
@@ -198,14 +205,26 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks }: {
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
 
-      {open && <Drawer task={open} slug={slug} projectId={projectId} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} />}
+      {open && <Drawer task={open} slug={slug} accounts={accounts} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
+
+      {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
+      {acctModal && (
+        <div style={{ position: 'relative', zIndex: 300 }}>
+          <AccountFormModal account={acctModal.account} project={project} projectId={projectId}
+            platforms={platforms} presetPlatformKey={acctModal.platformKey}
+            teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles}
+            onClose={() => { setAcctModal(null); start(() => router.refresh()); }} />
+        </div>
+      )}
     </div>
   );
 }
 
-function Drawer({ task, slug, projectId, onClose, setSite, onChange }: {
-  task: BacklinkTask; slug: string; projectId: string; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
+  task: BacklinkTask; slug: string; accounts: AccountRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
+  const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copied, setCopied] = useState(false);
   const copy = (txt: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); };
@@ -238,12 +257,12 @@ function Drawer({ task, slug, projectId, onClose, setSite, onChange }: {
             {task.authMethod && <Tag>{task.authMethod}</Tag>}
             {task.hasProxy && <Tag color="#9d6cff">🌐 proxy</Tag>}
             {task.hasProfile && <Tag color="#5badff">🧭 profile</Tag>}
-            <a href={`/p/${projectId}/resources?vault=accounts`} style={{ ...btn, textDecoration: 'none', padding: '2px 8px' }}>→ Vault</a>
+            {acctObj && <button type="button" onClick={() => onEditAccount(acctObj)} style={{ ...btn, padding: '2px 8px' }}>→ Mở account</button>}
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
             <span style={{ color: READINESS_META.missing.color }}>➕ Chưa có account trên {task.platformLabel}</span>
-            <a href={`/p/${projectId}/resources?vault=accounts&m=new&platform=${task.platformKey}`} style={{ ...btn, textDecoration: 'none', color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</a>
+            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</button>}
           </div>
         )}
 

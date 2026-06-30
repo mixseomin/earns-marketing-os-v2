@@ -310,13 +310,25 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const u = (url || '').trim();
   try {
     // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
-    await db.execute(sql`
+    const r = await db.execute(sql`
       UPDATE human_tasks SET prep_payload =
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
         || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text))),
         updated_at = now()
-      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+      WHERE id = ${taskId} AND platform_key = 'backlink'
+      RETURNING (prep_payload->'site_status') AS ss`);
+    // Roll the row-level status up from the per-site rollup so self-completing in the
+    // CRM/grid (same rule as the staff /done) closes the row — and reopens it if a
+    // site is un-completed. Mirrors api/ext/my-tasks/done.
+    const ss = (r as unknown as Array<{ ss: Record<string, string> }>)[0]?.ss || {};
+    const vals = Object.values(ss);
+    const allDone = vals.length > 0 && vals.every((v) => v === 'completed' || v === 'verified');
+    if (allDone) {
+      await db.execute(sql`UPDATE human_tasks SET status = 'completed', completed_at = now(), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status <> 'completed'`);
+    } else {
+      await db.execute(sql`UPDATE human_tasks SET status = 'pending', completed_at = NULL, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status = 'completed'`);
+    }
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }

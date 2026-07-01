@@ -177,12 +177,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'captured' });
     }
 
-    // FACES: mặt người StyleGAN (thispersondoesnotexist) — miễn phí, ko key, mỗi lần 1 mặt thật-nhìn
-    // KHÔNG trùng người thật (ko reverse-image match) → lý tưởng avatar seeding. Chỉ hợp avatar (ko banner).
+    // FACES: mặt người StyleGAN LIVE (this-person-does-not-exist.com) — miễn phí, ko key, mỗi lần 1 mặt
+    // UNIQUE ko trùng người thật (ko reverse-image match) → lý tưởng avatar seeding. Gender khớp persona.
+    // (thispersondoesnotexist.com đã thành landing tĩnh — dùng mirror này thay.) Chỉ hợp avatar (ko banner).
     if (body.source === 'faces') {
-      const dl = await downloadImage('https://thispersondoesnotexist.com/');
-      if (!dl) return errorResponse('nguồn ảnh mặt (thispersondoesnotexist) không tải được — thử ✨ AI hoặc 🔍 web', 200);
-      const saved = await persist({ projectId, field, buf: dl.buf, mime: dl.mime, width: 1024, height: 1024, source: 'faces', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: 'thispersondoesnotexist (StyleGAN face)' });
+      const g = /female|woman|\bnữ\b|\bf\b/i.test(String(persona.gender ?? '')) ? 'female' : 'male';
+      const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
+      let faceUrl = '';
+      try {
+        const jr = await fetch(`https://this-person-does-not-exist.com/new?new=1&gender=${g}&age=all&etnic=all`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(9000) });
+        if (jr.ok) { const j = await jr.json() as { src?: string }; if (j.src) faceUrl = 'https://this-person-does-not-exist.com' + j.src; }
+      } catch { /* fall through → lỗi 200 dưới */ }
+      const dl = faceUrl ? await downloadImage(faceUrl) : null;
+      if (!dl) return errorResponse('nguồn ảnh mặt không tải được — thử ✨ AI hoặc 🔍 web', 200);
+      const saved = await persist({ projectId, field, buf: dl.buf, mime: dl.mime, width: 1024, height: 1024, source: 'faces', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: `this-person-does-not-exist (StyleGAN ${g})` });
       if (!saved) return errorResponse('persist fail', 500);
       return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: 1024, height: 1024, source: 'faces' });
     }

@@ -4,6 +4,7 @@
 // providers, or AI-generate, then persist into media_assets for the project. Reuses
 // the same image pipeline as the ext media/generate route (lib/stock-photos + R2).
 import { getDb, mediaAssets } from '@mos2/db';
+import { eq } from 'drizzle-orm';
 import { uploadToR2, r2Enabled } from '@/lib/r2';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { searchStockPhotos, downloadImage, type PhotoCandidate } from '@/lib/stock-photos';
@@ -52,6 +53,34 @@ export async function attachBacklinkMedia(projectId: string, url: string, field:
   if (!dl) return { ok: false, error: 'không tải được ảnh' };
   const saved = await persist(projectId, field, dl.buf, dl.mime, 'web', null, null);
   return saved ? { ok: true, ...saved } : { ok: false, error: 'lưu thất bại' };
+}
+
+// One-click auto-prep: register the site's branded OG cover, a live homepage screenshot
+// (thum.io), and the logo — all free hotlinks, no manual step. Idempotent by url.
+export async function autoPrepareProjectMedia(projectId: string, website: string): Promise<{ ok: boolean; added?: number; error?: string }> {
+  if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const site = (website || '').replace(/\/$/, '');
+  if (!/^https?:\/\//.test(site)) return { ok: false, error: 'project chưa có website' };
+  const rows: Array<{ field: string; url: string; w: number | null; h: number | null; notes: string; check?: boolean }> = [
+    { field: 'cover', url: `${site}/opengraph-image`, w: 1200, h: 630, notes: 'Auto: OG cover (branded)' },
+    { field: 'screenshot', url: `https://image.thum.io/get/width/1200/${site}`, w: 1200, h: null, notes: 'Auto: homepage screenshot' },
+    { field: 'logo', url: `${site}/logo.png`, w: null, h: null, notes: 'Auto: site logo', check: true },
+  ];
+  let added = 0;
+  for (const r of rows) {
+    if (r.check) {
+      try { const h = await fetch(r.url, { method: 'HEAD', signal: AbortSignal.timeout(6000) }); if (!h.ok || !/^image\//.test(h.headers.get('content-type') || '')) continue; } catch { continue; }
+    }
+    const [ex] = await db.select({ id: mediaAssets.id }).from(mediaAssets).where(eq(mediaAssets.url, r.url)).limit(1);
+    if (ex) continue;
+    await db.insert(mediaAssets).values({
+      tenantId: TENANT, projectId, kind: 'image', filename: `${r.field}.png`, url: r.url,
+      mimeType: 'image/png', width: r.w, height: r.h, tags: [r.field, 'backlink', 'auto'], notes: r.notes, source: 'auto',
+    });
+    added++;
+  }
+  return { ok: true, added };
 }
 
 // AI-generate a fresh image for the field and persist it.

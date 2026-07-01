@@ -10,7 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
-import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia } from '@/lib/actions/backlink-media';
+import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
@@ -176,6 +176,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
   const openEditAccount = (account: AccountRow) => setAcctModal({ account });
+  const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
+  const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };
 
   // Account-readiness rollup (prepare before posting): counts per bucket + the distinct
   // platforms still missing an account (deep-link to create each).
@@ -235,7 +237,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, margin: 0 }}>
           Backlinks <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {siteLabel} · {kpi.total} sources</small>
         </h1>
-        <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button type="button" onClick={doAutoMedia} disabled={autoMedia === 'busy'} style={{ ...btn, color: 'var(--accent)' }}
+            title="Tự chuẩn bị media: cover OG + screenshot trang + logo → lưu vào Media vault">
+            {autoMedia === 'busy' ? '⏳ đang chuẩn bị…' : autoMedia ? `✓ ${autoMedia}` : '⚡ Auto media'}
+          </button>
+          <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
+        </div>
       </div>
 
       {/* KPI */}

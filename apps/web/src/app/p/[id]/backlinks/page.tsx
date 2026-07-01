@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { BacklinksPage } from '@/components/backlinks-page';
-import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts } from '@/lib/data';
+import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
@@ -21,7 +21,7 @@ export default async function BacklinksRoute({ params }: { params: Promise<{ id:
 
   const slug = resolveSiteSlug(id);
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
-  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles] = await Promise.all([
+  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     slug ? getBacklinkTasks(id) : Promise.resolve([]),
@@ -30,6 +30,7 @@ export default async function BacklinksRoute({ params }: { params: Promise<{ id:
     listTeamMembers(),
     listProxies(),
     listBrowserProfiles(),
+    listMedia(id),
   ]);
 
   return (
@@ -42,7 +43,7 @@ export default async function BacklinksRoute({ params }: { params: Promise<{ id:
     >
       <BacklinksPage projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks}
         project={project} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} />
     </AppShell>
   );
 }

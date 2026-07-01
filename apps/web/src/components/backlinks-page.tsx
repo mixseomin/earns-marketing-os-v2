@@ -12,7 +12,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
-import type { PlatformRow, AccountRow } from '@/lib/data';
+import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
@@ -68,6 +68,26 @@ const mdToPlain = (md: string): string => md
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
   .replace(/^\s*[-*]\s+/gm, '• ')
   .trim();
+// What media each platform needs at posting time — so it's prepared, not scrambled for.
+// Keyed by canonical platform key; platforms not listed need no media.
+const MEDIA_NEED: Record<string, { label: string; hint: string }> = {
+  devto:       { label: 'Cover image', hint: 'Ảnh cover ngang (~1000×420). Có thể dùng nút Generate Image của dev.to.' },
+  medium:      { label: 'Cover image', hint: 'Ảnh đầu bài (~1500×750).' },
+  hackernoon:  { label: 'Cover image', hint: 'Ảnh cover bài explainer.' },
+  substack:    { label: 'Cover image', hint: 'Ảnh header cho issue.' },
+  linkedin:    { label: 'Cover + logo', hint: 'Ảnh cho article + logo cho LinkedIn Page.' },
+  producthunt: { label: 'Screenshots', hint: '2-3 ảnh gallery: homepage + 1 calculator. Thumbnail + logo.' },
+  softpedia:   { label: 'Screenshots', hint: '2-3 screenshot app cho editorial.' },
+  alternativeto:{ label: 'Logo + screenshot', hint: 'Logo + 1-2 screenshot.' },
+  saashub:     { label: 'Logo + screenshot', hint: 'Logo + 1-2 screenshot.' },
+  crunchbase:  { label: 'Logo', hint: 'Logo công ty (militarycalc.com/logo.png).' },
+  webcatalog:  { label: 'Logo + screenshot', hint: 'Logo app + 1 screenshot.' },
+  slant:       { label: 'Screenshot', hint: '1 screenshot minh hoạ option.' },
+  pinterest:   { label: 'Infographic Pins', hint: 'Pin dọc 2:3 (~1000×1500) — checklist/infographic.' },
+  youtube:     { label: 'Thumbnail + video', hint: 'Thumbnail 1280×720 + bản screen-record.' },
+  flipboard:   { label: 'Cover ảnh', hint: 'Ảnh bìa magazine + ảnh cho Notes.' },
+};
+
 type DraftFmt = 'md' | 'html' | 'plain';
 const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
   { k: 'md', label: 'Markdown', hint: 'dev.to · Reddit · Medium' },
@@ -131,10 +151,10 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
-  teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[];
+  teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -292,7 +312,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} onClose={closeTask} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
 
       {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
       {acctModal && (
@@ -307,10 +327,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
+  const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
+  const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -401,6 +423,30 @@ function Drawer({ task, slug, project, accounts, onClose, setSite, onChange, onC
               </div>
             ))}
           </div>
+        </>)}
+
+        {/* Media cần chuẩn bị trước khi post (cover / screenshot / infographic tuỳ platform) */}
+        {mediaNeed && (<>
+          <div style={{ ...lbl, marginTop: 16 }}>🖼 Media · {mediaNeed.label}</div>
+          <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6 }}>{mediaNeed.hint}</div>
+          {imgs.length > 0 ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {imgs.map((m) => (
+                <div key={m.id} style={{ width: 96 }}>
+                  <a href={wrapExternalUrl(m.url)} {...EXT} title={m.filename}>
+                    <img src={m.url} alt={m.filename} style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+                  </a>
+                  <button type="button" onClick={() => copy(m.url, `media-${m.id}`)} style={{ ...btn, padding: '1px 6px', marginTop: 3, width: '100%', fontSize: 10 }}>{copiedKey === `media-${m.id}` ? '✓' : 'Copy URL'}</button>
+                </div>
+              ))}
+              <a href={`/p/${project.id}/resources?vault=media`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', alignSelf: 'flex-start', color: 'var(--accent)' }}>+ Thêm ↗</a>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+              <span style={{ color: READINESS_META.missing.color }}>➕ Project chưa có media — cần chuẩn bị {mediaNeed.label.toLowerCase()}.</span>
+              <a href={`/p/${project.id}/resources?vault=media`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', color: 'var(--accent)', fontWeight: 700 }}>+ Thêm media ↗</a>
+            </div>
+          )}
         </>)}
 
         {task.instructions && (<>

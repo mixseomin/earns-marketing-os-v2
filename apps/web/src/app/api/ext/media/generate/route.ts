@@ -78,7 +78,7 @@ async function persist(opts: {
 // Download 1 image URL → buffer (validate mime/size). Trả null nếu hỏng.
 async function downloadImage(link: string): Promise<{ buf: Buffer; mime: string } | null> {
   try {
-    const ir = await fetch(link, { signal: AbortSignal.timeout(9000), redirect: 'follow' });
+    const ir = await fetch(link, { signal: AbortSignal.timeout(9000), redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; mos2-crew/1.0)' } });
     if (!ir.ok) return null;
     const mime = ir.headers.get('content-type') || 'image/jpeg';
     if (!/^image\//.test(mime)) return null;
@@ -175,6 +175,16 @@ export async function POST(req: Request) {
       const saved = await persist({ projectId, field, buf, mime, width: w, height: h, source: 'captured', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: 'captured from site' });
       if (!saved) return errorResponse('persist fail', 500);
       return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: w, height: h, source: 'captured' });
+    }
+
+    // FACES: mặt người StyleGAN (thispersondoesnotexist) — miễn phí, ko key, mỗi lần 1 mặt thật-nhìn
+    // KHÔNG trùng người thật (ko reverse-image match) → lý tưởng avatar seeding. Chỉ hợp avatar (ko banner).
+    if (body.source === 'faces') {
+      const dl = await downloadImage('https://thispersondoesnotexist.com/');
+      if (!dl) return errorResponse('nguồn ảnh mặt (thispersondoesnotexist) không tải được — thử ✨ AI hoặc 🔍 web', 200);
+      const saved = await persist({ projectId, field, buf: dl.buf, mime: dl.mime, width: 1024, height: 1024, source: 'faces', handle: acc?.handle ?? null, accountId: acc?.id ?? null, prompt: 'thispersondoesnotexist (StyleGAN face)' });
+      if (!saved) return errorResponse('persist fail', 500);
+      return NextResponse.json({ ok: true, url: saved.url, id: saved.id, width: 1024, height: 1024, source: 'faces' });
     }
 
     if (wantWeb) {

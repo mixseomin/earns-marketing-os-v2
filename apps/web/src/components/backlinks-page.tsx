@@ -164,7 +164,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const sp = useSearchParams();
   const [, start] = useTransition();
   // All view state initialises from the URL so tabs/filters/drawer are deep-linkable + refresh-safe.
-  const initTab = (['todo', 'progress', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'todo';
+  // Defaults (no URL params): Calendar view + All status.
+  const initTab = (['todo', 'progress', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
   const [tab, setTab] = useState<TabKey>(initTab);
   const [q, setQ] = useState(sp.get('q') ?? '');
   const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
@@ -172,7 +173,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
-  const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'calendar' ? 'calendar' : 'list');
+  const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
 
   const openTask = (id: number) => setOpenId(id);
   const closeTask = () => setOpenId(null);
@@ -181,13 +182,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   useEffect(() => {
     const u = new URL(window.location.href);
     const set = (k: string, v: string | number | null | undefined) => { if (v) u.searchParams.set(k, String(v)); else u.searchParams.delete(k); };
-    set('tab', tab === 'todo' ? '' : tab);   // default tab → clean URL
+    set('tab', tab === 'all' ? '' : tab);    // default (all) → clean URL
     set('q', q.trim());
     set('follow', follow);
     set('traf', traf);
     set('draft', draftOnly ? '1' : '');
     set('ready', readyFilter);
-    set('view', view === 'calendar' ? 'calendar' : '');
+    set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('task', openId);
     window.history.replaceState(null, '', u);
   }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);

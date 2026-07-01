@@ -121,26 +121,27 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const sp = useSearchParams();
   const router = useRouter();
   const urlTab = sp.get('tab');
+  // Defaults (no URL params): Calendar view + All status.
   const [tab, setTabState] = useState<TabKey>(
-    urlTab === 'pipeline' || urlTab === 'all' || urlTab === 'due' ? urlTab : 'needs',
+    urlTab === 'pipeline' || urlTab === 'due' || urlTab === 'needs' || urlTab === 'all' ? urlTab : 'all',
   );
   const [pending, start] = useTransition();
   const [preview, setPreview] = useState<OutreachProspect | null>(null);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState('');
   const [q, setQ] = useState('');
-  const [cal, setCal] = useState(sp.get('view') === 'calendar');
+  const [cal, setCal] = useState(sp.get('view') !== 'list');   // default calendar
   const toggleCal = (on: boolean) => {
     setCal(on);
     const u = new URL(window.location.href);
-    if (on) u.searchParams.set('view', 'calendar'); else u.searchParams.delete('view');
+    if (on) u.searchParams.delete('view'); else u.searchParams.set('view', 'list');   // default (calendar) → clean URL
     window.history.replaceState(null, '', u.toString());
   };
 
   const setTab = (k: TabKey) => {
     setTabState(k);
     const u = new URL(window.location.href);
-    u.searchParams.set('tab', k);
+    if (k === 'all') u.searchParams.delete('tab'); else u.searchParams.set('tab', k);   // default (all) → clean URL
     window.history.replaceState(null, '', u.toString());
   };
 

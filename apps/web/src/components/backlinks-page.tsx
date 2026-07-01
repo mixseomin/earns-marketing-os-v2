@@ -144,7 +144,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [traf, setTraf] = useState<string>('');        // traffic filter
   const [draftOnly, setDraftOnly] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
-  const [prepOpen, setPrepOpen] = useState(false);
+  const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>('');   // filter cards by account-readiness
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
@@ -173,12 +173,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     if (follow) rows = rows.filter((t) => (t.dofollow || '') === follow);
     if (traf) rows = rows.filter((t) => (t.traffic || '') === traf);
     if (draftOnly) rows = rows.filter((t) => t.hasDraft);
+    if (readyFilter) rows = rows.filter((t) => t.readiness === readyFilter);
     const s = q.trim().toLowerCase();
     if (s) rows = rows.filter((t) => t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s));
     // To do: unassigned first; then by created (desc already from query).
     if (tab === 'todo') rows = [...rows].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId));
     return rows;
-  }, [tasks, tab, follow, traf, draftOnly, q]);
+  }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -220,17 +221,24 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         ))}
       </div>
 
-      {/* account-readiness rollup — prepare before posting */}
+      {/* account-readiness rollup — click a bucket to filter the list below */}
       <div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
-        <div onClick={() => setPrepOpen((v) => !v)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', cursor: prep.missing.length ? 'pointer' : 'default' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 9.5 }}>Accounts</span>
           {(['ready', 'missing', 'warming', 'setup', 'locked', 'no-account'] as ReadinessBucket[]).map((b) => prep.c[b] ? (
-            <span key={b} style={{ color: READINESS_META[b].color, fontWeight: 700 }} title={READINESS_META[b].label}>{READINESS_META[b].icon} {prep.c[b]} {b === 'no-account' ? 'email-only' : b === 'missing' ? 'need acct' : b}</span>
+            <button key={b} type="button" onClick={() => setReadyFilter((v) => v === b ? '' : b)}
+              title={`Lọc: ${READINESS_META[b].label}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', color: READINESS_META[b].color,
+                border: `1px solid ${readyFilter === b ? READINESS_META[b].color : 'transparent'}`, background: readyFilter === b ? `color-mix(in srgb, ${READINESS_META[b].color} 18%, transparent)` : 'transparent' }}>
+              {READINESS_META[b].icon} {prep.c[b]} {b === 'no-account' ? 'email-only' : b === 'missing' ? 'need acct' : b}
+            </button>
           ) : null)}
-          {prep.missing.length > 0 && <span style={{ marginLeft: 'auto', color: 'var(--fg-3)' }}>{prepOpen ? '▾ ẩn' : `▸ ${prep.missing.length} platform cần tạo`}</span>}
+          {readyFilter && <button type="button" onClick={() => setReadyFilter('')} style={{ ...btn, marginLeft: 'auto', padding: '1px 8px' }}>✕ bỏ lọc</button>}
         </div>
-        {prepOpen && prep.missing.length > 0 && (
-          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {/* when filtering to "need acct", also offer the create-account buttons per platform */}
+        {readyFilter === 'missing' && prep.missing.length > 0 && (
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ color: 'var(--fg-4)', fontSize: 9.5 }}>Tạo nhanh:</span>
             {prep.missing.map(([k, label]) => (
               <button key={k} type="button" onClick={() => openCreateAccount(k)} style={{ ...btn, color: 'var(--accent)' }}>➕ {label}</button>
             ))}

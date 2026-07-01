@@ -344,7 +344,13 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const saveUrl = async () => { setSaveState('saving'); await setSite(task.id, task.siteState, url); setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800); };
+  // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
+  const saveUrl = async () => {
+    setSaveState('saving');
+    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed')) ? 'completed' : task.siteState;
+    await setSite(task.id, next, url);
+    setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
+  };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // In-drawer media prep — search stock / AI-gen, save to project media (no page jump).

@@ -300,7 +300,16 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     }).sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible, periodClosed, forward]);
 
-  // grand total across the visible strategy sleeves: sum of their live equity (matches each group's 💰 badge) vs $10k/sleeve base
+  // all-time realized $ per strategy — balance fallback for groups whose forward bot doesn't track equity (MT5 legs = NULL).
+  const balByStrategy = useMemo(() => {
+    const m: Record<string, number> = {};
+    trades.forEach((t) => { if (!t.isOpen && t.profit != null) m[t.strategy] = (m[t.strategy] ?? 0) + usdOf(t); });
+    return m;
+  }, [trades]);
+  // bot-tracked equity if available, else synthetic balance ($10k base + all-time realized $). Every group gets a 💰.
+  const groupEquity = (name: string) => metaByStrategy[name]?.fwd?.equity ?? (10000 + (balByStrategy[name] ?? 0));
+
+  // grand total across the FUNDED sleeves only (real paper bots, $10k each) — MT5 synthetic balances excluded to keep it honest.
   const sleeveEq = groups.map((g) => metaByStrategy[g.name]?.fwd?.equity).filter((e): e is number => e != null);
   const totalEquity = sleeveEq.reduce((a, e) => a + e, 0);
   const totalBase = sleeveEq.length * 10000;
@@ -368,8 +377,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                               : null}</>
                             : <span style={{ color: 'var(--muted)', opacity: 0.7, fontWeight: 400 }}>warming</span>}
                         </span>
-                        <span className="lo-ghm" style={{ width: 120, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="all-time live equity since this sleeve started ($10k base)">
-                          {metaByStrategy[g.name]?.fwd?.equity != null ? <>💰 ${Math.round(metaByStrategy[g.name]!.fwd!.equity!).toLocaleString()} <span style={{ color: (metaByStrategy[g.name]!.fwd!.equity! >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470') }}>({((metaByStrategy[g.name]!.fwd!.equity! / 10000 - 1) * 100).toFixed(1)}%)</span></> : ''}
+                        <span className="lo-ghm" style={{ width: 120, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title={metaByStrategy[g.name]?.fwd?.equity != null ? 'all-time live equity since this sleeve started ($10k base)' : 'balance = $10k base + all-time realized $ (this suite has no equity-tracking bot)'}>
+                          {(() => { const eq = groupEquity(g.name); return <>💰 ${Math.round(eq).toLocaleString()} <span style={{ color: eq >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470' }}>({((eq / 10000 - 1) * 100).toFixed(1)}%)</span></>; })()}
                         </span>
                       </div>
                     </td>

@@ -11,7 +11,7 @@ import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
-import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia } from '@/lib/actions/backlink-media';
+import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
@@ -427,6 +427,20 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
     const src = applyLink(task.draft, linkMode);
     return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
   }, [task.draft, linkMode]);
+  // Some placements require you to publish a post/article to embed the link. Offer an
+  // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
+  const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
+  const [dbusy, setDbusy] = useState(false);
+  const [derr, setDerr] = useState<string | null>(null);
+  const doDraft = async () => {
+    setDbusy(true); setDerr(null);
+    const r = await generateBacklinkDraft(task.id, {
+      projectName: project.name, website: project.website || '', oneLiner: project.oneLiner || '', bio: project.bio || '',
+      title: task.title, instructions: task.instructions || '', mechanism: task.mechanism || '',
+    });
+    setDbusy(false);
+    if (r.ok) onChange(); else setDerr(r.error || 'lỗi');
+  };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
   // Paste kit — the reusable brand copy the instructions refer to ("paste the 160-char
@@ -575,9 +589,19 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
         </>)}
 
+        {!task.draft && needsPost && (<>
+          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>✍️ Bài viết</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>Task này cần đăng 1 bài để nhúng link. Sinh bản nháp (English, đúng chủ đề platform, đã cắm link) rồi tinh chỉnh — bài sẽ hiện ngay ở khối Draft phía dưới.</div>
+            <button type="button" onClick={doDraft} disabled={dbusy} style={{ ...btn, alignSelf: 'flex-start' }}>{dbusy ? 'Đang viết…' : '✍️ Viết bài (AI)'}</button>
+            {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{derr}</div>}
+          </div>
+        </>)}
+
         {draftFmts && (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>📋 Draft (paste-ready)</span>
+            <button type="button" onClick={doDraft} disabled={dbusy} title="Sinh lại bản nháp khác" style={{ ...btn, padding: '1px 8px' }}>{dbusy ? '…' : '↻ Viết lại'}</button>
             <span style={{ display: 'inline-flex', gap: 4 }}>
               {DRAFT_FMTS.map((f) => (
                 <button key={f.k} type="button" onClick={() => setFmt(f.k)} title={f.hint}
@@ -596,6 +620,7 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
             ))}
           </div>
           <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
+          {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
         </>)}
 

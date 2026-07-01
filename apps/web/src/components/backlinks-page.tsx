@@ -42,6 +42,39 @@ function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; c
   return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 
+// Draft comes authored as Markdown. Derive HTML + plain so each platform gets the
+// right paste format (Markdown → dev.to/Reddit, HTML → forum/WP, Plain → comment/bio).
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const inlineHtml = (s: string) => escHtml(s)
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+  .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  .replace(/`([^`]+)`/g, '<code>$1</code>')
+  .replace(/_([^_]+)_/g, '<em>$1</em>');
+function mdToHtml(md: string): string {
+  return md.trim().split(/\n{2,}/).map((b) => {
+    const h = b.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { const n = h[1]!.length; return `<h${n}>${inlineHtml(h[2]!)}</h${n}>`; }
+    const lines = b.split('\n');
+    if (lines.every((l) => /^\s*[-*]\s+/.test(l))) return `<ul>\n${lines.map((l) => `  <li>${inlineHtml(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('\n')}\n</ul>`;
+    if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) return `<ol>\n${lines.map((l) => `  <li>${inlineHtml(l.replace(/^\s*\d+\.\s+/, ''))}</li>`).join('\n')}\n</ol>`;
+    return `<p>${inlineHtml(b.replace(/\n/g, ' '))}</p>`;
+  }).join('\n');
+}
+const mdToPlain = (md: string): string => md
+  .replace(/^#{1,6}\s+/gm, '')
+  .replace(/\*\*([^*]+)\*\*/g, '$1')
+  .replace(/`([^`]+)`/g, '$1')
+  .replace(/_([^_]+)_/g, '$1')
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+  .replace(/^\s*[-*]\s+/gm, '• ')
+  .trim();
+type DraftFmt = 'md' | 'html' | 'plain';
+const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
+  { k: 'md', label: 'Markdown', hint: 'dev.to · Reddit · Medium' },
+  { k: 'html', label: 'HTML', hint: 'forum · WordPress' },
+  { k: 'plain', label: 'Plain', hint: 'comment · bio · profile' },
+];
+
 // "1) do X. 2) do Y." → clean numbered list. Falls back to a plain block when it
 // isn't a numbered recipe.
 function Steps({ text }: { text: string }) {
@@ -241,6 +274,8 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copied, setCopied] = useState(false);
+  const [fmt, setFmt] = useState<DraftFmt>('md');
+  const draftFmts = useMemo(() => task.draft ? { md: task.draft, html: mdToHtml(task.draft), plain: mdToPlain(task.draft) } : null, [task.draft]);
   const copy = (txt: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
   return (
@@ -304,9 +339,20 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
         </>)}
 
-        {task.draft && (<>
-          <div style={lbl}>📋 Draft (paste-ready) <button type="button" onClick={() => copy(task.draft!)} style={{ ...btn, padding: '1px 8px', marginLeft: 6 }}>{copied ? '✓' : 'Copy'}</button></div>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{task.draft}</pre>
+        {draftFmts && (<>
+          <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>📋 Draft (paste-ready)</span>
+            <span style={{ display: 'inline-flex', gap: 4 }}>
+              {DRAFT_FMTS.map((f) => (
+                <button key={f.k} type="button" onClick={() => setFmt(f.k)} title={f.hint}
+                  style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', textTransform: 'none', letterSpacing: 0,
+                    border: `1px solid ${fmt === f.k ? 'var(--accent)' : 'var(--line)'}`, background: fmt === f.k ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: fmt === f.k ? 'var(--accent)' : 'var(--fg-3)' }}>{f.label}</button>
+              ))}
+            </span>
+            <button type="button" onClick={() => copy(draftFmts[fmt])} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copied ? '✓ copied' : 'Copy'}</button>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint}</div>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
         </>)}
 
         {task.mechanism && (<><div style={lbl}>Mechanism</div><div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{task.mechanism}</div></>)}

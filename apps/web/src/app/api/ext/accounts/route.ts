@@ -52,6 +52,7 @@ export async function GET(req: Request) {
         status: platformAccounts.status,
         notes: platformAccounts.notes,
         platformKey: platformAccounts.platformKey,
+        projectId: platformAccounts.projectId,   // home project (profile-target) → default cho project-picker của login pill
       })
       .from(platformAccounts)
       .where(and(

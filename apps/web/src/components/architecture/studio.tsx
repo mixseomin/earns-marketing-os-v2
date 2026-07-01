@@ -2803,14 +2803,16 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         <button onClick={resetLayout} style={btnStyle}>↺ Reset layout</button>
       </div>
 
-      {/* legend */}
-      <div style={{ position: 'absolute', top: 58, left: 14, zIndex: 5, display: 'flex', flexWrap: 'wrap', gap: 8, pointerEvents: 'none' }}>
-        {view === 'objects'
-          ? (Object.keys(REL_COLOR) as RelKind[]).map((k) => (
-              <span key={k} style={legendChip}><span style={{ width: 14, height: 2, background: REL_COLOR[k], display: 'inline-block' }} /> {k}</span>
-            ))
-          : <span style={legendChip}>{FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend']?.label || ''}</span>}
-      </div>
+      {/* legend — CHỈ view có canvas flow/objects; live/canon/surface KHÔNG (legend "Backend…" từng đè sub-tab). */}
+      {(view === 'objects' || view === 'onpage' || view === 'backend') && (
+        <div style={{ position: 'absolute', top: 58, left: 14, zIndex: 5, display: 'flex', flexWrap: 'wrap', gap: 8, pointerEvents: 'none' }}>
+          {view === 'objects'
+            ? (Object.keys(REL_COLOR) as RelKind[]).map((k) => (
+                <span key={k} style={legendChip}><span style={{ width: 14, height: 2, background: REL_COLOR[k], display: 'inline-block' }} /> {k}</span>
+              ))
+            : <span style={legendChip}>{FLOW_BY_KEY[view === 'onpage' ? 'onpage' : 'backend']?.label || ''}</span>}
+        </div>
+      )}
 
       {/* scan summary panel */}
       {view === 'objects' && scan && showScanPanel && (() => {

@@ -32,20 +32,24 @@ export async function GET(req: Request) {
     : sql``;
   const res = await db.execute(sql`
     SELECT * FROM (
-      SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back
+      SELECT DISTINCT ON (i.handle) i.handle, p.familiarity_score, p.status, p.interaction_count, p.they_replied_back,
+        (SELECT jsonb_object_agg(k.kind, k.c) FROM (
+           SELECT kind, count(*)::int c FROM interactions WHERE people_id = p.id GROUP BY kind
+         ) k) AS kinds
       FROM people p JOIN scene_identities i ON i.id = p.identity_id
       WHERE p.project_id = ${projectId}${handleFilter}
       ORDER BY i.handle, p.familiarity_score DESC NULLS LAST
     ) t ORDER BY familiarity_score DESC NULLS LAST LIMIT 200`);
   const rows = res as unknown as Array<Record<string, unknown>>;
 
-  const people: Record<string, { familiarity: number; status: string; interactions: number; repliedBack: boolean }> = {};
+  const people: Record<string, { familiarity: number; status: string; interactions: number; repliedBack: boolean; kinds: Record<string, number> }> = {};
   for (const r of rows) {
     people[String(r.handle)] = {
       familiarity: Number(r.familiarity_score ?? 0),
       status: String(r.status ?? 'observed'),
       interactions: Number(r.interaction_count ?? 0),
       repliedBack: r.they_replied_back === true,
+      kinds: (r.kinds && typeof r.kinds === 'object') ? r.kinds as Record<string, number> : {},
     };
   }
   return NextResponse.json({ ok: true, people, count: rows.length });

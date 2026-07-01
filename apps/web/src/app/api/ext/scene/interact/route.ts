@@ -84,7 +84,11 @@ export async function POST(req: Request) {
   await recomputeFamiliarity(db, pid);
 
   const row = firstRow(await db.execute(sql`
-    SELECT familiarity_score, status, interaction_count, they_replied_back FROM people WHERE id = ${pid}`));
+    SELECT familiarity_score, status, interaction_count, they_replied_back,
+      (SELECT jsonb_object_agg(k.kind, k.c) FROM (
+         SELECT kind, count(*)::int c FROM interactions WHERE people_id = ${pid} GROUP BY kind
+       ) k) AS kinds
+    FROM people WHERE id = ${pid}`));
   return NextResponse.json({
     ok: true, deduped, undone: undo,
     person: {
@@ -93,6 +97,7 @@ export async function POST(req: Request) {
       status: String(row?.status ?? 'observed'),
       interactions: Number(row?.interaction_count ?? 0),
       repliedBack: row?.they_replied_back === true,
+      kinds: (row?.kinds && typeof row.kinds === 'object') ? row.kinds : {},
     },
   });
 }

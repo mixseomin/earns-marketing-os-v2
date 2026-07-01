@@ -27,6 +27,9 @@ import {
 import { Drawer } from '@/components/drawer';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { StatusSegmented } from '@/components/ui/status-segmented';
+import { ViewToggle, LIST_CALENDAR_VIEWS } from '@/components/ui/view-toggle';
+import { MonthCalendar } from '@/components/ui/month-calendar';
 import {
   listInstances, browseInstances, getInstance, updateInstance, updateInstanceField, createInstance, deleteInstance, restoreInstance, systemScan, listSelectors, resolveBoundLabels, selectorCatalog, getSelectorRow, extActivity, metricCoverage,
   templateAdoption, listDomSamples, listDomSamplesForPlatform, deleteDomSample, extractDomSample, seedSelectorsFromSample,
@@ -2276,10 +2279,44 @@ function LiveActivity({ onOpenObject }: { onOpenObject: (objKey: string, objId?:
 
 // Mock TRỰC QUAN từng element ext (tái dựng theo đúng style thật trong ext) — để Architect
 // hiện HÌNH DÁNG, không chỉ liệt kê. Style copy từ ext source (màu/viền/bo góc).
+// Live demos for the DASHBOARD primitives — render the REAL component (stateful wrappers
+// since hooks can't live inside SurfacePreview's switch).
+function StatusSegmentedDemo() {
+  const [v, setV] = useState('progress');
+  return <StatusSegmented size="md" value={v} onChange={setV} options={[
+    { value: 'todo', label: 'To do', color: '#8a92a3' },
+    { value: 'progress', label: 'In progress', color: '#ffb03c' },
+    { value: 'done', label: 'Done', color: '#22c55e' },
+  ]} />;
+}
+function ViewToggleDemo() {
+  const [v, setV] = useState('calendar');
+  return <ViewToggle options={LIST_CALENDAR_VIEWS} value={v} onChange={setV} />;
+}
+function MonthCalendarDemo() {
+  const items = [
+    { id: 1, date: '2026-07-01', label: 'dev.to', color: '#22c55e', title: 'done' },
+    { id: 2, date: '2026-07-03', label: 'wordpress.org', dim: true, color: '#ffb03c', title: 'scheduled' },
+  ];
+  return (
+    <div style={{ width: 258, height: 150, overflow: 'hidden', position: 'relative', border: '1px solid var(--line)', borderRadius: 6 }}>
+      <div style={{ position: 'absolute', top: 6, left: 6, width: 540, transform: 'scale(0.46)', transformOrigin: 'top left', pointerEvents: 'none' }}>
+        <MonthCalendar items={items} initialMonth={new Date(2026, 6, 1)} />
+      </div>
+    </div>
+  );
+}
+
 function SurfacePreview({ k }: { k: string }) {
   const mono = 'ui-monospace,SFMono-Regular,Menlo,monospace';
   const sys = '-apple-system,system-ui,sans-serif';
   switch (k) {
+    case 'status-segmented':
+      return <StatusSegmentedDemo />;
+    case 'view-toggle':
+      return <ViewToggleDemo />;
+    case 'month-calendar':
+      return <MonthCalendarDemo />;
     case 'scene-marker':
       return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 999, background: '#fbbf241a', border: '1px solid #fbbf2440', color: '#fbbf24', font: `700 11px ${mono}` }}>◎ 90 · warm</span>;
     case 'scene-popover':

@@ -11,6 +11,9 @@ import type { CurrentUserInfo } from './app-shell';
 
 export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobileNavigate }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo; onMobileNavigate?: () => void }) {
   const t = useT();
+  const pathname = usePathname();
+  // Highlight the nav row for the current route (CSS: .squad[data-active="true"]).
+  const navActive = (seg: string) => (currentProjectId && pathname === `/p/${currentProjectId}/${seg}` ? 'true' : undefined);
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
   const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
   const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
@@ -121,60 +124,60 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         {currentProjectId && (
           <>
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/tribes`} className="squad" style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/tribes`} className="squad" data-active={navActive("tribes")} style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>◍</div>
                 <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>audience clusters</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/seeding`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/seeding`} className="squad" data-active={navActive("seeding")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>⏱</div>
                 <div className="squad-name"><b>{t('nav.seeding', 'Seeding')}</b><span>cadence · nhận diện</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/scenes`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/scenes`} className="squad" data-active={navActive("scenes")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>◎</div>
                 <div className="squad-name"><b>{t('nav.scenes', 'Scenes')}</b><span>interaction network · WHO-THEM</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/outreach`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/outreach`} className="squad" data-active={navActive("outreach")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }}>✉</div>
                 <div className="squad-name"><b>{t('nav.outreach', 'Outreach')}</b><span>widget embeds · pitch realtors</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/backlinks`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/backlinks`} className="squad" data-active={navActive("backlinks")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>🔗</div>
                 <div className="squad-name"><b>{t('nav.backlinks', 'Backlinks')}</b><span>source pipeline · assign · verify</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
             {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/identities`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link href={`/p/${currentProjectId}/identities`} className="squad" data-active={navActive("identities")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-pink)', color: 'var(--neon-pink)' }}>👤</div>
                 <div className="squad-name"><b>{t('nav.identities', 'Identities')}</b><span>preset persona · pre-fill</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}
-            <Link href={`/p/${currentProjectId}/resources`} className="squad" style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
+            <Link href={`/p/${currentProjectId}/resources`} className="squad" data-active={navActive("resources")} style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
               <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
               <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
               <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
             </Link>
             {currentUser?.role === 'admin' && (
               <>
-                <Link href={`/p/${currentProjectId}/publications`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Link href={`/p/${currentProjectId}/publications`} className="squad" data-active={navActive("publications")} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>📡</div>
                   <div className="squad-name"><b>Publications</b><span>monitor · engage</span></div>
                   <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
                 </Link>
-                <Link href={`/p/${currentProjectId}/flow`} className="squad" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Link href={`/p/${currentProjectId}/flow`} className="squad" data-active={navActive("flow")} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="squad-icon" style={{ borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }}>🗺</div>
                   <div className="squad-name"><b>Flow</b><span>diagram · architecture</span></div>
                   <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>

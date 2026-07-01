@@ -93,17 +93,26 @@ function applyLink(md: string, mode: LinkMode): string {
   return s;
 }
 
-// "1) do X. 2) do Y." → clean numbered list. Falls back to a plain block when it
-// isn't a numbered recipe.
+// Render build steps as dash bullets. Splits on newlines first (new format); falls
+// back to splitting a single-line "1) … 2) …" recipe (legacy).
+const stripMarker = (s: string) => s.replace(/^\s*[-*•–]\s*/, '').replace(/^\s*\d+[.)]\s*/, '').trim();
 function Steps({ text }: { text: string }) {
-  const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
-  if (parts.filter((p) => /^\d+\)/.test(p)).length < 2) {
-    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{text}</div>;
+  let items = text.split('\n').map(stripMarker).filter(Boolean);
+  if (items.length <= 1) {
+    const parts = text.split(/\s*(?=\b\d+\)\s)/).map(stripMarker).filter(Boolean);
+    if (parts.length >= 2) items = parts;
+  }
+  if (items.length <= 1) {
+    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{items[0] ?? text}</div>;
   }
   return (
-    <ol style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {parts.map((p, i) => <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>{p.replace(/^\d+\)\s*/, '')}</li>)}
-    </ol>
+    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+      {items.map((p, i) => (
+        <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
+          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>–</span><span>{p}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

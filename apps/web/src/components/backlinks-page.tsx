@@ -10,6 +10,8 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
+import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia } from '@/lib/actions/backlink-media';
+import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
 import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
@@ -70,22 +72,22 @@ const mdToPlain = (md: string): string => md
   .trim();
 // What media each platform needs at posting time — so it's prepared, not scrambled for.
 // Keyed by canonical platform key; platforms not listed need no media.
-const MEDIA_NEED: Record<string, { label: string; hint: string }> = {
-  devto:       { label: 'Cover image', hint: 'Ảnh cover ngang (~1000×420). Có thể dùng nút Generate Image của dev.to.' },
-  medium:      { label: 'Cover image', hint: 'Ảnh đầu bài (~1500×750).' },
-  hackernoon:  { label: 'Cover image', hint: 'Ảnh cover bài explainer.' },
-  substack:    { label: 'Cover image', hint: 'Ảnh header cho issue.' },
-  linkedin:    { label: 'Cover + logo', hint: 'Ảnh cho article + logo cho LinkedIn Page.' },
-  producthunt: { label: 'Screenshots', hint: '2-3 ảnh gallery: homepage + 1 calculator. Thumbnail + logo.' },
-  softpedia:   { label: 'Screenshots', hint: '2-3 screenshot app cho editorial.' },
-  alternativeto:{ label: 'Logo + screenshot', hint: 'Logo + 1-2 screenshot.' },
-  saashub:     { label: 'Logo + screenshot', hint: 'Logo + 1-2 screenshot.' },
-  crunchbase:  { label: 'Logo', hint: 'Logo công ty (militarycalc.com/logo.png).' },
-  webcatalog:  { label: 'Logo + screenshot', hint: 'Logo app + 1 screenshot.' },
-  slant:       { label: 'Screenshot', hint: '1 screenshot minh hoạ option.' },
-  pinterest:   { label: 'Infographic Pins', hint: 'Pin dọc 2:3 (~1000×1500) — checklist/infographic.' },
-  youtube:     { label: 'Thumbnail + video', hint: 'Thumbnail 1280×720 + bản screen-record.' },
-  flipboard:   { label: 'Cover ảnh', hint: 'Ảnh bìa magazine + ảnh cho Notes.' },
+const MEDIA_NEED: Record<string, { label: string; hint: string; field: string }> = {
+  devto:       { label: 'Cover image', field: 'cover', hint: 'Ảnh cover ngang (~1000×420). Có thể dùng nút Generate Image của dev.to.' },
+  medium:      { label: 'Cover image', field: 'cover', hint: 'Ảnh đầu bài (~1500×750).' },
+  hackernoon:  { label: 'Cover image', field: 'cover', hint: 'Ảnh cover bài explainer.' },
+  substack:    { label: 'Cover image', field: 'cover', hint: 'Ảnh header cho issue.' },
+  linkedin:    { label: 'Cover + logo', field: 'cover', hint: 'Ảnh cho article + logo cho LinkedIn Page.' },
+  producthunt: { label: 'Screenshots', field: 'screenshot', hint: '2-3 ảnh gallery: homepage + 1 calculator. Thumbnail + logo.' },
+  softpedia:   { label: 'Screenshots', field: 'screenshot', hint: '2-3 screenshot app cho editorial.' },
+  alternativeto:{ label: 'Logo + screenshot', field: 'screenshot', hint: 'Logo + 1-2 screenshot.' },
+  saashub:     { label: 'Logo + screenshot', field: 'screenshot', hint: 'Logo + 1-2 screenshot.' },
+  crunchbase:  { label: 'Logo', field: 'logo', hint: 'Logo công ty (militarycalc.com/logo.png).' },
+  webcatalog:  { label: 'Logo + screenshot', field: 'screenshot', hint: 'Logo app + 1 screenshot.' },
+  slant:       { label: 'Screenshot', field: 'screenshot', hint: '1 screenshot minh hoạ option.' },
+  pinterest:   { label: 'Infographic Pins', field: 'infographic', hint: 'Pin dọc 2:3 (~1000×1500) — checklist/infographic.' },
+  youtube:     { label: 'Thumbnail + video', field: 'thumbnail', hint: 'Thumbnail 1280×720 + bản screen-record.' },
+  flipboard:   { label: 'Cover ảnh', field: 'cover', hint: 'Ảnh bìa magazine + ảnh cho Notes.' },
 };
 
 type DraftFmt = 'md' | 'html' | 'plain';
@@ -333,6 +335,14 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
 }) {
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
+  // In-drawer media prep — search stock / AI-gen, save to project media (no page jump).
+  const [mq, setMq] = useState(project.name);
+  const [cands, setCands] = useState<PhotoCandidate[] | null>(null);
+  const [mbusy, setMbusy] = useState<'search' | 'ai' | number | null>(null);
+  const [merr, setMerr] = useState<string | null>(null);
+  const doSearch = async () => { setMbusy('search'); setMerr(null); const r = await searchBacklinkMedia(mq); setMbusy(null); r.ok ? setCands(r.candidates!) : setMerr(r.error || 'lỗi'); };
+  const doAI = async () => { if (!mediaNeed) return; setMbusy('ai'); setMerr(null); const r = await generateBacklinkMedia(project.id, mq, mediaNeed.field); setMbusy(null); if (r.ok) { setCands(null); onChange(); } else setMerr(r.error || 'lỗi'); };
+  const pick = async (c: PhotoCandidate, i: number) => { if (!mediaNeed) return; setMbusy(i); setMerr(null); const r = await attachBacklinkMedia(project.id, c.url, mediaNeed.field); setMbusy(null); if (r.ok) { setCands(null); onChange(); } else setMerr(r.error || 'lỗi'); };
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -425,12 +435,12 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
           </div>
         </>)}
 
-        {/* Media cần chuẩn bị trước khi post (cover / screenshot / infographic tuỳ platform) */}
+        {/* Media cần chuẩn bị trước khi post — tìm stock / AI-gen NGAY tại đây, lưu vào project media */}
         {mediaNeed && (<>
           <div style={{ ...lbl, marginTop: 16 }}>🖼 Media · {mediaNeed.label}</div>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6 }}>{mediaNeed.hint}</div>
-          {imgs.length > 0 ? (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {imgs.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               {imgs.map((m) => (
                 <div key={m.id} style={{ width: 96 }}>
                   <a href={wrapExternalUrl(m.url)} {...EXT} title={m.filename}>
@@ -439,12 +449,26 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
                   <button type="button" onClick={() => copy(m.url, `media-${m.id}`)} style={{ ...btn, padding: '1px 6px', marginTop: 3, width: '100%', fontSize: 10 }}>{copiedKey === `media-${m.id}` ? '✓' : 'Copy URL'}</button>
                 </div>
               ))}
-              <a href={`/p/${project.id}/resources?vault=media`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', alignSelf: 'flex-start', color: 'var(--accent)' }}>+ Thêm ↗</a>
             </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
-              <span style={{ color: READINESS_META.missing.color }}>➕ Project chưa có media — cần chuẩn bị {mediaNeed.label.toLowerCase()}.</span>
-              <a href={`/p/${project.id}/resources?vault=media`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', color: 'var(--accent)', fontWeight: 700 }}>+ Thêm media ↗</a>
+          )}
+          {/* picker: search stock or AI-gen */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input value={mq} onChange={(e) => setMq(e.target.value)} placeholder="từ khoá ảnh…" autoComplete="off"
+              style={{ flex: '1 1 160px', minWidth: 120, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
+            <button type="button" onClick={doSearch} disabled={mbusy === 'search'} style={{ ...btn }}>{mbusy === 'search' ? '…' : '🔍 Tìm stock'}</button>
+            <button type="button" onClick={doAI} disabled={mbusy === 'ai'} style={{ ...btn }}>{mbusy === 'ai' ? '…' : '✨ AI tạo'}</button>
+          </div>
+          {merr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginTop: 4 }}>{merr}</div>}
+          {cands && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+              {cands.length === 0 && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có kết quả.</span>}
+              {cands.map((c, i) => (
+                <button key={c.url} type="button" onClick={() => pick(c, i)} disabled={mbusy === i} title={`${c.provider} — bấm để lưu`}
+                  style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-2)', cursor: 'pointer', position: 'relative' }}>
+                  <img src={c.url} alt={c.provider} style={{ width: 100, height: 75, objectFit: 'cover', borderRadius: 5, display: 'block', opacity: mbusy === i ? 0.4 : 1 }} />
+                  {mbusy === i && <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 11, color: 'var(--fg-0)' }}>lưu…</span>}
+                </button>
+              ))}
             </div>
           )}
         </>)}

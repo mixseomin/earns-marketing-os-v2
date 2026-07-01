@@ -22,11 +22,12 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({})) as {
     projectId?: string; habitatId?: number; platformKey?: string; handle?: string;
-    kind?: string; threadUrl?: string; bodyExcerpt?: string; accountId?: number;
+    kind?: string; threadUrl?: string; bodyExcerpt?: string; accountId?: number; undo?: boolean;
   };
   const projectId = (body.projectId || '').trim();
   const handle = String(body.handle || '').replace(/^@/, '').trim().toLowerCase();
   const kind = KINDS.has(String(body.kind)) ? String(body.kind) : 'like';
+  const undo = body.undo === true;   // unfollow / unlike → xoá interaction, recompute XUỐNG
   if (!projectId || !handle) return errorResponse('projectId + handle required', 400);
 
   const db = getDb();
@@ -54,19 +55,29 @@ export async function POST(req: Request) {
   void habitatId;   // người KHÔNG buộc vào habitat nữa
   const identityId = await ensureIdentity(db, pk, handle);
   if (!identityId) return errorResponse('identity upsert failed', 500);
-  const pid = await ensureRelationship(db, { projectId, identityId, accountId, platformKey: pk, handle, engaged: true });
+  const pid = await ensureRelationship(db, { projectId, identityId, accountId, platformKey: pk, handle, engaged: !undo });
   if (!pid) return errorResponse('person upsert failed', 500);
 
-  // Dedup tay (card_id NULL): cùng người + cùng kind + cùng thread = đã log → bỏ qua.
-  const dup = firstRow(await db.execute(sql`
-    SELECT id FROM interactions
-    WHERE people_id = ${pid} AND direction = 'ours' AND kind = ${kind}
-      AND thread_url IS NOT DISTINCT FROM ${threadUrl}
-    LIMIT 1`));
-  if (!dup) {
+  // follow = person-level (KHÔNG buộc thread) → match bỏ qua thread_url; like/reply = per-thread.
+  const threadCond = kind === 'follow' ? sql`TRUE` : sql`thread_url IS NOT DISTINCT FROM ${threadUrl}`;
+  let deduped = false;
+  if (undo) {
+    // Bỏ tương tác (unfollow / unlike): xoá interaction khớp → familiarity recompute XUỐNG.
     await db.execute(sql`
-      INSERT INTO interactions (tenant_id, people_id, card_id, account_id, thread_url, kind, direction, body_excerpt, at)
-      VALUES ('self', ${pid}, NULL, ${accountId}, ${threadUrl}, ${kind}, 'ours', ${bodyExcerpt}, now())`);
+      DELETE FROM interactions
+      WHERE people_id = ${pid} AND direction = 'ours' AND kind = ${kind} AND ${threadCond}`);
+  } else {
+    // Dedup tay (card_id NULL): cùng người + cùng kind (+ thread cho like/reply) = đã log → bỏ qua.
+    const dup = firstRow(await db.execute(sql`
+      SELECT id FROM interactions
+      WHERE people_id = ${pid} AND direction = 'ours' AND kind = ${kind} AND ${threadCond}
+      LIMIT 1`));
+    deduped = !!dup;
+    if (!dup) {
+      await db.execute(sql`
+        INSERT INTO interactions (tenant_id, people_id, card_id, account_id, thread_url, kind, direction, body_excerpt, at)
+        VALUES ('self', ${pid}, NULL, ${accountId}, ${threadUrl}, ${kind}, 'ours', ${bodyExcerpt}, now())`);
+    }
   }
 
   // Recompute (weighted) — 1 SOURCE dùng chung với forward-fill insights.
@@ -75,7 +86,7 @@ export async function POST(req: Request) {
   const row = firstRow(await db.execute(sql`
     SELECT familiarity_score, status, interaction_count, they_replied_back FROM people WHERE id = ${pid}`));
   return NextResponse.json({
-    ok: true, deduped: !!dup,
+    ok: true, deduped, undone: undo,
     person: {
       handle,
       familiarity: Number(row?.familiarity_score ?? 0),

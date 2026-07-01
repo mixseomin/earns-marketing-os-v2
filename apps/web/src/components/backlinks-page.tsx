@@ -10,6 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
+import { StatusSegmented } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
@@ -415,13 +416,9 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
         <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onChange} />
 
         <div style={lbl}>Status @ {slug}</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {STATUS_ORDER.map((s) => {
-            const m = SITE_STATUS[s] ?? { label: s, color: 'var(--fg-2)' }; const on = task.siteState === s;
-            return <button key={s} type="button" onClick={() => setSite(task.id, s, url)}
-              style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', border: `1px solid ${m.color}`, background: on ? m.color : 'transparent', color: on ? '#0b0f17' : m.color }}>{m.label}</button>;
-          })}
-        </div>
+        <StatusSegmented size="md" value={task.siteState}
+          options={STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
+          onChange={(s) => { void setSite(task.id, s, url); }} />
 
         <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
         <div style={{ display: 'flex', gap: 6 }}>

@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { getSceneEvents, familiarityScoreCase } from './scene-events';
 
 // WHO-THEM forward-fill (migration 0099). From a card's topReplies (author
 // handles already captured by the ext's syncForumReplies) → upsert `people` +
@@ -47,6 +48,8 @@ export async function ensureRelationship(
 // cộng trọng số theo loại; reciprocation (direction='theirs', họ reply/engage lại mình) nặng
 // nhất. Idempotent (recompute từ toàn bộ interaction set). Cap 100 → warm≥60, engaging>0.
 export async function recomputeFamiliarity(db: Executor, peopleId: number): Promise<void> {
+  // Trọng số điểm = config app_settings.scene_events (default DEFAULT_SCENE_EVENTS). Hết hardcode SQL.
+  const scoreCase = familiarityScoreCase(await getSceneEvents(db));
   await db.execute(sql`
     UPDATE people p SET
       interaction_count = s.cnt,
@@ -61,16 +64,7 @@ export async function recomputeFamiliarity(db: Executor, peopleId: number): Prom
       SELECT count(*)::int AS cnt,
              bool_or(direction = 'theirs') AS replied,
              max(at) AS last_at,
-             COALESCE(SUM(CASE
-               WHEN direction = 'theirs' THEN 30
-               WHEN kind = 'follow'   THEN 25
-               WHEN kind = 'quote'    THEN 22
-               WHEN kind = 'reply'    THEN 20
-               WHEN kind = 'repost'   THEN 15
-               WHEN kind = 'mention'  THEN 12
-               WHEN kind = 'like'     THEN 8
-               WHEN kind = 'bookmark' THEN 5
-               ELSE 10 END), 0)::int AS score
+             COALESCE(SUM(${scoreCase}), 0)::int AS score
       FROM interactions WHERE people_id = ${peopleId}
     ) s
     WHERE p.id = ${peopleId}`);

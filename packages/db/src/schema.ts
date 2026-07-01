@@ -1507,6 +1507,15 @@ export const interactions = pgTable(
   ],
 );
 
+// Global app config (KV, singleton-ish). 1 row per key, value = JSONB. Nguồn config
+// dùng-chung backend + ext (vd 'scene_events' = taxonomy event + bảng điểm familiarity).
+// Editable trên /architecture (Design System + Config). ponytail: KV chung, thêm key = 1 row.
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── use_cases ────────────────────────────────────────────────────
 // Test cases / use cases registry. Spec columns are seed-managed (AI
 // appends when shipping a feature) and idempotent-upserted on every

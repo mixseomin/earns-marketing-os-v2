@@ -18,6 +18,9 @@ import { ContentValuePage, ContentCadenceTable } from '@/components/content-valu
 import type { ContentValue, ContentCadence } from '@/lib/actions/content-value-types';
 import { PillarCoveragePanel } from '@/components/architecture/pillar-coverage-panel';
 import { AccountInfraPanel } from '@/components/architecture/account-infra-panel';
+import { ConfigPanel } from '@/components/architecture/config-panel';
+import { DesignSystemPanel } from '@/components/architecture/design-system-panel';
+import type { SceneEvent } from '@/lib/scene-events';
 import { TeamPanel } from '@/components/architecture/team-panel';
 import {
   GROUPS, OBJECTS, OBJ_BY_KEY, OBJ_CRUD, FLOWS, FLOW_BY_KEY, CANON, BROWSE_GROUPS, isInstanceFieldEditable,
@@ -2398,6 +2401,9 @@ function ContentValueInline({ projects }: { projects: { id: string; name: string
   return <ContentValuePage data={cv} projects={projects} embedded onOpen={onOpen} />;
 }
 
+// Scene event taxonomy + bảng điểm (config editable) — load 1 lần ở route → ctx cho Config panel.
+const SceneEventsCtx = createContext<SceneEvent[]>([]);
+
 // Pha B cadence — NHÚNG vào drawer node `habitat`. Data load 1 lần ở route → ContentCadenceCtx.
 const ContentCadenceCtx = createContext<ContentCadence | null>(null);
 function ContentCadenceInline({ projects }: { projects: { id: string; name: string }[] }) {
@@ -2473,6 +2479,30 @@ function CoverageMatrix({ kind }: { kind: 'social' | 'tech' }) {
         </tbody>
       </table>
       {caveat}
+    </div>
+  );
+}
+
+// Tab "Design System + Config" — gộp 3 mặt của lớp surface: gallery primitive (Design System),
+// config event+scoring (editable, 1 nguồn với backend/ext), và registry ext-surface (element ext dựng).
+function DesignSystemConfig() {
+  const sceneEvents = useContext(SceneEventsCtx);
+  const [sub, setSub] = useState<'design' | 'config' | 'surface'>('design');
+  const LBL: Record<typeof sub, string> = { design: '🎨 Design System', config: '⚙ Config · Scoring', surface: '🧩 Ext Surface' };
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-0)' }}>
+      <div style={{ flexShrink: 0, display: 'flex', padding: '10px 20px 0' }}>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
+          {(['design', 'config', 'surface'] as const).map((k) => (
+            <button key={k} onClick={() => setSub(k)} style={tabStyle(sub === k)}>{LBL[k]}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {sub === 'surface'
+          ? <ExtSurfaceRegistry />
+          : <div style={{ padding: '16px 20px' }}>{sub === 'design' ? <DesignSystemPanel /> : <ConfigPanel initial={sceneEvents} />}</div>}
+      </div>
     </div>
   );
 }
@@ -2749,7 +2779,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none' }}>← MOS2</a>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>Architect</div>
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-2)', borderRadius: 6, padding: 2 }}>
-          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry'], ['surface', 'Ext · Surface']] as [ViewKey, string][]).map(([k, lbl]) => (
+          {([['objects', 'Objects & Links'], ['onpage', 'Flow · On-page'], ['backend', 'Flow · Backend'], ['live', 'Live · Activity'], ['canon', 'Canon · Registry'], ['surface', 'Design System + Config']] as [ViewKey, string][]).map(([k, lbl]) => (
             <button key={k} onClick={() => setView(k)} style={tabStyle(view === k)}>{lbl}</button>
           ))}
         </div>
@@ -2826,7 +2856,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
         ) : view === 'canon' ? (
           <CanonRegistry />
         ) : view === 'surface' ? (
-          <ExtSurfaceRegistry />
+          <DesignSystemConfig />
         ) : (
         <ReactFlow
           nodes={nodes} edges={edges}
@@ -2869,13 +2899,15 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
   );
 }
 
-export function ArchitectureStudio({ projects, defaultProjectId, caps, contentValue, contentCadence }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null; contentValue?: ContentValue | null; contentCadence?: ContentCadence | null }) {
+export function ArchitectureStudio({ projects, defaultProjectId, caps, contentValue, contentCadence, sceneEvents }: { projects: { id: string; name: string }[]; defaultProjectId?: string; caps?: Record<string, unknown> | null; contentValue?: ContentValue | null; contentCadence?: ContentCadence | null; sceneEvents?: SceneEvent[] }) {
   return (
     <ReactFlowProvider>
       <CapsCtx.Provider value={(caps && caps.platforms ? caps : crewCaps) as CapsData}>
         <ContentValueCtx.Provider value={contentValue ?? null}>
           <ContentCadenceCtx.Provider value={contentCadence ?? null}>
-            <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+            <SceneEventsCtx.Provider value={sceneEvents ?? []}>
+              <StudioInner projects={projects} defaultProjectId={defaultProjectId || ''} />
+            </SceneEventsCtx.Provider>
           </ContentCadenceCtx.Provider>
         </ContentValueCtx.Provider>
       </CapsCtx.Provider>

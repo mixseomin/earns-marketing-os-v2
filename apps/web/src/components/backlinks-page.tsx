@@ -10,7 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
-import { StatusSegmented } from '@/components/ui';
+import { StatusSegmented, MonthCalendar, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
@@ -172,6 +172,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
+  const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'calendar' ? 'calendar' : 'list');
 
   const openTask = (id: number) => setOpenId(id);
   const closeTask = () => setOpenId(null);
@@ -186,9 +187,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('traf', traf);
     set('draft', draftOnly ? '1' : '');
     set('ready', readyFilter);
+    set('view', view === 'calendar' ? 'calendar' : '');
     set('task', openId);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, readyFilter, openId]);
+  }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
+
+  // Calendar items: done tasks land on their done date (solid); scheduled-not-done land
+  // dim on the scheduled date.
+  const calItems = useMemo<CalItem[]>(() => {
+    const out: CalItem[] = [];
+    for (const t of tasks) {
+      const label = t.sourceUrl ? hostOf(t.sourceUrl) : t.title;
+      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${t.title}` });
+      else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${t.title}` });
+    }
+    return out;
+  }, [tasks]);
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
@@ -310,7 +324,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <TabBtn k="progress" label="In progress" n={kpi.progress} />
         <TabBtn k="done" label="Done" n={kpi.done} />
         <TabBtn k="all" label="All" n={kpi.total} />
+        <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
+          <button type="button" onClick={() => setView('list')} style={{ ...btn, fontWeight: view === 'list' ? 700 : 500, borderColor: view === 'list' ? 'var(--neon-cyan)' : 'var(--line)', color: view === 'list' ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>☰ List</button>
+          <button type="button" onClick={() => setView('calendar')} style={{ ...btn, fontWeight: view === 'calendar' ? 700 : 500, borderColor: view === 'calendar' ? 'var(--neon-cyan)' : 'var(--line)', color: view === 'calendar' ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>📅 Lịch</button>
+        </div>
       </div>
+
+      {view === 'calendar' ? (
+        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
+      ) : (<>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm nguồn / source…" autoComplete="off"
           style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
@@ -346,6 +368,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         ))}
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
+      </>)}
 
       {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
 

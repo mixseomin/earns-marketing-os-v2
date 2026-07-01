@@ -5,6 +5,7 @@ export { Spinner, type SpinnerSize } from './spinner';
 export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
 export { StatusSegmented, type StatusOption } from './status-segmented';
+export { MonthCalendar, type CalItem } from './month-calendar';
 export { CTACard, type CTATone } from './cta-card';
 export { ResourcePicker, type ResourcePickerProps, type PickerItem } from './resource-picker';
 export {

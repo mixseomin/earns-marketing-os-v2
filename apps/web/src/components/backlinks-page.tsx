@@ -192,17 +192,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     window.history.replaceState(null, '', u);
   }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
 
-  // Calendar items: done tasks land on their done date (solid); scheduled-not-done land
-  // dim on the scheduled date.
-  const calItems = useMemo<CalItem[]>(() => {
-    const out: CalItem[] = [];
-    for (const t of tasks) {
-      const label = t.sourceUrl ? hostOf(t.sourceUrl) : t.title;
-      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${t.title}` });
-      else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${t.title}` });
-    }
-    return out;
-  }, [tasks]);
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
@@ -228,18 +217,35 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     return k;
   }, [tasks]);
 
-  const shown = useMemo(() => {
-    let rows = tasks.filter((t) => tab === 'all' || tabOf(t.siteState) === tab);
-    if (follow) rows = rows.filter((t) => (t.dofollow || '') === follow);
-    if (traf) rows = rows.filter((t) => (t.traffic || '') === traf);
-    if (draftOnly) rows = rows.filter((t) => t.hasDraft);
-    if (readyFilter) rows = rows.filter((t) => t.readiness === readyFilter);
+  // Shared filter predicate (search + attribute filters). Tab (status) applied separately
+  // so BOTH the list and the calendar honour the same filters — "global" filtering.
+  const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (s) rows = rows.filter((t) => t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s));
-    // To do: unassigned first; then by created (desc already from query).
-    if (tab === 'todo') rows = [...rows].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId));
-    return rows;
+    return tasks.filter((t) => {
+      if (tab !== 'all' && tabOf(t.siteState) !== tab) return false;
+      if (follow && (t.dofollow || '') !== follow) return false;
+      if (traf && (t.traffic || '') !== traf) return false;
+      if (draftOnly && !t.hasDraft) return false;
+      if (readyFilter && t.readiness !== readyFilter) return false;
+      if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
+      return true;
+    });
   }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
+
+  const shown = useMemo(() => (tab === 'todo'
+    ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
+    : filtered), [filtered, tab]);
+
+  // Calendar items from the SAME filtered set: done → solid on done date; scheduled-not-done → dim.
+  const calItems = useMemo<CalItem[]>(() => {
+    const out: CalItem[] = [];
+    for (const t of filtered) {
+      const label = t.sourceUrl ? hostOf(t.sourceUrl) : t.title;
+      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${t.title}` });
+      else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${t.title}` });
+    }
+    return out;
+  }, [filtered]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -330,9 +336,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         </div>
       </div>
 
-      {view === 'calendar' ? (
-        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
-      ) : (<>
+      {/* filters — apply to BOTH list & calendar */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm nguồn / source…" autoComplete="off"
           style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
@@ -343,7 +347,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {(q || follow || traf || draftOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); }} style={btn}>Clear</button>}
       </div>
 
-      {/* cards */}
+      {view === 'calendar' ? (
+        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {shown.map((t) => (
           <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
@@ -368,7 +374,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         ))}
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
-      </>)}
+      )}
 
       {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
 

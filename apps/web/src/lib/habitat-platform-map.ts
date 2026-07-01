@@ -153,6 +153,10 @@ const PLATFORM_ALIAS: Record<string, string> = {
   'dev-to': 'devto',
   'dev.to': 'devto',
   devto: 'devto',
+  // govloop = curated platform (HOSTNAME_TO_PLATFORM govloop.com→'govloop'), NHƯNG ext ko biết govloop
+  // (ko trong ext HOSTS) → detectKey trả host-slug 'govloop-com' → account/query đi lệch curated key.
+  // Gom auto-slug về curated → readiness + login pill + account create cùng khớp 'govloop'.
+  'govloop-com': 'govloop',
 };
 export function canonPlatformKey(raw?: string | null): string {
   const k = String(raw ?? '').trim().toLowerCase();

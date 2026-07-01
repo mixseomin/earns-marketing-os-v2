@@ -75,6 +75,24 @@ const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
   { k: 'plain', label: 'Plain', hint: 'comment · bio · profile' },
 ];
 
+// Backup plans for the link itself — some platforms/moments allow a real link, some
+// strip markup, some ban links (or a new account can't post one yet). Applied to the
+// Markdown source BEFORE formatting.
+type LinkMode = 'link' | 'bare' | 'brand';
+const LINK_MODES: { k: LinkMode; label: string; hint: string }[] = [
+  { k: 'link', label: '🔗 Link', hint: 'Platform cho dofollow / link tự do' },
+  { k: 'bare', label: '🔓 Bare URL', hint: 'Markdown bị strip → URL trần, tự auto-link' },
+  { k: 'brand', label: '🏷 Brand', hint: 'Link bị chặn / account mới → nhắc brand, thêm link sau khi có trust' },
+];
+function applyLink(md: string, mode: LinkMode): string {
+  if (mode === 'link') return md;
+  // [anchor](url) → "anchor url" (bare) or "anchor (host)" (brand, no clickable link)
+  let s = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, a: string, u: string) => mode === 'bare' ? `${a} ${u}` : `${a} (${hostOf(u)})`);
+  // loose bare urls → keep (bare) or reduce to host (brand)
+  s = s.replace(/https?:\/\/[^\s)]+/g, (u) => mode === 'bare' ? u : hostOf(u));
+  return s;
+}
+
 // "1) do X. 2) do Y." → clean numbered list. Falls back to a plain block when it
 // isn't a numbered recipe.
 function Steps({ text }: { text: string }) {
@@ -275,7 +293,12 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copied, setCopied] = useState(false);
   const [fmt, setFmt] = useState<DraftFmt>('md');
-  const draftFmts = useMemo(() => task.draft ? { md: task.draft, html: mdToHtml(task.draft), plain: mdToPlain(task.draft) } : null, [task.draft]);
+  const [linkMode, setLinkMode] = useState<LinkMode>('link');
+  const draftFmts = useMemo(() => {
+    if (!task.draft) return null;
+    const src = applyLink(task.draft, linkMode);
+    return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
+  }, [task.draft, linkMode]);
   const copy = (txt: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
   return (
@@ -351,7 +374,15 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
             </span>
             <button type="button" onClick={() => copy(draftFmts[fmt])} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copied ? '✓ copied' : 'Copy'}</button>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Link</span>
+            {LINK_MODES.map((m) => (
+              <button key={m.k} type="button" onClick={() => setLinkMode(m.k)} title={m.hint}
+                style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer',
+                  border: `1px solid ${linkMode === m.k ? '#9d6cff' : 'var(--line)'}`, background: linkMode === m.k ? 'color-mix(in srgb, #9d6cff 16%, transparent)' : 'transparent', color: linkMode === m.k ? '#9d6cff' : 'var(--fg-3)' }}>{m.label}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
         </>)}
 

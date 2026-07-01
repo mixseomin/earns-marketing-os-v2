@@ -212,9 +212,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
-  const setSite = (taskId: number, status: string, url: string) => {
+  const setSite = async (taskId: number, status: string, url: string) => {
     if (!slug) return;
-    start(async () => { await setBacklinkSite(taskId, slug, status, url); router.refresh(); });
+    await setBacklinkSite(taskId, slug, status, url);
+    start(() => router.refresh());
   };
 
   if (!slug) {
@@ -338,9 +339,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 }
 
 function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveUrl = async () => { setSaveState('saving'); await setSite(task.id, task.siteState, url); setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // In-drawer media prep — search stock / AI-gen, save to project media (no page jump).
@@ -424,7 +427,9 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
             style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
-          <button type="button" onClick={() => setSite(task.id, task.siteState, url)} style={{ ...btn, fontWeight: 700 }}>Lưu</button>
+          <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
+            style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
+            {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
         </div>
 
         {/* Paste kit — nguồn cho "paste bản mô tả 160 ký tự" v.v. Lấy từ project record. */}

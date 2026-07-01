@@ -5,7 +5,7 @@
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
 import { useMemo, useState, useTransition, type CSSProperties } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
@@ -137,14 +137,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[];
 }) {
   const router = useRouter();
+  const sp = useSearchParams();
   const [, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('todo');
   const [q, setQ] = useState('');
   const [follow, setFollow] = useState<string>('');   // dofollow filter
   const [traf, setTraf] = useState<string>('');        // traffic filter
   const [draftOnly, setDraftOnly] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);   // deep-linkable via ?task=
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>('');   // filter cards by account-readiness
+
+  // Reflect the open drawer in the URL (?task=id) — shallow, no server refetch.
+  const openTask = (id: number) => { setOpenId(id); const u = new URL(window.location.href); u.searchParams.set('task', String(id)); window.history.replaceState(null, '', u); };
+  const closeTask = () => { setOpenId(null); const u = new URL(window.location.href); u.searchParams.delete('task'); window.history.replaceState(null, '', u); };
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
@@ -160,7 +165,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   }, [tasks]);
 
   // Chip click → open the task drawer (account section lives there). No page jump.
-  const goAccount = (e: React.MouseEvent, t: BacklinkTask) => { e.stopPropagation(); setOpenId(t.id); };
+  const goAccount = (e: React.MouseEvent, t: BacklinkTask) => { e.stopPropagation(); openTask(t.id); };
 
   const kpi = useMemo(() => {
     const k = { total: tasks.length, todo: 0, progress: 0, done: 0 };
@@ -266,7 +271,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       {/* cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {shown.map((t) => (
-          <div key={t.id} onClick={() => setOpenId(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
+          <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
               <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -287,7 +292,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
 
-      {open && <Drawer task={open} slug={slug} accounts={accounts} onClose={() => setOpenId(null)} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} onClose={closeTask} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
 
       {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
       {acctModal && (
@@ -302,13 +307,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
-  task: BacklinkTask; slug: string; accounts: AccountRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
+function Drawer({ task, slug, project, accounts, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => void; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [fmt, setFmt] = useState<DraftFmt>('md');
   const [linkMode, setLinkMode] = useState<LinkMode>('link');
   const draftFmts = useMemo(() => {
@@ -316,8 +321,16 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
     const src = applyLink(task.draft, linkMode);
     return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
   }, [task.draft, linkMode]);
-  const copy = (txt: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); };
+  const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
+  // Paste kit — the reusable brand copy the instructions refer to ("paste the 160-char
+  // desc", tagline, logo). Source of truth = the project record (one_liner / bio / website).
+  const kit = [
+    { key: 'url', label: 'Website URL', val: project.website || '' },
+    { key: 'desc', label: 'Mô tả (one-liner)', val: project.oneLiner || '' },
+    { key: 'bio', label: 'Bio (dài)', val: project.bio || '' },
+    { key: 'logo', label: 'Logo URL', val: project.website ? `${project.website.replace(/\/$/, '')}/logo.png` : '' },
+  ].filter((k) => k.val);
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)' }} />
@@ -374,6 +387,22 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
           <button type="button" onClick={() => setSite(task.id, task.siteState, url)} style={{ ...btn, fontWeight: 700 }}>Lưu</button>
         </div>
 
+        {/* Paste kit — nguồn cho "paste bản mô tả 160 ký tự" v.v. Lấy từ project record. */}
+        {kit.length > 0 && (<>
+          <div style={{ ...lbl, marginTop: 16 }}>📎 Paste kit <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· từ hồ sơ {project.name}</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {kit.map((k) => (
+              <div key={k.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label} <span style={{ textTransform: 'none' }}>· {k.val.length} ký tự</span></div>
+                  <div style={{ fontSize: 12, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{k.val}</div>
+                </div>
+                <button type="button" onClick={() => copy(k.val, k.key)} style={{ ...btn, padding: '2px 8px', flexShrink: 0 }}>{copiedKey === k.key ? '✓' : 'Copy'}</button>
+              </div>
+            ))}
+          </div>
+        </>)}
+
         {task.instructions && (<>
           <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🛠 Cách build</div>
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
@@ -389,7 +418,7 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
                     border: `1px solid ${fmt === f.k ? 'var(--accent)' : 'var(--line)'}`, background: fmt === f.k ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: fmt === f.k ? 'var(--accent)' : 'var(--fg-3)' }}>{f.label}</button>
               ))}
             </span>
-            <button type="button" onClick={() => copy(draftFmts[fmt])} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copied ? '✓ copied' : 'Copy'}</button>
+            <button type="button" onClick={() => copy(draftFmts[fmt], 'draft')} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copiedKey === 'draft' ? '✓ copied' : 'Copy'}</button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
             <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Link</span>

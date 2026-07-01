@@ -11,6 +11,7 @@ import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
+import { MonthCalendar, type CalItem } from '@/components/ui';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
@@ -128,6 +129,13 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState('');
   const [q, setQ] = useState('');
+  const [cal, setCal] = useState(sp.get('view') === 'calendar');
+  const toggleCal = (on: boolean) => {
+    setCal(on);
+    const u = new URL(window.location.href);
+    if (on) u.searchParams.set('view', 'calendar'); else u.searchParams.delete('view');
+    window.history.replaceState(null, '', u.toString());
+  };
 
   const setTab = (k: TabKey) => {
     setTabState(k);
@@ -178,6 +186,18 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
   const needsCount = formsToSubmit.length + fixes.length + newReplies.length;
   const autoNew = useMemo(() => prospects.filter((p) => p.status === 'to_send' && p.email).length, [prospects]);
   const autoDue = useMemo(() => prospects.filter(dueNow).length, [prospects]);
+
+  // Calendar (same filtered set): emails sent land solid on the sent date; due follow-ups
+  // land dim on their scheduled date.
+  const calItems = useMemo<CalItem[]>(() => {
+    const out: CalItem[] = [];
+    for (const p of shown) {
+      const label = p.agentName || p.company || p.websiteEtld1 || p.website;
+      if (p.sentAt) out.push({ id: p.id, date: p.sentAt.slice(0, 10), label, color: '#22c55e', title: `✉ Đã gửi · ${p.agentName}` });
+      if (p.nextFollowupAt && !p.repliedAt && ACTIVE.has(p.status)) out.push({ id: `f${p.id}`, date: p.nextFollowupAt.slice(0, 10), label: `↻ ${label}`, dim: true, color: '#ffb03c', title: `Follow-up · ${p.agentName}` });
+    }
+    return out;
+  }, [shown]);
 
   const groups = useMemo(() => {
     const g = (labels: string[]) => shown.filter((p) => labels.includes(p.status));
@@ -431,13 +451,20 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
         <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{shown.length}/{prospects.length} shown</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, margin: '0 0 12px' }}>
+      <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', alignItems: 'center' }}>
         <TabBtn k="needs" label="Needs you" n={needsCount} />
         <TabBtn k="due" label="Due today" n={dueList.length} />
         <TabBtn k="pipeline" label="Pipeline" />
         <TabBtn k="all" label="All" n={shown.length} />
+        <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
+          <button onClick={() => toggleCal(false)} style={{ ...btn, padding: '4px 12px', fontSize: 12, borderColor: !cal ? 'var(--neon-cyan)' : 'var(--bg-3)', color: !cal ? 'var(--neon-cyan)' : 'var(--fg-2)', background: !cal ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)' }}>☰ List</button>
+          <button onClick={() => toggleCal(true)} style={{ ...btn, padding: '4px 12px', fontSize: 12, borderColor: cal ? 'var(--neon-cyan)' : 'var(--bg-3)', color: cal ? 'var(--neon-cyan)' : 'var(--fg-2)', background: cal ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)' }}>📅 Lịch</button>
+        </div>
       </div>
 
+      {cal ? (
+        <MonthCalendar items={calItems} onItemClick={(id) => { const pid = Number(String(id).replace(/^f/, '')); const p = prospects.find((x) => x.id === pid); if (p) setPreview(p); }} />
+      ) : (<>
       {tab === 'needs' && <NeedsYou />}
 
       {tab === 'due' && (
@@ -473,6 +500,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
           ))}
         </div>
       )}
+      </>)}
 
       {preview && (
         <EmailDrawer

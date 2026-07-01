@@ -42,6 +42,20 @@ function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; c
   return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 
+// "1) do X. 2) do Y." → clean numbered list. Falls back to a plain block when it
+// isn't a numbered recipe.
+function Steps({ text }: { text: string }) {
+  const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
+  if (parts.filter((p) => /^\d+\)/.test(p)).length < 2) {
+    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{text}</div>;
+  }
+  return (
+    <ol style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {parts.map((p, i) => <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>{p.replace(/^\d+\)\s*/, '')}</li>)}
+    </ol>
+  );
+}
+
 // Account-readiness chip on a backlink card — is the platform account ready to post?
 function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.MouseEvent) => void }) {
   const m = READINESS_META[task.readiness];
@@ -232,7 +246,7 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)' }} />
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(460px, 94vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
           <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
@@ -285,13 +299,15 @@ function Drawer({ task, slug, accounts, onClose, setSite, onChange, onCreateAcco
           <button type="button" onClick={() => setSite(task.id, task.siteState, url)} style={{ ...btn, fontWeight: 700 }}>Lưu</button>
         </div>
 
+        {task.instructions && (<>
+          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🛠 Cách build</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
+        </>)}
+
         {task.draft && (<>
           <div style={lbl}>📋 Draft (paste-ready) <button type="button" onClick={() => copy(task.draft!)} style={{ ...btn, padding: '1px 8px', marginLeft: 6 }}>{copied ? '✓' : 'Copy'}</button></div>
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{task.draft}</pre>
         </>)}
-
-        {task.instructions && (<><div style={lbl}>Cách build (instructions)</div>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, color: 'var(--fg-1)', margin: 0, fontFamily: 'var(--font-mono)' }}>{task.instructions}</pre></>)}
 
         {task.mechanism && (<><div style={lbl}>Mechanism</div><div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{task.mechanism}</div></>)}
 

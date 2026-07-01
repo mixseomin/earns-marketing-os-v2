@@ -308,13 +308,21 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
   if (!['pending', 'claimed', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
+  // Execution time: stamp site_done_at when the site reaches completed/verified (keep the
+  // original stamp on re-save via COALESCE); clear it if the site is re-opened.
+  const done = status === 'completed' || status === 'verified';
+  const nowIso = new Date().toISOString();
+  const doneMerge = done
+    ? sql`|| jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_done_at'->>${site}, ${nowIso}))))`
+    : sql`|| jsonb_build_object('site_done_at', (COALESCE(prep_payload->'site_done_at', '{}'::jsonb) - ${site}::text))`;
   try {
     // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
     const r = await db.execute(sql`
       UPDATE human_tasks SET prep_payload =
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
-        || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text))),
+        || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text)))
+        ${doneMerge},
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'
       RETURNING (prep_payload->'site_status') AS ss`);
@@ -329,6 +337,25 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
     } else {
       await db.execute(sql`UPDATE human_tasks SET status = 'pending', completed_at = NULL, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status = 'completed'`);
     }
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Backlink per-site schedule: planned date (YYYY-MM-DD) to do the task on this site.
+// Empty date clears it. Stored in prep_payload.site_scheduled_at[site].
+export async function setBacklinkSchedule(taskId: number, site: string, date: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
+  const d = (date || '').trim();
+  if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { ok: false, error: 'bad date' };
+  try {
+    const merge = d
+      ? sql`|| jsonb_build_object('site_scheduled_at', COALESCE(prep_payload->'site_scheduled_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${d}::text)))`
+      : sql`|| jsonb_build_object('site_scheduled_at', (COALESCE(prep_payload->'site_scheduled_at', '{}'::jsonb) - ${site}::text))`;
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }

@@ -16,6 +16,8 @@ export interface BacklinkTask {
   status: string;                 // row-level human_tasks.status
   siteState: string;              // this site's status (site_status[slug])
   siteLiveUrl: string | null;     // this site's placed URL (site_url[slug])
+  siteDoneAt: string | null;      // when this site reached completed/verified
+  siteScheduledAt: string | null; // planned date (YYYY-MM-DD) to do this site
   sourceUrl: string | null;
   da: string | null;
   dofollow: string | null;
@@ -66,6 +68,8 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
              publish_url, screenshot_url, assigned_user_id, assignee,
              (site_status->>${slug}) AS site_state,
              (site_url->>${slug})    AS site_live_url,
+             (site_done_at->>${slug})      AS site_done_at,
+             (site_scheduled_at->>${slug}) AS site_scheduled_at,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -79,6 +83,8 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         status: String(r.status ?? 'pending'),
         siteState: String(r.site_state ?? 'pending'),
         siteLiveUrl: (r.site_live_url as string | null) || null,
+        siteDoneAt: (r.site_done_at as string | null) || null,
+        siteScheduledAt: (r.site_scheduled_at as string | null) || null,
         sourceUrl,
         da: (r.da as string | null) || null,
         dofollow: (r.dofollow as string | null) || null,

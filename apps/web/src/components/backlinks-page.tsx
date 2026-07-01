@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented } from '@/components/ui';
@@ -33,6 +33,7 @@ const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed'
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
@@ -233,6 +234,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     await setBacklinkSite(taskId, slug, status, url);
     start(() => router.refresh());
   };
+  const setSchedule = async (taskId: number, date: string) => {
+    if (!slug) return;
+    await setBacklinkSchedule(taskId, slug, date);
+    start(() => router.refresh());
+  };
 
   if (!slug) {
     return (
@@ -327,6 +333,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
                 {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
                 {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+                {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
+                {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
               </div>
             </div>
@@ -339,7 +347,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
 
       {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
       {acctModal && (
@@ -354,8 +362,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChange, onCreateAccount, onEditAccount }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; onChange: () => void;
+function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -448,6 +456,18 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, onChan
           <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
             style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
             {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
+        </div>
+
+        <div style={lbl}>Lịch & thời gian @ {slug}</div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', color: 'var(--fg-2)' }}>
+            🗓 Lên lịch
+            <input type="date" value={task.siteScheduledAt || ''} onChange={(e) => setSchedule(task.id, e.target.value)}
+              style={{ padding: '4px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, colorScheme: 'dark' }} />
+          </label>
+          {task.siteDoneAt
+            ? <span style={{ color: 'var(--ok)', fontWeight: 600 }}>✓ Hoàn thành {fmtWhen(task.siteDoneAt)}</span>
+            : <span style={{ color: 'var(--fg-4)' }}>chưa hoàn thành</span>}
         </div>
 
         {/* Paste kit — nguồn cho "paste bản mô tả 160 ký tự" v.v. Lấy từ project record. */}

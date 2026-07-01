@@ -409,8 +409,9 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
   const [mbusy, setMbusy] = useState<'search' | 'ai' | number | null>(null);
   const [merr, setMerr] = useState<string | null>(null);
   const doSearch = async () => { setMbusy('search'); setMerr(null); const r = await searchBacklinkMedia(mq); setMbusy(null); r.ok ? setCands(r.candidates!) : setMerr(r.error || 'lỗi'); };
-  const doAI = async () => { if (!mediaNeed) return; setMbusy('ai'); setMerr(null); const r = await generateBacklinkMedia(project.id, mq, mediaNeed.field); setMbusy(null); if (r.ok) { setCands(null); onChange(); } else setMerr(r.error || 'lỗi'); };
-  const pick = async (c: PhotoCandidate, i: number) => { if (!mediaNeed) return; setMbusy(i); setMerr(null); const r = await attachBacklinkMedia(project.id, c.url, mediaNeed.field); setMbusy(null); if (r.ok) { setCands(null); onChange(); } else setMerr(r.error || 'lỗi'); };
+  const doAI = async () => { if (!mediaNeed) return; setMbusy('ai'); setMerr(null); const r = await generateBacklinkMedia(project.id, mq, mediaNeed.field); setMbusy(null); if (r.ok) { onChange(); } else setMerr(r.error || 'lỗi'); };
+  // Save a candidate → remove just it from the grid (hide saved), keep results open for more.
+  const pick = async (c: PhotoCandidate, i: number) => { if (!mediaNeed) return; setMbusy(i); setMerr(null); const r = await attachBacklinkMedia(project.id, c.url, mediaNeed.field); setMbusy(null); if (r.ok) { setCands((cs) => (cs ? cs.filter((x) => x.url !== c.url) : cs)); onChange(); } else setMerr(r.error || 'lỗi'); };
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);

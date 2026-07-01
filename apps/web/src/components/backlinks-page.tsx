@@ -11,7 +11,7 @@ import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
-import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia } from '@/lib/actions/backlink-media';
+import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
@@ -403,11 +403,16 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
   };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
+  // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
+  const savedOrigins = useMemo(() => new Set(imgs.flatMap((m) => (m.tags || []).filter((t) => t.startsWith('origin:')).map((t) => t.slice(7)))), [imgs]);
   // In-drawer media prep — search stock / AI-gen, save to project media (no page jump).
   const [mq, setMq] = useState(project.name);
   const [cands, setCands] = useState<PhotoCandidate[] | null>(null);
   const [mbusy, setMbusy] = useState<'search' | 'ai' | number | null>(null);
   const [merr, setMerr] = useState<string | null>(null);
+  const [delId, setDelId] = useState<number | null>(null);   // media pending delete-confirm
+  const doDelMedia = async (id: number) => { setDelId(null); await deleteBacklinkMedia(project.id, id); onChange(); };
+  const visibleCands = cands ? cands.filter((c) => !savedOrigins.has(c.url)) : null;
   const doSearch = async () => { setMbusy('search'); setMerr(null); const r = await searchBacklinkMedia(mq); setMbusy(null); r.ok ? setCands(r.candidates!) : setMerr(r.error || 'lỗi'); };
   const doAI = async () => { if (!mediaNeed) return; setMbusy('ai'); setMerr(null); const r = await generateBacklinkMedia(project.id, mq, mediaNeed.field); setMbusy(null); if (r.ok) { onChange(); } else setMerr(r.error || 'lỗi'); };
   // Save a candidate → remove just it from the grid (hide saved), keep results open for more.
@@ -522,9 +527,22 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               {imgs.map((m) => (
                 <div key={m.id} style={{ width: 96 }}>
-                  <a href={wrapExternalUrl(m.url)} {...EXT} title={m.filename}>
-                    <img src={m.url} alt={m.filename} style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
-                  </a>
+                  <div style={{ position: 'relative' }}>
+                    <a href={wrapExternalUrl(m.url)} {...EXT} title={m.filename}>
+                      <img src={m.url} alt={m.filename} style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+                    </a>
+                    {delId === m.id ? (
+                      <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'rgba(0,0,0,.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 10, color: '#fff' }}>Xoá ảnh?</span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button type="button" onClick={() => doDelMedia(m.id)} style={{ ...btn, padding: '1px 8px', fontSize: 10, borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá</button>
+                          <button type="button" onClick={() => setDelId(null)} style={{ ...btn, padding: '1px 8px', fontSize: 10 }}>Huỷ</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setDelId(m.id)} title="Xoá ảnh" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, lineHeight: '16px', textAlign: 'center', padding: 0, borderRadius: 4, border: '1px solid var(--line)', background: 'rgba(0,0,0,.55)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>✕</button>
+                    )}
+                  </div>
                   <button type="button" onClick={() => copy(m.url, `media-${m.id}`)} style={{ ...btn, padding: '1px 6px', marginTop: 3, width: '100%', fontSize: 10 }}>{copiedKey === `media-${m.id}` ? '✓' : 'Copy URL'}</button>
                 </div>
               ))}
@@ -538,10 +556,10 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
             <button type="button" onClick={doAI} disabled={mbusy === 'ai'} style={{ ...btn }}>{mbusy === 'ai' ? '…' : '✨ AI tạo'}</button>
           </div>
           {merr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginTop: 4 }}>{merr}</div>}
-          {cands && (
+          {visibleCands && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-              {cands.length === 0 && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có kết quả.</span>}
-              {cands.map((c, i) => (
+              {visibleCands.length === 0 && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>Không có kết quả mới.</span>}
+              {visibleCands.map((c, i) => (
                 <button key={c.url} type="button" onClick={() => pick(c, i)} disabled={mbusy === i} title={`${c.provider} — bấm để lưu`}
                   style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-2)', cursor: 'pointer', position: 'relative' }}>
                   <img src={c.url} alt={c.provider} style={{ width: 100, height: 75, objectFit: 'cover', borderRadius: 5, display: 'block', opacity: mbusy === i ? 0.4 : 1 }} />

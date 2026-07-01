@@ -4,7 +4,7 @@
 // providers, or AI-generate, then persist into media_assets for the project. Reuses
 // the same image pipeline as the ext media/generate route (lib/stock-photos + R2).
 import { getDb, mediaAssets } from '@mos2/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { uploadToR2, r2Enabled } from '@/lib/r2';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
 import { searchStockPhotos, downloadImage, type PhotoCandidate } from '@/lib/stock-photos';
@@ -18,20 +18,30 @@ async function requireAdmin(): Promise<boolean> {
   return me?.role === 'admin';
 }
 
-async function persist(projectId: string, field: string, buf: Buffer, mime: string, source: string, w: number | null, h: number | null): Promise<{ id: number; url: string } | null> {
+async function persist(projectId: string, field: string, buf: Buffer, mime: string, source: string, w: number | null, h: number | null, originUrl?: string): Promise<{ id: number; url: string } | null> {
   const db = getDb(); if (!db) return null;
   const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
   const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
   const key = `backlink/${projectId || 'misc'}/${field}-${stamp}.${ext}`;
   let url = r2Enabled() ? await uploadToR2(key, buf, mime) : null;
   if (!url) url = `data:${mime};base64,${buf.toString('base64')}`;
+  // origin:<stock url> lets the picker dedup already-saved images (R2 url ≠ stock url).
+  const tags = [field, 'backlink', source, ...(originUrl ? [`origin:${originUrl}`] : [])];
   const [row] = await db.insert(mediaAssets).values({
     tenantId: TENANT, projectId: projectId || null, kind: 'image',
     filename: `${field}-${stamp}.${ext}`, url, mimeType: mime,
     sizeBytes: buf.length, width: w, height: h,
-    tags: [field, 'backlink', source], notes: `backlink ${field} · ${source}`, source,
+    tags, notes: `backlink ${field} · ${source}`, source,
   }).returning({ id: mediaAssets.id });
   return row ? { id: row.id, url } : null;
+}
+
+// Delete a saved project media asset (admin, project-scoped). Called from the drawer with confirm.
+export async function deleteBacklinkMedia(projectId: string, id: number): Promise<{ ok: boolean; error?: string }> {
+  if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  await db.delete(mediaAssets).where(and(eq(mediaAssets.id, id), eq(mediaAssets.projectId, projectId)));
+  return { ok: true };
 }
 
 // Search stock/web providers → candidate URLs (not saved yet; user picks one).
@@ -51,7 +61,7 @@ export async function attachBacklinkMedia(projectId: string, url: string, field:
   if (!projectId || !/^https?:\/\//.test(url)) return { ok: false, error: 'input không hợp lệ' };
   const dl = await downloadImage(url);
   if (!dl) return { ok: false, error: 'không tải được ảnh' };
-  const saved = await persist(projectId, field, dl.buf, dl.mime, 'web', null, null);
+  const saved = await persist(projectId, field, dl.buf, dl.mime, 'web', null, null, url);
   return saved ? { ok: true, ...saved } : { ok: false, error: 'lưu thất bại' };
 }
 

@@ -10,7 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
-import { StatusSegmented, MonthCalendar, type CalItem } from '@/components/ui';
+import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
@@ -331,10 +331,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <TabBtn k="progress" label="In progress" n={kpi.progress} />
         <TabBtn k="done" label="Done" n={kpi.done} />
         <TabBtn k="all" label="All" n={kpi.total} />
-        <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
-          <button type="button" onClick={() => setView('list')} style={{ ...btn, fontWeight: view === 'list' ? 700 : 500, borderColor: view === 'list' ? 'var(--neon-cyan)' : 'var(--line)', color: view === 'list' ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>☰ List</button>
-          <button type="button" onClick={() => setView('calendar')} style={{ ...btn, fontWeight: view === 'calendar' ? 700 : 500, borderColor: view === 'calendar' ? 'var(--neon-cyan)' : 'var(--line)', color: view === 'calendar' ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>📅 Lịch</button>
-        </div>
+        <ViewToggle style={{ marginLeft: 'auto' }} options={LIST_CALENDAR_VIEWS} value={view} onChange={(v) => setView(v as 'list' | 'calendar')} />
       </div>
 
       {/* filters — apply to BOTH list & calendar */}

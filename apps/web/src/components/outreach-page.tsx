@@ -11,7 +11,7 @@ import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
-import { MonthCalendar, type CalItem } from '@/components/ui';
+import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
@@ -457,10 +457,7 @@ function OutreachInner({ projectId, prospects }: { projectId: string; prospects:
         <TabBtn k="due" label="Due today" n={dueList.length} />
         <TabBtn k="pipeline" label="Pipeline" />
         <TabBtn k="all" label="All" n={shown.length} />
-        <div style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
-          <button onClick={() => toggleCal(false)} style={{ ...btn, padding: '4px 12px', fontSize: 12, borderColor: !cal ? 'var(--neon-cyan)' : 'var(--bg-3)', color: !cal ? 'var(--neon-cyan)' : 'var(--fg-2)', background: !cal ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)' }}>☰ List</button>
-          <button onClick={() => toggleCal(true)} style={{ ...btn, padding: '4px 12px', fontSize: 12, borderColor: cal ? 'var(--neon-cyan)' : 'var(--bg-3)', color: cal ? 'var(--neon-cyan)' : 'var(--fg-2)', background: cal ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)' }}>📅 Lịch</button>
-        </div>
+        <ViewToggle style={{ marginLeft: 'auto' }} options={LIST_CALENDAR_VIEWS} value={cal ? 'calendar' : 'list'} onChange={(v) => toggleCal(v === 'calendar')} />
       </div>
 
       {cal ? (

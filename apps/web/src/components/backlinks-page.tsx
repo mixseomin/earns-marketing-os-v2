@@ -4,7 +4,7 @@
 // sources that apply to THIS project's site (membership = site_status[slug]) and lets the
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
-import { useMemo, useState, useTransition, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite } from '@/lib/actions/architecture';
@@ -162,17 +162,32 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
-  const [tab, setTab] = useState<TabKey>('todo');
-  const [q, setQ] = useState('');
-  const [follow, setFollow] = useState<string>('');   // dofollow filter
-  const [traf, setTraf] = useState<string>('');        // traffic filter
-  const [draftOnly, setDraftOnly] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);   // deep-linkable via ?task=
-  const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>('');   // filter cards by account-readiness
+  // All view state initialises from the URL so tabs/filters/drawer are deep-linkable + refresh-safe.
+  const initTab = (['todo', 'progress', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'todo';
+  const [tab, setTab] = useState<TabKey>(initTab);
+  const [q, setQ] = useState(sp.get('q') ?? '');
+  const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
+  const [traf, setTraf] = useState<string>(sp.get('traf') ?? '');          // traffic filter
+  const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
+  const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
+  const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
 
-  // Reflect the open drawer in the URL (?task=id) — shallow, no server refetch.
-  const openTask = (id: number) => { setOpenId(id); const u = new URL(window.location.href); u.searchParams.set('task', String(id)); window.history.replaceState(null, '', u); };
-  const closeTask = () => { setOpenId(null); const u = new URL(window.location.href); u.searchParams.delete('task'); window.history.replaceState(null, '', u); };
+  const openTask = (id: number) => setOpenId(id);
+  const closeTask = () => setOpenId(null);
+
+  // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const set = (k: string, v: string | number | null | undefined) => { if (v) u.searchParams.set(k, String(v)); else u.searchParams.delete(k); };
+    set('tab', tab === 'todo' ? '' : tab);   // default tab → clean URL
+    set('q', q.trim());
+    set('follow', follow);
+    set('traf', traf);
+    set('draft', draftOnly ? '1' : '');
+    set('ready', readyFilter);
+    set('task', openId);
+    window.history.replaceState(null, '', u);
+  }, [tab, q, follow, traf, draftOnly, readyFilter, openId]);
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
   const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });

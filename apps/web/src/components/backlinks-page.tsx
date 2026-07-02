@@ -40,6 +40,40 @@ const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
+// Image actions on a thumbnail: fetch the bytes so both download and copy-as-image work even
+// cross-origin (when the host allows CORS). Fallbacks: open-in-tab / copy-URL when it doesn't.
+async function fetchImageBlob(url: string): Promise<Blob> {
+  const r = await fetch(url, { mode: 'cors' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.blob();
+}
+async function downloadImage(url: string, filename?: string): Promise<void> {
+  try {
+    const blob = await fetchImageBlob(url);
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href; a.download = filename || url.split('/').pop()?.split('?')[0] || 'image';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  } catch { window.open(url, '_blank', 'noopener'); }  // CORS-blocked → open so the user can save manually
+}
+async function copyImageToClipboard(url: string): Promise<boolean> {
+  try {
+    // Pass a Promise to ClipboardItem so the write stays inside the user gesture. Convert to
+    // PNG via a canvas over our own fetched blob (blob: is same-origin → no taint) — clipboard
+    // only reliably accepts image/png.
+    const png = (async () => {
+      const blob = await fetchImageBlob(url);
+      if (blob.type === 'image/png') return blob;
+      const bmp = await createImageBitmap(blob);
+      const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d')!.drawImage(bmp, 0, 0);
+      return await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('toBlob'))), 'image/png'));
+    })();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    return true;
+  } catch { return false; }
+}
 // Link health badge (shared by list + drawer). null = never checked.
 const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null => !v ? null
   : !v.reachable ? { c: 'var(--fg-3)', t: `? không truy cập${v.httpStatus ? ' ' + v.httpStatus : ''}` }
@@ -559,6 +593,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   };
   const delAi = async (id: number) => { await deleteAiContent(id); reloadAi(); };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
+  const flash = (key: string) => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); };
+  const copyImg = async (url: string, key: string) => { (await copyImageToClipboard(url)) ? flash(key) : copy(url, key.replace('img-', 'media-')); };
+  const dlImg = async (url: string, filename: string, key: string) => { flash(key); await downloadImage(url, filename); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
   // Paste kit — the reusable brand copy the instructions refer to ("paste the 160-char
   // desc", tagline, logo). Source of truth = the project record (one_liner / bio / website).
@@ -766,7 +803,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                       <button type="button" onClick={() => setDelId(m.id)} title="Xoá ảnh" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, lineHeight: '16px', textAlign: 'center', padding: 0, borderRadius: 4, border: '1px solid var(--line)', background: 'rgba(0,0,0,.55)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>✕</button>
                     )}
                   </div>
-                  <button type="button" onClick={() => copy(m.url, `media-${m.id}`)} style={{ ...btn, padding: '1px 6px', marginTop: 3, width: '100%', fontSize: 10 }}>{copiedKey === `media-${m.id}` ? '✓' : 'Copy URL'}</button>
+                  <div style={{ display: 'flex', gap: 2, marginTop: 3 }}>
+                    <button type="button" onClick={() => dlImg(m.url, m.filename || `img-${m.id}`, `dl-${m.id}`)} title="Tải ảnh về máy" style={{ ...btn, flex: 1, padding: '1px 0', fontSize: 11 }}>{copiedKey === `dl-${m.id}` ? '✓' : '⬇'}</button>
+                    <button type="button" onClick={() => copyImg(m.url, `img-${m.id}`)} title="Copy ảnh (dán thẳng vào form/post)" style={{ ...btn, flex: 1, padding: '1px 0', fontSize: 11 }}>{copiedKey === `img-${m.id}` ? '✓' : '🖼'}</button>
+                    <button type="button" onClick={() => copy(m.url, `media-${m.id}`)} title="Copy URL ảnh" style={{ ...btn, flex: 1, padding: '1px 0', fontSize: 11 }}>{copiedKey === `media-${m.id}` ? '✓' : '🔗'}</button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -1045,7 +1045,7 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   );
 }
 
-export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief, asDrawer = false }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
@@ -1075,6 +1075,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
   proxies?: ProxyRow[];
   browserProfiles?: BrowserProfileRow[];
+  // Render as a right-side drawer instead of a centered modal (e.g. opened from the
+  // backlink task drawer, where drawer-in-drawer is the expected pattern).
+  asDrawer?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -1428,7 +1431,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={asDrawer
+        ? { position: 'fixed', inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: 'min(880px, 96vw)', maxWidth: '96vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, display: 'flex', flexDirection: 'column' }
+        : { width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
         <ModalHeader
           kind="account"
           action={isCreate ? 'create' : 'edit'}

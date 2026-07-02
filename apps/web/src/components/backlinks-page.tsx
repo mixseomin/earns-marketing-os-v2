@@ -412,12 +412,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         </div>
       )}
 
-      {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
+      {/* Account create/edit in-place as a right-side DRAWER — stacks above the task drawer. */}
       {acctModal && (
         <div style={{ position: 'relative', zIndex: 300 }}>
           <AccountFormModal account={acctModal.account} project={project} projectId={projectId}
             platforms={platforms} presetPlatformKey={acctModal.platformKey}
-            teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles}
+            teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} asDrawer
             onClose={() => { setAcctModal(null); start(() => router.refresh()); }} />
         </div>
       )}
@@ -580,13 +580,15 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
         ) : task.accountHandle ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
-            <span style={{ fontWeight: 700 }}>@{task.accountHandle}</span>
+            {acctObj
+              ? <span role="button" tabIndex={0} onClick={() => onEditAccount(acctObj)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEditAccount(acctObj); } }}
+                  title="Mở account" style={{ fontWeight: 700, cursor: 'pointer', color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 2, textDecorationStyle: 'dotted' }}>@{task.accountHandle}</span>
+              : <span style={{ fontWeight: 700 }}>@{task.accountHandle}</span>}
             <Tag color={READINESS_META[task.readiness].color}>{READINESS_META[task.readiness].icon} {task.accountStatus}</Tag>
             {task.has2fa && <Tag>🔐 2FA</Tag>}
             {task.authMethod && <Tag>{task.authMethod}</Tag>}
             {task.hasProxy && <Tag color="#9d6cff">🌐 proxy</Tag>}
             {task.hasProfile && <Tag color="#5badff">🧭 profile</Tag>}
-            {acctObj && <button type="button" onClick={() => onEditAccount(acctObj)} style={{ ...btn, padding: '2px 8px' }}>→ Mở account</button>}
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>

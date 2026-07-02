@@ -147,4 +147,5 @@ export interface Project {
   bio?: string;
   persona?: string;
   hashtags?: string;
+  stack?: string;   // "Built with" / tech stack list (reusable: PH shoutouts, directory listings)
 }

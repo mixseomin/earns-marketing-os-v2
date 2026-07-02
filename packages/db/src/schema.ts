@@ -102,6 +102,9 @@ export const projects = pgTable(
     // content_strategy = góc nhìn/rule/CTA cho BÀI GỐC (ai-post). Khác habitat do/dont
     // (per-community); đây là chiến lược content mức project cho post trên timeline account.
     contentStrategy: text('content_strategy').notNull().default(''),
+    // Tech stack / "Built with" — comma or newline list of tools the product uses. Reusable
+    // paste copy for PH shoutouts, "Built with X" directory listings, author blurbs.
+    stack: text('stack').notNull().default(''),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

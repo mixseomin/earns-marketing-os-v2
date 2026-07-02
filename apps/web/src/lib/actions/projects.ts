@@ -34,6 +34,7 @@ export interface ProjectInput {
   persona?: string;
   hashtags?: string;
   contentStrategy?: string;   // góc nhìn/rule/CTA cho bài gốc (ai-post)
+  stack?: string;             // "Built with" / tech stack list (PH shoutouts, directory listings)
 }
 
 function slugify(s: string): string {
@@ -120,6 +121,7 @@ export async function updateProject(id: string, input: Partial<ProjectInput>): P
   if (input.persona !== undefined) patch.persona = input.persona;
   if (input.hashtags !== undefined) patch.hashtags = input.hashtags;
   if (input.contentStrategy !== undefined) patch.contentStrategy = input.contentStrategy;
+  if (input.stack !== undefined) patch.stack = input.stack;
 
   await db.update(projects).set(patch).where(eq(projects.id, id));
 

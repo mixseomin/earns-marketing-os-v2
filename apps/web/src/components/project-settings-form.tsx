@@ -37,6 +37,7 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
     bio: project.bio ?? '',
     persona: project.persona ?? '',
     hashtags: project.hashtags ?? '',
+    stack: project.stack ?? '',
   });
 
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -47,6 +48,7 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
     kpi: project.kpi, color: project.color,
     website: project.website ?? '', oneLiner: project.oneLiner ?? '',
     bio: project.bio ?? '', persona: project.persona ?? '', hashtags: project.hashtags ?? '',
+    stack: project.stack ?? '',
   });
 
   const handleSave = async () => {
@@ -202,6 +204,10 @@ export function ProjectSettingsForm({ project, allModes }: { project: Project; a
                         placeholder="Solo founder building Orit — reach intelligence for indie makers and small sales teams."
                         value={form.bio}
                         onChange={(e) => setF('bio', e.target.value)} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lbl}>Built with <span style={{ color: 'var(--fg-4)', textTransform: 'none', letterSpacing: 0 }}>· stack / PH shoutouts · phân tách bằng dấu phẩy</span></span>
+              <input style={fld} placeholder="Vercel, Cursor, Supabase, Claude, Stripe, Resend" value={form.stack} onChange={(e) => setF('stack', e.target.value)} />
             </div>
           </div>
         </div>

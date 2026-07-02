@@ -605,6 +605,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     { key: 'bio', label: 'Bio (dài)', val: project.bio || '' },
     { key: 'logo', label: 'Logo URL', val: project.website ? `${project.website.replace(/\/$/, '')}/logo.png` : '' },
   ].filter((k) => k.val);
+  // "Built with" / stack — split into per-tool chips for one-tap paste (PH shoutouts, "Built
+  // with X" listings). Edited once in /p/[id]/settings, reused across every project's tasks.
+  const stackItems = (project.stack || '').split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
   return (
     <Drawer onClose={onClose} width={720} backgrounded={backgrounded}>
       <div>
@@ -695,6 +698,18 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                 <button type="button" onClick={() => copy(k.val, k.key)} style={{ ...btn, padding: '2px 8px', flexShrink: 0 }}>{copiedKey === k.key ? '✓' : 'Copy'}</button>
               </div>
             ))}
+          </div>
+        </>)}
+
+        {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings). */}
+        {stackItems.length > 0 && (<>
+          <div style={{ ...lbl, marginTop: 16 }}>🧩 Built with <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· stack · bấm copy từng tool</span></div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            {stackItems.map((s, i) => (
+              <button key={i} type="button" onClick={() => copy(s, `stack-${i}`)} title="Copy tên tool để dán vào shoutout/listing"
+                style={{ ...btn, padding: '2px 9px' }}>{copiedKey === `stack-${i}` ? `✓ ${s}` : s}</button>
+            ))}
+            <button type="button" onClick={() => copy(stackItems.join(', '), 'stack-all')} title="Copy cả danh sách" style={{ ...btn, padding: '2px 9px', color: 'var(--fg-3)' }}>{copiedKey === 'stack-all' ? '✓ all' : 'Copy tất cả'}</button>
           </div>
         </>)}
 

@@ -235,6 +235,7 @@ function rowToProject(r: NonNullable<ProjectRow>): Project {
     bio: r.bio,
     persona: r.persona,
     hashtags: r.hashtags,
+    stack: r.stack ?? '',
   };
 }
 

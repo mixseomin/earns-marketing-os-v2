@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
-import { getDb, identities, projects, platformAccounts } from '@mos2/db';
-import { eq } from 'drizzle-orm';
+import { getDb, identities, projects, platformAccounts, humanTasks } from '@mos2/db';
+import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { errorResponse } from '@/lib/ext-route';
 
@@ -24,10 +24,11 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);
 
-  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
+  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; launchName?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
   if (!fields.length) return errorResponse('fields required', 400);
   const pageIntent = String(body.pageIntent || '').slice(0, 160);
+  const launchName = String(body.launchName || '').trim().slice(0, 80);
   // Giới hạn ký tự per-field (ext gửi từ maxlength/counter) → nhắc AI + cap output.
   const maxByKey: Record<string, number> = {};
   for (const f of fields) { if (f.key && typeof f.maxLen === 'number' && f.maxLen > 0) maxByKey[f.key] = Math.floor(f.maxLen); }
@@ -38,13 +39,28 @@ export async function POST(req: Request) {
   // Giá trị ĐÃ LƯU trên account (cột email + persona jsonb) → AI TÁI DÙNG y hệt, ko sinh mới /
   // ko để trống (vd email đã lưu → điền lại đúng nó).
   let acctEmail = ''; let acctPersona: Record<string, unknown> = {};
+  let taskCtx = '';   // nhiệm vụ account đang được giao (task title) → mission context cho AI
   const db0 = getDb();
   if (db0) {
     let pid = (body.projectId || '').trim();
     if (body.accountId) {
+      const aid = Number(body.accountId);
       const [a] = await db0.select({ projectId: platformAccounts.projectId, email: platformAccounts.email, persona: platformAccounts.persona })
-        .from(platformAccounts).where(eq(platformAccounts.id, Number(body.accountId))).limit(1);
+        .from(platformAccounts).where(eq(platformAccounts.id, aid)).limit(1);
       if (a) { if (!pid) pid = a.projectId || ''; acctEmail = a.email || ''; acctPersona = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {}; }
+      // ACCOUNT ĐANG ĐƯỢC GIAO TASK NÀO? → project của task = SẢN PHẨM account đang làm. Account cá nhân
+      // launch nhiều SP (vd @David Ng home=ai-news nhưng task="launch MilitaryCalc") → brand THEO TASK, KHÔNG
+      // theo project home. Ưu tiên task còn sống (pending/claimed/in_progress), mới nhất → override pid.
+      const taskRows = await db0.select({ projectId: humanTasks.projectId, title: humanTasks.title, status: humanTasks.status })
+        .from(humanTasks).where(and(eq(humanTasks.accountId, aid), isNotNull(humanTasks.projectId)))
+        .orderBy(desc(humanTasks.updatedAt)).limit(8);
+      const live = taskRows.find((t) => !['completed', 'verified', 'cancelled', 'failed'].includes(String(t.status || ''))) || taskRows[0];
+      if (live?.projectId) { pid = live.projectId; taskCtx = live.title || ''; }
+    }
+    // launchName (ext đọc tên SP trên trang launch) — fallback khi account KHÔNG có task project khớp.
+    if (!taskCtx && launchName) {
+      const [pm] = await db0.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${launchName})`).limit(1);
+      if (pm?.id) pid = pm.id;
     }
     if (pid) {
       const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })
@@ -104,7 +120,7 @@ export async function POST(req: Request) {
   const llmFields = fields.filter((f) => !(f.key && forced[f.key]));
 
   const list = llmFields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}${f.maxLen ? ` | GIỚI HẠN ≤${Math.floor(f.maxLen)} KÝ TỰ` : ''}`).join('\n');
-  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}${pageIntent ? `\nNgữ cảnh TRANG (task đang thao tác — sinh nội dung HỢP ngữ cảnh này, vd trang launch → giọng ra mắt): ${pageIntent}` : ''}\n\n`
+  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}${taskCtx ? `\nNHIỆM VỤ account đang được giao (task): "${taskCtx}" → sinh nội dung PHỤC VỤ nhiệm vụ này (brand ở trên đã theo project của task).` : ''}${launchName ? `\nSẢN PHẨM đang launch trên trang: "${launchName}".` : ''}${pageIntent ? `\nNgữ cảnh TRANG: ${pageIntent}` : ''}\n\n`
     + `Các field cần điền:\n${list || '(không có — đã fill hết)'}\n\n`
     + `Quy tắc DERIVE (ưu tiên brand dự án → persona; KHÔNG chế dữ liệu mới để NHẤT QUÁN mọi site):\n`
     + `- GIỚI HẠN ký tự: field ghi "≤N KÝ TỰ" thì kết quả PHẢI ≤ N ký tự (đếm cả dấu cách). Viết ngắn, súc tích, đủ ý — thà ngắn hơn còn hơn vượt.\n`

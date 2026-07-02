@@ -10,7 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
-import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
+import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
@@ -536,15 +536,8 @@ function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, s
     { key: 'logo', label: 'Logo URL', val: project.website ? `${project.website.replace(/\/$/, '')}/logo.png` : '' },
   ].filter((k) => k.val);
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)' }} />
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20,
-        // When a second drawer (account) stacks on top, slide this one left + dim
-        // so the stack is visible and this layer reads as "behind / not active".
-        transition: 'transform .18s ease, filter .18s ease',
-        transform: backgrounded ? 'translateX(-56px)' : 'none',
-        filter: backgrounded ? 'brightness(.5)' : 'none',
-        pointerEvents: backgrounded ? 'none' : 'auto' }}>
+    <Drawer onClose={onClose} width={720} backgrounded={backgrounded}>
+      <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
@@ -794,6 +787,6 @@ function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, s
 
         {task.notes && (<><div style={lbl}>Notes</div><div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'pre-wrap' }}>{task.notes}</div></>)}
       </div>
-    </>
+    </Drawer>
   );
 }

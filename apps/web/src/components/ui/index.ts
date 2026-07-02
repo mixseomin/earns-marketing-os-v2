@@ -34,6 +34,9 @@ export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-de
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';
 export { StatusFlag, type StatusFlagProps, type StatusFlagTone, type StatusFlagSize } from './status-flag';
+// Right-side slide-over with built-in ESC/click-outside close + stacking
+// (backgrounded = slide left + dim). See feedback_stacked_drawer.
+export { Drawer } from './drawer';
 // Note: feedback_picker_inline_crud.md — every entity picker should use
 // <ResourcePicker> + filter by relevant context (platform, project, role)
 // instead of dumping the full list and forcing the user to search.

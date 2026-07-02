@@ -411,6 +411,34 @@ export async function splitBacklinkTask(taskId: number, titleA: string, titleB: 
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+// Pin an explicit account to a backlink task (overrides the platform auto-match, which may
+// pick a shared account owned by another project). accountId=null reverts to auto-match.
+export async function setBacklinkAccount(taskId: number, accountId: number | null): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    if (accountId != null) {
+      // guard: account must exist in this tenant
+      const chk = await db.execute(sql`SELECT 1 FROM platform_accounts WHERE id = ${accountId} AND tenant_id = 'self' LIMIT 1`);
+      if (!(chk as unknown as unknown[]).length) return { ok: false, error: 'account không tồn tại' };
+    }
+    await db.execute(sql`UPDATE human_tasks SET account_id = ${accountId}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Accounts available to pin to a backlink task on a given platform (for the switch picker).
+// Tenant-wide (backlink accounts are shared); flags the account's home project so the user
+// can avoid reusing another site's account.
+export async function listBacklinkAccountOptions(platformKey: string): Promise<Array<{ id: number; handle: string | null; status: string; homeProjectId: string | null }>> {
+  const db = getDb();
+  if (!db || !platformKey) return [];
+  try {
+    const r = await db.execute(sql`SELECT id, handle, status, project_id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platformKey} ORDER BY status, handle`);
+    return (r as unknown as Array<Record<string, unknown>>).map((a) => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), homeProjectId: (a.project_id as string | null) || null }));
+  } catch { return []; }
+}
+
 // Delete a backlink task. Returns a full row snapshot so the UI can offer 10s undo.
 export async function deleteBacklinkTask(taskId: number): Promise<{ ok: boolean; row?: Record<string, unknown>; error?: string }> {
   const db = getDb();

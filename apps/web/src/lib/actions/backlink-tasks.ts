@@ -132,10 +132,24 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       };
     });
 
+    // Explicit per-task account override (human_tasks.account_id). When set, it wins over
+    // the platform auto-match — the auto-match may pick a shared account that belongs to
+    // another project (e.g. @oritapp for Product Hunt) which is wrong for this site.
+    const overrideByTask = new Map<number, number>();
+    const ids = base.map((t) => t.id);
+    if (ids.length) {
+      const idList = sql.join(ids.map((i) => sql`${i}`), sql`, `);
+      const ov = await db.execute(sql`SELECT id, account_id FROM human_tasks WHERE platform_key = 'backlink' AND account_id IS NOT NULL AND id IN (${idList})`);
+      for (const r of ov as unknown as Array<{ id: number; account_id: number }>) overrideByTask.set(Number(r.id), Number(r.account_id));
+    }
+
     // Batched account + label lookup (no N+1): only platforms that can have an account.
+    type Acct = { id: number; handle: string | null; status: string; has2fa: boolean; authMethod: string | null; hasProxy: boolean; hasProfile: boolean };
+    const asAcct = (a: Record<string, unknown>): Acct => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), has2fa: a.has_2fa === true, authMethod: (a.auth_method as string | null) || null, hasProxy: a.has_proxy === true, hasProfile: a.has_profile === true });
     const lookupKeys = [...new Set(base.filter((t) => t.accountType !== 'no-account' && t.platformKey).map((t) => t.platformKey as string))];
     const labelMap = new Map<string, string>();
-    const acctMap = new Map<string, { id: number; handle: string | null; status: string; has2fa: boolean; authMethod: string | null; hasProxy: boolean; hasProfile: boolean }>();
+    const acctMap = new Map<string, Acct>();
+    const acctById = new Map<number, Acct>();
     if (lookupKeys.length) {
       const inList = sql.join(lookupKeys.map((k) => sql`${k}`), sql`, `);
       const [plats, accts] = await Promise.all([
@@ -148,17 +162,19 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       for (const p of plats as unknown as Array<{ key: string; label: string }>) labelMap.set(p.key, p.label);
       const byKey = new Map<string, Array<Record<string, unknown>>>();
       for (const a of accts as unknown as Array<Record<string, unknown>>) {
+        acctById.set(Number(a.id), asAcct(a));
         const k = String(a.platform_key);
         (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(a);
       }
       for (const [k, list] of byKey) {
         const best = pickBestAccount(list as Array<{ status: string }>) as Record<string, unknown> | null;
-        if (best) acctMap.set(k, { id: Number(best.id), handle: (best.handle as string | null) || null, status: String(best.status), has2fa: best.has_2fa === true, authMethod: (best.auth_method as string | null) || null, hasProxy: best.has_proxy === true, hasProfile: best.has_profile === true });
+        if (best) acctMap.set(k, asAcct(best));
       }
     }
 
     return base.map((t): BacklinkTask => {
-      const acct = t.platformKey ? acctMap.get(t.platformKey) ?? null : null;
+      const overrideId = overrideByTask.get(t.id);
+      const acct = (overrideId != null && acctById.get(overrideId)) || (t.platformKey ? acctMap.get(t.platformKey) ?? null : null);
       return {
         ...t,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,

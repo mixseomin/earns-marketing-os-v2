@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -214,8 +214,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
-  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
-  const openCreateAccount = (platformKey: string) => setAcctModal({ account: null, platformKey });
+  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number } | null>(null);
+  // assignToTask: pin the newly-created account to this backlink task on create.
+  const openCreateAccount = (platformKey: string, assignToTask?: number) => setAcctModal({ account: null, platformKey, assignToTask });
   const openEditAccount = (account: AccountRow) => setAcctModal({ account });
   const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
   const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };
@@ -419,6 +420,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           <AccountFormModal account={acctModal.account} project={project} projectId={projectId}
             platforms={platforms} presetPlatformKey={acctModal.platformKey}
             teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} asDrawer
+            onCreated={acctModal.assignToTask != null ? (async (newId: number) => { await setBacklinkAccount(acctModal.assignToTask!, newId); setAcctModal(null); start(() => router.refresh()); }) : undefined}
             onClose={() => { setAcctModal(null); start(() => router.refresh()); }} />
         </div>
       )}
@@ -428,7 +430,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
 function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
+  onCreateAccount: (platformKey: string, assignToTask?: number) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -463,6 +465,17 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     const row = await getAccountForEditAny(task.accountId);
     if (row) onEditAccount(row);
   };
+  // Switch which account this task uses (auto-match may pick another project's shared
+  // account). Lazy-load options for the task's platform; pick pins it, "auto" clears.
+  const [acctPick, setAcctPick] = useState(false);
+  const [acctOpts, setAcctOpts] = useState<Awaited<ReturnType<typeof listBacklinkAccountOptions>> | null>(null);
+  const [apq, setApq] = useState('');
+  const togglePicker = async () => {
+    const next = !acctPick; setAcctPick(next);
+    if (next && !acctOpts && task.platformKey) setAcctOpts(await listBacklinkAccountOptions(task.platformKey));
+  };
+  const pickAcct = async (id: number | null) => { setAcctPick(false); await setBacklinkAccount(task.id, id); onChange(); };
+  const acctOptsShown = useMemo(() => { const q = apq.trim().toLowerCase(); const list = acctOpts ?? []; return q ? list.filter((a) => (a.handle || '').toLowerCase().includes(q)) : list; }, [acctOpts, apq]);
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [fmt, setFmt] = useState<DraftFmt>('md');
@@ -597,11 +610,38 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             {task.authMethod && <Tag>{task.authMethod}</Tag>}
             {task.hasProxy && <Tag color="#9d6cff">🌐 proxy</Tag>}
             {task.hasProfile && <Tag color="#5badff">🧭 profile</Tag>}
+            <button type="button" onClick={togglePicker} title="Đổi sang account khác / tạo account mới cho nguồn này" style={{ ...btn, padding: '2px 8px', marginLeft: 'auto' }}>{acctPick ? 'đóng' : '⇄ đổi acc'}</button>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
             <span style={{ color: READINESS_META.missing.color }}>➕ Chưa có account trên {task.platformLabel}</span>
-            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</button>}
+            {task.platformKey && <button type="button" onClick={togglePicker} style={{ ...btn }}>⇄ chọn acc</button>}
+            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</button>}
+          </div>
+        )}
+        {acctPick && (
+          <div style={{ marginTop: 6, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input value={apq} onChange={(e) => setApq(e.target.value)} placeholder={`tìm account ${task.platformLabel || ''}…`} autoComplete="off"
+              style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 220, overflowY: 'auto' }}>
+              {task.accountId != null && <button type="button" onClick={() => pickAcct(null)} style={{ ...btn, textAlign: 'left', color: 'var(--fg-3)' }}>↺ Auto (bỏ ghim, để hệ thống tự chọn)</button>}
+              {acctOpts === null && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>đang tải…</span>}
+              {acctOpts !== null && acctOptsShown.length === 0 && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>Chưa có account {task.platformLabel} nào — tạo mới ↓</span>}
+              {acctOptsShown.map((a) => {
+                const foreign = a.homeProjectId && a.homeProjectId !== slug;
+                const cur = a.id === task.accountId;
+                return (
+                  <button key={a.id} type="button" onClick={() => pickAcct(a.id)} disabled={cur}
+                    style={{ ...btn, textAlign: 'left', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', opacity: cur ? 0.55 : 1 }}>
+                    <span style={{ fontWeight: 700 }}>@{a.handle || a.id}</span>
+                    <Tag>{a.status}</Tag>
+                    {foreign && <Tag color="#ffb03c">↗ {a.homeProjectId}</Tag>}
+                    {cur && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>đang dùng</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, textAlign: 'left' }}>＋ Tạo account mới cho {project.name}</button>}
           </div>
         )}
 

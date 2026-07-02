@@ -403,7 +403,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
 
       {undoRow && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
@@ -425,8 +425,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
+function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -538,7 +538,13 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)' }} />
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20,
+        // When a second drawer (account) stacks on top, slide this one left + dim
+        // so the stack is visible and this layer reads as "behind / not active".
+        transition: 'transform .18s ease, filter .18s ease',
+        transform: backgrounded ? 'translateX(-56px)' : 'none',
+        filter: backgrounded ? 'brightness(.5)' : 'none',
+        pointerEvents: backgrounded ? 'none' : 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>

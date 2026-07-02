@@ -1430,7 +1430,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   }), [form.handle, form.email, form.platformKey, platform?.label, project]);
 
   return (
-    <div className="modal-backdrop" style={asDrawer ? { background: 'rgba(0,0,0,.28)' } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+    <div className="modal-backdrop"
+      // asDrawer = stacked on top of the task drawer. Backdrop is transparent
+      // (the task drawer dims itself) and click-outside CLOSES this top drawer
+      // — returning to the task drawer beneath. Non-drawer form modals keep the
+      // no-backdrop-close rule (stopPropagation) to guard against data loss.
+      style={asDrawer ? { background: 'transparent', backdropFilter: 'none' } : undefined}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) { if (asDrawer) onClose(); else e.stopPropagation(); } }}>
       {/* asDrawer: a narrower right-side drawer that STACKS on top of the parent task
           drawer — sits flush-right, narrower so the parent peeks on the left, lifted with
           an accent left border + heavy shadow so the layering reads clearly. */}

@@ -13,6 +13,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
+import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
@@ -608,6 +609,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // "Built with" / stack — split into per-tool chips for one-tap paste (PH shoutouts, "Built
   // with X" listings). Edited once in /p/[id]/settings, reused across every project's tasks.
   const stackItems = (project.stack || '').split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
+  const [stackBusy, setStackBusy] = useState(false);
+  const doStack = async () => { setStackBusy(true); const r = await suggestProjectStack(project.id); setStackBusy(false); if (r.ok) onChange(); };
   return (
     <Drawer onClose={onClose} width={720} backgrounded={backgrounded}>
       <div>
@@ -701,17 +704,19 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         </>)}
 
-        {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings). */}
-        {stackItems.length > 0 && (<>
-          <div style={{ ...lbl, marginTop: 16 }}>🧩 Built with <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· stack · bấm copy từng tool</span></div>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-            {stackItems.map((s, i) => (
-              <button key={i} type="button" onClick={() => copy(s, `stack-${i}`)} title="Copy tên tool để dán vào shoutout/listing"
-                style={{ ...btn, padding: '2px 9px' }}>{copiedKey === `stack-${i}` ? `✓ ${s}` : s}</button>
-            ))}
-            <button type="button" onClick={() => copy(stackItems.join(', '), 'stack-all')} title="Copy cả danh sách" style={{ ...btn, padding: '2px 9px', color: 'var(--fg-3)' }}>{copiedKey === 'stack-all' ? '✓ all' : 'Copy tất cả'}</button>
-          </div>
-        </>)}
+        {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings) +
+            one-tap AI generate from the project context so it's not manual per project. */}
+        <div style={{ ...lbl, marginTop: 16 }}>🧩 Built with <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· stack · bấm copy từng tool</span></div>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          {stackItems.map((s, i) => (
+            <button key={i} type="button" onClick={() => copy(s, `stack-${i}`)} title="Copy tên tool để dán vào shoutout/listing"
+              style={{ ...btn, padding: '2px 9px' }}>{copiedKey === `stack-${i}` ? `✓ ${s}` : s}</button>
+          ))}
+          {stackItems.length > 0 && <button type="button" onClick={() => copy(stackItems.join(', '), 'stack-all')} title="Copy cả danh sách" style={{ ...btn, padding: '2px 9px', color: 'var(--fg-3)' }}>{copiedKey === 'stack-all' ? '✓ all' : 'Copy tất cả'}</button>}
+          <button type="button" onClick={doStack} disabled={stackBusy} title="AI gợi ý stack từ mô tả + trang chủ project (sửa lại trong Settings)"
+            style={{ ...btn, padding: '2px 9px', color: 'var(--accent)', fontWeight: 700 }}>{stackBusy ? '…' : stackItems.length ? '↻ Gợi ý lại' : '✨ Gợi ý stack (AI)'}</button>
+        </div>
+        {stackItems.length === 0 && !stackBusy && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Chưa có stack — bấm ✨ để AI đề xuất, hoặc điền ở Settings. Dùng cho PH shoutouts / &ldquo;Built with&rdquo; listings.</div>}
 
         {/* Post draft — ONE block: empty → generate; generated → show + regen + format/link toggles. */}
         {(needsPost || task.draft) && (draftFmts ? (<>

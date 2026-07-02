@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { getDb, projects, modes, squads, cards, alerts, feedEvents } from '@mos2/db';
+import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -131,6 +132,47 @@ export async function updateProject(id: string, input: Partial<ProjectInput>): P
   revalidatePath(`/p/${id}/squads`);
   revalidatePath(`/p/${id}/settings`);
   return { ok: true };
+}
+
+// AI-suggest the "Built with" / stack list from the project's own context (name + one-liner +
+// homepage grounding) and save it — so filling stack is one tap per project, not manual typing.
+// Any new user-fillable field should ship with a generate affordance like this — see
+// feedback_auto_prefill. Overwrites only on an explicit click (never silent).
+export async function suggestProjectStack(projectId: string): Promise<{ ok: boolean; stack?: string; error?: string }> {
+  if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa set' };
+  const db = ensureDb();
+  const [p] = await db
+    .select({ id: projects.id, name: projects.name, oneLiner: projects.oneLiner, bio: projects.bio, website: projects.website })
+    .from(projects).where(eq(projects.id, projectId)).limit(1);
+  if (!p) return { ok: false, error: 'project not found' };
+  // Grounding: pull the homepage text (non-fatal) so the guess is anchored, not invented.
+  let siteText = '';
+  if (p.website) {
+    try {
+      const res = await fetch(p.website, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MOS2-Brand/1.0)' }, signal: AbortSignal.timeout(6000) });
+      siteText = (await res.text()).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3000);
+    } catch { siteText = ''; }
+  }
+  const ai = getOpenAI(); if (!ai) return { ok: false, error: 'AI client unavailable' };
+  const sysPrompt = `You infer the likely TECH STACK / "Built with" tool list for a software product, for use as Product Hunt shoutouts and "Built with X" directory listings. Output STRICT JSON: { "stack": "Tool1, Tool2, Tool3, ..." }
+- 4-7 REAL, well-known product names (e.g. Vercel, Supabase, Neon, Stripe, Claude, OpenAI, Cursor, Linear, Resend, Cloudflare, Plasmo, Tailwind, PostHog), comma-separated.
+- Bias to tools that (a) a product like this plausibly uses AND (b) have an active Product Hunt page to receive a shoutout back.
+- Real product names ONLY — never generic categories ("database", "hosting"). No prose, JSON only.`;
+  const userPrompt = `# Project\nName: ${p.name}\nOne-liner: ${p.oneLiner || '(none)'}\nBio: ${p.bio || '(none)'}\nWebsite: ${p.website || '(none)'}\n# Homepage content (grounding — infer the real stack)\n${siteText || '(could not fetch — infer from name + one-liner)'}\n\nReturn STRICT JSON only.`;
+  try {
+    const completion = await ai.chat.completions.create({
+      model: DEFAULT_MODEL, temperature: 0.5, max_tokens: 200,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userPrompt }],
+    });
+    const parsed = JSON.parse(completion.choices[0]?.message?.content?.trim() || '{}') as { stack?: unknown };
+    const stack = (Array.isArray(parsed.stack) ? parsed.stack.map((x) => String(x ?? '')).filter(Boolean).join(', ') : String(parsed.stack ?? '')).trim();
+    if (!stack) return { ok: false, error: 'AI trả rỗng' };
+    await db.update(projects).set({ stack, updatedAt: new Date() }).where(eq(projects.id, projectId));
+    revalidatePath(`/p/${projectId}`);
+    revalidatePath(`/p/${projectId}/settings`);
+    return { ok: true, stack };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
 export async function archiveProject(id: string): Promise<{ ok: boolean; error?: string }> {

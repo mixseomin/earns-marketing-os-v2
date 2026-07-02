@@ -20,8 +20,9 @@ import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
-type TabKey = 'todo' | 'progress' | 'submitted' | 'done' | 'all';
-
+// One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
+// it drives BOTH the status picker (StatusSegmented) and the tabs/KPI, so they never
+// diverge (no separate tab-rollup vocabulary). Tabs = these statuses + "All".
 const SITE_STATUS: Record<string, { label: string; color: string }> = {
   pending:   { label: 'To do',      color: '#8a92a3' },
   claimed:   { label: 'In progress', color: '#ffb03c' },
@@ -29,9 +30,8 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = {
   completed: { label: 'Completed',  color: '#5badff' },
   verified:  { label: 'Verified',   color: '#22c55e' },
 };
-const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified'];
-// submitted (awaiting moderation) is its own tab so it doesn't hide inside In-progress.
-const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' ? 'progress' : s === 'submitted' ? 'submitted' : 'done');
+const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified'] as const;
+type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
@@ -168,7 +168,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [, start] = useTransition();
   // All view state initialises from the URL so tabs/filters/drawer are deep-linkable + refresh-safe.
   // Defaults (no URL params): Calendar view + All status.
-  const initTab = (['todo', 'progress', 'submitted', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
+  const initTab = ([...STATUS_ORDER, 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
   const [tab, setTab] = useState<TabKey>(initTab);
   const [q, setQ] = useState(sp.get('q') ?? '');
   const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
@@ -224,9 +224,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   // Chip click → open the task drawer (account section lives there). No page jump.
   const goAccount = (e: React.MouseEvent, t: BacklinkTask) => { e.stopPropagation(); openTask(t.id); };
 
+  // Count per status (single taxonomy) so tabs + KPI cards share the exact same buckets.
   const kpi = useMemo(() => {
-    const k = { total: tasks.length, todo: 0, progress: 0, submitted: 0, done: 0 };
-    for (const t of tasks) { const tb = tabOf(t.siteState); if (tb === 'todo') k.todo++; else if (tb === 'progress') k.progress++; else if (tb === 'submitted') k.submitted++; else k.done++; }
+    const k: Record<string, number> = { total: tasks.length };
+    for (const s of STATUS_ORDER) k[s] = 0;
+    for (const t of tasks) { const s = SITE_STATUS[t.siteState] ? t.siteState : 'pending'; k[s] = (k[s] ?? 0) + 1; }
     return k;
   }, [tasks]);
 
@@ -235,7 +237,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
-      if (tab !== 'all' && tabOf(t.siteState) !== tab) return false;
+      if (tab !== 'all' && t.siteState !== tab) return false;
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -245,7 +247,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     });
   }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
 
-  const shown = useMemo(() => (tab === 'todo'
+  const shown = useMemo(() => (tab === 'pending'
     ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
     : filtered), [filtered, tab]);
 
@@ -305,7 +307,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        {([['total', 'Total', 'var(--fg-1)'], ['todo', 'To do', '#8a92a3'], ['progress', 'In progress', '#ffb03c'], ['submitted', 'Chờ duyệt', '#9d6cff'], ['done', 'Done', '#22c55e']] as const).map(([k, label, c]) => (
+        {([['total', 'Total', 'var(--fg-1)'], ...STATUS_ORDER.map((s) => [s, SITE_STATUS[s]!.label, SITE_STATUS[s]!.color] as const)] as const).map(([k, label, c]) => (
           <div key={k} style={{ flex: '1 1 90px', minWidth: 90, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)' }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: c, fontFamily: 'var(--font-mono)' }}>{kpi[k]}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
@@ -340,10 +342,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* tabs + filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <TabBtn k="todo" label="To do" n={kpi.todo} />
-        <TabBtn k="progress" label="In progress" n={kpi.progress} />
-        <TabBtn k="submitted" label="Chờ duyệt" n={kpi.submitted} />
-        <TabBtn k="done" label="Done" n={kpi.done} />
+        {STATUS_ORDER.map((s) => <TabBtn key={s} k={s} label={SITE_STATUS[s]!.label} n={kpi[s]} />)}
         <TabBtn k="all" label="All" n={kpi.total} />
         <ViewToggle style={{ marginLeft: 'auto' }} options={LIST_CALENDAR_VIEWS} value={view} onChange={(v) => setView(v as 'list' | 'calendar')} />
       </div>

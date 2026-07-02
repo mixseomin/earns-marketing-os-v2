@@ -20,7 +20,7 @@ import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
-type TabKey = 'todo' | 'progress' | 'done' | 'all';
+type TabKey = 'todo' | 'progress' | 'submitted' | 'done' | 'all';
 
 const SITE_STATUS: Record<string, { label: string; color: string }> = {
   pending:   { label: 'To do',      color: '#8a92a3' },
@@ -30,8 +30,8 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = {
   verified:  { label: 'Verified',   color: '#22c55e' },
 };
 const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified'];
-// submitted = you've done your part, waiting on them → still "in progress" for the tab rollup.
-const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' || s === 'submitted' ? 'progress' : 'done');
+// submitted (awaiting moderation) is its own tab so it doesn't hide inside In-progress.
+const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' ? 'progress' : s === 'submitted' ? 'submitted' : 'done');
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
@@ -168,13 +168,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [, start] = useTransition();
   // All view state initialises from the URL so tabs/filters/drawer are deep-linkable + refresh-safe.
   // Defaults (no URL params): Calendar view + All status.
-  const initTab = (['todo', 'progress', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
+  const initTab = (['todo', 'progress', 'submitted', 'done', 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
   const [tab, setTab] = useState<TabKey>(initTab);
   const [q, setQ] = useState(sp.get('q') ?? '');
   const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
   const [traf, setTraf] = useState<string>(sp.get('traf') ?? '');          // traffic filter
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
-  const [subOnly, setSubOnly] = useState(sp.get('sub') === '1');   // only "submitted" (awaiting moderation)
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
@@ -200,12 +199,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('follow', follow);
     set('traf', traf);
     set('draft', draftOnly ? '1' : '');
-    set('sub', subOnly ? '1' : '');
     set('ready', readyFilter);
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('task', openId);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, subOnly, readyFilter, view, openId]);
+  }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
@@ -227,8 +225,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const goAccount = (e: React.MouseEvent, t: BacklinkTask) => { e.stopPropagation(); openTask(t.id); };
 
   const kpi = useMemo(() => {
-    const k = { total: tasks.length, todo: 0, progress: 0, done: 0 };
-    for (const t of tasks) { const tb = tabOf(t.siteState); if (tb === 'todo') k.todo++; else if (tb === 'progress') k.progress++; else k.done++; }
+    const k = { total: tasks.length, todo: 0, progress: 0, submitted: 0, done: 0 };
+    for (const t of tasks) { const tb = tabOf(t.siteState); if (tb === 'todo') k.todo++; else if (tb === 'progress') k.progress++; else if (tb === 'submitted') k.submitted++; else k.done++; }
     return k;
   }, [tasks]);
 
@@ -241,12 +239,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
-      if (subOnly && t.siteState !== 'submitted') return false;
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, subOnly, q, readyFilter]);
+  }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
 
   const shown = useMemo(() => (tab === 'todo'
     ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
@@ -308,7 +305,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        {([['total', 'Total', 'var(--fg-1)'], ['todo', 'To do', '#8a92a3'], ['progress', 'In progress', '#ffb03c'], ['done', 'Done', '#22c55e']] as const).map(([k, label, c]) => (
+        {([['total', 'Total', 'var(--fg-1)'], ['todo', 'To do', '#8a92a3'], ['progress', 'In progress', '#ffb03c'], ['submitted', 'Chờ duyệt', '#9d6cff'], ['done', 'Done', '#22c55e']] as const).map(([k, label, c]) => (
           <div key={k} style={{ flex: '1 1 90px', minWidth: 90, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)' }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: c, fontFamily: 'var(--font-mono)' }}>{kpi[k]}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
@@ -345,6 +342,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <TabBtn k="todo" label="To do" n={kpi.todo} />
         <TabBtn k="progress" label="In progress" n={kpi.progress} />
+        <TabBtn k="submitted" label="Chờ duyệt" n={kpi.submitted} />
         <TabBtn k="done" label="Done" n={kpi.done} />
         <TabBtn k="all" label="All" n={kpi.total} />
         <ViewToggle style={{ marginLeft: 'auto' }} options={LIST_CALENDAR_VIEWS} value={view} onChange={(v) => setView(v as 'list' | 'calendar')} />
@@ -358,8 +356,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
         {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
         <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
-        <button type="button" onClick={() => setSubOnly((v) => !v)} title="Chỉ hiện bài đã gửi, đang chờ duyệt" style={chip('#9d6cff', subOnly)}>⏳ chờ duyệt</button>
-        {(q || follow || traf || draftOnly || subOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setSubOnly(false); }} style={btn}>Clear</button>}
+        {(q || follow || traf || draftOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); }} style={btn}>Clear</button>}
       </div>
 
       {view === 'calendar' ? (

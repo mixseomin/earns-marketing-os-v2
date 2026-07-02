@@ -31,8 +31,9 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = {
   submitted: { label: 'Submitted',  color: '#9d6cff' },  // posted, awaiting moderation/approval — link not live yet
   completed: { label: 'Completed',  color: '#5badff' },
   verified:  { label: 'Verified',   color: '#22c55e' },
+  broken:    { label: 'Link lỗi',   color: '#ef4444' },  // was live, a re-check found the link gone — needs re-do (auto-set by the health-check cron)
 };
-const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified'] as const;
+const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'] as const;
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
@@ -42,7 +43,7 @@ const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.n
 // Link health badge (shared by list + drawer). null = never checked.
 const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null => !v ? null
   : !v.reachable ? { c: 'var(--fg-3)', t: `? không truy cập${v.httpStatus ? ' ' + v.httpStatus : ''}` }
-  : !v.found ? { c: 'var(--bad,#ef4444)', t: '✗ link mất' }
+  : !v.found ? (v.mentioned ? { c: '#ffb03c', t: '⚠ cần kiểm tra' } : { c: 'var(--bad,#ef4444)', t: '✗ link mất' })
   : v.dofollow ? { c: '#22c55e', t: '✓ dofollow' }
   : { c: '#ffb03c', t: '⚠ nofollow' };
 
@@ -436,7 +437,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
   const saveUrl = async () => {
     setSaveState('saving');
-    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted')) ? 'completed' : task.siteState;
+    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted' || task.siteState === 'broken')) ? 'completed' : task.siteState;
     await setSite(task.id, next, url);
     setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
   };

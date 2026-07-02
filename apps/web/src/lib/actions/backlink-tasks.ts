@@ -10,7 +10,7 @@ import { resolveSiteSlug } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, type BacklinkAccountType, type ReadinessBucket } from '@/lib/backlink-account-type';
 
-export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }
+export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 
 export interface BacklinkTask {
   id: number;

@@ -306,7 +306,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
-  if (!['pending', 'claimed', 'submitted', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
+  if (!['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'].includes(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
   // Execution time: stamp site_done_at when the site reaches completed/verified (keep the
   // original stamp on re-save via COALESCE); clear it if the site is re-opened.
@@ -468,13 +468,23 @@ export async function restoreBacklinkTask(row: Record<string, unknown>): Promise
 // Link health-check: fetch the placed URL and confirm our domain is actually linked, and
 // whether that link is dofollow. A page we can't reach is reachable:false (inconclusive),
 // not "link removed". Shared by the single- and bulk-verify actions below.
-interface LinkCheck { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }
+interface LinkCheck { reachable: boolean; found: boolean; dofollow: boolean; mentioned: boolean; httpStatus: number | null; checkedAt: string }
 const normHost = (t: string) => (t || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
 async function checkLink(liveUrl: string, host: string): Promise<LinkCheck> {
   const checkedAt = new Date().toISOString();
-  let reachable = false, found = false, dofollow = false, httpStatus: number | null = null;
+  let reachable = false, found = false, dofollow = false, mentioned = false, httpStatus: number | null = null;
   try {
-    const resp = await fetch(liveUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (backlink-verify)' }, redirect: 'follow', signal: AbortSignal.timeout(20000) });
+    const resp = await fetch(liveUrl, {
+      // A browser UA: an obvious bot UA ("backlink-verify") gets 403'd by Cloudflare/WAF on
+      // high-DA hosts, which would make them permanently unverifiable (and, worse, feed a
+      // false "removed" into the re-check). Still no JS execution — handled by `mentioned`.
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      redirect: 'follow', signal: AbortSignal.timeout(20000),
+    });
     httpStatus = resp.status;
     reachable = resp.ok;
     if (resp.ok) {
@@ -483,21 +493,45 @@ async function checkLink(liveUrl: string, host: string): Promise<LinkCheck> {
       const mine = (html.match(/<a\b[^>]*>/gi) || []).filter((a) => { const h = a.match(/href\s*=\s*["']([^"']+)["']/i); return h ? hostRe.test(h[1]!) : false; });
       found = mine.length > 0;
       dofollow = found && mine.some((a) => !/rel\s*=\s*["'][^"']*\b(nofollow|ugc|sponsored)\b/i.test(a));
+      // ponytail: no headless browser. A JS-rendered link is absent from static HTML, so
+      // `found` reads false even when the link is live. If our host appears ANYWHERE on the
+      // page, mark it `mentioned` so the auto re-check treats it as ambiguous (never demotes
+      // to broken) — better to skip one alert than cry wolf on every SPA profile page.
+      mentioned = found || hostRe.test(html);
     }
-  } catch { /* unreachable → inconclusive */ }
-  return { reachable, found, dofollow, httpStatus, checkedAt };
+  } catch { /* network error / timeout / TLS → unreachable = inconclusive, NOT removed */ }
+  return { reachable, found, dofollow, mentioned, httpStatus, checkedAt };
 }
 async function persistVerify(taskId: number, site: string, result: LinkCheck): Promise<void> {
   const db = getDb(); if (!db) return;
-  // advance to verified only when the link is confirmed present.
-  const bump = result.found ? sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))` : sql``;
+  // Per-site status transition from a health-check (site is regex-validated by the callers):
+  //   found                       → 'verified' (link confirmed present)
+  //   reachable, gone, unmentioned → 'broken', but ONLY if we previously counted it live
+  //                                  (completed/verified) — a not-yet-live pending/submitted
+  //                                  site stays put, and a JS-rendered/mentioned page is skipped
+  //   unreachable (403 / timeout)  → no status change (inconclusive, NOT a removal)
+  let bump = sql``;
+  if (result.found) {
+    bump = sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))`;
+  } else if (result.reachable && !result.mentioned) {
+    bump = sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text,
+      CASE WHEN prep_payload->'site_status'->>${site} IN ('completed','verified') THEN to_jsonb('broken'::text)
+           ELSE COALESCE(prep_payload->'site_status'->${site}, to_jsonb('pending'::text)) END))`;
+  }
   await db.execute(sql`
     UPDATE human_tasks SET prep_payload = COALESCE(prep_payload,'{}'::jsonb)
       || jsonb_build_object('site_verify', COALESCE(prep_payload->'site_verify','{}'::jsonb) || jsonb_build_object(${site}::text, ${JSON.stringify(result)}::jsonb))
       ${bump},
       updated_at = now()
     WHERE id = ${taskId} AND platform_key = 'backlink'`);
-  if (result.found) await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+  if (result.found) {
+    await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+  } else if (result.reachable && !result.mentioned) {
+    // link removed from a page that still loads → reopen the row so it re-enters the work queue
+    await db.execute(sql`UPDATE human_tasks SET status='pending', completed_at=NULL, updated_at=now()
+      WHERE id=${taskId} AND platform_key='backlink' AND status='completed'
+        AND prep_payload->'site_status'->>${site} = 'broken'`);
+  }
 }
 
 export async function verifyBacklink(taskId: number, site: string, targetHost: string): Promise<{ ok: boolean; result?: LinkCheck; error?: string }> {
@@ -534,7 +568,7 @@ export async function verifyAllBacklinks(site: string, targetHost: string): Prom
       const result = await checkLink(r.url, host);
       await persistVerify(Number(r.id), site, result);
       checked++;
-      if (result.reachable && !result.found) broken++;
+      if (result.reachable && !result.found && !result.mentioned) broken++;
     }
     return { ok: true, checked, broken };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }

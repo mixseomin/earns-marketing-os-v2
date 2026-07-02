@@ -15,23 +15,25 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const projectId = (sp.get('projectId') ?? '').trim();
   const kind = (sp.get('kind') ?? '').trim();
-  if (!projectId) return errorResponse('projectId required', 400);
+  // projectId TRỐNG = ALL projects (register widget identity-first: chọn identity → tự set project theo nó).
 
   const db = getDb();
   if (!db) return errorResponse('DB unavailable', 503);
 
-  // multi-project: persona link với projectId qua pivot identity_projects
-  // (home project_id fallback cho hàng chưa backfill).
-  const linked = db.select({ id: identityProjects.identityId }).from(identityProjects).where(eq(identityProjects.projectId, projectId));
-  const inProject = or(inArray(identities.id, linked), eq(identities.projectId, projectId));
+  // multi-project: persona link với projectId qua pivot identity_projects (home project_id fallback).
+  const projFilter = projectId
+    ? or(inArray(identities.id, db.select({ id: identityProjects.identityId }).from(identityProjects).where(eq(identityProjects.projectId, projectId))), eq(identities.projectId, projectId))
+    : undefined;
+  const kindFilter = kind ? eq(identities.kind, kind) : undefined;
+  const where = projFilter && kindFilter ? and(projFilter, kindFilter) : (projFilter || kindFilter || undefined);
   const raw = await db
     .select({
-      id: identities.id, name: identities.name, kind: identities.kind,
+      id: identities.id, projectId: identities.projectId, name: identities.name, kind: identities.kind,
       handleBase: identities.handleBase, displayName: identities.displayName,
       passwordEnc: identities.passwordEnc,
     })
     .from(identities)
-    .where(kind ? and(inProject, eq(identities.kind, kind)) : inProject)
+    .where(where)
     .orderBy(desc(identities.updatedAt));
   // Slim + an toàn: cờ hasPassword (boolean) cho picker hiện pwd:✓, KHÔNG ship
   // ciphertext/email plain (email lộ sau reveal khi user chủ động chọn).

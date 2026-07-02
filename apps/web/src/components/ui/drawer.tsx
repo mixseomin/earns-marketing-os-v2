@@ -71,8 +71,12 @@ export function Drawer({
           width: `min(${w}px, 96vw)`, background: 'var(--bg-1)',
           borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)',
           overflowY: 'auto', padding,
-          transition: 'transform .18s ease, filter .18s ease',
-          transform: backgrounded ? 'translateX(-56px)' : 'none',
+          transition: 'transform .2s ease, filter .2s ease',
+          // Slid a large fraction of its own width so it still peeks on the LEFT even under
+          // a wide/resizable child drawer (a fixed 56px got fully covered). % = own width →
+          // deterministic regardless of the child's width. See feedback_stacked_drawer.
+          transform: backgrounded ? 'translateX(-86%) scale(.94)' : 'none',
+          transformOrigin: 'left center',
           filter: backgrounded ? 'brightness(.5)' : 'none',
           pointerEvents: backgrounded ? 'none' : 'auto',
           ...bodyStyle,

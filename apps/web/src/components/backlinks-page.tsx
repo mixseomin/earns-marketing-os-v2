@@ -500,11 +500,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [sb, setSb] = useState(mechParts.length >= 2 ? `${srcBase} — ${mechParts.slice(1).join(' + ')}` : `${task.title} (2)`);
   const [sbusy, setSbusy] = useState(false);
   const [serr, setSerr] = useState<string | null>(null);
+  const [splitDone, setSplitDone] = useState<{ id: number; name: string } | null>(null);
   const doSplit = async () => {
     setSbusy(true); setSerr(null);
     const r = await splitBacklinkTask(task.id, sa, sb);
     setSbusy(false);
-    if (r.ok && r.newId) { setSplitting(false); onChange(); onOpenTask(r.newId); } else setSerr(r.error || 'lỗi');
+    // Keep THIS drawer open (split is an in-lifecycle action) and offer a link to the new
+    // task instead of force-navigating into it. See feedback_workflow_continuity.
+    if (r.ok && r.newId) { setSplitting(false); setSplitDone({ id: r.newId, name: sb }); onChange(); } else setSerr(r.error || 'lỗi');
   };
   const [delConfirm, setDelConfirm] = useState(false);
   // Link health-check (#3): fetch the placed URL, confirm our domain is linked + dofollow.
@@ -515,6 +518,12 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     const r = await verifyBacklink(task.id, slug, project.website || '');
     setVbusy(false);
     if (r.ok && r.result) { setVres(r.result); onChange(); }
+  };
+  // Assigning an owner = "I'm taking this" → auto-advance To-do → In progress so claiming is
+  // one action, not assign-then-manually-pick-status. Only bumps from pending (never on clear).
+  const onAssign = (userId: number | null) => {
+    if (userId != null && task.siteState === 'pending') void setSite(task.id, 'claimed', url);
+    onChange();
   };
   const doDraft = async () => {
     setDbusy(true); setDerr(null);
@@ -532,6 +541,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [aiExtra, setAiExtra] = useState('');
   const [aiBusy, setAiBusy] = useState<'' | 'openai' | 'claude'>('');
   const [aiErr, setAiErr] = useState<string | null>(null);
+  const [aiDelId, setAiDelId] = useState<number | null>(null);  // AI-content row pending delete-confirm
   const reloadAi = () => { listAiContent(task.id).then(setAiList).catch(() => {}); };
   useEffect(() => { listAiContent(task.id).then(setAiList).catch(() => {}); }, [task.id]);
   // Build steps that call for written content → one-tap chips to prefill "what to generate".
@@ -561,33 +571,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   return (
     <Drawer onClose={onClose} width={720} backgrounded={backgrounded}>
       <div>
+        {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-            <button type="button" onClick={() => setSplitting((v) => !v)} title="Tách thành 2 link (vd profile + bài post) — mỗi link 1 status/URL riêng" style={{ ...btn, padding: '2px 9px' }}>⑃ Tách</button>
-            {delConfirm ? (
-              <>
-                <button type="button" onClick={() => onDelete(task.id)} style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá task?</button>
-                <button type="button" onClick={() => setDelConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
-              </>
-            ) : (
-              <button type="button" onClick={() => setDelConfirm(true)} title="Xoá task này (có hoàn tác)" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑</button>
-            )}
-            <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
-          </div>
+          <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
         </div>
-        {splitting && (
-          <div style={{ marginTop: 8, padding: 12, borderRadius: 8, border: '1px solid #9d6cff', background: 'color-mix(in srgb, #9d6cff 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Tách nguồn này thành 2 task. Task hiện tại → tên trên; task mới (clone cùng account/nguồn, reset trạng thái) → tên dưới. Xong sẽ mở task mới.</div>
-            <input value={sa} onChange={(e) => setSa(e.target.value)} autoComplete="off" placeholder="Tên task hiện tại" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
-            <input value={sb} onChange={(e) => setSb(e.target.value)} autoComplete="off" placeholder="Tên task mới" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
-            {serr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{serr}</div>}
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" onClick={doSplit} disabled={sbusy} style={{ ...btn, color: '#9d6cff', fontWeight: 700 }}>{sbusy ? 'Đang tách…' : '⑃ Tách'}</button>
-              <button type="button" onClick={() => setSplitting(false)} style={btn}>Huỷ</button>
-            </div>
-          </div>
-        )}
+
+        {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} {...EXT} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
           {task.da && <Tag>DA {task.da}</Tag>}
@@ -595,8 +585,17 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           {task.traffic && <Tag color="#22c55e">{task.traffic}</Tag>}
           {task.rank && <Tag color="#ffb03c">rank {task.rank}</Tag>}
         </div>
+        {task.mechanism && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: 'var(--fg-4)' }}>Cách đặt: </span>{task.mechanism}</div>}
+        {task.instructions && (<>
+          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11 }}>🛠 Cách build</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
+        </>)}
 
-        {/* Account readiness — phải có account platform trước khi post */}
+        {/* 2 · Claim — assign an owner (auto-advances To do → In progress). */}
+        <div style={lbl}>Assign to (nhận việc)</div>
+        <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onAssign} />
+
+        {/* 3 · Account — must be ready before posting. */}
         <div style={lbl}>Account · {task.platformLabel || 'platform ?'}</div>
         {task.readiness === 'no-account' ? (
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
@@ -646,44 +645,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         )}
 
-        <div style={lbl}>Assign to</div>
-        <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onChange} />
-
-        <div style={lbl}>Status @ {slug}</div>
-        <StatusSegmented size="md" value={task.siteState}
-          options={STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
-          onChange={(s) => { void setSite(task.id, s, url); }} />
-
-        <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
-            style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
-          <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
-            style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
-            {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
-          {(task.siteLiveUrl || url.trim()) && (
-            <button type="button" onClick={doVerify} disabled={vbusy} title="Fetch link → kiểm tra domain mình có được link + dofollow không"
-              style={{ ...btn, fontWeight: 700 }}>{vbusy ? '…' : '🔍 Kiểm tra'}</button>
-          )}
-        </div>
-        {vres && (() => {
-          const m = verifyMeta(vres);
-          return m ? <div style={{ fontSize: 11, marginTop: 4, color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</div> : null;
-        })()}
-
-        <div style={lbl}>Lịch & thời gian @ {slug}</div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
-          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', color: 'var(--fg-2)' }}>
-            🗓 Lên lịch
-            <input type="date" value={task.siteScheduledAt || ''} onChange={(e) => setSchedule(task.id, e.target.value)}
-              style={{ padding: '4px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, colorScheme: 'dark' }} />
-          </label>
-          {task.siteDoneAt
-            ? <span style={{ color: 'var(--ok)', fontWeight: 600 }}>✓ Hoàn thành {fmtWhen(task.siteDoneAt)}</span>
-            : <span style={{ color: 'var(--fg-4)' }}>chưa hoàn thành</span>}
-        </div>
-
-        {/* Paste kit — nguồn cho "paste bản mô tả 160 ký tự" v.v. Lấy từ project record. */}
+        {/* 4 · Content — paste kit + the post draft + any other AI content the task needs. */}
         {kit.length > 0 && (<>
           <div style={{ ...lbl, marginTop: 16 }}>📎 Paste kit <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· từ hồ sơ {project.name}</span></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -699,7 +661,88 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         </>)}
 
-        {/* Media cần chuẩn bị trước khi post — tìm stock / AI-gen NGAY tại đây, lưu vào project media */}
+        {/* Post draft — ONE block: empty → generate; generated → show + regen + format/link toggles. */}
+        {(needsPost || task.draft) && (draftFmts ? (<>
+          <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>📋 Draft (paste-ready)</span>
+            <button type="button" onClick={doDraft} disabled={dbusy} title="Sinh lại bản nháp khác" style={{ ...btn, padding: '1px 8px' }}>{dbusy ? '…' : '↻ Viết lại'}</button>
+            <span style={{ display: 'inline-flex', gap: 4 }}>
+              {DRAFT_FMTS.map((f) => (
+                <button key={f.k} type="button" onClick={() => setFmt(f.k)} title={f.hint}
+                  style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', textTransform: 'none', letterSpacing: 0,
+                    border: `1px solid ${fmt === f.k ? 'var(--accent)' : 'var(--line)'}`, background: fmt === f.k ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: fmt === f.k ? 'var(--accent)' : 'var(--fg-3)' }}>{f.label}</button>
+              ))}
+            </span>
+            <button type="button" onClick={() => copy(draftFmts[fmt], 'draft')} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copiedKey === 'draft' ? '✓ copied' : 'Copy'}</button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Link</span>
+            {LINK_MODES.map((m) => (
+              <button key={m.k} type="button" onClick={() => setLinkMode(m.k)} title={m.hint}
+                style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer',
+                  border: `1px solid ${linkMode === m.k ? '#9d6cff' : 'var(--line)'}`, background: linkMode === m.k ? 'color-mix(in srgb, #9d6cff 16%, transparent)' : 'transparent', color: linkMode === m.k ? '#9d6cff' : 'var(--fg-3)' }}>{m.label}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
+          {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
+        </>) : (<>
+          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11 }}>✍️ Bài viết</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>Task này cần đăng 1 bài để nhúng link. Sinh bản nháp (English, đúng chủ đề platform, đã cắm link) rồi tinh chỉnh — bài hiện ngay tại đây.</div>
+            <button type="button" onClick={doDraft} disabled={dbusy} style={{ ...btn, alignSelf: 'flex-start' }}>{dbusy ? 'Đang viết…' : '✍️ Viết bài (AI)'}</button>
+            {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{derr}</div>}
+          </div>
+        </>))}
+
+        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🧠 Nội dung AI</div>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.</div>
+          {writableSteps.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {writableSteps.map((s, i) => (
+                <button key={i} type="button" onClick={() => setAiKind(s)} title="Dùng bước này làm yêu cầu"
+                  style={{ ...btn, padding: '2px 8px', fontSize: 10.5, textAlign: 'left', whiteSpace: 'normal', lineHeight: 1.35 }}>+ {s.length > 64 ? s.slice(0, 64) + '…' : s}</button>
+              ))}
+            </div>
+          )}
+          <input value={aiKind} onChange={(e) => setAiKind(e.target.value)} placeholder="Cần sinh gì? (vd: HN first comment giải thích nguồn data DoD)" autoComplete="off"
+            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+          <input value={aiExtra} onChange={(e) => setAiExtra(e.target.value)} placeholder="Yêu cầu thêm (tuỳ chọn): giọng, độ dài, góc nhìn…" autoComplete="off"
+            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => doGen('openai')} disabled={!!aiBusy} style={{ ...btn, fontWeight: 700 }}>{aiBusy === 'openai' ? '…' : '✨ OpenAI (ngay)'}</button>
+            <button type="button" onClick={() => doGen('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude xử lý khi mở phiên chat" style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '…' : '🧠 Nhờ Claude (queue)'}</button>
+            {aiErr && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{aiErr}</span>}
+          </div>
+        </div>
+        {aiList.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {aiList.map((a) => (
+              <div key={a.id} style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 10px' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Tag color={a.engine === 'claude' ? '#d19a66' : '#3c9bff'}>{a.engine === 'claude' ? '🧠 Claude' : '✨ OpenAI'}</Tag>
+                  {a.status === 'queued' ? <Tag color="#d19a66">⏳ đang chờ Claude</Tag> : a.status === 'error' ? <Tag color="var(--bad,#ef4444)">lỗi</Tag> : <Tag color="#22c55e">✓ xong</Tag>}
+                  <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1, minWidth: 120 }}>{a.kind}</span>
+                  {a.status === 'done' && a.result && <button type="button" onClick={() => copy(a.result!, `ai-${a.id}`)} style={{ ...btn, padding: '1px 8px' }}>{copiedKey === `ai-${a.id}` ? '✓' : 'Copy'}</button>}
+                  {aiDelId === a.id ? (
+                    <>
+                      <button type="button" onClick={() => { void delAi(a.id); setAiDelId(null); }} style={{ ...btn, padding: '1px 7px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá?</button>
+                      <button type="button" onClick={() => setAiDelId(null)} style={{ ...btn, padding: '1px 7px' }}>Huỷ</button>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => setAiDelId(a.id)} title="Xoá" style={{ ...btn, padding: '1px 7px', color: 'var(--bad,#ef4444)' }}>✕</button>
+                  )}
+                </div>
+                {a.status === 'done' && a.result && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, margin: '6px 0 0', fontFamily: 'var(--font-mono)' }}>{a.result}</pre>}
+                {a.status === 'queued' && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 4 }}>Đã vào queue. Mở phiên chat Claude, bảo &ldquo;xử lý queue nội dung backlink&rdquo; để nhận kết quả.</div>}
+                {a.status === 'error' && a.error && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginTop: 4 }}>{a.error}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 5 · Media — prepare screenshot/logo/cover before posting. */}
         {mediaNeed && (<>
           <div style={{ ...lbl, marginTop: 16 }}>🖼 Media · {mediaNeed.label}</div>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6 }}>{mediaNeed.hint}</div>
@@ -750,92 +793,82 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           )}
         </>)}
 
-        {task.instructions && (<>
-          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🛠 Cách build</div>
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
-        </>)}
+        {/* 6 · Status — the single "I posted / it's live" control, right before URL capture. */}
+        <div style={lbl}>Status @ {slug}</div>
+        <StatusSegmented size="md" value={task.siteState}
+          options={STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
+          onChange={(s) => { void setSite(task.id, s, url); }} />
 
-        {!task.draft && needsPost && (<>
-          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>✍️ Bài viết</div>
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>Task này cần đăng 1 bài để nhúng link. Sinh bản nháp (English, đúng chủ đề platform, đã cắm link) rồi tinh chỉnh — bài sẽ hiện ngay ở khối Draft phía dưới.</div>
-            <button type="button" onClick={doDraft} disabled={dbusy} style={{ ...btn, alignSelf: 'flex-start' }}>{dbusy ? 'Đang viết…' : '✍️ Viết bài (AI)'}</button>
-            {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{derr}</div>}
-          </div>
-        </>)}
-
-        {draftFmts && (<>
-          <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>📋 Draft (paste-ready)</span>
-            <button type="button" onClick={doDraft} disabled={dbusy} title="Sinh lại bản nháp khác" style={{ ...btn, padding: '1px 8px' }}>{dbusy ? '…' : '↻ Viết lại'}</button>
-            <span style={{ display: 'inline-flex', gap: 4 }}>
-              {DRAFT_FMTS.map((f) => (
-                <button key={f.k} type="button" onClick={() => setFmt(f.k)} title={f.hint}
-                  style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', textTransform: 'none', letterSpacing: 0,
-                    border: `1px solid ${fmt === f.k ? 'var(--accent)' : 'var(--line)'}`, background: fmt === f.k ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: fmt === f.k ? 'var(--accent)' : 'var(--fg-3)' }}>{f.label}</button>
-              ))}
-            </span>
-            <button type="button" onClick={() => copy(draftFmts[fmt], 'draft')} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copiedKey === 'draft' ? '✓ copied' : 'Copy'}</button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
-            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Link</span>
-            {LINK_MODES.map((m) => (
-              <button key={m.k} type="button" onClick={() => setLinkMode(m.k)} title={m.hint}
-                style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer',
-                  border: `1px solid ${linkMode === m.k ? '#9d6cff' : 'var(--line)'}`, background: linkMode === m.k ? 'color-mix(in srgb, #9d6cff 16%, transparent)' : 'transparent', color: linkMode === m.k ? '#9d6cff' : 'var(--fg-3)' }}>{m.label}</button>
-            ))}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
-          {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
-        </>)}
-
-        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🧠 Nội dung AI</div>
-        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.</div>
-          {writableSteps.length > 0 && (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {writableSteps.map((s, i) => (
-                <button key={i} type="button" onClick={() => setAiKind(s)} title="Dùng bước này làm yêu cầu"
-                  style={{ ...btn, padding: '2px 8px', fontSize: 10.5, textAlign: 'left', whiteSpace: 'normal', lineHeight: 1.35 }}>+ {s.length > 64 ? s.slice(0, 64) + '…' : s}</button>
-              ))}
-            </div>
-          )}
-          <input value={aiKind} onChange={(e) => setAiKind(e.target.value)} placeholder="Cần sinh gì? (vd: HN first comment giải thích nguồn data DoD)" autoComplete="off"
-            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
-          <input value={aiExtra} onChange={(e) => setAiExtra(e.target.value)} placeholder="Yêu cầu thêm (tuỳ chọn): giọng, độ dài, góc nhìn…" autoComplete="off"
-            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => doGen('openai')} disabled={!!aiBusy} style={{ ...btn, fontWeight: 700 }}>{aiBusy === 'openai' ? '…' : '✨ OpenAI (ngay)'}</button>
-            <button type="button" onClick={() => doGen('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude xử lý khi mở phiên chat" style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '…' : '🧠 Nhờ Claude (queue)'}</button>
-            {aiErr && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{aiErr}</span>}
-          </div>
+        {/* 7 · Live URL — paste the placed link (auto-advances an open status → Completed). */}
+        <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
+            style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
+          <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
+            style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
+            {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
         </div>
-        {aiList.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {aiList.map((a) => (
-              <div key={a.id} style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 10px' }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Tag color={a.engine === 'claude' ? '#d19a66' : '#3c9bff'}>{a.engine === 'claude' ? '🧠 Claude' : '✨ OpenAI'}</Tag>
-                  {a.status === 'queued' ? <Tag color="#d19a66">⏳ đang chờ Claude</Tag> : a.status === 'error' ? <Tag color="var(--bad,#ef4444)">lỗi</Tag> : <Tag color="#22c55e">✓ xong</Tag>}
-                  <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1, minWidth: 120 }}>{a.kind}</span>
-                  {a.status === 'done' && a.result && <button type="button" onClick={() => copy(a.result!, `ai-${a.id}`)} style={{ ...btn, padding: '1px 8px' }}>{copiedKey === `ai-${a.id}` ? '✓' : 'Copy'}</button>}
-                  <button type="button" onClick={() => delAi(a.id)} title="Xoá" style={{ ...btn, padding: '1px 7px', color: 'var(--bad,#ef4444)' }}>✕</button>
-                </div>
-                {a.status === 'done' && a.result && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, margin: '6px 0 0', fontFamily: 'var(--font-mono)' }}>{a.result}</pre>}
-                {a.status === 'queued' && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 4 }}>Đã vào queue. Mở phiên chat Claude, bảo &ldquo;xử lý queue nội dung backlink&rdquo; để nhận kết quả.</div>}
-                {a.status === 'error' && a.error && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginTop: 4 }}>{a.error}</div>}
-              </div>
-            ))}
-          </div>
-        )}
 
-        {task.mechanism && (<><div style={lbl}>Mechanism</div><div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{task.mechanism}</div></>)}
+        {/* 8 · Verify — own action row (auto-advances Completed → Verified on a dofollow hit). */}
+        <div style={lbl}>🔍 Kiểm tra link @ {slug}</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
+          <button type="button" onClick={doVerify} disabled={vbusy || !(task.siteLiveUrl || url.trim())}
+            title="Fetch link → kiểm tra domain mình có được link + dofollow không; đạt sẽ tự lên Verified"
+            style={{ ...btn, fontWeight: 700 }}>{vbusy ? '…' : '🔍 Kiểm tra'}</button>
+          {!(task.siteLiveUrl || url.trim()) && <span style={{ color: 'var(--fg-4)' }}>Lưu Live URL ở trên trước</span>}
+          {vres && (() => { const m = verifyMeta(vres); return m ? <span style={{ color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</span> : null; })()}
+        </div>
 
+        {/* 9 · Schedule */}
+        <div style={lbl}>Lịch & thời gian @ {slug}</div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', color: 'var(--fg-2)' }}>
+            🗓 Lên lịch
+            <input type="date" value={task.siteScheduledAt || ''} onChange={(e) => setSchedule(task.id, e.target.value)}
+              style={{ padding: '4px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, colorScheme: 'dark' }} />
+          </label>
+          {task.siteDoneAt
+            ? <span style={{ color: 'var(--ok)', fontWeight: 600 }}>✓ Hoàn thành {fmtWhen(task.siteDoneAt)}</span>
+            : <span style={{ color: 'var(--fg-4)' }}>chưa hoàn thành</span>}
+        </div>
+
+        {/* Trailing read-only: also-applies-to + notes */}
         {task.appliesTo.length > 1 && (<><div style={lbl}>Cũng áp dụng cho ({task.appliesTo.length} sites)</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{task.appliesTo.map((s) => { const st = task.siteStatus[s] || ''; return <Tag key={s} color={s === slug ? 'var(--accent)' : undefined}>{s} · {SITE_STATUS[st]?.label || st || '—'}</Tag>; })}</div></>)}
-
         {task.notes && (<><div style={lbl}>Notes</div><div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'pre-wrap' }}>{task.notes}</div></>)}
+
+        {/* Footer utility row — structural/destructive actions out of the primary top-down path. */}
+        <div style={{ marginTop: 22, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => setSplitting((v) => !v)} title="Tách thành 2 link (vd profile + bài post) — mỗi link 1 status/URL riêng" style={{ ...btn, padding: '2px 9px' }}>⑃ Tách</button>
+          {delConfirm ? (
+            <>
+              <button type="button" onClick={() => onDelete(task.id)} style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá task?</button>
+              <button type="button" onClick={() => setDelConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setDelConfirm(true)} title="Xoá task này (có hoàn tác)" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Xoá</button>
+          )}
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
+        </div>
+        {splitting && (
+          <div style={{ marginTop: 8, padding: 12, borderRadius: 8, border: '1px solid #9d6cff', background: 'color-mix(in srgb, #9d6cff 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Tách nguồn này thành 2 task. Task hiện tại → tên trên; task mới (clone cùng account/nguồn, reset trạng thái) → tên dưới. Drawer này vẫn mở.</div>
+            <input value={sa} onChange={(e) => setSa(e.target.value)} autoComplete="off" placeholder="Tên task hiện tại" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+            <input value={sb} onChange={(e) => setSb(e.target.value)} autoComplete="off" placeholder="Tên task mới" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+            {serr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{serr}</div>}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" onClick={doSplit} disabled={sbusy} style={{ ...btn, color: '#9d6cff', fontWeight: 700 }}>{sbusy ? 'Đang tách…' : '⑃ Tách'}</button>
+              <button type="button" onClick={() => setSplitting(false)} style={btn}>Huỷ</button>
+            </div>
+          </div>
+        )}
+        {splitDone && (
+          <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid #9d6cff', background: 'color-mix(in srgb, #9d6cff 8%, transparent)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+            <span style={{ color: 'var(--fg-2)' }}>✓ Đã tách ra task mới: <b>{splitDone.name}</b></span>
+            <button type="button" onClick={() => onOpenTask(splitDone.id)} style={{ ...btn, color: '#9d6cff', fontWeight: 700 }}>Mở task mới →</button>
+            <button type="button" onClick={() => setSplitDone(null)} style={{ ...btn, marginLeft: 'auto' }}>✕</button>
+          </div>
+        )}
       </div>
     </Drawer>
   );

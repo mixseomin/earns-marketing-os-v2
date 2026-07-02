@@ -25,11 +25,13 @@ type TabKey = 'todo' | 'progress' | 'done' | 'all';
 const SITE_STATUS: Record<string, { label: string; color: string }> = {
   pending:   { label: 'To do',      color: '#8a92a3' },
   claimed:   { label: 'In progress', color: '#ffb03c' },
+  submitted: { label: 'Submitted',  color: '#9d6cff' },  // posted, awaiting moderation/approval — link not live yet
   completed: { label: 'Completed',  color: '#5badff' },
   verified:  { label: 'Verified',   color: '#22c55e' },
 };
-const STATUS_ORDER = ['pending', 'claimed', 'completed', 'verified'];
-const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' ? 'progress' : 'done');
+const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified'];
+// submitted = you've done your part, waiting on them → still "in progress" for the tab rollup.
+const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed' || s === 'submitted' ? 'progress' : 'done');
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
@@ -397,7 +399,7 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
   const saveUrl = async () => {
     setSaveState('saving');
-    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed')) ? 'completed' : task.siteState;
+    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted')) ? 'completed' : task.siteState;
     await setSite(task.id, next, url);
     setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
   };

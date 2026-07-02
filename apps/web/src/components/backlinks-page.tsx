@@ -12,6 +12,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
+import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
@@ -487,6 +488,29 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
     setDbusy(false);
     if (r.ok) onChange(); else setDerr(r.error || 'lỗi');
   };
+  // AI content pieces: generate any content the task needs, combining full context. Two
+  // engines — OpenAI (now) or Claude (queued, fulfilled by a chat session servicing it).
+  const [aiList, setAiList] = useState<AiContentRow[]>([]);
+  const [aiKind, setAiKind] = useState('');
+  const [aiExtra, setAiExtra] = useState('');
+  const [aiBusy, setAiBusy] = useState<'' | 'openai' | 'claude'>('');
+  const [aiErr, setAiErr] = useState<string | null>(null);
+  const reloadAi = () => { listAiContent(task.id).then(setAiList).catch(() => {}); };
+  useEffect(() => { listAiContent(task.id).then(setAiList).catch(() => {}); }, [task.id]);
+  // Build steps that call for written content → one-tap chips to prefill "what to generate".
+  const writableSteps = useMemo(() => (task.instructions || '').split('\n').map(stripMarker).filter(Boolean)
+    .filter((s) => /viết|write|comment|post|reply|answer|bio|mô tả|describe|caption|tiêu đề|title|pin|thread|explain|giải thích|signature|chữ ký|trả lời|đăng|bài/i.test(s)), [task.instructions]);
+  const doGen = async (engine: 'openai' | 'claude') => {
+    if (!aiKind.trim()) { setAiErr('nhập cần sinh gì'); return; }
+    setAiBusy(engine); setAiErr(null);
+    const r = await generateAiContent({
+      taskId: task.id, projectId: project.id, site: slug, kind: aiKind.trim(), extra: aiExtra.trim(), engine,
+      ctx: { projectName: project.name, website: project.website || '', oneLiner: project.oneLiner || '', bio: project.bio || '', platformLabel: task.platformLabel || '', mechanism: task.mechanism || '', instructions: task.instructions || '' },
+    });
+    setAiBusy('');
+    if (r.ok) { setAiKind(''); setAiExtra(''); reloadAi(); } else setAiErr(r.error || 'lỗi');
+  };
+  const delAi = async (id: number) => { await deleteAiContent(id); reloadAi(); };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '12px 0 4px' };
   // Paste kit — the reusable brand copy the instructions refer to ("paste the 160-char
@@ -704,6 +728,46 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
           {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
         </>)}
+
+        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🧠 Nội dung AI</div>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.</div>
+          {writableSteps.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {writableSteps.map((s, i) => (
+                <button key={i} type="button" onClick={() => setAiKind(s)} title="Dùng bước này làm yêu cầu"
+                  style={{ ...btn, padding: '2px 8px', fontSize: 10.5, textAlign: 'left', whiteSpace: 'normal', lineHeight: 1.35 }}>+ {s.length > 64 ? s.slice(0, 64) + '…' : s}</button>
+              ))}
+            </div>
+          )}
+          <input value={aiKind} onChange={(e) => setAiKind(e.target.value)} placeholder="Cần sinh gì? (vd: HN first comment giải thích nguồn data DoD)" autoComplete="off"
+            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+          <input value={aiExtra} onChange={(e) => setAiExtra(e.target.value)} placeholder="Yêu cầu thêm (tuỳ chọn): giọng, độ dài, góc nhìn…" autoComplete="off"
+            style={{ fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => doGen('openai')} disabled={!!aiBusy} style={{ ...btn, fontWeight: 700 }}>{aiBusy === 'openai' ? '…' : '✨ OpenAI (ngay)'}</button>
+            <button type="button" onClick={() => doGen('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude xử lý khi mở phiên chat" style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '…' : '🧠 Nhờ Claude (queue)'}</button>
+            {aiErr && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{aiErr}</span>}
+          </div>
+        </div>
+        {aiList.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {aiList.map((a) => (
+              <div key={a.id} style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 10px' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Tag color={a.engine === 'claude' ? '#d19a66' : '#3c9bff'}>{a.engine === 'claude' ? '🧠 Claude' : '✨ OpenAI'}</Tag>
+                  {a.status === 'queued' ? <Tag color="#d19a66">⏳ đang chờ Claude</Tag> : a.status === 'error' ? <Tag color="var(--bad,#ef4444)">lỗi</Tag> : <Tag color="#22c55e">✓ xong</Tag>}
+                  <span style={{ fontSize: 11, color: 'var(--fg-2)', flex: 1, minWidth: 120 }}>{a.kind}</span>
+                  {a.status === 'done' && a.result && <button type="button" onClick={() => copy(a.result!, `ai-${a.id}`)} style={{ ...btn, padding: '1px 8px' }}>{copiedKey === `ai-${a.id}` ? '✓' : 'Copy'}</button>}
+                  <button type="button" onClick={() => delAi(a.id)} title="Xoá" style={{ ...btn, padding: '1px 7px', color: 'var(--bad,#ef4444)' }}>✕</button>
+                </div>
+                {a.status === 'done' && a.result && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: 8, margin: '6px 0 0', fontFamily: 'var(--font-mono)' }}>{a.result}</pre>}
+                {a.status === 'queued' && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 4 }}>Đã vào queue. Mở phiên chat Claude, bảo &ldquo;xử lý queue nội dung backlink&rdquo; để nhận kết quả.</div>}
+                {a.status === 'error' && a.error && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginTop: 4 }}>{a.error}</div>}
+              </div>
+            ))}
+          </div>
+        )}
 
         {task.mechanism && (<><div style={lbl}>Mechanism</div><div style={{ fontSize: 12, color: 'var(--fg-1)' }}>{task.mechanism}</div></>)}
 

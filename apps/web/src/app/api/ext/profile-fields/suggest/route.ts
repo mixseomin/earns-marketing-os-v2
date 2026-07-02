@@ -24,9 +24,13 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);
 
-  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; fields?: Array<{ key?: string; label?: string; current?: string }> };
+  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
   if (!fields.length) return errorResponse('fields required', 400);
+  const pageIntent = String(body.pageIntent || '').slice(0, 160);
+  // Giới hạn ký tự per-field (ext gửi từ maxlength/counter) → nhắc AI + cap output.
+  const maxByKey: Record<string, number> = {};
+  for (const f of fields) { if (f.key && typeof f.maxLen === 'number' && f.maxLen > 0) maxByKey[f.key] = Math.floor(f.maxLen); }
 
   // Brand DỰ ÁN = nguồn sự thật cho profile (account đại diện dự án). Load qua projectId
   // hoặc accountId → project. website/oneLiner/bio/hashtags dùng để fill + làm ngữ cảnh.
@@ -99,10 +103,11 @@ export async function POST(req: Request) {
   }
   const llmFields = fields.filter((f) => !(f.key && forced[f.key]));
 
-  const list = llmFields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}`).join('\n');
-  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}\n\n`
+  const list = llmFields.map((f) => `- key=${f.key} | label="${f.label || f.key}"${f.current ? ` | đang có="${f.current}"` : ''}${f.maxLen ? ` | GIỚI HẠN ≤${Math.floor(f.maxLen)} KÝ TỰ` : ''}`).join('\n');
+  const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}${pageIntent ? `\nNgữ cảnh TRANG (task đang thao tác — sinh nội dung HỢP ngữ cảnh này, vd trang launch → giọng ra mắt): ${pageIntent}` : ''}\n\n`
     + `Các field cần điền:\n${list || '(không có — đã fill hết)'}\n\n`
     + `Quy tắc DERIVE (ưu tiên brand dự án → persona; KHÔNG chế dữ liệu mới để NHẤT QUÁN mọi site):\n`
+    + `- GIỚI HẠN ký tự: field ghi "≤N KÝ TỰ" thì kết quả PHẢI ≤ N ký tự (đếm cả dấu cách). Viết ngắn, súc tích, đủ ý — thà ngắn hơn còn hơn vượt.\n`
     + `- website/url/link/homepage → website CHÍNH THỨC của dự án ("${proj?.website || ''}"). Trống thì "".\n`
     + `- about/bio/intro/description/summary/headline/tagline → 1-2 câu English tự nhiên, KHÔNG markdown/em-dash. ƯU TIÊN one-liner + bio DỰ ÁN; nếu brand dự án THIẾU/RỖNG thì derive từ persona nhân vật (bio/backstory/interests). LUÔN sinh ra nội dung — KHÔNG để trống các field giới thiệu này.\n`
     + `- location/place → "city, country" của persona (vd "Hanoi, Vietnam"). Thiếu city → chỉ country.\n`
@@ -125,11 +130,13 @@ export async function POST(req: Request) {
     });
     const txt = res.choices?.[0]?.message?.content || '{}';
     const parsed = JSON.parse(txt) as { values?: Record<string, unknown> };
+    // Cap theo maxLen (an toàn nếu LLM vẫn vượt) — cắt ở ranh giới từ gần nhất, ko giữa từ.
+    const capLen = (s: string, max: number) => { if (!max || s.length <= max) return s; const cut = s.slice(0, max); const sp = cut.lastIndexOf(' '); return (sp > max * 0.6 ? cut.slice(0, sp) : cut).trim(); };
     const values: Record<string, string> = { ...forced };   // website canonical luôn thắng
     for (const f of fields) {
       const k = f.key || ''; if (!k || values[k]) continue;
       const v = parsed.values?.[k];
-      if (typeof v === 'string' && v.trim()) values[k] = v.trim().slice(0, 600);
+      if (typeof v === 'string' && v.trim()) values[k] = capLen(v.trim().slice(0, 600), maxByKey[k] || 0);
     }
     return NextResponse.json({ ok: true, values });
   } catch (e) {

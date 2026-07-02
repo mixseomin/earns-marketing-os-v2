@@ -27,7 +27,8 @@ export interface AiContentRow {
 
 // The single place that fuses every requirement + context into one brief. Used for both
 // engines so OpenAI-now and Claude-queued get the identical, fully-contextual prompt.
-export function buildContentPrompt(ctx: AiContentCtx, kind: string, extra: string): string {
+// NOT exported: a 'use server' module may only export async functions.
+function buildContentPrompt(ctx: AiContentCtx, kind: string, extra: string): string {
   const site = (ctx.website || '').replace(/\/$/, '');
   return [
     `Produce ONE ready-to-post piece of content for an off-site backlink placement. Output ENGLISH only.`,

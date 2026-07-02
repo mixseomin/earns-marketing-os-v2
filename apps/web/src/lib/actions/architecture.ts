@@ -438,44 +438,77 @@ export async function restoreBacklinkTask(row: Record<string, unknown>): Promise
 }
 
 // Link health-check: fetch the placed URL and confirm our domain is actually linked, and
-// whether that link is dofollow. Stores the result in prep_payload.site_verify[site] and,
-// when the link is confirmed, advances the site to 'verified'. Escalate-friendly: a page
-// we can't reach is reported as reachable:false (inconclusive), not "link removed".
-export async function verifyBacklink(taskId: number, site: string, targetHost: string): Promise<{ ok: boolean; result?: { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }; error?: string }> {
+// whether that link is dofollow. A page we can't reach is reachable:false (inconclusive),
+// not "link removed". Shared by the single- and bulk-verify actions below.
+interface LinkCheck { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }
+const normHost = (t: string) => (t || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
+async function checkLink(liveUrl: string, host: string): Promise<LinkCheck> {
+  const checkedAt = new Date().toISOString();
+  let reachable = false, found = false, dofollow = false, httpStatus: number | null = null;
+  try {
+    const resp = await fetch(liveUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (backlink-verify)' }, redirect: 'follow', signal: AbortSignal.timeout(20000) });
+    httpStatus = resp.status;
+    reachable = resp.ok;
+    if (resp.ok) {
+      const html = await resp.text();
+      const hostRe = new RegExp(host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const mine = (html.match(/<a\b[^>]*>/gi) || []).filter((a) => { const h = a.match(/href\s*=\s*["']([^"']+)["']/i); return h ? hostRe.test(h[1]!) : false; });
+      found = mine.length > 0;
+      dofollow = found && mine.some((a) => !/rel\s*=\s*["'][^"']*\b(nofollow|ugc|sponsored)\b/i.test(a));
+    }
+  } catch { /* unreachable → inconclusive */ }
+  return { reachable, found, dofollow, httpStatus, checkedAt };
+}
+async function persistVerify(taskId: number, site: string, result: LinkCheck): Promise<void> {
+  const db = getDb(); if (!db) return;
+  // advance to verified only when the link is confirmed present.
+  const bump = result.found ? sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))` : sql``;
+  await db.execute(sql`
+    UPDATE human_tasks SET prep_payload = COALESCE(prep_payload,'{}'::jsonb)
+      || jsonb_build_object('site_verify', COALESCE(prep_payload->'site_verify','{}'::jsonb) || jsonb_build_object(${site}::text, ${JSON.stringify(result)}::jsonb))
+      ${bump},
+      updated_at = now()
+    WHERE id = ${taskId} AND platform_key = 'backlink'`);
+  if (result.found) await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+}
+
+export async function verifyBacklink(taskId: number, site: string, targetHost: string): Promise<{ ok: boolean; result?: LinkCheck; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
-  const host = (targetHost || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
+  const host = normHost(targetHost);
   if (!host) return { ok: false, error: 'thiếu domain đích' };
   try {
     const r0 = await db.execute(sql`SELECT prep_payload->'site_url'->>${site} AS url FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
     const liveUrl = (r0 as unknown as Array<{ url: string | null }>)[0]?.url || '';
     if (!/^https?:\/\//.test(liveUrl)) return { ok: false, error: 'chưa có live URL để kiểm tra' };
-    const checkedAt = new Date().toISOString();
-    let reachable = false, found = false, dofollow = false, httpStatus: number | null = null;
-    try {
-      const resp = await fetch(liveUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (backlink-verify)' }, redirect: 'follow', signal: AbortSignal.timeout(20000) });
-      httpStatus = resp.status;
-      reachable = resp.ok;
-      if (resp.ok) {
-        const html = await resp.text();
-        const hostRe = new RegExp(host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        const mine = (html.match(/<a\b[^>]*>/gi) || []).filter((a) => { const h = a.match(/href\s*=\s*["']([^"']+)["']/i); return h ? hostRe.test(h[1]!) : false; });
-        found = mine.length > 0;
-        dofollow = found && mine.some((a) => !/rel\s*=\s*["'][^"']*\b(nofollow|ugc|sponsored)\b/i.test(a));
-      }
-    } catch { /* unreachable → inconclusive */ }
-    const result = { reachable, found, dofollow, httpStatus, checkedAt };
-    // persist result; advance to verified only when the link is confirmed present.
-    const bump = found ? sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))` : sql``;
-    await db.execute(sql`
-      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload,'{}'::jsonb)
-        || jsonb_build_object('site_verify', COALESCE(prep_payload->'site_verify','{}'::jsonb) || jsonb_build_object(${site}::text, ${JSON.stringify(result)}::jsonb))
-        ${bump},
-        updated_at = now()
-      WHERE id = ${taskId} AND platform_key = 'backlink'`);
-    if (found) await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+    const result = await checkLink(liveUrl, host);
+    await persistVerify(taskId, site, result);
     return { ok: true, result };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Bulk health-check every placed link for a site (so broken links surface in the list
+// without opening each drawer). Checks tasks that have a live URL for this site.
+export async function verifyAllBacklinks(site: string, targetHost: string): Promise<{ ok: boolean; checked?: number; broken?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
+  const host = normHost(targetHost);
+  if (!host) return { ok: false, error: 'thiếu domain đích' };
+  try {
+    const rows = await db.execute(sql`
+      SELECT id, prep_payload->'site_url'->>${site} AS url FROM human_tasks
+      WHERE platform_key='backlink' AND (prep_payload->'site_url'->>${site}) ~ '^https?://'`);
+    const list = rows as unknown as Array<{ id: number; url: string }>;
+    let checked = 0, broken = 0;
+    for (const r of list) {
+      const result = await checkLink(r.url, host);
+      await persistVerify(Number(r.id), site, result);
+      checked++;
+      if (result.reachable && !result.found) broken++;
+    }
+    return { ok: true, checked, broken };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

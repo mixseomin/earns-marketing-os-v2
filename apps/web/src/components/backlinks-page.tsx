@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
@@ -38,6 +38,12 @@ const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
+// Link health badge (shared by list + drawer). null = never checked.
+const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null => !v ? null
+  : !v.reachable ? { c: 'var(--fg-3)', t: `? không truy cập${v.httpStatus ? ' ' + v.httpStatus : ''}` }
+  : !v.found ? { c: 'var(--bad,#ef4444)', t: '✗ link mất' }
+  : v.dofollow ? { c: '#22c55e', t: '✓ dofollow' }
+  : { c: '#ffb03c', t: '⚠ nofollow' };
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
@@ -212,6 +218,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const openEditAccount = (account: AccountRow) => setAcctModal({ account });
   const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
   const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };
+  // Bulk link health-check across every placed link — broken links then show as list badges.
+  const [chk, setChk] = useState<'busy' | string | null>(null);
+  const doCheckLinks = async () => { setChk('busy'); const r = await verifyAllBacklinks(slug || '', project.website || ''); setChk(r.ok ? `${r.checked} checked${r.broken ? `, ${r.broken} mất` : ''}` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setChk(null), 4000); };
 
   // Account-readiness rollup (prepare before posting): counts per bucket + the distinct
   // platforms still missing an account (deep-link to create each).
@@ -302,6 +311,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             title="Tự chuẩn bị media: cover OG + screenshot trang + logo → lưu vào Media vault">
             {autoMedia === 'busy' ? '⏳ đang chuẩn bị…' : autoMedia ? `✓ ${autoMedia}` : '⚡ Auto media'}
           </button>
+          <button type="button" onClick={doCheckLinks} disabled={chk === 'busy'} style={{ ...btn }}
+            title="Kiểm tra sức khoẻ mọi link đã đặt (còn sống? dofollow?) — kết quả hiện badge ngay trong list">
+            {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
+          </button>
           <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
         </div>
       </div>
@@ -376,6 +389,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
                 {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
                 {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+                {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
               </div>
             </div>
@@ -602,12 +616,8 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
           )}
         </div>
         {vres && (() => {
-          const v = vres;
-          const m = !v.reachable ? { c: 'var(--fg-3)', t: `? Không truy cập được${v.httpStatus ? ` (HTTP ${v.httpStatus})` : ''}` }
-            : !v.found ? { c: 'var(--bad,#ef4444)', t: '✗ Không thấy link tới mình (có thể đã bị gỡ)' }
-            : v.dofollow ? { c: '#22c55e', t: '✓ Link sống · dofollow' }
-            : { c: '#ffb03c', t: '⚠ Link sống · nofollow' };
-          return <div style={{ fontSize: 11, marginTop: 4, color: m.c }}>{m.t} · kiểm {fmtWhen(v.checkedAt)}</div>;
+          const m = verifyMeta(vres);
+          return m ? <div style={{ fontSize: 11, marginTop: 4, color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</div> : null;
         })()}
 
         <div style={lbl}>Lịch & thời gian @ {slug}</div>

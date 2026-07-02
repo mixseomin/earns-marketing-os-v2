@@ -25,7 +25,8 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);
 
-  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; launchName?: string; platform?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
+  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; launchName?: string; platform?: string; pinnedProjectId?: string; regenerate?: boolean; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
+  const regenerate = !!body.regenerate;   // 🤖 "Sinh mới" → BỎ tái dùng giá trị persona đã lưu, LLM sinh tươi mới
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
   if (!fields.length) return errorResponse('fields required', 400);
   const pageIntent = String(body.pageIntent || '').slice(0, 160);
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
     }
     // Brand THEO TASK account đang được giao (account cá nhân launch nhiều SP) → launchName fallback → home.
     // Logic dùng CHUNG với /project-brand (SAVE) qua resolveProjectViaTask — không lệch fill↔save.
-    const resolved = await resolveProjectViaTask(db0, { accountId: body.accountId, homeProjectId: pid, launchName, platform: (body.platform || '').trim() });
+    const resolved = await resolveProjectViaTask(db0, { accountId: body.accountId, homeProjectId: pid, launchName, platform: (body.platform || '').trim(), pinnedProjectId: (body.pinnedProjectId || '').trim() });
     pid = resolved.projectId; taskCtx = resolved.taskTitle;
     if (pid) {
       const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })
@@ -102,8 +103,8 @@ export async function POST(req: Request) {
   for (const f of fields) {
     const key = f.key || ''; if (!key) continue;
     const k = key.toLowerCase(); const lb = (f.label || '').toLowerCase();
-    // 1) account.persona đã có key này → tái dùng y hệt (nhất quán mọi site).
-    const pv = acctPersona[key]; if (typeof pv === 'string' && pv.trim()) { forced[key] = pv.trim(); continue; }
+    // 1) account.persona đã có key này → tái dùng y hệt (nhất quán mọi site). regenerate → BỎ, để LLM sinh mới.
+    const pv = acctPersona[key]; if (!regenerate && typeof pv === 'string' && pv.trim()) { forced[key] = pv.trim(); continue; }
     // 2) email field + account.email đã lưu → điền lại.
     if ((EMAIL_FIELD.test(k) || EMAIL_FIELD.test(lb)) && acctEmail) { forced[key] = acctEmail; continue; }
     // 3) website field → website chính thức dự án.
@@ -115,6 +116,7 @@ export async function POST(req: Request) {
   const prompt = `Điền hồ sơ (profile) cho 1 tài khoản ĐẠI DIỆN DỰ ÁN dưới đây. Profile phục vụ dự án → ưu tiên brand dự án, persona nhân vật chỉ bổ trợ giọng.\n${ctx}\n${brand}${taskCtx ? `\nNHIỆM VỤ account đang được giao (task): "${taskCtx}" → sinh nội dung PHỤC VỤ nhiệm vụ này (brand ở trên đã theo project của task).` : ''}${launchName ? `\nSẢN PHẨM đang launch trên trang: "${launchName}".` : ''}${pageIntent ? `\nNgữ cảnh TRANG: ${pageIntent}` : ''}\n\n`
     + `Các field cần điền:\n${list || '(không có — đã fill hết)'}\n\n`
     + `Quy tắc DERIVE (ưu tiên brand dự án → persona; KHÔNG chế dữ liệu mới để NHẤT QUÁN mọi site):\n`
+    + (regenerate ? `- SINH MỚI: BỎ QUA "đang có" + giá trị đã lưu — viết nội dung KHÁC, tươi mới, đa dạng (đừng lặp y hệt). Vẫn đúng brand/persona/task.\n` : '')
     + `- GIỚI HẠN ký tự: field ghi "≤N KÝ TỰ" thì kết quả PHẢI ≤ N ký tự (đếm cả dấu cách). Viết ngắn, súc tích, đủ ý — thà ngắn hơn còn hơn vượt.\n`
     + `- website/url/link/homepage → website CHÍNH THỨC của dự án ("${proj?.website || ''}"). Trống thì "".\n`
     + `- about/bio/intro/description/summary/headline/tagline → 1-2 câu English tự nhiên, KHÔNG markdown/em-dash. ƯU TIÊN one-liner + bio DỰ ÁN; nếu brand dự án THIẾU/RỖNG thì derive từ persona nhân vật (bio/backstory/interests). LUÔN sinh ra nội dung — KHÔNG để trống các field giới thiệu này.\n`

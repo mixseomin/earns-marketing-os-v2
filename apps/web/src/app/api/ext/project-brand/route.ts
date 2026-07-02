@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     accountId: sp.get('accountId') ? Number(sp.get('accountId')) : null,
     launchName: (sp.get('launchName') ?? '').trim(),
     platform: (sp.get('platform') ?? '').trim(),
+    pinnedProjectId: (sp.get('pinnedProjectId') ?? '').trim(),
   });
   if (!projectId) return errorResponse('projectId required', 400);
   const [p] = await db
@@ -34,9 +35,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
-  const body = (await req.json()) as { projectId?: string; accountId?: number; launchName?: string; platform?: string } & Partial<Record<Field, string>>;
+  const body = (await req.json()) as { projectId?: string; accountId?: number; launchName?: string; platform?: string; pinnedProjectId?: string } & Partial<Record<Field, string>>;
   const { projectId, taskTitle } = await resolveProjectViaTask(db, {
-    homeProjectId: (body.projectId ?? '').trim(), accountId: body.accountId ?? null, launchName: (body.launchName ?? '').trim(), platform: (body.platform ?? '').trim(),
+    homeProjectId: (body.projectId ?? '').trim(), accountId: body.accountId ?? null, launchName: (body.launchName ?? '').trim(), platform: (body.platform ?? '').trim(), pinnedProjectId: (body.pinnedProjectId ?? '').trim(),
   });
   if (!projectId) return errorResponse('projectId required', 400);
   const patch: Record<string, string> = {};

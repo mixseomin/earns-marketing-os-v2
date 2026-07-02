@@ -306,7 +306,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
-  if (!['pending', 'claimed', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
+  if (!['pending', 'claimed', 'submitted', 'completed', 'verified'].includes(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
   // Execution time: stamp site_done_at when the site reaches completed/verified (keep the
   // original stamp on re-save via COALESCE); clear it if the site is re-opened.
@@ -375,6 +375,33 @@ export async function removeBacklinkSite(taskId: number, site: string): Promise<
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Split a compound backlink (e.g. "profile + blog post") into two tracked links:
+// rename the original to titleA, clone a sibling titled titleB. The sibling shares
+// source/account/instructions but starts fresh (same sites reset to pending; no urls,
+// timestamps, or draft) so each link has its own status + live URL + dates.
+export async function splitBacklinkTask(taskId: number, titleA: string, titleB: string): Promise<{ ok: boolean; newId?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const a = (titleA || '').trim(), b = (titleB || '').trim();
+  if (!a || !b) return { ok: false, error: 'thiếu tiêu đề' };
+  try {
+    const rows = await db.execute(sql`SELECT tenant_id, project_id, instructions, prep_payload, account_id, assigned_user_id FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    const row = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (!row) return { ok: false, error: 'không tìm thấy task' };
+    const pp = { ...((row.prep_payload as Record<string, unknown>) || {}) };
+    const sites = Object.keys((pp.site_status as Record<string, unknown>) || {});
+    delete pp.site_url; delete pp.site_done_at; delete pp.site_scheduled_at; delete pp.draft;
+    pp.site_status = Object.fromEntries(sites.map((s) => [s, 'pending']));
+    await db.execute(sql`UPDATE human_tasks SET title = ${a}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    const ins = await db.execute(sql`
+      INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, account_id, assigned_user_id, status)
+      VALUES (${row.tenant_id}, ${row.project_id}, ${b}, ${row.instructions || ''}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${row.account_id ?? null}, ${row.assigned_user_id ?? null}, 'pending')
+      RETURNING id`);
+    const newId = Number((ins as unknown as Array<{ id: number }>)[0]?.id);
+    return { ok: true, newId };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

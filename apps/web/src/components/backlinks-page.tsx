@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
@@ -376,7 +376,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} />}
 
       {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
       {acctModal && (
@@ -391,9 +391,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount }: {
+function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void;
+  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -434,6 +434,21 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
   const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
   const [dbusy, setDbusy] = useState(false);
   const [derr, setDerr] = useState<string | null>(null);
+  // Split a compound placement (e.g. "profile + blog post") into two independently-tracked
+  // links. Prefill titles from the source name + the "+"-separated mechanism parts.
+  const srcBase = (task.title.split(/[—–-]/)[0] || task.title).trim();
+  const mechParts = (task.mechanism || '').split('+').map((s) => s.trim()).filter(Boolean);
+  const [splitting, setSplitting] = useState(false);
+  const [sa, setSa] = useState(mechParts.length >= 2 ? `${srcBase} — ${mechParts[0]}` : task.title);
+  const [sb, setSb] = useState(mechParts.length >= 2 ? `${srcBase} — ${mechParts.slice(1).join(' + ')}` : `${task.title} (2)`);
+  const [sbusy, setSbusy] = useState(false);
+  const [serr, setSerr] = useState<string | null>(null);
+  const doSplit = async () => {
+    setSbusy(true); setSerr(null);
+    const r = await splitBacklinkTask(task.id, sa, sb);
+    setSbusy(false);
+    if (r.ok && r.newId) { setSplitting(false); onChange(); onOpenTask(r.newId); } else setSerr(r.error || 'lỗi');
+  };
   const doDraft = async () => {
     setDbusy(true); setDerr(null);
     const r = await generateBacklinkDraft(task.id, {
@@ -459,8 +474,23 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
       <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
-          <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button type="button" onClick={() => setSplitting((v) => !v)} title="Tách thành 2 link (vd profile + bài post) — mỗi link 1 status/URL riêng" style={{ ...btn, padding: '2px 9px' }}>⑃ Tách</button>
+            <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          </div>
         </div>
+        {splitting && (
+          <div style={{ marginTop: 8, padding: 12, borderRadius: 8, border: '1px solid #9d6cff', background: 'color-mix(in srgb, #9d6cff 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Tách nguồn này thành 2 task. Task hiện tại → tên trên; task mới (clone cùng account/nguồn, reset trạng thái) → tên dưới. Xong sẽ mở task mới.</div>
+            <input value={sa} onChange={(e) => setSa(e.target.value)} autoComplete="off" placeholder="Tên task hiện tại" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+            <input value={sb} onChange={(e) => setSb(e.target.value)} autoComplete="off" placeholder="Tên task mới" style={{ fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+            {serr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{serr}</div>}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" onClick={doSplit} disabled={sbusy} style={{ ...btn, color: '#9d6cff', fontWeight: 700 }}>{sbusy ? 'Đang tách…' : '⑃ Tách'}</button>
+              <button type="button" onClick={() => setSplitting(false)} style={btn}>Huỷ</button>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} {...EXT} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
           {task.da && <Tag>DA {task.da}</Tag>}

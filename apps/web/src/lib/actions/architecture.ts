@@ -315,6 +315,11 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const doneMerge = done
     ? sql`|| jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_done_at'->>${site}, ${nowIso}))))`
     : sql`|| jsonb_build_object('site_done_at', (COALESCE(prep_payload->'site_done_at', '{}'::jsonb) - ${site}::text))`;
+  // Stamp when the site enters "submitted" (waiting-since, for the moderation follow-up
+  // badge); clear it once it leaves submitted so aging only shows while still pending.
+  const submittedMerge = status === 'submitted'
+    ? sql`|| jsonb_build_object('site_submitted_at', COALESCE(prep_payload->'site_submitted_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_submitted_at'->>${site}, ${nowIso}))))`
+    : sql`|| jsonb_build_object('site_submitted_at', (COALESCE(prep_payload->'site_submitted_at', '{}'::jsonb) - ${site}::text))`;
   try {
     // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
     const r = await db.execute(sql`
@@ -322,7 +327,8 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
         || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text)))
-        ${doneMerge},
+        ${doneMerge}
+        ${submittedMerge},
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'
       RETURNING (prep_payload->'site_status') AS ss`);
@@ -402,6 +408,74 @@ export async function splitBacklinkTask(taskId: number, titleA: string, titleB: 
       RETURNING id`);
     const newId = Number((ins as unknown as Array<{ id: number }>)[0]?.id);
     return { ok: true, newId };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Delete a backlink task. Returns a full row snapshot so the UI can offer 10s undo.
+export async function deleteBacklinkTask(taskId: number): Promise<{ ok: boolean; row?: Record<string, unknown>; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const r = await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
+    const row = (r as unknown as Array<Record<string, unknown>>)[0];
+    return row ? { ok: true, row } : { ok: false, error: 'không tìm thấy task' };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Re-insert a deleted backlink task (undo), preserving its id so deep-links still resolve.
+export async function restoreBacklinkTask(row: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!row || row.id == null) return { ok: false, error: 'thiếu snapshot' };
+  try {
+    const pp = row.prep_payload ?? {};
+    await db.execute(sql`
+      INSERT INTO human_tasks (id, tenant_id, project_id, title, instructions, prep_payload, platform_key, account_id, assigned_user_id, status, notes, publish_url, screenshot_url, created_at)
+      VALUES (${row.id}, ${row.tenant_id ?? 'self'}, ${row.project_id ?? null}, ${row.title ?? ''}, ${row.instructions ?? ''}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${row.account_id ?? null}, ${row.assigned_user_id ?? null}, ${row.status ?? 'pending'}, ${row.notes ?? null}, ${row.publish_url ?? null}, ${row.screenshot_url ?? null}, ${row.created_at ?? null})
+      ON CONFLICT (id) DO NOTHING`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Link health-check: fetch the placed URL and confirm our domain is actually linked, and
+// whether that link is dofollow. Stores the result in prep_payload.site_verify[site] and,
+// when the link is confirmed, advances the site to 'verified'. Escalate-friendly: a page
+// we can't reach is reported as reachable:false (inconclusive), not "link removed".
+export async function verifyBacklink(taskId: number, site: string, targetHost: string): Promise<{ ok: boolean; result?: { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
+  const host = (targetHost || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
+  if (!host) return { ok: false, error: 'thiếu domain đích' };
+  try {
+    const r0 = await db.execute(sql`SELECT prep_payload->'site_url'->>${site} AS url FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    const liveUrl = (r0 as unknown as Array<{ url: string | null }>)[0]?.url || '';
+    if (!/^https?:\/\//.test(liveUrl)) return { ok: false, error: 'chưa có live URL để kiểm tra' };
+    const checkedAt = new Date().toISOString();
+    let reachable = false, found = false, dofollow = false, httpStatus: number | null = null;
+    try {
+      const resp = await fetch(liveUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (backlink-verify)' }, redirect: 'follow', signal: AbortSignal.timeout(20000) });
+      httpStatus = resp.status;
+      reachable = resp.ok;
+      if (resp.ok) {
+        const html = await resp.text();
+        const hostRe = new RegExp(host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const mine = (html.match(/<a\b[^>]*>/gi) || []).filter((a) => { const h = a.match(/href\s*=\s*["']([^"']+)["']/i); return h ? hostRe.test(h[1]!) : false; });
+        found = mine.length > 0;
+        dofollow = found && mine.some((a) => !/rel\s*=\s*["'][^"']*\b(nofollow|ugc|sponsored)\b/i.test(a));
+      }
+    } catch { /* unreachable → inconclusive */ }
+    const result = { reachable, found, dofollow, httpStatus, checkedAt };
+    // persist result; advance to verified only when the link is confirmed present.
+    const bump = found ? sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))` : sql``;
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload,'{}'::jsonb)
+        || jsonb_build_object('site_verify', COALESCE(prep_payload->'site_verify','{}'::jsonb) || jsonb_build_object(${site}::text, ${JSON.stringify(result)}::jsonb))
+        ${bump},
+        updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    if (found) await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+    return { ok: true, result };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

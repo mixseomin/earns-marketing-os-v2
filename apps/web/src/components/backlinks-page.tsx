@@ -7,14 +7,14 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
-import type { BacklinkTask } from '@/lib/actions/backlink-tasks';
+import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
 import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
@@ -36,6 +36,7 @@ const tabOf = (s: string): TabKey => (s === 'pending' ? 'todo' : s === 'claimed'
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
+const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
@@ -173,12 +174,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
   const [traf, setTraf] = useState<string>(sp.get('traf') ?? '');          // traffic filter
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
+  const [subOnly, setSubOnly] = useState(sp.get('sub') === '1');   // only "submitted" (awaiting moderation)
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
 
   const openTask = (id: number) => setOpenId(id);
   const closeTask = () => setOpenId(null);
+
+  // Delete a backlink task with a 10s undo (destructive-action pattern). undoRow holds the
+  // snapshot; restore re-inserts it with the same id so the deep-link still resolves.
+  const [undoRow, setUndoRow] = useState<Record<string, unknown> | null>(null);
+  const deleteTask = async (taskId: number) => {
+    const r = await deleteBacklinkTask(taskId);
+    if (r.ok && r.row) { setOpenId(null); setUndoRow(r.row); start(() => router.refresh()); setTimeout(() => setUndoRow(null), 9000); }
+  };
+  const undoDelete = async () => { const row = undoRow; if (!row) return; setUndoRow(null); await restoreBacklinkTask(row); start(() => router.refresh()); };
 
   // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
   useEffect(() => {
@@ -189,11 +200,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('follow', follow);
     set('traf', traf);
     set('draft', draftOnly ? '1' : '');
+    set('sub', subOnly ? '1' : '');
     set('ready', readyFilter);
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('task', openId);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
+  }, [tab, q, follow, traf, draftOnly, subOnly, readyFilter, view, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string } | null>(null);
@@ -229,11 +241,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
+      if (subOnly && t.siteState !== 'submitted') return false;
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
+  }, [tasks, tab, follow, traf, draftOnly, subOnly, q, readyFilter]);
 
   const shown = useMemo(() => (tab === 'todo'
     ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
@@ -245,6 +258,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     for (const t of filtered) {
       const label = t.sourceUrl ? hostOf(t.sourceUrl) : t.title;
       if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${t.title}` });
+      else if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${t.title}` });
       else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${t.title}` });
     }
     return out;
@@ -344,7 +358,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
         {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
         <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
-        {(q || follow || traf || draftOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); }} style={btn}>Clear</button>}
+        <button type="button" onClick={() => setSubOnly((v) => !v)} title="Chỉ hiện bài đã gửi, đang chờ duyệt" style={chip('#9d6cff', subOnly)}>⏳ chờ duyệt</button>
+        {(q || follow || traf || draftOnly || subOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setSubOnly(false); }} style={btn}>Clear</button>}
       </div>
 
       {view === 'calendar' ? (
@@ -361,6 +376,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
                 {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
                 {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+                {t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
                 {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
                 {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
@@ -376,7 +392,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} />}
+      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
+
+      {undoRow && (
+        <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
+          <span>Đã xoá task <b>{String(undoRow.title || '')}</b></span>
+          <button type="button" onClick={undoDelete} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>↩ Hoàn tác</button>
+        </div>
+      )}
 
       {/* Account create/edit in-place — stacks above the drawer (.modal-backdrop is z-100). */}
       {acctModal && (
@@ -391,9 +414,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask }: {
+function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void;
+  onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -449,6 +472,16 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
     setSbusy(false);
     if (r.ok && r.newId) { setSplitting(false); onChange(); onOpenTask(r.newId); } else setSerr(r.error || 'lỗi');
   };
+  const [delConfirm, setDelConfirm] = useState(false);
+  // Link health-check (#3): fetch the placed URL, confirm our domain is linked + dofollow.
+  const [vbusy, setVbusy] = useState(false);
+  const [vres, setVres] = useState<BacklinkVerify | null>(task.siteVerify);
+  const doVerify = async () => {
+    setVbusy(true);
+    const r = await verifyBacklink(task.id, slug, project.website || '');
+    setVbusy(false);
+    if (r.ok && r.result) { setVres(r.result); onChange(); }
+  };
   const doDraft = async () => {
     setDbusy(true); setDerr(null);
     const r = await generateBacklinkDraft(task.id, {
@@ -474,8 +507,16 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
       <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 'min(720px, 96vw)', background: 'var(--bg-1)', borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)', overflowY: 'auto', padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
             <button type="button" onClick={() => setSplitting((v) => !v)} title="Tách thành 2 link (vd profile + bài post) — mỗi link 1 status/URL riêng" style={{ ...btn, padding: '2px 9px' }}>⑃ Tách</button>
+            {delConfirm ? (
+              <>
+                <button type="button" onClick={() => onDelete(task.id)} style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá task?</button>
+                <button type="button" onClick={() => setDelConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => setDelConfirm(true)} title="Xoá task này (có hoàn tác)" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑</button>
+            )}
             <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
           </div>
         </div>
@@ -535,7 +576,19 @@ function Drawer({ task, slug, project, accounts, media, onClose, setSite, setSch
           <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
             style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
             {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
+          {(task.siteLiveUrl || url.trim()) && (
+            <button type="button" onClick={doVerify} disabled={vbusy} title="Fetch link → kiểm tra domain mình có được link + dofollow không"
+              style={{ ...btn, fontWeight: 700 }}>{vbusy ? '…' : '🔍 Kiểm tra'}</button>
+          )}
         </div>
+        {vres && (() => {
+          const v = vres;
+          const m = !v.reachable ? { c: 'var(--fg-3)', t: `? Không truy cập được${v.httpStatus ? ` (HTTP ${v.httpStatus})` : ''}` }
+            : !v.found ? { c: 'var(--bad,#ef4444)', t: '✗ Không thấy link tới mình (có thể đã bị gỡ)' }
+            : v.dofollow ? { c: '#22c55e', t: '✓ Link sống · dofollow' }
+            : { c: '#ffb03c', t: '⚠ Link sống · nofollow' };
+          return <div style={{ fontSize: 11, marginTop: 4, color: m.c }}>{m.t} · kiểm {fmtWhen(v.checkedAt)}</div>;
+        })()}
 
         <div style={lbl}>Lịch & thời gian @ {slug}</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>

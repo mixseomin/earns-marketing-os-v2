@@ -10,6 +10,8 @@ import { resolveSiteSlug } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, type BacklinkAccountType, type ReadinessBucket } from '@/lib/backlink-account-type';
 
+export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; httpStatus: number | null; checkedAt: string }
+
 export interface BacklinkTask {
   id: number;
   title: string;
@@ -18,6 +20,8 @@ export interface BacklinkTask {
   siteLiveUrl: string | null;     // this site's placed URL (site_url[slug])
   siteDoneAt: string | null;      // when this site reached completed/verified
   siteScheduledAt: string | null; // planned date (YYYY-MM-DD) to do this site
+  siteSubmittedAt: string | null; // when this site entered "submitted" (awaiting moderation)
+  siteVerify: BacklinkVerify | null; // last link health-check result for this site
   sourceUrl: string | null;
   da: string | null;
   dofollow: string | null;
@@ -70,6 +74,8 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
              (site_url->>${slug})    AS site_live_url,
              (site_done_at->>${slug})      AS site_done_at,
              (site_scheduled_at->>${slug}) AS site_scheduled_at,
+             (site_submitted_at->>${slug}) AS site_submitted_at,
+             (site_verify->${slug})        AS site_verify,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -85,6 +91,8 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         siteLiveUrl: (r.site_live_url as string | null) || null,
         siteDoneAt: (r.site_done_at as string | null) || null,
         siteScheduledAt: (r.site_scheduled_at as string | null) || null,
+        siteSubmittedAt: (r.site_submitted_at as string | null) || null,
+        siteVerify: (r.site_verify as BacklinkVerify | null) || null,
         sourceUrl,
         da: (r.da as string | null) || null,
         dofollow: (r.dofollow as string | null) || null,

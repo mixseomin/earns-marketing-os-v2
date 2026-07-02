@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
-import { getDb, identities, projects, platformAccounts, humanTasks } from '@mos2/db';
-import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
+import { getDb, identities, projects, platformAccounts } from '@mos2/db';
+import { eq } from 'drizzle-orm';
+import { resolveProjectViaTask } from '@/lib/resolve-project-via-task';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { errorResponse } from '@/lib/ext-route';
 
@@ -48,20 +49,11 @@ export async function POST(req: Request) {
       const [a] = await db0.select({ projectId: platformAccounts.projectId, email: platformAccounts.email, persona: platformAccounts.persona })
         .from(platformAccounts).where(eq(platformAccounts.id, aid)).limit(1);
       if (a) { if (!pid) pid = a.projectId || ''; acctEmail = a.email || ''; acctPersona = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {}; }
-      // ACCOUNT ĐANG ĐƯỢC GIAO TASK NÀO? → project của task = SẢN PHẨM account đang làm. Account cá nhân
-      // launch nhiều SP (vd @David Ng home=ai-news nhưng task="launch MilitaryCalc") → brand THEO TASK, KHÔNG
-      // theo project home. Ưu tiên task còn sống (pending/claimed/in_progress), mới nhất → override pid.
-      const taskRows = await db0.select({ projectId: humanTasks.projectId, title: humanTasks.title, status: humanTasks.status })
-        .from(humanTasks).where(and(eq(humanTasks.accountId, aid), isNotNull(humanTasks.projectId)))
-        .orderBy(desc(humanTasks.updatedAt)).limit(8);
-      const live = taskRows.find((t) => !['completed', 'verified', 'cancelled', 'failed'].includes(String(t.status || ''))) || taskRows[0];
-      if (live?.projectId) { pid = live.projectId; taskCtx = live.title || ''; }
     }
-    // launchName (ext đọc tên SP trên trang launch) — fallback khi account KHÔNG có task project khớp.
-    if (!taskCtx && launchName) {
-      const [pm] = await db0.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${launchName})`).limit(1);
-      if (pm?.id) pid = pm.id;
-    }
+    // Brand THEO TASK account đang được giao (account cá nhân launch nhiều SP) → launchName fallback → home.
+    // Logic dùng CHUNG với /project-brand (SAVE) qua resolveProjectViaTask — không lệch fill↔save.
+    const resolved = await resolveProjectViaTask(db0, { accountId: body.accountId, homeProjectId: pid, launchName });
+    pid = resolved.projectId; taskCtx = resolved.taskTitle;
     if (pid) {
       const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })
         .from(projects).where(eq(projects.id, pid)).limit(1);

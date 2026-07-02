@@ -39,6 +39,12 @@ export const PAGE_KINDS: PageKindEntry[] = [
   { key: 'signup', label: 'Signup', mode: 'write', fillAttr: true,
     meaning: 'Form đăng ký tài khoản: username, email, password, ToS…',
     urlHint: /ucp\.php[^#]*mode=register|\/register|\/signup|\/sign-up|\/join\b/ },
+  // launch TRƯỚC account-profile + composer: form SUBMIT sản phẩm (ProductHunt/BetaList). Value = project-brand
+  // (Name→name, Tagline→one_liner, Description→bio, Website→website, tags→hashtags), KHÔNG persona account.
+  // regex HẸP (producthunt posts/new · betalist/submit · /launch · /new-product) để KHÔNG nuốt /submit(composer)/register.
+  { key: 'launch', label: 'Launch', mode: 'write', fillAttr: true,
+    meaning: 'Form submit sản phẩm lên directory (ProductHunt/BetaList/IndieHackers): name, tagline, description, links, tags.',
+    urlHint: /producthunt\.com\/(posts\/new|my\/[a-z-]*launch)|betalist\.com\/submit|indiehackers\.com\/products\/new|\/launch\b|\/new-product\b|\/products\/new\b/ },
   { key: 'account-profile', label: 'Account profile', mode: 'read',
     meaning: 'Trang hồ sơ 1 thành viên: bio, join date, post count, avatar.',
     urlHint: /memberlist\.php[^#]*mode=viewprofile|\/u\/|\/user\/|\/users\/|\/profile|\/member\.|\/members?\/\w/ },

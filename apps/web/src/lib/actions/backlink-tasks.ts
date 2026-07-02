@@ -80,9 +80,25 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
       ORDER BY created_at DESC NULLS LAST, id DESC`);
+    // Nhận diện platform curated qua CATALOG (signup_url host) — không chỉ HOSTNAME_TO_PLATFORM regex.
+    // Platform mới thêm vào catalog (chưa có regex) vẫn được nhận → account KHỚP (cùng key reconcile bên
+    // ext). Site LẠ (không regex + không catalog) → null → no-account default (KHÔNG false-block). 1 query.
+    const catSlug = new Map<string, string>();
+    try {
+      const cat = await db.execute(sql`SELECT key, signup_url FROM platforms WHERE signup_url <> ''`);
+      for (const row of (cat as unknown as Array<{ key: string; signup_url: string }>)) {
+        try { const h = new URL(row.signup_url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); if (h && !catSlug.has(h)) catSlug.set(h, row.key); } catch { /* skip bad url */ }
+      }
+    } catch { /* catalog unavailable → regex-only fallback */ }
+    const keyForUrl = (url: string | null): string | null => {
+      if (!url) return null;
+      const byRegex = canonPlatformKey(detectPlatformKeyFromUrl(url) || '');
+      if (byRegex) return byRegex;
+      try { const h = new URL(url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return catSlug.get(h) ?? null; } catch { return null; }
+    };
     const base = (rows as unknown as Array<Record<string, unknown>>).map((r) => {
       const sourceUrl = (r.source_url as string | null) || null;
-      const platformKey = sourceUrl ? (canonPlatformKey(detectPlatformKeyFromUrl(sourceUrl)) || null) : null;
+      const platformKey = keyForUrl(sourceUrl);
       return {
         id: Number(r.id),
         title: String(r.title ?? ''),

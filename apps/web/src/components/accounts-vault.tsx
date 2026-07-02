@@ -1080,6 +1080,17 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   asDrawer?: boolean;
 }) {
   const router = useRouter();
+  // asDrawer: wide enough for the 2-column form (main + platform-fields panel) and
+  // drag-resizable via the left edge. Plain px + maxWidth:96vw caps it on narrow screens.
+  const [drawerW, setDrawerW] = useState(1040);
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => setDrawerW(Math.max(520, Math.min(window.innerWidth * 0.98, window.innerWidth - ev.clientX)));
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.userSelect = ''; };
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Track pending toggle: which key + the value we sent. Cleared only after
@@ -1441,8 +1452,12 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           drawer — sits flush-right, narrower so the parent peeks on the left, lifted with
           an accent left border + heavy shadow so the layering reads clearly. */}
       <div className="modal" style={asDrawer
-        ? { position: 'fixed', inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: 'min(560px, 82vw)', maxWidth: '82vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, borderLeft: '1px solid var(--accent-line)', boxShadow: '-24px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' }
+        ? { position: 'fixed', inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: drawerW, maxWidth: '96vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, borderLeft: '1px solid var(--accent-line)', boxShadow: '-24px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' }
         : { width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
+        {asDrawer && (
+          <div onMouseDown={startResize} title="Kéo để đổi độ rộng"
+            style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
+        )}
         <ModalHeader
           kind="account"
           action={isCreate ? 'create' : 'edit'}

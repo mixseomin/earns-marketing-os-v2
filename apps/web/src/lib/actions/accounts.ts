@@ -416,6 +416,13 @@ export async function getAccountForEdit(projectId: string, id: number) {
   return getAccountRow(projectId, id);
 }
 
+// Same, but tenant-level by id (no project scope). For backlink tasks whose account is a
+// shared tenant account not linked to the current project → still openable in the editor.
+export async function getAccountForEditAny(id: number) {
+  const { getAccountRowAny } = await import('@/lib/data');
+  return getAccountRowAny(id);
+}
+
 // ── Bridge: Directus as.on.tc (READ-ONLY import) ─────────────
 
 export interface DirectusAccountSummary {

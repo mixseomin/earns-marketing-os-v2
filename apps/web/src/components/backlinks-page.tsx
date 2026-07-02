@@ -10,6 +10,7 @@ import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
+import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
@@ -403,7 +404,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <Drawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
+      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
 
       {undoRow && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
@@ -425,7 +426,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
+function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
 }) {
@@ -454,6 +455,14 @@ function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, s
   // Save a candidate → remove just it from the grid (hide saved), keep results open for more.
   const pick = async (c: PhotoCandidate, i: number) => { if (!mediaNeed) return; setMbusy(i); setMerr(null); const r = await attachBacklinkMedia(project.id, c.url, mediaNeed.field); setMbusy(null); if (r.ok) { setCands((cs) => (cs ? cs.filter((x) => x.url !== c.url) : cs)); onChange(); } else setMerr(r.error || 'lỗi'); };
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
+  // Open the account editor. Backlink accounts are tenant-shared, so a task's account may
+  // not be in this project's `accounts` list — fetch it by id in that case.
+  const openAcct = async () => {
+    if (task.accountId == null) return;
+    if (acctObj) { onEditAccount(acctObj); return; }
+    const row = await getAccountForEditAny(task.accountId);
+    if (row) onEditAccount(row);
+  };
   const [url, setUrl] = useState(task.siteLiveUrl || '');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [fmt, setFmt] = useState<DraftFmt>('md');
@@ -579,8 +588,8 @@ function Drawer({ task, slug, project, accounts, media, backgrounded, onClose, s
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
         ) : task.accountHandle ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
-            {acctObj
-              ? <span role="button" tabIndex={0} onClick={() => onEditAccount(acctObj)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEditAccount(acctObj); } }}
+            {task.accountId != null
+              ? <span role="button" tabIndex={0} onClick={openAcct} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void openAcct(); } }}
                   title="Mở account" style={{ fontWeight: 700, cursor: 'pointer', color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 2, textDecorationStyle: 'dotted' }}>@{task.accountHandle}</span>
               : <span style={{ fontWeight: 700 }}>@{task.accountHandle}</span>}
             <Tag color={READINESS_META[task.readiness].color}>{READINESS_META[task.readiness].icon} {task.accountStatus}</Tag>

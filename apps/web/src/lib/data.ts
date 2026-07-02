@@ -2,7 +2,7 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades, getBrokerNowMs as dbGetBrokerNowMs } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, getAccountByIdTenant, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades, getBrokerNowMs as dbGetBrokerNowMs } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
@@ -388,6 +388,53 @@ export interface AccountRow {
   unreadAt: string | null;         // account_stats.fetched_at — lần ext cập nhật stats gần nhất
 }
 
+// Shared raw-row → AccountRow mapping (used by both project-scoped list + by-id fetch).
+function mapAccountRow(r: Record<string, unknown>): AccountRow {
+  return {
+    id: r.id as number,
+    projectId: r.projectId as string,
+    platformKey: r.platformKey as string,
+    handle: r.handle as string | null,
+    email: r.email as string | null,
+    status: r.status as AccountRow['status'],
+    authMethod: r.authMethod as AccountRow['authMethod'],
+    has2fa: r.has2fa as boolean,
+    recoveryInfo: r.recoveryInfo as string | null,
+    monthlyCost: r.monthlyCost as number,
+    collectStats: r.collectStats as boolean,
+    blockReason: r.blockReason as string | null,
+    notes: r.notes as string | null,
+    tags: (r.tags as string[]) ?? [],
+    warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
+    hasApiToken: Boolean(r.apiTokenEnc),
+    sortOrder: r.sortOrder as number,
+    shareRole: (r.shareRole as string) ?? 'primary',
+    shareContentRatio: (r.shareContentRatio as number) ?? 100,
+    proxyId: (r.proxyId as number | null) ?? null,
+    browserProfileId: (r.browserProfileId as number | null) ?? null,
+    ownerUserId: (r.ownerUserId as number | null) ?? null,
+    persona: (r.persona as Record<string, string>) ?? {},
+    unreadMessages: ((): number | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.unread_messages; return typeof v === 'number' ? v : null; })(),
+    unreadAt: ((): string | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.fetched_at; return typeof v === 'string' ? v : null; })(),
+  } as AccountRow;
+}
+
+// Full AccountRow by id at tenant level (backlink accounts are shared, not project-scoped).
+// Operator scoping still applies: non-admins only get accounts they own.
+export async function getAccountRowAny(id: number): Promise<AccountRow | null> {
+  return tryDb(
+    async () => {
+      const me = await getEffectiveUser();
+      const r = await getAccountByIdTenant(id);
+      if (!r) return null;
+      if (me && me.role !== 'admin' && ((r as { ownerUserId?: number | null }).ownerUserId ?? null) !== me.id) return null;
+      return mapAccountRow(r as unknown as Record<string, unknown>);
+    },
+    null,
+    'getAccountRowAny',
+  );
+}
+
 export async function listAccounts(projectId: string): Promise<AccountRow[]> {
   return tryDb(
     async () => {
@@ -398,33 +445,7 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
       const filtered = (me && me.role !== 'admin')
         ? rows.filter((r) => (r as { ownerUserId?: number | null }).ownerUserId === me.id)
         : rows;
-      return filtered.map((r) => ({
-        id: r.id,
-        projectId: r.projectId,
-        platformKey: r.platformKey,
-        handle: r.handle,
-        email: r.email,
-        status: r.status,
-        authMethod: r.authMethod,
-        has2fa: r.has2fa,
-        recoveryInfo: r.recoveryInfo,
-        monthlyCost: r.monthlyCost,
-        collectStats: r.collectStats,
-        blockReason: r.blockReason,
-        notes: r.notes,
-        tags: (r.tags as string[]) ?? [],
-        warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
-        hasApiToken: Boolean(r.apiTokenEnc),
-        sortOrder: r.sortOrder,
-        shareRole: (r as { shareRole?: string }).shareRole ?? 'primary',
-        shareContentRatio: (r as { shareContentRatio?: number }).shareContentRatio ?? 100,
-        proxyId: (r as { proxyId?: number | null }).proxyId ?? null,
-        browserProfileId: (r as { browserProfileId?: number | null }).browserProfileId ?? null,
-        ownerUserId: (r as { ownerUserId?: number | null }).ownerUserId ?? null,
-        persona: ((r as { persona?: Record<string, string> }).persona) ?? {},
-        unreadMessages: ((): number | null => { const s = (r as { accountStats?: Record<string, unknown> }).accountStats; const v = s?.unread_messages; return typeof v === 'number' ? v : null; })(),
-        unreadAt: ((): string | null => { const s = (r as { accountStats?: Record<string, unknown> }).accountStats; const v = s?.fetched_at; return typeof v === 'string' ? v : null; })(),
-      }));
+      return filtered.map((r) => mapAccountRow(r as unknown as Record<string, unknown>));
     },
     [],
     'listAccounts',

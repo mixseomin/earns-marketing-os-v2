@@ -208,6 +208,53 @@ export async function listAccountsByProject(projectId: string) {
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 
+// Fetch ONE account by id at tenant level (no project-junction requirement). Backlink
+// placements reuse tenant-shared accounts, so a task's account may not be linked to the
+// current project — this still returns it for the editor. Same shape as listAccountsByProject.
+export async function getAccountByIdTenant(id: number) {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({
+      id: platformAccounts.id,
+      tenantId: platformAccounts.tenantId,
+      projectId: platformAccounts.projectId,
+      platformKey: platformAccounts.platformKey,
+      handle: platformAccounts.handle,
+      email: platformAccounts.email,
+      status: platformAccounts.status,
+      authMethod: platformAccounts.authMethod,
+      has2fa: platformAccounts.has2fa,
+      lastVerifiedAt: platformAccounts.lastVerifiedAt,
+      recoveryInfo: platformAccounts.recoveryInfo,
+      apiTokenEnc: platformAccounts.apiTokenEnc,
+      monthlyCost: platformAccounts.monthlyCost,
+      collectStats: platformAccounts.collectStats,
+      blockReason: platformAccounts.blockReason,
+      notes: platformAccounts.notes,
+      tags: platformAccounts.tags,
+      warmupChecklist: platformAccounts.warmupChecklist,
+      cookieSessionNeeded: platformAccounts.cookieSessionNeeded,
+      lastUsedAt: platformAccounts.lastUsedAt,
+      sortOrder: platformAccounts.sortOrder,
+      environment: platformAccounts.environment,
+      proxyId: platformAccounts.proxyId,
+      browserProfileId: platformAccounts.browserProfileId,
+      ownerUserId: platformAccounts.ownerUserId,
+      persona: platformAccounts.persona,
+      accountStats: platformAccounts.accountStats,
+      createdAt: platformAccounts.createdAt,
+      updatedAt: platformAccounts.updatedAt,
+      shareRole: projectAccounts.role,
+      shareContentRatio: projectAccounts.contentRatio,
+    })
+    .from(platformAccounts)
+    .leftJoin(projectAccounts, eq(projectAccounts.accountId, platformAccounts.id))
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.id, id)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 // Account "mồ côi" — có row nhưng KHÔNG có junction project_accounts nào → vô hình
 // trên mọi dashboard project-scoped. Inbox /unmapped để gán project.
 export async function listUnmappedAccounts() {

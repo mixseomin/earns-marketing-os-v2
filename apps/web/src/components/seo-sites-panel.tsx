@@ -29,7 +29,9 @@ type GscPayload = {
 };
 
 // Domain ẩn khỏi panel (vẫn trong GSC nhưng không hiển thị MOS2).
-const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com']);
+// astrolas.com: chưa launch — gỡ khỏi Bing/IndexNow submission + ẩn row (2026-07-02).
+// GSC property vẫn verified (dùng lại khi launch), chỉ không hiển thị + không submit.
+const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrolas.com']);
 
 // Map domain → MOS2 project id + visual label.
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json

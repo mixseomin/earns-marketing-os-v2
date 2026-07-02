@@ -369,7 +369,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                         </span>
                         {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
                         <span className="lo-ghs" style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
-                        <span className="lo-ghs" style={{ width: 74, textAlign: 'right', fontSize: 9.5, color: 'var(--muted)', opacity: 0.75 }} title="floating P&L of open positions">{g.open > 0 ? `${fmtPnlUsd(g.float)} float` : ''}</span>
+                        <span className="lo-ghs" style={{ width: 78, textAlign: 'right', fontSize: 10, color: g.open > 0 ? (g.float >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') : 'var(--muted)' }} title="floating P&L of open positions">{g.open > 0 ? <>{fmtPnlUsd(g.float)} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>float</span></> : ''}</span>
                         <span className="lo-ghm" style={{ width: 130, textAlign: 'right', fontSize: 10 }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>
                           {g.open > 0 || g.closed > 0
                             ? <><span style={{ color: 'var(--muted)', opacity: 0.6, fontWeight: 400 }}>P&L </span><span style={{ color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(g.net)}</span>{g.closed > 0

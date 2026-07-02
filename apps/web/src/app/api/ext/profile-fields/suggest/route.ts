@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   if (!openai) return errorResponse('AI unavailable', 503);
 
-  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; launchName?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
+  const body = await req.json().catch(() => ({})) as { identityId?: number; projectId?: string; accountId?: number; pageIntent?: string; launchName?: string; platform?: string; fields?: Array<{ key?: string; label?: string; current?: string; maxLen?: number }> };
   const fields = (body.fields || []).filter((f) => f && (f.key || f.label)).slice(0, 24);
   if (!fields.length) return errorResponse('fields required', 400);
   const pageIntent = String(body.pageIntent || '').slice(0, 160);
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
     // Brand THEO TASK account đang được giao (account cá nhân launch nhiều SP) → launchName fallback → home.
     // Logic dùng CHUNG với /project-brand (SAVE) qua resolveProjectViaTask — không lệch fill↔save.
-    const resolved = await resolveProjectViaTask(db0, { accountId: body.accountId, homeProjectId: pid, launchName });
+    const resolved = await resolveProjectViaTask(db0, { accountId: body.accountId, homeProjectId: pid, launchName, platform: (body.platform || '').trim() });
     pid = resolved.projectId; taskCtx = resolved.taskTitle;
     if (pid) {
       const [pr] = await db0.select({ name: projects.name, website: projects.website, oneLiner: projects.oneLiner, bio: projects.bio, hashtags: projects.hashtags, persona: projects.persona })

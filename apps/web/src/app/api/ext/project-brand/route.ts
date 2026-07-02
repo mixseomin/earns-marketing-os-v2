@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const sp = new URL(req.url).searchParams;
-  const { projectId, taskTitle } = await resolveProjectViaTask(db, {
+  const { projectId, taskTitle, via } = await resolveProjectViaTask(db, {
     homeProjectId: (sp.get('projectId') ?? '').trim(),
     accountId: sp.get('accountId') ? Number(sp.get('accountId')) : null,
     launchName: (sp.get('launchName') ?? '').trim(),
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     .select({ id: projects.id, name: projects.name, emoji: projects.emoji, persona: projects.persona, bio: projects.bio, oneLiner: projects.oneLiner, hashtags: projects.hashtags, website: projects.website, contentStrategy: projects.contentStrategy })
     .from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!p) return errorResponse('project not found', 404);
-  return NextResponse.json({ ok: true, project: p, projectId, taskTitle });
+  return NextResponse.json({ ok: true, project: p, projectId, taskTitle, via });
 }
 
 export async function POST(req: Request) {

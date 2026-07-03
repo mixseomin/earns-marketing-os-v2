@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { getDb, humanTasks, platformAccounts, projects } from '@mos2/db';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -84,20 +84,25 @@ export async function resolveProjectViaTask(
 // → set account này vào task luôn. Fallback cũ (platform-scope) giữ khi ko có accountId/projectId.
 export async function listLiveTasks(
   db: Db,
-  opts: { accountId?: number | null; platform?: string; projectId?: string },
-): Promise<{ id: number; title: string; projectId: string; projectName: string; accountId: number | null; platformKey: string | null }[]> {
-  const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name, accountId: humanTasks.accountId, platformKey: humanTasks.platformKey };
-  const map = (rows: Array<{ id: number; title: string | null; projectId: string | null; projectName: string | null; accountId: number | null; platformKey: string | null }>) =>
-    rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '', accountId: r.accountId ?? null, platformKey: r.platformKey ?? null }));
+  opts: { accountId?: number | null; platform?: string; projectId?: string; host?: string },
+): Promise<{ id: number; title: string; projectId: string; projectName: string; accountId: number | null; platformKey: string | null; siteMatch: boolean }[]> {
+  const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name, accountId: humanTasks.accountId, platformKey: humanTasks.platformKey, sourceUrl: sql<string>`${humanTasks.prepPayload}->>'source_url'` };
+  const host = (opts.host || '').replace(/^www\./, '').trim().toLowerCase();
+  const base = host.split('.')[0];
+  const map = (rows: Array<{ id: number; title: string | null; projectId: string | null; projectName: string | null; accountId: number | null; platformKey: string | null; sourceUrl: string | null }>) =>
+    rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '', accountId: r.accountId ?? null, platformKey: r.platformKey ?? null,
+      siteMatch: !!host && ((r.sourceUrl || '').toLowerCase().includes(host) || (!!base && (r.title || '').toLowerCase().includes(base))) }));
   const pid = (opts.projectId || '').trim();
   const ors = [];
   if (opts.accountId) ors.push(eq(humanTasks.accountId, Number(opts.accountId)));            // đã gán account NÀY
   if (pid) ors.push(and(isNull(humanTasks.accountId), eq(humanTasks.projectId, pid)));         // CHƯA gán acc, cùng project
+  if (host) ors.push(and(isNull(humanTasks.accountId), or(                                     // CHƯA gán acc, khớp SITE đang mở (title/source_url) — hiện cả khi chưa pin project
+    sql`${humanTasks.prepPayload}->>'source_url' ILIKE ${'%' + host + '%'}`, ilike(humanTasks.title, '%' + base + '%'))));
   if (ors.length) {
     const rows = await db.select(sel).from(humanTasks)
       .leftJoin(projects, eq(projects.id, humanTasks.projectId))
       .where(and(or(...ors), isNotNull(humanTasks.projectId), inArray(humanTasks.status, LIVE)))
-      .orderBy(desc(humanTasks.updatedAt)).limit(15);
+      .orderBy(desc(humanTasks.updatedAt)).limit(20);
     return map(rows);
   }
   if (opts.platform) {

@@ -118,6 +118,55 @@ const campPill = (on: boolean, status?: string): CSSProperties => ({
   color: on ? 'var(--neon-cyan)' : 'var(--fg-2)', opacity: status === 'paused' ? 0.6 : 1,
 });
 
+// Module-level (STABLE identity) — must NOT be nested in OutreachInner, else every parent
+// re-render remounts it and wipes the half-typed form (the "đổi type mất tên" bug).
+function CampaignForm({ init, projectId, onClose, onSaved }: { init: OutreachCampaign; projectId: string; onClose: () => void; onSaved: () => void }) {
+  const isNew = init.id === 0;
+  const [f, setF] = useState({
+    name: init.name, type: init.type, status: init.status,
+    fromEmail: init.fromEmail || '', fromName: init.fromName || '',
+    dailyCap: init.dailyCap, followupGapDays: init.followupGapDays, maxFollowups: init.maxFollowups,
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const inp: CSSProperties = { fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
+  const lblS: CSSProperties = { fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 4, alignItems: 'center' };
+  const save = async () => {
+    if (!f.name.trim()) { setErr('nhập tên campaign'); return; }
+    setBusy(true); setErr(null);
+    const r = isNew
+      ? await createCampaign({ projectId, name: f.name, type: f.type, fromEmail: f.fromEmail || undefined, fromName: f.fromName || undefined, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups })
+      : await updateCampaign(init.id, projectId, { name: f.name, type: f.type, status: f.status, fromEmail: f.fromEmail, fromName: f.fromName, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups });
+    setBusy(false);
+    if (r.ok) onSaved(); else setErr(r.error || 'lỗi');
+  };
+  return (
+    <div style={{ border: '1px solid var(--bg-3)', borderRadius: 8, background: 'var(--bg-2)', padding: 12, margin: '0 0 12px', display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
+      <div style={{ fontWeight: 700, fontSize: 13 }}>{isNew ? '＋ Campaign mới' : `⚙ Sửa: ${init.name}`}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Tên campaign" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
+        <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} style={inp}>{CAMP_TYPES.map((t) => <option key={t} value={t}>{CAMP_ICON[t]} {t}</option>)}</select>
+        {!isNew && <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} style={inp}>{['active', 'paused', 'done'].map((s) => <option key={s} value={s}>{s}</option>)}</select>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={f.fromName} onChange={(e) => setF({ ...f, fromName: e.target.value })} placeholder="From name (vd Jake Miller)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 150 }} />
+        <input value={f.fromEmail} onChange={(e) => setF({ ...f, fromEmail: e.target.value })} placeholder="From email (Mailjet-verified)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={lblS}>Daily cap <input type="number" value={f.dailyCap} onChange={(e) => setF({ ...f, dailyCap: +e.target.value })} style={{ ...inp, width: 64 }} /></label>
+        <label style={lblS}>Follow-up (ngày) <input type="number" value={f.followupGapDays} onChange={(e) => setF({ ...f, followupGapDays: +e.target.value })} style={{ ...inp, width: 56 }} /></label>
+        <label style={lblS}>Max follow-up <input type="number" value={f.maxFollowups} onChange={(e) => setF({ ...f, maxFollowups: +e.target.value })} style={{ ...inp, width: 56 }} /></label>
+      </div>
+      {f.type !== 'embed' && <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.4 }}>Auto-send Mailjet mới có cho <b>embed</b>. Type khác hiện để nhóm + track; nội dung sinh + gửi tay (vd <b>backlink</b> = Gmail ngay ở tab Backlinks).</div>}
+      {err && <div style={{ fontSize: 11, color: 'var(--bad)' }}>{err}</div>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={save} disabled={busy} style={{ ...btn, fontWeight: 700, color: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)' }}>{busy ? '…' : isNew ? 'Tạo' : 'Lưu'}</button>
+        <button onClick={onClose} style={btn}>Huỷ</button>
+      </div>
+    </div>
+  );
+}
+
 export function OutreachPage(props: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[] }) {
   return (
     <Suspense fallback={null}>
@@ -434,53 +483,6 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns }: { proj
     </div>
   );
 
-  function CampaignForm({ init }: { init: OutreachCampaign }) {
-    const isNew = init.id === 0;
-    const [f, setF] = useState({
-      name: init.name, type: init.type, status: init.status,
-      fromEmail: init.fromEmail || '', fromName: init.fromName || '',
-      dailyCap: init.dailyCap, followupGapDays: init.followupGapDays, maxFollowups: init.maxFollowups,
-    });
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState<string | null>(null);
-    const inp: CSSProperties = { fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
-    const lblS: CSSProperties = { fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 4, alignItems: 'center' };
-    const save = async () => {
-      if (!f.name.trim()) { setErr('nhập tên campaign'); return; }
-      setBusy(true); setErr(null);
-      const r = isNew
-        ? await createCampaign({ projectId, name: f.name, type: f.type, fromEmail: f.fromEmail || undefined, fromName: f.fromName || undefined, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups })
-        : await updateCampaign(init.id, projectId, { name: f.name, type: f.type, status: f.status, fromEmail: f.fromEmail, fromName: f.fromName, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups });
-      setBusy(false);
-      if (r.ok) { setCampEdit(null); router.refresh(); } else setErr(r.error || 'lỗi');
-    };
-    return (
-      <div style={{ border: '1px solid var(--bg-3)', borderRadius: 8, background: 'var(--bg-2)', padding: 12, margin: '0 0 12px', display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{isNew ? '＋ Campaign mới' : `⚙ Sửa: ${init.name}`}</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Tên campaign" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
-          <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} style={inp}>{CAMP_TYPES.map((t) => <option key={t} value={t}>{CAMP_ICON[t]} {t}</option>)}</select>
-          {!isNew && <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} style={inp}>{['active', 'paused', 'done'].map((s) => <option key={s} value={s}>{s}</option>)}</select>}
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input value={f.fromName} onChange={(e) => setF({ ...f, fromName: e.target.value })} placeholder="From name (vd Jake Miller)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 150 }} />
-          <input value={f.fromEmail} onChange={(e) => setF({ ...f, fromEmail: e.target.value })} placeholder="From email (Mailjet-verified)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
-        </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <label style={lblS}>Daily cap <input type="number" value={f.dailyCap} onChange={(e) => setF({ ...f, dailyCap: +e.target.value })} style={{ ...inp, width: 64 }} /></label>
-          <label style={lblS}>Follow-up (ngày) <input type="number" value={f.followupGapDays} onChange={(e) => setF({ ...f, followupGapDays: +e.target.value })} style={{ ...inp, width: 56 }} /></label>
-          <label style={lblS}>Max follow-up <input type="number" value={f.maxFollowups} onChange={(e) => setF({ ...f, maxFollowups: +e.target.value })} style={{ ...inp, width: 56 }} /></label>
-        </div>
-        {f.type !== 'embed' && <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.4 }}>Auto-send Mailjet mới có cho <b>embed</b>. Type khác hiện để nhóm + track; nội dung sinh + gửi tay (vd <b>backlink</b> = Gmail ngay ở tab Backlinks).</div>}
-        {err && <div style={{ fontSize: 11, color: 'var(--bad)' }}>{err}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={save} disabled={busy} style={{ ...btn, fontWeight: 700, color: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)' }}>{busy ? '…' : isNew ? 'Tạo' : 'Lưu'}</button>
-          <button onClick={() => setCampEdit(null)} style={btn}>Huỷ</button>
-        </div>
-      </div>
-    );
-  }
-
   const activeCamp = campId != null ? campaigns.find((c) => c.id === campId) : null;
 
   return (
@@ -500,7 +502,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns }: { proj
         <button onClick={() => setCampEdit({ id: 0, projectId, name: '', type: 'embed', status: 'active', goal: null, fromEmail: null, fromName: null, dailyCap: 15, followupGapDays: 3, maxFollowups: 2, notes: null, stats: { prospects: 0, sent: 0, replied: 0, won: 0 } })} style={{ ...btn, padding: '3px 10px' }}>＋ Campaign</button>
         {activeCamp && <button onClick={() => setCampEdit(activeCamp)} style={{ ...btn, padding: '3px 10px' }} title="Sửa sender / pacing / tạm dừng">⚙ Sửa</button>}
       </div>
-      {campEdit && <CampaignForm init={campEdit} />}
+      {campEdit && <CampaignForm init={campEdit} projectId={projectId} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
 
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
         Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects + follow-ups <b>auto-send on a daily cron</b> (Mailjet, hello@militarycalc.com);{' '}

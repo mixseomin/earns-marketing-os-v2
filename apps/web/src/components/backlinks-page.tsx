@@ -589,16 +589,20 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // Build steps that call for written content → one-tap chips to prefill "what to generate".
   const writableSteps = useMemo(() => (task.instructions || '').split('\n').map(stripMarker).filter(Boolean)
     .filter((s) => /viết|write|comment|post|reply|answer|bio|mô tả|describe|caption|tiêu đề|title|pin|thread|explain|giải thích|signature|chữ ký|trả lời|đăng|bài/i.test(s)), [task.instructions]);
+  const aiCtx = { projectName: project.name, website: project.website || '', oneLiner: project.oneLiner || '', bio: project.bio || '', platformLabel: task.platformLabel || '', mechanism: task.mechanism || '', instructions: task.instructions || '' };
+  const runGen = async (engine: 'openai' | 'claude', kind: string) => {
+    setAiBusy(engine); setAiErr(null);
+    const r = await generateAiContent({ taskId: task.id, projectId: project.id, site: slug, kind, extra: aiExtra.trim(), engine, ctx: aiCtx });
+    setAiBusy('');
+    if (r.ok) { reloadAi(); return true; }
+    setAiErr(r.error || 'lỗi'); return false;
+  };
   const doGen = async (engine: 'openai' | 'claude') => {
     if (!aiKind.trim()) { setAiErr('nhập cần sinh gì'); return; }
-    setAiBusy(engine); setAiErr(null);
-    const r = await generateAiContent({
-      taskId: task.id, projectId: project.id, site: slug, kind: aiKind.trim(), extra: aiExtra.trim(), engine,
-      ctx: { projectName: project.name, website: project.website || '', oneLiner: project.oneLiner || '', bio: project.bio || '', platformLabel: task.platformLabel || '', mechanism: task.mechanism || '', instructions: task.instructions || '' },
-    });
-    setAiBusy('');
-    if (r.ok) { setAiKind(''); setAiExtra(''); reloadAi(); } else setAiErr(r.error || 'lỗi');
+    if (await runGen(engine, aiKind.trim())) { setAiKind(''); setAiExtra(''); }
   };
+  // Email-pitch tasks: one tap = generate the outreach email directly (kind is fixed), no prefill step.
+  const genEmail = (engine: 'openai' | 'claude') => runGen(engine, emailKind);
   const delAi = async (id: number) => { await deleteAiContent(id); reloadAi(); };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
   const flash = (key: string) => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); };
@@ -765,13 +769,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>{isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'}</div>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{isEmailPitch
-            ? 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm chip ✉️ để điền sẵn yêu cầu, rồi ✨ OpenAI (ngay) / 🧠 Claude (queue) sinh email — subject + nội dung, English. Kết quả hiện ngay dưới, bấm Copy rồi gửi.'
+            ? 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm ✉️ là AI sinh luôn email (subject + nội dung, English) — kết quả hiện ngay dưới, bấm Copy rồi gửi. Cần bản khác thì gõ yêu cầu ở ô dưới.'
             : 'Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.'}</div>
           {isEmailPitch && (
-            <button type="button" onClick={() => setAiKind(emailKind)} title="Điền sẵn yêu cầu sinh email pitch"
-              style={{ ...btn, alignSelf: 'flex-start', fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
-              ✉️ Email pitch cho {task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'chủ trang')}
-            </button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" onClick={() => genEmail('openai')} disabled={!!aiBusy} title="Sinh email pitch ngay (OpenAI)"
+                style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : `✉️ Sinh email cho ${task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'chủ trang')}`}</button>
+              <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
+                style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
+            </div>
           )}
           {writableSteps.length > 0 && (
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

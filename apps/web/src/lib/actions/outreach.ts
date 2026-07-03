@@ -26,6 +26,7 @@ export type OutreachProspect = {
   followupCount: number;
   snoozeUntil: string | null;
   templateKey: string | null;
+  campaignId: number | null;
   notes: string | null;
 };
 
@@ -63,6 +64,7 @@ export async function listOutreachProspects(projectId: string): Promise<Outreach
       followupCount: Number(r.followupCount),
       snoozeUntil: iso(r.snoozeUntil),
       templateKey: r.templateKey,
+      campaignId: r.campaignId != null ? Number(r.campaignId) : null,
       notes: r.notes,
     }));
   } catch {

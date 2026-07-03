@@ -2094,6 +2094,7 @@ export const outreachProspects = pgTable(
     followupCount: integer('followup_count').notNull().default(0),
     snoozeUntil: timestamp('snooze_until', { withTimezone: true }),
     templateKey: text('template_key'),
+    campaignId: bigint('campaign_id', { mode: 'number' }),   // → outreach_campaigns.id
     notes: text('notes'),
     owner: text('owner').notNull().default('me'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -2105,8 +2106,34 @@ export const outreachProspects = pgTable(
     index('outreach_prospects_status_idx').on(t.status),
     index('outreach_prospects_followup_idx').on(t.projectId, t.nextFollowupAt),
     index('outreach_prospects_etld1_idx').on(t.websiteEtld1),
+    index('outreach_prospects_campaign_idx').on(t.campaignId),
   ],
 );
 
+// Outreach campaigns — group prospects by outreach GOAL (embed | backlink | sales | recruit).
+// Each campaign carries its own sender identity + pacing; a prospect belongs to one campaign.
+// Decision: earns-strategy 2026-07-04-outreach-multi-campaign-platform.
+export const outreachCampaigns = pgTable(
+  'outreach_campaigns',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    type: text('type').notNull().default('embed'),         // embed|backlink|sales|recruit|custom
+    status: text('status').notNull().default('active'),     // active|paused|done
+    goal: text('goal'),
+    fromEmail: text('from_email'),
+    fromName: text('from_name'),
+    dailyCap: integer('daily_cap').notNull().default(15),
+    followupGapDays: integer('followup_gap_days').notNull().default(3),
+    maxFollowups: integer('max_followups').notNull().default(2),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('outreach_campaigns_project_idx').on(t.projectId)],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachCampaigns };

@@ -23,10 +23,18 @@ export async function sendProspectEmail(
   if (!key || !secret) return { ok: false, error: 'Mailjet not configured on server' };
 
   const rows = await db.execute(sql`
-    SELECT agent_name, base, email, status, source FROM outreach_prospects
-    WHERE id = ${id} AND project_id = ${projectId} LIMIT 1`);
+    SELECT p.agent_name, p.base, p.email, p.status, p.source,
+           c.from_email AS c_from_email, c.from_name AS c_from_name
+    FROM outreach_prospects p
+    LEFT JOIN outreach_campaigns c ON c.id = p.campaign_id
+    WHERE p.id = ${id} AND p.project_id = ${projectId} LIMIT 1`);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
   if (!r) return { ok: false, error: 'Prospect not found' };
+
+  // Sender identity comes from the campaign (from_email/from_name set via the identity picker);
+  // fall back to the env default. NOTE: Mailjet only sends from a VERIFIED sender/domain.
+  const fromEmail = (r.c_from_email && String(r.c_from_email)) || FROM_EMAIL;
+  const fromName = (r.c_from_name && String(r.c_from_name)) || FROM_NAME;
 
   const email = r.email ? String(r.email) : '';
   if (!email) return { ok: false, error: 'Form-only prospect — no email to auto-send' };
@@ -57,9 +65,9 @@ export async function sendProspectEmail(
       body: JSON.stringify({
         Messages: [
           {
-            From: { Email: FROM_EMAIL, Name: FROM_NAME },
+            From: { Email: fromEmail, Name: fromName },
             To: [{ Email: email, Name: String(r.agent_name ?? '') }],
-            ReplyTo: { Email: FROM_EMAIL, Name: FROM_NAME },
+            ReplyTo: { Email: fromEmail, Name: fromName },
             Subject: subject,
             TextPart: body,
           },

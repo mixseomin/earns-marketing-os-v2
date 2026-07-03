@@ -5,9 +5,10 @@
 // password lưu pgcrypto qua encryptValue() — chỉ reveal khi user chủ động bấm.
 
 import { revalidatePath } from 'next/cache';
-import { desc, eq, or, inArray } from 'drizzle-orm';
+import { desc, eq, or, inArray, sql } from 'drizzle-orm';
 import { getDb, identities, identityProjects } from '@mos2/db';
 import { encryptValue, decryptValue } from '../crypto';
+import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 
 export type IdentityKind = 'brand' | 'seeding';
 
@@ -113,6 +114,51 @@ export async function createIdentity(projectId: string | null, input: IdentityIn
     revalidatePath(`/p/${projectId}/identities`);
   }
   return row.id;
+}
+
+// AI-generate a persona (name/handle/email/bio) from project context and SAVE it as an identity,
+// so a campaign sender picker can offer "＋ Tạo mới (AI)". Mirrors /api/ext/identities/generate.
+export async function generateIdentityAI(projectId: string, kind: IdentityKind = 'brand', hint?: string): Promise<{ ok: boolean; identity?: IdentityRow; error?: string }> {
+  if (!aiEnabled()) return { ok: false, error: 'AI chưa cấu hình (OPENAI_API_KEY)' };
+  const ai = getOpenAI();
+  if (!ai) return { ok: false, error: 'AI client unavailable' };
+  const db = ensureDb();
+  const pr = await db.execute(sql`SELECT name, bio, one_liner, persona, website FROM projects WHERE id = ${projectId} LIMIT 1`);
+  const proj = ((pr as unknown as Array<Record<string, unknown>>)[0]) || {};
+  const sys = `You generate ONE realistic online persona for ${kind === 'brand' ? 'an OFFICIAL brand account' : 'a community seeding account (an anonymous-feeling regular member, NOT obviously promotional)'}. Output STRICT JSON only.`;
+  const user = `Project: ${proj.name ?? ''} — ${proj.one_liner ?? ''}
+Brand bio: ${proj.bio ?? ''}
+Brand persona/voice: ${proj.persona ?? ''}
+Kind: ${kind}${hint ? `\nExtra hint: ${hint}` : ''}
+
+Generate a persona to send outreach emails as. JSON shape EXACTLY:
+{
+  "name": "<short preset name, e.g. 'Founder Persona'>",
+  "handleBase": "<username, lowercase, letters/numbers/underscore, 4-16 chars>",
+  "email": "<plausible email matching handle>",
+  "displayName": "<real-sounding full name for the email 'From'>",
+  "bio": "<short bio 1-2 sentences, English>",
+  "persona": { "name_first": "", "name_last": "", "gender": "", "country": "", "city": "", "interests": ["",""], "backstory": "<2-3 sentence backstory>" }
+}
+${kind === 'seeding' ? 'Anonymous regular member vibe. Do NOT mention the brand.' : 'Professional brand representative.'}`;
+  try {
+    const completion = await ai.chat.completions.create({
+      model: DEFAULT_MODEL, temperature: 0.9, response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+    });
+    let out: Record<string, unknown> = {};
+    try { out = JSON.parse(completion.choices[0]?.message?.content || '{}'); } catch { /* ignore */ }
+    const id = await createIdentity(projectId, {
+      name: String(out.name || 'AI persona'), kind,
+      handleBase: String(out.handleBase || ''), email: String(out.email || ''),
+      displayName: String(out.displayName || out.name || ''), bio: String(out.bio || ''),
+      persona: (out.persona as Record<string, unknown>) || {},
+    });
+    const identity = await getIdentity(id);
+    return { ok: true, identity: identity ?? undefined };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 export async function updateIdentity(id: number, input: IdentityInput): Promise<void> {

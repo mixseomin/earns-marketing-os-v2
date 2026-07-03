@@ -13,6 +13,7 @@ import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted,
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 import { createCampaign, updateCampaign, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
+import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
@@ -120,17 +121,38 @@ const campPill = (on: boolean, status?: string): CSSProperties => ({
 
 // Module-level (STABLE identity) — must NOT be nested in OutreachInner, else every parent
 // re-render remounts it and wipes the half-typed form (the "đổi type mất tên" bug).
-function CampaignForm({ init, projectId, onClose, onSaved }: { init: OutreachCampaign; projectId: string; onClose: () => void; onSaved: () => void }) {
+function CampaignForm({ init, projectId, identities, onClose, onSaved }: { init: OutreachCampaign; projectId: string; identities: IdentityRow[]; onClose: () => void; onSaved: () => void }) {
   const isNew = init.id === 0;
   const [f, setF] = useState({
     name: init.name, type: init.type, status: init.status,
     fromEmail: init.fromEmail || '', fromName: init.fromName || '',
     dailyCap: init.dailyCap, followupGapDays: init.followupGapDays, maxFollowups: init.maxFollowups,
+    // '' = chưa chọn, 'custom' = nhập tay, else = identity id
+    identitySel: identities.find((i) => i.email && i.email === (init.fromEmail || ''))?.id.toString() ?? (init.fromEmail ? 'custom' : ''),
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [extra, setExtra] = useState<IdentityRow[]>([]);   // AI-created identities (chưa qua refresh)
+  const idOptions = [...extra, ...identities];
   const inp: CSSProperties = { fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
   const lblS: CSSProperties = { fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 4, alignItems: 'center' };
+  const pickIdentity = (val: string) => {
+    if (val === '') { setF((c) => ({ ...c, identitySel: '', fromName: '', fromEmail: '' })); return; }
+    if (val === 'custom') { setF((c) => ({ ...c, identitySel: 'custom' })); return; }
+    const i = idOptions.find((x) => x.id.toString() === val);
+    if (i) setF((c) => ({ ...c, identitySel: val, fromName: i.displayName || i.name, fromEmail: i.email }));
+  };
+  const aiCreate = async () => {
+    setAiBusy(true); setErr(null);
+    const r = await generateIdentityAI(projectId, 'brand');
+    setAiBusy(false);
+    if (r.ok && r.identity) {
+      const idn = r.identity;
+      setExtra((e) => [idn, ...e]);
+      setF((c) => ({ ...c, identitySel: idn.id.toString(), fromName: idn.displayName || idn.name, fromEmail: idn.email }));
+    } else setErr(r.error || 'AI lỗi');
+  };
   const save = async () => {
     if (!f.name.trim()) { setErr('nhập tên campaign'); return; }
     setBusy(true); setErr(null);
@@ -148,9 +170,25 @@ function CampaignForm({ init, projectId, onClose, onSaved }: { init: OutreachCam
         <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} style={inp}>{CAMP_TYPES.map((t) => <option key={t} value={t}>{CAMP_ICON[t]} {t}</option>)}</select>
         {!isNew && <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} style={inp}>{['active', 'paused', 'done'].map((s) => <option key={s} value={s}>{s}</option>)}</select>}
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <input value={f.fromName} onChange={(e) => setF({ ...f, fromName: e.target.value })} placeholder="From name (vd Jake Miller)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 150 }} />
-        <input value={f.fromEmail} onChange={(e) => setF({ ...f, fromEmail: e.target.value })} placeholder="From email (Mailjet-verified)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 52 }}>Gửi bằng</span>
+          <select value={f.identitySel} onChange={(e) => pickIdentity(e.target.value)} style={{ ...inp, flex: 1, minWidth: 220 }}>
+            <option value="">— Chọn identity/persona —</option>
+            {idOptions.map((i) => <option key={i.id} value={i.id.toString()}>{i.kind === 'brand' ? '🏢' : '🌱'} {i.displayName || i.name}{i.email ? ` · ${i.email}` : ' · (chưa có email)'}</option>)}
+            <option value="custom">✎ Nhập tay…</option>
+          </select>
+          <button type="button" onClick={aiCreate} disabled={aiBusy} title="AI sinh persona (tên + email) từ context project rồi lưu thành identity, chọn luôn" style={{ ...btn, fontWeight: 700, color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)' }}>{aiBusy ? '✨ đang tạo…' : '✨ Tạo AI'}</button>
+        </div>
+        {f.identitySel === 'custom' && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input value={f.fromName} onChange={(e) => setF({ ...f, fromName: e.target.value })} placeholder="From name" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 150 }} />
+            <input value={f.fromEmail} onChange={(e) => setF({ ...f, fromEmail: e.target.value })} placeholder="From email (Mailjet-verified)" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
+          </div>
+        )}
+        {f.identitySel && f.identitySel !== 'custom' && (
+          <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Gửi từ: <b>{f.fromName || '—'}</b> &lt;{f.fromEmail || 'chưa có email'}&gt;{!f.fromEmail && <span style={{ color: 'var(--neon-amber)' }}> · identity chưa có email — thêm ở trang Identities</span>}</div>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <label style={lblS}>Daily cap <input type="number" value={f.dailyCap} onChange={(e) => setF({ ...f, dailyCap: +e.target.value })} style={{ ...inp, width: 64 }} /></label>
@@ -167,7 +205,7 @@ function CampaignForm({ init, projectId, onClose, onSaved }: { init: OutreachCam
   );
 }
 
-export function OutreachPage(props: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[] }) {
+export function OutreachPage(props: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[] }) {
   return (
     <Suspense fallback={null}>
       <OutreachInner {...props} />
@@ -175,7 +213,7 @@ export function OutreachPage(props: { projectId: string; prospects: OutreachPros
   );
 }
 
-function OutreachInner({ projectId, prospects: allProspects, campaigns }: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[] }) {
+function OutreachInner({ projectId, prospects: allProspects, campaigns, identities }: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[] }) {
   const sp = useSearchParams();
   const router = useRouter();
   const urlTab = sp.get('tab');
@@ -502,7 +540,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns }: { proj
         <button onClick={() => setCampEdit({ id: 0, projectId, name: '', type: 'embed', status: 'active', goal: null, fromEmail: null, fromName: null, dailyCap: 15, followupGapDays: 3, maxFollowups: 2, notes: null, stats: { prospects: 0, sent: 0, replied: 0, won: 0 } })} style={{ ...btn, padding: '3px 10px' }}>＋ Campaign</button>
         {activeCamp && <button onClick={() => setCampEdit(activeCamp)} style={{ ...btn, padding: '3px 10px' }} title="Sửa sender / pacing / tạm dừng">⚙ Sửa</button>}
       </div>
-      {campEdit && <CampaignForm init={campEdit} projectId={projectId} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
+      {campEdit && <CampaignForm init={campEdit} projectId={projectId} identities={identities} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
 
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
         Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects + follow-ups <b>auto-send on a daily cron</b> (Mailjet, hello@militarycalc.com);{' '}

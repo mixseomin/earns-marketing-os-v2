@@ -525,6 +525,12 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
   const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
+  // Task shape drives what the drawer shows (surface mirrors the real work order):
+  //  - email-pitch (resource pages / LibGuides / editorial): the work IS writing an email → lead with an email generator.
+  //  - "Built with"/stack chips only matter for shoutout/directory/launch listings — noise elsewhere.
+  const isEmailPitch = /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
+  const emailKind = `Outreach email pitching ${project.name} to the owner of ${task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page')}, asking them to add our free tool to their resource list`;
+  const showStack = /built with|shoutout|stack|listing|directory|launch|submit (your|the) (tool|site|app)/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
   const [dbusy, setDbusy] = useState(false);
   const [derr, setDerr] = useState<string | null>(null);
   // Split a compound placement (e.g. "profile + blog post") into two independently-tracked
@@ -707,7 +713,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         </>)}
 
         {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings) +
-            one-tap AI generate from the project context so it's not manual per project. */}
+            one-tap AI generate. Only for shoutout/directory/launch tasks — noise for email/forum/Q&A. */}
+        {showStack && (<>
         <div style={{ ...lbl, marginTop: 16 }}>🧩 Built with <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· stack · bấm copy từng tool</span></div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           {stackItems.map((s, i) => (
@@ -719,6 +726,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             style={{ ...btn, padding: '2px 9px', color: 'var(--accent)', fontWeight: 700 }}>{stackBusy ? '…' : stackItems.length ? '↻ Gợi ý lại' : '✨ Gợi ý stack (AI)'}</button>
         </div>
         {stackItems.length === 0 && !stackBusy && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Chưa có stack — bấm ✨ để AI đề xuất, hoặc điền ở Settings. Dùng cho PH shoutouts / &ldquo;Built with&rdquo; listings.</div>}
+        </>)}
 
         {/* Post draft — ONE block: empty → generate; generated → show + regen + format/link toggles. */}
         {(needsPost || task.draft) && (draftFmts ? (<>
@@ -754,9 +762,17 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         </>))}
 
-        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>🧠 Nội dung AI</div>
+        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>{isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'}</div>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{isEmailPitch
+            ? 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm chip ✉️ để điền sẵn yêu cầu, rồi ✨ OpenAI (ngay) / 🧠 Claude (queue) sinh email — subject + nội dung, English. Kết quả hiện ngay dưới, bấm Copy rồi gửi.'
+            : 'Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.'}</div>
+          {isEmailPitch && (
+            <button type="button" onClick={() => setAiKind(emailKind)} title="Điền sẵn yêu cầu sinh email pitch"
+              style={{ ...btn, alignSelf: 'flex-start', fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+              ✉️ Email pitch cho {task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'chủ trang')}
+            </button>
+          )}
           {writableSteps.length > 0 && (
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {writableSteps.map((s, i) => (

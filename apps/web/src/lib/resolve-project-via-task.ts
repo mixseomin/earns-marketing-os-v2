@@ -76,3 +76,28 @@ export async function resolveProjectViaTask(
   const useHome = brandAnchored ? home : '';
   return { projectId: useHome, taskTitle: '', via: useHome ? 'home' : (accountType ? 'need-project' : 'none'), accountType };
 }
+
+// Danh sách LIVE task ứng viên (cho task-picker ở pill 🤖): task của account, else của platform.
+// Pick 1 task = ghim project của nó. Trả kèm projectName để hiện.
+export async function listLiveTasks(
+  db: Db,
+  opts: { accountId?: number | null; platform?: string },
+): Promise<{ id: number; title: string; projectId: string; projectName: string }[]> {
+  const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name };
+  if (opts.accountId) {
+    const rows = await db.select(sel).from(humanTasks)
+      .leftJoin(projects, eq(projects.id, humanTasks.projectId))
+      .where(and(eq(humanTasks.accountId, Number(opts.accountId)), isNotNull(humanTasks.projectId), inArray(humanTasks.status, LIVE)))
+      .orderBy(desc(humanTasks.updatedAt)).limit(12);
+    return rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '' }));
+  }
+  if (opts.platform) {
+    const rows = await db.select(sel).from(humanTasks)
+      .innerJoin(platformAccounts, eq(humanTasks.accountId, platformAccounts.id))
+      .leftJoin(projects, eq(projects.id, humanTasks.projectId))
+      .where(and(eq(platformAccounts.platformKey, opts.platform), eq(platformAccounts.tenantId, 'self'), isNotNull(humanTasks.projectId), inArray(humanTasks.status, LIVE)))
+      .orderBy(desc(humanTasks.updatedAt)).limit(12);
+    return rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '' }));
+  }
+  return [];
+}

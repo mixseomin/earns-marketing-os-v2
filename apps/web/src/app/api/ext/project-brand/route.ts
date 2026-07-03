@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getDb, projects } from '@mos2/db';
 import { checkAuth } from '../_auth';
 import { errorResponse } from '@/lib/ext-route';
-import { resolveProjectViaTask } from '@/lib/resolve-project-via-task';
+import { resolveProjectViaTask, listLiveTasks } from '@/lib/resolve-project-via-task';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,20 +17,24 @@ export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const sp = new URL(req.url).searchParams;
+  const accountId = sp.get('accountId') ? Number(sp.get('accountId')) : null;
+  const platform = (sp.get('platform') ?? '').trim();
   const { projectId, taskTitle, via, accountType } = await resolveProjectViaTask(db, {
     homeProjectId: (sp.get('projectId') ?? '').trim(),
-    accountId: sp.get('accountId') ? Number(sp.get('accountId')) : null,
+    accountId,
     launchName: (sp.get('launchName') ?? '').trim(),
-    platform: (sp.get('platform') ?? '').trim(),
+    platform,
     pinnedProjectId: (sp.get('pinnedProjectId') ?? '').trim(),
   });
+  // Task ứng viên cho task-picker ở pill (pick = ghim project của task).
+  const tasks = await listLiveTasks(db, { accountId, platform });
   // personal/seeding chưa pin/không task → không neo brand: trả preview để ext hiện "cần chọn project" (ko 400).
-  if (!projectId) return NextResponse.json({ ok: true, project: null, projectId: '', taskTitle, via, accountType });
+  if (!projectId) return NextResponse.json({ ok: true, project: null, projectId: '', taskTitle, via, accountType, tasks });
   const [p] = await db
     .select({ id: projects.id, name: projects.name, emoji: projects.emoji, persona: projects.persona, bio: projects.bio, oneLiner: projects.oneLiner, hashtags: projects.hashtags, website: projects.website, contentStrategy: projects.contentStrategy })
     .from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!p) return errorResponse('project not found', 404);
-  return NextResponse.json({ ok: true, project: p, projectId, taskTitle, via, accountType });
+  return NextResponse.json({ ok: true, project: p, projectId, taskTitle, via, accountType, tasks });
 }
 
 export async function POST(req: Request) {

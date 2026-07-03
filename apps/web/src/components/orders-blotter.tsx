@@ -315,7 +315,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
       const rows = sortRows(disp[name] ?? []);
       const openR = rows.filter((r) => r.isOpen);
       const pc = closedBy[name] ?? [];
-      return { name, rows, closedRows: sortRows(pc), open: openR.length, float: openR.reduce((a, r) => a + usdOf(r), 0), closed: pc.length, net: pc.reduce((a, r) => a + usdOf(r), 0) };
+      return { name, rows, closedRows: sortRows(pc), open: openR.length, float: openR.reduce((a, r) => a + usdOf(r), 0), notl: openR.reduce((a, r) => a + (r.notional ?? 0), 0), closed: pc.length, net: pc.reduce((a, r) => a + usdOf(r), 0) };
     }).sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible, periodClosed, forward]);
 
@@ -387,6 +387,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                             style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
                         </span>
                         {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
+                        <span className="lo-ghs" style={{ width: 84, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="capital deployed = sum of open-position notional ($) — how much money this sleeve is putting to work right now">{g.notl > 0 ? <>🏦 <b style={{ fontWeight: 700, color: 'var(--fg)' }}>{fmtUsd(g.notl)}</b></> : ''}</span>
                         <span className="lo-ghs" style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
                         <span className="lo-ghs" style={{ width: 78, textAlign: 'right', fontSize: 10, color: g.open > 0 ? (g.float >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') : 'var(--muted)' }} title="floating P&L of open positions">{g.open > 0 ? <>{fmtPnlUsd(g.float)} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>float</span></> : ''}</span>
                         <span className="lo-ghm" style={{ width: 130, textAlign: 'right', fontSize: 10 }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>

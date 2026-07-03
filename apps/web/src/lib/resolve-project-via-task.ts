@@ -14,7 +14,7 @@ const LIVE = ['pending', 'claimed', 'in_progress'];   // task còn "To-do / đan
 // KHÔNG chọn project (Auto) = bỏ nhánh 0 → rơi vào task LIVE (1→3). Dùng CHUNG fill (suggest) + save (project-brand).
 export async function resolveProjectViaTask(
   db: Db,
-  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string },
+  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean },
 ): Promise<{ projectId: string; taskTitle: string; via: string; accountType: string }> {
   const home = (opts.homeProjectId || '').trim();
   const pinned = (opts.pinnedProjectId || '').trim();
@@ -29,6 +29,14 @@ export async function resolveProjectViaTask(
     accountType = a?.t || '';
   }
   const brandAnchored = accountType === '' || accountType === 'brand';
+
+  // -1) LAUNCH page: tên SP trên FORM = ground truth. 1 host launch (TinyLaunch/BetaList…) submit NHIỀU SP →
+  // pin per-host dễ dính SP CŨ (bug: launch MilitaryCalc nhưng pin VisaGPS còn dính → điền visagps.com).
+  // launchName khớp 1 project → THẮNG pin. Non-launch (social profile) giữ pin-thắng như cũ (ko truyền launchPage).
+  if (opts.launchPage && opts.launchName) {
+    const [pm] = await db.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${opts.launchName})`).limit(1);
+    if (pm?.id && (!pinned || pm.id !== pinned)) return { projectId: pm.id, taskTitle: '', via: 'launch-name', accountType };
+  }
 
   // 0) PINNED (user chọn project) → thắng tuyệt đối. Prefer LIVE task thuộc project đó cho mission.
   if (pinned) {

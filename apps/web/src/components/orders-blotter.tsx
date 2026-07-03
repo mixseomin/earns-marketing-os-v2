@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StrategyTradeRow, StrategyTestRow, StrategyForwardRow } from '@/lib/data';
 
@@ -194,11 +194,22 @@ function MetaPill({ label, value, color }: { label: string; value: React.ReactNo
 function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: number; y: number }) {
   const t = meta.test; const fwd = meta.fwd;
   const W = 340;
-  const left = Math.min(x + 16, (typeof window !== 'undefined' ? window.innerWidth : 1200) - W - 12);
-  const top = Math.min(y + 14, (typeof window !== 'undefined' ? window.innerHeight : 800) - 440);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const clampLeft = (vw: number) => Math.max(12, Math.min(x + 16, vw - W - 12));
+  const [pos, setPos] = useState(() => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    return { left: clampLeft(vw), top: Math.max(12, Math.min(y + 14, vh - 460)) };   // 460 = first-paint estimate; corrected below
+  });
+  // measure real card height, then clamp so the WHOLE card stays on screen (prev hard-coded 440 cut the footer off)
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    const h = el.offsetHeight;
+    setPos({ left: clampLeft(window.innerWidth), top: Math.max(12, Math.min(y + 14, window.innerHeight - h - 12)) });
+  }, [x, y, name]);   // eslint-disable-line react-hooks/exhaustive-deps
   const cagr = t ? cagrPct(t) : NaN;
   return (
-    <div style={{ position: 'fixed', left, top, width: W, zIndex: 100, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 14, pointerEvents: 'none' }}>
+    <div ref={ref} style={{ position: 'fixed', left: pos.left, top: pos.top, width: W, maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', zIndex: 100, background: 'var(--panel,#0e1420)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 14, pointerEvents: 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13.5, fontWeight: 800 }}>{t?.name ?? name}</span>
         {t?.verdict ? <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px', borderRadius: 9, color: '#fff', background: VERDICT_COLOR[t.verdict] ?? '#7a8699' }}>{t.verdict}</span> : null}

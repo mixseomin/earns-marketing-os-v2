@@ -26,8 +26,8 @@ export async function GET(req: Request) {
     platform,
     pinnedProjectId: (sp.get('pinnedProjectId') ?? '').trim(),
   });
-  // Task ứng viên cho task-picker ở pill (pick = ghim project của task).
-  const tasks = await listLiveTasks(db, { accountId, platform });
+  // Task ứng viên cho task-picker ở pill (pick = ghim project của task; task chưa gán acc → gán acc này).
+  const tasks = await listLiveTasks(db, { accountId, platform, projectId: projectId || (sp.get('pinnedProjectId') ?? '').trim() || (sp.get('projectId') ?? '').trim() });
   // personal/seeding chưa pin/không task → không neo brand: trả preview để ext hiện "cần chọn project" (ko 400).
   if (!projectId) return NextResponse.json({ ok: true, project: null, projectId: '', taskTitle, via, accountType, tasks });
   const [p] = await db

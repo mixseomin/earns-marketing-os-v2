@@ -16,7 +16,7 @@ import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPr
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
-import { READINESS_META, type ReadinessBucket } from '@/lib/backlink-account-type';
+import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
 import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
@@ -191,8 +191,9 @@ function Steps({ text }: { text: string }) {
 function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.MouseEvent) => void }) {
   const m = READINESS_META[task.readiness];
   const showHandle = (task.readiness === 'ready' || task.readiness === 'warming' || task.readiness === 'setup') && task.accountHandle;
-  const label = showHandle ? task.accountHandle! : task.readiness === 'missing' ? 'need acct' : task.readiness === 'no-account' ? 'no acct' : m.label;
-  const title = `${m.label}${task.platformLabel ? ' · ' + task.platformLabel : ''}${task.accountHandle ? ' · @' + task.accountHandle : ''}${task.accountStatus ? ' (' + task.accountStatus + ')' : ''}`;
+  // On "need acct", show which P/B/S type fits the source so it's actionable at a glance.
+  const label = showHandle ? task.accountHandle! : task.readiness === 'missing' ? `need acct ${ACCOUNT_ROLE_META[task.recommendedRole].badge}` : task.readiness === 'no-account' ? 'no acct' : m.label;
+  const title = `${m.label}${task.platformLabel ? ' · ' + task.platformLabel : ''}${task.readiness === 'missing' ? ` · nên tạo ${ACCOUNT_ROLE_META[task.recommendedRole].label}: ${ACCOUNT_ROLE_META[task.recommendedRole].why}` : ''}${task.accountHandle ? ' · @' + task.accountHandle : ''}${task.accountStatus ? ' (' + task.accountStatus + ')' : ''}`;
   return (
     <span role="button" onClick={onClick} title={title}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', maxWidth: 132,
@@ -250,9 +251,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
-  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number } | null>(null);
+  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
   // assignToTask: pin the newly-created account to this backlink task on create.
-  const openCreateAccount = (platformKey: string, assignToTask?: number) => setAcctModal({ account: null, platformKey, assignToTask });
+  const openCreateAccount = (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => setAcctModal({ account: null, platformKey, assignToTask, recommendedRole });
   const openEditAccount = (account: AccountRow) => setAcctModal({ account });
   const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
   const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };
@@ -264,8 +265,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   // platforms still missing an account (deep-link to create each).
   const prep = useMemo(() => {
     const c: Record<ReadinessBucket, number> = { ready: 0, warming: 0, setup: 0, missing: 0, locked: 0, 'no-account': 0 };
-    const missing = new Map<string, string>();
-    for (const t of tasks) { c[t.readiness]++; if (t.readiness === 'missing' && t.platformKey) missing.set(t.platformKey, t.platformLabel || t.platformKey); }
+    const missing = new Map<string, { label: string; role: AccountRole }>();
+    for (const t of tasks) { c[t.readiness]++; if (t.readiness === 'missing' && t.platformKey && !missing.has(t.platformKey)) missing.set(t.platformKey, { label: t.platformLabel || t.platformKey, role: t.recommendedRole }); }
     return { c, missing: [...missing.entries()] };
   }, [tasks]);
 
@@ -385,8 +386,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {readyFilter === 'missing' && prep.missing.length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ color: 'var(--fg-4)', fontSize: 9.5 }}>Tạo nhanh:</span>
-            {prep.missing.map(([k, label]) => (
-              <button key={k} type="button" onClick={() => openCreateAccount(k)} style={{ ...btn, color: 'var(--accent)' }}>➕ {label}</button>
+            {prep.missing.map(([k, { label, role }]) => (
+              <button key={k} type="button" onClick={() => openCreateAccount(k, undefined, role)} title={`Tạo account — nên loại ${ACCOUNT_ROLE_META[role].label}: ${ACCOUNT_ROLE_META[role].why}`} style={{ ...btn, color: 'var(--accent)', display: 'inline-flex', gap: 5, alignItems: 'center' }}>➕ {label} <span style={{ fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', color: ACCOUNT_ROLE_META[role].color, border: `1px solid ${ACCOUNT_ROLE_META[role].color}`, borderRadius: 3, padding: '0 4px' }}>{ACCOUNT_ROLE_META[role].badge}</span></button>
             ))}
           </div>
         )}
@@ -454,7 +455,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       {acctModal && (
         <div style={{ position: 'relative', zIndex: 300 }}>
           <AccountFormModal account={acctModal.account} project={project} projectId={projectId}
-            platforms={platforms} presetPlatformKey={acctModal.platformKey}
+            platforms={platforms} presetPlatformKey={acctModal.platformKey} presetAccountType={acctModal.recommendedRole}
             teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} asDrawer
             onCreated={acctModal.assignToTask != null ? (async (newId: number) => { await setBacklinkAccount(acctModal.assignToTask!, newId); setAcctModal(null); start(() => router.refresh()); }) : undefined}
             onClose={() => { setAcctModal(null); start(() => router.refresh()); }} />
@@ -466,7 +467,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
 function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string, assignToTask?: number) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
+  onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -658,8 +659,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
             <span style={{ color: READINESS_META.missing.color }}>➕ Chưa có account trên {task.platformLabel}</span>
+            <span title={ACCOUNT_ROLE_META[task.recommendedRole].why} style={{ fontSize: 10.5, fontWeight: 700, fontFamily: 'var(--font-mono)', color: ACCOUNT_ROLE_META[task.recommendedRole].color, border: `1px solid ${ACCOUNT_ROLE_META[task.recommendedRole].color}`, borderRadius: 4, padding: '1px 6px' }}>nên: {ACCOUNT_ROLE_META[task.recommendedRole].badge} {ACCOUNT_ROLE_META[task.recommendedRole].label}</span>
             {task.platformKey && <button type="button" onClick={togglePicker} style={{ ...btn }}>⇄ chọn acc</button>}
-            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</button>}
+            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id, task.recommendedRole)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>+ Tạo account</button>}
           </div>
         )}
         {acctPick && (
@@ -684,7 +686,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                 );
               })}
             </div>
-            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, textAlign: 'left' }}>＋ Tạo account mới cho {project.name}</button>}
+            {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id, task.recommendedRole)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, textAlign: 'left' }}>＋ Tạo account mới cho {project.name}</button>}
           </div>
         )}
 

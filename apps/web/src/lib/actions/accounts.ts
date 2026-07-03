@@ -53,6 +53,8 @@ export interface AccountInput {
   accountKind?: AccountKind;
   clientId?: string | null;
   // bot_token raw set qua setAccountApiToken / setAccountBotToken (encrypted).
+  // 0131: account_type P/B/S — personal|brand|seeding (generation resolution + [P]/[B]/[S] badge).
+  accountType?: 'personal' | 'brand' | 'seeding';
 }
 
 export interface ChecklistEntry {
@@ -107,6 +109,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       ownerUserId: input.ownerUserId ?? null,
       persona: input.persona ?? {},
       accountKind: input.accountKind ?? 'user',
+      accountType: input.accountType ?? 'brand',
     })
     .returning({ id: platformAccounts.id });
 
@@ -360,6 +363,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.ownerUserId !== undefined) set.ownerUserId = patch.ownerUserId;
   if (patch.persona !== undefined) set.persona = patch.persona;
   if (patch.accountKind !== undefined) set.accountKind = patch.accountKind;
+  if (patch.accountType !== undefined) set.accountType = patch.accountType;
   if (patch.clientId !== undefined) set.clientId = patch.clientId;
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));

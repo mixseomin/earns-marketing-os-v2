@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { resolveSiteSlug } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
-import { getBacklinkAccountType, readinessBucket, pickBestAccount, type BacklinkAccountType, type ReadinessBucket } from '@/lib/backlink-account-type';
+import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 
 export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 
@@ -44,6 +44,7 @@ export interface BacklinkTask {
   platformKey: string | null;
   platformLabel: string | null;
   accountType: BacklinkAccountType;
+  recommendedRole: AccountRole;   // which P/B/S account type fits this source (from platform category)
   readiness: ReadinessBucket;
   accountId: number | null;
   accountHandle: string | null;
@@ -148,18 +149,19 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
     const asAcct = (a: Record<string, unknown>): Acct => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), has2fa: a.has_2fa === true, authMethod: (a.auth_method as string | null) || null, hasProxy: a.has_proxy === true, hasProfile: a.has_profile === true });
     const lookupKeys = [...new Set(base.filter((t) => t.accountType !== 'no-account' && t.platformKey).map((t) => t.platformKey as string))];
     const labelMap = new Map<string, string>();
+    const catMap = new Map<string, string>();   // platform_key → catalog category (drives P/B/S role)
     const acctMap = new Map<string, Acct>();
     const acctById = new Map<number, Acct>();
     if (lookupKeys.length) {
       const inList = sql.join(lookupKeys.map((k) => sql`${k}`), sql`, `);
       const [plats, accts] = await Promise.all([
-        db.execute(sql`SELECT key, label FROM platforms WHERE key IN (${inList})`),
+        db.execute(sql`SELECT key, label, category FROM platforms WHERE key IN (${inList})`),
         // SECRET-SAFE: never select password_enc / api_token_enc / bot_token_enc.
         db.execute(sql`SELECT platform_key, id, handle, status, has_2fa, auth_method,
                        (proxy_id IS NOT NULL) AS has_proxy, (browser_profile_id IS NOT NULL) AS has_profile
                        FROM platform_accounts WHERE tenant_id = 'self' AND platform_key IN (${inList})`),
       ]);
-      for (const p of plats as unknown as Array<{ key: string; label: string }>) labelMap.set(p.key, p.label);
+      for (const p of plats as unknown as Array<{ key: string; label: string; category: string | null }>) { labelMap.set(p.key, p.label); if (p.category) catMap.set(p.key, p.category); }
       const byKey = new Map<string, Array<Record<string, unknown>>>();
       for (const a of accts as unknown as Array<Record<string, unknown>>) {
         acctById.set(Number(a.id), asAcct(a));
@@ -178,6 +180,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       return {
         ...t,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
+        recommendedRole: recommendedAccountRole(t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         readiness: readinessBucket(t.accountType, acct?.status ?? null),
         accountId: acct?.id ?? null,
         accountHandle: acct?.handle ?? null,

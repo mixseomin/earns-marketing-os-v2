@@ -1045,7 +1045,7 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   );
 }
 
-export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief, asDrawer = false }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, presetAccountType, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief, asDrawer = false }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
@@ -1059,6 +1059,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // Preset platform when creating from a context that knows the platform
   // (e.g. "+ New account on reddit" from a subreddit habitat drawer).
   presetPlatformKey?: string;
+  presetAccountType?: 'personal' | 'brand' | 'seeding';   // default P/B/S when creating from a backlink source
   onCreated?: (newAccountId: number) => void;
   // When opened from a habitat drawer for a specific habitat, pass the
   // habitat id so the local-accounts picker can flag rows that ALREADY
@@ -1120,6 +1121,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     browserProfileId: account?.browserProfileId ?? null as number | null,
     persona: account?.persona ?? {} as Record<string, string>,
     accountKind: ((account as { accountKind?: string } | null)?.accountKind ?? 'user') as 'user' | 'bot' | 'app',
+    accountType: ((account as { accountType?: string } | null)?.accountType ?? presetAccountType ?? 'brand') as 'personal' | 'brand' | 'seeding',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -1323,6 +1325,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         ownerUserId: form.ownerUserId,
         persona: form.persona,
         accountKind: form.accountKind,
+        accountType: form.accountType,
       };
       const res = isCreate
         ? await createAccount(projectId, payload)
@@ -1556,6 +1559,37 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   return (
                     <button key={k} type="button"
                             onClick={() => setF('accountKind', k)}
+                            title={hint}
+                            style={{ flex: 1, padding: '6px 10px', fontSize: 11,
+                                     fontWeight: 700, fontFamily: 'var(--font-mono)',
+                                     background: on ? 'var(--accent)' : 'var(--bg-2)',
+                                     color: on ? '#fff' : 'var(--fg-2)',
+                                     border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                                     borderRadius: 4, cursor: 'pointer',
+                                     display: 'inline-flex', alignItems: 'center',
+                                     justifyContent: 'center', gap: 4 }}>
+                      {icon} {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <span style={lbl} title="personal = persona thật (forum/Q&A/blog) — brand account dễ bị flag spam ở cộng đồng. brand = listing/directory/launch/social chính chủ. seeding = account cộng đồng gieo hạt hàng loạt.">
+                Account type (P/B/S){presetAccountType ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)', fontWeight: 400 }}> · gợi ý cho nguồn này: {presetAccountType}</span> : null}
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {(['personal', 'brand', 'seeding'] as const).map((k) => {
+                  const on = form.accountType === k;
+                  const icon = k === 'brand' ? '🏢' : k === 'seeding' ? '🌱' : '👤';
+                  const label = k === 'brand' ? 'Brand' : k === 'seeding' ? 'Seeding' : 'Personal';
+                  const hint = k === 'brand' ? 'Listing/directory/launch/social chính chủ — đại diện brand'
+                    : k === 'seeding' ? 'Account cộng đồng gieo hạt hàng loạt (father/persona phụ)'
+                    : 'Persona thật đăng bài (forum/Q&A/blog/dev) — an toàn khỏi flag spam';
+                  return (
+                    <button key={k} type="button"
+                            onClick={() => setF('accountType', k)}
                             title={hint}
                             style={{ flex: 1, padding: '6px 10px', fontSize: 11,
                                      fontWeight: 700, fontFamily: 'var(--font-mono)',

@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     platform,
     pinnedProjectId: (sp.get('pinnedProjectId') ?? '').trim(),
     launchPage: sp.get('launchPage') === '1',
+    host: (sp.get('host') ?? '').trim(),
   });
   // Task ứng viên cho task-picker ở pill (pick = ghim project của task; task chưa gán acc → gán acc này).
   const tasks = await listLiveTasks(db, { accountId, platform, host: (sp.get('host') ?? '').trim(), projectId: projectId || (sp.get('pinnedProjectId') ?? '').trim() || (sp.get('projectId') ?? '').trim() });
@@ -41,9 +42,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
-  const body = (await req.json()) as { projectId?: string; accountId?: number; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean } & Partial<Record<Field, string>>;
+  const body = (await req.json()) as { projectId?: string; accountId?: number; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean; host?: string } & Partial<Record<Field, string>>;
   const { projectId, taskTitle } = await resolveProjectViaTask(db, {
-    homeProjectId: (body.projectId ?? '').trim(), accountId: body.accountId ?? null, launchName: (body.launchName ?? '').trim(), platform: (body.platform ?? '').trim(), pinnedProjectId: (body.pinnedProjectId ?? '').trim(), launchPage: !!body.launchPage,
+    homeProjectId: (body.projectId ?? '').trim(), accountId: body.accountId ?? null, launchName: (body.launchName ?? '').trim(), platform: (body.platform ?? '').trim(), pinnedProjectId: (body.pinnedProjectId ?? '').trim(), launchPage: !!body.launchPage, host: (body.host ?? '').trim(),
   });
   if (!projectId) return errorResponse('projectId required', 400);
   const patch: Record<string, string> = {};

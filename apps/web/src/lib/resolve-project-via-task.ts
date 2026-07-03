@@ -14,10 +14,12 @@ const LIVE = ['pending', 'claimed', 'in_progress'];   // task còn "To-do / đan
 // KHÔNG chọn project (Auto) = bỏ nhánh 0 → rơi vào task LIVE (1→3). Dùng CHUNG fill (suggest) + save (project-brand).
 export async function resolveProjectViaTask(
   db: Db,
-  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean },
+  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean; host?: string },
 ): Promise<{ projectId: string; taskTitle: string; via: string; accountType: string }> {
   const home = (opts.homeProjectId || '').trim();
   const pinned = (opts.pinnedProjectId || '').trim();
+  const host = (opts.host || '').replace(/^www\./, '').trim().toLowerCase();
+  const hostBase = host.split('.')[0];
 
   // account_type quyết định có được neo brand vào project_id account không.
   // personal/seeding = father/community account → KHÔNG fallback home (project_id legacy gây "wenoted");
@@ -36,6 +38,18 @@ export async function resolveProjectViaTask(
   if (opts.launchPage && opts.launchName) {
     const [pm] = await db.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${opts.launchName})`).limit(1);
     if (pm?.id && (!pinned || pm.id !== pinned)) return { projectId: pm.id, taskTitle: '', via: 'launch-name', accountType };
+  }
+
+  // -0.5) SITE-MATCHED TASK: task LIVE có source_url/title khớp HOST (task chuẩn bị sẵn cho ĐÚNG site này, vd
+  // "TinyLaunch — submit MilitaryCalc") = ground truth → project của task THẮNG pin per-host cũ. Chỉ trên launch page.
+  // QUAN TRỌNG: form TRỐNG (launchName rỗng lúc mới reload) → đây là signal ĐÚNG duy nhất; pin dính SP cũ (visagps) bị bỏ.
+  if (opts.launchPage && host) {
+    const siteCond = or(sql`${humanTasks.prepPayload}->>'source_url' ILIKE ${'%' + host + '%'}`, ilike(humanTasks.title, `%${hostBase}%`));
+    const acctCond = opts.accountId ? or(eq(humanTasks.accountId, Number(opts.accountId)), isNull(humanTasks.accountId)) : isNull(humanTasks.accountId);
+    const [t] = await db.select({ projectId: humanTasks.projectId, title: humanTasks.title }).from(humanTasks)
+      .where(and(siteCond, acctCond, isNotNull(humanTasks.projectId), inArray(humanTasks.status, LIVE)))
+      .orderBy(sql`${humanTasks.accountId} ASC NULLS LAST`, desc(humanTasks.updatedAt)).limit(1);   // task đã gán acc này ưu tiên, else task chưa gán
+    if (t?.projectId) return { projectId: t.projectId, taskTitle: t.title || '', via: 'site-task', accountType };
   }
 
   // 0) PINNED (user chọn project) → thắng tuyệt đối. Prefer LIVE task thuộc project đó cho mission.

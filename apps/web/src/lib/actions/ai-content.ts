@@ -33,8 +33,11 @@ function buildContentPrompt(ctx: AiContentCtx, kind: string, extra: string): str
   // Email/outreach genre: resource-page & editorial-pitch tasks need a real email to a
   // site owner/librarian, not an "off-site post". Detected from the requested piece.
   if (/\b(email|outreach|pitch)\b/i.test(kind)) {
+    const followUp = /\b(follow-?up|nudge|reminder|remind)\b/i.test(kind);
     return [
-      `Write ONE outreach email to the owner/editor/librarian of an external resource page, asking them to add our free tool to their list of resources. Output ENGLISH only.`,
+      followUp
+        ? `Write ONE short, friendly FOLLOW-UP email nudging the owner/editor/librarian about an earlier email you already sent suggesting our free tool for their resource list. They have not replied yet. Output ENGLISH only.`
+        : `Write ONE outreach email to the owner/editor/librarian of an external resource page, asking them to add our free tool to their list of resources. Output ENGLISH only.`,
       extra ? `EXTRA REQUIREMENTS: ${extra}` : '',
       ``,
       `PRODUCT: ${ctx.projectName}${site ? ` (${site})` : ''}`,
@@ -45,7 +48,9 @@ function buildContentPrompt(ctx: AiContentCtx, kind: string, extra: string): str
       ``,
       `RULES:`,
       `- Format EXACTLY: first line "Subject: <short specific subject>", then a blank line, then the body.`,
-      `- Body = 4-7 short sentences: a warm greeting, note that you came across their specific page/resource, introduce the free tool in one line, one sentence on why it genuinely helps their audience (students / veterans / retirees / applicants as relevant), state it is free with no signup, offer the link${site ? ` (${site})` : ''}, thank them. Sign off with a generic first name.`,
+      followUp
+        ? `- Body = 2-3 short sentences ONLY: lightly reference your earlier note, a one-line reminder of the free tool + its value, a soft ask if they would consider adding it. Do NOT re-pitch in full or paste the whole description again. Sign off with a generic first name.`
+        : `- Body = 4-7 short sentences: a warm greeting, note that you came across their specific page/resource, introduce the free tool in one line, one sentence on why it genuinely helps their audience (students / veterans / retirees / applicants as relevant), state it is free with no signup, offer the link${site ? ` (${site})` : ''}, thank them. Sign off with a generic first name.`,
       `- Human and specific: reference something concrete about their page if the notes name it. No "I hope this email finds you well", no marketing fluff, no em dashes (use "-"), vary sentence length.`,
       `- Do NOT mention SEO, backlinks, or link building. This is a genuine resource suggestion.`,
       `Return ONLY the email (Subject line + body), no preamble, no explanation.`,

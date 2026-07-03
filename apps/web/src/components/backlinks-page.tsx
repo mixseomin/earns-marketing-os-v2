@@ -529,7 +529,12 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   //  - email-pitch (resource pages / LibGuides / editorial): the work IS writing an email → lead with an email generator.
   //  - "Built with"/stack chips only matter for shoutout/directory/launch listings — noise elsewhere.
   const isEmailPitch = /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
-  const emailKind = `Outreach email pitching ${project.name} to the owner of ${task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page')}, asking them to add our free tool to their resource list`;
+  const emailTarget = task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page');
+  // Already emailed (site is "submitted") → the next email is a short nudge, not a fresh pitch.
+  const isFollowUp = task.siteState === 'submitted';
+  const emailKind = isFollowUp
+    ? `Short follow-up email nudging the owner of ${emailTarget} about the earlier note suggesting ${project.name} for their resource list`
+    : `Outreach email pitching ${project.name} to the owner of ${emailTarget}, asking them to add our free tool to their resource list`;
   const showStack = /built with|shoutout|stack|listing|directory|launch|submit (your|the) (tool|site|app)/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
   const [dbusy, setDbusy] = useState(false);
   const [derr, setDerr] = useState<string | null>(null);
@@ -787,13 +792,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>{isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'}</div>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{isEmailPitch
-            ? 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm ✉️ là AI sinh luôn email (subject + nội dung, English) — kết quả hiện ngay dưới, bấm Copy rồi gửi. Cần bản khác thì gõ yêu cầu ở ô dưới.'
+            ? (isFollowUp
+              ? 'Đã gửi lần đầu, đang Chờ duyệt. Bấm 🔁 để AI sinh email NHẮC ngắn (không pitch lại), rồi 📤 mở Gmail gửi tiếp.'
+              : 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm ✉️ là AI sinh luôn email (subject + nội dung, English) — kết quả hiện ngay dưới, bấm 📤 mở Gmail gửi. Cần bản khác thì gõ yêu cầu ở ô dưới.')
             : 'Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.'}</div>
           {isEmailPitch && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" onClick={() => genEmail('openai')} disabled={!!aiBusy} title="Sinh email pitch ngay (OpenAI)"
-                  style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : lastEmail ? '↻ Sinh lại' : `✉️ Sinh email${recipientEmail ? ` cho ${recipientEmail}` : ''}`}</button>
+                <button type="button" onClick={() => genEmail('openai')} disabled={!!aiBusy} title={isFollowUp ? 'Sinh email nhắc ngắn (đã gửi lần đầu)' : 'Sinh email pitch ngay (OpenAI)'}
+                  style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : lastEmail ? '↻ Sinh lại' : isFollowUp ? '🔁 Sinh email nhắc (follow-up)' : `✉️ Sinh email${recipientEmail ? ` cho ${recipientEmail}` : ''}`}</button>
                 <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
                   style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
               </div>

@@ -134,6 +134,9 @@ export async function POST(req: Request) {
     email?: string;
     status?: string;
     notes?: string;
+    accountType?: string;   // P/B/S — personal|brand|seeding (mig 0131)
+    identityId?: number;     // link persona → account.persona.identityId (🤖 sinh dùng giọng/nhân vật)
+    authMethod?: string;     // capture logged-in = 'manual'/'password'
   };
 
   const platformSlug = await reconcilePlatformKey(db, body.platform);
@@ -168,6 +171,11 @@ export async function POST(req: Request) {
         email: body.email?.trim() || null,
         status: body.status?.trim() || 'todo',
         notes: body.notes ?? null,
+        accountType: (['personal', 'brand', 'seeding'] as const).includes(body.accountType as 'personal' | 'brand' | 'seeding') ? String(body.accountType) : 'brand',
+        authMethod: body.authMethod?.trim() || null,
+        // capture logged-in (status active) → đánh dấu đã verify + link persona để 🤖 sinh đúng giọng.
+        lastVerifiedAt: body.status?.trim() === 'active' ? new Date() : null,
+        persona: body.identityId ? { identityId: Number(body.identityId) } : {},
         tags: ['ext-detected'],
       })
       .onConflictDoNothing()

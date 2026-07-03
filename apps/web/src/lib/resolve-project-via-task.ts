@@ -14,7 +14,7 @@ const LIVE = ['pending', 'claimed', 'in_progress'];   // task còn "To-do / đan
 // KHÔNG chọn project (Auto) = bỏ nhánh 0 → rơi vào task LIVE (1→3). Dùng CHUNG fill (suggest) + save (project-brand).
 export async function resolveProjectViaTask(
   db: Db,
-  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean; host?: string },
+  opts: { accountId?: number | null; homeProjectId?: string; launchName?: string; platform?: string; pinnedProjectId?: string; launchPage?: boolean; host?: string; pinForce?: boolean },
 ): Promise<{ projectId: string; taskTitle: string; via: string; accountType: string }> {
   const home = (opts.homeProjectId || '').trim();
   const pinned = (opts.pinnedProjectId || '').trim();
@@ -31,6 +31,11 @@ export async function resolveProjectViaTask(
     accountType = a?.t || '';
   }
   const brandAnchored = accountType === '' || accountType === 'brand';
+
+  // -2) EXPLICIT PICK: user vừa CHỌN project ở dropdown menu 🤖 (session này, ext gửi pinForce) → THẮNG TẤT CẢ
+  // (kể cả site-task/launchName). Cho override tay khi auto chọn sai ý. Transient (ext reset khi reload/đổi URL)
+  // → KHÔNG dính sang SP sau (khác pin per-host cũ). '' = user chọn "Auto" → bỏ override, về auto.
+  if (opts.pinForce && pinned) return { projectId: pinned, taskTitle: '', via: 'pinned', accountType };
 
   // -1) LAUNCH page: tên SP trên FORM = ground truth. 1 host launch (TinyLaunch/BetaList…) submit NHIỀU SP →
   // pin per-host dễ dính SP CŨ (bug: launch MilitaryCalc nhưng pin VisaGPS còn dính → điền visagps.com).

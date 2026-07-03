@@ -52,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = String(body.name);
-  if (body.kind !== undefined) patch.kind = body.kind === 'brand' ? 'brand' : 'seeding';
+  if (body.kind !== undefined) patch.kind = (['personal', 'brand', 'seeding'] as const).includes(body.kind as 'personal' | 'brand' | 'seeding') ? String(body.kind) : 'seeding';
   if (body.handleBase !== undefined) patch.handleBase = String(body.handleBase);
   if (body.email !== undefined) patch.email = String(body.email);
   if (body.displayName !== undefined) patch.displayName = String(body.displayName);

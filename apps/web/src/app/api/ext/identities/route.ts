@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   const inserted = await db.insert(identities).values({
     projectId,
     name,
-    kind: body.kind === 'brand' ? 'brand' : 'seeding',
+    kind: (['personal', 'brand', 'seeding'] as const).includes(body.kind as 'personal' | 'brand' | 'seeding') ? String(body.kind) : 'seeding',
     handleBase: String(body.handleBase ?? ''),
     email: String(body.email ?? ''),
     passwordEnc,

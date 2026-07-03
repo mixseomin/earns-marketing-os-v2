@@ -81,6 +81,7 @@ export async function GET(req: Request) {
         handle: platformAccounts.handle,
         email: platformAccounts.email,
         status: platformAccounts.status,
+        accountType: platformAccounts.accountType,   // P/B/S → console "loại" select đọc lại đúng giá trị (else revert 'brand')
         notes: platformAccounts.notes,
         platformKey: platformAccounts.platformKey,
         projectId: platformAccounts.projectId,   // home project (profile-target) → default cho project-picker của login pill

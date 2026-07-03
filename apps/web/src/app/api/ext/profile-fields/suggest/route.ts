@@ -105,7 +105,10 @@ export async function POST(req: Request) {
     const key = f.key || ''; if (!key) continue;
     const k = key.toLowerCase(); const lb = (f.label || '').toLowerCase();
     // 1) account.persona đã có key này → tái dùng y hệt (nhất quán mọi site). regenerate → BỎ, để LLM sinh mới.
-    const pv = acctPersona[key]; if (!regenerate && typeof pv === 'string' && pv.trim()) { forced[key] = pv.trim(); continue; }
+    //    LAUNCH page: 1 account submit NHIỀU sản phẩm → brand-content (tagline/desc/name) là PER-PROJECT,
+    //    KHÔNG tái dùng persona cũ (dính SP trước, vd tagline militarycalc khi launch visagps) → luôn derive
+    //    từ project brand đã resolve. Email/website vẫn canonical ở nhánh 2/3 dưới.
+    const pv = acctPersona[key]; if (!regenerate && !body.launchPage && typeof pv === 'string' && pv.trim()) { forced[key] = pv.trim(); continue; }
     // 2) email field + account.email đã lưu → điền lại.
     if ((EMAIL_FIELD.test(k) || EMAIL_FIELD.test(lb)) && acctEmail) { forced[key] = acctEmail; continue; }
     // 3) website field → website chính thức dự án.

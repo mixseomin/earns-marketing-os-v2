@@ -52,12 +52,18 @@ export function pickBestAccount<T extends { status: string }>(accounts: T[]): T 
 // community/forum/blog/tech/Q&A = a PERSONA posts (a brand account gets flagged as spam in
 // communities). Seeding = a manual choice (father/extra persona), never auto-recommended.
 export type AccountRole = 'personal' | 'brand' | 'seeding';
-const ROLE_BY_CATEGORY: Record<string, AccountRole> = {
-  marketplace: 'brand', launch: 'brand', social: 'brand', newsletter: 'brand',
-  community: 'personal', tech: 'personal', blog: 'personal', video: 'personal',
-  messaging: 'personal', design: 'personal', other: 'personal',
+// This operator is persona-first: most link placements (community, Q&A, blog, dev, social,
+// even PH launches) go through a founder PERSONA (their real accounts: davidng/David Nguyen on
+// devto/govloop/linkedin/producthunt are all account_type=personal). Only pure product
+// DIRECTORY listings (where the product itself is the entry) are brand. So: marketplace = brand,
+// everything else defaults personal, with an override for directories mis-categorised in the catalog.
+const ROLE_BY_CATEGORY: Record<string, AccountRole> = { marketplace: 'brand' };
+const ROLE_OVERRIDE: Record<string, AccountRole> = {
+  crunchbase: 'brand', alternativeto: 'brand', saashub: 'brand', g2: 'brand', capterra: 'brand',
+  getapp: 'brand', softwareadvice: 'brand', producthq: 'brand', slant: 'brand',
 };
-export function recommendedAccountRole(category: string | null): AccountRole {
+export function recommendedAccountRole(platformKey: string | null, category: string | null): AccountRole {
+  if (platformKey && ROLE_OVERRIDE[platformKey]) return ROLE_OVERRIDE[platformKey];
   return ROLE_BY_CATEGORY[(category || '').toLowerCase()] ?? 'personal';
 }
 export const ACCOUNT_ROLE_META: Record<AccountRole, { badge: string; label: string; color: string; why: string }> = {

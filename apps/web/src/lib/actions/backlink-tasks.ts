@@ -180,7 +180,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       return {
         ...t,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
-        recommendedRole: recommendedAccountRole(t.platformKey ? catMap.get(t.platformKey) ?? null : null),
+        recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         readiness: readinessBucket(t.accountType, acct?.status ?? null),
         accountId: acct?.id ?? null,
         accountHandle: acct?.handle ?? null,

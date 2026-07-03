@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
-import { getDb, platformAccounts, platforms, projectAccounts } from '@mos2/db';
+import { getDb, platformAccounts, platforms, projectAccounts, identities } from '@mos2/db';
 import { and, desc, eq, exists, ilike, or, sql } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 import { reconcilePlatformKey } from '@/lib/resolve-platform';
@@ -26,6 +26,37 @@ export async function GET(req: Request) {
   const inProject = (pid: string) => exists(db.select().from(projectAccounts).where(and(
     eq(projectAccounts.accountId, platformAccounts.id), eq(projectAccounts.projectId, pid),
   )));
+
+  // Precheck cho capture account đã login: account TRÙNG (email UNIQUE trên site / handle) + identity KHỚP
+  // (email/handle_base) → tránh tạo 2 acc = 1 email + auto-gắn persona đúng.
+  if (searchParams.get('precheck')) {
+    const email = (searchParams.get('email') ?? '').trim().toLowerCase();
+    const hdl = (searchParams.get('handle') ?? '').trim();
+    const slug = platform ? await reconcilePlatformKey(db, platform) : '';
+    let account: Record<string, unknown> | null = null;
+    let identity: Record<string, unknown> | null = null;
+    if (slug && (email || hdl)) {
+      const emailCond = email ? sql`lower(${platformAccounts.email}) = ${email}` : undefined;
+      const handleCond = hdl ? eq(platformAccounts.handle, hdl) : undefined;
+      const [acc] = await db
+        .select({ id: platformAccounts.id, handle: platformAccounts.handle, email: platformAccounts.email, status: platformAccounts.status, projectId: platformAccounts.projectId, accountType: platformAccounts.accountType })
+        .from(platformAccounts)
+        .where(and(eq(platformAccounts.platformKey, slug), or(emailCond, handleCond)))
+        .limit(1);
+      account = acc ?? null;
+    }
+    if (email) {
+      const [idn] = await db.select({ id: identities.id, name: identities.name, handleBase: identities.handleBase, kind: identities.kind, projectId: identities.projectId })
+        .from(identities).where(sql`lower(${identities.email}) = ${email}`).limit(1);
+      identity = idn ?? null;
+    }
+    if (!identity && hdl) {
+      const [idn] = await db.select({ id: identities.id, name: identities.name, handleBase: identities.handleBase, kind: identities.kind, projectId: identities.projectId })
+        .from(identities).where(sql`lower(${identities.handleBase}) = ${hdl.toLowerCase()}`).limit(1);
+      identity = idn ?? null;
+    }
+    return NextResponse.json({ precheck: true, account, identity });
+  }
 
   // Duplicate check
   if (platform && handle) {

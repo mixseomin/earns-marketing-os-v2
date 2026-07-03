@@ -603,6 +603,24 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   };
   // Email-pitch tasks: one tap = generate the outreach email directly (kind is fixed), no prefill step.
   const genEmail = (engine: 'openai' | 'claude') => runGen(engine, emailKind);
+  // Send-via-Gmail: .edu/librarian pitches go out from a real Gmail (better .edu deliverability +
+  // you own the reply thread) — NOT the Mailjet bulk pipeline. Open a Gmail compose deep-link
+  // prefilled with the AI email, then mark the task "submitted" so it lands in the Chờ-duyệt tab
+  // with the existing follow-up badge. Recipient auto-parsed from the task; none → form-only.
+  const recipientEmail = useMemo(() => (`${task.mechanism || ''} ${task.instructions || ''}`.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0] || '', [task.mechanism, task.instructions]);
+  const lastEmail = useMemo(() => aiList.find((a) => a.status === 'done' && a.result && /email|pitch|outreach/i.test(a.kind))?.result || '', [aiList]);
+  const doSendEmail = async () => {
+    if (!lastEmail) { setAiErr('Sinh email trước đã'); return; }
+    const m = lastEmail.match(/^\s*subject:\s*(.+?)\s*\n+([\s\S]*)$/i);
+    const subject = m?.[1]?.trim() || `${project.name} - a free tool for your resource page`;
+    const body = m?.[2]?.trim() || lastEmail.trim();
+    const openUrl = recipientEmail
+      ? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipientEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      : (task.sourceUrl || '');
+    if (openUrl) window.open(openUrl, '_blank', 'noopener');
+    await setSite(task.id, 'submitted', url);   // emailed → awaiting reply (Chờ duyệt + follow-up badge)
+    onChange();
+  };
   const delAi = async (id: number) => { await deleteAiContent(id); reloadAi(); };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
   const flash = (key: string) => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); };
@@ -772,11 +790,18 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             ? 'Nguồn này lấy link bằng EMAIL cho chủ trang/librarian. Bấm ✉️ là AI sinh luôn email (subject + nội dung, English) — kết quả hiện ngay dưới, bấm Copy rồi gửi. Cần bản khác thì gõ yêu cầu ở ô dưới.'
             : 'Sinh mọi loại nội dung task cần (title, first comment, reply, bio, signature, answer…). AI gộp full context: project + instructions + mechanism + paste kit.'}</div>
           {isEmailPitch && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button type="button" onClick={() => genEmail('openai')} disabled={!!aiBusy} title="Sinh email pitch ngay (OpenAI)"
-                style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : `✉️ Sinh email cho ${task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'chủ trang')}`}</button>
-              <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
-                style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button type="button" onClick={() => genEmail('openai')} disabled={!!aiBusy} title="Sinh email pitch ngay (OpenAI)"
+                  style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : lastEmail ? '↻ Sinh lại' : `✉️ Sinh email${recipientEmail ? ` cho ${recipientEmail}` : ''}`}</button>
+                <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
+                  style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
+              </div>
+              {lastEmail && (<>
+                <button type="button" onClick={doSendEmail} title={recipientEmail ? 'Mở Gmail soạn sẵn email này (review rồi Send), task chuyển Chờ duyệt' : 'Mở trang/form gửi, task chuyển Chờ duyệt — dán email vào form của họ'}
+                  style={{ ...btn, fontWeight: 700, alignSelf: 'flex-start', color: '#22c55e', borderColor: '#22c55e' }}>{recipientEmail ? `📤 Mở Gmail gửi cho ${recipientEmail}` : '📤 Mở form gửi + đánh dấu đã gửi'}</button>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', lineHeight: 1.4 }}>Gửi xong task tự sang &ldquo;Chờ duyệt&rdquo; + nhắc follow-up. {recipientEmail ? 'Review trong Gmail rồi bấm Send (giao hàng .edu tốt hơn Mailjet).' : 'Dán email AI vào form của họ.'}</div>
+              </>)}
             </div>
           )}
           {writableSteps.length > 0 && (

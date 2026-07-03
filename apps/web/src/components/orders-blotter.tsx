@@ -144,6 +144,14 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
   const pct = usd != null && t.notional ? usd / t.notional * 100 : null;   // P&L $ / Lots $ = return on notional
   const cagr = pct != null && h != null ? cagrEquiv(pct, h) : null;   // annualized-equivalent of this hold's return
   const pnlColor = p == null ? 'var(--muted)' : (p >= 0 ? 'var(--ok,#5ac882)' : '#ff5470');
+  // peak float = best unrealized P&L this open position reached (tracked server-side into raw.peakFloat every 5min)
+  const rawPeak = t.raw && typeof (t.raw as Record<string, unknown>).peakFloat === 'number' ? (t.raw as Record<string, number>).peakFloat : null;
+  const peakF = t.isOpen ? rawPeak : null;
+  const peakUsd = peakF == null ? null : (crypto ? (t.notional != null ? peakF / 100 * t.notional : null) : peakF);
+  const peakPct = peakUsd != null && t.notional ? peakUsd / t.notional * 100 : null;
+  const dollarTitle = t.isOpen
+    ? `floating ${usd != null ? fmtUsd2(usd) : '—'}${peakUsd != null ? ` · peak ${fmtUsd2(peakUsd)}${peakPct != null ? ` (${f2(peakPct)}%)` : ''} — best unrealized reached, gave back ${usd != null ? fmtUsd2(peakUsd - usd) : '—'}` : ''}`
+    : 'realized P&L converted to account $';
   return (
     <tr style={{ borderBottom: '1px solid rgba(127,140,160,0.08)', opacity: t.isOpen ? 1 : 0.55, background: t.isOpen ? 'rgba(90,200,130,0.06)' : 'transparent' }}>
       {showStrategy ? <td style={{ ...cell, fontWeight: t.isOpen ? 600 : 400 }}>{t.strategy}</td> : null}
@@ -161,7 +169,7 @@ function Row({ t, brokerNowMs, showStrategy }: { t: StrategyTradeRow; brokerNowM
       </td>
       <td style={cell}>{h != null ? `${h.toFixed(1)}h` : '—'}</td>
       <td className="lo-hm" style={{ ...cell, textAlign: 'right', color: pnlColor }} title={t.isOpen ? 'floating / unrealized P&L (native number)' : 'realized P&L (native number)'}>{p == null ? '—' : f2(p)}</td>
-      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5 }} title="P&L converted to account $">{usd != null ? fmtUsd2(usd) : '—'}</td>
+      <td style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.6, fontSize: 9.5, cursor: t.isOpen && peakUsd != null ? 'help' : undefined }} title={dollarTitle}>{usd != null ? fmtUsd2(usd) : '—'}{t.isOpen && peakUsd != null && usd != null && peakUsd - usd > 0.01 ? <span style={{ color: 'var(--muted)', opacity: 0.7 }} title={dollarTitle}> ▴</span> : null}</td>
       <td style={{ ...cell, textAlign: 'right', color: pnlColor, fontSize: 9.5 }} title="return % = P&L $ ÷ Lots $ (notional)">{pct != null ? `${f2(pct)}%` : '—'}</td>
       <td className="lo-hm" style={{ ...cell, textAlign: 'right', color: 'var(--muted)', opacity: 0.7, fontSize: 9.5 }} title="naive annualized-equivalent (CAGR) of this hold's return — short holds extrapolate to huge values">{cagr != null ? fmtCagr(cagr) : '—'}</td>
       <td style={cell}>{t.isOpen ? <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(90,200,130,0.15)', color: 'var(--ok,#5ac882)' }}>LIVE</span> : ''}</td>

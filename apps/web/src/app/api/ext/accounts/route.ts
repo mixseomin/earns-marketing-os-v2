@@ -126,6 +126,7 @@ export async function GET(req: Request) {
         handle: platformAccounts.handle,
         email: platformAccounts.email,
         status: platformAccounts.status,
+        accountType: platformAccounts.accountType,
         notes: platformAccounts.notes,
         platformKey: platformAccounts.platformKey,
         platformLabel: platforms.label,

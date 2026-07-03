@@ -77,6 +77,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     handle?: string;
     email?: string;
     status?: string;
+    accountType?: string;
     password?: string;
     followUpAt?: string | null;
     personaUpdates?: Record<string, string | null>;
@@ -93,6 +94,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: `Invalid status (must be one of ${VALID_STATUSES.join('|')})` }, { status: 400 });
     }
     set.status = body.status;
+  }
+  if (body.accountType !== undefined && (['personal', 'brand', 'seeding'] as const).includes(body.accountType as 'personal' | 'brand' | 'seeding')) {
+    set.accountType = body.accountType;
   }
   // password → password_enc (mã hoá). '' = xoá. undefined = giữ nguyên.
   if (body.password !== undefined) {

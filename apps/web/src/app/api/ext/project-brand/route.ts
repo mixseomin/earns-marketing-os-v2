@@ -17,19 +17,20 @@ export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const sp = new URL(req.url).searchParams;
-  const { projectId, taskTitle, via } = await resolveProjectViaTask(db, {
+  const { projectId, taskTitle, via, accountType } = await resolveProjectViaTask(db, {
     homeProjectId: (sp.get('projectId') ?? '').trim(),
     accountId: sp.get('accountId') ? Number(sp.get('accountId')) : null,
     launchName: (sp.get('launchName') ?? '').trim(),
     platform: (sp.get('platform') ?? '').trim(),
     pinnedProjectId: (sp.get('pinnedProjectId') ?? '').trim(),
   });
-  if (!projectId) return errorResponse('projectId required', 400);
+  // personal/seeding chưa pin/không task → không neo brand: trả preview để ext hiện "cần chọn project" (ko 400).
+  if (!projectId) return NextResponse.json({ ok: true, project: null, projectId: '', taskTitle, via, accountType });
   const [p] = await db
     .select({ id: projects.id, name: projects.name, emoji: projects.emoji, persona: projects.persona, bio: projects.bio, oneLiner: projects.oneLiner, hashtags: projects.hashtags, website: projects.website, contentStrategy: projects.contentStrategy })
     .from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!p) return errorResponse('project not found', 404);
-  return NextResponse.json({ ok: true, project: p, projectId, taskTitle, via });
+  return NextResponse.json({ ok: true, project: p, projectId, taskTitle, via, accountType });
 }
 
 export async function POST(req: Request) {

@@ -596,6 +596,11 @@ export const platformAccounts = pgTable(
     // 'bot' = Discord/Slack bot, có bot_token, không warming, không persona.
     // 'app' = OAuth integration (Reddit script-app), tương tự bot.
     accountKind: text('account_kind').notNull().default('user'),
+    // migration 0131: account_type — phân loại cho generation + badge [P]/[B]/[S].
+    // 'brand' (default) = gắn 1 project → project_id = nguồn brand khi sinh.
+    // 'personal' = 1 người xuyên suốt mọi project (father account) → KHÔNG neo brand vào project_id, sinh theo pin/task.
+    // 'seeding' = community persona không brand → như personal khi sinh. (Khác account_kind = user/bot/app.)
+    accountType: text('account_type').notNull().default('brand'),
     clientId: text('client_id'),
     botTokenEnc: text('bot_token_enc'),  // pgcrypto encrypted bytea (text-encoded base64)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

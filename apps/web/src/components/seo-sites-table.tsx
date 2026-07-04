@@ -243,25 +243,41 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             const SiteCell = r.project
               ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>;
+            // Deep-link per column group → its console. Data cells carry data-tool;
+            // clicking one opens the tool, clicking the trend/chart cell (no data-tool)
+            // falls through to the row's detail drawer.
+            const ga4Url = r.ga4PropertyId ? `https://analytics.google.com/analytics/web/#/p${r.ga4PropertyId}/reports/intelligenthome` : null;
+            const toolUrl: Record<ColGroup, string | null> = {
+              live: ga4Url, interactions: ga4Url, ai: ga4Url,
+              gsc: `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`,
+              bing: `https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`,
+              adsense: 'https://www.google.com/adsense/new/u/0/home',
+            };
             return (
               <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
-                  onClick={() => setOpenDomain(r.domain)}
-                  title={`Click → mở chart + top queries cho ${r.domain}`}>
+                  onClick={(e) => {
+                    const td = (e.target as HTMLElement).closest('td[data-tool]') as HTMLElement | null;
+                    const g = td?.dataset.tool as ColGroup | undefined;
+                    const u = g ? toolUrl[g] : null;
+                    if (u) { window.open(u, '_blank', 'noopener,noreferrer'); return; }
+                    setOpenDomain(r.domain);
+                  }}
+                  title={`Ô số → mở tool (GSC/GA/Bing) · ô chart → chi tiết ${r.domain}`}>
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
                   <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId}
                     onOpenDetail={() => setOpenDomain(r.domain)} />
                 </td>
                 {cols.live && <>
-                  <td style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>
+                  <td data-tool="live" style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>
                     {r.ga4_active_5min == null ? '—' : r.ga4_active_5min > 0 ? r.ga4_active_5min.toLocaleString() : '0'}
                   </td>
-                  <td style={{ ...cellOf('live', false, { textAlign: 'right', ...tone((r.ga4_active_30min ?? 0) > 0) }) }}>
+                  <td data-tool="live" style={{ ...cellOf('live', false, { textAlign: 'right', ...tone((r.ga4_active_30min ?? 0) > 0) }) }}>
                     {r.ga4_active_30min == null ? '—' : r.ga4_active_30min > 0 ? r.ga4_active_30min.toLocaleString() : '0'}
                   </td>
                 </>}
                 {cols.interactions && <>
-                  <td style={cellOf('interactions', true, { textAlign: 'right', ...tone((r.ga4_interactions_7d ?? 0) > 0), fontWeight: (r.ga4_interactions_7d ?? 0) > 0 ? 600 : 400 })}
+                  <td data-tool="interactions" style={cellOf('interactions', true, { textAlign: 'right', ...tone((r.ga4_interactions_7d ?? 0) > 0), fontWeight: (r.ga4_interactions_7d ?? 0) > 0 ? 600 : 400 })}
                     title={r.ga4_interactions_by && Object.keys(r.ga4_interactions_by).length
                       ? Object.entries(r.ga4_interactions_by).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ')
                       : 'No GA4 interaction events in last 7d (site not instrumented or no activity yet)'}>
@@ -269,73 +285,73 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.gsc && <>
-                  <td style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
                   <td style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={sparkValues} />
                   </td>
-                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
-                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(ctr > 0) })}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
-                  <td style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) })}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
-                  <td style={cellOf('gsc', false, { textAlign: 'right' })}>{r.pages_with_impressions_7d}</td>
-                  <td style={cellOf('gsc', false, { textAlign: 'right' })}>{r.sitemap_urls_submitted.toLocaleString()}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(ctr > 0) })}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) })}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right' })}>{r.pages_with_impressions_7d}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right' })}>{r.sitemap_urls_submitted.toLocaleString()}</td>
                 </>}
                 {cols.adsense && <>
-                  <td style={cellOf('adsense', true, { textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) })}>
+                  <td data-tool="adsense" style={cellOf('adsense', true, { textAlign: 'right', ...tone((r.adsense_earnings_today ?? 0) > 0) })}>
                     {r.adsense_earnings_today == null ? '—' : fmtUsd(r.adsense_earnings_today)}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_impressions_today ?? 0) > 0) })}>
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_impressions_today ?? 0) > 0) })}>
                     {r.adsense_impressions_today == null ? '—' : r.adsense_impressions_today.toLocaleString()}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_clicks_today ?? 0) > 0) })}>
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_clicks_today ?? 0) > 0) })}>
                     {r.adsense_clicks_today == null ? '—' : r.adsense_clicks_today.toLocaleString()}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_earnings_7d ?? 0) > 0) })}
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_earnings_7d ?? 0) > 0) })}
                       title={r.adsense_earnings_7d != null ? `Last 7d AdSense earnings` : 'No AdSense data for this site (or not in cron map)'}>
                     {r.adsense_earnings_7d == null ? '—' : fmtUsd(r.adsense_earnings_7d)}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_rpm_7d ?? 0) > 0) })}>
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', ...tone((r.adsense_rpm_7d ?? 0) > 0) })}>
                     {r.adsense_rpm_7d == null ? '—' : r.adsense_rpm_7d > 0 ? `$${r.adsense_rpm_7d.toFixed(2)}` : '—'}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right' })}>
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right' })}>
                     {r.adsense_impressions_7d == null ? '—' : r.adsense_impressions_7d.toLocaleString()}
                   </td>
-                  <td style={cellOf('adsense', false, { textAlign: 'right' })}>
+                  <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right' })}>
                     {r.adsense_page_views_7d == null ? '—' : r.adsense_page_views_7d.toLocaleString()}
                   </td>
                 </>}
                 {cols.bing && <>
-                  <td style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
+                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
                   </td>
-                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
                     {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
                   </td>
-                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}
                     title={`Indexed pages (latest snapshot) · ${(r.bing_crawled_30d ?? 0).toLocaleString()} crawled in 30d · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} via sitemap`}>
                     {r.bing_in_index == null ? '—' : r.bing_in_index.toLocaleString()}
                   </td>
-                  <td style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
                     {r.bing_in_links == null ? '—' : r.bing_in_links.toLocaleString()}
                   </td>
-                  <td style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
                     title={(r.bing_errors_4xx_30d ?? 0) > 20 ? 'Many 4xx errors — check Bing Webmaster crawl report' : 'Bing crawler 4xx hits in last 30 days'}>
                     {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
                   </td>
                 </>}
                 {cols.ai && <>
-                  <td style={cellOf('ai', true, { textAlign: 'right', ...tone((r.ai_sessions_7d ?? 0) > 0), fontWeight: (r.ai_sessions_7d ?? 0) > 0 ? 600 : 400 })}
+                  <td data-tool="ai" style={cellOf('ai', true, { textAlign: 'right', ...tone((r.ai_sessions_7d ?? 0) > 0), fontWeight: (r.ai_sessions_7d ?? 0) > 0 ? 600 : 400 })}
                     title={r.ai_by_engine && Object.keys(r.ai_by_engine).length
                       ? Object.entries(r.ai_by_engine).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ') + ' (28d)'
                       : 'No AI answer-engine referrals yet (ChatGPT/Perplexity/Gemini/Copilot/Claude). Crawl can be active before clicks appear.'}>
                     {r.ai_sessions_7d == null ? '—' : r.ai_sessions_7d > 0 ? r.ai_sessions_7d.toLocaleString() : '0'}
                   </td>
-                  <td style={cellOf('ai', false, { textAlign: 'right', ...tone((r.ai_sessions_28d ?? 0) > 0) })}
+                  <td data-tool="ai" style={cellOf('ai', false, { textAlign: 'right', ...tone((r.ai_sessions_28d ?? 0) > 0) })}
                     title={r.ai_by_engine && Object.keys(r.ai_by_engine).length
                       ? Object.entries(r.ai_by_engine).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v.toLocaleString()}`).join(' · ') + ' (28d)'
                       : 'No AI referrals in last 28d'}>
                     {r.ai_sessions_28d == null ? '—' : r.ai_sessions_28d > 0 ? r.ai_sessions_28d.toLocaleString() : '0'}
                   </td>
-                  <td style={cellOf('ai', false, { textAlign: 'right', whiteSpace: 'nowrap' })}
+                  <td data-tool="ai" style={cellOf('ai', false, { textAlign: 'right', whiteSpace: 'nowrap' })}
                     title={r.review ? `Next review: ${r.review}` : 'No review scheduled'}>
                     {(() => {
                       if (!r.review) return <span style={{ color: 'var(--fg-3)' }}>—</span>;
@@ -357,37 +373,37 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td style={cellOf('live', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.live.fg })}>{totalLive30.toLocaleString()}</td>
             </>}
             {cols.interactions && <>
-              <td style={cellOf('interactions', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.interactions.fg })}>{totalInteractions.toLocaleString()}</td>
+              <td data-tool="interactions" style={cellOf('interactions', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.interactions.fg })}>{totalInteractions.toLocaleString()}</td>
             </>}
             {cols.gsc && <>
-              <td style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>
-              <td style={cellOf('gsc', false)} />
-              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.clicks.toLocaleString()}</td>
-              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps > 0 ? (totals.clicks / totals.imps * 100).toFixed(2) + '%' : '—'}</td>
-              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.avgPos > 0 ? totals.avgPos.toFixed(1) : '—'}</td>
-              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.pages}</td>
-              <td style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.sitemap.toLocaleString()}</td>
+              <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>
+              <td data-tool="gsc" style={cellOf('gsc', false)} />
+              <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.clicks.toLocaleString()}</td>
+              <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps > 0 ? (totals.clicks / totals.imps * 100).toFixed(2) + '%' : '—'}</td>
+              <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.avgPos > 0 ? totals.avgPos.toFixed(1) : '—'}</td>
+              <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.pages}</td>
+              <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.sitemap.toLocaleString()}</td>
             </>}
             {cols.adsense && <>
-              <td style={cellOf('adsense', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseToday > 0 ? fmtUsd(totalAdsenseToday) : '—'}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImprToday.toLocaleString()}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseClkToday.toLocaleString()}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseEarnings > 0 ? fmtUsd(totalAdsenseEarnings) : '—'}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImpr.toLocaleString()}</td>
-              <td style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsensePV.toLocaleString()}</td>
+              <td data-tool="adsense" style={cellOf('adsense', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseToday > 0 ? fmtUsd(totalAdsenseToday) : '—'}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImprToday.toLocaleString()}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseClkToday.toLocaleString()}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseEarnings > 0 ? fmtUsd(totalAdsenseEarnings) : '—'}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImpr.toLocaleString()}</td>
+              <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsensePV.toLocaleString()}</td>
             </>}
             {cols.bing && <>
-              <td style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
-              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
-              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
-              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
-              <td style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
             </>}
             {cols.ai && <>
-              <td style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
-              <td style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
-              <td style={cellOf('ai', false)} />
+              <td data-tool="ai" style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
+              <td data-tool="ai" style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
+              <td data-tool="ai" style={cellOf('ai', false)} />
             </>}
           </tr>
         </tbody>

@@ -372,13 +372,23 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
 
     return (
       <div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--neon-cyan) 30%, transparent)', margin: '0 0 18px' }}>
-          <span style={{ fontSize: 18 }}>🤖</span>
-          <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
-            <b style={{ color: 'var(--neon-cyan)' }}>Sending on autopilot.</b>{' '}
-            {autoNew} cold {autoNew === 1 ? 'pitch' : 'pitches'} queued · {autoDue} follow-up{autoDue === 1 ? '' : 's'} due — emails go out automatically Mon–Fri 14:00 UTC. Nothing to click for those.
+        {activeCamp?.type === 'backlink' ? (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--neon-amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--neon-amber) 30%, transparent)', margin: '0 0 18px' }}>
+            <span style={{ fontSize: 18 }}>✍️</span>
+            <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
+              <b style={{ color: 'var(--neon-amber)' }}>Gửi tay (Gmail), không autopilot.</b>{' '}
+              Soạn email ở tab <b>Backlinks</b> (AI) rồi gửi Gmail; hoặc mở prospect → <b>Open in Gmail</b>. Ở đây theo dõi đã gửi + <b>follow-up due</b> ({autoDue}).
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--neon-cyan) 30%, transparent)', margin: '0 0 18px' }}>
+            <span style={{ fontSize: 18 }}>🤖</span>
+            <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
+              <b style={{ color: 'var(--neon-cyan)' }}>Sending on autopilot.</b>{' '}
+              {autoNew} cold {autoNew === 1 ? 'pitch' : 'pitches'} queued · {autoDue} follow-up{autoDue === 1 ? '' : 's'} due — emails go out automatically Mon–Fri 14:00 UTC. Nothing to click for those.
+            </div>
+          </div>
+        )}
 
         {newReplies.length > 0 && (
           <Section title="🔔 New replies — categorize" color="var(--neon-violet)" hint="auto-detected from your inbox — a realtor wrote back">
@@ -542,10 +552,16 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
       </div>
       {campEdit && <CampaignForm init={campEdit} projectId={projectId} identities={identities} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
 
-      <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
-        Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects + follow-ups <b>auto-send on a daily cron</b> (Mailjet, hello@militarycalc.com);{' '}
-        <b style={{ color: 'var(--neon-amber)' }}>FORM</b> ones you submit by hand. <b>Needs you</b> shows only what the bot can&apos;t do; <b>Embedded</b> is auto-detected from GA4.
-      </p>
+      {activeCamp?.type === 'backlink' ? (
+        <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
+          Xin đặt link (resource page / directory / community). Email soạn ở tab <b>Backlinks</b> (AI) + gửi tay qua <b>Gmail</b> — KHÔNG auto Mailjet. Ở đây theo dõi <b>đã gửi → chờ reply → follow-up</b>; mở prospect bấm <b>Open in Gmail</b> để nhắc. Link live thì cập nhật ở tab Backlinks.
+        </p>
+      ) : (
+        <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
+          Pitch the free BAH map to base-area realtors. <b style={{ color: 'var(--neon-cyan)' }}>EMAIL</b> prospects + follow-ups <b>auto-send on a daily cron</b> (Mailjet, hello@militarycalc.com);{' '}
+          <b style={{ color: 'var(--neon-amber)' }}>FORM</b> ones you submit by hand. <b>Needs you</b> shows only what the bot can&apos;t do; <b>Embedded</b> is auto-detected from GA4.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
         <Kpi label="Prospects" value={kpi.total} />
@@ -656,7 +672,7 @@ function EmailDrawer({
   const [formBusy, setFormBusy] = useState(false);
   const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
   const saveDraft = async () => { await updateProspectDraft(projectId, p.id, { subject, body }); setSavedDraft(true); setTimeout(() => setSavedDraft(false), 1500); router.refresh(); };
-  const resetTpl = () => { const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source }); setSubject(e.subject); setBody(e.body); };
+  const resetTpl = () => { if (p.source === 'backlink') { setSubject(''); setBody(''); return; } const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source }); setSubject(e.subject); setBody(e.body); };
   // Local contact copy so edits ("field reality") flip FORM<->EMAIL live without reopening.
   const [cur, setCur] = useState({ email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' });
   const [editing, setEditing] = useState(false);
@@ -669,6 +685,8 @@ function EmailDrawer({
     setSend('idle'); setErr(''); setFormBusy(false); setDidCopy(false); setSavedDraft(false);
     if (p.emailBody) {
       setSubject(p.emailSubject ?? ''); setBody(p.emailBody);   // restore the operator's saved/sent edit
+    } else if (p.source === 'backlink') {
+      setSubject(p.emailSubject ?? ''); setBody('');            // backlink email is written per-source in the Backlinks tab (AI) — no embed BAH template
     } else {
       const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source });
       setSubject(e.subject); setBody(e.body);

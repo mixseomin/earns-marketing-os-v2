@@ -27,14 +27,18 @@ export async function runOutreachCron(): Promise<{
   if (!db) return { ok: false, followups: 0, initials: 0, errors: ['DB unavailable'] };
   const errors: string[] = [];
 
+  // Auto-send ONLY for Mailjet-auto campaigns (type='embed', active). Manual-channel campaigns
+  // (backlink = Gmail by hand, sales/recruit) must NOT be auto-sent — the operator drives those.
   // 1) Due follow-ups: already contacted, not snoozed, still has a follow-up left.
   const due = (await db.execute(sql`
-    SELECT id, project_id FROM outreach_prospects
-    WHERE status IN ('sent','followup_1')
-      AND email IS NOT NULL AND email <> ''
-      AND next_followup_at IS NOT NULL AND next_followup_at <= now()
-      AND (snooze_until IS NULL OR snooze_until <= now())
-    ORDER BY next_followup_at ASC
+    SELECT p.id, p.project_id FROM outreach_prospects p
+    JOIN outreach_campaigns c ON c.id = p.campaign_id
+    WHERE c.type = 'embed' AND c.status = 'active'
+      AND p.status IN ('sent','followup_1')
+      AND p.email IS NOT NULL AND p.email <> ''
+      AND p.next_followup_at IS NOT NULL AND p.next_followup_at <= now()
+      AND (p.snooze_until IS NULL OR p.snooze_until <= now())
+    ORDER BY p.next_followup_at ASC
     LIMIT ${FOLLOWUP_PER_RUN}`)) as unknown as Row[];
 
   let followups = 0;
@@ -44,13 +48,15 @@ export async function runOutreachCron(): Promise<{
     else errors.push(`followup#${r.id}: ${res.error}`);
   }
 
-  // 2) Paced fresh cold pitches.
+  // 2) Paced fresh cold pitches (embed/Mailjet campaigns only).
   const fresh = (await db.execute(sql`
-    SELECT id, project_id FROM outreach_prospects
-    WHERE status = 'to_send'
-      AND email IS NOT NULL AND email <> ''
-      AND (snooze_until IS NULL OR snooze_until <= now())
-    ORDER BY id ASC
+    SELECT p.id, p.project_id FROM outreach_prospects p
+    JOIN outreach_campaigns c ON c.id = p.campaign_id
+    WHERE c.type = 'embed' AND c.status = 'active'
+      AND p.status = 'to_send'
+      AND p.email IS NOT NULL AND p.email <> ''
+      AND (p.snooze_until IS NULL OR p.snooze_until <= now())
+    ORDER BY p.id ASC
     LIMIT ${INITIAL_DAILY_CAP}`)) as unknown as Row[];
 
   let initials = 0;

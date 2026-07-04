@@ -27,13 +27,15 @@ export async function runOutreachCron(): Promise<{
   if (!db) return { ok: false, followups: 0, initials: 0, errors: ['DB unavailable'] };
   const errors: string[] = [];
 
-  // Auto-send ONLY for Mailjet-auto campaigns (type='embed', active). Manual-channel campaigns
-  // (backlink = Gmail by hand, sales/recruit) must NOT be auto-sent — the operator drives those.
+  // Auto-send for ACTIVE campaigns that send email (embed + backlink). Pause a campaign
+  // (status='paused') to stop its auto-send. Form-only prospects (no email) are skipped here
+  // and handled manually in "Needs you". sendProspectEmail sends the prospect's stored content
+  // (backlink pitch) or the embed template, and refuses a backlink prospect with no content.
   // 1) Due follow-ups: already contacted, not snoozed, still has a follow-up left.
   const due = (await db.execute(sql`
     SELECT p.id, p.project_id FROM outreach_prospects p
     JOIN outreach_campaigns c ON c.id = p.campaign_id
-    WHERE c.type = 'embed' AND c.status = 'active'
+    WHERE c.status = 'active' AND c.type IN ('embed','backlink')
       AND p.status IN ('sent','followup_1')
       AND p.email IS NOT NULL AND p.email <> ''
       AND p.next_followup_at IS NOT NULL AND p.next_followup_at <= now()
@@ -48,11 +50,11 @@ export async function runOutreachCron(): Promise<{
     else errors.push(`followup#${r.id}: ${res.error}`);
   }
 
-  // 2) Paced fresh cold pitches (embed/Mailjet campaigns only).
+  // 2) Paced fresh cold pitches (active email campaigns: embed + backlink).
   const fresh = (await db.execute(sql`
     SELECT p.id, p.project_id FROM outreach_prospects p
     JOIN outreach_campaigns c ON c.id = p.campaign_id
-    WHERE c.type = 'embed' AND c.status = 'active'
+    WHERE c.status = 'active' AND c.type IN ('embed','backlink')
       AND p.status = 'to_send'
       AND p.email IS NOT NULL AND p.email <> ''
       AND (p.snooze_until IS NULL OR p.snooze_until <= now())

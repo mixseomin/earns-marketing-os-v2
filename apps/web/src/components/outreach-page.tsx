@@ -12,7 +12,7 @@ import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
-import { createCampaign, updateCampaign, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
+import { createCampaign, updateCampaign, importBacklinkTasks, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
 import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
@@ -247,6 +247,8 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   // (or all). campId null = "Tất cả". campEdit holds the campaign being created (id 0) or edited.
   const [campId, setCampId] = useState<number | null>(null);
   const [campEdit, setCampEdit] = useState<OutreachCampaign | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
   const prospects = useMemo(() => (campId == null ? allProspects : allProspects.filter((p) => p.campaignId === campId)), [allProspects, campId]);
 
   const kpi = useMemo(() => {
@@ -532,6 +534,13 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   );
 
   const activeCamp = campId != null ? campaigns.find((c) => c.id === campId) : null;
+  const doImport = async () => {
+    setImportBusy(true); setImportMsg(null);
+    const r = await importBacklinkTasks(projectId);
+    setImportBusy(false);
+    if (r.ok) { setImportMsg(`✓ +${r.created} task mới · ${r.filled} điền nội dung → cron tự gửi`); router.refresh(); }
+    else setImportMsg(r.error || 'lỗi');
+  };
 
   return (
     <div style={{ padding: 16 }}>
@@ -549,6 +558,8 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
         ))}
         <button onClick={() => setCampEdit({ id: 0, projectId, name: '', type: 'embed', status: 'active', goal: null, fromEmail: null, fromName: null, dailyCap: 15, followupGapDays: 3, maxFollowups: 2, notes: null, stats: { prospects: 0, sent: 0, replied: 0, won: 0 } })} style={{ ...btn, padding: '3px 10px' }}>＋ Campaign</button>
         {activeCamp && <button onClick={() => setCampEdit(activeCamp)} style={{ ...btn, padding: '3px 10px' }} title="Sửa sender / pacing / tạm dừng">⚙ Sửa</button>}
+        {activeCamp?.type === 'backlink' && <button onClick={doImport} disabled={importBusy} title="Kéo backlink task (có email) vào campaign + AI tự sinh nội dung → cron tự gửi & follow-up" style={{ ...btn, padding: '3px 10px', color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)', fontWeight: 700 }}>{importBusy ? '⏳ đang import…' : '↻ Import từ Backlinks'}</button>}
+        {importMsg && <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{importMsg}</span>}
       </div>
       {campEdit && <CampaignForm init={campEdit} projectId={projectId} identities={identities} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
 

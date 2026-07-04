@@ -23,7 +23,7 @@ export async function sendProspectEmail(
   if (!key || !secret) return { ok: false, error: 'Mailjet not configured on server' };
 
   const rows = await db.execute(sql`
-    SELECT p.agent_name, p.base, p.email, p.status, p.source,
+    SELECT p.agent_name, p.base, p.email, p.status, p.source, p.email_subject, p.email_body,
            c.from_email AS c_from_email, c.from_name AS c_from_name
     FROM outreach_prospects p
     LEFT JOIN outreach_campaigns c ON c.id = p.campaign_id
@@ -44,15 +44,25 @@ export async function sendProspectEmail(
     return { ok: false, error: `Already ${status} — not sending` };
   }
 
-  const tpl = buildEmailForProspect({
-    agentName: r.agent_name as string | null,
-    base: r.base as string | null,
-    status,
-    source: r.source as string | null,
-  });
-  // Use the operator's edited subject/body when provided (they fix the greeting etc. in the drawer).
-  const subject = override?.subject?.trim() || tpl.subject;
-  const body = override?.body?.trim() || tpl.body;
+  // Content resolution: override (UI edit) > stored per-prospect email (backlink pitch / operator
+  // saved) > embed template. A backlink prospect with no stored content is NOT sent (never blast the
+  // embed BAH template to a librarian) — its pitch must be generated first (import/generate step).
+  const source = r.source ? String(r.source) : '';
+  const savedSubject = r.email_subject ? String(r.email_subject) : '';
+  const savedBody = r.email_body ? String(r.email_body) : '';
+  let subject: string, body: string;
+  if (override?.subject?.trim() || override?.body?.trim()) {
+    subject = override.subject?.trim() || savedSubject;
+    body = override.body?.trim() || savedBody;
+  } else if (savedBody) {
+    subject = savedSubject; body = savedBody;
+  } else if (source === 'backlink') {
+    return { ok: false, error: 'Backlink prospect chưa có nội dung email — sinh trước (Import từ Backlinks)' };
+  } else {
+    const tpl = buildEmailForProspect({ agentName: r.agent_name as string | null, base: r.base as string | null, status, source: r.source as string | null });
+    subject = tpl.subject; body = tpl.body;
+  }
+  if (!body.trim()) return { ok: false, error: 'No email body to send' };
 
   let resp: Response;
   try {

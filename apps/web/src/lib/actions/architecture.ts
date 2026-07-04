@@ -9,6 +9,7 @@ import { getDb } from '@mos2/db';
 import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
+import { syncTaskToProspect } from './backlink-outreach-sync';
 
 type Row = Record<string, unknown>;
 
@@ -343,6 +344,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
     } else {
       await db.execute(sql`UPDATE human_tasks SET status = 'pending', completed_at = NULL, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status = 'completed'`);
     }
+    await syncTaskToProspect(taskId, site, status);   // reflect onto the linked outreach prospect
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }

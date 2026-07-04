@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { buildEmailForProspect } from '@/lib/outreach-template';
+import { syncProspectToTask } from './backlink-outreach-sync';
 
 const FROM_EMAIL = process.env.MAILJET_FROM || 'hello@militarycalc.com';
 const FROM_NAME = 'Jake Miller';
@@ -115,6 +116,7 @@ export async function sendProspectEmail(
       WHERE id = ${id}`);
   }
 
+  await syncProspectToTask(id);   // reflect sent/followup onto the linked backlink task
   revalidatePath(`/p/${projectId}/outreach`);
   return { ok: true };
 }

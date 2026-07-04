@@ -2095,6 +2095,7 @@ export const outreachProspects = pgTable(
     snoozeUntil: timestamp('snooze_until', { withTimezone: true }),
     templateKey: text('template_key'),
     campaignId: bigint('campaign_id', { mode: 'number' }),   // → outreach_campaigns.id
+    taskId: bigint('task_id', { mode: 'number' }),           // → human_tasks.id (backlink task, for 2-way status sync)
     notes: text('notes'),
     owner: text('owner').notNull().default('me'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

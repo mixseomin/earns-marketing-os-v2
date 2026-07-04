@@ -189,8 +189,8 @@ export async function importBacklinkTasks(projectId: string): Promise<{ ok: bool
       const pitch = await genPitch(proj, t);
       if (!pitch) continue;
       const host = String(t.source_url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || String(t.title || 'site');
-      await db.execute(sql`INSERT INTO outreach_prospects (tenant_id, project_id, campaign_id, agent_name, company, email, website, status, source, email_subject, email_body, notes)
-        VALUES ('self', ${projectId}, ${campId}, ${host}, ${String(t.title ?? '')}, ${String(t.email ?? '')}, ${String(t.source_url ?? '')}, 'to_send', 'backlink', ${pitch.subject}, ${pitch.body}, ${'từ backlink task #' + String(t.id)})
+      await db.execute(sql`INSERT INTO outreach_prospects (tenant_id, project_id, campaign_id, task_id, agent_name, company, email, website, status, source, email_subject, email_body, notes)
+        VALUES ('self', ${projectId}, ${campId}, ${Number(t.id)}, ${host}, ${String(t.title ?? '')}, ${String(t.email ?? '')}, ${String(t.source_url ?? '')}, 'to_send', 'backlink', ${pitch.subject}, ${pitch.body}, ${'từ backlink task #' + String(t.id)})
         ON CONFLICT (project_id, email) DO NOTHING`);
       created++;
     }

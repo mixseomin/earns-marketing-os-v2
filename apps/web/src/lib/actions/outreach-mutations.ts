@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
+import { syncProspectToTask } from './backlink-outreach-sync';
 
 const FOLLOWUP_CAP = 2; // total follow-ups before a prospect is closed as 'no_response' (CAN-SPAM friendly)
 
@@ -29,6 +30,7 @@ export async function setProspectStatus(projectId: string, id: number, status: s
         ELSE next_followup_at END,
       updated_at = now()
     WHERE id = ${id}`);
+  await syncProspectToTask(id);
   await rerender(projectId);
 }
 
@@ -41,6 +43,7 @@ export async function markFormSubmitted(projectId: string, id: number) {
     UPDATE outreach_prospects SET status = 'sent', sent_at = COALESCE(sent_at, now()),
       next_followup_at = NULL, updated_at = now()
     WHERE id = ${id}`);
+  await syncProspectToTask(id);
   await rerender(projectId);
 }
 
@@ -56,6 +59,7 @@ export async function markFollowupSent(projectId: string, id: number) {
                               ELSE now() + interval '4 days' END,
       updated_at = now()
     WHERE id = ${id} AND status IN ('sent','followup_1')`);
+  await syncProspectToTask(id);
   await rerender(projectId);
 }
 

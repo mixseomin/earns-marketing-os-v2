@@ -256,7 +256,13 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
 
   // Campaign scoping: the whole page below works off `prospects` = the selected campaign's slice
   // (or all). campId null = "Tất cả". campEdit holds the campaign being created (id 0) or edited.
-  const [campId, setCampId] = useState<number | null>(null);
+  const [campId, setCampIdState] = useState<number | null>(() => { const c = sp.get('c'); return c && /^\d+$/.test(c) ? Number(c) : null; });
+  const setCampId = (id: number | null) => {
+    setCampIdState(id);
+    const u = new URL(window.location.href);
+    if (id == null) u.searchParams.delete('c'); else u.searchParams.set('c', String(id));
+    window.history.replaceState(null, '', u.toString());
+  };
   const [campEdit, setCampEdit] = useState<OutreachCampaign | null>(null);
   const [importBusy, setImportBusy] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);

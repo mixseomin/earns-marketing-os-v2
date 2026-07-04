@@ -27,15 +27,16 @@ export async function runOutreachCron(): Promise<{
   if (!db) return { ok: false, followups: 0, initials: 0, errors: ['DB unavailable'] };
   const errors: string[] = [];
 
-  // Auto-send for ACTIVE campaigns that send email (embed + backlink). Pause a campaign
-  // (status='paused') to stop its auto-send. Form-only prospects (no email) are skipped here
-  // and handled manually in "Needs you". sendProspectEmail sends the prospect's stored content
-  // (backlink pitch) or the embed template, and refuses a backlink prospect with no content.
+  // Auto-send ONLY campaigns with auto_send=true + status=active. A manual campaign
+  // (auto_send=false, e.g. quality .edu backlink) is left for the operator to send by hand
+  // (Gmail preview) — the cron never touches it. Form-only prospects (no email) are skipped
+  // here regardless. sendProspectEmail sends the prospect's stored content (backlink pitch) or
+  // the embed template, and refuses a backlink prospect with no content.
   // 1) Due follow-ups: already contacted, not snoozed, still has a follow-up left.
   const due = (await db.execute(sql`
     SELECT p.id, p.project_id FROM outreach_prospects p
     JOIN outreach_campaigns c ON c.id = p.campaign_id
-    WHERE c.status = 'active' AND c.type IN ('embed','backlink')
+    WHERE c.status = 'active' AND c.auto_send = true
       AND p.status IN ('sent','followup_1')
       AND p.email IS NOT NULL AND p.email <> ''
       AND p.next_followup_at IS NOT NULL AND p.next_followup_at <= now()
@@ -54,7 +55,7 @@ export async function runOutreachCron(): Promise<{
   const fresh = (await db.execute(sql`
     SELECT p.id, p.project_id FROM outreach_prospects p
     JOIN outreach_campaigns c ON c.id = p.campaign_id
-    WHERE c.status = 'active' AND c.type IN ('embed','backlink')
+    WHERE c.status = 'active' AND c.auto_send = true
       AND p.status = 'to_send'
       AND p.email IS NOT NULL AND p.email <> ''
       AND (p.snooze_until IS NULL OR p.snooze_until <= now())

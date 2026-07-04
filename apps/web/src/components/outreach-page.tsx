@@ -127,6 +127,7 @@ function CampaignForm({ init, projectId, identities, onClose, onSaved }: { init:
     name: init.name, type: init.type, status: init.status,
     fromEmail: init.fromEmail || '', fromName: init.fromName || '',
     dailyCap: init.dailyCap, followupGapDays: init.followupGapDays, maxFollowups: init.maxFollowups,
+    autoSend: init.autoSend ?? (init.type !== 'backlink'),   // backlink defaults to manual (quality)
     // '' = chưa chọn, 'custom' = nhập tay, else = identity id
     identitySel: identities.find((i) => i.email && i.email === (init.fromEmail || ''))?.id.toString() ?? (init.fromEmail ? 'custom' : ''),
   });
@@ -157,8 +158,8 @@ function CampaignForm({ init, projectId, identities, onClose, onSaved }: { init:
     if (!f.name.trim()) { setErr('nhập tên campaign'); return; }
     setBusy(true); setErr(null);
     const r = isNew
-      ? await createCampaign({ projectId, name: f.name, type: f.type, fromEmail: f.fromEmail || undefined, fromName: f.fromName || undefined, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups })
-      : await updateCampaign(init.id, projectId, { name: f.name, type: f.type, status: f.status, fromEmail: f.fromEmail, fromName: f.fromName, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups });
+      ? await createCampaign({ projectId, name: f.name, type: f.type, autoSend: f.autoSend, fromEmail: f.fromEmail || undefined, fromName: f.fromName || undefined, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups })
+      : await updateCampaign(init.id, projectId, { name: f.name, type: f.type, status: f.status, autoSend: f.autoSend, fromEmail: f.fromEmail, fromName: f.fromName, dailyCap: f.dailyCap, followupGapDays: f.followupGapDays, maxFollowups: f.maxFollowups });
     setBusy(false);
     if (r.ok) onSaved(); else setErr(r.error || 'lỗi');
   };
@@ -169,6 +170,16 @@ function CampaignForm({ init, projectId, identities, onClose, onSaved }: { init:
         <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Tên campaign" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
         <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} style={inp}>{CAMP_TYPES.map((t) => <option key={t} value={t}>{CAMP_ICON[t]} {t}</option>)}</select>
         {!isNew && <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} style={inp}>{['active', 'paused', 'done'].map((s) => <option key={s} value={s}>{s}</option>)}</select>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 52 }}>Gửi</span>
+        <div style={{ display: 'flex', border: '1px solid var(--bg-3)', borderRadius: 7, overflow: 'hidden' }}>
+          {([[true, '🤖 Tự động'], [false, '✍️ Tay']] as const).map(([v, label]) => (
+            <button key={String(v)} type="button" onClick={() => setF((c) => ({ ...c, autoSend: v }))}
+              style={{ fontSize: 11, padding: '4px 12px', border: 'none', cursor: 'pointer', background: f.autoSend === v ? 'color-mix(in srgb, var(--neon-cyan) 16%, transparent)' : 'var(--bg-2)', color: f.autoSend === v ? 'var(--neon-cyan)' : 'var(--fg-2)', fontWeight: f.autoSend === v ? 700 : 400 }}>{label}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{f.autoSend ? 'cron tự gửi + follow-up (Mailjet)' : 'nội dung tự sinh — anh review + gửi tay (Gmail)'}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -374,12 +385,12 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
 
     return (
       <div>
-        {activeCamp?.type === 'backlink' ? (
+        {activeCamp && !activeCamp.autoSend ? (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--neon-amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--neon-amber) 30%, transparent)', margin: '0 0 18px' }}>
             <span style={{ fontSize: 18 }}>✍️</span>
             <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>
-              <b style={{ color: 'var(--neon-amber)' }}>Gửi tay (Gmail), không autopilot.</b>{' '}
-              Soạn email ở tab <b>Backlinks</b> (AI) rồi gửi Gmail; hoặc mở prospect → <b>Open in Gmail</b>. Ở đây theo dõi đã gửi + <b>follow-up due</b> ({autoDue}).
+              <b style={{ color: 'var(--neon-amber)' }}>Gửi tay (chất lượng), không autopilot.</b>{' '}
+              Nội dung <b>tự sinh</b> sẵn (Import/AI); anh mở prospect → <b>Open in Gmail</b> review rồi gửi. Ở đây theo dõi đã gửi + <b>follow-up due</b> ({autoDue}). Muốn tự động thì ⚙ Sửa → Gửi: 🤖 Tự động.
             </div>
           </div>
         ) : (
@@ -556,16 +567,16 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
             {CAMP_ICON[c.type] || '📣'} {c.name} <span style={{ opacity: .6 }}>{c.stats.prospects}</span>{c.status === 'paused' ? ' ⏸' : c.status === 'done' ? ' ✓' : ''}
           </button>
         ))}
-        <button onClick={() => setCampEdit({ id: 0, projectId, name: '', type: 'embed', status: 'active', goal: null, fromEmail: null, fromName: null, dailyCap: 15, followupGapDays: 3, maxFollowups: 2, notes: null, stats: { prospects: 0, sent: 0, replied: 0, won: 0 } })} style={{ ...btn, padding: '3px 10px' }}>＋ Campaign</button>
+        <button onClick={() => setCampEdit({ id: 0, projectId, name: '', type: 'embed', status: 'active', goal: null, fromEmail: null, fromName: null, dailyCap: 15, followupGapDays: 3, maxFollowups: 2, autoSend: true, notes: null, stats: { prospects: 0, sent: 0, replied: 0, won: 0 } })} style={{ ...btn, padding: '3px 10px' }}>＋ Campaign</button>
         {activeCamp && <button onClick={() => setCampEdit(activeCamp)} style={{ ...btn, padding: '3px 10px' }} title="Sửa sender / pacing / tạm dừng">⚙ Sửa</button>}
         {activeCamp?.type === 'backlink' && <button onClick={doImport} disabled={importBusy} title="Kéo backlink task (có email) vào campaign + AI tự sinh nội dung → cron tự gửi & follow-up" style={{ ...btn, padding: '3px 10px', color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)', fontWeight: 700 }}>{importBusy ? '⏳ đang import…' : '↻ Import từ Backlinks'}</button>}
         {importMsg && <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{importMsg}</span>}
       </div>
       {campEdit && <CampaignForm init={campEdit} projectId={projectId} identities={identities} onClose={() => setCampEdit(null)} onSaved={() => { setCampEdit(null); router.refresh(); }} />}
 
-      {activeCamp?.type === 'backlink' ? (
+      {activeCamp && !activeCamp.autoSend ? (
         <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>
-          Xin đặt link (resource page / directory / community). Email soạn ở tab <b>Backlinks</b> (AI) + gửi tay qua <b>Gmail</b> — KHÔNG auto Mailjet. Ở đây theo dõi <b>đã gửi → chờ reply → follow-up</b>; mở prospect bấm <b>Open in Gmail</b> để nhắc. Link live thì cập nhật ở tab Backlinks.
+          <b>Gửi tay</b> để đảm bảo chất lượng. Nội dung email <b>tự sinh</b> sẵn (bấm <b>↻ Import từ Backlinks</b> để AI viết pitch từng nguồn); anh mở prospect → <b>Open in Gmail</b> review rồi gửi, đánh dấu <b>📤 Mark sent</b>. Follow-up tự lên lịch (Due / Awaiting). Đổi sang tự động bất cứ lúc nào ở ⚙ Sửa.
         </p>
       ) : (
         <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 12px' }}>

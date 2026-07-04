@@ -2128,6 +2128,7 @@ export const outreachCampaigns = pgTable(
     dailyCap: integer('daily_cap').notNull().default(15),
     followupGapDays: integer('followup_gap_days').notNull().default(3),
     maxFollowups: integer('max_followups').notNull().default(2),
+    autoSend: boolean('auto_send').notNull().default(true),   // true = cron Mailjet; false = operator sends by hand (Gmail)
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

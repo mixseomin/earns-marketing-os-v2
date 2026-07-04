@@ -27,6 +27,7 @@ export type OutreachCampaign = {
   dailyCap: number;
   followupGapDays: number;
   maxFollowups: number;
+  autoSend: boolean;
   notes: string | null;
   stats: { prospects: number; sent: number; replied: number; won: number };
 };
@@ -37,7 +38,7 @@ export async function listCampaigns(projectId: string): Promise<OutreachCampaign
   try {
     const rows = await db.execute(sql`
       SELECT c.id, c.project_id, c.name, c.type, c.status, c.goal, c.from_email, c.from_name,
-             c.daily_cap, c.followup_gap_days, c.max_followups, c.notes,
+             c.daily_cap, c.followup_gap_days, c.max_followups, c.auto_send, c.notes,
              count(p.id)                                                        AS prospects,
              count(p.id) FILTER (WHERE p.sent_at IS NOT NULL)                   AS sent,
              count(p.id) FILTER (WHERE p.status IN ('replied','interested'))    AS replied,
@@ -59,6 +60,7 @@ export async function listCampaigns(projectId: string): Promise<OutreachCampaign
       dailyCap: Number(r.daily_cap ?? 0),
       followupGapDays: Number(r.followup_gap_days ?? 0),
       maxFollowups: Number(r.max_followups ?? 0),
+      autoSend: r.auto_send === true,
       notes: (r.notes as string | null) ?? null,
       stats: { prospects: Number(r.prospects ?? 0), sent: Number(r.sent ?? 0), replied: Number(r.replied ?? 0), won: Number(r.won ?? 0) },
     }));
@@ -68,7 +70,7 @@ export async function listCampaigns(projectId: string): Promise<OutreachCampaign
 }
 
 export async function createCampaign(input: {
-  projectId: string; name: string; type: string; goal?: string;
+  projectId: string; name: string; type: string; goal?: string; autoSend?: boolean;
   fromEmail?: string; fromName?: string; dailyCap?: number; followupGapDays?: number; maxFollowups?: number;
 }): Promise<{ ok: boolean; id?: number; error?: string }> {
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
@@ -76,12 +78,14 @@ export async function createCampaign(input: {
   if (!db) return { ok: false, error: 'no db' };
   const name = input.name.trim();
   if (!name) return { ok: false, error: 'thiếu tên campaign' };
+  // Quality-first default: backlink outreach is hand-sent unless opted into auto; everything else auto.
+  const autoSend = input.autoSend ?? (input.type !== 'backlink');
   try {
     const ins = await db.execute(sql`
-      INSERT INTO outreach_campaigns (tenant_id, project_id, name, type, status, goal, from_email, from_name, daily_cap, followup_gap_days, max_followups)
+      INSERT INTO outreach_campaigns (tenant_id, project_id, name, type, status, goal, from_email, from_name, daily_cap, followup_gap_days, max_followups, auto_send)
       VALUES ('self', ${input.projectId}, ${name}, ${input.type || 'custom'}, 'active', ${input.goal ?? null},
               ${input.fromEmail ?? null}, ${input.fromName ?? null},
-              ${input.dailyCap ?? 15}, ${input.followupGapDays ?? 3}, ${input.maxFollowups ?? 2})
+              ${input.dailyCap ?? 15}, ${input.followupGapDays ?? 3}, ${input.maxFollowups ?? 2}, ${autoSend})
       RETURNING id`);
     revalidatePath(`/p/${input.projectId}/outreach`);
     return { ok: true, id: Number((ins as unknown as Array<{ id: number }>)[0]?.id) };
@@ -91,7 +95,7 @@ export async function createCampaign(input: {
 }
 
 export async function updateCampaign(id: number, projectId: string, patch: {
-  name?: string; type?: string; status?: string; goal?: string;
+  name?: string; type?: string; status?: string; goal?: string; autoSend?: boolean;
   fromEmail?: string; fromName?: string; dailyCap?: number; followupGapDays?: number; maxFollowups?: number;
 }): Promise<{ ok: boolean; error?: string }> {
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
@@ -101,6 +105,7 @@ export async function updateCampaign(id: number, projectId: string, patch: {
   if (patch.name !== undefined) sets.push(sql`name = ${patch.name.trim()}`);
   if (patch.type !== undefined) sets.push(sql`type = ${patch.type}`);
   if (patch.status !== undefined) sets.push(sql`status = ${patch.status}`);
+  if (patch.autoSend !== undefined) sets.push(sql`auto_send = ${patch.autoSend}`);
   if (patch.goal !== undefined) sets.push(sql`goal = ${patch.goal}`);
   if (patch.fromEmail !== undefined) sets.push(sql`from_email = ${patch.fromEmail}`);
   if (patch.fromName !== undefined) sets.push(sql`from_name = ${patch.fromName}`);

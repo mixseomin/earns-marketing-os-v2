@@ -40,7 +40,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖' },
   'visagps.com': { project: 'visagps', emoji: '🛂' },
-  'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-03' },
+  'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-15' },
   'paydochub.com': { emoji: '🧾', review: '2026-07-09' },
   'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },

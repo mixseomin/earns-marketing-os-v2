@@ -37,7 +37,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
-  'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
+  'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-07-15' },
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-07-22' },
   'visagps.com': { project: 'visagps', emoji: '🛂' },
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-15' },

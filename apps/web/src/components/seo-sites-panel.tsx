@@ -42,7 +42,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'visagps.com': { project: 'visagps', emoji: '🛂' },
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-15' },
   'paydochub.com': { emoji: '🧾', review: '2026-07-09' },
-  'cities.gg': { project: 'cities-gg', emoji: '🏙️' },
+  'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-07-16' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },

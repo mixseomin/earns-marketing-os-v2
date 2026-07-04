@@ -39,7 +39,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-07-15' },
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-07-22' },
-  'visagps.com': { project: 'visagps', emoji: '🛂' },
+  'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-07-15' },
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-15' },
   'paydochub.com': { emoji: '🧾', review: '2026-07-09' },
   'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-07-16' },

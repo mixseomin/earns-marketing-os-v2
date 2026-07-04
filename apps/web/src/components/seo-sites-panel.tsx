@@ -38,7 +38,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖' },
-  'militarycalc.com': { project: 'militarycalc', emoji: '🪖' },
+  'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-07-22' },
   'visagps.com': { project: 'visagps', emoji: '🛂' },
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-15' },
   'paydochub.com': { emoji: '🧾', review: '2026-07-09' },

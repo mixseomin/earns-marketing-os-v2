@@ -28,6 +28,7 @@ async function tryDb<T>(fn: () => Promise<T>, fallback: T, label: string): Promi
 // projects they're a member of (members table row with project_id != NULL).
 import { getEffectiveUser } from './auth';
 import { sql } from 'drizzle-orm';
+import { estimateCostUsd } from '@/lib/ai/cost';
 
 export async function listProjects(): Promise<Project[]> {
   return tryDb(
@@ -1128,4 +1129,47 @@ export async function listModes(): Promise<Array<{ id: string; label: string; su
     Object.entries(MOCK_MODES).map(([id, m]) => ({ id, label: m.label, sub: m.sub, accent: m.accent ?? 'cyan' })),
     'listModes',
   );
+}
+
+// ── AI usage report (homepage) — tổng hợp ai_usage 30 ngày; cost SUY từ MODEL_PRICE (giá đổi ko cần backfill) ──
+export type AiUsageSummary = {
+  cost1: number; cost7: number; cost30: number; calls30: number;
+  models: string[];
+  byFeature: Array<{ feature: string; cost30: number; calls30: number }>;
+};
+
+export async function getAiUsageSummary(): Promise<AiUsageSummary | null> {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const rows = (await db.execute(sql`
+      SELECT feature, model,
+        count(*)::int AS calls_30d,
+        sum(prompt_tokens)::bigint AS pt_30d,
+        sum(completion_tokens)::bigint AS ct_30d,
+        (sum(prompt_tokens) FILTER (WHERE created_at > now() - interval '7 days'))::bigint AS pt_7d,
+        (sum(completion_tokens) FILTER (WHERE created_at > now() - interval '7 days'))::bigint AS ct_7d,
+        (sum(prompt_tokens) FILTER (WHERE created_at > now() - interval '1 day'))::bigint AS pt_1d,
+        (sum(completion_tokens) FILTER (WHERE created_at > now() - interval '1 day'))::bigint AS ct_1d
+      FROM ai_usage WHERE created_at > now() - interval '30 days'
+      GROUP BY feature, model
+    `)) as unknown as Array<Record<string, string | number | null>>;
+    let cost1 = 0, cost7 = 0, cost30 = 0, calls30 = 0;
+    const models = new Set<string>();
+    const featMap = new Map<string, { cost30: number; calls30: number }>();
+    const n = (v: string | number | null | undefined) => Number(v ?? 0);
+    for (const r of rows) {
+      const model = String(r.model);
+      const c30 = estimateCostUsd(model, { prompt_tokens: n(r.pt_30d), completion_tokens: n(r.ct_30d) }) ?? 0;
+      const c7 = estimateCostUsd(model, { prompt_tokens: n(r.pt_7d), completion_tokens: n(r.ct_7d) }) ?? 0;
+      const c1 = estimateCostUsd(model, { prompt_tokens: n(r.pt_1d), completion_tokens: n(r.ct_1d) }) ?? 0;
+      cost30 += c30; cost7 += c7; cost1 += c1; calls30 += n(r.calls_30d);
+      models.add(model);
+      const f = String(r.feature);
+      const cur = featMap.get(f) ?? { cost30: 0, calls30: 0 };
+      cur.cost30 += c30; cur.calls30 += n(r.calls_30d); featMap.set(f, cur);
+    }
+    const byFeature = [...featMap.entries()].map(([feature, v]) => ({ feature, ...v })).sort((a, b) => b.cost30 - a.cost30);
+    return { cost1, cost7, cost30, calls30, models: [...models], byFeature };
+  } catch { return null; }
 }

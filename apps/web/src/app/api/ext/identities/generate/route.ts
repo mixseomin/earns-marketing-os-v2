@@ -71,6 +71,7 @@ ${kind === 'seeding' ? 'Anonymous regular member vibe. Do NOT mention the brand.
       temperature: 0.9,
     });
     let out: Record<string, unknown> = {};
+    logAiUsage('identity-gen', DEFAULT_MODEL, completion.usage, projectId || null);
     try { out = JSON.parse(completion.choices[0]?.message?.content || '{}'); } catch { /* ignore */ }
     out.password = genPassword();   // luôn kèm password random mạnh → tạo identity ko bị thiếu (create encrypt)
     return NextResponse.json({ ok: true, identity: out });

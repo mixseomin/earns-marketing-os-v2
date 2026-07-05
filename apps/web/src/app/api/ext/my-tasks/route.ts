@@ -25,6 +25,8 @@ export async function GET(req: Request) {
     LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.tenant_id = ${TENANT} AND ht.assigned_user_id = ${who.userId}
       AND ht.status IN ('pending','claimed','in_progress')
+      -- Blocked/paused tasks leave the staff worklist until admin clears the flag (blocker in prep_payload).
+      AND NOT (COALESCE(ht.prep_payload, '{}'::jsonb) ? 'blocker')
     ORDER BY ht.sla_due_at ASC NULLS LAST, ht.id ASC
     LIMIT 50`);
   return NextResponse.json({ ok: true, tasks: rows });

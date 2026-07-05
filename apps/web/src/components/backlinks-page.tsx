@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -233,6 +233,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [follow, setFollow] = useState<string>(sp.get('follow') ?? '');   // dofollow filter
   const [traf, setTraf] = useState<string>(sp.get('traf') ?? '');          // traffic filter
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
+  const [blockedOnly, setBlockedOnly] = useState(sp.get('blocked') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
@@ -258,11 +259,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('follow', follow);
     set('traf', traf);
     set('draft', draftOnly ? '1' : '');
+    set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('task', openId);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, readyFilter, view, openId]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -304,11 +306,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
+      if (blockedOnly && !t.blocker) return false;
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, q, readyFilter]);
+  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter]);
 
   const shown = useMemo(() => (tab === 'pending'
     ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
@@ -422,7 +425,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
         {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
         <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
-        {(q || follow || traf || draftOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); }} style={btn}>Clear</button>}
+        <button type="button" onClick={() => setBlockedOnly((v) => !v)} title="Chỉ hiện task nhân sự báo vướng" style={chip('#ef4444', blockedOnly)}>🚩 vướng</button>
+        {(q || follow || traf || draftOnly || blockedOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); }} style={btn}>Clear</button>}
       </div>
 
       {view === 'calendar' ? (
@@ -444,6 +448,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
                 {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
+                {t.blocker && <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>}
               </div>
             </div>
             <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
@@ -491,6 +496,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     await setSite(task.id, next, url);
     setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
   };
+  // Staff feedback loop — free-text note (result/opinions) + blocker flag ("I'm stuck, here's why").
+  const [note, setNote] = useState(task.workerNote || '');
+  const [noteState, setNoteState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveNote = async () => { setNoteState('saving'); await setBacklinkNote(task.id, note); setNoteState('saved'); onChange(); setTimeout(() => setNoteState('idle'), 1800); };
+  const [blkOpen, setBlkOpen] = useState(false);
+  const [blkReason, setBlkReason] = useState('');
+  const [blkBusy, setBlkBusy] = useState(false);
+  const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); onChange(); };
+  const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
@@ -667,6 +681,18 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
           <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
         </div>
+
+        {/* Blocker banner — active when a staffer flagged this task stuck. Actionable: shows the
+            reason + clear. Surfaces so admin/AI can fix outdated instructions and self-heal. */}
+        {task.blocker && (
+          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 10%, transparent)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bad,#ef4444)' }}>🚩 Đang vướng · {fmtWhen(task.blocker.at)}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--fg-1)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{task.blocker.reason}</div>
+            </div>
+            <button type="button" onClick={clearBlocker} disabled={blkBusy} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{blkBusy ? '…' : '✓ Đã gỡ'}</button>
+          </div>
+        )}
 
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -966,7 +992,31 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         {/* Trailing read-only: also-applies-to + notes */}
         {task.appliesTo.length > 1 && (<><div style={lbl}>Cũng áp dụng cho ({task.appliesTo.length} sites)</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{task.appliesTo.map((s) => { const st = task.siteStatus[s] || ''; return <Tag key={s} color={s === slug ? 'var(--accent)' : undefined}>{s} · {SITE_STATUS[st]?.label || st || '—'}</Tag>; })}</div></>)}
-        {task.notes && (<><div style={lbl}>Notes</div><div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'pre-wrap' }}>{task.notes}</div></>)}
+        {task.notes && (<><div style={lbl}>Notes (admin)</div><div style={{ fontSize: 12, color: 'var(--fg-2)', whiteSpace: 'pre-wrap' }}>{task.notes}</div></>)}
+
+        {/* Staff feedback — result report + opinions (worker note), and a blocker flag when stuck.
+            This is the write-back half of the loop: staff execute above, report here → system self-runs. */}
+        <div style={lbl}>📣 Phản hồi của bạn <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· kết quả · ý kiến · ghi chú</span></div>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} autoComplete="off"
+          placeholder="Đặt xong link ở đâu? gặp gì? góp ý về hướng dẫn (nếu sai/cũ)…"
+          style={{ width: '100%', boxSizing: 'border-box', padding: '7px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12.5, lineHeight: 1.5, resize: 'vertical', fontFamily: 'inherit' }} />
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" onClick={saveNote} disabled={noteState === 'saving' || note === (task.workerNote || '')}
+            style={{ ...btn, fontWeight: 700, borderColor: noteState === 'saved' ? 'var(--ok)' : 'var(--line)', color: noteState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
+            {noteState === 'saving' ? '…' : noteState === 'saved' ? '✓ Đã lưu' : 'Lưu phản hồi'}</button>
+          {!task.blocker && !blkOpen && <button type="button" onClick={() => setBlkOpen(true)} title="Báo là đang mắc/không làm được — admin sẽ thấy để gỡ" style={{ ...btn, color: 'var(--bad,#ef4444)' }}>🚩 Báo vướng</button>}
+        </div>
+        {blkOpen && !task.blocker && (
+          <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Mắc gì? (vd: cần verify SĐT không có · account bị khoá · hướng dẫn/URL sai). Task sẽ gắn cờ 🚩 cho admin.</div>
+            <input value={blkReason} onChange={(e) => setBlkReason(e.target.value)} autoComplete="off" placeholder="Lý do vướng…"
+              style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" onClick={flagBlocker} disabled={blkBusy || !blkReason.trim()} style={{ ...btn, color: 'var(--bad,#ef4444)', fontWeight: 700 }}>{blkBusy ? '…' : '🚩 Gửi'}</button>
+              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); }} style={btn}>Huỷ</button>
+            </div>
+          </div>
+        )}
 
         {/* Footer utility row — structural/destructive actions out of the primary top-down path. */}
         <div style={{ marginTop: 22, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

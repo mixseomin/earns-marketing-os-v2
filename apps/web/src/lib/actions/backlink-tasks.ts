@@ -32,6 +32,8 @@ export interface BacklinkTask {
   hasDraft: boolean;
   instructions: string | null;
   notes: string | null;
+  workerNote: string | null;                       // staff free-text: result report + opinions
+  blocker: { reason: string; at: string } | null;  // active blocker (staff is stuck)
   siteStatus: Record<string, string>;
   siteUrl: Record<string, string>;
   appliesTo: string[];
@@ -77,6 +79,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
              (site_scheduled_at->>${slug}) AS site_scheduled_at,
              (site_submitted_at->>${slug}) AS site_submitted_at,
              (site_verify->${slug})        AS site_verify,
+             worker_note, blocker,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -120,6 +123,9 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         hasDraft: r.has_draft === 'ready',
         instructions: (r.instructions as string | null) || null,
         notes: (r.notes as string | null) || null,
+        workerNote: (r.worker_note as string | null) || null,
+        blocker: (r.blocker && typeof r.blocker === 'object' && !Array.isArray(r.blocker))
+          ? (r.blocker as { reason: string; at: string }) : null,
         siteStatus: asObj(r.site_status),
         siteUrl: asObj(r.site_url),
         appliesTo: asArr(r.applies_to),

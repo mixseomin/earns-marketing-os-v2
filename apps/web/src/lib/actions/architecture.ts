@@ -368,6 +368,38 @@ export async function setBacklinkSchedule(taskId: number, site: string, date: st
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+// Staff feedback loop. worker_note = free-text result/opinions. Empty note removes the key.
+export async function setBacklinkNote(taskId: number, note: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const n = (note || '').trim();
+  try {
+    const merge = n
+      ? sql`|| jsonb_build_object('worker_note', to_jsonb(${n}::text))`
+      : sql`- 'worker_note'`;
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Blocker: staffer is stuck. reason set → flag { reason, at }; empty reason → clear (unblock).
+export async function setBacklinkBlocker(taskId: number, reason: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const r = (reason || '').trim();
+  try {
+    const merge = r
+      ? sql`|| jsonb_build_object('blocker', jsonb_build_object('reason', ${r}::text, 'at', to_jsonb(now())))`
+      : sql`- 'blocker'`;
+    await db.execute(sql`
+      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 // Backlink shared entity: remove a site from membership (drop the key from both
 // site_status + site_url). Inverse of setBacklinkSite for the Sites multi-select.
 export async function removeBacklinkSite(taskId: number, site: string): Promise<{ ok: boolean; error?: string }> {

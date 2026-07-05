@@ -184,11 +184,14 @@ function LinkText({ text }: { text: string }) {
 // Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
 // dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
-function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving }: {
+function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
   text: string;
-  onReportStep?: (line: string) => void;   // ⚠ per-line "làm không được / không thấy" → blocker
+  onBlock?: (reason: string) => Promise<void> | void;   // ⚠ per-line report → flag blocker with reason
   urlValue?: string; onUrlChange?: (v: string) => void; onUrlSave?: () => void; urlSaving?: boolean;
 }) {
+  const [rIdx, setRIdx] = useState<number | null>(null);   // which line has its report box open
+  const [rText, setRText] = useState('');
+  const [rBusy, setRBusy] = useState(false);
   let items = text.split('\n').map((s) => s.trim()).filter(Boolean);
   if (items.length <= 1) {
     const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
@@ -197,10 +200,8 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
   if (items.length <= 1) {
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
-  const report = (ln: string) => (
-    onReportStep ? <button type="button" onClick={() => onReportStep(ln)} title="Làm không được / không thấy như mô tả? Báo lỗi ngay dòng này"
-      style={{ flexShrink: 0, marginLeft: 'auto', border: '1px solid var(--line)', background: 'var(--bg-1)', borderRadius: 5, cursor: 'pointer', color: 'var(--fg-3)', fontSize: 10, padding: '1px 6px', whiteSpace: 'nowrap', alignSelf: 'flex-start' }}>⚠ lỗi</button> : null
-  );
+  const openReport = (i: number, ln: string) => { setRIdx(i); setRText(`Không làm được / không thấy như mô tả: "${ln.length > 90 ? ln.slice(0, 90) + '…' : ln}"`); };
+  const sendReport = async () => { if (!rText.trim() || !onBlock) return; setRBusy(true); await onBlock(rText.trim()); setRBusy(false); setRIdx(null); setRText(''); };
   return (<>
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((ln, i) => {
@@ -208,15 +209,28 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
         const emo = ln.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/su);
         // "Các bước:" style label — a short line ending in ":" with no number/emoji.
         if (!num && !emo && /^.{1,28}:$/.test(ln)) {
-          return <li key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginTop: i ? 5 : 0, marginBottom: -1 }}>{ln.replace(/:$/, '')}</li>;
+          return <li key={i} style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginTop: i ? 5 : 0, marginBottom: -1 }}>{ln.replace(/:$/, '')}</li>;
         }
         const gutter = num ? num[1] : emo ? emo[1] : '–';
         const body = (num ? num[2] : emo ? emo[2] : ln) ?? ln;
         return (
-          <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
-            <span style={{ flexShrink: 0, minWidth: 17, textAlign: num ? 'right' : 'center', fontWeight: num ? 700 : 400, color: num ? 'var(--accent)' : 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{num ? `${gutter}.` : gutter}</span>
-            <span style={{ minWidth: 0, flex: 1 }}><LinkText text={body} /></span>
-            {(num || emo) && report(ln)}
+          <li key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
+              <span style={{ flexShrink: 0, minWidth: 17, textAlign: num ? 'right' : 'center', fontWeight: num ? 700 : 400, color: num ? 'var(--accent)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{num ? `${gutter}.` : gutter}</span>
+              <span style={{ minWidth: 0, flex: 1 }}><LinkText text={body} /></span>
+              {onBlock && (num || emo) && <button type="button" onClick={() => (rIdx === i ? setRIdx(null) : openReport(i, ln))} title="Làm không được / không thấy như mô tả? Báo lỗi ngay dòng này"
+                style={{ flexShrink: 0, alignSelf: 'flex-start', border: '1px solid var(--warn,#ffb03c)', background: 'transparent', borderRadius: 5, cursor: 'pointer', color: 'var(--warn,#ffb03c)', fontSize: 10.5, fontWeight: 700, padding: '1px 7px', whiteSpace: 'nowrap' }}>⚠ Lỗi</button>}
+            </div>
+            {rIdx === i && onBlock && (
+              <div style={{ marginLeft: 25, padding: 8, borderRadius: 7, border: '1px solid var(--warn,#ffb03c)', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <textarea value={rText} onChange={(e) => setRText(e.target.value)} rows={2} autoFocus autoComplete="off" placeholder="Mắc gì ở bước này?"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '5px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button type="button" onClick={sendReport} disabled={rBusy || !rText.trim()} style={{ ...btn, color: 'var(--warn,#ffb03c)', fontWeight: 700 }}>{rBusy ? '…' : '⚠ Báo lỗi'}</button>
+                  <button type="button" onClick={() => setRIdx(null)} style={btn}>Huỷ</button>
+                </div>
+              </div>
+            )}
           </li>
         );
       })}
@@ -224,7 +238,7 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
     {/* Kết quả — always give a paste spot at the end of the how-to, synced with the Live URL field below. */}
     {onUrlChange && (
       <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px dashed var(--line)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginBottom: 5 }}>✅ Làm xong — dán link vào đây</div>
+        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>✅ Làm xong — dán link vào đây</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="https://… link đã đặt được" autoComplete="off"
             style={{ flex: 1, minWidth: 0, padding: '5px 9px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
@@ -542,8 +556,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
   const [normBusy, setNormBusy] = useState(false);
   const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
-  // ⚠ report on a specific instruction line ("làm không được / không thấy") → prefill the blocker box.
-  const reportStep = (line: string) => { setBlkReason(`Không làm được / không thấy như mô tả: "${line.length > 90 ? line.slice(0, 90) + '…' : line}"`); setBlkOpen(true); };
+  // ⚠ report on a specific instruction line → flag the blocker directly with the given reason.
+  const blockWithReason = async (reason: string) => { await setBacklinkBlocker(task.id, reason); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
@@ -750,7 +764,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
           </div>
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}>
-            <Steps text={task.instructions} onReportStep={reportStep} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
+            <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
           </div>
         </>)}
 

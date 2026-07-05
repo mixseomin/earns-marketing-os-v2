@@ -49,6 +49,7 @@ export async function GET(req: Request) {
       technologyKey: platforms.technologyKey,
       techLabel: platformTechnologies.label,
       notes: platforms.notes,
+      signupVerify: platforms.signupVerify,
     })
     .from(platforms)
     .leftJoin(platformTechnologies, eq(platforms.technologyKey, platformTechnologies.key))
@@ -84,6 +85,7 @@ export async function GET(req: Request) {
       techLabel: platformRow.techLabel ?? null,
       emailVerifyBroken,
       notes: platformRow.notes ?? '',
+      signupVerify: platformRow.signupVerify ?? '',
     } : null,
   });
 }
@@ -104,6 +106,7 @@ export async function POST(req: Request) {
     technologyKey?: string | null;
     emailVerifyBroken?: boolean;
     notes?: string;
+    signupVerify?: string;
   };
 
   if (body.target === 'habitat') {
@@ -126,6 +129,11 @@ export async function POST(req: Request) {
     if (typeof body.notes === 'string') {
       await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', notes: body.notes })
         .onConflictDoUpdate({ target: platforms.key, set: { notes: body.notes, updatedAt: new Date() } });
+    }
+    // Yêu cầu xác minh sau signup (map OUTCOMES: active/email/mod/phone) — nhớ per-platform.
+    if (typeof body.signupVerify === 'string') {
+      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', signupVerify: body.signupVerify })
+        .onConflictDoUpdate({ target: platforms.key, set: { signupVerify: body.signupVerify, updatedAt: new Date() } });
     }
     return NextResponse.json({ ok: true, target: 'platform', key: body.key });
   }

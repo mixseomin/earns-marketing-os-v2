@@ -484,6 +484,9 @@ export const platforms = pgTable(
     // migration 0044: forum engine + per-platform signup field overrides
     technologyKey: text('technology_key').references(() => platformTechnologies.key, { onDelete: 'set null' }),
     signupFields: jsonb('signup_fields').notNull().default([]), // platform-specific additions/overrides
+    // Yêu cầu xác minh SAU đăng ký, MAP vào OUTCOMES ext ('active'|'email'|'mod'|'phone') — knowledge đi
+    // theo platform (vd Wikidata='email': auto-login xong vẫn phải confirm email). Nhớ 1 lần, nhắc lần sau.
+    signupVerify: text('signup_verify'),
     // Override content formats hardcoded (content-formats.ts PROFILE_BY_KEY/CATEGORY).
     // allowedFormats = JSONB array of format keys; NULL = dùng hardcoded fallback.
     // formatMix = JSONB object {format_key: weight}.

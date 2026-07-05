@@ -4,7 +4,7 @@ const money = (n: number) => (n > 0 && n < 0.01 ? '<$0.01' : '$' + n.toFixed(2))
 
 // Homepage AI usage strip — model đang dùng + cost hôm nay/7d/30d + top feature. Server component (chỉ hiển thị).
 export function AiUsageCard({ usage }: { usage: AiUsageSummary | null }) {
-  if (!usage || usage.calls30 === 0) return null;
+  if (!usage) return null;   // DB unavailable — ẩn. calls30===0 vẫn HIỆN (chỗ report cố định).
   const cell = (label: string, val: string) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <span style={{ fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</span>
@@ -22,11 +22,13 @@ export function AiUsageCard({ usage }: { usage: AiUsageSummary | null }) {
       {cell('30 ngày', money(usage.cost30))}
       {cell('Calls 30d', String(usage.calls30))}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
-        {usage.byFeature.slice(0, 5).map((f) => (
-          <span key={f.feature} style={{ fontSize: 10, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
-            {f.feature} <span style={{ color: 'var(--fg-3)' }}>{money(f.cost30)}</span>
-          </span>
-        ))}
+        {usage.byFeature.length === 0
+          ? <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>chưa có lần gọi AI nào (30 ngày)</span>
+          : usage.byFeature.slice(0, 5).map((f) => (
+            <span key={f.feature} style={{ fontSize: 10, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+              {f.feature} <span style={{ color: 'var(--fg-3)' }}>{money(f.cost30)}</span>
+            </span>
+          ))}
       </div>
     </div>
   );

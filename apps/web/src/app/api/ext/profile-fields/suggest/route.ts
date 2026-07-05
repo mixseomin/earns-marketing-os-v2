@@ -4,6 +4,7 @@ import { getDb, identities, projects, platformAccounts } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { resolveProjectViaTask } from '@/lib/resolve-project-via-task';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { errorResponse } from '@/lib/ext-route';
 
 // Field hồ sơ trỏ tới WEBSITE chính của dự án → fill thẳng project.website (canonical,
@@ -144,6 +145,7 @@ export async function POST(req: Request) {
       response_format: { type: 'json_object' },
       temperature: 0.5,
     });
+    logAiUsage('profile-fill', DEFAULT_MODEL, res.usage, body.projectId || null);
     const txt = res.choices?.[0]?.message?.content || '{}';
     const parsed = JSON.parse(txt) as { values?: Record<string, unknown> };
     // Cap theo maxLen (an toàn nếu LLM vẫn vượt) — cắt ở ranh giới từ gần nhất, ko giữa từ.

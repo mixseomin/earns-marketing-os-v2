@@ -181,22 +181,36 @@ function LinkText({ text }: { text: string }) {
     </span>
   ))}</>;
 }
+// Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
+// dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
+// emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
 function Steps({ text }: { text: string }) {
-  let items = text.split('\n').map(stripMarker).filter(Boolean);
+  let items = text.split('\n').map((s) => s.trim()).filter(Boolean);
   if (items.length <= 1) {
-    const parts = text.split(/\s*(?=\b\d+\)\s)/).map(stripMarker).filter(Boolean);
+    const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
     if (parts.length >= 2) items = parts;
   }
   if (items.length <= 1) {
-    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={items[0] ?? text} /></div>;
+    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
   return (
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-      {items.map((p, i) => (
-        <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
-          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>–</span><span><LinkText text={p} /></span>
-        </li>
-      ))}
+      {items.map((ln, i) => {
+        const num = ln.match(/^(\d+)[.)]\s*(.*)$/s);
+        const emo = ln.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/su);
+        // "Các bước:" style label — a short line ending in ":" with no number/emoji.
+        if (!num && !emo && /^.{1,28}:$/.test(ln)) {
+          return <li key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginTop: i ? 5 : 0, marginBottom: -1 }}>{ln.replace(/:$/, '')}</li>;
+        }
+        const gutter = num ? num[1] : emo ? emo[1] : '–';
+        const body = (num ? num[2] : emo ? emo[2] : ln) ?? ln;
+        return (
+          <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
+            <span style={{ flexShrink: 0, minWidth: 17, textAlign: num ? 'right' : 'center', fontWeight: num ? 700 : 400, color: num ? 'var(--accent)' : 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{num ? `${gutter}.` : gutter}</span>
+            <span style={{ minWidth: 0 }}><LinkText text={body} /></span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

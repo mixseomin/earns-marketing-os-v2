@@ -2137,5 +2137,21 @@ export const outreachCampaigns = pgTable(
   (t) => [index('outreach_campaigns_project_idx').on(t.projectId)],
 );
 
+// AI usage log — mỗi lần gọi LLM (ext AI-fill, generators) ghi 1 dòng (model + token). Cost KHÔNG lưu
+// (suy ở read qua MODEL_PRICE — giá đổi ko cần backfill). Ghi fire-and-forget, ko chặn response.
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    feature: text('feature').notNull(),
+    model: text('model').notNull(),
+    promptTokens: integer('prompt_tokens').notNull().default(0),
+    completionTokens: integer('completion_tokens').notNull().default(0),
+    projectId: text('project_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_usage_created_idx').on(t.createdAt), index('ai_usage_feature_idx').on(t.feature)],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachCampaigns };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachCampaigns, aiUsage };

@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects, contentPieces } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -101,6 +102,7 @@ Write the reply. Output ONLY the reply text.`;
       ],
     });
 
+    logAiUsage('ai-reply', DEFAULT_MODEL, completion.usage, project?.id ?? null);
     let text = completion.choices[0]?.message?.content?.trim() ?? '';
     text = text.replace(/^["'`]|["'`]$/g, '').trim();
 

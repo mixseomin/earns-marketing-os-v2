@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';

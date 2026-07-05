@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects } from '@mos2/db';
 import { eq } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { getEffectiveSignupFields } from '@/lib/actions/technologies';
 import { errorResponse } from '@/lib/ext-route';
 
@@ -99,6 +100,7 @@ Rewrite the current text to fix the issue. Output ONLY the new text.`;
       ],
     });
 
+    logAiUsage('ai-rewrite', DEFAULT_MODEL, completion.usage, project?.id ?? null);
     let text = completion.choices[0]?.message?.content?.trim() ?? '';
     // Strip surrounding quotes if model added them despite instructions
     text = text.replace(/^["'`]|["'`]$/g, '').trim();

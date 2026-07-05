@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getDb, projects } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +65,7 @@ Generate the brand fields. Output STRICT JSON only.`;
       response_format: { type: 'json_object' },
       messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userPrompt }],
     });
+    logAiUsage('project-brand', DEFAULT_MODEL, completion.usage, projectId);
     const raw = completion.choices[0]?.message?.content?.trim() ?? '';
     const s = JSON.parse(raw) as Record<string, unknown>;
     // LLM có thể trả contentStrategy/hashtags dạng ARRAY (vì prompt nói "bullets") → join.

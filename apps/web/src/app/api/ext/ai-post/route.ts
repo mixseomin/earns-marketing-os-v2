@@ -3,6 +3,7 @@ import { checkAuth } from '../_auth';
 import { getDb, platformAccounts, platforms, projects, projectAccounts, habitats, contentPieces, contentPillars } from '@mos2/db';
 import { and, eq, ilike } from 'drizzle-orm';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
 import { getProjectPost } from '@/lib/ai/project-post-facts';
 import { estimateCostUsd } from '@/lib/ai/cost';
 import { errorResponse } from '@/lib/ext-route';
@@ -257,6 +258,7 @@ Write the post — lead with a concrete specific, not a generic announcement. Ou
     });
 
     promptTok += completion.usage?.prompt_tokens ?? 0; complTok += completion.usage?.completion_tokens ?? 0;
+    logAiUsage('ai-post', useModel, completion.usage, project?.id ?? null);
     const raw = completion.choices[0]?.message?.content?.trim() ?? '';
     parsed = JSON.parse(raw);
     if (!parsed.body) throw new Error('No body in AI response');

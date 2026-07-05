@@ -653,6 +653,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [fmt, setFmt] = useState<DraftFmt>('md');
   const [linkMode, setLinkMode] = useState<LinkMode>('link');
+  const [dPrev, setDPrev] = useState(false);   // draft: WYSIWYG rendered preview vs raw source
   const draftFmts = useMemo(() => {
     if (!task.draft) return null;
     const src = applyLink(task.draft, linkMode);
@@ -766,6 +767,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   };
   const delAi = async (id: number) => { await deleteAiContent(id); reloadAi(); };
   const copy = (txt: string, key: string) => { navigator.clipboard?.writeText(txt).then(() => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); }).catch(() => {}); };
+  // Rich copy — writes text/html + text/plain so pasting into a WYSIWYG editor keeps formatting.
+  const copyRich = async (html: string, key: string) => {
+    const plain = html.replace(/<[^>]+>/g, '');
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })]);
+      setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200);
+    } catch { copy(html, key); }
+  };
   const flash = (key: string) => { setCopiedKey(key); setTimeout(() => setCopiedKey(null), 1200); };
   const copyImg = async (url: string, key: string) => { (await copyImageToClipboard(url)) ? flash(key) : copy(url, key.replace('img-', 'media-')); };
   const dlImg = async (url: string, filename: string, key: string) => { flash(key); await downloadImage(url, filename); };
@@ -929,7 +938,12 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                     border: `1px solid ${fmt === f.k ? 'var(--accent)' : 'var(--line)'}`, background: fmt === f.k ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: fmt === f.k ? 'var(--accent)' : 'var(--fg-3)' }}>{f.label}</button>
               ))}
             </span>
-            <button type="button" onClick={() => copy(draftFmts[fmt], 'draft')} style={{ ...btn, padding: '1px 8px', marginLeft: 'auto' }}>{copiedKey === 'draft' ? '✓ copied' : 'Copy'}</button>
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
+              <button type="button" onClick={() => setDPrev((v) => !v)} title={dPrev ? 'Xem mã nguồn để copy dạng text' : 'Xem bản render (WYSIWYG)'}
+                style={{ ...btn, padding: '1px 8px', color: dPrev ? 'var(--accent)' : 'var(--fg-3)' }}>{dPrev ? '</> Nguồn' : '👁 Xem'}</button>
+              <button type="button" onClick={() => (dPrev ? copyRich(draftFmts.html, 'draft') : copy(draftFmts[fmt], 'draft'))} title={dPrev ? 'Copy giữ định dạng — dán vào Gmail/WordPress/Docs là ra rich text' : 'Copy mã nguồn'}
+                style={{ ...btn, padding: '1px 8px' }}>{copiedKey === 'draft' ? '✓ copied' : dPrev ? 'Copy (rich)' : 'Copy'}</button>
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
             <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Link</span>
@@ -941,7 +955,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
           <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
           {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
+          {dPrev ? (
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 14px', fontSize: 13, lineHeight: 1.55, color: 'var(--fg-1)' }}>
+              <style>{`.draft-wys h1{font-size:18px;margin:.3em 0 .4em;font-weight:700}.draft-wys h2{font-size:16px;margin:.4em 0 .3em;font-weight:700}.draft-wys h3{font-size:14px;margin:.4em 0 .25em;font-weight:700}.draft-wys p{margin:.5em 0}.draft-wys a{color:var(--accent);text-decoration:underline}.draft-wys ul,.draft-wys ol{margin:.4em 0;padding-left:1.4em}.draft-wys code{font-family:var(--font-mono);background:var(--bg-1);padding:1px 4px;border-radius:4px}`}</style>
+              <div className="draft-wys" dangerouslySetInnerHTML={{ __html: draftFmts.html }} />
+            </div>
+          ) : (
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.5, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, margin: 0, fontFamily: 'var(--font-mono)' }}>{draftFmts[fmt]}</pre>
+          )}
         </>) : (<>
           <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11 }}>✍️ Bài viết</div>
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>

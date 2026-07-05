@@ -530,14 +530,39 @@ export async function dropBacklinkSiblings(taskId: number, reason?: string): Pro
       : await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
     const rows = r as unknown as Array<Record<string, unknown>>;
     if (!rows.length) return { ok: false, error: 'không tìm thấy task' };
-    // Log why the source was dropped so we don't re-seed it (e.g. Wikidata notability). Append to
-    // app_settings['dropped_backlink_sources'] JSON array.
-    if (why && src) {
-      await db.execute(sql`INSERT INTO app_settings (key, value, updated_at)
-        VALUES ('dropped_backlink_sources', jsonb_build_array(jsonb_build_object('source_url', ${src}::text, 'reason', ${why}::text, 'count', ${rows.length}, 'at', now())), now())
-        ON CONFLICT (key) DO UPDATE SET value = (CASE WHEN jsonb_typeof(app_settings.value) = 'array' THEN app_settings.value ELSE '[]'::jsonb END) || EXCLUDED.value, updated_at = now()`);
-    }
+    // Trash: keep the FULL row snapshots (+ reason) in app_settings so a drop is recoverable long
+    // after the 9s undo toast. Newest first; keep last 50 entries.
+    const entry = { id: String(Date.now()), source_url: src, reason: why, count: rows.length, at: new Date().toISOString(), rows };
+    await db.execute(sql`INSERT INTO app_settings (key, value, updated_at)
+      VALUES ('dropped_backlink_sources', ${JSON.stringify([entry])}::jsonb, now())
+      ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify([entry])}::jsonb || (CASE WHEN jsonb_typeof(app_settings.value) = 'array' THEN app_settings.value ELSE '[]'::jsonb END), updated_at = now()`);
+    // trim to 50 (separate statement to keep the concat simple)
+    await db.execute(sql`UPDATE app_settings SET value = (SELECT jsonb_agg(e) FROM (SELECT e FROM jsonb_array_elements(value) e LIMIT 50) t) WHERE key = 'dropped_backlink_sources' AND jsonb_array_length(value) > 50`);
     return { ok: true, rows, count: rows.length };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Trash list — dropped sources recoverable any time (lightweight: no row snapshots in payload).
+export async function listDroppedSources(): Promise<Array<{ id: string; source_url: string | null; reason: string; count: number; at: string }>> {
+  const db = getDb(); if (!db) return [];
+  try {
+    const r = await db.execute(sql`SELECT jsonb_agg(jsonb_build_object('id', e->>'id', 'source_url', e->>'source_url', 'reason', e->>'reason', 'count', (e->>'count')::int, 'at', e->>'at') ORDER BY e->>'at' DESC) AS list
+      FROM app_settings, jsonb_array_elements(value) e WHERE key = 'dropped_backlink_sources'`);
+    return ((r as unknown as Array<{ list: unknown }>)[0]?.list as Array<{ id: string; source_url: string | null; reason: string; count: number; at: string }>) || [];
+  } catch { return []; }
+}
+
+// Restore all tasks of one dropped-source trash entry, then remove it from the trash.
+export async function restoreDroppedSource(id: string): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const db = getDb(); if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const r = await db.execute(sql`SELECT e AS entry FROM app_settings, jsonb_array_elements(value) e WHERE key = 'dropped_backlink_sources' AND e->>'id' = ${id} LIMIT 1`);
+    const entry = (r as unknown as Array<{ entry: { rows?: Record<string, unknown>[] } }>)[0]?.entry;
+    if (!entry) return { ok: false, error: 'không tìm thấy trong thùng rác' };
+    const rows = entry.rows || [];
+    for (const row of rows) await restoreBacklinkTask(row);
+    await db.execute(sql`UPDATE app_settings SET value = COALESCE((SELECT jsonb_agg(e) FROM jsonb_array_elements(value) e WHERE e->>'id' <> ${id}), '[]'::jsonb), updated_at = now() WHERE key = 'dropped_backlink_sources'`);
+    return { ok: true, count: rows.length };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

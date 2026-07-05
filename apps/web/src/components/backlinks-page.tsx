@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -322,6 +322,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     if (r.ok && r.rows) { setOpenId(null); setUndoRows(r.rows); start(() => router.refresh()); setTimeout(() => setUndoRows(null), 9000); }
   };
   const undoDelete = async () => { const rows = undoRows; if (!rows) return; setUndoRows(null); for (const row of rows) await restoreBacklinkTask(row); start(() => router.refresh()); };
+  // Trash — dropped sources recoverable any time (durable backstop beyond the 9s undo).
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trash, setTrash] = useState<Awaited<ReturnType<typeof listDroppedSources>> | null>(null);
+  const openTrash = async () => { setTrashOpen(true); setTrash(await listDroppedSources()); };
+  const restoreTrash = async (id: string) => { await restoreDroppedSource(id); setTrash(await listDroppedSources()); start(() => router.refresh()); };
 
   // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
   useEffect(() => {
@@ -444,9 +449,33 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             title="Kiểm tra sức khoẻ mọi link đã đặt (còn sống? dofollow?) — kết quả hiện badge ngay trong list">
             {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
           </button>
+          <button type="button" onClick={openTrash} style={{ ...btn }} title="Nguồn đã drop — khôi phục bất cứ lúc nào">🗑 Đã drop</button>
           <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
         </div>
       </div>
+      {trashOpen && (
+        <Drawer onClose={() => setTrashOpen(false)} width={520}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>🗑 Nguồn đã drop</h2>
+            <button type="button" onClick={() => setTrashOpen(false)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10 }}>Drop cả cụm cùng nguồn lưu ở đây — bấm khôi phục là dựng lại mọi task đã xoá (giữ nguyên id/status/URL).</div>
+          {trash === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang tải…</div>
+            : trash.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Chưa drop nguồn nào.</div>
+            : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {trash.map((e) => (
+                  <div key={e.id} style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '9px 11px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--fg-1)', wordBreak: 'break-all' }}>{e.source_url ? hostOf(e.source_url) : '(no source)'} <span style={{ color: 'var(--fg-4)' }}>· {e.count} task</span></div>
+                      {e.reason && <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 2 }}>{e.reason}</div>}
+                      <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2 }}>{fmtWhen(e.at)}</div>
+                    </div>
+                    <button type="button" onClick={() => restoreTrash(e.id)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, flexShrink: 0 }}>↩ Khôi phục</button>
+                  </div>
+                ))}
+              </div>}
+        </Drawer>
+      )}
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -1138,7 +1167,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         </div>
         {dropConfirm && (
           <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Xoá task này + <b>mọi task cùng nguồn</b> ở tất cả site (nguồn không khả thi, vd Wikidata notability). Có hoàn tác 9s.</div>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Xoá task này + <b>mọi task cùng nguồn</b> ở tất cả site (nguồn không khả thi, vd Wikidata notability). Hoàn tác 9s, hoặc khôi phục sau bất cứ lúc nào ở nút <b>🗑 Đã drop</b> trên đầu trang.</div>
             <input value={dropReason} onChange={(e) => setDropReason(e.target.value)} autoComplete="off" placeholder="Lý do drop (tuỳ chọn — ghi để không seed lại nguồn này)…"
               style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
             <div style={{ display: 'flex', gap: 6 }}>

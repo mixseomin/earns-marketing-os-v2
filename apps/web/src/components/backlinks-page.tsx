@@ -198,10 +198,10 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
   const report = (ln: string) => (
-    onReportStep ? <button type="button" onClick={() => onReportStep(ln)} title="Làm không được / không thấy như mô tả? Báo lỗi tại đây"
-      style={{ flexShrink: 0, marginLeft: 'auto', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--fg-4)', fontSize: 11, opacity: 0.6, padding: '0 2px' }}>⚠</button> : null
+    onReportStep ? <button type="button" onClick={() => onReportStep(ln)} title="Làm không được / không thấy như mô tả? Báo lỗi ngay dòng này"
+      style={{ flexShrink: 0, marginLeft: 'auto', border: '1px solid var(--line)', background: 'var(--bg-1)', borderRadius: 5, cursor: 'pointer', color: 'var(--fg-3)', fontSize: 10, padding: '1px 6px', whiteSpace: 'nowrap', alignSelf: 'flex-start' }}>⚠ lỗi</button> : null
   );
-  return (
+  return (<>
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((ln, i) => {
         const num = ln.match(/^(\d+)[.)]\s*(.*)$/s);
@@ -212,22 +212,6 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
         }
         const gutter = num ? num[1] : emo ? emo[1] : '–';
         const body = (num ? num[2] : emo ? emo[2] : ln) ?? ln;
-        // ✅ "Link nhận được" line → render an inline Live-URL input synced with the field below.
-        if (emo && emo[1] === '✅' && onUrlChange) {
-          return (
-            <li key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ flexShrink: 0, minWidth: 17, textAlign: 'center' }}>✅</span>
-                <span style={{ minWidth: 0 }}><LinkText text={body} /></span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, paddingLeft: 25 }}>
-                <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="dán link đã đặt được…" autoComplete="off"
-                  style={{ flex: 1, minWidth: 0, padding: '4px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
-                {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '2px 10px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
-              </div>
-            </li>
-          );
-        }
         return (
           <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
             <span style={{ flexShrink: 0, minWidth: 17, textAlign: num ? 'right' : 'center', fontWeight: num ? 700 : 400, color: num ? 'var(--accent)' : 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{num ? `${gutter}.` : gutter}</span>
@@ -237,7 +221,18 @@ function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving
         );
       })}
     </ul>
-  );
+    {/* Kết quả — always give a paste spot at the end of the how-to, synced with the Live URL field below. */}
+    {onUrlChange && (
+      <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px dashed var(--line)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginBottom: 5 }}>✅ Làm xong — dán link vào đây</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="https://… link đã đặt được" autoComplete="off"
+            style={{ flex: 1, minWidth: 0, padding: '5px 9px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
+          {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '3px 12px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
+        </div>
+      </div>
+    )}
+  </>);
 }
 
 // Account-readiness chip on a backlink card — is the platform account ready to post?

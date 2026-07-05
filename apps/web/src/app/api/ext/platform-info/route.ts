@@ -48,6 +48,7 @@ export async function GET(req: Request) {
       signupUrl: platforms.signupUrl,
       technologyKey: platforms.technologyKey,
       techLabel: platformTechnologies.label,
+      notes: platforms.notes,
     })
     .from(platforms)
     .leftJoin(platformTechnologies, eq(platforms.technologyKey, platformTechnologies.key))
@@ -82,6 +83,7 @@ export async function GET(req: Request) {
       technologyKey: platformRow.technologyKey ?? null,
       techLabel: platformRow.techLabel ?? null,
       emailVerifyBroken,
+      notes: platformRow.notes ?? '',
     } : null,
   });
 }
@@ -101,6 +103,7 @@ export async function POST(req: Request) {
     key?: string;
     technologyKey?: string | null;
     emailVerifyBroken?: boolean;
+    notes?: string;
   };
 
   if (body.target === 'habitat') {
@@ -117,6 +120,12 @@ export async function POST(req: Request) {
     }
     if ('technologyKey' in body) {
       await db.update(platforms).set({ technologyKey: body.technologyKey ?? null, updatedAt: new Date() }).where(eq(platforms.key, body.key));
+    }
+    // Platform KNOWLEDGE tự do (vd "Wikidata: auto-login xong VẪN phải confirm email"). Upsert vì platform
+    // do ext tạo có thể chưa tồn tại. Reuse cột platforms.notes (ko đẻ bảng mới).
+    if (typeof body.notes === 'string') {
+      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', notes: body.notes })
+        .onConflictDoUpdate({ target: platforms.key, set: { notes: body.notes, updatedAt: new Date() } });
     }
     return NextResponse.json({ ok: true, target: 'platform', key: body.key });
   }

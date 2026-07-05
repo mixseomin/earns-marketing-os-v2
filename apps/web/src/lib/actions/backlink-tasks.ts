@@ -88,9 +88,12 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
     // Platform mới thêm vào catalog (chưa có regex) vẫn được nhận → account KHỚP (cùng key reconcile bên
     // ext). Site LẠ (không regex + không catalog) → null → no-account default (KHÔNG false-block). 1 query.
     const catSlug = new Map<string, string>();
+    const allKeys = new Set<string>();   // every catalog key — many are just the normalized hostname
     try {
-      const cat = await db.execute(sql`SELECT key, signup_url FROM platforms WHERE signup_url <> ''`);
-      for (const row of (cat as unknown as Array<{ key: string; signup_url: string }>)) {
+      const cat = await db.execute(sql`SELECT key, signup_url FROM platforms`);
+      for (const row of (cat as unknown as Array<{ key: string; signup_url: string | null }>)) {
+        allKeys.add(row.key);
+        if (!row.signup_url) continue;
         try { const h = new URL(row.signup_url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); if (h && !catSlug.has(h)) catSlug.set(h, row.key); } catch { /* skip bad url */ }
       }
     } catch { /* catalog unavailable → regex-only fallback */ }
@@ -98,7 +101,12 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       if (!url) return null;
       const byRegex = canonPlatformKey(detectPlatformKeyFromUrl(url) || '');
       if (byRegex) return byRegex;
-      try { const h = new URL(url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return catSlug.get(h) ?? null; } catch { return null; }
+      try {
+        const h = new URL(url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        // signup_url match first (curated), else the platform whose KEY is the hostname itself
+        // (wiki/KG/resource platforms seeded with empty signup_url, e.g. wikidata-org).
+        return catSlug.get(h) ?? (allKeys.has(h) ? h : null);
+      } catch { return null; }
     };
     const base = (rows as unknown as Array<Record<string, unknown>>).map((r) => {
       const sourceUrl = (r.source_url as string | null) || null;

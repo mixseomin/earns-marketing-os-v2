@@ -7,11 +7,12 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
+import { ImageAttach } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, type AiContentRow } from '@/lib/actions/ai-content';
@@ -191,7 +192,7 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
 }) {
   const [rIdx, setRIdx] = useState<number | null>(null);   // which line has its report box open
   const [rText, setRText] = useState('');
-  const [rShot, setRShot] = useState<string | null>(null); // pasted screenshot as data URL
+  const [rShots, setRShots] = useState<string[]>([]);      // attached screenshot URLs
   const [rBusy, setRBusy] = useState(false);
   let items = text.split('\n').map((s) => s.trim()).filter(Boolean);
   if (items.length <= 1) {
@@ -201,13 +202,8 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
   if (items.length <= 1) {
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
-  const openReport = (i: number, ln: string) => { setRIdx(i); setRText(`Không làm được / không thấy như mô tả: "${ln.length > 90 ? ln.slice(0, 90) + '…' : ln}"`); setRShot(null); };
-  const sendReport = async () => { if (!rText.trim() || !onBlock) return; setRBusy(true); await onBlock(rText.trim(), rShot || undefined); setRBusy(false); setRIdx(null); setRText(''); setRShot(null); };
-  const grabImage = (items: DataTransferItemList | null | undefined) => {
-    const it = items ? [...items].find((x) => x.type.startsWith('image/')) : null;
-    const f = it?.getAsFile(); if (!f) return false;
-    const rd = new FileReader(); rd.onload = () => setRShot(rd.result as string); rd.readAsDataURL(f); return true;
-  };
+  const openReport = (i: number, ln: string) => { setRIdx(i); setRText(`Không làm được / không thấy như mô tả: "${ln.length > 90 ? ln.slice(0, 90) + '…' : ln}"`); setRShots([]); };
+  const sendReport = async () => { if (!rText.trim() || !onBlock) return; setRBusy(true); await onBlock(rText.trim(), rShots[0]); setRBusy(false); setRIdx(null); setRText(''); setRShots([]); };
   return (<>
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((ln, i) => {
@@ -229,22 +225,13 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
             </div>
             {rIdx === i && onBlock && (
               <div style={{ marginLeft: 25, padding: 8, borderRadius: 7, border: '1px solid var(--warn,#ffb03c)', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <textarea value={rText} onChange={(e) => setRText(e.target.value)} onPaste={(e) => { if (grabImage(e.clipboardData?.items)) e.preventDefault(); }}
-                  rows={2} autoFocus autoComplete="off" placeholder="Mắc gì ở bước này? (dán ảnh chụp bằng Ctrl+V nếu cần)"
+                <textarea value={rText} onChange={(e) => setRText(e.target.value)}
+                  rows={2} autoFocus autoComplete="off" placeholder="Mắc gì ở bước này?"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '5px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
-                {rShot && (
-                  <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
-                    <img src={rShot} alt="ảnh báo lỗi" style={{ maxWidth: 220, maxHeight: 140, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
-                    <button type="button" onClick={() => setRShot(null)} title="Bỏ ảnh" style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 12, lineHeight: '18px', padding: 0 }}>✕</button>
-                  </div>
-                )}
+                <ImageAttach value={rShots} onChange={setRShots} folder="blockers" max={3} />
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button type="button" onClick={sendReport} disabled={rBusy || !rText.trim()} style={{ ...btn, color: 'var(--warn,#ffb03c)', fontWeight: 700 }}>{rBusy ? '…' : '⚠ Báo lỗi'}</button>
                   <button type="button" onClick={() => setRIdx(null)} style={btn}>Huỷ</button>
-                  <label style={{ ...btn, cursor: 'pointer', color: 'var(--fg-3)' }}>📎 ảnh
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = () => setRShot(rd.result as string); rd.readAsDataURL(f); } }} />
-                  </label>
-                  {rShot && <span style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>✓ đã đính ảnh</span>}
                 </div>
               </div>
             )}
@@ -308,12 +295,17 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
   // Delete a backlink task with a 10s undo (destructive-action pattern). undoRow holds the
   // snapshot; restore re-inserts it with the same id so the deep-link still resolves.
-  const [undoRow, setUndoRow] = useState<Record<string, unknown> | null>(null);
+  const [undoRows, setUndoRows] = useState<Record<string, unknown>[] | null>(null);
   const deleteTask = async (taskId: number) => {
     const r = await deleteBacklinkTask(taskId);
-    if (r.ok && r.row) { setOpenId(null); setUndoRow(r.row); start(() => router.refresh()); setTimeout(() => setUndoRow(null), 9000); }
+    if (r.ok && r.row) { setOpenId(null); setUndoRows([r.row]); start(() => router.refresh()); setTimeout(() => setUndoRows(null), 9000); }
   };
-  const undoDelete = async () => { const row = undoRow; if (!row) return; setUndoRow(null); await restoreBacklinkTask(row); start(() => router.refresh()); };
+  // Drop this source across every site (same source_url). Bulk undo restores all rows.
+  const dropSource = async (taskId: number) => {
+    const r = await dropBacklinkSiblings(taskId);
+    if (r.ok && r.rows) { setOpenId(null); setUndoRows(r.rows); start(() => router.refresh()); setTimeout(() => setUndoRows(null), 9000); }
+  };
+  const undoDelete = async () => { const rows = undoRows; if (!rows) return; setUndoRows(null); for (const row of rows) await restoreBacklinkTask(row); start(() => router.refresh()); };
 
   // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
   useEffect(() => {
@@ -526,11 +518,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} />}
+      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
 
-      {undoRow && (
+      {undoRows && undoRows.length > 0 && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
-          <span>Đã xoá task <b>{String(undoRow.title || '')}</b></span>
+          <span>{undoRows.length > 1 ? <>Đã drop <b>{undoRows.length}</b> task cùng nguồn</> : <>Đã xoá task <b>{String(undoRows[0]?.title || '')}</b></>}</span>
           <button type="button" onClick={undoDelete} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>↩ Hoàn tác</button>
         </div>
       )}
@@ -549,9 +541,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete }: {
+function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void;
+  onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -567,14 +559,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const saveNote = async () => { setNoteState('saving'); await setBacklinkNote(task.id, note); setNoteState('saved'); onChange(); setTimeout(() => setNoteState('idle'), 1800); };
   const [blkOpen, setBlkOpen] = useState(false);
   const [blkReason, setBlkReason] = useState('');
-  const [blkShot, setBlkShot] = useState<string | null>(null);
+  const [blkShots, setBlkShots] = useState<string[]>([]);
   const [blkBusy, setBlkBusy] = useState(false);
-  const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason, blkShot || undefined); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); setBlkShot(null); onChange(); };
-  const grabBlkImage = (items: DataTransferItemList | null | undefined) => {
-    const it = items ? [...items].find((x) => x.type.startsWith('image/')) : null;
-    const f = it?.getAsFile(); if (!f) return false;
-    const rd = new FileReader(); rd.onload = () => setBlkShot(rd.result as string); rd.readAsDataURL(f); return true;
-  };
+  const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason, blkShots[0]); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); setBlkShots([]); onChange(); };
   const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
   const [normBusy, setNormBusy] = useState(false);
@@ -661,6 +648,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     if (r.ok && r.newId) { setSplitting(false); setSplitDone({ id: r.newId, name: sb }); onChange(); } else setSerr(r.error || 'lỗi');
   };
   const [delConfirm, setDelConfirm] = useState(false);
+  const [dropConfirm, setDropConfirm] = useState(false);
   // Link health-check (#3): fetch the placed URL, confirm our domain is linked + dofollow.
   const [vbusy, setVbusy] = useState(false);
   const [vres, setVres] = useState<BacklinkVerify | null>(task.siteVerify);
@@ -1093,21 +1081,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         {blkOpen && !task.blocker && (
           <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Mắc gì? (vd: cần verify SĐT không có · account bị khoá · hướng dẫn/URL sai). Task sẽ gắn cờ 🚩 cho admin.</div>
-            <textarea value={blkReason} onChange={(e) => setBlkReason(e.target.value)} onPaste={(e) => { if (grabBlkImage(e.clipboardData?.items)) e.preventDefault(); }}
-              rows={2} autoComplete="off" placeholder="Lý do vướng… (dán ảnh chụp bằng Ctrl+V nếu cần)"
+            <textarea value={blkReason} onChange={(e) => setBlkReason(e.target.value)}
+              rows={2} autoComplete="off" placeholder="Lý do vướng…"
               style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', resize: 'vertical', fontFamily: 'inherit' }} />
-            {blkShot && (
-              <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
-                <img src={blkShot} alt="ảnh báo vướng" style={{ maxWidth: 220, maxHeight: 140, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
-                <button type="button" onClick={() => setBlkShot(null)} title="Bỏ ảnh" style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 12, lineHeight: '18px', padding: 0 }}>✕</button>
-              </div>
-            )}
+            <ImageAttach value={blkShots} onChange={setBlkShots} folder="blockers" max={3} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button type="button" onClick={flagBlocker} disabled={blkBusy || !blkReason.trim()} style={{ ...btn, color: 'var(--bad,#ef4444)', fontWeight: 700 }}>{blkBusy ? '…' : '🚩 Gửi'}</button>
-              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); setBlkShot(null); }} style={btn}>Huỷ</button>
-              <label style={{ ...btn, cursor: 'pointer', color: 'var(--fg-3)' }}>📎 ảnh
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = () => setBlkShot(rd.result as string); rd.readAsDataURL(f); } }} />
-              </label>
+              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); setBlkShots([]); }} style={btn}>Huỷ</button>
             </div>
           </div>
         )}
@@ -1122,6 +1102,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             </>
           ) : (
             <button type="button" onClick={() => setDelConfirm(true)} title="Xoá task này (có hoàn tác)" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Xoá</button>
+          )}
+          {dropConfirm ? (
+            <>
+              <button type="button" onClick={() => onDropSource(task.id)} title="Xoá task này + mọi task cùng nguồn ở tất cả site (có hoàn tác)" style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Drop cả cụm cùng nguồn?</button>
+              <button type="button" onClick={() => setDropConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setDropConfirm(true)} title="Nguồn không khả thi cho mọi site (vd Wikidata notability) → xoá task này + mọi task cùng nguồn ở tất cả project. Có hoàn tác." style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Drop nguồn (mọi site)</button>
           )}
           <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
         </div>

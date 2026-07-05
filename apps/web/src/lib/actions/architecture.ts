@@ -390,13 +390,14 @@ export async function setBacklinkBlocker(taskId: number, reason: string, shot?: 
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   const r = (reason || '').trim();
-  // Optional screenshot: a data:image/*;base64 URL pasted by staff → store in R2, keep the public URL.
+  // Optional screenshot: usually an already-uploaded URL (via <ImageAttach>). Also accept a raw
+  // data:image base64 for callers that upload lazily.
   let shotUrl: string | null = null;
-  if (r && shot && shot.startsWith('data:image')) {
-    const m = shot.match(/^data:(image\/\w+);base64,(.+)$/s);
-    if (m) {
-      const buf = Buffer.from(m[2]!, 'base64');
-      if (buf.length <= 5_000_000) shotUrl = await uploadToR2(`blockers/${taskId}-${Date.now()}.${m[1]!.split('/')[1]}`, buf, m[1]!);
+  if (r && shot) {
+    if (/^https?:\/\//.test(shot)) shotUrl = shot;
+    else if (shot.startsWith('data:image')) {
+      const m = shot.match(/^data:(image\/\w+);base64,(.+)$/s);
+      if (m) { const buf = Buffer.from(m[2]!, 'base64'); if (buf.length <= 5_000_000) shotUrl = await uploadToR2(`blockers/${taskId}-${Date.now()}.${m[1]!.split('/')[1]}`, buf, m[1]!); }
     }
   }
   try {
@@ -510,6 +511,24 @@ export async function deleteBacklinkTask(taskId: number): Promise<{ ok: boolean;
     const r = await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
     const row = (r as unknown as Array<Record<string, unknown>>)[0];
     return row ? { ok: true, row } : { ok: false, error: 'không tìm thấy task' };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Drop this task AND every sibling task with the same source (same how-to on other sites) —
+// for a source that turns out non-viable everywhere (e.g. Wikidata notability fails for tool
+// sites with no press). Returns all deleted row snapshots so the UI can offer a bulk undo.
+export async function dropBacklinkSiblings(taskId: number): Promise<{ ok: boolean; rows?: Record<string, unknown>[]; count?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const srcRow = await db.execute(sql`SELECT prep_payload->>'source_url' src FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    const src = (srcRow as unknown as Array<{ src: string | null }>)[0]?.src || null;
+    // No source recorded → fall back to deleting just this task (still a valid "drop").
+    const r = src
+      ? await db.execute(sql`DELETE FROM human_tasks WHERE platform_key = 'backlink' AND prep_payload->>'source_url' = ${src} RETURNING *`)
+      : await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
+    const rows = r as unknown as Array<Record<string, unknown>>;
+    return rows.length ? { ok: true, rows, count: rows.length } : { ok: false, error: 'không tìm thấy task' };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

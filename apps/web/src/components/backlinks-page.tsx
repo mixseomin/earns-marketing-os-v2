@@ -12,7 +12,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
-import { ImageAttach } from '@/components/ui/image-attach';
+import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, type AiContentRow } from '@/lib/actions/ai-content';
@@ -231,7 +231,7 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
                 <ImageAttach value={rShots} onChange={setRShots} folder="blockers" max={3} />
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button type="button" onClick={sendReport} disabled={rBusy || !rText.trim()} style={{ ...btn, color: 'var(--warn,#ffb03c)', fontWeight: 700 }}>{rBusy ? '…' : '⚠ Báo lỗi'}</button>
-                  <button type="button" onClick={() => setRIdx(null)} style={btn}>Huỷ</button>
+                  <button type="button" onClick={() => { discardAttachments(rShots); setRShots([]); setRIdx(null); }} style={btn}>Huỷ</button>
                 </div>
               </div>
             )}
@@ -1087,7 +1087,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <ImageAttach value={blkShots} onChange={setBlkShots} folder="blockers" max={3} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button type="button" onClick={flagBlocker} disabled={blkBusy || !blkReason.trim()} style={{ ...btn, color: 'var(--bad,#ef4444)', fontWeight: 700 }}>{blkBusy ? '…' : '🚩 Gửi'}</button>
-              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); setBlkShots([]); }} style={btn}>Huỷ</button>
+              <button type="button" onClick={() => { discardAttachments(blkShots); setBlkOpen(false); setBlkReason(''); setBlkShots([]); }} style={btn}>Huỷ</button>
             </div>
           </div>
         )}

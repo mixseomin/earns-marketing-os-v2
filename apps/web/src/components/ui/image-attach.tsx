@@ -5,7 +5,11 @@
 // coloured success/error status. `value` is the list of attached URLs. Use anywhere attachments
 // are needed (blocker report, feedback form, …).
 import { useState, useRef, type CSSProperties } from 'react';
-import { uploadImage } from '@/lib/actions/uploads';
+import { uploadImage, deleteImage } from '@/lib/actions/uploads';
+
+// Delete uploaded (unsent) attachments from R2. Call from a form's Cancel/close so nothing is
+// orphaned. No-op for external "Thêm URL" links.
+export function discardAttachments(urls: string[]) { for (const u of urls) void deleteImage(u); }
 
 const btn: CSSProperties = { fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 };
 
@@ -106,7 +110,7 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
           {value.map((u, i) => (
             <div key={i} style={{ position: 'relative' }}>
               <a href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`ảnh ${i + 1}`} style={{ width: 74, height: 56, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} /></a>
-              <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} title="Bỏ" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
+              <button type="button" onClick={() => { void deleteImage(u); onChange(value.filter((_, j) => j !== i)); }} title="Bỏ (xoá luôn khỏi storage)" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
             </div>
           ))}
         </div>

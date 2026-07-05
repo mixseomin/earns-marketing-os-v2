@@ -19,6 +19,41 @@ export function r2Enabled(): boolean {
 const sha256hex = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
 const hmac = (key: Buffer | string, data: string) => createHmac('sha256', key).update(data).digest();
 
+// Delete an object by key (SigV4 DELETE). Best-effort — returns true on 2xx/404.
+export async function deleteFromR2(key: string): Promise<boolean> {
+  if (!r2Enabled()) return false;
+  const acct = process.env.R2_ACCOUNT_ID!;
+  const ak = process.env.R2_ACCESS_KEY_ID!;
+  const sk = process.env.R2_SECRET_ACCESS_KEY!;
+  const bucket = process.env.R2_BUCKET!;
+  const host = `${acct}.r2.cloudflarestorage.com`;
+  const region = 'auto'; const service = 's3';
+  const encKey = key.split('/').map(encodeURIComponent).join('/');
+  const canonicalUri = `/${bucket}/${encKey}`;
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256hex('');
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const canonicalRequest = `DELETE\n${canonicalUri}\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${sha256hex(canonicalRequest)}`;
+  const kSigning = hmac(hmac(hmac(hmac(`AWS4${sk}`, dateStamp), region), service), 'aws4_request');
+  const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+  const authorization = `AWS4-HMAC-SHA256 Credential=${ak}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  try {
+    const res = await fetch(`https://${host}${canonicalUri}`, { method: 'DELETE', headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: authorization } });
+    return res.ok || res.status === 404;
+  } catch { return false; }
+}
+
+export function r2KeyFromUrl(url: string): string | null {
+  const pub = (process.env.R2_PUBLIC_BASE || '').replace(/\/+$/, '');
+  if (!pub || !url.startsWith(pub + '/')) return null;
+  return url.slice(pub.length + 1).split('/').map(decodeURIComponent).join('/');
+}
+
 export async function uploadToR2(
   key: string, body: Buffer, contentType: string,
 ): Promise<string | null> {

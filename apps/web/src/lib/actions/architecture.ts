@@ -517,9 +517,10 @@ export async function deleteBacklinkTask(taskId: number): Promise<{ ok: boolean;
 // Drop this task AND every sibling task with the same source (same how-to on other sites) —
 // for a source that turns out non-viable everywhere (e.g. Wikidata notability fails for tool
 // sites with no press). Returns all deleted row snapshots so the UI can offer a bulk undo.
-export async function dropBacklinkSiblings(taskId: number): Promise<{ ok: boolean; rows?: Record<string, unknown>[]; count?: number; error?: string }> {
+export async function dropBacklinkSiblings(taskId: number, reason?: string): Promise<{ ok: boolean; rows?: Record<string, unknown>[]; count?: number; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
+  const why = (reason || '').trim();
   try {
     const srcRow = await db.execute(sql`SELECT prep_payload->>'source_url' src FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
     const src = (srcRow as unknown as Array<{ src: string | null }>)[0]?.src || null;
@@ -528,7 +529,15 @@ export async function dropBacklinkSiblings(taskId: number): Promise<{ ok: boolea
       ? await db.execute(sql`DELETE FROM human_tasks WHERE platform_key = 'backlink' AND prep_payload->>'source_url' = ${src} RETURNING *`)
       : await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
     const rows = r as unknown as Array<Record<string, unknown>>;
-    return rows.length ? { ok: true, rows, count: rows.length } : { ok: false, error: 'không tìm thấy task' };
+    if (!rows.length) return { ok: false, error: 'không tìm thấy task' };
+    // Log why the source was dropped so we don't re-seed it (e.g. Wikidata notability). Append to
+    // app_settings['dropped_backlink_sources'] JSON array.
+    if (why && src) {
+      await db.execute(sql`INSERT INTO app_settings (key, value, updated_at)
+        VALUES ('dropped_backlink_sources', jsonb_build_array(jsonb_build_object('source_url', ${src}::text, 'reason', ${why}::text, 'count', ${rows.length}, 'at', now())), now())
+        ON CONFLICT (key) DO UPDATE SET value = (CASE WHEN jsonb_typeof(app_settings.value) = 'array' THEN app_settings.value ELSE '[]'::jsonb END) || EXCLUDED.value, updated_at = now()`);
+    }
+    return { ok: true, rows, count: rows.length };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

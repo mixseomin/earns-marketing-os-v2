@@ -301,8 +301,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     if (r.ok && r.row) { setOpenId(null); setUndoRows([r.row]); start(() => router.refresh()); setTimeout(() => setUndoRows(null), 9000); }
   };
   // Drop this source across every site (same source_url). Bulk undo restores all rows.
-  const dropSource = async (taskId: number) => {
-    const r = await dropBacklinkSiblings(taskId);
+  const dropSource = async (taskId: number, reason?: string) => {
+    const r = await dropBacklinkSiblings(taskId, reason);
     if (r.ok && r.rows) { setOpenId(null); setUndoRows(r.rows); start(() => router.refresh()); setTimeout(() => setUndoRows(null), 9000); }
   };
   const undoDelete = async () => { const rows = undoRows; if (!rows) return; setUndoRows(null); for (const row of rows) await restoreBacklinkTask(row); start(() => router.refresh()); };
@@ -543,7 +543,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
 function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
-  onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number) => void;
+  onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
@@ -649,6 +649,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   };
   const [delConfirm, setDelConfirm] = useState(false);
   const [dropConfirm, setDropConfirm] = useState(false);
+  const [dropReason, setDropReason] = useState('');
   // Link health-check (#3): fetch the placed URL, confirm our domain is linked + dofollow.
   const [vbusy, setVbusy] = useState(false);
   const [vres, setVres] = useState<BacklinkVerify | null>(task.siteVerify);
@@ -1103,16 +1104,22 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           ) : (
             <button type="button" onClick={() => setDelConfirm(true)} title="Xoá task này (có hoàn tác)" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Xoá</button>
           )}
-          {dropConfirm ? (
-            <>
-              <button type="button" onClick={() => onDropSource(task.id)} title="Xoá task này + mọi task cùng nguồn ở tất cả site (có hoàn tác)" style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Drop cả cụm cùng nguồn?</button>
-              <button type="button" onClick={() => setDropConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
-            </>
-          ) : (
+          {!dropConfirm && (
             <button type="button" onClick={() => setDropConfirm(true)} title="Nguồn không khả thi cho mọi site (vd Wikidata notability) → xoá task này + mọi task cùng nguồn ở tất cả project. Có hoàn tác." style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Drop nguồn (mọi site)</button>
           )}
           <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
         </div>
+        {dropConfirm && (
+          <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Xoá task này + <b>mọi task cùng nguồn</b> ở tất cả site (nguồn không khả thi, vd Wikidata notability). Có hoàn tác 9s.</div>
+            <input value={dropReason} onChange={(e) => setDropReason(e.target.value)} autoComplete="off" placeholder="Lý do drop (tuỳ chọn — ghi để không seed lại nguồn này)…"
+              style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" onClick={() => { onDropSource(task.id, dropReason); setDropConfirm(false); setDropReason(''); }} style={{ ...btn, borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)', fontWeight: 700 }}>🗑 Drop cả cụm cùng nguồn</button>
+              <button type="button" onClick={() => { setDropConfirm(false); setDropReason(''); }} style={btn}>Huỷ</button>
+            </div>
+          </div>
+        )}
         {splitting && (
           <div style={{ marginTop: 8, padding: 12, borderRadius: 8, border: '1px solid #9d6cff', background: 'color-mix(in srgb, #9d6cff 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Tách nguồn này thành 2 task. Task hiện tại → tên trên; task mới (clone cùng account/nguồn, reset trạng thái) → tên dưới. Drawer này vẫn mở.</div>

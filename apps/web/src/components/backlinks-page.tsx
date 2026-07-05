@@ -86,6 +86,22 @@ const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null =
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
 
+// Collapsible section (progressive disclosure — see feedback_progressive_disclosure_tiers). Tier-2
+// sections stay closed until clicked; defaultOpen when they already hold meaningful content.
+function Disclosure({ title, badge, defaultOpen, children }: { title: React.ReactNode; badge?: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <details open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 9 }}>
+      <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-2)', userSelect: 'none' }}>
+        <span style={{ color: 'var(--fg-4)', fontSize: 9, display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .12s' }}>▶</span>
+        <span>{title}</span>
+        {badge != null && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-4)', textTransform: 'none', letterSpacing: 0 }}>{badge}</span>}
+      </summary>
+      <div style={{ marginTop: 9 }}>{children}</div>
+    </details>
+  );
+}
+
 function Pill({ status }: { status: string }) {
   const m = SITE_STATUS[status] || { label: status, color: 'var(--fg-2)' };
   return <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: `color-mix(in srgb, ${m.color} 18%, transparent)`, color: m.color, whiteSpace: 'nowrap' }}>{m.label}</span>;
@@ -837,8 +853,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         )}
 
         {/* 4 · Content — paste kit + the post draft + any other AI content the task needs. */}
-        {kit.length > 0 && (<>
-          <div style={{ ...lbl, marginTop: 16 }}>📎 Paste kit <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· từ hồ sơ {project.name}</span></div>
+        {kit.length > 0 && (
+          <Disclosure title="📎 Paste kit" badge={`${kit.length} mục · ${project.name}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {kit.map((k) => (
               <div key={k.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' }}>
@@ -850,12 +866,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
               </div>
             ))}
           </div>
-        </>)}
+          </Disclosure>
+        )}
 
         {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings) +
             one-tap AI generate. Only for shoutout/directory/launch tasks — noise for email/forum/Q&A. */}
-        {showStack && (<>
-        <div style={{ ...lbl, marginTop: 16 }}>🧩 Built with <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· stack · bấm copy từng tool</span></div>
+        {showStack && (
+        <Disclosure title="🧩 Built with" badge="stack · copy từng tool" defaultOpen={stackItems.length > 0}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           {stackItems.map((s, i) => (
             <button key={i} type="button" onClick={() => copy(s, `stack-${i}`)} title="Copy tên tool để dán vào shoutout/listing"
@@ -866,10 +883,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             style={{ ...btn, padding: '2px 9px', color: 'var(--accent)', fontWeight: 700 }}>{stackBusy ? '…' : stackItems.length ? '↻ Gợi ý lại' : '✨ Gợi ý stack (AI)'}</button>
         </div>
         {stackItems.length === 0 && !stackBusy && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Chưa có stack — bấm ✨ để AI đề xuất, hoặc điền ở Settings. Dùng cho PH shoutouts / &ldquo;Built with&rdquo; listings.</div>}
-        </>)}
+        </Disclosure>
+        )}
 
         {/* Post draft — ONE block: empty → generate; generated → show + regen + format/link toggles. */}
-        {(needsPost || task.draft) && (draftFmts ? (<>
+        {(needsPost || task.draft) && (
+        <Disclosure title="📋 Draft (bài đăng)" defaultOpen={!!task.draft}>
+        {draftFmts ? (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>📋 Draft (paste-ready)</span>
             <button type="button" onClick={doDraft} disabled={dbusy} title="Sinh lại bản nháp khác" style={{ ...btn, padding: '1px 8px' }}>{dbusy ? '…' : '↻ Viết lại'}</button>
@@ -900,9 +920,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <button type="button" onClick={doDraft} disabled={dbusy} style={{ ...btn, alignSelf: 'flex-start' }}>{dbusy ? 'Đang viết…' : '✍️ Viết bài (AI)'}</button>
             {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)' }}>{derr}</div>}
           </div>
-        </>))}
+        </>)}
+        </Disclosure>
+        )}
 
-        <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, marginTop: 16 }}>{isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'}</div>
+        <Disclosure title={isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'} defaultOpen={aiList.length > 0}>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{isEmailPitch
             ? (isFollowUp
@@ -967,10 +989,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             ))}
           </div>
         )}
+        </Disclosure>
 
         {/* 5 · Media — prepare screenshot/logo/cover before posting. */}
-        {mediaNeed && (<>
-          <div style={{ ...lbl, marginTop: 16 }}>🖼 Media · {mediaNeed.label}</div>
+        {mediaNeed && (
+          <Disclosure title={`🖼 Media · ${mediaNeed.label}`} defaultOpen={imgs.length > 0}>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6 }}>{mediaNeed.hint}</div>
           {imgs.length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -1021,15 +1044,17 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
               ))}
             </div>
           )}
-        </>)}
+          </Disclosure>
+        )}
 
         {/* 6 · Status — the single "I posted / it's live" control, right before URL capture. */}
-        <div style={lbl}>Status @ {slug}</div>
+        <div style={{ ...lbl, marginTop: 16 }}>Status @ {slug}</div>
         <StatusSegmented size="md" value={task.siteState}
           options={STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
           onChange={(s) => { void setSite(task.id, s, url); }} />
 
-        {/* 7 · Live URL — paste the placed link (auto-advances an open status → Completed). */}
+        {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
+        <Disclosure title="🔗 Link · kiểm tra · lịch" defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
         <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
@@ -1061,6 +1086,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             ? <span style={{ color: 'var(--ok)', fontWeight: 600 }}>✓ Hoàn thành {fmtWhen(task.siteDoneAt)}</span>
             : <span style={{ color: 'var(--fg-4)' }}>chưa hoàn thành</span>}
         </div>
+        </Disclosure>
 
         {/* Trailing read-only: also-applies-to + notes */}
         {task.appliesTo.length > 1 && (<><div style={lbl}>Cũng áp dụng cho ({task.appliesTo.length} sites)</div>
@@ -1069,7 +1095,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
 
         {/* Staff feedback — result report + opinions (worker note), and a blocker flag when stuck.
             This is the write-back half of the loop: staff execute above, report here → system self-runs. */}
-        <div style={lbl}>📣 Phản hồi của bạn <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>· kết quả · ý kiến · ghi chú</span></div>
+        <Disclosure title="📣 Phản hồi của bạn" badge="kết quả · ý kiến · báo lỗi" defaultOpen={!!task.workerNote}>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} autoComplete="off"
           placeholder="Đặt xong link ở đâu? gặp gì? góp ý về hướng dẫn (nếu sai/cũ)…"
           style={{ width: '100%', boxSizing: 'border-box', padding: '7px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12.5, lineHeight: 1.5, resize: 'vertical', fontFamily: 'inherit' }} />
@@ -1092,6 +1118,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             </div>
           </div>
         )}
+        </Disclosure>
 
         {/* Footer utility row — structural/destructive actions out of the primary top-down path. */}
         <div style={{ marginTop: 22, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

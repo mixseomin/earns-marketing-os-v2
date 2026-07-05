@@ -385,18 +385,36 @@ export async function setBacklinkNote(taskId: number, note: string): Promise<{ o
 }
 
 // Blocker: staffer is stuck. reason set → flag { reason, at }; empty reason → clear (unblock).
-export async function setBacklinkBlocker(taskId: number, reason: string): Promise<{ ok: boolean; error?: string }> {
+export async function setBacklinkBlocker(taskId: number, reason: string): Promise<{ ok: boolean; error?: string; paused?: number }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   const r = (reason || '').trim();
   try {
-    const merge = r
-      ? sql`|| jsonb_build_object('blocker', jsonb_build_object('reason', ${r}::text, 'at', to_jsonb(now())))`
-      : sql`- 'blocker'`;
-    await db.execute(sql`
-      UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
-      WHERE id = ${taskId} AND platform_key = 'backlink'`);
-    return { ok: true };
+    // Sibling tasks = same source (same how-to) on other sites. If the mechanism breaks for one
+    // site, the same link on the others is pointless too → auto-pause them (a soft blocker,
+    // paused:true + origin) so nobody wastes effort until the real blocker is cleared.
+    const srcRow = await db.execute(sql`SELECT prep_payload->>'source_url' src, project_id FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    const src = (srcRow as unknown as Array<{ src: string | null; project_id: string | null }>)[0]?.src || null;
+    const proj = (srcRow as unknown as Array<{ project_id: string | null }>)[0]?.project_id || '?';
+    let paused = 0;
+    if (r) {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
+        || jsonb_build_object('blocker', jsonb_build_object('reason', ${r}::text, 'at', to_jsonb(now()))), updated_at = now()
+        WHERE id = ${taskId} AND platform_key = 'backlink'`);
+      if (src) {
+        const res = await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
+          || jsonb_build_object('blocker', jsonb_build_object('reason', ${`Tạm dừng — ${proj} báo vướng: ${r}`}::text, 'at', to_jsonb(now()), 'paused', true, 'origin', ${taskId}::int))
+          WHERE platform_key = 'backlink' AND id <> ${taskId} AND prep_payload->>'source_url' = ${src} AND NOT (prep_payload ? 'blocker')`);
+        paused = (res as unknown as { rowCount?: number }).rowCount ?? 0;
+      }
+    } else {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'blocker', updated_at = now()
+        WHERE id = ${taskId} AND platform_key = 'backlink'`);
+      // resume siblings this task had paused (leave siblings with their OWN real blocker alone)
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = prep_payload - 'blocker', updated_at = now()
+        WHERE platform_key = 'backlink' AND (prep_payload->'blocker'->>'origin')::int = ${taskId} AND (prep_payload->'blocker'->>'paused') = 'true'`);
+    }
+    return { ok: true, paused };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

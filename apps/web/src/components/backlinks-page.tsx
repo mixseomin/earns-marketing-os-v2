@@ -184,7 +184,11 @@ function LinkText({ text }: { text: string }) {
 // Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
 // dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
-function Steps({ text }: { text: string }) {
+function Steps({ text, onReportStep, urlValue, onUrlChange, onUrlSave, urlSaving }: {
+  text: string;
+  onReportStep?: (line: string) => void;   // ⚠ per-line "làm không được / không thấy" → blocker
+  urlValue?: string; onUrlChange?: (v: string) => void; onUrlSave?: () => void; urlSaving?: boolean;
+}) {
   let items = text.split('\n').map((s) => s.trim()).filter(Boolean);
   if (items.length <= 1) {
     const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
@@ -193,6 +197,10 @@ function Steps({ text }: { text: string }) {
   if (items.length <= 1) {
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
+  const report = (ln: string) => (
+    onReportStep ? <button type="button" onClick={() => onReportStep(ln)} title="Làm không được / không thấy như mô tả? Báo lỗi tại đây"
+      style={{ flexShrink: 0, marginLeft: 'auto', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--fg-4)', fontSize: 11, opacity: 0.6, padding: '0 2px' }}>⚠</button> : null
+  );
   return (
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((ln, i) => {
@@ -204,10 +212,27 @@ function Steps({ text }: { text: string }) {
         }
         const gutter = num ? num[1] : emo ? emo[1] : '–';
         const body = (num ? num[2] : emo ? emo[2] : ln) ?? ln;
+        // ✅ "Link nhận được" line → render an inline Live-URL input synced with the field below.
+        if (emo && emo[1] === '✅' && onUrlChange) {
+          return (
+            <li key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ flexShrink: 0, minWidth: 17, textAlign: 'center' }}>✅</span>
+                <span style={{ minWidth: 0 }}><LinkText text={body} /></span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, paddingLeft: 25 }}>
+                <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="dán link đã đặt được…" autoComplete="off"
+                  style={{ flex: 1, minWidth: 0, padding: '4px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
+                {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '2px 10px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
+              </div>
+            </li>
+          );
+        }
         return (
           <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
             <span style={{ flexShrink: 0, minWidth: 17, textAlign: num ? 'right' : 'center', fontWeight: num ? 700 : 400, color: num ? 'var(--accent)' : 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{num ? `${gutter}.` : gutter}</span>
-            <span style={{ minWidth: 0 }}><LinkText text={body} /></span>
+            <span style={{ minWidth: 0, flex: 1 }}><LinkText text={body} /></span>
+            {(num || emo) && report(ln)}
           </li>
         );
       })}
@@ -462,7 +487,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
                 {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
-                {t.blocker && <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>}
+                {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
               </div>
             </div>
             <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
@@ -522,6 +547,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
   const [normBusy, setNormBusy] = useState(false);
   const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
+  // ⚠ report on a specific instruction line ("làm không được / không thấy") → prefill the blocker box.
+  const reportStep = (line: string) => { setBlkReason(`Không làm được / không thấy như mô tả: "${line.length > 90 ? line.slice(0, 90) + '…' : line}"`); setBlkOpen(true); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
@@ -701,15 +728,16 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
 
         {/* Blocker banner — active when a staffer flagged this task stuck. Actionable: shows the
             reason + clear. Surfaces so admin/AI can fix outdated instructions and self-heal. */}
-        {task.blocker && (
-          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 10%, transparent)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        {task.blocker && (() => { const paused = !!task.blocker.paused; const c = paused ? '#ffb03c' : 'var(--bad,#ef4444)'; return (
+          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${c}`, background: `color-mix(in srgb, ${c} 10%, transparent)`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bad,#ef4444)' }}>🚩 Đang vướng · {fmtWhen(task.blocker.at)}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: c }}>{paused ? '⏸ Tạm dừng (site khác cùng nguồn đang vướng)' : '🚩 Đang vướng'} · {fmtWhen(task.blocker.at)}</div>
               <div style={{ fontSize: 12.5, color: 'var(--fg-1)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{task.blocker.reason}</div>
+              {paused && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Tự chạy lại khi task gốc gỡ vướng. Hoặc gỡ tay nếu vẫn làm được.</div>}
             </div>
             <button type="button" onClick={clearBlocker} disabled={blkBusy} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{blkBusy ? '…' : '✓ Đã gỡ'}</button>
           </div>
-        )}
+        ); })()}
 
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -726,7 +754,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
           </div>
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}>
+            <Steps text={task.instructions} onReportStep={reportStep} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
+          </div>
         </>)}
 
         {/* 2 · Claim — assign an owner (auto-advances To do → In progress). */}

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, setBacklinkDraftImages } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -654,11 +654,18 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [fmt, setFmt] = useState<DraftFmt>('md');
   const [linkMode, setLinkMode] = useState<LinkMode>('link');
   const [dPrev, setDPrev] = useState(false);   // draft: WYSIWYG rendered preview vs raw source
+  // Optional images embedded in the draft (persisted); folded into every format so platforms that
+  // allow images carry them, plain-only platforms just get the URLs.
+  const [draftImgs, setDraftImgs] = useState<string[]>(task.draftImages || []);
+  const saveDraftImgs = (urls: string[]) => { setDraftImgs(urls); void setBacklinkDraftImages(task.id, urls); };
   const draftFmts = useMemo(() => {
     if (!task.draft) return null;
     const src = applyLink(task.draft, linkMode);
-    return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
-  }, [task.draft, linkMode]);
+    const imgMd = draftImgs.map((u) => `\n\n![](${u})`).join('');
+    const imgHtml = draftImgs.map((u) => `\n<p><img src="${u}" alt="" style="max-width:100%" /></p>`).join('');
+    const imgPlain = draftImgs.length ? '\n\n' + draftImgs.join('\n') : '';
+    return { md: src + imgMd, html: mdToHtml(src) + imgHtml, plain: mdToPlain(src) + imgPlain };
+  }, [task.draft, linkMode, draftImgs]);
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
   const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
@@ -954,6 +961,10 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             ))}
           </div>
           <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
+          <details style={{ margin: '2px 0 6px' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', listStyle: 'none' }}>🖼 Ảnh trong bài {draftImgs.length ? `(${draftImgs.length})` : '(tuỳ chọn)'} <span style={{ fontWeight: 400, color: 'var(--fg-4)' }}>· chèn vào mọi format · dùng nếu site cho phép ảnh</span></summary>
+            <div style={{ marginTop: 6 }}><ImageAttach value={draftImgs} onChange={saveDraftImgs} folder="drafts" max={8} /></div>
+          </details>
           {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
           {dPrev ? (
             <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 14px', fontSize: 13, lineHeight: 1.55, color: 'var(--fg-1)' }}>

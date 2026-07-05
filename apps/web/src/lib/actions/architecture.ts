@@ -369,6 +369,19 @@ export async function setBacklinkSchedule(taskId: number, site: string, date: st
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+// Optional images embedded in a task's draft article (prep_payload.draft_images = URL array).
+export async function setBacklinkDraftImages(taskId: number, urls: string[]): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const clean = (urls || []).filter((u) => /^https?:\/\//.test(u)).slice(0, 12);
+  try {
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
+      || jsonb_build_object('draft_images', ${JSON.stringify(clean)}::jsonb), updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 // Staff feedback loop. worker_note = free-text result/opinions. Empty note removes the key.
 export async function setBacklinkNote(taskId: number, note: string): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();

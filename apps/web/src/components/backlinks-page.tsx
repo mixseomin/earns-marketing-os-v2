@@ -167,6 +167,20 @@ function applyLink(md: string, mode: LinkMode): string {
 // Render build steps as dash bullets. Splits on newlines first (new format); falls
 // back to splitting a single-line "1) … 2) …" recipe (legacy).
 const stripMarker = (s: string) => s.replace(/^\s*[-*•–]\s*/, '').replace(/^\s*\d+[.)]\s*/, '').trim();
+// Turn bare URLs in instruction text into a clickable link + one-tap copy button.
+function LinkText({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  if (parts.length === 1) return <>{text}</>;
+  return <>{parts.map((p, i) => !/^https?:\/\//.test(p) ? <span key={i}>{p}</span> : (
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, maxWidth: '100%' }}>
+      <a href={wrapExternalUrl(p)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{p}</a>
+      <button type="button" title="Copy link"
+        onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(p); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
+        style={{ flexShrink: 0, cursor: 'pointer', border: 'none', background: 'none', color: copied ? 'var(--ok, #22c55e)' : 'var(--fg-4)', fontSize: 11, padding: 0 }}>{copied ? '✓' : '⧉'}</button>
+    </span>
+  ))}</>;
+}
 function Steps({ text }: { text: string }) {
   let items = text.split('\n').map(stripMarker).filter(Boolean);
   if (items.length <= 1) {
@@ -174,13 +188,13 @@ function Steps({ text }: { text: string }) {
     if (parts.length >= 2) items = parts;
   }
   if (items.length <= 1) {
-    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{items[0] ?? text}</div>;
+    return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={items[0] ?? text} /></div>;
   }
   return (
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((p, i) => (
         <li key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--fg-1)' }}>
-          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>–</span><span>{p}</span>
+          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>–</span><span><LinkText text={p} /></span>
         </li>
       ))}
     </ul>

@@ -186,11 +186,12 @@ function LinkText({ text }: { text: string }) {
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
 function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
   text: string;
-  onBlock?: (reason: string) => Promise<void> | void;   // ⚠ per-line report → flag blocker with reason
+  onBlock?: (reason: string, shot?: string) => Promise<void> | void;   // ⚠ per-line report → flag blocker (+ optional screenshot)
   urlValue?: string; onUrlChange?: (v: string) => void; onUrlSave?: () => void; urlSaving?: boolean;
 }) {
   const [rIdx, setRIdx] = useState<number | null>(null);   // which line has its report box open
   const [rText, setRText] = useState('');
+  const [rShot, setRShot] = useState<string | null>(null); // pasted screenshot as data URL
   const [rBusy, setRBusy] = useState(false);
   let items = text.split('\n').map((s) => s.trim()).filter(Boolean);
   if (items.length <= 1) {
@@ -200,8 +201,13 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
   if (items.length <= 1) {
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
   }
-  const openReport = (i: number, ln: string) => { setRIdx(i); setRText(`Không làm được / không thấy như mô tả: "${ln.length > 90 ? ln.slice(0, 90) + '…' : ln}"`); };
-  const sendReport = async () => { if (!rText.trim() || !onBlock) return; setRBusy(true); await onBlock(rText.trim()); setRBusy(false); setRIdx(null); setRText(''); };
+  const openReport = (i: number, ln: string) => { setRIdx(i); setRText(`Không làm được / không thấy như mô tả: "${ln.length > 90 ? ln.slice(0, 90) + '…' : ln}"`); setRShot(null); };
+  const sendReport = async () => { if (!rText.trim() || !onBlock) return; setRBusy(true); await onBlock(rText.trim(), rShot || undefined); setRBusy(false); setRIdx(null); setRText(''); setRShot(null); };
+  const grabImage = (items: DataTransferItemList | null | undefined) => {
+    const it = items ? [...items].find((x) => x.type.startsWith('image/')) : null;
+    const f = it?.getAsFile(); if (!f) return false;
+    const rd = new FileReader(); rd.onload = () => setRShot(rd.result as string); rd.readAsDataURL(f); return true;
+  };
   return (<>
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
       {items.map((ln, i) => {
@@ -223,11 +229,22 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
             </div>
             {rIdx === i && onBlock && (
               <div style={{ marginLeft: 25, padding: 8, borderRadius: 7, border: '1px solid var(--warn,#ffb03c)', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <textarea value={rText} onChange={(e) => setRText(e.target.value)} rows={2} autoFocus autoComplete="off" placeholder="Mắc gì ở bước này?"
+                <textarea value={rText} onChange={(e) => setRText(e.target.value)} onPaste={(e) => { if (grabImage(e.clipboardData?.items)) e.preventDefault(); }}
+                  rows={2} autoFocus autoComplete="off" placeholder="Mắc gì ở bước này? (dán ảnh chụp bằng Ctrl+V nếu cần)"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '5px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
-                <div style={{ display: 'flex', gap: 6 }}>
+                {rShot && (
+                  <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
+                    <img src={rShot} alt="ảnh báo lỗi" style={{ maxWidth: 220, maxHeight: 140, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+                    <button type="button" onClick={() => setRShot(null)} title="Bỏ ảnh" style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 12, lineHeight: '18px', padding: 0 }}>✕</button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button type="button" onClick={sendReport} disabled={rBusy || !rText.trim()} style={{ ...btn, color: 'var(--warn,#ffb03c)', fontWeight: 700 }}>{rBusy ? '…' : '⚠ Báo lỗi'}</button>
                   <button type="button" onClick={() => setRIdx(null)} style={btn}>Huỷ</button>
+                  <label style={{ ...btn, cursor: 'pointer', color: 'var(--fg-3)' }}>📎 ảnh
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = () => setRShot(rd.result as string); rd.readAsDataURL(f); } }} />
+                  </label>
+                  {rShot && <span style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>✓ đã đính ảnh</span>}
                 </div>
               </div>
             )}
@@ -550,14 +567,20 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const saveNote = async () => { setNoteState('saving'); await setBacklinkNote(task.id, note); setNoteState('saved'); onChange(); setTimeout(() => setNoteState('idle'), 1800); };
   const [blkOpen, setBlkOpen] = useState(false);
   const [blkReason, setBlkReason] = useState('');
+  const [blkShot, setBlkShot] = useState<string | null>(null);
   const [blkBusy, setBlkBusy] = useState(false);
-  const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); onChange(); };
+  const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason, blkShot || undefined); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); setBlkShot(null); onChange(); };
+  const grabBlkImage = (items: DataTransferItemList | null | undefined) => {
+    const it = items ? [...items].find((x) => x.type.startsWith('image/')) : null;
+    const f = it?.getAsFile(); if (!f) return false;
+    const rd = new FileReader(); rd.onload = () => setBlkShot(rd.result as string); rd.readAsDataURL(f); return true;
+  };
   const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
   const [normBusy, setNormBusy] = useState(false);
   const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
-  // ⚠ report on a specific instruction line → flag the blocker directly with the given reason.
-  const blockWithReason = async (reason: string) => { await setBacklinkBlocker(task.id, reason); onChange(); };
+  // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
+  const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
@@ -742,6 +765,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: c }}>{paused ? '⏸ Tạm dừng (site khác cùng nguồn đang vướng)' : '🚩 Đang vướng'} · {fmtWhen(task.blocker.at)}</div>
               <div style={{ fontSize: 12.5, color: 'var(--fg-1)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{task.blocker.reason}</div>
+              {task.blocker.shot && <a href={task.blocker.shot} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6 }}><img src={task.blocker.shot} alt="ảnh báo lỗi" style={{ maxWidth: 260, maxHeight: 170, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} /></a>}
               {paused && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Tự chạy lại khi task gốc gỡ vướng. Hoặc gỡ tay nếu vẫn làm được.</div>}
             </div>
             <button type="button" onClick={clearBlocker} disabled={blkBusy} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{blkBusy ? '…' : '✓ Đã gỡ'}</button>
@@ -1069,11 +1093,21 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         {blkOpen && !task.blocker && (
           <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Mắc gì? (vd: cần verify SĐT không có · account bị khoá · hướng dẫn/URL sai). Task sẽ gắn cờ 🚩 cho admin.</div>
-            <input value={blkReason} onChange={(e) => setBlkReason(e.target.value)} autoComplete="off" placeholder="Lý do vướng…"
-              style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
-            <div style={{ display: 'flex', gap: 6 }}>
+            <textarea value={blkReason} onChange={(e) => setBlkReason(e.target.value)} onPaste={(e) => { if (grabBlkImage(e.clipboardData?.items)) e.preventDefault(); }}
+              rows={2} autoComplete="off" placeholder="Lý do vướng… (dán ảnh chụp bằng Ctrl+V nếu cần)"
+              style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', resize: 'vertical', fontFamily: 'inherit' }} />
+            {blkShot && (
+              <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
+                <img src={blkShot} alt="ảnh báo vướng" style={{ maxWidth: 220, maxHeight: 140, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+                <button type="button" onClick={() => setBlkShot(null)} title="Bỏ ảnh" style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 12, lineHeight: '18px', padding: 0 }}>✕</button>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button type="button" onClick={flagBlocker} disabled={blkBusy || !blkReason.trim()} style={{ ...btn, color: 'var(--bad,#ef4444)', fontWeight: 700 }}>{blkBusy ? '…' : '🚩 Gửi'}</button>
-              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); }} style={btn}>Huỷ</button>
+              <button type="button" onClick={() => { setBlkOpen(false); setBlkReason(''); setBlkShot(null); }} style={btn}>Huỷ</button>
+              <label style={{ ...btn, cursor: 'pointer', color: 'var(--fg-3)' }}>📎 ảnh
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = () => setBlkShot(rd.result as string); rd.readAsDataURL(f); } }} />
+              </label>
             </div>
           </div>
         )}

@@ -10,6 +10,7 @@ import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/componen
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
 import { syncTaskToProspect } from './backlink-outreach-sync';
+import { uploadToR2 } from '@/lib/r2';
 
 type Row = Record<string, unknown>;
 
@@ -385,10 +386,19 @@ export async function setBacklinkNote(taskId: number, note: string): Promise<{ o
 }
 
 // Blocker: staffer is stuck. reason set → flag { reason, at }; empty reason → clear (unblock).
-export async function setBacklinkBlocker(taskId: number, reason: string): Promise<{ ok: boolean; error?: string; paused?: number }> {
+export async function setBacklinkBlocker(taskId: number, reason: string, shot?: string): Promise<{ ok: boolean; error?: string; paused?: number }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   const r = (reason || '').trim();
+  // Optional screenshot: a data:image/*;base64 URL pasted by staff → store in R2, keep the public URL.
+  let shotUrl: string | null = null;
+  if (r && shot && shot.startsWith('data:image')) {
+    const m = shot.match(/^data:(image\/\w+);base64,(.+)$/s);
+    if (m) {
+      const buf = Buffer.from(m[2]!, 'base64');
+      if (buf.length <= 5_000_000) shotUrl = await uploadToR2(`blockers/${taskId}-${Date.now()}.${m[1]!.split('/')[1]}`, buf, m[1]!);
+    }
+  }
   try {
     // Sibling tasks = same source (same how-to) on other sites. If the mechanism breaks for one
     // site, the same link on the others is pointless too → auto-pause them (a soft blocker,
@@ -398,8 +408,9 @@ export async function setBacklinkBlocker(taskId: number, reason: string): Promis
     const proj = (srcRow as unknown as Array<{ project_id: string | null }>)[0]?.project_id || '?';
     let paused = 0;
     if (r) {
+      const blk = JSON.stringify({ reason: r, at: new Date().toISOString(), ...(shotUrl ? { shot: shotUrl } : {}) });
       await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
-        || jsonb_build_object('blocker', jsonb_build_object('reason', ${r}::text, 'at', to_jsonb(now()))), updated_at = now()
+        || jsonb_build_object('blocker', ${blk}::jsonb), updated_at = now()
         WHERE id = ${taskId} AND platform_key = 'backlink'`);
       if (src) {
         const res = await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)

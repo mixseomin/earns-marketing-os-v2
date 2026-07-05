@@ -33,7 +33,7 @@ export interface BacklinkTask {
   instructions: string | null;
   notes: string | null;
   workerNote: string | null;                       // staff free-text: result report + opinions
-  blocker: { reason: string; at: string; paused?: boolean; origin?: number } | null;  // active blocker; paused = auto-held because a sibling site's task is blocked
+  blocker: { reason: string; at: string; paused?: boolean; origin?: number; shot?: string } | null;  // active blocker; paused = auto-held (sibling blocked); shot = screenshot URL
   siteStatus: Record<string, string>;
   siteUrl: Record<string, string>;
   appliesTo: string[];
@@ -133,7 +133,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         notes: (r.notes as string | null) || null,
         workerNote: (r.worker_note as string | null) || null,
         blocker: (r.blocker && typeof r.blocker === 'object' && !Array.isArray(r.blocker))
-          ? (r.blocker as { reason: string; at: string; paused?: boolean; origin?: number }) : null,
+          ? (r.blocker as { reason: string; at: string; paused?: boolean; origin?: number; shot?: string }) : null,
         siteStatus: asObj(r.site_status),
         siteUrl: asObj(r.site_url),
         appliesTo: asArr(r.applies_to),

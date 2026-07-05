@@ -14,7 +14,7 @@ import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
-import { listAiContent, generateAiContent, deleteAiContent, type AiContentRow } from '@/lib/actions/ai-content';
+import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
@@ -519,6 +519,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [blkBusy, setBlkBusy] = useState(false);
   const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); onChange(); };
   const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
+  // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
+  const [normBusy, setNormBusy] = useState(false);
+  const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
   const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
@@ -718,7 +721,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         </div>
         {task.mechanism && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: 'var(--fg-4)' }}>Cách đặt: </span>{task.mechanism}</div>}
         {task.instructions && (<>
-          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11 }}>🛠 Cách build</div>
+          <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🛠 Cách build</span>
+            <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
+              style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
+          </div>
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}><Steps text={task.instructions} /></div>
         </>)}
 

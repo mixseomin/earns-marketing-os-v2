@@ -9,6 +9,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getOpenAI, aiEnabled, DEFAULT_MODEL } from '@/lib/ai/openai';
+import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-template';
 import { getCurrentUser } from '@/lib/auth';
 
 async function requireAdmin(): Promise<boolean> {
@@ -124,6 +125,38 @@ export async function generateAiContent(input: {
     return { ok: true, id, status: 'done' };
   } catch (e) {
     return { ok: false, error: `gen lỗi: ${(e as Error).message || String(e)}` };
+  }
+}
+
+// Reformat one backlink task's instructions into the canonical template (drawer "✨ Chuẩn hoá").
+// Reshape + translate + fill missing meta lines; never invent steps/conditions not in the source.
+export async function normalizeInstructions(taskId: number): Promise<{ ok: boolean; instructions?: string; error?: string }> {
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  try {
+    const rows = await db.execute(sql`SELECT instructions, prep_payload->>'source_url' src, prep_payload->>'mechanism' mech, title FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    const r = (rows as unknown as Array<{ instructions: string | null; src: string | null; mech: string | null; title: string | null }>)[0];
+    if (!r) return { ok: false, error: 'task not found' };
+    const cur = (r.instructions || '').trim();
+    if (!cur && !r.mech) return { ok: false, error: 'không có nội dung để chuẩn hoá' };
+    const prompt = `${BACKLINK_INSTRUCTION_TEMPLATE}
+
+--- TASK ---
+Title: ${r.title || ''}
+Source URL: ${r.src || ''}
+Mechanism: ${r.mech || ''}
+Hướng dẫn hiện tại:
+${cur || '(trống — dựng từ mechanism + source)'}
+
+--- YÊU CẦU ---
+Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
+    const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
+    const text = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
+    if (!text) return { ok: false, error: 'AI không trả nội dung' };
+    await db.execute(sql`UPDATE human_tasks SET instructions = ${text}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true, instructions: text };
+  } catch (e) {
+    return { ok: false, error: `chuẩn hoá lỗi: ${(e as Error).message || String(e)}` };
   }
 }
 

@@ -4,6 +4,7 @@ import { getDb, platformAccounts, platforms, projectAccounts, identities } from 
 import { and, desc, eq, exists, ilike, or, sql } from 'drizzle-orm';
 import { fetchDirectusAccountsByPlatform, upsertDirectusAccountByHandle } from '@/lib/bridge/directus';
 import { reconcilePlatformKey } from '@/lib/resolve-platform';
+import { encryptValue } from '@/lib/crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,9 +171,11 @@ export async function POST(req: Request) {
     accountType?: string;   // P/B/S — personal|brand|seeding (mig 0131)
     identityId?: number;     // link persona → account.persona.identityId (🤖 sinh dùng giọng/nhân vật)
     authMethod?: string;     // capture logged-in = 'manual'/'password'
+    password?: string;       // creds đã đăng ký → mã hoá password_enc (trước đây bỏ → account ko có pass)
   };
 
   const platformSlug = await reconcilePlatformKey(db, body.platform);
+  const passwordEnc = body.password?.trim() ? await encryptValue(body.password.trim()) : null;
 
   // Find or create platform
   const [existingPlatform] = await db
@@ -209,6 +212,7 @@ export async function POST(req: Request) {
         // capture logged-in (status active) → đánh dấu đã verify + link persona để 🤖 sinh đúng giọng.
         lastVerifiedAt: body.status?.trim() === 'active' ? new Date() : null,
         persona: body.identityId ? { identityId: Number(body.identityId) } : {},
+        passwordEnc,
         tags: ['ext-detected'],
       })
       .onConflictDoNothing()

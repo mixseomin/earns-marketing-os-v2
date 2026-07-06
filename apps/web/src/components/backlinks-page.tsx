@@ -13,7 +13,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
-import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft } from '@/lib/actions/backlink-media';
+import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
@@ -168,20 +168,28 @@ const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
 // Backup plans for the link itself — some platforms/moments allow a real link, some
 // strip markup, some ban links (or a new account can't post one yet). Applied to the
 // Markdown source BEFORE formatting.
-type LinkMode = 'link' | 'bare' | 'brand';
+type LinkMode = 'link' | 'bare' | 'brand' | 'nolink';
 const LINK_MODES: { k: LinkMode; label: string; hint: string }[] = [
   { k: 'link', label: '🔗 Link', hint: 'Platform cho dofollow / link tự do' },
   { k: 'bare', label: '🔓 Bare URL', hint: 'Markdown bị strip → URL trần, tự auto-link' },
-  { k: 'brand', label: '🏷 Brand', hint: 'Link bị chặn / account mới → nhắc brand, thêm link sau khi có trust' },
+  { k: 'brand', label: '🏷 Brand', hint: 'Link bị chặn / account mới → nhắc brand + domain, thêm link sau' },
+  { k: 'nolink', label: '🚫 No link', hint: 'Platform cấm link hẳn → chỉ nhắc tên brand, bỏ mọi URL' },
 ];
 function applyLink(md: string, mode: LinkMode): string {
   if (mode === 'link') return md;
+  if (mode === 'nolink') {
+    // [anchor](url) → anchor ; drop all loose URLs entirely
+    let s = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1').replace(/https?:\/\/[^\s)]+/g, '');
+    return s.replace(/[ \t]{2,}/g, ' ').replace(/ +([.,])/g, '$1');
+  }
   // [anchor](url) → "anchor url" (bare) or "anchor (host)" (brand, no clickable link)
   let s = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, a: string, u: string) => mode === 'bare' ? `${a} ${u}` : `${a} (${hostOf(u)})`);
   // loose bare urls → keep (bare) or reduce to host (brand)
   s = s.replace(/https?:\/\/[^\s)]+/g, (u) => mode === 'bare' ? u : hostOf(u));
   return s;
 }
+// Strip image markdown (for platforms that don't allow images).
+const stripImages = (md: string): string => md.replace(/!\[[^\]]*\]\([^)]+\)\n?/g, '').replace(/\n{3,}/g, '\n\n').trim();
 
 // Render build steps as dash bullets. Splits on newlines first (new format); falls
 // back to splitting a single-line "1) … 2) …" recipe (legacy).
@@ -656,13 +664,25 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [fmt, setFmt] = useState<DraftFmt>('md');
   const [linkMode, setLinkMode] = useState<LinkMode>('link');
   const [dPrev, setDPrev] = useState(false);   // draft: WYSIWYG rendered preview vs raw source
-  // The AI writer embeds project images inline (markdown ![](url)) at fitting spots, so these
-  // formats carry them automatically — Markdown keeps ![](), HTML → <img>, Plain → URL.
+  const [noImg, setNoImg] = useState(false);   // strip images (platform bans them)
+  const [short, setShort] = useState(false);   // use the condensed version
+  const [shortDraft, setShortDraft] = useState<string | null>(null);   // cached AI-condensed markdown
+  const [condBusy, setCondBusy] = useState(false);
+  // Variants to cover platform rules: full/short length, keep/strip images, link mode (incl. no-link).
+  // The AI writer embeds project images inline; toggles derive every variant client-side (instant).
+  const baseDraft = short && shortDraft ? shortDraft : task.draft;
   const draftFmts = useMemo(() => {
-    if (!task.draft) return null;
-    const src = applyLink(task.draft, linkMode);
+    if (!baseDraft) return null;
+    const src = applyLink(noImg ? stripImages(baseDraft) : baseDraft, linkMode);
     return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
-  }, [task.draft, linkMode]);
+  }, [baseDraft, linkMode, noImg]);
+  const toggleShort = async () => {
+    if (short) { setShort(false); return; }
+    if (shortDraft) { setShort(true); return; }
+    if (!task.draft) return;
+    setCondBusy(true); const r = await condenseBacklinkDraft(task.draft, project.name); setCondBusy(false);
+    if (r.ok && r.draft) { setShortDraft(r.draft); setShort(true); } else setDerr(r.error || 'lỗi rút gọn');
+  };
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
   const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
@@ -723,7 +743,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
       images: imgs.map((m) => ({ url: m.url, desc: m.filename || '' })),
     });
     setDbusy(false);
-    if (r.ok) onChange(); else setDerr(r.error || 'lỗi');
+    if (r.ok) { setShortDraft(null); setShort(false); onChange(); } else setDerr(r.error || 'lỗi');
   };
   // AI content pieces: generate any content the task needs, combining full context. Two
   // engines — OpenAI (now) or Claude (queued, fulfilled by a chat session servicing it).
@@ -957,6 +977,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                 style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer',
                   border: `1px solid ${linkMode === m.k ? '#9d6cff' : 'var(--line)'}`, background: linkMode === m.k ? 'color-mix(in srgb, #9d6cff 16%, transparent)' : 'transparent', color: linkMode === m.k ? '#9d6cff' : 'var(--fg-3)' }}>{m.label}</button>
             ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '2px 0' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Bản</span>
+            <button type="button" onClick={() => setNoImg((v) => !v)} title="Platform không cho ảnh → bỏ mọi ảnh khỏi bài"
+              style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${noImg ? '#22c55e' : 'var(--line)'}`, background: noImg ? 'color-mix(in srgb, #22c55e 16%, transparent)' : 'transparent', color: noImg ? '#22c55e' : 'var(--fg-3)' }}>{noImg ? '🚫 Bỏ ảnh' : '🖼 Có ảnh'}</button>
+            <button type="button" onClick={toggleShort} disabled={condBusy} title="Bản rút gọn ~90-140 từ (comment / forum ngắn) — AI cô đọng, giữ link + 1 ảnh"
+              style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${short ? '#3c9bff' : 'var(--line)'}`, background: short ? 'color-mix(in srgb, #3c9bff 16%, transparent)' : 'transparent', color: short ? '#3c9bff' : 'var(--fg-3)' }}>{condBusy ? '⏳…' : short ? '✂️ Bản ngắn' : '↔ Full'}</button>
           </div>
           <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint} · {imgs.length ? `AI chèn ảnh từ media (${imgs.length} có sẵn)` : 'chưa có media — thêm ở mục 🖼 Media để AI chèn ảnh'}</div>
           {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}

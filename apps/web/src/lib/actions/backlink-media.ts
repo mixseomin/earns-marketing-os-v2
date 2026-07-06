@@ -143,6 +143,30 @@ Return ONLY the Markdown, no preamble.`;
   }
 }
 
+// Condense a draft to a short version (~90-140 words) for platforms wanting brevity (comments,
+// short forums). Keeps the H1, the ONE product link, and at most one image. Returns Markdown.
+export async function condenseBacklinkDraft(draftMd: string, projectName: string): Promise<{ ok: boolean; draft?: string; error?: string }> {
+  if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
+  if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  const src = (draftMd || '').trim();
+  if (!src) return { ok: false, error: 'chưa có bản đầy đủ để rút gọn' };
+  const prompt = `Condense the Markdown post below to a SHORT version of about 90-140 words that still reads as genuine, helpful, human. Keep it publishable as a comment or short forum reply.
+
+Rules:
+- Keep the ONE product Markdown link exactly as-is (same [text](url)).
+- Keep at most ONE image (the most relevant ![alt](url)); drop the rest. If none, keep none.
+- Keep a short H1 or drop it if it feels too heavy for a short post.
+- Same human voice: no em dashes, no fluff. Return ONLY the Markdown.
+
+--- POST (${projectName}) ---
+${src}`;
+  try {
+    const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.5, messages: [{ role: 'user', content: prompt }] });
+    const draft = res.choices?.[0]?.message?.content?.trim().replace(/^```(?:markdown|md)?\n?|\n?```$/g, '').trim();
+    return draft ? { ok: true, draft } : { ok: false, error: 'AI không trả nội dung' };
+  } catch (e) { return { ok: false, error: `rút gọn lỗi: ${(e as Error).message || String(e)}` }; }
+}
+
 // AI-generate a fresh image for the field and persist it.
 export async function generateBacklinkMedia(projectId: string, prompt: string, field: string): Promise<{ ok: boolean; id?: number; url?: string; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };

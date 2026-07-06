@@ -16,13 +16,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!Number.isFinite(taskId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
 
   const rows = await db.execute(sql`
-    SELECT ht.id, ht.title, ht.instructions, ht.status, ht.publish_url, ht.platform_key,
+    SELECT ht.id, ht.title, ht.instructions, ht.status, ht.publish_url, ht.platform_key, ht.project_id,
            ht.prep_payload->>'source_url' AS source_url,
            ht.prep_payload->>'mechanism' AS mechanism,
            ht.prep_payload->>'anchor' AS anchor,
            ht.prep_payload->>'target_url' AS target_url,
            ht.prep_payload->>'draft' AS draft,
            ht.prep_payload->>'draft_short' AS draft_short,
+           (ht.prep_payload->'site_status') ->> ht.project_id AS site_status,
+           (ht.prep_payload->'site_url')    ->> ht.project_id AS site_url,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.id = ${taskId} LIMIT 1`);
@@ -46,6 +48,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       status: String(t.status || ''),
       publishUrl: String(t.publish_url || ''),
       platformKey: String(t.platform_key || ''),
+      siteKey: String(t.project_id || ''),          // = project slug = key trong site_status
+      siteStatus: String(t.site_status || ''),       // pending|claimed|submitted|completed|verified|broken
+      siteUrl: String(t.site_url || ''),             // link đã đặt (nếu có)
       sourceUrl: String(t.source_url || ''),
       mechanism: String(t.mechanism || ''),
       anchor: String(t.anchor || ''),

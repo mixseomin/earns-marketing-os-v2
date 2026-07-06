@@ -129,6 +129,21 @@ function mdToHtml(md: string): string {
     return `<p>${inlineHtml(b.replace(/\n/g, ' '))}</p>`;
   }).join('\n');
 }
+// BBCode for forums (phpBB / vBulletin / XenForo).
+const inlineBb = (s: string): string => s
+  .replace(/!\[[^\]]*\]\(([^)]+)\)/g, '[img]$1[/img]')
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '[url=$2]$1[/url]')
+  .replace(/\*\*([^*]+)\*\*/g, '[b]$1[/b]')
+  .replace(/`([^`]+)`/g, '$1')
+  .replace(/_([^_]+)_/g, '[i]$1[/i]');
+const mdToBbcode = (md: string): string => md.trim().split(/\n{2,}/).map((b) => {
+  const h = b.match(/^(#{1,6})\s+(.*)$/);
+  if (h) return `[b]${inlineBb(h[2]!)}[/b]`;
+  const lines = b.split('\n');
+  if (lines.every((l) => /^\s*[-*]\s+/.test(l))) return `[list]\n${lines.map((l) => `[*]${inlineBb(l.replace(/^\s*[-*]\s+/, ''))}`).join('\n')}\n[/list]`;
+  if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) return `[list=1]\n${lines.map((l) => `[*]${inlineBb(l.replace(/^\s*\d+\.\s+/, ''))}`).join('\n')}\n[/list]`;
+  return inlineBb(b.replace(/\n/g, ' '));
+}).join('\n\n');
 const mdToPlain = (md: string): string => md
   .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$2')
   .replace(/^#{1,6}\s+/gm, '')
@@ -158,10 +173,11 @@ const MEDIA_NEED: Record<string, { label: string; hint: string; field: string }>
   flipboard:   { label: 'Cover ảnh', field: 'cover', hint: 'Ảnh bìa magazine + ảnh cho Notes.' },
 };
 
-type DraftFmt = 'md' | 'html' | 'plain';
+type DraftFmt = 'md' | 'html' | 'plain' | 'bbcode';
 const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
   { k: 'md', label: 'Markdown', hint: 'dev.to · Reddit · Medium' },
-  { k: 'html', label: 'HTML', hint: 'forum · WordPress' },
+  { k: 'html', label: 'HTML', hint: 'WordPress · site tự do HTML' },
+  { k: 'bbcode', label: 'BBCode', hint: 'forum phpBB · vBulletin · XenForo' },
   { k: 'plain', label: 'Plain', hint: 'comment · bio · profile' },
 ];
 
@@ -674,7 +690,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const draftFmts = useMemo(() => {
     if (!baseDraft) return null;
     const src = applyLink(noImg ? stripImages(baseDraft) : baseDraft, linkMode);
-    return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
+    return { md: src, html: mdToHtml(src), bbcode: mdToBbcode(src), plain: mdToPlain(src) };
   }, [baseDraft, linkMode, noImg]);
   const toggleShort = async () => {
     if (short) { setShort(false); return; }

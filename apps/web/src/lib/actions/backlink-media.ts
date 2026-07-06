@@ -99,6 +99,7 @@ export async function autoPrepareProjectMedia(projectId: string, website: string
 export async function generateBacklinkDraft(taskId: number, ctx: {
   projectName: string; website: string; oneLiner?: string; bio?: string;
   title?: string; instructions?: string; mechanism?: string;
+  images?: { url: string; desc?: string }[];
 }): Promise<{ ok: boolean; draft?: string; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
@@ -113,13 +114,17 @@ export async function generateBacklinkDraft(taskId: number, ctx: {
     ctx.mechanism && `Mechanism: ${ctx.mechanism}`,
     ctx.instructions && `Instructions (internal, Vietnamese): ${ctx.instructions}`,
   ].filter(Boolean).join('\n');
+  const imgs = (ctx.images || []).filter((i) => /^https?:\/\//.test(i.url)).slice(0, 8);
+  const imgBlock = imgs.length
+    ? `\n\nAvailable project images (use the ones that FIT, place each at a natural spot IN THE BODY — e.g. right after the intro or beside the section it illustrates, NOT all dumped at the end). Insert with Markdown image syntax on its own line: ![short alt](url). Only use images that genuinely add value; skip the rest. Do NOT invent image URLs — use only these exact URLs:\n${imgs.map((i) => `- ${i.url}${i.desc ? ` (${i.desc})` : ''}`).join('\n')}`
+    : '';
   const prompt = `Write a helpful 350-500 word blog/community post in ENGLISH, in Markdown, that a real person would publish on the target platform below. It must read as genuine editorial value (a tip, guide, or perspective on the topic), NOT an ad.
 
-${brief}
+${brief}${imgBlock}
 
 Rules:
 - One short H1 title (# ...), then body paragraphs, optionally one short list.
-- Embed the product link exactly ONCE, naturally in-context, as a Markdown link: [${ctx.projectName}](${site}). Do not repeat the URL elsewhere.
+- Embed the product link exactly ONCE, naturally in-context, as a Markdown link: [${ctx.projectName}](${site}). Do not repeat the URL elsewhere.${imgs.length ? '\n- Place 1-3 of the provided images at fitting positions in the body using ![alt](url) on their own line. Never fabricate an image URL.' : ''}
 - Human voice: no em dashes (use "-"), no "in today's fast-paced world", no "delve", no marketing fluff, vary sentence length.
 - Topic must match the placement/platform audience. Do not mention that this is for a backlink.
 Return ONLY the Markdown, no preamble.`;

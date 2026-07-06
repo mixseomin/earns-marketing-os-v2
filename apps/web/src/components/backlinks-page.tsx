@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, setBacklinkDraftImages } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -114,6 +114,7 @@ function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; c
 // right paste format (Markdown → dev.to/Reddit, HTML → forum/WP, Plain → comment/bio).
 const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const inlineHtml = (s: string) => escHtml(s)
+  .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
   .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
   .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -129,6 +130,7 @@ function mdToHtml(md: string): string {
   }).join('\n');
 }
 const mdToPlain = (md: string): string => md
+  .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$2')
   .replace(/^#{1,6}\s+/gm, '')
   .replace(/\*\*([^*]+)\*\*/g, '$1')
   .replace(/`([^`]+)`/g, '$1')
@@ -654,18 +656,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [fmt, setFmt] = useState<DraftFmt>('md');
   const [linkMode, setLinkMode] = useState<LinkMode>('link');
   const [dPrev, setDPrev] = useState(false);   // draft: WYSIWYG rendered preview vs raw source
-  // Optional images embedded in the draft (persisted); folded into every format so platforms that
-  // allow images carry them, plain-only platforms just get the URLs.
-  const [draftImgs, setDraftImgs] = useState<string[]>(task.draftImages || []);
-  const saveDraftImgs = (urls: string[]) => { setDraftImgs(urls); void setBacklinkDraftImages(task.id, urls); };
+  // The AI writer embeds project images inline (markdown ![](url)) at fitting spots, so these
+  // formats carry them automatically — Markdown keeps ![](), HTML → <img>, Plain → URL.
   const draftFmts = useMemo(() => {
     if (!task.draft) return null;
     const src = applyLink(task.draft, linkMode);
-    const imgMd = draftImgs.map((u) => `\n\n![](${u})`).join('');
-    const imgHtml = draftImgs.map((u) => `\n<p><img src="${u}" alt="" style="max-width:100%" /></p>`).join('');
-    const imgPlain = draftImgs.length ? '\n\n' + draftImgs.join('\n') : '';
-    return { md: src + imgMd, html: mdToHtml(src) + imgHtml, plain: mdToPlain(src) + imgPlain };
-  }, [task.draft, linkMode, draftImgs]);
+    return { md: src, html: mdToHtml(src), plain: mdToPlain(src) };
+  }, [task.draft, linkMode]);
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
   const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
@@ -723,6 +720,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
     const r = await generateBacklinkDraft(task.id, {
       projectName: project.name, website: project.website || '', oneLiner: project.oneLiner || '', bio: project.bio || '',
       title: task.title, instructions: task.instructions || '', mechanism: task.mechanism || '',
+      images: imgs.map((m) => ({ url: m.url, desc: m.filename || '' })),
     });
     setDbusy(false);
     if (r.ok) onChange(); else setDerr(r.error || 'lỗi');
@@ -960,11 +958,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                   border: `1px solid ${linkMode === m.k ? '#9d6cff' : 'var(--line)'}`, background: linkMode === m.k ? 'color-mix(in srgb, #9d6cff 16%, transparent)' : 'transparent', color: linkMode === m.k ? '#9d6cff' : 'var(--fg-3)' }}>{m.label}</button>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint}</div>
-          <details style={{ margin: '2px 0 6px' }}>
-            <summary style={{ cursor: 'pointer', fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', listStyle: 'none' }}>🖼 Ảnh trong bài {draftImgs.length ? `(${draftImgs.length})` : '(tuỳ chọn)'} <span style={{ fontWeight: 400, color: 'var(--fg-4)' }}>· chèn vào mọi format · dùng nếu site cho phép ảnh</span></summary>
-            <div style={{ marginTop: 6 }}><ImageAttach value={draftImgs} onChange={saveDraftImgs} folder="drafts" max={8} /></div>
-          </details>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', margin: '-1px 0 4px' }}>{DRAFT_FMTS.find((f) => f.k === fmt)!.hint} · {LINK_MODES.find((m) => m.k === linkMode)!.hint} · {imgs.length ? `AI chèn ảnh từ media (${imgs.length} có sẵn)` : 'chưa có media — thêm ở mục 🖼 Media để AI chèn ảnh'}</div>
           {derr && <div style={{ fontSize: 11, color: 'var(--bad,#ef4444)', marginBottom: 4 }}>{derr}</div>}
           {dPrev ? (
             <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 14px', fontSize: 13, lineHeight: 1.55, color: 'var(--fg-1)' }}>

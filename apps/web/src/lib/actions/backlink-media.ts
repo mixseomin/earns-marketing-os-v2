@@ -136,7 +136,8 @@ Return ONLY the Markdown, no preamble.`;
     let draft = res.choices?.[0]?.message?.content?.trim().replace(/^```(?:markdown|md)?\n?|\n?```$/g, '').trim();
     if (!draft) return { ok: false, error: 'AI không trả nội dung' };
     if (!draft.includes(site)) draft += `\n\nLearn more: [${ctx.projectName}](${site})`; // guarantee the link exists
-    await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('draft', to_jsonb(${draft}::text)), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    // New full draft → the cached short version is stale; drop it so it re-condenses on demand.
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = (COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('draft', to_jsonb(${draft}::text))) - 'draft_short', updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true, draft };
   } catch (e) {
     return { ok: false, error: `gen lỗi: ${(e as Error).message || String(e)}` };
@@ -145,9 +146,10 @@ Return ONLY the Markdown, no preamble.`;
 
 // Condense a draft to a short version (~90-140 words) for platforms wanting brevity (comments,
 // short forums). Keeps the H1, the ONE product link, and at most one image. Returns Markdown.
-export async function condenseBacklinkDraft(draftMd: string, projectName: string): Promise<{ ok: boolean; draft?: string; error?: string }> {
+export async function condenseBacklinkDraft(taskId: number, draftMd: string, projectName: string): Promise<{ ok: boolean; draft?: string; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   const src = (draftMd || '').trim();
   if (!src) return { ok: false, error: 'chưa có bản đầy đủ để rút gọn' };
   const prompt = `Condense the Markdown post below to a SHORT version of about 90-140 words that still reads as genuine, helpful, human. Keep it publishable as a comment or short forum reply.
@@ -163,7 +165,9 @@ ${src}`;
   try {
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.5, messages: [{ role: 'user', content: prompt }] });
     const draft = res.choices?.[0]?.message?.content?.trim().replace(/^```(?:markdown|md)?\n?|\n?```$/g, '').trim();
-    return draft ? { ok: true, draft } : { ok: false, error: 'AI không trả nội dung' };
+    if (!draft) return { ok: false, error: 'AI không trả nội dung' };
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('draft_short', to_jsonb(${draft}::text)), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true, draft };
   } catch (e) { return { ok: false, error: `rút gọn lỗi: ${(e as Error).message || String(e)}` }; }
 }
 

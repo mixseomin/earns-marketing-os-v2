@@ -682,7 +682,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [dPrev, setDPrev] = useState(false);   // draft: WYSIWYG rendered preview vs raw source
   const [noImg, setNoImg] = useState(false);   // strip images (platform bans them)
   const [short, setShort] = useState(false);   // use the condensed version
-  const [shortDraft, setShortDraft] = useState<string | null>(null);   // cached AI-condensed markdown
+  const [shortDraft, setShortDraft] = useState<string | null>(task.draftShort);   // persisted AI-condensed markdown
   const [condBusy, setCondBusy] = useState(false);
   // Variants to cover platform rules: full/short length, keep/strip images, link mode (incl. no-link).
   // The AI writer embeds project images inline; toggles derive every variant client-side (instant).
@@ -694,10 +694,10 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   }, [baseDraft, linkMode, noImg]);
   const toggleShort = async () => {
     if (short) { setShort(false); return; }
-    if (shortDraft) { setShort(true); return; }
+    if (shortDraft) { setShort(true); return; }   // already generated (this session or persisted) → instant
     if (!task.draft) return;
-    setCondBusy(true); const r = await condenseBacklinkDraft(task.draft, project.name); setCondBusy(false);
-    if (r.ok && r.draft) { setShortDraft(r.draft); setShort(true); } else setDerr(r.error || 'lỗi rút gọn');
+    setCondBusy(true); const r = await condenseBacklinkDraft(task.id, task.draft, project.name); setCondBusy(false);
+    if (r.ok && r.draft) { setShortDraft(r.draft); setShort(true); onChange(); } else setDerr(r.error || 'lỗi rút gọn');
   };
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).

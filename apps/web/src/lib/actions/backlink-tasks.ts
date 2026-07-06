@@ -29,6 +29,7 @@ export interface BacklinkTask {
   rank: string | null;
   mechanism: string | null;
   draft: string | null;
+  draftShort: string | null;      // AI-condensed short version (persisted)
   draftImages: string[];          // optional images embedded in the draft (all formats)
   hasDraft: boolean;
   instructions: string | null;
@@ -72,7 +73,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
   try {
     const rows = await db.execute(sql`
       SELECT id, title, status, source_url, da, dofollow, traffic, rank, mechanism,
-             draft, draft_images, has_draft, instructions, notes, site_status, site_url, applies_to,
+             draft, draft_short, draft_images, has_draft, instructions, notes, site_status, site_url, applies_to,
              publish_url, screenshot_url, assigned_user_id, assignee,
              (site_status->>${slug}) AS site_state,
              (site_url->>${slug})    AS site_live_url,
@@ -129,6 +130,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         rank: (r.rank as string | null) || null,
         mechanism: (r.mechanism as string | null) || null,
         draft: (r.draft as string | null) || null,
+        draftShort: (r.draft_short as string | null) || null,
         draftImages: Array.isArray(r.draft_images) ? (r.draft_images as string[]) : [],
         hasDraft: r.has_draft === 'ready',
         instructions: (r.instructions as string | null) || null,

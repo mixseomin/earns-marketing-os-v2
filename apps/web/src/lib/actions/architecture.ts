@@ -433,14 +433,29 @@ export async function setBacklinkBlocker(taskId: number, reason: string, shot?: 
         paused = (res as unknown as { rowCount?: number }).rowCount ?? 0;
       }
     } else {
-      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'blocker', updated_at = now()
+      // Clearing a blocker → stamp a "vừa gỡ vướng" marker (carries the old reason) so the task
+      // reads differently in the list until staff opens it (seenBacklinkResolved drops it).
+      const res = sql`jsonb_build_object('at', to_jsonb(now()::text), 'note', to_jsonb(COALESCE(prep_payload->'blocker'->>'reason','Đã gỡ vướng')::text))`;
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = (COALESCE(prep_payload, '{}'::jsonb) - 'blocker') || jsonb_build_object('resolved', ${res}), updated_at = now()
         WHERE id = ${taskId} AND platform_key = 'backlink'`);
       // resume siblings this task had paused (leave siblings with their OWN real blocker alone)
-      await db.execute(sql`UPDATE human_tasks SET prep_payload = prep_payload - 'blocker', updated_at = now()
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = (prep_payload - 'blocker') || jsonb_build_object('resolved', ${res}), updated_at = now()
         WHERE platform_key = 'backlink' AND (prep_payload->'blocker'->>'origin')::int = ${taskId} AND (prep_payload->'blocker'->>'paused') = 'true'`);
     }
     return { ok: true, paused };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+// Staff opened/interacted with a just-resolved task → drop the "vừa gỡ vướng" marker so it
+// stops standing out. Idempotent; safe to fire on every drawer open.
+export async function seenBacklinkResolved(taskId: number): Promise<{ ok: boolean }> {
+  const db = getDb();
+  if (!db) return { ok: false };
+  try {
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = prep_payload - 'resolved', updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink' AND (prep_payload ? 'resolved')`);
+    return { ok: true };
+  } catch { return { ok: false }; }
 }
 
 // Backlink shared entity: remove a site from membership (drop the key from both

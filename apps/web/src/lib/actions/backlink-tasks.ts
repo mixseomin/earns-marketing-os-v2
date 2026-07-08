@@ -36,6 +36,7 @@ export interface BacklinkTask {
   notes: string | null;
   workerNote: string | null;                       // staff free-text: result report + opinions
   blocker: { reason: string; at: string; paused?: boolean; origin?: number; shot?: string } | null;  // active blocker; paused = auto-held (sibling blocked); shot = screenshot URL
+  resolved: { at: string; note?: string } | null;  // "vừa gỡ vướng" marker; cleared when staff opens the task
   siteStatus: Record<string, string>;
   siteUrl: Record<string, string>;
   appliesTo: string[];
@@ -81,7 +82,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
              (site_scheduled_at->>${slug}) AS site_scheduled_at,
              (site_submitted_at->>${slug}) AS site_submitted_at,
              (site_verify->${slug})        AS site_verify,
-             worker_note, blocker,
+             worker_note, blocker, resolved,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -138,6 +139,8 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         workerNote: (r.worker_note as string | null) || null,
         blocker: (r.blocker && typeof r.blocker === 'object' && !Array.isArray(r.blocker))
           ? (r.blocker as { reason: string; at: string; paused?: boolean; origin?: number; shot?: string }) : null,
+        resolved: (r.resolved && typeof r.resolved === 'object' && !Array.isArray(r.resolved))
+          ? (r.resolved as { at: string; note?: string }) : null,
         siteStatus: asObj(r.site_status),
         siteUrl: asObj(r.site_url),
         appliesTo: asArr(r.applies_to),

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -577,6 +577,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                 {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
                 {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
                 {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
+                {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
               </div>
             </div>
             <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
@@ -628,6 +629,10 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [note, setNote] = useState(task.workerNote || '');
   const [noteState, setNoteState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const saveNote = async () => { setNoteState('saving'); await setBacklinkNote(task.id, note); setNoteState('saved'); onChange(); setTimeout(() => setNoteState('idle'), 1800); };
+  // "Vừa gỡ vướng" banner: snapshot at open (survives the refresh that clears the DB marker),
+  // and clear the marker once so it stops standing out in the list after this view.
+  const [justResolved] = useState(task.resolved);
+  useEffect(() => { if (task.resolved) seenBacklinkResolved(task.id).then(() => onChange()); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [task.id]);
   const [blkOpen, setBlkOpen] = useState(false);
   const [blkReason, setBlkReason] = useState('');
   const [blkShots, setBlkShots] = useState<string[]>([]);
@@ -855,6 +860,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <button type="button" onClick={clearBlocker} disabled={blkBusy} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{blkBusy ? '…' : '✓ Đã gỡ'}</button>
           </div>
         ); })()}
+
+        {!task.blocker && justResolved && (
+          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: '1px solid #22c55e', background: 'color-mix(in srgb, #22c55e 10%, transparent)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>🟢 Vừa gỡ vướng · {fmtWhen(justResolved.at)}</div>
+            {justResolved.note && <div style={{ fontSize: 12.5, color: 'var(--fg-1)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>Trước đó: {justResolved.note}</div>}
+            <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Hướng dẫn đã cập nhật — đọc lại rồi làm tiếp. (Nhãn này tự mất sau khi mở.)</div>
+          </div>
+        )}
 
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -96,6 +96,18 @@ export async function autoPrepareProjectMedia(projectId: string, website: string
 // Write the post/article a backlink task needs to embed the link (guest post, blog,
 // community write-up). Output = English Markdown with one inline link to the site, saved
 // into prep_payload.draft so it flows through the drawer's md/html/plain + link-mode UI.
+// Fetch a target page and reduce to plain text (~2500 chars) so a comment can react to its
+// ACTUAL content instead of reading generic. ponytail: regex strip, good enough for prompt context.
+async function fetchPageText(url: string): Promise<string> {
+  try {
+    const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; MOS2Bot/1.0)' }, signal: AbortSignal.timeout(12000) });
+    if (!r.ok) return '';
+    const html = await r.text();
+    return html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 2500);
+  } catch { return ''; }
+}
+
 export async function generateBacklinkDraft(taskId: number, ctx: {
   projectName: string; website: string; oneLiner?: string; bio?: string;
   title?: string; instructions?: string; mechanism?: string;
@@ -118,7 +130,32 @@ export async function generateBacklinkDraft(taskId: number, ctx: {
   const imgBlock = imgs.length
     ? `\n\nAvailable project images (use the ones that FIT, place each at a natural spot IN THE BODY — e.g. right after the intro or beside the section it illustrates, NOT all dumped at the end). Insert with Markdown image syntax on its own line: ![short alt](url). Only use images that genuinely add value; skip the rest. Do NOT invent image URLs — use only these exact URLs:\n${imgs.map((i) => `- ${i.url}${i.desc ? ` (${i.desc})` : ''}`).join('\n')}`
     : '';
-  const prompt = `Write a helpful 350-500 word blog/community post in ENGLISH, in Markdown, that a real person would publish on the target platform below. It must read as genuine editorial value (a tip, guide, or perspective on the topic), NOT an ad.
+  // Comment/reply/listicle placements must react to the ACTUAL target article, not read generic.
+  // Fetch the source page text and switch to comment mode (short, specific, no H1, no images).
+  const isComment = /comment|listicle|roundup|reply|forum|discussion/i.test(`${ctx.mechanism || ''} ${ctx.title || ''}`);
+  let pageText = '';
+  if (isComment) {
+    try {
+      const tr = (await db.execute(sql`SELECT prep_payload->>'source_url' AS u FROM human_tasks WHERE id = ${taskId} LIMIT 1`)) as unknown as Array<{ u: string | null }>;
+      const u = tr[0]?.u;
+      if (u && /^https?:\/\//.test(u)) pageText = await fetchPageText(u);
+    } catch { /* fall back to generic below */ }
+  }
+  const prompt = (isComment && pageText)
+    ? `Write a genuine COMMENT/REPLY in ENGLISH (Markdown), 100-180 words, to publish under the article below. It MUST react to a SPECIFIC point actually made in the article - paraphrase a concrete detail so it reads as a real reader, not generic praise. Add real value (agree and extend, or add one useful tip), then mention the product ONCE naturally as [${ctx.projectName}](${site}) only where it genuinely fits.
+
+${brief}
+
+Rules:
+- No H1/title, no "Great post!" opener, no signature. Just the comment body.
+- The product link appears exactly ONCE. Do not repeat the URL. No images.
+- Human voice: no em dashes (use "-"), no fluff, vary sentence length. Do not mention this is for a backlink.
+
+--- TARGET ARTICLE (react to this) ---
+${pageText}
+
+Return ONLY the Markdown comment, no preamble.`
+    : `Write a helpful 350-500 word blog/community post in ENGLISH, in Markdown, that a real person would publish on the target platform below. It must read as genuine editorial value (a tip, guide, or perspective on the topic), NOT an ad.
 
 ${brief}${imgBlock}
 

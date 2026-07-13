@@ -1,10 +1,57 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getDb, habitats, platforms } from '@mos2/db';
 import { checkAuth } from '../../_auth';
-import { errorResponse } from '@/lib/ext-route';
+import { errorResponse, firstRow } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
+
+// GET /api/ext/habitats/[id] — full detail cho Crew ext "🏠 Habitat" tab
+// (giống MOS2: rules/gates/topics/voice/members). Read-only.
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = await checkAuth(req);
+  if (err) return err;
+  const { id } = await params;
+  const db = getDb();
+  if (!db) return errorResponse('DB unavailable', 503);
+  const rows = await db.execute(sql`
+    SELECT h.id, h.name, h.title, h.kind, h.project_id, h.platform_key, h.technology_key,
+           h.language, h.community_type, h.members, h.weekly_visitors, h.weekly_contributions,
+           h.activity, h.status, h.health, h.privacy, h.mod_strictness, h.min_karma,
+           h.min_account_age_days, h.min_posts, h.links_allowed_after, h.posting_rules,
+           h.posting_rules_url, h.dominant_topics, h.forbidden_topics, h.best_post_times,
+           h.voice_profile, h.voice_notes, h.ai_content_detection, h.ai_detection_note,
+           h.description, h.icon_url, h.url, h.is_own, h.join_checklist,
+           (SELECT b.id FROM community_briefs b WHERE b.habitat_id = h.id ORDER BY b.updated_at DESC LIMIT 1) AS brief_id
+    FROM habitats h WHERE h.id = ${Number(id)} LIMIT 1
+  `);
+  const r = firstRow(rows);
+  if (!r) return NextResponse.json({ habitat: null }, { status: 404 });
+  const num = (v: unknown) => (v == null ? 0 : Number(v));
+  const str = (v: unknown) => (v == null ? '' : String(v));
+  const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+  return NextResponse.json({
+    habitat: {
+      id: num(r.id), name: str(r.name), title: str(r.title), kind: str(r.kind),
+      projectId: str(r.project_id), platformKey: r.platform_key ? str(r.platform_key) : null,
+      technologyKey: r.technology_key ? str(r.technology_key) : null,
+      language: str(r.language), communityType: str(r.community_type),
+      members: num(r.members), weeklyVisitors: num(r.weekly_visitors), weeklyContributions: num(r.weekly_contributions),
+      activity: str(r.activity), status: str(r.status), health: str(r.health), privacy: str(r.privacy),
+      modStrictness: str(r.mod_strictness), minKarma: num(r.min_karma),
+      minAccountAgeDays: num(r.min_account_age_days), minPosts: num(r.min_posts),
+      linksAllowedAfter: str(r.links_allowed_after), postingRules: str(r.posting_rules),
+      postingRulesUrl: str(r.posting_rules_url), dominantTopics: arr(r.dominant_topics),
+      forbiddenTopics: arr(r.forbidden_topics), bestPostTimes: str(r.best_post_times),
+      voiceProfile: str(r.voice_profile), voiceNotes: str(r.voice_notes),
+      aiContentDetection: r.ai_content_detection === true, aiDetectionNote: str(r.ai_detection_note),
+      description: str(r.description), iconUrl: r.icon_url ? str(r.icon_url) : null,
+      url: r.url ? str(r.url) : null, isOwn: r.is_own === true,
+      joinChecklist: arr(r.join_checklist),   // template [{key,label,tip?,actionUrl?}] — progress ở community_briefs
+      briefId: r.brief_id ? num(r.brief_id) : null,
+    },
+  });
+}
 
 // PATCH /api/ext/habitats/[id] { platform_key?, kind?, isOwn? }
 // Đổi platform map cho habitat đã tồn tại (Req#1 — habitat đã map muốn chọn

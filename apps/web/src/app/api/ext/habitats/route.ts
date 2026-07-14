@@ -6,6 +6,8 @@ import { logExtCall, extractExtMeta } from '@/lib/ext-call-log';
 import { detectLang } from '@/lib/lang-detect';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { postingRulesUrl as platformPostingRulesUrl } from '@/lib/platform-url-parsers';
+import { extractHabitatGates } from '@/lib/ai/habitat-gate-extract';
+import { logAiUsage } from '@/lib/ai/usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,8 @@ interface ExtHabitatPayload {
   description?: string;
   title?: string;  // display title — khác name (slug primary identifier)
   rules?: Array<{ priority: number; short_name: string; description: string }>;
+  // P1: About + Rules prose block ext gộp từ trang → server LLM suy gates (platform-agnostic).
+  region_text?: string;
   hot_titles?: string[];
   source_url?: string;
   captured_at?: string;
@@ -124,9 +128,9 @@ export async function POST(req: Request) {
   const ageM = rulesText.match(/(\d+)\s*(?:day|d)\s*(?:old)?\s*account/);
   const karmaM = rulesText.match(/(\d+)\s*(?:combined\s+)?karma/);
   const postsM = rulesText.match(/(\d+)\s*(?:prior\s+|previous\s+)?posts?\s+(?:before|required|min)/);
-  const minAccountAgeDays = ageM ? Number(ageM[1]) : 0;
-  const minKarma = karmaM ? Number(karmaM[1]) : 0;
-  const minPosts = postsM ? Number(postsM[1]) : 0;
+  let minAccountAgeDays = ageM ? Number(ageM[1]) : 0;
+  let minKarma = karmaM ? Number(karmaM[1]) : 0;
+  let minPosts = postsM ? Number(postsM[1]) : 0;
 
   // Dominant topics: frequency từ hot titles, stopword filter, top 8
   const STOP = new Set(['the','a','an','i','is','of','to','and','in','for','on','my','you','what','how','why','when','with','this','that','it','at','as','be','are','was','were','can','do','does','if','or','but','not','so','no','any','all','new','first','last','one','two','three','your','their','our','his','her','from','about','into','out','up','down','over','under','than','then','now','just','also','very','more','most','some','few','many','much','only','too']);
@@ -138,15 +142,15 @@ export async function POST(req: Request) {
       freq.set(w, (freq.get(w) ?? 0) + 1);
     }
   }
-  const dominantTopics = [...freq.entries()]
+  let dominantTopics = [...freq.entries()]
     .filter(([, n]) => n >= 2)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
     .map(([w]) => w);
 
-  // Mod strictness heuristic
+  // Mod strictness heuristic (fallback khi ko có region_text / LLM off)
   const strictHits = (body.rules ?? []).filter((r) => /(perma)?ban|removed|strictly|not allowed|forbidden/i.test(r.description ?? '')).length;
-  const modStrictness = (body.rules?.length ?? 0) >= 8 || strictHits >= 4 ? 'high'
+  let modStrictness = (body.rules?.length ?? 0) >= 8 || strictHits >= 4 ? 'high'
     : (body.rules?.length ?? 0) >= 4 || strictHits >= 2 ? 'medium' : 'low';
 
   // Community type heuristic từ description
@@ -158,6 +162,27 @@ export async function POST(req: Request) {
 
   // Posting rules URL canonical (per-platform; Reddit /about/rules, khác → '').
   const postingRulesUrl = platformPostingRulesUrl(canonPlatformKey(body.platform_key), body.url || '');
+
+  // ── P1: LLM gate-inference (platform-agnostic — THAY regex Reddit-only) ──
+  // Đọc region_text (About+Rules prose ext gộp) → suy gates + evidence GROUNDED (value chỉ sống
+  // nếu quote có thật trong text). Non-null → đè var heuristic bên trên; null → giữ heuristic/rỗng.
+  // Chạy MỌI platform vì đọc TEXT, không phải DOM Reddit. Fire-and-forget log ai_usage.
+  let linksAllowedAfter = '';
+  let forbiddenTopics: string[] = [];
+  if (body.region_text && body.region_text.trim().length >= 60) {
+    const gx = await extractHabitatGates(body.region_text);
+    if (gx) {
+      if (gx.modStrictness) modStrictness = gx.modStrictness;
+      if (gx.communityType) communityType = gx.communityType;
+      if (gx.minKarma != null) minKarma = gx.minKarma;
+      if (gx.minAccountAgeDays != null) minAccountAgeDays = gx.minAccountAgeDays;
+      if (gx.minPosts != null) minPosts = gx.minPosts;
+      if (gx.linksAllowedAfter) linksAllowedAfter = gx.linksAllowedAfter;
+      if (gx.forbiddenTopics.length) forbiddenTopics = gx.forbiddenTopics;
+      if (gx.dominantTopics.length) dominantTopics = gx.dominantTopics;
+      if (gx.usage) logAiUsage('habitat-gate-extract', gx.model, gx.usage, body.projectId);
+    }
+  }
 
   // Upsert match priority:
   //   1. Discord: scraped_meta.discord_guild_id (1 guild = 1 habitat, dù channel
@@ -201,6 +226,8 @@ export async function POST(req: Request) {
     dominantTopics,
     modStrictness,
     communityType,
+    linksAllowedAfter,          // P1: LLM-inferred (grounded) — '' nếu ko suy được
+    forbiddenTopics,            // P1: LLM-inferred — [] nếu ko suy được
     // v1.4.9 (mig 0059)
     weeklyVisitors: body.weekly_visitors ?? 0,
     weeklyContributions: body.weekly_contributions ?? 0,
@@ -282,6 +309,9 @@ export async function POST(req: Request) {
         min_posts = CASE WHEN COALESCE(min_posts, 0) = 0 AND ${rulesScraped}::boolean THEN ${minPosts}::int ELSE min_posts END,
         dominant_topics = CASE WHEN (dominant_topics IS NULL OR jsonb_array_length(dominant_topics) = 0) AND ${dominantTopics.length > 0}::boolean
                                THEN ${JSON.stringify(dominantTopics)}::jsonb ELSE dominant_topics END,
+        links_allowed_after = CASE WHEN (links_allowed_after IS NULL OR links_allowed_after = '') AND ${linksAllowedAfter}::text <> '' THEN ${linksAllowedAfter}::text ELSE links_allowed_after END,
+        forbidden_topics = CASE WHEN (forbidden_topics IS NULL OR jsonb_array_length(forbidden_topics) = 0) AND ${forbiddenTopics.length > 0}::boolean
+                               THEN ${JSON.stringify(forbiddenTopics)}::jsonb ELSE forbidden_topics END,
         ${mergedMeta ? sql`scraped_meta = ${JSON.stringify(mergedMeta)}::jsonb,` : sql``}
         ${newLang ? sql`language = ${newLang},` : sql``}
         imported_from = 'mos2-crew-ext',
@@ -356,8 +386,8 @@ export async function POST(req: Request) {
         dominantTopics: (Array.isArray(patch.dominantTopics) && patch.dominantTopics.length > 0) ? patch.dominantTopics : sib.dominantTopics,
         // Project-agnostic Reddit metadata
         language: sib.language,
-        linksAllowedAfter: sib.linksAllowedAfter,
-        forbiddenTopics: sib.forbiddenTopics,
+        linksAllowedAfter: patch.linksAllowedAfter || sib.linksAllowedAfter,
+        forbiddenTopics: (Array.isArray(patch.forbiddenTopics) && patch.forbiddenTopics.length > 0) ? patch.forbiddenTopics : sib.forbiddenTopics,
         bestPostTimes: sib.bestPostTimes,
         technologyKey: sib.technologyKey,
         allowedFormatsOverride: sib.allowedFormatsOverride,

@@ -263,13 +263,15 @@ export async function POST(req: Request) {
       UPDATE habitats SET
         members = CASE WHEN ${patch.members}::int > 0 THEN ${patch.members}::int ELSE members END,
         icon_url = COALESCE(NULLIF(${patch.iconUrl}::text, ''), icon_url),
-        posting_rules = CASE WHEN ${postingRules}::text <> '' THEN ${postingRules}::text ELSE posting_rules END,
         posting_rules_url = COALESCE(NULLIF(${postingRulesUrl}::text, ''), posting_rules_url),
         weekly_visitors = CASE WHEN ${patch.weeklyVisitors}::int > 0 THEN ${patch.weeklyVisitors}::int ELSE weekly_visitors END,
         weekly_contributions = CASE WHEN ${patch.weeklyContributions}::int > 0 THEN ${patch.weeklyContributions}::int ELSE weekly_contributions END,
         privacy = CASE WHEN ${patch.privacy}::text <> '' THEN ${patch.privacy}::text ELSE privacy END,
         created_at_source = COALESCE(${createdIso}::timestamptz, created_at_source),
-        description = CASE WHEN ${hadDesc}::boolean THEN ${patch.description}::text ELSE description END,
+        -- Text-content fields (có thể chứa nội dung viết tay: strategy trong description,
+        -- summary trong posting_rules) = FILL-IF-EMPTY. Fresh habitat vẫn auto-fill; đã có = giữ.
+        posting_rules = CASE WHEN (posting_rules IS NULL OR posting_rules = '') AND ${postingRules}::text <> '' THEN ${postingRules}::text ELSE posting_rules END,
+        description = CASE WHEN (description IS NULL OR description = '') AND ${hadDesc}::boolean THEN ${patch.description}::text ELSE description END,
         title = COALESCE(NULLIF(${patch.title}::text, ''), title),
         -- Inferred gates (heuristic thô) = FILL-IF-EMPTY: chỉ điền khi đang trống, KHÔNG đè
         -- giá trị đã có (manual / P1-LLM sau này). Fact refresh ở trên; guess không clobber.

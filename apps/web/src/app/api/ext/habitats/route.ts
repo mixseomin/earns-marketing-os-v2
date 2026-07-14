@@ -236,33 +236,57 @@ export async function POST(req: Request) {
   if (existing.length > 0) {
     habitatId = existing[0]!.id;
     action = 'updated';
-    // Merge scraped_meta với row hiện tại (KHÔNG replace — giữ field
-    // user đã scrape lần trước, chỉ thêm/update keys mới từ payload).
-    const finalPatch: Record<string, unknown> = { ...patch };
-    if (body.scraped_meta && typeof body.scraped_meta === 'object') {
-      const cur = await db
-        .select({ scrapedMeta: habitats.scrapedMeta, language: habitats.language })
-        .from(habitats)
-        .where(eq(habitats.id, habitatId))
-        .limit(1);
-      const curMeta = (cur[0]?.scrapedMeta as Record<string, unknown>) || {};
-      finalPatch.scrapedMeta = { ...curMeta, ...body.scraped_meta };
-      // Auto-detect language nếu habitats.language còn rỗng — chỉ chạy khi
-      // có description hoặc rules đủ dài. KHÔNG override nếu user đã set.
-      const curLang = (cur[0]?.language ?? '').trim();
-      if (!curLang) {
-        const corpus = [
-          (body.title ?? '') as string,
-          (body.description ?? '') as string,
-          postingRules,
-        ].filter(Boolean).join('\n');
-        const detected = detectLang(corpus);
-        if (detected !== 'unknown') {
-          finalPatch.language = detected;
-        }
-      }
+    // Load row hiện tại cho scraped_meta merge + language auto-detect.
+    const cur = await db
+      .select({ scrapedMeta: habitats.scrapedMeta, language: habitats.language })
+      .from(habitats)
+      .where(eq(habitats.id, habitatId))
+      .limit(1);
+    const curMeta = (cur[0]?.scrapedMeta as Record<string, unknown>) || {};
+    const mergedMeta = (body.scraped_meta && typeof body.scraped_meta === 'object')
+      ? { ...curMeta, ...body.scraped_meta } : null;
+    let newLang: string | null = null;
+    if (!((cur[0]?.language ?? '').trim())) {
+      const corpus = [(body.title ?? '') as string, (body.description ?? '') as string, postingRules]
+        .filter(Boolean).join('\n');
+      const detected = detectLang(corpus);
+      if (detected !== 'unknown') newLang = detected;
     }
-    await db.update(habitats).set(finalPatch).where(eq(habitats.id, habitatId));
+    // GUARDED UPDATE (data-safety P0): scrape 1-phần/rỗng (vd About panel chưa load kịp trên SPA)
+    // KHÔNG được wipe data tốt / đã-curate. Mỗi cột scrape-derived chỉ ghi khi CÓ nội dung thật;
+    // heuristic (mod/type/min-gates) chỉ refresh khi nguồn (rules/description) hiện diện;
+    // dominant_topics (word-freq thô) chỉ FILL khi đang rỗng — KHÔNG đè topics đã curate/LLM.
+    const rulesScraped = (body.rules?.length ?? 0) > 0;
+    const hadDesc = ((body.description ?? '') as string).trim().length > 0;
+    const createdIso = patch.createdAtSource ? (patch.createdAtSource as Date).toISOString() : null;
+    await db.execute(sql`
+      UPDATE habitats SET
+        members = CASE WHEN ${patch.members}::int > 0 THEN ${patch.members}::int ELSE members END,
+        icon_url = COALESCE(NULLIF(${patch.iconUrl}::text, ''), icon_url),
+        posting_rules = CASE WHEN ${postingRules}::text <> '' THEN ${postingRules}::text ELSE posting_rules END,
+        posting_rules_url = COALESCE(NULLIF(${postingRulesUrl}::text, ''), posting_rules_url),
+        weekly_visitors = CASE WHEN ${patch.weeklyVisitors}::int > 0 THEN ${patch.weeklyVisitors}::int ELSE weekly_visitors END,
+        weekly_contributions = CASE WHEN ${patch.weeklyContributions}::int > 0 THEN ${patch.weeklyContributions}::int ELSE weekly_contributions END,
+        privacy = CASE WHEN ${patch.privacy}::text <> '' THEN ${patch.privacy}::text ELSE privacy END,
+        created_at_source = COALESCE(${createdIso}::timestamptz, created_at_source),
+        description = CASE WHEN ${hadDesc}::boolean THEN ${patch.description}::text ELSE description END,
+        title = COALESCE(NULLIF(${patch.title}::text, ''), title),
+        -- Inferred gates (heuristic thô) = FILL-IF-EMPTY: chỉ điền khi đang trống, KHÔNG đè
+        -- giá trị đã có (manual / P1-LLM sau này). Fact refresh ở trên; guess không clobber.
+        community_type = CASE WHEN (community_type IS NULL OR community_type = '') AND ${hadDesc}::boolean THEN ${communityType}::text ELSE community_type END,
+        mod_strictness = CASE WHEN (mod_strictness IS NULL OR mod_strictness = '') AND ${rulesScraped}::boolean THEN ${modStrictness}::text ELSE mod_strictness END,
+        min_karma = CASE WHEN COALESCE(min_karma, 0) = 0 AND ${rulesScraped}::boolean THEN ${minKarma}::int ELSE min_karma END,
+        min_account_age_days = CASE WHEN COALESCE(min_account_age_days, 0) = 0 AND ${rulesScraped}::boolean THEN ${minAccountAgeDays}::int ELSE min_account_age_days END,
+        min_posts = CASE WHEN COALESCE(min_posts, 0) = 0 AND ${rulesScraped}::boolean THEN ${minPosts}::int ELSE min_posts END,
+        dominant_topics = CASE WHEN (dominant_topics IS NULL OR jsonb_array_length(dominant_topics) = 0) AND ${dominantTopics.length > 0}::boolean
+                               THEN ${JSON.stringify(dominantTopics)}::jsonb ELSE dominant_topics END,
+        ${mergedMeta ? sql`scraped_meta = ${JSON.stringify(mergedMeta)}::jsonb,` : sql``}
+        ${newLang ? sql`language = ${newLang},` : sql``}
+        imported_from = 'mos2-crew-ext',
+        last_sync_at = NOW(),
+        updated_at = NOW()
+      WHERE id = ${habitatId}
+    `);
   } else {
     // Habitat chưa có trong project hiện tại — check xem cùng platform+name
     // có tồn tại ở project KHÁC không. Nếu có, clone data fields project-agnostic

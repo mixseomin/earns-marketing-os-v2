@@ -80,6 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     accountType?: string;
     password?: string;
     followUpAt?: string | null;
+    verifiedNow?: boolean;   // P2.1: ext báo "vừa verify email xong" (⚡ bot / ✓ tay) → stamp last_verified_at
     personaUpdates?: Record<string, string | null>;
     checklistUpdates?: Record<string, { done: boolean }>;
   };
@@ -94,7 +95,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: `Invalid status (must be one of ${VALID_STATUSES.join('|')})` }, { status: 400 });
     }
     set.status = body.status;
+    // P2.1: lên active = coi như đã qua verify (nếu chưa từng stamp thì stamp luôn — explicit verifiedNow đè dưới).
+    if (body.status === 'active') set.lastVerifiedAt = new Date();
   }
+  if (body.verifiedNow === true) set.lastVerifiedAt = new Date();
   if (body.accountType !== undefined && (['personal', 'brand', 'seeding'] as const).includes(body.accountType as 'personal' | 'brand' | 'seeding')) {
     set.accountType = body.accountType;
   }

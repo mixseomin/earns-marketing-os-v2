@@ -107,6 +107,9 @@ export async function POST(req: Request) {
     emailVerifyBroken?: boolean;
     notes?: string;
     signupVerify?: string;
+    // P2.4: login challenges per-platform (ext 🛡 recorder) — [{type,label?,note?,prepare?}].
+    // Cột platforms.login_challenges (jsonb, raw — accounts GET :116 đã đọc để trả PREP_ICON cho console).
+    login_challenges?: Array<Record<string, unknown>>;
   };
 
   if (body.target === 'habitat') {
@@ -134,6 +137,23 @@ export async function POST(req: Request) {
     if (typeof body.signupVerify === 'string') {
       await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', signupVerify: body.signupVerify })
         .onConflictDoUpdate({ target: platforms.key, set: { signupVerify: body.signupVerify, updatedAt: new Date() } });
+    }
+    // P2.4: login challenges (mirror pattern signupVerify; cột raw jsonb → sql). Sanitize: giữ string fields
+    // quen thuộc, cap 10 entries. Mảng rỗng = clear (chủ đích của user).
+    if (Array.isArray(body.login_challenges)) {
+      const clean = body.login_challenges.slice(0, 10).map((c) => {
+        const o: Record<string, string> = {};
+        for (const f of ['type', 'label', 'note', 'prepare'] as const) {
+          const v = (c as Record<string, unknown>)[f];
+          if (typeof v === 'string' && v.trim()) o[f] = v.trim().slice(0, 120);
+        }
+        return o;
+      }).filter((o) => o.type);
+      await db.execute(sql`
+        INSERT INTO platforms (key, label, signup_url, login_challenges)
+        VALUES (${body.key}, ${body.key}, '', ${JSON.stringify(clean)}::jsonb)
+        ON CONFLICT (key) DO UPDATE SET login_challenges = ${JSON.stringify(clean)}::jsonb, updated_at = now()
+      `);
     }
     return NextResponse.json({ ok: true, target: 'platform', key: body.key });
   }

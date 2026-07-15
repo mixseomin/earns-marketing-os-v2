@@ -39,6 +39,11 @@ export const PAGE_KINDS: PageKindEntry[] = [
   { key: 'signup', label: 'Signup', mode: 'write', fillAttr: true,
     meaning: 'Form đăng ký tài khoản: username, email, password, ToS…',
     urlHint: /ucp\.php[^#]*mode=register|\/register|\/signup|\/sign-up|\/join\b/ },
+  // P3.2: login = form ĐĂNG NHẬP (fill username+password, KHÔNG tạo account). Sau signup để /register
+  // không rơi vào đây. fillAttr → WRITE_PAGE_KINDS (save-selector default attr='value' cho field login).
+  { key: 'login', label: 'Login', mode: 'write', fillAttr: true,
+    meaning: 'Form đăng nhập: username/email + password (KHÔNG tạo account).',
+    urlHint: /ucp\.php[^#]*mode=login|\/log[-_]?in\b|\/sign[-_]?in\b|wp-login\.php|[?&]mode=login\b/ },
   // launch TRƯỚC account-profile + composer: form SUBMIT sản phẩm (ProductHunt/BetaList). Value = project-brand
   // (Name→name, Tagline→one_liner, Description→bio, Website→website, tags→hashtags), KHÔNG persona account.
   // regex HẸP (producthunt posts/new · betalist/submit · /launch · /new-product) để KHÔNG nuốt /submit(composer)/register.
@@ -60,6 +65,12 @@ export const PAGE_KINDS: PageKindEntry[] = [
   { key: 'thread-list', label: 'Thread list', mode: 'read',
     meaning: 'Trang liệt kê thread của 1 board/forum (viewforum, board index).',
     urlHint: /viewforum\.php|\/forum|\/board|\/forums?\// },
+  // P3.4: bản PLATFORM-NEUTRAL của subreddit-about — trang giới thiệu 1 community/forum bất kỳ.
+  // Generic habitat detector đọc selector qua cascade page_kind='community-about'. Đặt cuối (ưu tiên thấp)
+  // để kind cụ thể hơn khớp trước; chủ yếu dùng EXPLICIT (ext gửi kind), urlHint chỉ để nhãn DOM-sample.
+  { key: 'community-about', label: 'Community about', mode: 'read',
+    meaning: 'Trang giới thiệu 1 cộng đồng/forum bất kỳ (about/sidebar): mô tả, rules, member count. Neutral, ko gắn nền tảng.',
+    urlHint: /\/community\/about|\/about\/?$|\/c\/[^/]+\/about/ },
   { key: 'platform-any', label: 'Platform (any)', mode: 'read',
     meaning: 'Scope toàn nền tảng, không gắn 1 trang cụ thể (viewer handle, profile global).' },
   { key: 'page', label: 'Page (unknown)', mode: 'read',

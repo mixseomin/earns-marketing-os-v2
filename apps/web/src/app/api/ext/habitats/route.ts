@@ -163,15 +163,38 @@ export async function POST(req: Request) {
   // Posting rules URL canonical (per-platform; Reddit /about/rules, khác → '').
   const postingRulesUrl = platformPostingRulesUrl(canonPlatformKey(body.platform_key), body.url || '');
 
-  // ── P1: LLM gate-inference (platform-agnostic — THAY regex Reddit-only) ──
-  // Đọc region_text (About+Rules prose ext gộp) → suy gates + evidence GROUNDED (value chỉ sống
-  // nếu quote có thật trong text). Non-null → đè var heuristic bên trên; null → giữ heuristic/rỗng.
-  // Chạy MỌI platform vì đọc TEXT, không phải DOM Reddit. Fire-and-forget log ai_usage.
+  // ── P3.3: resolve habitat existing SỚM (đưa lookup lên trước extract) để lấy prior region-hash ──
+  // Match priority: (1) Discord guild_id (1 guild=1 habitat), (2) (project,platform,LOWER(name)).
+  const guildId = body.platform_key === 'discord'
+    ? (body.scraped_meta as Record<string, unknown> | undefined)?.discord_guild_id
+    : null;
+  let existing: Array<{ id: number; scrapedMeta: unknown }> = [];
+  if (typeof guildId === 'string' && guildId) {
+    existing = await db.select({ id: habitats.id, scrapedMeta: habitats.scrapedMeta }).from(habitats)
+      .where(and(eq(habitats.projectId, body.projectId), eq(habitats.platformKey, body.platform_key),
+        sql`${habitats.scrapedMeta}->>'discord_guild_id' = ${guildId}`)).limit(1);
+  }
+  if (existing.length === 0) existing = await db.select({ id: habitats.id, scrapedMeta: habitats.scrapedMeta }).from(habitats)
+    .where(and(eq(habitats.projectId, body.projectId), eq(habitats.platformKey, body.platform_key),
+      sql`LOWER(${habitats.name}) = LOWER(${body.name})`)).limit(1);
+  // hash region_text (djb2, ko cần crypto) → so với scraped_meta.region_hash cũ. Member nhích/ghé lại = text
+  // như cũ → cùng hash → SKIP LLM (P3.3, chống cost-spike khi P3.4 mở detector ra mọi forum).
+  const _regionText = (body.region_text || '').trim();
+  const _regionHash = _regionText.length >= 60
+    ? (() => { let h = 5381; for (let i = 0; i < _regionText.length; i++) h = ((h << 5) + h + _regionText.charCodeAt(i)) | 0; return (h >>> 0).toString(36); })()
+    : '';
+  const _priorHash = (existing[0]?.scrapedMeta as Record<string, unknown> | undefined)?.region_hash;
+
+  // ── P1: LLM gate-inference (platform-agnostic). CHỈ chạy khi region_text ĐỔI (hash khác prior) — ──
+  // FILL-IF-EMPTY của UPDATE bên dưới đã chống clobber; gate này chỉ cắt LLM cost khi text ko đổi (P3.3).
   let linksAllowedAfter = '';
   let forbiddenTopics: string[] = [];
-  if (body.region_text && body.region_text.trim().length >= 60) {
-    const gx = await extractHabitatGates(body.region_text);
+  let extractOk = false;   // C1: chỉ cache hash khi extract THẬT chạy — extract fail (thiếu AI key / API catch)
+                           //     KHÔNG được cache (sẽ skip vĩnh viễn, mất self-heal của code cũ).
+  if (_regionHash && _regionHash !== _priorHash) {
+    const gx = await extractHabitatGates(_regionText);
     if (gx) {
+      extractOk = true;
       if (gx.modStrictness) modStrictness = gx.modStrictness;
       if (gx.communityType) communityType = gx.communityType;
       if (gx.minKarma != null) minKarma = gx.minKarma;
@@ -183,37 +206,10 @@ export async function POST(req: Request) {
       if (gx.usage) logAiUsage('habitat-gate-extract', gx.model, gx.usage, body.projectId);
     }
   }
+  // Hash để PERSIST = chỉ khi extract thành công (else '' → không ghi hash mới → lần sau retry, self-heal).
+  const _cacheHash = extractOk ? _regionHash : '';
 
-  // Upsert match priority:
-  //   1. Discord: scraped_meta.discord_guild_id (1 guild = 1 habitat, dù channel
-  //      detector ext gửi name khác nhau cho từng channel page → KHÔNG tạo
-  //      duplicate habitat per channel).
-  //   2. (project_id, platform_key, LOWER(name)) — case-insensitive cho Reddit
-  //      'r/Astrologia' === 'r/astrologia'.
-  const guildId = body.platform_key === 'discord'
-    ? (body.scraped_meta as Record<string, unknown> | undefined)?.discord_guild_id
-    : null;
-  let existing: Array<{ id: number }> = [];
-  if (typeof guildId === 'string' && guildId) {
-    existing = await db
-      .select({ id: habitats.id })
-      .from(habitats)
-      .where(and(
-        eq(habitats.projectId, body.projectId),
-        eq(habitats.platformKey, body.platform_key),
-        sql`${habitats.scrapedMeta}->>'discord_guild_id' = ${guildId}`,
-      ))
-      .limit(1);
-  }
-  if (existing.length === 0) existing = await db
-    .select({ id: habitats.id })
-    .from(habitats)
-    .where(and(
-      eq(habitats.projectId, body.projectId),
-      eq(habitats.platformKey, body.platform_key),
-      sql`LOWER(${habitats.name}) = LOWER(${body.name})`,
-    ))
-    .limit(1);
+  // (Upsert match `existing` đã resolve SỚM ở trên cho P3.3 hash-gate — match priority: Discord guild_id → (project,platform,LOWER(name)).)
 
   const patch = {
     members: body.members ?? 0,
@@ -270,8 +266,11 @@ export async function POST(req: Request) {
       .where(eq(habitats.id, habitatId))
       .limit(1);
     const curMeta = (cur[0]?.scrapedMeta as Record<string, unknown>) || {};
-    const mergedMeta = (body.scraped_meta && typeof body.scraped_meta === 'object')
-      ? { ...curMeta, ...body.scraped_meta } : null;
+    const bodyMeta = (body.scraped_meta && typeof body.scraped_meta === 'object') ? body.scraped_meta : {};
+    // P3.3: ghi region_hash khi extract THẬT chạy (_cacheHash) → lần sau gate cache đúng. Extract fail → ko ghi
+    //   (curMeta.region_hash cũ giữ nguyên qua ...curMeta; first-visit fail → ko hash → lần sau retry).
+    const mergedMeta = (Object.keys(bodyMeta).length > 0 || _cacheHash)
+      ? { ...curMeta, ...bodyMeta, ...(_cacheHash ? { region_hash: _cacheHash } : {}) } : null;
     let newLang: string | null = null;
     if (!((cur[0]?.language ?? '').trim())) {
       const corpus = [(body.title ?? '') as string, (body.description ?? '') as string, postingRules]
@@ -401,6 +400,8 @@ export async function POST(req: Request) {
         platformKey: body.platform_key,
         ...patch,
         ...inheritedFromSibling,
+        // M1: GIỮ body.scraped_meta (mang discord_guild_id → dedup 1-guild-1-habitat ở project mới) + cache hash.
+        scrapedMeta: { ...(body.scraped_meta || {}), ...(_cacheHash ? { region_hash: _cacheHash } : {}) },
         importedFrom: `mos2-crew-ext:cloned-from-habitat:${sib.id}`,
       }).onConflictDoNothing().returning({ id: habitats.id });
       const wid = inserted[0]?.id ?? await resolveWinnerId();
@@ -425,7 +426,7 @@ export async function POST(req: Request) {
         platformKey: body.platform_key,
         ...patch,
         ...(body.technology_key ? { technologyKey: body.technology_key } : {}),
-        scrapedMeta: body.scraped_meta || {},
+        scrapedMeta: { ...(body.scraped_meta || {}), ...(_cacheHash ? { region_hash: _cacheHash } : {}) },   // P3.3
         ...(detected !== 'unknown' ? { language: detected } : {}),
       }).onConflictDoNothing().returning({ id: habitats.id });
       const wid = inserted[0]?.id ?? await resolveWinnerId();

@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { firstRow, errorResponse } from '@/lib/ext-route';
-import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 // GET /api/ext/accounts/profile?handle=<h>&platformKey=<k>&habitatId=<id>
 //
@@ -31,20 +31,22 @@ export async function GET(req: Request) {
     .replace(/^user\//i, '')
     .replace(/^@/, '')
     .trim();
-  // canon (dev.to→devto, x→twitter…) — KHÔNG chỉ lowercase: account ghi 'dev-to' vs ext gửi 'devto' → miss.
-  const platformKey = canonPlatformKey(url.searchParams.get('platformKey') ?? '');
+  const rawPlatformKey = url.searchParams.get('platformKey') ?? '';
   const habitatId = Number(url.searchParams.get('habitatId') ?? 0);
   // projectId (optional) — PREFER account trong project đang chọn khi 1 handle
   // dùng ở nhiều project. KHÔNG hard-filter (vẫn resolve cross-project).
   const projectId = (url.searchParams.get('projectId') ?? '').trim();
   const projectPref = projectId ? sql`(pa.project_id = ${projectId}) DESC, ` : sql``;
 
-  if (!handle || !platformKey) {
+  if (!handle || !rawPlatformKey.trim()) {
     return errorResponse('handle + platformKey required', 400);
   }
 
   const db = getDb();
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
+  // P0.14 (Account C): reconcile ĐỘNG theo catalog (host-slug 'govloop-com' → key curated 'govloop') — cùng
+  // resolver với accounts GET đang chạy prod. canonPlatformKey tĩnh làm Seed tab miss brief ('reddit-com'≠'reddit').
+  const platformKey = await reconcilePlatformKey(db, rawPlatformKey);
 
   // 1. Lookup account — case-insensitive + cross-project (1 handle dùng nhiều projects)
   // Reddit/FB preserve case nhưng login state có thể return lowercase trong API

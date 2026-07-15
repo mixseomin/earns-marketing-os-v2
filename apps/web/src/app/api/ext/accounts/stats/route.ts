@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
-import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 import { firstRow, errorResponse } from '@/lib/ext-route';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
   const body = (await req.json().catch(() => ({}))) as Body;
   const handle = String(body.handle ?? '').replace(/^@/, '').replace(/^u\//i, '').trim();
-  const platformKey = canonPlatformKey(body.platformKey);
+  const platformKey = await reconcilePlatformKey(db, body.platformKey);   // P0.14: động theo catalog — hết `account_not_found` vì host-slug ≠ key curated
   const raw = (body.stats && typeof body.stats === 'object') ? body.stats : null;
   if (!handle || !platformKey || !raw) {
     return errorResponse('handle, platformKey, stats required', 400);

@@ -39,7 +39,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-07-25' },
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-07-22' },
-  'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-07-15' },
+  'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-07-25' },  // ramping, accelerating (573 impr/40 URL); recheck rank movement + Dataset schema citation
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl
   'mintalmanac.com': { project: 'mint-almanac', emoji: '🪙', review: '2026-07-29' },  // launched 07-15, first review ~2wk
   'paydochub.com': { emoji: '🧾', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl

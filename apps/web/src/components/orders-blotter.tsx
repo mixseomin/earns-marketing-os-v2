@@ -52,6 +52,18 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào (LONG): khi giá đóng cửa > EMA100 + 2×ATR100 (bứt phá khi biên độ NỞ RỘNG — khác Donchian phá đỉnh giá thuần)\n' +
     '• Ra: khi giá đóng cửa < EMA100 (về đường giữa)\n' +
     '• Chia đều 1/12, không short. ⚠️ Edge có tính chu kỳ — đang forward-test xem còn sống.',
+  'BTC-surge alt continuation':
+    '• Kích hoạt: nến H1 của BTC đóng cửa tăng > +1.5% (close-to-close)\n' +
+    '• Vào (LONG): mua cả 10 altcoin (ETH SOL BNB XRP ADA DOGE AVAX LINK LTC DOT) tại open nến kế\n' +
+    '• Ra: giữ ĐÚNG 24h rồi thoát tại open (time-exit, không SL/TP)\n' +
+    '• Mỗi alt 1 vị thế (BTC surge tiếp trong lúc giữ = bỏ qua). Vol-target 20%, chia 1/10\n' +
+    '• ⚠️ Verdict MARGINAL: bản chất = beta continuation 24h sau nến BTC mạnh (không phải lead-lag giờ). Forward phân xử.',
+  'Crypto taker-flow momentum':
+    '• 12 coin H1, tín hiệu = DÒNG TIỀN chủ động (taker buy / tổng volume), không nhìn giá\n' +
+    '• Vào (LONG): trung bình 24h của tỷ lệ mua-chủ-động > 52% (lực mua bền bỉ)\n' +
+    '• Ra: tỷ lệ đó tụt < 50% (dòng tiền cân bằng lại)\n' +
+    '• Vol-target 20%, chia 1/12, không gate giá. Corr ~0 với mọi bot khác = stream độc lập duy nhất\n' +
+    '• ⚠️ Verdict MARGINAL: edge đang suy (2026 âm) — paper forward là trọng tài.',
   'Crypto squeeze breakout':
     '• 12 coin, khung H1, long-only (nén-vol rồi bứt phá — TTM squeeze)\n' +
     '• Chờ NÉN: Bollinger(60,2) co vào TRONG kênh Keltner(60, 2.25×ATR) = biên độ nén → coin được "nạp đạn"\n' +

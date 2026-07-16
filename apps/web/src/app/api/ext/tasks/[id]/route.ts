@@ -25,6 +25,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            ht.prep_payload->>'draft_short' AS draft_short,
            (ht.prep_payload->'site_status') ->> ht.project_id AS site_status,
            (ht.prep_payload->'site_url')    ->> ht.project_id AS site_url,
+           ht.sla_due_at,
+           ht.prep_payload->>'blocker' AS blocker,
+           ht.prep_payload->'checklist' AS checklist,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.id = ${taskId} LIMIT 1`);
@@ -59,9 +62,41 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       projectWebsite: String(t.project_website || ''),
       draft: String(t.draft || '').trim(),           // markdown nguồn bản dài
       draftShort: String(t.draft_short || '').trim(), // markdown nguồn bản ngắn
+      // #5: lịch/deadline (cột sla_due_at) + blocker text + checklist progress (prep_payload).
+      slaDueAt: t.sla_due_at ? new Date(t.sla_due_at as string | number | Date).toISOString() : '',
+      blocker: String(t.blocker || ''),
+      checklist: (t.checklist && typeof t.checklist === 'object') ? (t.checklist as Record<string, unknown>) : {},
       content: (ac as unknown as Array<Record<string, unknown>>).map((x) => ({
         id: Number(x.id), kind: String(x.kind || 'nội dung (AI)'), result: String(x.result || ''),
       })),
     },
   });
+}
+
+// PATCH /api/ext/tasks/[id] — #5: người-làm cập nhật NGAY trong ext (khỏi mở drawer MOS2):
+//   { slaDueAt }   → lịch/deadline (cột sla_due_at). '' / null = xoá hẹn.
+//   { blocker }    → prep_payload.blocker (text "mắc gì ở bước này"). (ảnh chụp = phase sau, cần upload infra.)
+//   { checklist }  → prep_payload.checklist merge {stepKey: done} (tick bước reg/đặt link).
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = await checkAuth(req); if (err) return err;
+  const db = getDb(); if (!db) return NextResponse.json({ ok: false }, { status: 503 });
+  const { id } = await params;
+  const taskId = Number(id);
+  if (!Number.isFinite(taskId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
+  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean> };
+
+  if (body.slaDueAt !== undefined) {
+    const iso = body.slaDueAt ? new Date(body.slaDueAt).toISOString() : null;
+    await db.execute(sql`UPDATE human_tasks SET sla_due_at = ${iso}::timestamptz, updated_at = now() WHERE id = ${taskId}`);
+  }
+  if (body.blocker !== undefined) {
+    const txt = String(body.blocker).slice(0, 2000);
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{blocker}', to_jsonb(${txt}::text), true), updated_at = now() WHERE id = ${taskId}`);
+  }
+  if (body.checklist && typeof body.checklist === 'object') {
+    const clean: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(body.checklist)) clean[String(k).slice(0, 60)] = !!v;
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{checklist}', COALESCE(prep_payload->'checklist', '{}'::jsonb) || ${JSON.stringify(clean)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
+  }
+  return NextResponse.json({ ok: true });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
 import { getDb, platformAccounts } from '@mos2/db';
-import { eq } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { encryptValue, decryptValue } from '@/lib/crypto';
 import { upsertDirectusAccountByHandle, deleteDirectusAccountByHandle } from '@/lib/bridge/directus';
 import { canonField } from '@/lib/selector-field-canon';
@@ -54,9 +54,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!r) return errorResponse('not found', 404);
   const password = reveal && r.passwordEnc ? await decryptValue(r.passwordEnc) : undefined;
   const { passwordEnc, ...rest } = r;
+  // #4: account liên kết (cột raw jsonb) + resolve tối thiểu để ext hiện platform·@handle·status.
+  let linkedAccounts: number[] = [];
+  let linkedInfo: Array<{ id: number; platformKey: string; handle: string | null; status: string | null }> = [];
+  try {
+    const lr = await db.execute(sql`SELECT linked_accounts FROM platform_accounts WHERE id = ${Number(id)} LIMIT 1`);
+    const raw = (lr as unknown as Array<{ linked_accounts: unknown }>)[0]?.linked_accounts;
+    if (Array.isArray(raw)) linkedAccounts = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n));
+    if (linkedAccounts.length) {
+      const rows = await db
+        .select({ id: platformAccounts.id, platformKey: platformAccounts.platformKey, handle: platformAccounts.handle, status: platformAccounts.status })
+        .from(platformAccounts).where(inArray(platformAccounts.id, linkedAccounts));
+      linkedInfo = rows;
+    }
+  } catch { /* cột có thể chưa migrate */ }
   return NextResponse.json({
     ok: true,
-    account: { ...rest, hasPassword: !!passwordEnc, ...(reveal ? { password: password ?? '' } : {}) },
+    account: { ...rest, hasPassword: !!passwordEnc, linkedAccounts, linkedInfo, ...(reveal ? { password: password ?? '' } : {}) },
   });
 }
 
@@ -81,6 +95,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     password?: string;
     followUpAt?: string | null;
     verifiedNow?: boolean;   // P2.1: ext báo "vừa verify email xong" (⚡ bot / ✓ tay) → stamp last_verified_at
+    linkedAccounts?: number[];   // #4: id account liên kết (vd betalist ↔ tài khoản X login-via). Ghi ĐÈ cả mảng.
     personaUpdates?: Record<string, string | null>;
     checklistUpdates?: Record<string, { done: boolean }>;
   };
@@ -149,6 +164,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .update(platformAccounts)
     .set(set)
     .where(eq(platformAccounts.id, accountId));
+
+  // #4: linked_accounts (cột raw jsonb). Sanitize int, bỏ self-ref + trùng, cap 50. Ghi CẢ mảng —
+  //     add/remove xử lý phía ext (gửi mảng mới). undefined = giữ nguyên.
+  if (Array.isArray(body.linkedAccounts)) {
+    const ids = [...new Set(body.linkedAccounts.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n !== accountId))].slice(0, 50);
+    await db.execute(sql`UPDATE platform_accounts SET linked_accounts = ${JSON.stringify(ids)}::jsonb, updated_at = now() WHERE id = ${accountId}`);
+  }
 
   // Reverse-sync → Directus (await, non-fatal) khi field account đổi (bỏ qua checklist thuần).
   if (body.handle !== undefined || body.email !== undefined || body.status !== undefined || body.personaUpdates) {

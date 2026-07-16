@@ -59,6 +59,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ precheck: true, account, identity });
   }
 
+  // #4: list ALL account (cross-platform) cho picker "liên kết account". Nhẹ: id·handle·platform·status.
+  if (searchParams.get('list') === 'all') {
+    const rows = await db
+      .select({ id: platformAccounts.id, handle: platformAccounts.handle, platformKey: platformAccounts.platformKey, status: platformAccounts.status })
+      .from(platformAccounts)
+      .where(sql`${platformAccounts.handle} IS NOT NULL AND ${platformAccounts.handle} <> ''`)
+      .orderBy(desc(platformAccounts.updatedAt))
+      .limit(500);
+    return NextResponse.json({ accounts: rows });
+  }
+
   // Duplicate check
   if (platform && handle) {
     // canon alias (x→twitter, bsky→bluesky) — ext gửi key của nó, catalog + stats query canonical.

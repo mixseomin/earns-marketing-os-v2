@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../../_auth';
+import { setBacklinkBlocker } from '@/lib/actions/architecture';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            (ht.prep_payload->'site_status') ->> ht.project_id AS site_status,
            (ht.prep_payload->'site_url')    ->> ht.project_id AS site_url,
            ht.sla_due_at,
-           ht.prep_payload->>'blocker' AS blocker,
+           ht.prep_payload->'blocker'->>'reason' AS blocker,
            ht.prep_payload->'checklist' AS checklist,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
@@ -90,8 +91,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await db.execute(sql`UPDATE human_tasks SET sla_due_at = ${iso}::timestamptz, updated_at = now() WHERE id = ${taskId}`);
   }
   if (body.blocker !== undefined) {
-    const txt = String(body.blocker).slice(0, 2000);
-    await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{blocker}', to_jsonb(${txt}::text), true), updated_at = now() WHERE id = ${taskId}`);
+    // DÙNG CHUNG server action với drawer MOS2 → ghi ĐÚNG shape {reason,at,shot?} (drawer đọc .reason) +
+    // auto-pause sibling + clear→resolved. Trước đây ghi string thô → drawer rỗng + task rớt worklist (bug #5a).
+    await setBacklinkBlocker(taskId, String(body.blocker).slice(0, 2000));
   }
   if (body.checklist && typeof body.checklist === 'object') {
     const clean: Record<string, boolean> = {};

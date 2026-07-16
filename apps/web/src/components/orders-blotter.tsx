@@ -273,6 +273,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
   useEffect(() => { document.cookie = `slf=${encodeURIComponent(JSON.stringify({ range, grouped, hideClosed }))};path=/;max-age=31536000;samesite=lax`; }, [range, grouped, hideClosed]);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());   // groups whose closed trades are revealed (overrides Open-only per group)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());   // groups whose rows are hidden -> header-only overview (many strategies)
+  const toggleCollapse = (name: string) => setCollapsed((prev) => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
   const router = useRouter();
   useEffect(() => { const id = setInterval(() => router.refresh(), 20000); return () => clearInterval(id); }, [router]);
 
@@ -365,6 +367,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
         </span>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
+        {grouped && groups.length > 0 ? (() => { const allC = groups.every((g) => collapsed.has(g.name)); return <button type="button" onClick={() => setCollapsed(allC ? new Set() : new Set(groups.map((g) => g.name)))} style={chip(false)} title="collapse/expand every strategy group">{allC ? '▸ Expand all' : '▾ Collapse all'}</button>; })() : null}
         <button type="button" onClick={() => setHideClosed((v) => !v)} style={chip(hideClosed)} title="show open positions only">Open only</button>
         <select value={range} onChange={(e) => setRange(e.target.value)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--panel,#0e1420)', color: 'var(--fg)', fontWeight: 600, cursor: 'pointer' }}>
           <optgroup label="Rolling">
@@ -394,15 +397,16 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                     <td colSpan={HEADERS.length}
                       style={{ padding: '5px 10px', borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, fontWeight: 700 }}>
-                        <span className="lo-ghn" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {g.name}
+                        <span className="lo-ghn" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span onClick={() => toggleCollapse(g.name)} title={collapsed.has(g.name) ? 'expand group' : 'collapse group'} style={{ cursor: 'pointer', fontSize: 10, color: 'var(--muted)', flexShrink: 0, width: 10, textAlign: 'center' }}>{collapsed.has(g.name) ? '▸' : '▾'}</span>
+                          <span onClick={() => toggleCollapse(g.name)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{g.name}</span>
                           <span
                             onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
                             onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
                             onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
                             onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
                             title="strategy rules & expected metrics"
-                            style={{ marginLeft: 5, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
+                            style={{ flexShrink: 0, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
                         </span>
                         {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
                         <span className="lo-ghs" style={{ width: 84, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="capital deployed = sum of open-position notional ($) — how much money this sleeve is putting to work right now">{g.notl > 0 ? <>🏦 <b style={{ fontWeight: 700, color: 'var(--fg)' }}>{fmtUsd(g.notl)}</b></> : ''}</span>
@@ -421,7 +425,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                       </div>
                     </td>
                   </tr>
-                  {(expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
+                  {!collapsed.has(g.name) && (expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
                 </Fragment>
               ))
               : sortRows(visible).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy />)}

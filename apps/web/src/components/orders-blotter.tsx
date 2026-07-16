@@ -52,6 +52,12 @@ const ENTRY_RULES: Record<string, string> = {
     '• Vào (LONG): khi giá đóng cửa > EMA100 + 2×ATR100 (bứt phá khi biên độ NỞ RỘNG — khác Donchian phá đỉnh giá thuần)\n' +
     '• Ra: khi giá đóng cửa < EMA100 (về đường giữa)\n' +
     '• Chia đều 1/12, không short. ⚠️ Edge có tính chu kỳ — đang forward-test xem còn sống.',
+  'Crypto squeeze breakout':
+    '• 12 coin, khung H1, long-only (nén-vol rồi bứt phá — TTM squeeze)\n' +
+    '• Chờ NÉN: Bollinger(60,2) co vào TRONG kênh Keltner(60, 2.25×ATR) = biên độ nén → coin được "nạp đạn"\n' +
+    '• Vào (LONG): sau khi hết nén, giá đóng cửa > BB trên (bứt phá TỪ vùng nén — khác Keltner thuần chỉ cần nở)\n' +
+    '• Ra: giá đóng cửa < EMA60 (về đường giữa)\n' +
+    '• Vol-target 20%, chia đều 1/12, không short. ⚠️ 2026 YTD yếu (chop) — forward-test phân xử.',
   'Crypto drift basket':
     '• 12 coin × 4 tốc-độ SMA[100/200/400/800] = 48 sleeve, H1, long-only (multi-speed)\n' +
     '• Vào (LONG): mỗi sleeve long khi giá > SMA(tốc-độ đó); 1 coin có thể có 1-4 sleeve cùng long\n' +

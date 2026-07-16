@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../_auth';
-import { confirmCardPosted } from '@/lib/actions/seeding';
+import { confirmCardPosted, confirmCardPostedDirect } from '@/lib/actions/seeding';
 import { firstRow, errorResponse } from '@/lib/ext-route';
 
 // POST /api/ext/seeding/mark-posted
@@ -43,14 +43,10 @@ export async function POST(req: Request) {
 
   const projectId = String(r.project_id);
   const briefId = r.brief_id ? Number(r.brief_id) : 0;
-  if (!briefId) {
-    return errorResponse('Card không thuộc brief nào', 400);
-  }
-
-  const res = await confirmCardPosted(projectId, briefId, cardId, {
-    postUrl,
-    postNote: body.note ?? null,
-  });
+  // Card own/orphan (brief_id NULL, #3 post composer) → nhánh direct (ko brief). Card có brief → path cũ.
+  const res = briefId
+    ? await confirmCardPosted(projectId, briefId, cardId, { postUrl, postNote: body.note ?? null })
+    : await confirmCardPostedDirect(projectId, cardId, { postUrl, postNote: body.note ?? null });
   if (!res.ok) return errorResponse(res.error, 500);
   return NextResponse.json({ ok: true });
 }

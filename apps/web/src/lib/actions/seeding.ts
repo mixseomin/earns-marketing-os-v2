@@ -867,6 +867,33 @@ export async function confirmCardPosted(
   return { ok: true, laneType: seedRes.laneType, warnings: seedRes.warnings };
 }
 
+// Own/orphan card (brief_id NULL): card mang account_id/habitat_id trực tiếp (0096) → mark posted
+// KHÔNG cần brief. Bỏ readyCheck brief + markCardSeeded (cadence gắn brief); chỉ ghi post_url/posted_at.
+// Dùng cho post composer #3 khi đăng bài own-post không qua seeding brief.
+export async function confirmCardPostedDirect(
+  projectId: string,
+  cardId: number,
+  payload: { postUrl: string; postedAt?: string; postScreenshotUrl?: string | null; postNote?: string | null },
+): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  const url = payload.postUrl.trim();
+  if (!url) return { ok: false, error: 'URL bài đã đăng là bắt buộc' };
+  if (!/^https?:\/\//i.test(url)) return { ok: false, error: 'URL không hợp lệ (cần bắt đầu http:// hoặc https://)' };
+  const postedAt = payload.postedAt ? new Date(payload.postedAt) : new Date();
+  if (isNaN(postedAt.getTime())) return { ok: false, error: 'Thời gian đăng không hợp lệ' };
+  await db.execute(sql`
+    UPDATE cards SET
+      post_url = ${url},
+      posted_at = ${postedAt.toISOString()},
+      post_screenshot_url = ${payload.postScreenshotUrl ?? null},
+      post_note = ${payload.postNote ?? null},
+      post_lifecycle = CASE WHEN post_lifecycle = 'pending-approval' THEN NULL ELSE post_lifecycle END,
+      updated_at = now()
+    WHERE id = ${cardId} AND project_id = ${projectId}
+  `);
+  return { ok: true };
+}
+
 // ── reconcileMyPosts: track bài từ trang "my posts" (phpBB egosearch) ───────────
 // Trang my-posts liệt kê MỌI bài của account xuyên thread (mỗi row = permalink + full
 // body), kể cả bài VỪA ĐƯỢC DUYỆT (pending → live). scanTrk chỉ chạy trên 1 thread;

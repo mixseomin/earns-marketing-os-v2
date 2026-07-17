@@ -43,7 +43,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl
   'mintalmanac.com': { project: 'mint-almanac', emoji: '🪙', review: '2026-07-29' },  // launched 07-15, first review ~2wk
   'paydochub.com': { emoji: '🧾', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl
-  'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-07-16' },
+  'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-08-01' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },

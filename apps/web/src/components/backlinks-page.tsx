@@ -395,6 +395,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
+  const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);
   const closeTask = () => setOpenId(null);
@@ -461,9 +462,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
+    set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, openId]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -516,6 +518,17 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
     : filtered), [filtered, tab]);
 
+  // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
+  const grouped = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const keyOf = (t: BacklinkTask) => groupBy === 'platform' ? (t.platformLabel || t.platformKey || '(no platform)')
+      : groupBy === 'status' ? (SITE_STATUS[t.siteState]?.label || t.siteState)
+      : (READINESS_META[t.readiness]?.label || t.readiness);
+    const m = new Map<string, BacklinkTask[]>();
+    for (const t of shown) { const k = keyOf(t); (m.get(k) ?? m.set(k, []).get(k)!).push(t); }
+    return [...m.entries()].map(([label, items]) => ({ label, items })).sort((a, b) => b.items.length - a.items.length);
+  }, [shown, groupBy]);
+
   // Calendar items from the SAME filtered set: done → solid on done date; scheduled-not-done → dim.
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
@@ -553,6 +566,33 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     <button type="button" onClick={() => setTab(k)} style={{ ...btn, fontWeight: tab === k ? 700 : 500, borderColor: tab === k ? 'var(--neon-cyan)' : 'var(--line)', background: tab === k ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)', color: tab === k ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>
       {label}{n != null ? <span style={{ marginLeft: 6, opacity: 0.75 }}>{n}</span> : null}
     </button>
+  );
+
+  // One list row — shared by the flat list and each group section.
+  const rowEl = (t: BacklinkTask) => (
+    <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
+          {t.da && <Tag>DA {t.da}</Tag>}
+          {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
+          {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
+          {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+          {t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
+          {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
+          {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+          {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
+          {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
+          {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
+          {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
+        </div>
+      </div>
+      <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
+      <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+      <Pill status={t.siteState} />
+      {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+    </div>
   );
 
   return (
@@ -705,37 +745,36 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
         <button type="button" onClick={() => setBlockedOnly((v) => !v)} title="Chỉ hiện task nhân sự báo vướng" style={chip('#ef4444', blockedOnly)}>🚩 vướng</button>
         {(q || follow || traf || draftOnly || blockedOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); }} style={btn}>Clear</button>}
+        {view === 'list' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)', marginLeft: 'auto' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
+            <span>nhóm</span>
+            <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as 'none' | 'platform' | 'status' | 'readiness')} style={{ ...btn, cursor: 'pointer', padding: '3px 6px' }}>
+              <option value="none">— không —</option>
+              <option value="platform">platform</option>
+              <option value="status">trạng thái</option>
+              <option value="readiness">độ sẵn sàng</option>
+            </select>
+          </label>
+        )}
       </div>
 
       {view === 'calendar' ? (
         <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
+      ) : grouped ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {grouped.map((g) => (
+            <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em', display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 2 }}>
+                {g.label}<span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{g.items.length}</span>
+              </div>
+              {g.items.map(rowEl)}
+            </div>
+          ))}
+          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
+        </div>
       ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {shown.map((t) => (
-          <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
-                {t.da && <Tag>DA {t.da}</Tag>}
-                {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
-                {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
-                {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
-                {t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
-                {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
-                {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
-                {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
-                {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
-                {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
-                {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
-              </div>
-            </div>
-            <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
-            <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-            <Pill status={t.siteState} />
-            {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
-          </div>
-        ))}
+        {shown.map(rowEl)}
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
       )}

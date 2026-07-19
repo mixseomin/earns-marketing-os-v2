@@ -112,13 +112,13 @@ export async function resolveProjectViaTask(
 export async function listLiveTasks(
   db: Db,
   opts: { accountId?: number | null; platform?: string; projectId?: string; host?: string },
-): Promise<{ id: number; title: string; projectId: string; projectName: string; accountId: number | null; platformKey: string | null; siteMatch: boolean }[]> {
-  const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name, accountId: humanTasks.accountId, platformKey: humanTasks.platformKey, sourceUrl: sql<string>`${humanTasks.prepPayload}->>'source_url'` };
+): Promise<{ id: number; title: string; projectId: string; projectName: string; accountId: number | null; platformKey: string | null; siteMatch: boolean; siteStatus: string }[]> {
+  const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name, accountId: humanTasks.accountId, platformKey: humanTasks.platformKey, sourceUrl: sql<string>`${humanTasks.prepPayload}->>'source_url'`, siteStatus: sql<string>`(${humanTasks.prepPayload}->'site_status') ->> ${humanTasks.projectId}` };
   const host = (opts.host || '').replace(/^www\./, '').trim().toLowerCase();
   const base = host.split('.')[0];
-  const map = (rows: Array<{ id: number; title: string | null; projectId: string | null; projectName: string | null; accountId: number | null; platformKey: string | null; sourceUrl: string | null }>) =>
+  const map = (rows: Array<{ id: number; title: string | null; projectId: string | null; projectName: string | null; accountId: number | null; platformKey: string | null; sourceUrl: string | null; siteStatus: string | null }>) =>
     rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '', accountId: r.accountId ?? null, platformKey: r.platformKey ?? null,
-      siteMatch: !!host && ((r.sourceUrl || '').toLowerCase().includes(host) || (!!base && (r.title || '').toLowerCase().includes(base))) }));
+      siteMatch: !!host && ((r.sourceUrl || '').toLowerCase().includes(host) || (!!base && (r.title || '').toLowerCase().includes(base))), siteStatus: r.siteStatus || 'pending' }));
   const pid = (opts.projectId || '').trim();
   const ors = [];
   if (opts.accountId) ors.push(eq(humanTasks.accountId, Number(opts.accountId)));            // đã gán account NÀY

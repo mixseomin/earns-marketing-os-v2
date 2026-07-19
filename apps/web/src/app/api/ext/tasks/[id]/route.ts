@@ -29,6 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            ht.sla_due_at,
            ht.prep_payload->'blocker'->>'reason' AS blocker,
            ht.prep_payload->'checklist' AS checklist,
+           ht.prep_payload->'grounded' AS grounded,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.id = ${taskId} LIMIT 1`);
@@ -67,6 +68,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       slaDueAt: t.sla_due_at ? new Date(t.sla_due_at as string | number | Date).toISOString() : '',
       blocker: String(t.blocker || ''),
       checklist: (t.checklist && typeof t.checklist === 'object') ? (t.checklist as Record<string, unknown>) : {},
+      // grounded (prep_payload) = instructions đã Chuẩn hoá dựa trên DOM thật — ext hiện badge để biết bản mới nhất.
+      grounded: (t.grounded && typeof t.grounded === 'object' && !Array.isArray(t.grounded)) ? (t.grounded as Record<string, unknown>) : null,
       content: (ac as unknown as Array<Record<string, unknown>>).map((x) => ({
         id: Number(x.id), kind: String(x.kind || 'nội dung (AI)'), result: String(x.result || ''),
       })),

@@ -16,7 +16,7 @@ import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
-import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, type AiContentRow } from '@/lib/actions/ai-content';
+import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
@@ -791,6 +791,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
   const [normBusy, setNormBusy] = useState(false);
   const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
+  // ✨ Chuẩn bị điền — sinh giá trị điền cho từng field form thật (từ DOM đã lưu). Ext auto-fill (P2).
+  const [fillBusy, setFillBusy] = useState(false);
+  const [fillErr, setFillErr] = useState<string | null>(null);
+  const [fillFields, setFillFields] = useState<Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> | null>(task.fillFields?.items ?? null);
+  const doPrepFill = async () => { setFillBusy(true); setFillErr(null); const r = await prepFillFields(task.id); setFillBusy(false); if (r.ok && r.fields) { setFillFields(r.fields); onChange(); } else setFillErr(r.error || 'lỗi'); };
   // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
   const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
@@ -1039,10 +1044,45 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             <span>🛠 Cách build</span>
             <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
+            {task.domSampleId && <button type="button" onClick={doPrepFill} disabled={fillBusy} title="AI chuẩn bị GIÁ TRỊ điền cho từng field của form thật (từ DOM đã lưu): tên/email/message/link. Ext sẽ auto-fill (P2)."
+              style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, color: 'var(--accent)' }}>{fillBusy ? '…' : '✨ Chuẩn bị điền'}</button>}
           </div>
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}>
             <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
           </div>
+          {/* ✨ Chuẩn bị điền — field→value đã chuẩn bị cho form thật (ext auto-fill P2). 🟢 chắc · 🔴 cần review. */}
+          {(fillFields || fillErr) && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>📋 Điền sẵn (form)</span>
+                {fillFields && fillFields.length > 0 && (
+                  <button type="button" onClick={() => { navigator.clipboard?.writeText(fillFields.map((f) => `${f.label || f.key}: ${f.value}`).join('\n')); setCopiedKey('__fillall'); setTimeout(() => setCopiedKey(null), 1000); }}
+                    style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto' }}>{copiedKey === '__fillall' ? '✓ copy' : '📋 Copy tất cả'}</button>
+                )}
+              </div>
+              {fillErr && <div style={{ fontSize: 12, color: 'var(--bad,#ef4444)' }}>⚠ {fillErr}</div>}
+              {fillFields && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', background: 'var(--bg-2)' }}>
+                  {fillFields.map((f, i) => {
+                    const cc = f.confidence === 'high' ? 'var(--ok,#22c55e)' : f.confidence === 'low' ? 'var(--bad,#ef4444)' : 'var(--fg-4)';
+                    const missing = /MISSING/i.test(f.source);
+                    return (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12 }}>
+                        <div style={{ minWidth: 118, flexShrink: 0 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{f.label || f.key}</div>
+                          <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>{f.type}{f.source ? ' · ' + f.source : ''}</div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, color: missing ? 'var(--bad,#ef4444)' : 'var(--fg-1)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{missing ? '⚠ thiếu email account — gán account rồi chuẩn bị lại' : (f.value || '—')}</div>
+                        <span title={`độ chắc: ${f.confidence}`} style={{ flexShrink: 0, width: 8, height: 8, borderRadius: 8, background: cc, marginTop: 4 }} />
+                        {f.value && !missing && <button type="button" onClick={() => { navigator.clipboard?.writeText(f.value); setCopiedKey('fill' + i); setTimeout(() => setCopiedKey(null), 1000); }} style={{ ...btn, padding: '1px 6px', flexShrink: 0 }}>{copiedKey === 'fill' + i ? '✓' : '📋'}</button>}
+                      </div>
+                    );
+                  })}
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>Ext sẽ auto-fill các field này (P2). 🟢 chắc · 🔴 cần review/thiếu dữ liệu.</div>
+                </div>
+              )}
+            </div>
+          )}
         </>)}
 
         {/* 2 · Claim — assign an owner (auto-advances To do → In progress). */}

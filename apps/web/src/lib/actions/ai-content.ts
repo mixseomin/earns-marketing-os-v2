@@ -193,6 +193,91 @@ export async function normalizeProjectInstructions(projectId: string): Promise<{
   }
 }
 
+// ── ✨ Chuẩn bị điền (prepFillFields) — sibling của Chuẩn hoá. Chuẩn hoá = viết lại HƯỚNG DẪN (prose cho
+//    người); prep-fill = sinh GIÁ TRỊ TỪNG FIELD (form thật) để ext auto-fill. Dùng CHUNG getDomGrounding
+//    (đã distill mọi field) + account/persona + brand. KHÔNG bịa danh tính/email — email chỉ dùng account thật.
+export interface FillField { key: string; label: string; type: string; value: string; source: string; confidence: 'high' | 'med' | 'low' }
+
+export async function prepFillFields(taskId: number): Promise<{ ok: boolean; fields?: FillField[]; error?: string; grounded?: boolean }> {
+  if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  try {
+    const rows = await db.execute(sql`
+      SELECT ht.title, ht.instructions, ht.project_id, ht.account_id,
+             ht.prep_payload->>'source_url' src, ht.prep_payload->>'mechanism' mech,
+             ht.prep_payload->>'target_url' target, ht.prep_payload->>'draft' draft,
+             p.name pname, p.website psite, p.one_liner oneliner
+      FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
+      WHERE ht.id = ${taskId} AND ht.platform_key = 'backlink' LIMIT 1`);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (!r) return { ok: false, error: 'task not found' };
+    // DOM grounding = danh sách field THẬT (distillDom). Chưa lưu DOM → chưa prep được (cần 💾 Lưu DOM ở ext).
+    const g = await getDomGrounding(db, String(r.src || ''));
+    if (!g.block) return { ok: false, error: 'chưa có DOM đã lưu cho site này — bấm 💾 Lưu DOM trong ext trước' };
+    // Account submit (email THẬT + persona name) — chỉ khi task đã gán account_id. Chưa gán → brand + email trống.
+    let acctEmail = '', personaName = '', handle = '';
+    const accountId = r.account_id != null ? Number(r.account_id) : null;
+    if (accountId != null) {
+      const ar = await db.execute(sql`SELECT handle, email, persona FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
+      const a = (ar as unknown as Array<Record<string, unknown>>)[0];
+      if (a) {
+        handle = String(a.handle || '');
+        acctEmail = String(a.email || '');
+        const pj = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {};
+        personaName = String(pj.name || pj.displayName || pj.fullName || '');
+      }
+    }
+    const target = String(r.target || r.psite || '').replace(/\/$/, '');
+    const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture) + thông tin dưới, sinh giá trị cho TỪNG field điền được (input/textarea/select) — KHÔNG cho button/link/heading.
+
+CONTEXT:
+- Sản phẩm: ${r.pname || ''}${r.psite ? ` (${String(r.psite).replace(/\/$/, '')})` : ''}
+- Link đích cần đặt (backlink): ${target || '(dùng website sản phẩm)'}
+${r.oneliner ? `- Sản phẩm làm gì: ${r.oneliner}\n` : ''}- Người submit (persona): tên "${personaName}", email "${acctEmail || '(chưa gán account → chưa có email)'}", handle "${handle}"
+- Cách đặt: ${r.mech || ''}
+- Ghi chú task (tiếng Việt, tuân theo): ${String(r.instructions || '').slice(0, 1200)}
+- Pitch/bài chuẩn bị sẵn (nếu có): ${String(r.draft || '(chưa có)').slice(0, 1500)}
+${g.block}
+--- YÊU CẦU ---
+Với MỖI field điền được trong CẤU TRÚC TRANG THẬT, xuất 1 object JSON: {"key","label","type","value","source","confidence"}.
+- key = name/id THẬT của field trong cấu trúc; label = nhãn người đọc; type = loại (text/email/textarea/select…).
+- value (CÔNG KHAI = ENGLISH ONLY):
+  * name/tên → dùng tên persona nếu có; nếu trống → 1 first name đời thường, KHÔNG bịa danh tính đầy đủ giả.
+  * email → CHỈ dùng email account thật ở trên; nếu chưa có → value="" , source="MISSING-email", confidence="low".
+  * website/url/link → link đích (${target || String(r.psite || '')}).
+  * message/comment/body/textarea → pitch tự nhiên giới thiệu ${r.pname || 'sản phẩm'}, gài link 1 lần nếu field này mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
+  * subject/tiêu đề → 1 subject ngắn, cụ thể.
+  * select → chọn option HỢP LÝ NHẤT từ danh sách trong cấu trúc; không chắc → confidence="low".
+  * field không rõ (vd "how did you hear about us") → best guess + confidence="low".
+- confidence: high (chắc), med, low (đoán/thiếu dữ liệu).
+CHỈ trả JSON array, KHÔNG markdown fence, KHÔNG giải thích.`;
+    const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
+    const raw = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); } catch { const m = raw.match(/\[[\s\S]*\]/); if (!m) return { ok: false, error: 'AI trả không phải JSON' }; try { parsed = JSON.parse(m[0]); } catch { return { ok: false, error: 'JSON lỗi cú pháp' }; } }
+    if (!Array.isArray(parsed)) return { ok: false, error: 'AI không trả mảng field' };
+    const items: FillField[] = parsed.slice(0, 40).map((x) => {
+      const o = (x && typeof x === 'object') ? x as Record<string, unknown> : {};
+      const conf = String(o.confidence || 'med').toLowerCase();
+      return {
+        key: String(o.key || o.name || '').slice(0, 120),
+        label: String(o.label || o.key || '').slice(0, 160),
+        type: String(o.type || 'text').slice(0, 24),
+        value: String(o.value == null ? '' : o.value).slice(0, 4000),
+        source: String(o.source || '').slice(0, 60),
+        confidence: ((conf === 'high' || conf === 'low') ? conf : 'med') as FillField['confidence'],
+      };
+    }).filter((f) => f.key || f.label);
+    if (!items.length) return { ok: false, error: 'không sinh được field nào' };
+    const payload = { at: new Date().toISOString(), accountId, items };
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('fill_fields', ${JSON.stringify(payload)}::jsonb), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true, fields: items, grounded: !!g.prov };
+  } catch (e) {
+    return { ok: false, error: `chuẩn bị điền lỗi: ${(e as Error).message || String(e)}` };
+  }
+}
+
 export async function deleteAiContent(id: number): Promise<{ ok: boolean; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };

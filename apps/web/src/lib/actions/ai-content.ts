@@ -224,24 +224,37 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
     const g = await getDomGrounding(db, String(r.src || ''));
     if (!g.block) return { ok: false, error: 'chưa có DOM đã lưu cho site này — bấm 💾 Lưu DOM trong ext trước' };
     // ── Account THẬT: drawer resolved > ht.account_id. Load FULL identity (persona + custom_fields + có pwd?).
+    const mapAcct = (a: Record<string, unknown>): PrepIdentity => {
+      const pj = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {};
+      return {
+        handle: String(a.handle || ''), email: String(a.email || ''),
+        personaName: String(pj.name || pj.displayName || pj.fullName || pj.full_name || ''),
+        persona: pj, custom: (a.custom_fields && typeof a.custom_fields === 'object') ? a.custom_fields as Record<string, unknown> : {},
+        hasPassword: a.has_pw === true,
+      };
+    };
     const accountId = (resolvedAccountId != null ? Number(resolvedAccountId) : null) ?? (r.account_id != null ? Number(r.account_id) : null);
     let acct: PrepIdentity | null = null;
     if (accountId != null) {
       const ar = await db.execute(sql`SELECT handle, email, persona, custom_fields, (password_enc IS NOT NULL) AS has_pw FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
       const a = (ar as unknown as Array<Record<string, unknown>>)[0];
-      if (a) {
-        const pj = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {};
-        acct = {
-          handle: String(a.handle || ''), email: String(a.email || ''),
-          personaName: String(pj.name || pj.displayName || pj.fullName || pj.full_name || ''),
-          persona: pj, custom: (a.custom_fields && typeof a.custom_fields === 'object') ? a.custom_fields as Record<string, unknown> : {},
-          hasPassword: a.has_pw === true,
-        };
-      }
+      if (a) acct = mapAcct(a);
     }
-    // KHÔNG có account mà form cần identity (name/email/username/password…) → BLOCKER, tuyệt đối KHÔNG bịa.
+    // Chưa gán account riêng (vd newsletter/contact "không cần account riêng") → fallback identity THẬT của
+    // PROJECT (account primary, ưu tiên có email). Vẫn THẬT (khỏi bịa), khỏi blocker cứng; user gán account
+    // khác để override. Chỉ blocker khi project KHÔNG có account nào mà form lại cần identity.
+    if (!acct && r.project_id) {
+      const pr = await db.execute(sql`
+        SELECT pa.handle, pa.email, pa.persona, pa.custom_fields, (pa.password_enc IS NOT NULL) AS has_pw
+        FROM project_accounts pj JOIN platform_accounts pa ON pa.id = pj.account_id
+        WHERE pj.project_id = ${String(r.project_id)}
+        ORDER BY (pj.role = 'primary') DESC, (COALESCE(pa.email, '') <> '') DESC, pa.id
+        LIMIT 1`);
+      const a = (pr as unknown as Array<Record<string, unknown>>)[0];
+      if (a) acct = mapAcct(a);
+    }
     if (!acct && blockNeedsIdentity(g.block)) {
-      return { ok: false, needAccount: true, error: 'Task chưa gán account/persona thật (form cần tên + email thật để điền). Gán account ở drawer rồi bấm lại — hoặc dùng RegKit tạo account nếu task cần đăng ký.' };
+      return { ok: false, needAccount: true, error: 'Project chưa có account/persona thật nào (form cần tên + email thật). Tạo 1 account/persona cho project — hoặc gán account cho task — rồi bấm lại.' };
     }
     const target = String(r.target || r.psite || '').replace(/\/$/, '');
     // LLM CHỈ lo CONTENT (message/subject/unknown) + phát hiện key field thật. Identity điền deterministic ở dưới.

@@ -40,10 +40,10 @@ CREATE OR REPLACE VIEW backlinks AS
     ht.prep_payload ->> 'draft_short'::text AS draft_short,
     ht.prep_payload -> 'resolved'::text AS resolved,
     ht.prep_payload -> 'grounded'::text AS grounded,
-    ht.prep_payload -> 'fill_fields'::text AS fill_fields,
     ( SELECT ds.id FROM dom_samples ds
         WHERE ds.hostname = lower(regexp_replace(ht.prep_payload ->> 'source_url'::text, '^https?://(www\.)?([^/]+).*$'::text, '\2'::text))
-        ORDER BY ds.captured_at DESC LIMIT 1) AS dom_sample_id
+        ORDER BY ds.captured_at DESC LIMIT 1) AS dom_sample_id,
+    ht.prep_payload -> 'fill_fields'::text AS fill_fields   -- append-only: CREATE OR REPLACE VIEW chỉ cho thêm cột ở CUỐI
    FROM human_tasks ht
      LEFT JOIN users u ON u.id = ht.assigned_user_id
   WHERE ht.platform_key = 'backlink'::text;

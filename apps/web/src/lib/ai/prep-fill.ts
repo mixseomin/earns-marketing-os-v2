@@ -29,7 +29,18 @@ export function classifyFillField(key: string, label: string, type: string): Fie
   return 'unknown';
 }
 
-export interface PrepIdentity { handle: string; email: string; personaName: string; persona: Record<string, unknown>; custom: Record<string, unknown>; hasPassword: boolean }
+// Identity đã resolve (account handle/email/pwd + persona THẬT từ bảng `identities`: name_first/name_last/
+// city/gender…). firstName/lastName/personaName đã resolve sẵn (kể cả random fallback) → resolver chỉ đọc.
+export interface PrepIdentity { handle: string; email: string; firstName: string; lastName: string; personaName: string; persona: Record<string, unknown>; custom: Record<string, unknown>; hasPassword: boolean }
+
+// Tên ngẫu nhiên HỢP LỆ (không phải "John Doe" placeholder) cho task free-person khi project chưa có identity.
+// Ổn định theo seed (taskId) → không đổi mỗi lần bấm. Unisex/neutral, an toàn công khai.
+const RAND_FIRST = ['Jordan', 'Alex', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Jamie', 'Avery', 'Quinn', 'Cameron', 'Drew', 'Reese', 'Parker', 'Hayden', 'Emerson', 'Rowan', 'Sage', 'Blake', 'Devon', 'Elliot'];
+const RAND_LAST = ['Brooks', 'Reed', 'Bennett', 'Hayes', 'Foster', 'Coleman', 'Barrett', 'Sullivan', 'Wells', 'Palmer', 'Fleming', 'Rhodes', 'Chandler', 'Mercer', 'Dalton', 'Sawyer', 'Bishop', 'Nolan', 'Porter', 'Grant'];
+export function randomPersonaName(seed: number): { first: string; last: string } {
+  const s = Math.abs(Math.trunc(Number(seed) || 0));
+  return { first: RAND_FIRST[s % RAND_FIRST.length] || 'Alex', last: RAND_LAST[(s * 7 + 3) % RAND_LAST.length] || 'Reed' };
+}
 
 // Tra persona + custom_fields cho identity-misc (phone/dob/city…) — normalize bỏ ký tự ko chữ-số, khớp key.
 function lookupIdentityMisc(key: string, label: string, acct: PrepIdentity): string {
@@ -48,14 +59,13 @@ function lookupIdentityMisc(key: string, label: string, acct: PrepIdentity): str
 // Điền deterministic cho identity field từ account THẬT. Trả null nếu kind KHÔNG phải identity (caller tự xử).
 export function resolveIdentityFill(kind: FieldKind, key: string, label: string, acct: PrepIdentity | null): { value: string; source: string; confidence: Confidence } | null {
   const NEED = (what: string): { value: string; source: string; confidence: Confidence } => ({ value: '', source: `NEED:${what}`, confidence: 'low' });
-  const nameParts = (acct?.personaName || '').trim().split(/\s+/).filter(Boolean);
   switch (kind) {
     case 'password': return { value: '', source: 'account-password', confidence: acct?.hasPassword ? 'high' : 'low' };  // ext điền từ creds; KHÔNG lưu plaintext vào jsonb
     case 'email': return acct?.email ? { value: acct.email, source: 'account-email', confidence: 'high' } : NEED('email');
     case 'username': return acct?.handle ? { value: acct.handle, source: 'account-username', confidence: 'high' } : NEED('username');
     case 'name': return acct?.personaName ? { value: acct.personaName, source: 'account-name', confidence: 'high' } : NEED('name');
-    case 'first-name': { const pj = acct?.persona || {}; const fn = String(pj.firstName ?? pj.first_name ?? pj.givenName ?? pj.given_name ?? pj.forename ?? '').trim() || nameParts[0] || ''; return fn ? { value: fn, source: 'account-name', confidence: 'high' } : NEED('first name'); }
-    case 'last-name': { const pj = acct?.persona || {}; const ln = String(pj.lastName ?? pj.last_name ?? pj.surname ?? pj.familyName ?? pj.family_name ?? '').trim() || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''); return ln ? { value: ln, source: 'account-name', confidence: 'high' } : NEED('last name'); }
+    case 'first-name': return acct?.firstName ? { value: acct.firstName, source: 'account-name', confidence: 'high' } : NEED('first name');
+    case 'last-name': return acct?.lastName ? { value: acct.lastName, source: 'account-name', confidence: 'high' } : NEED('last name');
     case 'identity-misc': { if (!acct) return NEED((key || label).slice(0, 24)); const v = lookupIdentityMisc(key, label, acct); return v ? { value: v, source: 'account-persona', confidence: 'med' } : NEED((key || label).slice(0, 24)); }
     default: return null;
   }

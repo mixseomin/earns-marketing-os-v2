@@ -12,7 +12,7 @@ import { getOpenAI, aiEnabled, DEFAULT_MODEL } from '@/lib/ai/openai';
 import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-template';
 import { getCurrentUser } from '@/lib/auth';
 import { buildContentPrompt, type AiContentCtx } from '@/lib/ai/backlink-content-prompt';
-import { classifyFillField, resolveIdentityFill, blockNeedsIdentity, type PrepIdentity } from '@/lib/ai/prep-fill';
+import { classifyFillField, resolveIdentityFill, randomPersonaName, type PrepIdentity } from '@/lib/ai/prep-fill';
 
 export type { AiContentCtx };
 
@@ -223,39 +223,50 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
     // DOM grounding = danh sách field THẬT (distillDom). Chưa lưu DOM → chưa prep được (cần 💾 Lưu DOM ở ext).
     const g = await getDomGrounding(db, String(r.src || ''));
     if (!g.block) return { ok: false, error: 'chưa có DOM đã lưu cho site này — bấm 💾 Lưu DOM trong ext trước' };
-    // ── Account THẬT: drawer resolved > ht.account_id. Load FULL identity (persona + custom_fields + có pwd?).
-    const mapAcct = (a: Record<string, unknown>): PrepIdentity => {
-      const pj = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {};
-      return {
-        handle: String(a.handle || ''), email: String(a.email || ''),
-        personaName: String(pj.name || pj.displayName || pj.fullName || pj.full_name || ''),
-        persona: pj, custom: (a.custom_fields && typeof a.custom_fields === 'object') ? a.custom_fields as Record<string, unknown> : {},
-        hasPassword: a.has_pw === true,
-      };
-    };
+    // ── Identity resolve: ACCOUNT (handle/email/pwd) + persona THẬT từ bảng `identities` của project
+    //    (name_first/name_last/city/gender…). Account = task-bound (drawer resolved > ht.account_id) > project
+    //    primary. Tên = identity thật → nếu không có → tên NGẪU NHIÊN hợp lệ (task free-person; KHÔNG John Doe,
+    //    KHÔNG blocker). platform_accounts KHÔNG có cột custom_fields — custom_fields nằm ở `identities`.
     const accountId = (resolvedAccountId != null ? Number(resolvedAccountId) : null) ?? (r.account_id != null ? Number(r.account_id) : null);
-    let acct: PrepIdentity | null = null;
+    let acctHandle = '', acctEmail = '', acctHasPw = false, acctPersona: Record<string, unknown> = {}, gotAccount = false;
+    const takeAcct = (a: Record<string, unknown>) => { acctHandle = String(a.handle || ''); acctEmail = String(a.email || ''); acctHasPw = a.has_pw === true; acctPersona = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {}; gotAccount = true; };
     if (accountId != null) {
-      const ar = await db.execute(sql`SELECT handle, email, persona, custom_fields, (password_enc IS NOT NULL) AS has_pw FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
-      const a = (ar as unknown as Array<Record<string, unknown>>)[0];
-      if (a) acct = mapAcct(a);
+      const ar = await db.execute(sql`SELECT handle, email, persona, (password_enc IS NOT NULL) AS has_pw FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
+      const a = (ar as unknown as Array<Record<string, unknown>>)[0]; if (a) takeAcct(a);
     }
-    // Chưa gán account riêng (vd newsletter/contact "không cần account riêng") → fallback identity THẬT của
-    // PROJECT (account primary, ưu tiên có email). Vẫn THẬT (khỏi bịa), khỏi blocker cứng; user gán account
-    // khác để override. Chỉ blocker khi project KHÔNG có account nào mà form lại cần identity.
-    if (!acct && r.project_id) {
-      const pr = await db.execute(sql`
-        SELECT pa.handle, pa.email, pa.persona, pa.custom_fields, (pa.password_enc IS NOT NULL) AS has_pw
+    if (!gotAccount && r.project_id) {
+      const pr = await db.execute(sql`SELECT pa.handle, pa.email, pa.persona, (pa.password_enc IS NOT NULL) AS has_pw
         FROM project_accounts pj JOIN platform_accounts pa ON pa.id = pj.account_id
         WHERE pj.project_id = ${String(r.project_id)}
-        ORDER BY (pj.role = 'primary') DESC, (COALESCE(pa.email, '') <> '') DESC, pa.id
-        LIMIT 1`);
-      const a = (pr as unknown as Array<Record<string, unknown>>)[0];
-      if (a) acct = mapAcct(a);
+        ORDER BY (pj.role = 'primary') DESC, (COALESCE(pa.email, '') <> '') DESC, pa.id LIMIT 1`);
+      const a = (pr as unknown as Array<Record<string, unknown>>)[0]; if (a) takeAcct(a);
     }
-    if (!acct && blockNeedsIdentity(g.block)) {
-      return { ok: false, needAccount: true, error: 'Project chưa có account/persona thật nào (form cần tên + email thật). Tạo 1 account/persona cho project — hoặc gán account cho task — rồi bấm lại.' };
+    // Persona THẬT từ identities của project — nguồn tên/giới tính/thành phố. Ưu tiên identity có name_first.
+    let idPersona: Record<string, unknown> = {}, idCustom: Record<string, unknown> = {}, idName = '', idEmail = '', idHandle = '';
+    if (r.project_id) {
+      const ir = await db.execute(sql`SELECT i.name, i.display_name, i.email, i.persona, i.custom_fields, i.handle_base
+        FROM identities i LEFT JOIN identity_projects ip ON ip.identity_id = i.id AND ip.project_id = ${String(r.project_id)}
+        WHERE ip.project_id = ${String(r.project_id)} OR i.project_id = ${String(r.project_id)}
+        ORDER BY (COALESCE(i.persona->>'name_first', '') <> '') DESC, i.updated_at DESC LIMIT 1`);
+      const i = (ir as unknown as Array<Record<string, unknown>>)[0];
+      if (i) {
+        idPersona = (i.persona && typeof i.persona === 'object') ? i.persona as Record<string, unknown> : {};
+        idCustom = (i.custom_fields && typeof i.custom_fields === 'object') ? i.custom_fields as Record<string, unknown> : {};
+        idName = String(i.display_name || i.name || ''); idEmail = String(i.email || ''); idHandle = String(i.handle_base || '');
+      }
     }
+    // Ghép tên: identities.persona.name_first/last → split display/name → tên ngẫu nhiên hợp lệ (seed=taskId ổn
+    // định). Field "name" ưu tiên TÊN NGƯỜI (Jordan Smith) hơn display_name ("Veteran Enthusiast").
+    let firstName = String(idPersona.name_first ?? idPersona.first_name ?? acctPersona.name_first ?? '').trim();
+    let lastName = String(idPersona.name_last ?? idPersona.last_name ?? acctPersona.name_last ?? '').trim();
+    if (!firstName && !lastName && idName) { const p = idName.split(/\s+/); firstName = p[0] || ''; lastName = p.slice(1).join(' '); }
+    if (!firstName && !lastName) { const rn = randomPersonaName(taskId); firstName = rn.first; lastName = rn.last; }
+    const personaName = `${firstName} ${lastName}`.trim() || idName;
+    const acct: PrepIdentity = {
+      handle: acctHandle || idHandle, email: acctEmail || idEmail,
+      firstName, lastName, personaName,
+      persona: { ...acctPersona, ...idPersona }, custom: idCustom, hasPassword: acctHasPw,
+    };
     const target = String(r.target || r.psite || '').replace(/\/$/, '');
     // LLM CHỈ lo CONTENT (message/subject/unknown) + phát hiện key field thật. Identity điền deterministic ở dưới.
     const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture), liệt kê MỖI field điền được (input/textarea/select) — KHÔNG button/link/heading.

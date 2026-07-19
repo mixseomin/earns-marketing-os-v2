@@ -14,12 +14,12 @@ src = src
   .replace(/export type [^\n]*\n/g, '')
   .replace(/export interface [^\n]*\n/g, '')
   .replace(/: FieldKind\[\]/g, '').replace(/: FieldKind\b/g, '').replace(/: PrepIdentity \| null/g, '').replace(/: PrepIdentity\b/g, '')
-  .replace(/: Confidence\b/g, '').replace(/: string\b/g, '').replace(/\): boolean/g, ')')
+  .replace(/: Confidence\b/g, '').replace(/: string\b/g, '').replace(/: number\b/g, '').replace(/\): boolean/g, ')')
   .replace(/\): \{[^}]*\} \| null/g, ')').replace(/\): \{[^}]*\}/g, ')')
   .replace(/export function/g, 'function').replace(/export /g, '');
 
-const factory = new Function(src + '\nreturn { classifyFillField, resolveIdentityFill, blockNeedsIdentity };');
-const { classifyFillField, resolveIdentityFill, blockNeedsIdentity } = factory();
+const factory = new Function(src + '\nreturn { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName };');
+const { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName } = factory();
 
 let pass = 0; const ok = (c, m) => { assert.ok(c, m); pass++; };
 
@@ -53,24 +53,25 @@ const cls = [
 ];
 for (const [k, l, t, want] of cls) ok(classifyFillField(k, l, t) === want, `classify ${k}/${l} → ${want}, got ${classifyFillField(k, l, t)}`);
 
-// ── resolveIdentityFill: REAL account → real values, NEVER fabricated ──
-const acct = { handle: 'gannys', email: 'gannys@inbox.test', personaName: 'Hannah Gray', persona: { name: 'Hannah Gray', city: 'Austin' }, custom: { phone: '512-555-0100' }, hasPassword: true };
+// ── resolveIdentityFill: REAL identity → real values; first/last read directly from resolved PrepIdentity ──
+const acct = { handle: 'gannys', email: 'gannys@inbox.test', firstName: 'Hannah', lastName: 'Gray', personaName: 'Hannah Gray', persona: { name: 'Hannah Gray', city: 'Austin' }, custom: { phone: '512-555-0100' }, hasPassword: true };
 
 ok(resolveIdentityFill('name', 'fullname', 'Full name', acct).value === 'Hannah Gray', 'name → real persona name');
 ok(resolveIdentityFill('name', 'fullname', 'Full name', acct).source === 'account-name', 'name source');
-// split names from real persona (never fabricated): "Hannah Gray" → first Hannah / last Gray
-ok(resolveIdentityFill('first-name', 'fname', 'First', acct).value === 'Hannah', 'first-name → first token, not full name');
-ok(resolveIdentityFill('last-name', 'lname', 'Last', acct).value === 'Gray', 'last-name → remaining tokens');
-// explicit persona firstName/lastName wins over split
-const acct2 = { handle: 'h', email: 'e@x', personaName: 'Mary Jane Watson', persona: { name: 'Mary Jane Watson', firstName: 'MJ', lastName: 'Watson' }, custom: {}, hasPassword: false };
-ok(resolveIdentityFill('first-name', 'fname', 'First', acct2).value === 'MJ', 'first-name → explicit persona.firstName');
-ok(resolveIdentityFill('last-name', 'lname', 'Last', acct2).value === 'Watson', 'last-name → explicit persona.lastName');
-// no persona name → NEED, never fabricated
-ok(resolveIdentityFill('first-name', 'fname', 'First', { handle: '', email: '', personaName: '', persona: {}, custom: {}, hasPassword: false }).source === 'NEED:first name', 'first-name no persona → NEED');
+ok(resolveIdentityFill('first-name', 'fname', 'First', acct).value === 'Hannah', 'first-name → resolved firstName');
+ok(resolveIdentityFill('last-name', 'lname', 'Last', acct).value === 'Gray', 'last-name → resolved lastName');
+// no first/last resolved → NEED (caller supplies real identity or random name BEFORE building PrepIdentity)
+ok(resolveIdentityFill('first-name', 'fname', 'First', { handle: '', email: '', firstName: '', lastName: '', personaName: '', persona: {}, custom: {}, hasPassword: false }).source === 'NEED:first name', 'first-name no value → NEED');
 ok(resolveIdentityFill('email', 'email', 'Email', acct).value === 'gannys@inbox.test', 'email → real');
 ok(resolveIdentityFill('username', 'user', 'User', acct).value === 'gannys', 'username → real handle');
 ok(resolveIdentityFill('identity-misc', 'city', 'City', acct).value === 'Austin', 'city → persona');
 ok(resolveIdentityFill('identity-misc', 'phone', 'Phone', acct).value === '512-555-0100', 'phone → custom_fields');
+
+// ── randomPersonaName: realistic + STABLE per seed (never "John Doe"), varies across seeds ──
+const rn1 = randomPersonaName(201), rn1b = randomPersonaName(201), rn2 = randomPersonaName(202);
+ok(rn1.first === rn1b.first && rn1.last === rn1b.last, 'randomPersonaName stable per seed (same taskId → same name)');
+ok(!!rn1.first && !!rn1.last && rn1.first !== 'John' && rn1.last !== 'Doe', 'randomPersonaName realistic, not John Doe');
+ok(rn1.first !== rn2.first || rn1.last !== rn2.last, 'randomPersonaName varies across seeds');
 
 // password: NEVER plaintext in value — ext fills from creds
 const pw = resolveIdentityFill('password', 'pass', 'Password', acct);

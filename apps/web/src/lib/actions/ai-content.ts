@@ -247,7 +247,7 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
       const ir = await db.execute(sql`SELECT i.name, i.display_name, i.email, i.persona, i.custom_fields, i.handle_base
         FROM identities i LEFT JOIN identity_projects ip ON ip.identity_id = i.id AND ip.project_id = ${String(r.project_id)}
         WHERE ip.project_id = ${String(r.project_id)} OR i.project_id = ${String(r.project_id)}
-        ORDER BY (COALESCE(i.persona->>'name_first', '') <> '') DESC, i.updated_at DESC LIMIT 1`);
+        ORDER BY (COALESCE(i.persona->>'name_first', '') <> '') DESC, (i.kind = 'seeding') DESC, i.updated_at DESC LIMIT 1`);
       const i = (ir as unknown as Array<Record<string, unknown>>)[0];
       if (i) {
         idPersona = (i.persona && typeof i.persona === 'object') ? i.persona as Record<string, unknown> : {};
@@ -262,8 +262,10 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
     if (!firstName && !lastName && idName) { const p = idName.split(/\s+/); firstName = p[0] || ''; lastName = p.slice(1).join(' '); }
     if (!firstName && !lastName) { const rn = randomPersonaName(taskId); firstName = rn.first; lastName = rn.last; }
     const personaName = `${firstName} ${lastName}`.trim() || idName;
+    // Email ĐỒNG BỘ với tên: dùng email RIÊNG của persona (identity) trước → tên + email = CÙNG 1 người độc lập.
+    // KHÔNG dùng email brand (vd hello@militarycalc.com) cho task đóng vai người dùng độc lập → lộ chủ tool.
     const acct: PrepIdentity = {
-      handle: acctHandle || idHandle, email: acctEmail || idEmail,
+      handle: acctHandle || idHandle, email: idEmail || acctEmail,
       firstName, lastName, personaName,
       persona: { ...acctPersona, ...idPersona }, custom: idCustom, hasPassword: acctHasPw,
     };
@@ -272,6 +274,7 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
     const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture), liệt kê MỖI field điền được (input/textarea/select) — KHÔNG button/link/heading.
 
 CONTEXT:
+- Bạn ĐÓNG VAI: ${firstName || 'một người dùng'} — 1 NGƯỜI DÙNG ĐỘC LẬP (KHÔNG phải chủ/team sản phẩm), đã dùng & thấy hữu ích.
 - Sản phẩm: ${r.pname || ''}${r.psite ? ` (${String(r.psite).replace(/\/$/, '')})` : ''}
 - Link đích cần đặt (backlink): ${target || '(dùng website sản phẩm)'}
 ${r.oneliner ? `- Sản phẩm làm gì: ${r.oneliner}\n` : ''}- Cách đặt: ${r.mech || ''}
@@ -283,7 +286,7 @@ Với MỖI field điền được, xuất 1 object JSON: {"key","label","type",
 - key = name/id THẬT của field trong cấu trúc; label = nhãn người đọc; type = loại (text/email/textarea/select…).
 - value (CÔNG KHAI = ENGLISH ONLY) — QUAN TRỌNG: field DANH TÍNH cá nhân (name/họ/tên/first/last/full name/username/user id/login/handle/alias/nickname/email/password/phone/dob/gender/địa chỉ/company) LUÔN để value="" — hệ thống tự điền từ account THẬT, BẠN TUYỆT ĐỐI KHÔNG bịa tên/username/email/số. Nếu KHÔNG chắc 1 field có phải danh tính cá nhân không → CŨNG để value="". Chỉ sinh value cho:
   * website/url/link → để "" (hệ thống điền link đích).
-  * message/comment/body/textarea → pitch tự nhiên giới thiệu ${r.pname || 'sản phẩm'}, gài link 1 lần nếu field mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
+  * message/comment/body/textarea → viết GIỌNG NGÔI THỨ NHẤT của ${firstName || 'người dùng'} (một người dùng độc lập đã dùng & thích ${r.pname || 'sản phẩm'}) — giới thiệu tự nhiên, cụ thể vì sao hữu ích. TUYỆT ĐỐI KHÔNG giọng brand tự quảng cáo, KHÔNG liệt kê tính năng kiểu copy marketing ("X is a free tool that..."). Gài link 1 lần nếu field mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
   * subject/tiêu đề → 1 subject ngắn, cụ thể.
   * select → chọn option HỢP LÝ NHẤT từ danh sách trong cấu trúc; không chắc → confidence="low".
   * field không rõ (vd "how did you hear about us") → best guess NGẮN + confidence="low".

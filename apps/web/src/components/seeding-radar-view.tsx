@@ -99,7 +99,7 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
         {funnel.backlog.length === 0
           ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không còn board fit cao nào chưa được track. 👌</div>
           : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>fit</th><th style={th}>board</th><th style={th}>platform</th><th style={th}></th></tr></thead>
               <tbody>
                 {funnel.backlog.map((b) => (
@@ -124,7 +124,7 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
         {pb.length === 0
           ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Chưa có approach playbook nào. Lưu angle từ ext (💾 Lưu lib) để gom thư viện.</div>
           : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>angle</th><th style={th}>uses</th><th style={th}>áp dụng</th><th style={th}>avg fit</th><th style={th}>projects</th></tr></thead>
               <tbody>
                 {pb.map((p) => (
@@ -144,7 +144,7 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
       {/* ── Catalog coverage per platform/technology ── */}
       <div style={card}>
         <div style={h}>🗂 Độ phủ catalog <span style={sub}>· board/platform · %scored thấp = chưa khai thác · %signal thấp = cần auto-read</span></div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr><th style={th}>platform</th><th style={th}>engine</th><th style={th}>boards</th><th style={th}>có signal</th><th style={th}>đã scored</th></tr></thead>
           <tbody>
             {cov.map((c) => {

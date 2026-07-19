@@ -182,7 +182,7 @@ function QueryTable({ rows, loading, source }: { rows: Q[]; loading: boolean; so
   const cell: React.CSSProperties = { fontSize: 11, padding: '4px 8px', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)' };
   return (
     <div style={{ maxHeight: 360, overflowY: 'auto', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', zIndex: 1 }}>
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Query</th>

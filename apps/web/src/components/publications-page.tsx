@@ -604,7 +604,7 @@ export function PublicationsPage({ projectId, publications: initial }: { project
         <EmptyState icon="🔍" title={`No ${filterStatus} publications`} description={`Switch filter or add a new publication above.`} compact />
       ) : (
         <div className="panel" style={{ overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 32 }} />  {/* icon */}
               <col style={{ width: '35%' }} />  {/* title */}

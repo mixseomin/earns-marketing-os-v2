@@ -73,7 +73,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
         <EmptyState icon="💳" title="No budget entries" description="Track ad spend, tool subs, income..." compact />
       ) : (
         <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg-2)', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 <th style={{ padding: '6px 10px', textAlign: 'left' }}>Date</th>

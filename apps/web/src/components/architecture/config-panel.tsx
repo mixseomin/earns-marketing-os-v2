@@ -48,7 +48,7 @@ export function ConfigPanel({ initial }: { initial: SceneEvent[] }) {
       </div>
 
       <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: 'var(--bg-2)' }}>
             <tr>
               <th style={{ ...th, width: 42 }}>Emoji</th>

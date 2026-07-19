@@ -195,6 +195,19 @@ button { font-family: inherit; color: inherit; }
   cursor: pointer;
 }
 
+/* ── Table overflow (refactor chung) — no table may push the page wider on mobile ──
+   Two forms, pick per case:
+   (a) .table-scroll — WRAPPER div around a table that lives inside a styled card
+       (keeps the card's border/radius; the table scrolls inside the box).
+   (b) table.scroll-x — class ON the table itself for standalone tables (no card).
+       Mobile-only: the table becomes its own horizontal-scroll block. Desktop
+       untouched. Both are harmless when the content already fits. */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.table-scroll > table { min-width: max-content; }
+@media (max-width: 768px) {
+  table.scroll-x { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+}
+
 /* ── Mobile breakpoint (≤768px) ── */
 @media (max-width: 768px) {
   .app,

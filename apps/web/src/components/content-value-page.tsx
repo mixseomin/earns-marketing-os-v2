@@ -140,7 +140,7 @@ export function ContentCadenceTable({ data, projects, onOpen }: { data: ContentC
         })}
       </div>
       {rows.length === 0 ? <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 16, color: 'var(--fg-2)', fontSize: 13 }}>Không có nơi khớp bộ lọc.</div> : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th style={{ ...th, width: 22 }} /><th style={th}>Nơi (habitat)</th><th style={th}>Platform</th>{!proj && <th style={th}>Project</th>}
             <th style={{ ...th, textAlign: 'right' }}>Bài</th><th style={{ ...th, textAlign: 'right' }}>Lâu chưa đăng</th>
@@ -244,7 +244,7 @@ export function ContentValuePage({ data, projects, embedded = false, onOpen }: {
       {cards.length === 0 ? (
         <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 20, color: 'var(--fg-2)', fontSize: 13 }}>Chưa có bài khớp bộ lọc.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
               <th style={th}>Bài</th><th style={th}>Pillar</th>{!proj && <th style={th}>Project</th>}

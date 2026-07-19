@@ -41,7 +41,7 @@ export function PillarCoveragePanel({ onOpen }: { onOpen?: OpenFn }) {
       <p style={{ color: 'var(--fg-2)', fontSize: 13, margin: '0 0 10px' }}>
         {rows.length} project · <b style={{ color: 'var(--bad)' }}>{rows.filter((r) => r.status === 'none').length} thiếu hẳn</b>, {rows.filter((r) => r.status === 'thin').length} mỏng. Project có bài đăng mà ít pillar = ưu tiên bổ sung (pillar điều hướng voice + key-message cho AI gen).
       </p>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>
           <th style={th}>Project</th><th style={{ ...th, textAlign: 'right' }}>Pillar</th><th style={{ ...th, textAlign: 'right' }}>Đã đăng</th>
           <th style={th}>Tình trạng</th><th style={th}>Thêm</th>

@@ -111,7 +111,7 @@ function PropsTable({ props }: { props: Prop[] }) {
   return (
     <details style={{ marginTop: 6 }}>
       <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)', cursor: 'pointer', userSelect: 'none' }}>props · {props.length}</summary>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}>
         <tbody>
           {props.map((p) => (
             <tr key={p.n} style={{ borderTop: '1px solid var(--line)' }}>

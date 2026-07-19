@@ -119,7 +119,7 @@ export function IdentitiesPage({
         />
       ) : (
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-3)' }}>
                 <th style={th}>Name</th>

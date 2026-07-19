@@ -147,7 +147,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+    <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
       <thead>
         <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
           {head.map(h => (

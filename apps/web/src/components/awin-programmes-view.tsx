@@ -75,8 +75,8 @@ export function AwinProgrammesView({ programmes }: Props) {
           style={{ background: 'var(--bg-1)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11, flex: 1, minWidth: 200 }} />
       </div>
 
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <div className="table-scroll" style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 680 }}>
           <colgroup>
             <col style={{ width: 40 }} />
             <col />

@@ -141,7 +141,7 @@ export function PlanCockpit({ plan, goals, steps, risks, aiContext, activity, ac
               </div>
 
               <div style={styles.stepTableWrap}>
-                <table style={styles.stepTable}>
+                <table className="scroll-x" style={styles.stepTable}>
                   <thead>
                     <tr>
                       <th style={{ ...styles.th, width: 28 }}>STT</th>

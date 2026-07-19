@@ -284,7 +284,7 @@ function VaultAccounts() {
             <button key="c" style={S.btn}>Health check all</button>,
           ]} />
           <div style={{ padding: 0 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
+            <table className="scroll-x" style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
               <thead>
                 <tr>{v.table.head.map((h, i) => <th key={i} style={{ padding: "8px 12px", background: "var(--bg-2)", color: "var(--fg-3)", fontWeight: 500, textTransform: "uppercase", fontSize: 9.5, letterSpacing: "0.06em", borderBottom: "1px solid var(--line)", textAlign: i === 0 ? "left" : "right" }}>{h}</th>)}</tr>
               </thead>

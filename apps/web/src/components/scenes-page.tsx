@@ -167,7 +167,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
           {q ? <>Không tìm thấy <b>@{q}</b></> : 'Không có ai khớp bộ lọc'} trong scene của project này.
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--fg-2)', borderBottom: '1px solid var(--bg-3)' }}>
               <th style={{ padding: '6px 8px' }}>Handle</th>

@@ -46,6 +46,7 @@ export async function CitiesOfferStats() {
       {offers.length === 0 ? (
         <p style={{ fontSize: 12, color: 'var(--fg-3)', margin: 0 }}>No offer activity yet — CTAs live on walk pages (Ghost on US cities, SamBoat on water cities).</p>
       ) : (
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--line)' }}>
@@ -78,6 +79,7 @@ export async function CitiesOfferStats() {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

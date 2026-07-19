@@ -231,7 +231,7 @@ function CompactList({ items }: { items: Project[] }) {
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, textAlign: 'right', background: 'var(--bg-2)' };
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
             <th style={{ ...head, textAlign: 'left' }}>Project</th>

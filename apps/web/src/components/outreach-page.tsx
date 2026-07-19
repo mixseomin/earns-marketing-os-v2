@@ -489,7 +489,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   function Table({ rows, dueCol }: { rows: OutreachProspect[]; dueCol?: boolean }) {
     if (rows.length === 0) return <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 24, color: 'var(--fg-2)', fontSize: 13 }}>Nothing here.</div>;
     return (
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr style={{ color: 'var(--fg-2)', borderBottom: '1px solid var(--bg-3)' }}>
             <Th>Agent</Th><Th>Base</Th><Th>Channel</Th><Th>Site</Th><Th>Status</Th>

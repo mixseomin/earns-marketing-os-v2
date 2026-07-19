@@ -1325,7 +1325,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <span style={{ color: 'var(--fg-4)' }}>{items.length}</span>
         </div>
         <div style={{ border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+          <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 48 }} />          {/* Brief ID */}
               <col />                                {/* Account + Habitat + Platform */}
@@ -1713,7 +1713,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
               Bài đã đăng/seed = lịch sử, giữ nguyên (xem trong brief / Board). ~{g.seededApprox} seed/30d. Nháp CHƯA đăng thì vô dụng với account này → dùng 🗑 Dọn nháp.
             </div>
             <div style={{ padding: '8px 10px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+              <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
                 <colgroup>
                   <col style={{ width: 48 }} />
                   <col />

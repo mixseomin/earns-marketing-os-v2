@@ -474,7 +474,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
         <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)',
                       borderRadius: 6, overflow: 'hidden', opacity: pending ? 0.6 : 1,
                       transition: 'opacity .15s' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12,
+          <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12,
                           tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 22 }} />
@@ -1239,7 +1239,7 @@ function CostHoverCell({ cardId, currentCost }: {
           )}
           {data && data.versions.length > 0 && (
             <>
-              <table style={{ width: '100%', borderCollapse: 'collapse',
+              <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse',
                               fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
                 <thead>
                   <tr style={{ color: 'var(--fg-4)', textAlign: 'left' }}>

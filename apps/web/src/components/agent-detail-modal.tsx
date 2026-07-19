@@ -276,7 +276,7 @@ export function AgentDetailModal({
               ) : timeline.length === 0 ? (
                 <div style={{ padding: '12px 16px', color: 'var(--fg-4)', fontSize: 12 }}>No runs yet.</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                   <tbody>
                     {timeline.map((t, i) => (
                       <tr key={t.id} style={{ borderBottom: i < timeline.length - 1 ? '1px solid var(--line)' : 'none' }}>

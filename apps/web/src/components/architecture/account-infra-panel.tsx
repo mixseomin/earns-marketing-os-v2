@@ -53,7 +53,7 @@ export function AccountInfraPanel({ onOpen }: { onOpen?: OpenFn }) {
         </div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr><th style={th}>Account</th><th style={th}>Platform</th><th style={th}>Status</th><th style={th}>Browser profile</th><th style={th}>Proxy</th></tr></thead>
         <tbody>
           {data.accounts.map((a) => (

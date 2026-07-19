@@ -94,7 +94,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
         <button onClick={addMember} disabled={busy} style={btn('var(--neon-cyan)')}>tạo</button>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr><th style={{ ...th, width: 22 }} /><th style={th}>Tên</th><th style={th}>Email</th><th style={th}>Role</th><th style={th}>Chuyên</th><th style={th}>Ext</th></tr></thead>
         <tbody>
           {grouped.map((g) => {
@@ -175,7 +175,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', margin: '0 0 5px' }}>Account được giao ({dd.accounts.length})</div>
                             {dd.projects.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Thêm project trước để giao account.</div> : (
-                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead><tr><th style={th}>Project</th><th style={th}>Account đã giao</th><th style={{ ...th, textAlign: 'right' }}>Pool</th><th style={{ ...th, width: 64 }} /></tr></thead>
                                 <tbody>
                                   {dd.projects.map((p) => {
@@ -200,7 +200,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
                                             <div style={{ border: '1px solid var(--neon-cyan)', borderRadius: 8, padding: 10, background: 'var(--bg-0)', margin: '2px 0 6px' }}>
                                               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Account của {p.projectName} → tick để giao cho {g.name} (tick acc của người khác = chuyển chủ):</div>
                                               {mgr!.accts.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 8 }}>Project này chưa có account nào.</div> : (
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+                                                <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
                                                   <thead><tr><th style={{ ...th, width: 26 }} /><th style={th}>Account</th><th style={th}>Platform</th><th style={th}>Chủ hiện tại</th></tr></thead>
                                                   <tbody>
                                                     {mgr!.accts.map((a) => {

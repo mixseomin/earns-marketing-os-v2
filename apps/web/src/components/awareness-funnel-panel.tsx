@@ -132,7 +132,7 @@ export async function AwarenessFunnelPanel() {
         <summary style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', marginBottom: 6 }}>
           Top countries (7d) — {s.top_countries_7d.length}
         </summary>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
+        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
           <thead>
             <tr>
               <th style={{ ...cellHead, textAlign: 'left' }}>Country</th>

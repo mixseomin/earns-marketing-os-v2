@@ -115,7 +115,16 @@ function distillDom(html: string): string {
 async function getDomGrounding(db: NonNullable<ReturnType<typeof getDb>>, sourceUrl: string): Promise<{ block: string; prov: { host: string; source: string; sampleId: number | null; sampleAt: string | null } | null }> {
   const host = (sourceUrl || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase();
   if (!host || !host.includes('.')) return { block: '', prov: null };
-  const doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname = ${host} ORDER BY captured_at DESC`)) as unknown as Array<{ id: number; platform_key: string | null; page_kind: string | null; title: string | null; html: string | null; captured_at: string }>;
+  let doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname = ${host} ORDER BY captured_at DESC`)) as unknown as Array<{ id: number; platform_key: string | null; page_kind: string | null; title: string | null; html: string | null; captured_at: string }>;
+  // Shared-form fallback: the same submission form is often captured under a different subdomain
+  // than a sibling task's source_url (e.g. seeded with the apex/www page but the real form lives at
+  // archive.<domain>). Ground from that sample so re-learning a form's DOM once reaches every sibling
+  // task on the same registrable domain. Exact host always wins; this only fires when it has no sample.
+  // ponytail: registrable-domain heuristic (LIKE %.<host>), not a full PSL — a bare multi-tenant apex
+  // with no exact sample could match a tenant subdomain. Low risk (source_urls are dedicated domains).
+  if (!doms.length) {
+    doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname LIKE ${'%.' + host} ORDER BY captured_at DESC`)) as unknown as typeof doms;
+  }
   const platformKey = doms.find((d) => d.platform_key)?.platform_key ?? null;
   let sels: Array<{ page_kind: string; field_name: string; spec: string }> = [];
   if (platformKey) sels = (await db.execute(sql`SELECT page_kind, field_name, spec::text AS spec FROM selector_overrides WHERE scope_key = ${platformKey} ORDER BY page_kind, field_name LIMIT 60`)) as unknown as typeof sels;

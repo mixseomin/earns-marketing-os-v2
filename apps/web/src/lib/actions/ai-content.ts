@@ -76,7 +76,63 @@ export async function generateAiContent(input: {
 
 // Reformat one backlink task's instructions into the canonical template (drawer "✨ Chuẩn hoá").
 // Reshape + translate + fill missing meta lines; never invent steps/conditions not in the source.
-export async function normalizeInstructions(taskId: number): Promise<{ ok: boolean; instructions?: string; error?: string }> {
+// Distill raw captured HTML into a compact actionable skeleton — EVERY form field, button, label,
+// select-option, heading and actionable link on the page, not just pre-trained selectors. Regex
+// best-effort (no HTML parser dep); a missed element just means slightly less grounding. This is the
+// answer to "selectors miss undefined things": the whole page's real controls are surfaced here.
+function distillDom(html: string): string {
+  if (!html) return '';
+  const h = html.slice(0, 500_000);
+  const clean = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
+  const attr = (tag: string, name: string) => { const m = tag.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, 'i')); return m?.[1]?.trim() ?? ''; };
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (line: string) => { const k = line.toLowerCase(); if (line && !seen.has(k)) { seen.add(k); out.push(line); } };
+  for (const m of h.matchAll(/<(input|textarea)\b([^>]*)>/gi)) {
+    const tag = m[2] ?? '';
+    const type = attr(tag, 'type') || ((m[1] ?? '').toLowerCase() === 'textarea' ? 'textarea' : 'text');
+    if (/^hidden$/i.test(type)) continue;
+    const bits = [attr(tag, 'name'), attr(tag, 'id'), attr(tag, 'placeholder'), attr(tag, 'aria-label')].filter(Boolean);
+    if (bits.length) push(`input[${type}] ${bits.join(' · ')}`.slice(0, 130));
+  }
+  for (const m of h.matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/gi)) {
+    const name = attr(m[1] ?? '', 'name') || attr(m[1] ?? '', 'id');
+    const opts = [...(m[2] ?? '').matchAll(/<option[^>]*>([\s\S]*?)<\/option>/gi)].map((o) => clean(o[1] ?? '')).filter(Boolean).slice(0, 8);
+    if (name || opts.length) push(`select ${name}${opts.length ? ` [${opts.join(', ')}]` : ''}`.slice(0, 170));
+  }
+  for (const m of h.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)) { const t = clean(m[1] ?? ''); if (t) push(`button "${t}"`); }
+  for (const m of h.matchAll(/<input\b[^>]*\btype\s*=\s*["']?(?:submit|button)["']?[^>]*>/gi)) { const v = attr(m[0] ?? '', 'value'); if (v) push(`button "${v}"`); }
+  for (const m of h.matchAll(/<label\b[^>]*>([\s\S]*?)<\/label>/gi)) { const t = clean(m[1] ?? ''); if (t) push(`label "${t}"`); }
+  const ACT = /\b(submit|add|new|create|post|publish|launch|suggest|contribute|sign\s?up|sign\s?in|log\s?in|register|write|start|apply|compose|ask|share|upload)\b/i;
+  for (const m of h.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) { const t = clean(m[2] ?? ''); if (t && ACT.test(t)) push(`link "${t}" → ${attr(m[1] ?? '', 'href').slice(0, 60)}`); }
+  for (const m of h.matchAll(/<h[12]\b[^>]*>([\s\S]*?)<\/h[12]>/gi)) { const t = clean(m[1] ?? ''); if (t) push(`heading "${t}"`); }
+  return out.slice(0, 90).join('\n');
+}
+
+// Assemble a grounding block for a source URL from real captured data (dom_samples distilled skeleton
+// + verified selector_overrides). Returns the block + provenance (for the task's `grounded` marker).
+async function getDomGrounding(db: NonNullable<ReturnType<typeof getDb>>, sourceUrl: string): Promise<{ block: string; prov: { host: string; source: string; sampleId: number | null; sampleAt: string | null } | null }> {
+  const host = (sourceUrl || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase();
+  if (!host || !host.includes('.')) return { block: '', prov: null };
+  const doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname = ${host} ORDER BY captured_at DESC`)) as unknown as Array<{ id: number; platform_key: string | null; page_kind: string | null; title: string | null; html: string | null; captured_at: string }>;
+  const platformKey = doms.find((d) => d.platform_key)?.platform_key ?? null;
+  let sels: Array<{ page_kind: string; field_name: string; spec: string }> = [];
+  if (platformKey) sels = (await db.execute(sql`SELECT page_kind, field_name, spec::text AS spec FROM selector_overrides WHERE scope_key = ${platformKey} ORDER BY page_kind, field_name LIMIT 60`)) as unknown as typeof sels;
+  if (!doms.length && !sels.length) return { block: '', prov: null };
+  const parts = ['\n--- CẤU TRÚC TRANG THẬT (đã capture — viết bước ĐÚNG với site, KHÔNG bịa nút/field) ---', `Host: ${host}`];
+  const byKind = new Map<string, typeof doms[number]>();
+  for (const d of doms) { const k = d.page_kind || 'page'; if (!byKind.has(k)) byKind.set(k, d); }
+  for (const [kind, d] of byKind) {
+    const skel = distillDom(d.html || '');
+    if (skel) parts.push(`\n[trang: ${kind}]${d.title ? ` "${String(d.title).slice(0, 70)}"` : ''}\n${skel}`);
+  }
+  if (sels.length) parts.push('\n[selector đã verify]\n' + sels.map((s) => { let css = s.spec; try { const j = JSON.parse(s.spec) as { css?: string; notes?: string }; css = (j.css || s.spec) + (j.notes ? ` — ${j.notes}` : ''); } catch { /* raw */ } return `- ${s.field_name}: ${css}`; }).join('\n'));
+  parts.push('--- HẾT ---\nƯu tiên nhắc đúng tên nút/field/label CÓ trong cấu trúc trên khi viết "Các bước".');
+  const source = byKind.size && sels.length ? 'dom+selectors' : byKind.size ? 'dom' : 'selectors';
+  return { block: parts.join('\n'), prov: { host, source, sampleId: doms[0]?.id ?? null, sampleAt: doms[0]?.captured_at ?? null } };
+}
+
+export async function normalizeInstructions(taskId: number): Promise<{ ok: boolean; instructions?: string; error?: string; grounded?: boolean }> {
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
   try {
@@ -85,6 +141,7 @@ export async function normalizeInstructions(taskId: number): Promise<{ ok: boole
     if (!r) return { ok: false, error: 'task not found' };
     const cur = (r.instructions || '').trim();
     if (!cur && !r.mech) return { ok: false, error: 'không có nội dung để chuẩn hoá' };
+    const g = await getDomGrounding(db, r.src || '');
     const prompt = `${BACKLINK_INSTRUCTION_TEMPLATE}
 
 --- TASK ---
@@ -93,14 +150,17 @@ Source URL: ${r.src || ''}
 Mechanism: ${r.mech || ''}
 Hướng dẫn hiện tại:
 ${cur || '(trống — dựng từ mechanism + source)'}
-
+${g.block}
 --- YÊU CẦU ---
-Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
+Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ "CẤU TRÚC TRANG THẬT" ở trên — dùng đúng tên nút/field/label có thật đó cho các bước, KHÔNG bịa element không có trong cấu trúc.' : ''} Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
     const text = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
     if (!text) return { ok: false, error: 'AI không trả nội dung' };
-    await db.execute(sql`UPDATE human_tasks SET instructions = ${text}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
-    return { ok: true, instructions: text };
+    const groundStamp = g.prov
+      ? sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
+      : sql``;
+    await db.execute(sql`UPDATE human_tasks SET instructions = ${text}${groundStamp}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true, instructions: text, grounded: !!g.prov };
   } catch (e) {
     return { ok: false, error: `chuẩn hoá lỗi: ${(e as Error).message || String(e)}` };
   }

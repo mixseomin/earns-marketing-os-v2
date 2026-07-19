@@ -996,6 +996,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
         </div>
 
+        {/* meta: source · captured-DOM check link · DOM-grounded badge (small, for the person doing + checking here) */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, fontSize: 11 }}>
+          {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
+          {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
+          {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
+        </div>
+
         {/* Blocker banner — active when a staffer flagged this task stuck. Actionable: shows the
             reason + clear. Surfaces so admin/AI can fix outdated instructions and self-heal. */}
         {task.blocker && (() => { const paused = !!task.blocker.paused; const c = paused ? '#ffb03c' : 'var(--bad,#ef4444)'; return (

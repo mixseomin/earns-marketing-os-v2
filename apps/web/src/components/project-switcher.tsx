@@ -5,12 +5,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 import { projectSearchHaystack, projectTags } from '@/lib/project-tags';
+import { resolveSiteSlug } from '@/lib/backlink-sites';
 
-// Known sub-pages under /p/[id]/
-const PROJECT_TABS = new Set([
+// Sub-pages under /p/[id]/. UNIVERSAL tabs exist for every project → carry across a switch as-is.
+// CONDITIONAL tabs only exist for some projects → carry ONLY when the TARGET project has that tool,
+// otherwise fall back to its home (e.g. backlinks lives only on backlink-tracked sites).
+const UNIVERSAL_TABS = new Set([
   'board', 'inbox', 'squads', 'tribes', 'resources',
   'publications', 'flow', 'studio', 'settings', 'roadmap',
 ]);
+const CONDITIONAL_TABS: Record<string, (projectId: string) => boolean> = {
+  backlinks: (id) => resolveSiteSlug(id) != null,
+};
 
 type HealthBucket = 'healthy' | 'watch' | 'critical';
 const healthBucket = (h: number): HealthBucket => (h > 80 ? 'healthy' : h > 65 ? 'watch' : 'critical');
@@ -45,8 +51,15 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
   }, [open]);
 
   const pathParts = pathname.split('/');
-  const currentTab = pathParts[3] && PROJECT_TABS.has(pathParts[3]) ? pathParts[3] : null;
-  const navigateTo = (projectId: string) => currentTab ? `/p/${projectId}/${currentTab}` : `/p/${projectId}`;
+  const seg = pathParts[3] || '';
+  const currentTab = UNIVERSAL_TABS.has(seg) || seg in CONDITIONAL_TABS ? seg : null;
+  // Preserve the current sub-page across a project switch — but only if the target project has it.
+  const navigateTo = (projectId: string) => {
+    if (!currentTab) return `/p/${projectId}`;
+    const has = CONDITIONAL_TABS[currentTab];
+    if (has && !has(projectId)) return `/p/${projectId}`;   // target lacks this tool → its home
+    return `/p/${projectId}/${currentTab}`;
+  };
 
   const p = currentProjectId ? PROJECTS.find((x) => x.id === currentProjectId) : undefined;
   const mode = p ? MODES[p.mode] : undefined;

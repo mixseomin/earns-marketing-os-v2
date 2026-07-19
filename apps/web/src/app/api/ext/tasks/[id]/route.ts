@@ -30,6 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            ht.prep_payload->'blocker'->>'reason' AS blocker,
            ht.prep_payload->'checklist' AS checklist,
            ht.prep_payload->'grounded' AS grounded,
+           ht.prep_payload->'fill_fields' AS fill_fields,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.id = ${taskId} LIMIT 1`);
@@ -70,6 +71,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       checklist: (t.checklist && typeof t.checklist === 'object') ? (t.checklist as Record<string, unknown>) : {},
       // grounded (prep_payload) = instructions đã Chuẩn hoá dựa trên DOM thật — ext hiện badge để biết bản mới nhất.
       grounded: (t.grounded && typeof t.grounded === 'object' && !Array.isArray(t.grounded)) ? (t.grounded as Record<string, unknown>) : null,
+      // fill_fields (prep_payload) = ✨ Chuẩn bị điền: identity THẬT từ account + content AI. Ext auto-fill (P2).
+      // Password source='account-password' value='' → ext điền từ creds an toàn, KHÔNG có plaintext ở đây.
+      fillFields: (t.fill_fields && typeof t.fill_fields === 'object' && Array.isArray((t.fill_fields as { items?: unknown }).items))
+        ? (t.fill_fields as { at?: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> }) : null,
       content: (ac as unknown as Array<Record<string, unknown>>).map((x) => ({
         id: Number(x.id), kind: String(x.kind || 'nội dung (AI)'), result: String(x.result || ''),
       })),

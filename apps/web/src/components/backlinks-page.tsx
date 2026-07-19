@@ -795,7 +795,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [fillBusy, setFillBusy] = useState(false);
   const [fillErr, setFillErr] = useState<string | null>(null);
   const [fillFields, setFillFields] = useState<Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> | null>(task.fillFields?.items ?? null);
-  const doPrepFill = async () => { setFillBusy(true); setFillErr(null); const r = await prepFillFields(task.id); setFillBusy(false); if (r.ok && r.fields) { setFillFields(r.fields); onChange(); } else setFillErr(r.error || 'lỗi'); };
+  const [fillNeedAcct, setFillNeedAcct] = useState(false);
+  // Truyền task.accountId (account drawer ĐANG hiện) → prep-fill dùng đúng account đó, khỏi lệch → khỏi bịa.
+  const doPrepFill = async () => { setFillBusy(true); setFillErr(null); setFillNeedAcct(false); const r = await prepFillFields(task.id, task.accountId ?? null); setFillBusy(false); if (r.ok && r.fields) { setFillFields(r.fields); onChange(); } else { setFillErr(r.error || 'lỗi'); if (r.needAccount) setFillNeedAcct(true); } };
   // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
   const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
@@ -1060,25 +1062,34 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                     style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto' }}>{copiedKey === '__fillall' ? '✓ copy' : '📋 Copy tất cả'}</button>
                 )}
               </div>
-              {fillErr && <div style={{ fontSize: 12, color: 'var(--bad,#ef4444)' }}>⚠ {fillErr}</div>}
+              {fillErr && (
+                <div style={{ fontSize: 12, color: 'var(--bad,#ef4444)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span>⚠ {fillErr}</span>
+                  {fillNeedAcct && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>→ Cuộn xuống mục <b>Account</b> bên dưới để gán/tạo account thật (tên + email thật) rồi bấm lại ✨ Chuẩn bị điền.</span>}
+                </div>
+              )}
               {fillFields && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', background: 'var(--bg-2)' }}>
                   {fillFields.map((f, i) => {
                     const cc = f.confidence === 'high' ? 'var(--ok,#22c55e)' : f.confidence === 'low' ? 'var(--bad,#ef4444)' : 'var(--fg-4)';
-                    const missing = /MISSING/i.test(f.source);
+                    const need = /^NEED:/i.test(f.source);            // account thiếu field này → cần bổ sung
+                    const isPwd = f.source === 'account-password';     // ext điền từ creds an toàn, không lưu plaintext
+                    const needWhat = need ? f.source.slice(5) : '';
                     return (
                       <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12 }}>
                         <div style={{ minWidth: 118, flexShrink: 0 }}>
                           <div style={{ fontWeight: 700, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{f.label || f.key}</div>
                           <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>{f.type}{f.source ? ' · ' + f.source : ''}</div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0, color: missing ? 'var(--bad,#ef4444)' : 'var(--fg-1)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{missing ? '⚠ thiếu email account — gán account rồi chuẩn bị lại' : (f.value || '—')}</div>
+                        <div style={{ flex: 1, minWidth: 0, color: need ? 'var(--bad,#ef4444)' : 'var(--fg-1)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {need ? `⚠ account thiếu "${needWhat}" — bổ sung trong account rồi chuẩn bị lại` : isPwd ? '🔒 ext điền từ creds (không lộ ở đây)' : (f.value || '—')}
+                        </div>
                         <span title={`độ chắc: ${f.confidence}`} style={{ flexShrink: 0, width: 8, height: 8, borderRadius: 8, background: cc, marginTop: 4 }} />
-                        {f.value && !missing && <button type="button" onClick={() => { navigator.clipboard?.writeText(f.value); setCopiedKey('fill' + i); setTimeout(() => setCopiedKey(null), 1000); }} style={{ ...btn, padding: '1px 6px', flexShrink: 0 }}>{copiedKey === 'fill' + i ? '✓' : '📋'}</button>}
+                        {f.value && !need && !isPwd && <button type="button" onClick={() => { navigator.clipboard?.writeText(f.value); setCopiedKey('fill' + i); setTimeout(() => setCopiedKey(null), 1000); }} style={{ ...btn, padding: '1px 6px', flexShrink: 0 }}>{copiedKey === 'fill' + i ? '✓' : '📋'}</button>}
                       </div>
                     );
                   })}
-                  <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>Ext sẽ auto-fill các field này (P2). 🟢 chắc · 🔴 cần review/thiếu dữ liệu.</div>
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>Identity lấy từ account THẬT (🟢). Ext auto-fill (P2). 🔴 = account còn thiếu field, bổ sung rồi chuẩn bị lại.</div>
                 </div>
               )}
             </div>

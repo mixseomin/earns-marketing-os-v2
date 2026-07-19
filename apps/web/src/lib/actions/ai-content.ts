@@ -12,6 +12,7 @@ import { getOpenAI, aiEnabled, DEFAULT_MODEL } from '@/lib/ai/openai';
 import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-template';
 import { getCurrentUser } from '@/lib/auth';
 import { buildContentPrompt, type AiContentCtx } from '@/lib/ai/backlink-content-prompt';
+import { classifyFillField, resolveIdentityFill, blockNeedsIdentity, type PrepIdentity } from '@/lib/ai/prep-fill';
 
 export type { AiContentCtx };
 
@@ -195,10 +196,17 @@ export async function normalizeProjectInstructions(projectId: string): Promise<{
 
 // ── ✨ Chuẩn bị điền (prepFillFields) — sibling của Chuẩn hoá. Chuẩn hoá = viết lại HƯỚNG DẪN (prose cho
 //    người); prep-fill = sinh GIÁ TRỊ TỪNG FIELD (form thật) để ext auto-fill. Dùng CHUNG getDomGrounding
-//    (đã distill mọi field) + account/persona + brand. KHÔNG bịa danh tính/email — email chỉ dùng account thật.
+//    (đã distill mọi field) + account/persona + brand.
+//    NGUYÊN TẮC (2026-07-19): identity KHÔNG BAO GIỜ bịa. Field identity (name/username/email/password/
+//    phone/dob…) điền DETERMINISTIC từ account THẬT đã resolve; account thiếu field → NEED:<x> (value rỗng),
+//    KHÔNG có account mà form cần identity → BLOCKER (không gọi LLM bịa "John Doe"). LLM chỉ lo CONTENT
+//    (message/subject/unknown). Password KHÔNG nhét vào jsonb (secret-safe) → source 'account-password', ext
+//    điền từ creds an toàn. Xem feedback_secret_fields_security + user demand 2026-07-19.
 export interface FillField { key: string; label: string; type: string; value: string; source: string; confidence: 'high' | 'med' | 'low' }
 
-export async function prepFillFields(taskId: number): Promise<{ ok: boolean; fields?: FillField[]; error?: string; grounded?: boolean }> {
+// resolvedAccountId = account drawer ĐANG hiển thị (override account_id → pickBest platformKey). Truyền vào để
+// prep-fill dùng ĐÚNG account đó, không lệch. Bỏ trống → fallback ht.account_id.
+export async function prepFillFields(taskId: number, resolvedAccountId?: number | null): Promise<{ ok: boolean; fields?: FillField[]; error?: string; grounded?: boolean; needAccount?: boolean }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
@@ -215,59 +223,71 @@ export async function prepFillFields(taskId: number): Promise<{ ok: boolean; fie
     // DOM grounding = danh sách field THẬT (distillDom). Chưa lưu DOM → chưa prep được (cần 💾 Lưu DOM ở ext).
     const g = await getDomGrounding(db, String(r.src || ''));
     if (!g.block) return { ok: false, error: 'chưa có DOM đã lưu cho site này — bấm 💾 Lưu DOM trong ext trước' };
-    // Account submit (email THẬT + persona name) — chỉ khi task đã gán account_id. Chưa gán → brand + email trống.
-    let acctEmail = '', personaName = '', handle = '';
-    const accountId = r.account_id != null ? Number(r.account_id) : null;
+    // ── Account THẬT: drawer resolved > ht.account_id. Load FULL identity (persona + custom_fields + có pwd?).
+    const accountId = (resolvedAccountId != null ? Number(resolvedAccountId) : null) ?? (r.account_id != null ? Number(r.account_id) : null);
+    let acct: PrepIdentity | null = null;
     if (accountId != null) {
-      const ar = await db.execute(sql`SELECT handle, email, persona FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
+      const ar = await db.execute(sql`SELECT handle, email, persona, custom_fields, (password_enc IS NOT NULL) AS has_pw FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
       const a = (ar as unknown as Array<Record<string, unknown>>)[0];
       if (a) {
-        handle = String(a.handle || '');
-        acctEmail = String(a.email || '');
         const pj = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {};
-        personaName = String(pj.name || pj.displayName || pj.fullName || '');
+        acct = {
+          handle: String(a.handle || ''), email: String(a.email || ''),
+          personaName: String(pj.name || pj.displayName || pj.fullName || pj.full_name || ''),
+          persona: pj, custom: (a.custom_fields && typeof a.custom_fields === 'object') ? a.custom_fields as Record<string, unknown> : {},
+          hasPassword: a.has_pw === true,
+        };
       }
     }
+    // KHÔNG có account mà form cần identity (name/email/username/password…) → BLOCKER, tuyệt đối KHÔNG bịa.
+    if (!acct && blockNeedsIdentity(g.block)) {
+      return { ok: false, needAccount: true, error: 'Task chưa gán account/persona thật (form cần tên + email thật để điền). Gán account ở drawer rồi bấm lại — hoặc dùng RegKit tạo account nếu task cần đăng ký.' };
+    }
     const target = String(r.target || r.psite || '').replace(/\/$/, '');
-    const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture) + thông tin dưới, sinh giá trị cho TỪNG field điền được (input/textarea/select) — KHÔNG cho button/link/heading.
+    // LLM CHỈ lo CONTENT (message/subject/unknown) + phát hiện key field thật. Identity điền deterministic ở dưới.
+    const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture), liệt kê MỖI field điền được (input/textarea/select) — KHÔNG button/link/heading.
 
 CONTEXT:
 - Sản phẩm: ${r.pname || ''}${r.psite ? ` (${String(r.psite).replace(/\/$/, '')})` : ''}
 - Link đích cần đặt (backlink): ${target || '(dùng website sản phẩm)'}
-${r.oneliner ? `- Sản phẩm làm gì: ${r.oneliner}\n` : ''}- Người submit (persona): tên "${personaName}", email "${acctEmail || '(chưa gán account → chưa có email)'}", handle "${handle}"
-- Cách đặt: ${r.mech || ''}
+${r.oneliner ? `- Sản phẩm làm gì: ${r.oneliner}\n` : ''}- Cách đặt: ${r.mech || ''}
 - Ghi chú task (tiếng Việt, tuân theo): ${String(r.instructions || '').slice(0, 1200)}
 - Pitch/bài chuẩn bị sẵn (nếu có): ${String(r.draft || '(chưa có)').slice(0, 1500)}
 ${g.block}
 --- YÊU CẦU ---
-Với MỖI field điền được trong CẤU TRÚC TRANG THẬT, xuất 1 object JSON: {"key","label","type","value","source","confidence"}.
+Với MỖI field điền được, xuất 1 object JSON: {"key","label","type","value","source","confidence"}.
 - key = name/id THẬT của field trong cấu trúc; label = nhãn người đọc; type = loại (text/email/textarea/select…).
-- value (CÔNG KHAI = ENGLISH ONLY):
-  * name/tên → dùng tên persona nếu có; nếu trống → 1 first name đời thường, KHÔNG bịa danh tính đầy đủ giả.
-  * email → CHỈ dùng email account thật ở trên; nếu chưa có → value="" , source="MISSING-email", confidence="low".
-  * website/url/link → link đích (${target || String(r.psite || '')}).
-  * message/comment/body/textarea → pitch tự nhiên giới thiệu ${r.pname || 'sản phẩm'}, gài link 1 lần nếu field này mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
+- value (CÔNG KHAI = ENGLISH ONLY) — QUAN TRỌNG: field DANH TÍNH cá nhân (name/họ/tên/first/last/full name/username/user id/login/handle/alias/nickname/email/password/phone/dob/gender/địa chỉ/company) LUÔN để value="" — hệ thống tự điền từ account THẬT, BẠN TUYỆT ĐỐI KHÔNG bịa tên/username/email/số. Nếu KHÔNG chắc 1 field có phải danh tính cá nhân không → CŨNG để value="". Chỉ sinh value cho:
+  * website/url/link → để "" (hệ thống điền link đích).
+  * message/comment/body/textarea → pitch tự nhiên giới thiệu ${r.pname || 'sản phẩm'}, gài link 1 lần nếu field mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
   * subject/tiêu đề → 1 subject ngắn, cụ thể.
   * select → chọn option HỢP LÝ NHẤT từ danh sách trong cấu trúc; không chắc → confidence="low".
-  * field không rõ (vd "how did you hear about us") → best guess + confidence="low".
-- confidence: high (chắc), med, low (đoán/thiếu dữ liệu).
+  * field không rõ (vd "how did you hear about us") → best guess NGẮN + confidence="low".
+- confidence: high | med | low.
 CHỈ trả JSON array, KHÔNG markdown fence, KHÔNG giải thích.`;
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
     const raw = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
     let parsed: unknown;
     try { parsed = JSON.parse(raw); } catch { const m = raw.match(/\[[\s\S]*\]/); if (!m) return { ok: false, error: 'AI trả không phải JSON' }; try { parsed = JSON.parse(m[0]); } catch { return { ok: false, error: 'JSON lỗi cú pháp' }; } }
     if (!Array.isArray(parsed)) return { ok: false, error: 'AI không trả mảng field' };
-    const items: FillField[] = parsed.slice(0, 40).map((x) => {
+    const items: FillField[] = parsed.slice(0, 40).map((x): FillField => {
       const o = (x && typeof x === 'object') ? x as Record<string, unknown> : {};
+      const key = String(o.key || o.name || '').slice(0, 120);
+      const label = String(o.label || o.key || '').slice(0, 160);
+      const type = String(o.type || 'text').slice(0, 24);
       const conf = String(o.confidence || 'med').toLowerCase();
-      return {
-        key: String(o.key || o.name || '').slice(0, 120),
-        label: String(o.label || o.key || '').slice(0, 160),
-        type: String(o.type || 'text').slice(0, 24),
+      const base: FillField = {
+        key, label, type,
         value: String(o.value == null ? '' : o.value).slice(0, 4000),
         source: String(o.source || '').slice(0, 60),
         confidence: ((conf === 'high' || conf === 'low') ? conf : 'med') as FillField['confidence'],
       };
+      // POST-PROCESS (bảo chứng KHÔNG bịa): identity → deterministic từ account; website → link đích; content giữ LLM.
+      const kind = classifyFillField(key, label, type);
+      const idf = resolveIdentityFill(kind, key, label, acct);
+      if (idf) return { ...base, value: idf.value, source: idf.source, confidence: idf.confidence };
+      if (kind === 'website') return { ...base, value: target || String(r.psite || '').replace(/\/$/, ''), source: 'target-url', confidence: 'high' };
+      return { ...base, source: base.source || 'ai-content' };
     }).filter((f) => f.key || f.label);
     if (!items.length) return { ok: false, error: 'không sinh được field nào' };
     const payload = { at: new Date().toISOString(), accountId, items };

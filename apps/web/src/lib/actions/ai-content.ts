@@ -112,18 +112,25 @@ function distillDom(html: string): string {
 
 // Assemble a grounding block for a source URL from real captured data (dom_samples distilled skeleton
 // + verified selector_overrides). Returns the block + provenance (for the task's `grounded` marker).
-async function getDomGrounding(db: NonNullable<ReturnType<typeof getDb>>, sourceUrl: string): Promise<{ block: string; prov: { host: string; source: string; sampleId: number | null; sampleAt: string | null } | null }> {
+async function getDomGrounding(db: NonNullable<ReturnType<typeof getDb>>, sourceUrl: string, sampleId?: number | null): Promise<{ block: string; prov: { host: string; source: string; sampleId: number | null; sampleAt: string | null } | null }> {
   const host = (sourceUrl || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase();
   if (!host || !host.includes('.')) return { block: '', prov: null };
-  let doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname = ${host} ORDER BY captured_at DESC`)) as unknown as Array<{ id: number; platform_key: string | null; page_kind: string | null; title: string | null; html: string | null; captured_at: string }>;
-  // Shared-form fallback: the same submission form is often captured under a different subdomain
-  // than a sibling task's source_url (e.g. seeded with the apex/www page but the real form lives at
-  // archive.<domain>). Ground from that sample so re-learning a form's DOM once reaches every sibling
-  // task on the same registrable domain. Exact host always wins; this only fires when it has no sample.
-  // ponytail: registrable-domain heuristic (LIKE %.<host>), not a full PSL — a bare multi-tenant apex
-  // with no exact sample could match a tenant subdomain. Low risk (source_urls are dedicated domains).
-  if (!doms.length) {
-    doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname LIKE ${'%.' + host} ORDER BY captured_at DESC`)) as unknown as typeof doms;
+  type Dom = { id: number; platform_key: string | null; page_kind: string | null; title: string | null; html: string | null; captured_at: string };
+  let doms: Dom[];
+  if (sampleId != null) {
+    // Ground on a SPECIFIC sample the user picked (drawer DOM picker) instead of the latest.
+    doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE id = ${sampleId} LIMIT 1`)) as unknown as Dom[];
+  } else {
+    doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname = ${host} ORDER BY captured_at DESC`)) as unknown as Dom[];
+    // Shared-form fallback: the same submission form is often captured under a different subdomain
+    // than a sibling task's source_url (e.g. seeded with the apex/www page but the real form lives at
+    // archive.<domain>). Ground from that sample so re-learning a form's DOM once reaches every sibling
+    // task on the same registrable domain. Exact host always wins; this only fires when it has no sample.
+    // ponytail: registrable-domain heuristic (LIKE %.<host>), not a full PSL — a bare multi-tenant apex
+    // with no exact sample could match a tenant subdomain. Low risk (source_urls are dedicated domains).
+    if (!doms.length) {
+      doms = (await db.execute(sql`SELECT id, platform_key, page_kind, title, html, captured_at FROM dom_samples WHERE hostname LIKE ${'%.' + host} ORDER BY captured_at DESC`)) as unknown as Dom[];
+    }
   }
   const platformKey = doms.find((d) => d.platform_key)?.platform_key ?? null;
   let sels: Array<{ page_kind: string; field_name: string; spec: string }> = [];
@@ -142,7 +149,7 @@ async function getDomGrounding(db: NonNullable<ReturnType<typeof getDb>>, source
   return { block: parts.join('\n'), prov: { host, source, sampleId: doms[0]?.id ?? null, sampleAt: doms[0]?.captured_at ?? null } };
 }
 
-export async function normalizeInstructions(taskId: number): Promise<{ ok: boolean; instructions?: string; error?: string; grounded?: boolean }> {
+export async function normalizeInstructions(taskId: number, opts?: { sampleId?: number | null }): Promise<{ ok: boolean; instructions?: string; error?: string; grounded?: boolean }> {
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
   try {
@@ -151,7 +158,7 @@ export async function normalizeInstructions(taskId: number): Promise<{ ok: boole
     if (!r) return { ok: false, error: 'task not found' };
     const cur = (r.instructions || '').trim();
     if (!cur && !r.mech) return { ok: false, error: 'không có nội dung để chuẩn hoá' };
-    const g = await getDomGrounding(db, r.src || '');
+    const g = await getDomGrounding(db, r.src || '', opts?.sampleId);
     const prompt = `${BACKLINK_INSTRUCTION_TEMPLATE}
 
 --- TASK ---
@@ -176,6 +183,21 @@ Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ 
   } catch (e) {
     return { ok: false, error: `chuẩn hoá lỗi: ${(e as Error).message || String(e)}` };
   }
+}
+
+// List the captured DOM samples that could ground this task (same host + same registrable domain),
+// newest first, with a distilled preview + which one the task is currently grounded on. Powers the
+// drawer DOM picker: when already grounded on the latest DOM, ask which DOM to re-normalize against.
+export async function listTaskDomSamples(taskId: number): Promise<{ ok: boolean; groundedSampleId?: number | null; samples?: Array<{ id: number; capturedAt: string; title: string; url: string; pageKind: string; fieldCount: number; preview: string }>; error?: string }> {
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const rows = await db.execute(sql`SELECT prep_payload->>'source_url' src, prep_payload->'grounded'->>'sampleId' gid FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+  const r = (rows as unknown as Array<{ src: string | null; gid: string | null }>)[0];
+  if (!r) return { ok: false, error: 'task not found' };
+  const host = (r.src || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase();
+  if (!host || !host.includes('.')) return { ok: true, groundedSampleId: null, samples: [] };
+  const ds = (await db.execute(sql`SELECT id, title, url, page_kind, captured_at, html FROM dom_samples WHERE hostname = ${host} OR hostname LIKE ${'%.' + host} ORDER BY (hostname = ${host}) DESC, captured_at DESC LIMIT 20`)) as unknown as Array<{ id: number; title: string | null; url: string | null; page_kind: string | null; captured_at: string; html: string | null }>;
+  const samples = ds.map((d) => { const skel = distillDom(d.html || ''); return { id: Number(d.id), capturedAt: String(d.captured_at), title: String(d.title || ''), url: String(d.url || ''), pageKind: String(d.page_kind || ''), fieldCount: skel ? skel.split('\n').filter(Boolean).length : 0, preview: skel.slice(0, 700) }; });
+  return { ok: true, groundedSampleId: r.gid ? Number(r.gid) : null, samples };
 }
 
 // Bulk-reshape a project's genuinely non-conforming backlink instructions to the template. Targets

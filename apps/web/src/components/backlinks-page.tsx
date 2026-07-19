@@ -16,7 +16,7 @@ import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
-import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
+import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, listTaskDomSamples, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
 import { listIdentities } from '@/lib/actions/identities';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
@@ -828,9 +828,21 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [blkBusy, setBlkBusy] = useState(false);
   const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason, blkShots[0]); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); setBlkShots([]); onChange(); };
   const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
-  // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template.
+  // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template, grounded on real DOM.
   const [normBusy, setNormBusy] = useState(false);
-  const doNormalize = async () => { setNormBusy(true); await normalizeInstructions(task.id); setNormBusy(false); onChange(); };
+  type DomSample = NonNullable<Awaited<ReturnType<typeof listTaskDomSamples>>['samples']>[number];
+  const [domPicker, setDomPicker] = useState<{ groundedSampleId: number | null; samples: DomSample[] } | null>(null);
+  const runNormalize = async (sampleId?: number) => { setDomPicker(null); setNormBusy(true); await normalizeInstructions(task.id, sampleId != null ? { sampleId } : undefined); setNormBusy(false); onChange(); };
+  const doNormalize = async () => {
+    // Not grounded yet, or a NEWER DOM was captured since last grounding → run immediately.
+    // Already grounded on the latest DOM → don't blindly re-run: ask which DOM (with a preview).
+    const newerDom = task.domSampleId != null && Number(task.grounded?.sampleId) !== Number(task.domSampleId);
+    if (task.grounded && !newerDom) {
+      const r = await listTaskDomSamples(task.id);
+      if (r.ok && (r.samples?.length ?? 0) > 0) { setDomPicker({ groundedSampleId: r.groundedSampleId ?? null, samples: r.samples ?? [] }); return; }
+    }
+    await runNormalize();
+  };
   // ✨ Chuẩn bị điền — sinh giá trị điền cho từng field form thật (từ DOM đã lưu). Ext auto-fill (P2).
   const [fillBusy, setFillBusy] = useState(false);
   const [fillErr, setFillErr] = useState<string | null>(null);
@@ -1050,7 +1062,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [stackBusy, setStackBusy] = useState(false);
   const doStack = async () => { setStackBusy(true); const r = await suggestProjectStack(project.id); setStackBusy(false); if (r.ok) onChange(); };
   return (
-    <Drawer onClose={onClose} width={720} backgrounded={backgrounded}>
+    <>
+    <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || backgrounded}>
       <div>
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
@@ -1553,5 +1566,40 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         )}
       </div>
     </Drawer>
+    {domPicker && (
+      <Drawer onClose={() => setDomPicker(null)} width={620} zIndex={320}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>🔎 Chọn DOM để chuẩn hoá</h2>
+          <button type="button" onClick={() => setDomPicker(null)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 12 }}>Task này đã chuẩn hoá theo DOM mới nhất rồi — không tự chạy lại. Chọn bản DOM muốn viết lại hướng dẫn theo (xem preview cấu trúc field), hoặc đóng.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {domPicker.samples.map((s) => {
+            const used = s.id === domPicker.groundedSampleId;
+            return (
+              <div key={s.id} style={{ border: '1px solid ' + (used ? 'var(--accent)' : 'var(--line)'), borderRadius: 8, background: 'var(--bg-1)', padding: '9px 11px' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600 }}>{s.title || hostOf(s.url) || ('DOM #' + s.id)}</span>
+                  {used && <Tag color="var(--accent)">đang dùng</Tag>}
+                  {s.pageKind && <Tag>{s.pageKind}</Tag>}
+                  <Tag>{s.fieldCount} field</Tag>
+                  <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{fmtWhen(s.capturedAt)}</span>
+                </div>
+                {s.url && <div style={{ fontSize: 10.5, color: 'var(--fg-3)', wordBreak: 'break-all', marginTop: 2 }}>{s.url}</div>}
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}>Preview cấu trúc field</summary>
+                  <pre style={{ fontSize: 10.5, whiteSpace: 'pre-wrap', color: 'var(--fg-2)', background: 'var(--bg-2)', padding: 8, borderRadius: 6, marginTop: 4, maxHeight: 200, overflow: 'auto' }}>{s.preview || '(trống)'}</pre>
+                </details>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <a href={`/api/dom-sample/${s.id}`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', padding: '2px 9px', fontSize: 11 }}>🔎 Xem DOM đầy đủ</a>
+                  <button type="button" onClick={() => runNormalize(s.id)} disabled={normBusy} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, padding: '2px 9px', fontSize: 11 }}>{normBusy ? '…' : '✨ Chuẩn hoá với DOM này'}</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Drawer>
+    )}
+    </>
   );
 }

@@ -146,8 +146,8 @@ export async function normalizeInstructions(taskId: number): Promise<{ ok: boole
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
   try {
-    const rows = await db.execute(sql`SELECT instructions, prep_payload->>'source_url' src, prep_payload->>'mechanism' mech, title FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
-    const r = (rows as unknown as Array<{ instructions: string | null; src: string | null; mech: string | null; title: string | null }>)[0];
+    const rows = await db.execute(sql`SELECT ht.instructions, ht.prep_payload->>'source_url' src, ht.prep_payload->>'mechanism' mech, ht.title, p.one_liner, p.website FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id WHERE ht.id = ${taskId} AND ht.platform_key = 'backlink' LIMIT 1`);
+    const r = (rows as unknown as Array<{ instructions: string | null; src: string | null; mech: string | null; title: string | null; one_liner: string | null; website: string | null }>)[0];
     if (!r) return { ok: false, error: 'task not found' };
     const cur = (r.instructions || '').trim();
     if (!cur && !r.mech) return { ok: false, error: 'không có nội dung để chuẩn hoá' };
@@ -158,11 +158,13 @@ export async function normalizeInstructions(taskId: number): Promise<{ ok: boole
 Title: ${r.title || ''}
 Source URL: ${r.src || ''}
 Mechanism: ${r.mech || ''}
+Sản phẩm (mô tả ĐÚNG theo đây, KHÔNG bịa): ${r.one_liner || '(chưa có one-liner — mô tả trung tính, không suy diễn tính năng)'}
+Website (trang chủ THẬT): ${r.website || ''}
 Hướng dẫn hiện tại:
 ${cur || '(trống — dựng từ mechanism + source)'}
 ${g.block}
 --- YÊU CẦU ---
-Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ "CẤU TRÚC TRANG THẬT" ở trên — dùng đúng tên nút/field/label có thật đó cho các bước, KHÔNG bịa element không có trong cấu trúc.' : ''} Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
+Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ "CẤU TRÚC TRANG THẬT" ở trên — dùng đúng tên nút/field/label có thật đó cho các bước, KHÔNG bịa element không có trong cấu trúc.' : ''} Mô tả sản phẩm CHỈ dựa trên one-liner ở trên — KHÔNG bịa tính năng/danh mục (vd đừng gọi một calculator là "immigration tracker" nếu one-liner không nói vậy); nếu hướng dẫn hiện tại mô tả sai sản phẩm thì SỬA LẠI cho khớp one-liner. Mọi link CHỈ dùng URL THẬT: trang chủ (Website ở trên) hoặc URL có trong "CẤU TRÚC TRANG THẬT" — TUYỆT ĐỐI KHÔNG bịa sub-path (vd /visa-bulletin) không có thật. Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
     const text = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
     if (!text) return { ok: false, error: 'AI không trả nội dung' };

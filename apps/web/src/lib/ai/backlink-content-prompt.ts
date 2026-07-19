@@ -54,6 +54,8 @@ export function buildContentPrompt(ctx: AiContentCtx, kind: string, extra: strin
     `- Match the platform's norms and the specific piece requested (a title is short; a comment is conversational; a bio is tight; an answer is helpful and specific).`,
     `- Human voice: no em dashes (use "-"), no "in today's fast-paced world", no "delve", vary sentence length, sound like a real practitioner.`,
     site ? `- If (and only if) this piece should carry the link, reference ${ctx.projectName} and include ${site} naturally, once. Do not spam the URL.` : '',
+    `- Describe the product ONLY from the ONE-LINER/BIO above - never invent a category or feature it doesn't claim.`,
+    site ? `- Links: use ONLY a real URL - the homepage ${site} - never fabricate a sub-path (e.g. /visa-bulletin) you cannot verify exists.` : '',
     `- Do not mention that this is for a backlink or SEO.`,
     `Return ONLY the content, no preamble, no explanation.`,
   ].filter((l) => l !== '').join('\n');

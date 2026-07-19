@@ -47,9 +47,18 @@ function mapRow(r: Row): BacklinkSource {
 }
 
 // {product}/{domain} are the only placeholders the catalog carries (topic stays illustrative).
-function fillTemplate(tpl: string | null, product: string, domain: string): string {
+// A backlink source is a GENERIC template; every project-specific component is a {param} filled here.
+// {product}=name · {domain}=host · {pitch}=real one-liner (describe the product, don't invent) ·
+// {link}=a flexible REAL url (homepage — never a fabricated sub-path). DOM-learned form fields are the
+// other param set (fill_fields), shared at source/host level. Keep them all as params so one template
+// serves every project.
+function fillTemplate(tpl: string | null, vars: { product: string; domain: string; pitch: string; link: string }): string {
   if (!tpl) return '';
-  return tpl.replace(/\{product\}/g, product).replace(/\{domain\}/g, domain);
+  return tpl
+    .replace(/\{product\}/g, vars.product)
+    .replace(/\{domain\}/g, vars.domain)
+    .replace(/\{pitch\}/g, vars.pitch)
+    .replace(/\{link\}/g, vars.link);
 }
 function domainOf(website: string, fallback: string): string {
   const d = (website || '').replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim();
@@ -90,11 +99,13 @@ export async function seedBacklinksFromCatalog(
   if (!projectId || !/^[a-z0-9_-]+$/i.test(projectId)) return { ok: false, error: 'projectId không hợp lệ' };
   if (!sourceIds?.length) return { ok: false, error: 'chưa chọn nguồn' };
   try {
-    const pr = (await db.execute(sql`SELECT name, website FROM projects WHERE id = ${projectId} LIMIT 1`)) as unknown as Row[];
+    const pr = (await db.execute(sql`SELECT name, website, one_liner FROM projects WHERE id = ${projectId} LIMIT 1`)) as unknown as Row[];
     const proj = pr[0];
     if (!proj) return { ok: false, error: 'project không tồn tại' };
     const product = String(proj.name || projectId);
     const domain = domainOf(String(proj.website || ''), projectId);
+    const pitch = String(proj.one_liner || '').trim() || `${product} (https://${domain})`;   // real product desc, never a hardcoded pitch
+    const link = `https://${domain}`;                                                          // flexible real URL (homepage) — never a fabricated sub-path
 
     const idList = sql.join(sourceIds.map((n) => sql`${Number(n)}`), sql`, `);
     const srcs = (await db.execute(sql`SELECT * FROM backlink_sources WHERE id IN (${idList})`)) as unknown as Row[];
@@ -108,7 +119,7 @@ export async function seedBacklinksFromCatalog(
     for (const s of srcs) {
       const url = String(s.canonical_url);
       if (have.has(url)) { skipped++; continue; }
-      const instr = fillTemplate(s.instruction_template as string, product, domain);
+      const instr = fillTemplate(s.instruction_template as string, { product, domain, pitch, link });
       const title = `${s.name} — ${product}`;
       const pp = {
         source_url: url,

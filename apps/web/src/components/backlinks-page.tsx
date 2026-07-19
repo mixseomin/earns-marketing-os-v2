@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
+import { listBacklinkSources, seedBacklinksFromCatalog, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -354,6 +355,25 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const openTrash = async () => { setTrashOpen(true); setTrash(await listDroppedSources()); };
   const restoreTrash = async (id: string) => { await restoreDroppedSource(id); setTrash(await listDroppedSources()); start(() => router.refresh()); };
 
+  // Seed-from-catalog — instantiate tasks for this project from the shared source catalog (backlink_sources).
+  const [seedOpen, setSeedOpen] = useState(false);
+  const [seedSrcs, setSeedSrcs] = useState<BacklinkSource[] | null>(null);
+  const [seedAud, setSeedAud] = useState('');
+  const [seedSel, setSeedSel] = useState<Set<number>>(new Set());
+  const [seedBusy, setSeedBusy] = useState(false);
+  const [seedMsg, setSeedMsg] = useState('');
+  const reloadSeed = async () => setSeedSrcs(await listBacklinkSources({ projectId, status: 'active' }));
+  const openSeed = async () => { setSeedOpen(true); setSeedSrcs(null); setSeedSel(new Set()); setSeedMsg(''); setSeedAud(''); await reloadSeed(); };
+  const toggleSeed = (id: number) => setSeedSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const doSeed = async () => {
+    if (!seedSel.size) return;
+    setSeedBusy(true);
+    const r = await seedBacklinksFromCatalog(projectId, [...seedSel]);
+    setSeedBusy(false);
+    if (r.ok) { setSeedMsg(`✓ Tạo ${r.created} task${r.skipped ? ` · bỏ qua ${r.skipped} (đã có)` : ''}`); setSeedSel(new Set()); start(() => router.refresh()); await reloadSeed(); }
+    else setSeedMsg(`✗ ${r.error}`);
+  };
+
   // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
   useEffect(() => {
     const u = new URL(window.location.href);
@@ -475,6 +495,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             title="Kiểm tra sức khoẻ mọi link đã đặt (còn sống? dofollow?) — kết quả hiện badge ngay trong list">
             {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
           </button>
+          <button type="button" onClick={openSeed} style={{ ...btn, color: 'var(--accent)' }} title="Seed nguồn backlink từ catalog dùng chung (mọi dự án) — lọc theo audience, tạo task hàng loạt">➕ Seed catalog</button>
           <button type="button" onClick={openTrash} style={{ ...btn }} title="Nguồn đã drop — khôi phục bất cứ lúc nào">🗑 Đã drop</button>
           <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
         </div>
@@ -502,6 +523,49 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
               </div>}
         </Drawer>
       )}
+
+      {seedOpen && (() => {
+        const auds = seedSrcs ? [...new Set(seedSrcs.flatMap((s) => s.audienceTags))].sort() : [];
+        const shown = (seedSrcs || []).filter((s) => !seedAud || s.audienceTags.includes(seedAud));
+        const newCount = seedSel.size;
+        return (
+          <Drawer onClose={() => setSeedOpen(false)} width={660}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>➕ Seed từ catalog nguồn</h2>
+              <button type="button" onClick={() => setSeedOpen(false)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10 }}>
+              Catalog nguồn dùng chung cho mọi dự án. Chọn nguồn → tạo task cho <b>{siteLabel}</b>. Nguồn đã có tự bỏ qua. <code>{'{product}'}</code>/<code>{'{domain}'}</code> điền sẵn; ví dụ chủ đề trong hướng dẫn nhớ chỉnh cho đúng sản phẩm.
+            </div>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Audience</span>
+              {auds.map((a) => <button key={a} type="button" onClick={() => setSeedAud(seedAud === a ? '' : a)} style={chip('var(--accent)', seedAud === a)}>{a}</button>)}
+            </div>
+            {seedSrcs === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang tải catalog…</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '52vh', overflowY: 'auto' }}>
+                  {shown.map((s) => (
+                    <label key={s.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', border: '1px solid var(--line)', borderRadius: 8, background: s.usedByHere ? 'var(--bg-2)' : 'var(--bg-1)', padding: '8px 10px', cursor: s.usedByHere ? 'default' : 'pointer', opacity: s.usedByHere ? 0.55 : 1 }}>
+                      <input type="checkbox" disabled={s.usedByHere} checked={s.usedByHere || seedSel.has(s.id)} onChange={() => toggleSeed(s.id)} style={{ marginTop: 2 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{s.name} {s.usedByHere && <span style={{ fontSize: 10, color: 'var(--fg-4)', fontWeight: 400 }}>· đã có</span>}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 1, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <span>{s.category}</span>
+                          {s.dofollow && <span style={{ color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
+                          {s.da && <span>DA {s.da}</span>}
+                          <span style={{ color: 'var(--fg-4)' }}>{s.audienceTags.join(' · ')}</span>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                  {shown.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có nguồn nào khớp bộ lọc.</div>}
+                </div>}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+              <button type="button" onClick={doSeed} disabled={seedBusy || newCount === 0} style={{ ...btn, background: 'var(--accent)', color: '#fff', borderColor: 'transparent', fontWeight: 700, opacity: newCount === 0 ? 0.5 : 1 }}>{seedBusy ? '⏳ đang tạo…' : `➕ Seed ${newCount} nguồn`}</button>
+              {seedMsg && <span style={{ fontSize: 12, color: seedMsg.startsWith('✓') ? 'var(--good,#39c07a)' : 'var(--bad,#ef4444)' }}>{seedMsg}</span>}
+            </div>
+          </Drawer>
+        );
+      })()}
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>

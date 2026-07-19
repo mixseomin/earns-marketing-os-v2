@@ -211,12 +211,17 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
                       .slice(0, 3)
                       .map((t) => `#${t}`)
                       .join(' ');
+                    const href = navigateTo(proj.id);
                     return (
-                      <div key={proj.id} onClick={() => { router.push(navigateTo(proj.id)); setOpen(false); }} style={{
+                      // Real <a href> so Ctrl/Cmd/middle-click opens a new tab natively; plain click stays SPA.
+                      <a key={proj.id} href={href} onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;   // let the browser open a new tab/window
+                        e.preventDefault(); router.push(href); setOpen(false);
+                      }} style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
                         background: isActive ? 'var(--accent-soft)' : 'transparent',
                         borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-                        cursor: 'pointer',
+                        cursor: 'pointer', textDecoration: 'none', color: 'inherit',
                         opacity: proj.isDemo && !isActive ? 0.55 : 1,
                       }}>
                         <span style={{ fontSize: 15 }}>{proj.emoji}</span>
@@ -231,7 +236,7 @@ export function ProjectSwitcher({ currentProjectId, projects: PROJECTS }: { curr
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--bad)', color: '#fff', flexShrink: 0 }}>{proj.alerts}</span>
                         )}
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: healthDot(proj.health), flexShrink: 0, boxShadow: '0 0 4px currentColor' }} />
-                      </div>
+                      </a>
                     );
                   })}
                 </div>

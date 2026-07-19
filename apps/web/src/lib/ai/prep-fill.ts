@@ -42,6 +42,20 @@ export function randomPersonaName(seed: number): { first: string; last: string }
   return { first: RAND_FIRST[s % RAND_FIRST.length] || 'Alex', last: RAND_LAST[(s * 7 + 3) % RAND_LAST.length] || 'Reed' };
 }
 
+// Role danh tính cho 1 task backlink (deterministic — KHÔNG để LLM quyết). Base = recommendedAccountRole của
+// platform (directory→brand, community/forum/blog→personal founder). Task ĐỀ XUẤT/giới thiệu (newsletter/
+// review/testimonial/recommend/round-up/submit tool) → SEEDING độc lập (đóng vai người dùng ngẫu nhiên, không
+// lộ chủ tool) — thắng base. account_id gán tay per-task vẫn override tất (xử lý ở caller). Xem
+// recommendedAccountRole + user decision 2026-07-19.
+export type IdentityRole = 'personal' | 'brand' | 'seeding';
+export function identityRoleForTask(text: string, recommendedRole: string | null | undefined): IdentityRole {
+  const s = (text || '').toLowerCase();
+  // Tín hiệu ĐỀ XUẤT ĐỘC LẬP (đóng vai người dùng ngẫu nhiên) → seeding. KHÔNG gồm "submit product/tool to
+  // directory" (đó là listing = brand). Chỉ recommend/newsletter/review-roundup/testimonial/endorse.
+  if (/\b(recommend|recommendation|newsletter|testimonial|endorse|shout[\s-]?out|round[\s-]?up|featured?\s+tool)\b/.test(s)) return 'seeding';
+  return (recommendedRole === 'brand' || recommendedRole === 'seeding') ? recommendedRole : 'personal';
+}
+
 // Tra persona + custom_fields cho identity-misc (phone/dob/city…) — normalize bỏ ký tự ko chữ-số, khớp key.
 function lookupIdentityMisc(key: string, label: string, acct: PrepIdentity): string {
   const nz = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, '');

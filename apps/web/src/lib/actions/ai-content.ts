@@ -12,7 +12,7 @@ import { getOpenAI, aiEnabled, DEFAULT_MODEL } from '@/lib/ai/openai';
 import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-template';
 import { getCurrentUser } from '@/lib/auth';
 import { buildContentPrompt, type AiContentCtx } from '@/lib/ai/backlink-content-prompt';
-import { classifyFillField, resolveIdentityFill, randomPersonaName, type PrepIdentity } from '@/lib/ai/prep-fill';
+import { classifyFillField, resolveIdentityFill, randomPersonaName, identityRoleForTask, type PrepIdentity } from '@/lib/ai/prep-fill';
 
 export type { AiContentCtx };
 
@@ -204,9 +204,12 @@ export async function normalizeProjectInstructions(projectId: string): Promise<{
 //    điền từ creds an toàn. Xem feedback_secret_fields_security + user demand 2026-07-19.
 export interface FillField { key: string; label: string; type: string; value: string; source: string; confidence: 'high' | 'med' | 'low' }
 
-// resolvedAccountId = account drawer ĐANG hiển thị (override account_id → pickBest platformKey). Truyền vào để
-// prep-fill dùng ĐÚNG account đó, không lệch. Bỏ trống → fallback ht.account_id.
-export async function prepFillFields(taskId: number, resolvedAccountId?: number | null): Promise<{ ok: boolean; fields?: FillField[]; error?: string; grounded?: boolean; needAccount?: boolean }> {
+export interface PrepFillOpts { resolvedAccountId?: number | null; recommendedRole?: string | null; pinnedIdentityId?: number | null }
+export interface PrepFillIdentityMeta { name: string; email: string; kind: string; role: string; source: 'auto' | 'pinned' }
+// opts.resolvedAccountId = account drawer đang hiển thị · recommendedRole = role platform (personal|brand) từ
+// drawer · pinnedIdentityId = identity user CHỌN TAY (override auto role). Danh tính resolve DETERMINISTIC theo
+// role (không để LLM quyết) — xem identityRoleForTask.
+export async function prepFillFields(taskId: number, opts?: PrepFillOpts): Promise<{ ok: boolean; fields?: FillField[]; error?: string; grounded?: boolean; needAccount?: boolean; identity?: PrepFillIdentityMeta }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
@@ -223,58 +226,79 @@ export async function prepFillFields(taskId: number, resolvedAccountId?: number 
     // DOM grounding = danh sách field THẬT (distillDom). Chưa lưu DOM → chưa prep được (cần 💾 Lưu DOM ở ext).
     const g = await getDomGrounding(db, String(r.src || ''));
     if (!g.block) return { ok: false, error: 'chưa có DOM đã lưu cho site này — bấm 💾 Lưu DOM trong ext trước' };
-    // ── Identity resolve: ACCOUNT (handle/email/pwd) + persona THẬT từ bảng `identities` của project
-    //    (name_first/name_last/city/gender…). Account = task-bound (drawer resolved > ht.account_id) > project
-    //    primary. Tên = identity thật → nếu không có → tên NGẪU NHIÊN hợp lệ (task free-person; KHÔNG John Doe,
-    //    KHÔNG blocker). platform_accounts KHÔNG có cột custom_fields — custom_fields nằm ở `identities`.
-    const accountId = (resolvedAccountId != null ? Number(resolvedAccountId) : null) ?? (r.account_id != null ? Number(r.account_id) : null);
+    // ── Identity resolve DETERMINISTIC theo ROLE (không để LLM quyết): pinned (user chọn tay) > role của platform
+    //    (directory→brand, community→personal founder) > task đề xuất/newsletter → seeding độc lập. ACCOUNT cho
+    //    handle/email/pwd; IDENTITY (bảng `identities`) cho persona name/email/city… (platform_accounts KHÔNG có
+    //    cột custom_fields — nó ở `identities`). Xem identityRoleForTask + user decision 2026-07-19.
+    const proj = r.project_id ? String(r.project_id) : '';
+    const pinnedId = opts?.pinnedIdentityId != null ? Number(opts.pinnedIdentityId) : null;
+    let idPersona: Record<string, unknown> = {}, idCustom: Record<string, unknown> = {}, idName = '', idEmail = '', idHandle = '', idKind = '';
+    const takeIdent = (i: Record<string, unknown>) => {
+      idPersona = (i.persona && typeof i.persona === 'object') ? i.persona as Record<string, unknown> : {};
+      idCustom = (i.custom_fields && typeof i.custom_fields === 'object') ? i.custom_fields as Record<string, unknown> : {};
+      idName = String(i.display_name || i.name || ''); idEmail = String(i.email || ''); idHandle = String(i.handle_base || ''); idKind = String(i.kind || '');
+    };
+    let role = identityRoleForTask(`${r.mech || ''} ${r.instructions || ''} ${r.title || ''}`, opts?.recommendedRole);
+    let idSource: 'auto' | 'pinned' = 'auto';
+    // Pinned identity (user chọn tay) — override auto; role bám theo kind của identity đó.
+    if (pinnedId != null && proj) {
+      const ir = await db.execute(sql`SELECT i.name, i.display_name, i.email, i.persona, i.custom_fields, i.handle_base, i.kind
+        FROM identities i LEFT JOIN identity_projects ip ON ip.identity_id = i.id AND ip.project_id = ${proj}
+        WHERE i.id = ${pinnedId} AND (ip.project_id = ${proj} OR i.project_id = ${proj}) LIMIT 1`);
+      const i = (ir as unknown as Array<Record<string, unknown>>)[0];
+      if (i) { takeIdent(i); idSource = 'pinned'; if (idKind === 'brand' || idKind === 'personal' || idKind === 'seeding') role = idKind; }
+    }
+    // ACCOUNT (handle/email/pwd): task-bound (resolvedAccountId > ht.account_id) > project account KHỚP role.
+    const accountId = (opts?.resolvedAccountId != null ? Number(opts.resolvedAccountId) : null) ?? (r.account_id != null ? Number(r.account_id) : null);
     let acctHandle = '', acctEmail = '', acctHasPw = false, acctPersona: Record<string, unknown> = {}, gotAccount = false;
     const takeAcct = (a: Record<string, unknown>) => { acctHandle = String(a.handle || ''); acctEmail = String(a.email || ''); acctHasPw = a.has_pw === true; acctPersona = (a.persona && typeof a.persona === 'object') ? a.persona as Record<string, unknown> : {}; gotAccount = true; };
     if (accountId != null) {
       const ar = await db.execute(sql`SELECT handle, email, persona, (password_enc IS NOT NULL) AS has_pw FROM platform_accounts WHERE id = ${accountId} LIMIT 1`);
       const a = (ar as unknown as Array<Record<string, unknown>>)[0]; if (a) takeAcct(a);
     }
-    if (!gotAccount && r.project_id) {
+    if (!gotAccount && proj) {
       const pr = await db.execute(sql`SELECT pa.handle, pa.email, pa.persona, (pa.password_enc IS NOT NULL) AS has_pw
         FROM project_accounts pj JOIN platform_accounts pa ON pa.id = pj.account_id
-        WHERE pj.project_id = ${String(r.project_id)}
-        ORDER BY (pj.role = 'primary') DESC, (COALESCE(pa.email, '') <> '') DESC, pa.id LIMIT 1`);
+        WHERE pj.project_id = ${proj}
+        ORDER BY (pa.account_type = ${role}) DESC, (pj.role = 'primary') DESC, (COALESCE(pa.email, '') <> '') DESC, pa.id LIMIT 1`);
       const a = (pr as unknown as Array<Record<string, unknown>>)[0]; if (a) takeAcct(a);
     }
-    // Persona THẬT từ identities của project — nguồn tên/giới tính/thành phố. Ưu tiên identity có name_first.
-    let idPersona: Record<string, unknown> = {}, idCustom: Record<string, unknown> = {}, idName = '', idEmail = '', idHandle = '';
-    if (r.project_id) {
-      const ir = await db.execute(sql`SELECT i.name, i.display_name, i.email, i.persona, i.custom_fields, i.handle_base
-        FROM identities i LEFT JOIN identity_projects ip ON ip.identity_id = i.id AND ip.project_id = ${String(r.project_id)}
-        WHERE ip.project_id = ${String(r.project_id)} OR i.project_id = ${String(r.project_id)}
-        ORDER BY (COALESCE(i.persona->>'name_first', '') <> '') DESC, (i.kind = 'seeding') DESC, i.updated_at DESC LIMIT 1`);
+    // IDENTITY khớp role (nếu chưa pinned) — persona name/email/city…; ưu tiên kind=role, có name_first.
+    if (!idName && proj) {
+      const ir = await db.execute(sql`SELECT i.name, i.display_name, i.email, i.persona, i.custom_fields, i.handle_base, i.kind
+        FROM identities i LEFT JOIN identity_projects ip ON ip.identity_id = i.id AND ip.project_id = ${proj}
+        WHERE ip.project_id = ${proj} OR i.project_id = ${proj}
+        ORDER BY (i.kind = ${role}) DESC, (COALESCE(i.persona->>'name_first', '') <> '') DESC, i.updated_at DESC LIMIT 1`);
       const i = (ir as unknown as Array<Record<string, unknown>>)[0];
-      if (i) {
-        idPersona = (i.persona && typeof i.persona === 'object') ? i.persona as Record<string, unknown> : {};
-        idCustom = (i.custom_fields && typeof i.custom_fields === 'object') ? i.custom_fields as Record<string, unknown> : {};
-        idName = String(i.display_name || i.name || ''); idEmail = String(i.email || ''); idHandle = String(i.handle_base || '');
-      }
+      if (i) takeIdent(i);
     }
-    // Ghép tên: identities.persona.name_first/last → split display/name → tên ngẫu nhiên hợp lệ (seed=taskId ổn
-    // định). Field "name" ưu tiên TÊN NGƯỜI (Jordan Smith) hơn display_name ("Veteran Enthusiast").
+    // Ghép tên: identities.persona.name_first/last → split display/name → tên ngẫu nhiên hợp lệ (seed=taskId ổn định).
     let firstName = String(idPersona.name_first ?? idPersona.first_name ?? acctPersona.name_first ?? '').trim();
     let lastName = String(idPersona.name_last ?? idPersona.last_name ?? acctPersona.name_last ?? '').trim();
     if (!firstName && !lastName && idName) { const p = idName.split(/\s+/); firstName = p[0] || ''; lastName = p.slice(1).join(' '); }
     if (!firstName && !lastName) { const rn = randomPersonaName(taskId); firstName = rn.first; lastName = rn.last; }
     const personaName = `${firstName} ${lastName}`.trim() || idName;
-    // Email ĐỒNG BỘ với tên: dùng email RIÊNG của persona (identity) trước → tên + email = CÙNG 1 người độc lập.
-    // KHÔNG dùng email brand (vd hello@militarycalc.com) cho task đóng vai người dùng độc lập → lộ chủ tool.
+    // Email ĐỒNG BỘ với tên: email riêng của persona (identity) trước → tên+email = CÙNG 1 danh tính (seeding=độc
+    // lập gmail, brand=email brand, personal=email founder). KHÔNG lẫn email brand vào persona độc lập.
     const acct: PrepIdentity = {
       handle: acctHandle || idHandle, email: idEmail || acctEmail,
       firstName, lastName, personaName,
       persona: { ...acctPersona, ...idPersona }, custom: idCustom, hasPassword: acctHasPw,
     };
+    const identityMeta: PrepFillIdentityMeta = { name: personaName, email: acct.email, kind: idKind || role, role, source: idSource };
     const target = String(r.target || r.psite || '').replace(/\/$/, '');
+    // Giọng message theo ROLE: brand=chính chủ mô tả sản phẩm · personal=founder/indie maker ngôi thứ nhất ·
+    // seeding=người dùng ĐỘC LẬP (không liên quan team) ngôi thứ nhất đã dùng & thích.
+    const roleVoice = role === 'brand'
+      ? `ĐÓNG VAI: ${personaName || r.pname || 'brand'} (đại diện CHÍNH CHỦ sản phẩm) — mô tả ${r.pname || 'sản phẩm'} ngắn gọn, chuyên nghiệp.`
+      : role === 'personal'
+        ? `ĐÓNG VAI: ${firstName || 'founder'} — người LÀM RA ${r.pname || 'sản phẩm'} (indie maker), chia sẻ ngôi thứ nhất tự nhiên.`
+        : `ĐÓNG VAI: ${firstName || 'một người dùng'} — 1 NGƯỜI DÙNG ĐỘC LẬP (KHÔNG liên quan team sản phẩm), đã dùng & thấy ${r.pname || 'sản phẩm'} hữu ích.`;
     // LLM CHỈ lo CONTENT (message/subject/unknown) + phát hiện key field thật. Identity điền deterministic ở dưới.
     const prompt = `Bạn CHUẨN BỊ giá trị điền cho FORM trên trang đặt backlink. Dựa vào CẤU TRÚC TRANG THẬT (field đã capture), liệt kê MỖI field điền được (input/textarea/select) — KHÔNG button/link/heading.
 
 CONTEXT:
-- Bạn ĐÓNG VAI: ${firstName || 'một người dùng'} — 1 NGƯỜI DÙNG ĐỘC LẬP (KHÔNG phải chủ/team sản phẩm), đã dùng & thấy hữu ích.
+- ${roleVoice}
 - Sản phẩm: ${r.pname || ''}${r.psite ? ` (${String(r.psite).replace(/\/$/, '')})` : ''}
 - Link đích cần đặt (backlink): ${target || '(dùng website sản phẩm)'}
 ${r.oneliner ? `- Sản phẩm làm gì: ${r.oneliner}\n` : ''}- Cách đặt: ${r.mech || ''}
@@ -286,7 +310,7 @@ Với MỖI field điền được, xuất 1 object JSON: {"key","label","type",
 - key = name/id THẬT của field trong cấu trúc; label = nhãn người đọc; type = loại (text/email/textarea/select…).
 - value (CÔNG KHAI = ENGLISH ONLY) — QUAN TRỌNG: field DANH TÍNH cá nhân (name/họ/tên/first/last/full name/username/user id/login/handle/alias/nickname/email/password/phone/dob/gender/địa chỉ/company) LUÔN để value="" — hệ thống tự điền từ account THẬT, BẠN TUYỆT ĐỐI KHÔNG bịa tên/username/email/số. Nếu KHÔNG chắc 1 field có phải danh tính cá nhân không → CŨNG để value="". Chỉ sinh value cho:
   * website/url/link → để "" (hệ thống điền link đích).
-  * message/comment/body/textarea → viết GIỌNG NGÔI THỨ NHẤT của ${firstName || 'người dùng'} (một người dùng độc lập đã dùng & thích ${r.pname || 'sản phẩm'}) — giới thiệu tự nhiên, cụ thể vì sao hữu ích. TUYỆT ĐỐI KHÔNG giọng brand tự quảng cáo, KHÔNG liệt kê tính năng kiểu copy marketing ("X is a free tool that..."). Gài link 1 lần nếu field mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
+  * message/comment/body/textarea → viết ĐÚNG GIỌNG "${roleVoice}". ${role === 'brand' ? 'Mô tả sản phẩm ngắn gọn, chuyên nghiệp.' : 'NGÔI THỨ NHẤT, tự nhiên, cụ thể vì sao hữu ích; KHÔNG liệt kê tính năng kiểu copy marketing ("X is a free tool that...").'} Gài link 1 lần nếu field mang link; dùng pitch sẵn nếu có. Human voice, no em dash.
   * subject/tiêu đề → 1 subject ngắn, cụ thể.
   * select → chọn option HỢP LÝ NHẤT từ danh sách trong cấu trúc; không chắc → confidence="low".
   * field không rõ (vd "how did you hear about us") → best guess NGẮN + confidence="low".
@@ -319,7 +343,7 @@ CHỈ trả JSON array, KHÔNG markdown fence, KHÔNG giải thích.`;
     if (!items.length) return { ok: false, error: 'không sinh được field nào' };
     const payload = { at: new Date().toISOString(), accountId, items };
     await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('fill_fields', ${JSON.stringify(payload)}::jsonb), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
-    return { ok: true, fields: items, grounded: !!g.prov };
+    return { ok: true, fields: items, grounded: !!g.prov, identity: identityMeta };
   } catch (e) {
     return { ok: false, error: `chuẩn bị điền lỗi: ${(e as Error).message || String(e)}` };
   }

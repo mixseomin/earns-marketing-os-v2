@@ -17,6 +17,7 @@ import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
+import { listIdentities } from '@/lib/actions/identities';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
@@ -796,8 +797,23 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const [fillErr, setFillErr] = useState<string | null>(null);
   const [fillFields, setFillFields] = useState<Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> | null>(task.fillFields?.items ?? null);
   const [fillNeedAcct, setFillNeedAcct] = useState(false);
-  // Truyền task.accountId (account drawer ĐANG hiện) → prep-fill dùng đúng account đó, khỏi lệch → khỏi bịa.
-  const doPrepFill = async () => { setFillBusy(true); setFillErr(null); setFillNeedAcct(false); const r = await prepFillFields(task.id, task.accountId ?? null); setFillBusy(false); if (r.ok && r.fields) { setFillFields(r.fields); onChange(); } else { setFillErr(r.error || 'lỗi'); if (r.needAccount) setFillNeedAcct(true); } };
+  // Danh tính: auto theo role (deterministic) HOẶC user chọn tay từ full list identities của project.
+  const [identities, setIdentities] = useState<Array<{ id: number; name: string; kind: string; email: string; personaName: string }>>([]);
+  const [pinnedIdentityId, setPinnedIdentityId] = useState<number | null>(null);
+  const [identityUsed, setIdentityUsed] = useState<{ name: string; email: string; kind: string; role: string; source: string } | null>(null);
+  useEffect(() => {   // full list identities để override tay (auto vẫn là default)
+    let live = true;
+    listIdentities(project.id).then((rows) => { if (live) setIdentities(rows.map((i) => ({ id: i.id, name: i.displayName || i.name, kind: i.kind, email: i.email, personaName: [i.persona?.name_first, i.persona?.name_last].filter(Boolean).join(' ') }))); }).catch(() => {});
+    return () => { live = false; };
+  }, [project.id]);
+  // Danh tính resolve DETERMINISTIC theo role (không để LLM quyết): truyền recommendedRole + pinnedIdentityId (chọn tay).
+  const doPrepFill = async () => {
+    setFillBusy(true); setFillErr(null); setFillNeedAcct(false);
+    const r = await prepFillFields(task.id, { resolvedAccountId: task.accountId ?? null, recommendedRole: task.recommendedRole ?? null, pinnedIdentityId });
+    setFillBusy(false);
+    if (r.ok && r.fields) { setFillFields(r.fields); setIdentityUsed(r.identity ?? null); onChange(); }
+    else { setFillErr(r.error || 'lỗi'); if (r.needAccount) setFillNeedAcct(true); }
+  };
   // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
   const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
@@ -1049,7 +1065,19 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             {task.domSampleId && <button type="button" onClick={doPrepFill} disabled={fillBusy} title="AI chuẩn bị GIÁ TRỊ điền cho từng field của form thật (từ DOM đã lưu): tên/email/message/link. Ext sẽ auto-fill (P2)."
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, color: 'var(--accent)' }}>{fillBusy ? '…' : '✨ Chuẩn bị điền'}</button>}
           </div>
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px' }}>
+          {/* Danh tính điền form: Auto (deterministic theo role platform) hoặc CHỌN TAY từ full list identities. */}
+          {task.domSampleId && (
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, fontSize: 11, marginTop: 4 }}>
+              <span style={{ color: 'var(--fg-4)' }} title="Ai đứng ra điền form (tên/email/giọng). Auto = deterministic theo role platform (directory→brand · community→personal founder · đề xuất/newsletter→seeding độc lập). Hoặc chọn tay 1 identity của project.">🎭 Danh tính:</span>
+              <select value={pinnedIdentityId ?? ''} onChange={(e) => setPinnedIdentityId(e.target.value ? Number(e.target.value) : null)}
+                style={{ fontSize: 11, padding: '2px 5px', background: 'var(--bg-1)', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 6, maxWidth: 300 }}>
+                <option value="">Auto (theo role platform)</option>
+                {identities.map((i) => <option key={i.id} value={i.id}>{i.kind === 'brand' ? '🏢' : i.kind === 'personal' ? '👤' : '🌱'} {i.personaName || i.name}{i.email ? ` · ${i.email}` : ''} ({i.kind})</option>)}
+              </select>
+              {identityUsed && <span style={{ color: 'var(--fg-4)' }} title={`role: ${identityUsed.role} · nguồn: ${identityUsed.source === 'pinned' ? 'chọn tay' : 'auto theo role'}`}>→ dùng: <b style={{ color: 'var(--fg-2)' }}>{identityUsed.name || '(random)'}</b>{identityUsed.email ? ` · ${identityUsed.email}` : ''} · {identityUsed.kind} {identityUsed.source === 'pinned' ? '(tay)' : '(auto)'}</span>}
+            </div>
+          )}
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginTop: 4 }}>
             <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
           </div>
           {/* ✨ Chuẩn bị điền — field→value đã chuẩn bị cho form thật (ext auto-fill P2). 🟢 chắc · 🔴 cần review. */}

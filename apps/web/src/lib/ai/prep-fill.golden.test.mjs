@@ -14,12 +14,13 @@ src = src
   .replace(/export type [^\n]*\n/g, '')
   .replace(/export interface [^\n]*\n/g, '')
   .replace(/: FieldKind\[\]/g, '').replace(/: FieldKind\b/g, '').replace(/: PrepIdentity \| null/g, '').replace(/: PrepIdentity\b/g, '')
+  .replace(/: string \| null \| undefined/g, '').replace(/: IdentityRole\b/g, '')
   .replace(/: Confidence\b/g, '').replace(/: string\b/g, '').replace(/: number\b/g, '').replace(/\): boolean/g, ')')
   .replace(/\): \{[^}]*\} \| null/g, ')').replace(/\): \{[^}]*\}/g, ')')
   .replace(/export function/g, 'function').replace(/export /g, '');
 
-const factory = new Function(src + '\nreturn { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName };');
-const { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName } = factory();
+const factory = new Function(src + '\nreturn { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName, identityRoleForTask };');
+const { classifyFillField, resolveIdentityFill, blockNeedsIdentity, randomPersonaName, identityRoleForTask } = factory();
 
 let pass = 0; const ok = (c, m) => { assert.ok(c, m); pass++; };
 
@@ -66,6 +67,15 @@ ok(resolveIdentityFill('email', 'email', 'Email', acct).value === 'gannys@inbox.
 ok(resolveIdentityFill('username', 'user', 'User', acct).value === 'gannys', 'username → real handle');
 ok(resolveIdentityFill('identity-misc', 'city', 'City', acct).value === 'Austin', 'city → persona');
 ok(resolveIdentityFill('identity-misc', 'phone', 'Phone', acct).value === '512-555-0100', 'phone → custom_fields');
+
+// ── identityRoleForTask: deterministic role (code decides, not the LLM) ──
+ok(identityRoleForTask('Editor-curated newsletter submission via form or email', 'personal') === 'seeding', 'newsletter → seeding (independent), overrides personal default');
+ok(identityRoleForTask('Recommend a tool round-up', null) === 'seeding', 'recommend/round-up → seeding');
+ok(identityRoleForTask('Submit your product to this directory', 'brand') === 'brand', 'submit product to directory → brand (listing, NOT seeding)');
+ok(identityRoleForTask('Post a comment on the forum thread', 'personal') === 'personal', 'community post → personal founder');
+ok(identityRoleForTask('List the product in the marketplace', 'brand') === 'brand', 'directory/marketplace → brand');
+ok(identityRoleForTask('anything', null) === 'personal', 'default → personal');
+ok(identityRoleForTask('', 'seeding') === 'seeding', 'explicit seeding role respected');
 
 // ── randomPersonaName: realistic + STABLE per seed (never "John Doe"), varies across seeds ──
 const rn1 = randomPersonaName(201), rn1b = randomPersonaName(201), rn2 = randomPersonaName(202);

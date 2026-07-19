@@ -85,7 +85,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
              (site_scheduled_at->>${slug}) AS site_scheduled_at,
              (site_submitted_at->>${slug}) AS site_submitted_at,
              (site_verify->${slug})        AS site_verify,
-             worker_note, blocker, resolved, grounded, fill_fields, dom_sample_id,
+             worker_note, blocker, resolved, grounded, fill_fields,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -148,7 +148,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
           ? (r.grounded as { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string }) : null,
         fillFields: (r.fill_fields && typeof r.fill_fields === 'object' && !Array.isArray(r.fill_fields) && Array.isArray((r.fill_fields as Record<string, unknown>).items))
           ? (r.fill_fields as { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> }) : null,
-        domSampleId: r.dom_sample_id != null ? Number(r.dom_sample_id) : null,
+        domSampleId: null as number | null,   // resolved batched below (view subquery per-row = O(task×dom) chậm)
         siteStatus: asObj(r.site_status),
         siteUrl: asObj(r.site_url),
         appliesTo: asArr(r.applies_to),
@@ -161,6 +161,17 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         accountType: getBacklinkAccountType(platformKey),
       };
     });
+
+    // dom_sample_id BATCHED (thay subquery tương quan per-row của view — O(task×dom_samples), ~110ms/49 dòng).
+    // 1 query: latest dom_sample cho mỗi hostname xuất hiện. hostOf ≙ regexp của view (strip scheme+www).
+    const hostOf = (u: string | null): string => { if (!u) return ''; try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch { return ''; } };
+    const domByHost = new Map<string, number>();
+    const hosts = [...new Set(base.map((t) => hostOf(t.sourceUrl)).filter(Boolean))];
+    if (hosts.length) {
+      const hostList = sql.join(hosts.map((h) => sql`${h}`), sql`, `);
+      const ds = await db.execute(sql`SELECT DISTINCT ON (hostname) hostname, id FROM dom_samples WHERE hostname IN (${hostList}) ORDER BY hostname, captured_at DESC`);
+      for (const r of ds as unknown as Array<{ hostname: string; id: number }>) domByHost.set(String(r.hostname), Number(r.id));
+    }
 
     // Explicit per-task account override (human_tasks.account_id). When set, it wins over
     // the platform auto-match — the auto-match may pick a shared account that belongs to
@@ -208,6 +219,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       const acct = (overrideId != null && acctById.get(overrideId)) || (t.platformKey ? acctMap.get(t.platformKey) ?? null : null);
       return {
         ...t,
+        domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         readiness: readinessBucket(t.accountType, acct?.status ?? null),

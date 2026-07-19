@@ -17,6 +17,7 @@ import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, listTaskDomSamples, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
+import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { listIdentities } from '@/lib/actions/identities';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
@@ -833,6 +834,10 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   type DomSample = NonNullable<Awaited<ReturnType<typeof listTaskDomSamples>>['samples']>[number];
   const [domPicker, setDomPicker] = useState<{ groundedSampleId: number | null; samples: DomSample[] } | null>(null);
   const runNormalize = async (sampleId?: number) => { setDomPicker(null); setNormBusy(true); await normalizeInstructions(task.id, sampleId != null ? { sampleId } : undefined); setNormBusy(false); onChange(); };
+  // Catalog-source provenance: view the shared source (+ params) this task derives from.
+  const [sourceDetail, setSourceDetail] = useState<Awaited<ReturnType<typeof getBacklinkSourceForTask>> | null>(null);
+  const [sourceBusy, setSourceBusy] = useState(false);
+  const openSource = async () => { if (!task.catalogSourceId) return; setSourceBusy(true); const r = await getBacklinkSourceForTask(task.catalogSourceId, project.id); setSourceBusy(false); if (r.ok) setSourceDetail(r); };
   const doNormalize = async () => {
     // Not grounded yet, or a NEWER DOM was captured since last grounding → run immediately.
     // Already grounded on the latest DOM → don't blindly re-run: ask which DOM (with a preview).
@@ -1074,6 +1079,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
         {/* meta: source · captured-DOM check link · DOM-grounded badge (small, for the person doing + checking here) */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, fontSize: 11 }}>
           {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
+          {task.catalogSourceId ? (
+            <button type="button" onClick={openSource} disabled={sourceBusy} title="Nguồn chuẩn trong catalog — bấm xem chi tiết + params ({product}/{domain}/{pitch}/{link})"
+              style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 4, padding: '0 6px', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', lineHeight: '1.7' }}>
+              {sourceBusy ? '…' : `📚 #${task.catalogSourceId} ${task.catalogSourceName || 'nguồn'}${task.catalogSourceStatus && task.catalogSourceStatus !== 'active' ? ' · ' + task.catalogSourceStatus : ''}`}
+            </button>
+          ) : (
+            <span title="Task này KHÔNG khớp nguồn nào trong catalog — nên đưa nguồn vào catalog trước khi assign" style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>⚠ ngoài catalog nguồn</span>
+          )}
           {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
           {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
         </div>
@@ -1598,6 +1611,49 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
             );
           })}
         </div>
+      </Drawer>
+    )}
+    {sourceDetail?.ok && sourceDetail.source && (
+      <Drawer onClose={() => setSourceDetail(null)} width={640} zIndex={320}>
+        {(() => { const src = sourceDetail.source!; return (<>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>📚 Nguồn chuẩn #{src.id}</h2>
+            <button type="button" onClick={() => setSourceDetail(null)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{src.name}</div>
+          <a href={wrapExternalUrl(src.canonicalUrl)} {...EXT} style={{ fontSize: 11, color: 'var(--accent)', wordBreak: 'break-all' }}>↗ {src.canonicalUrl}</a>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '8px 0 12px' }}>
+            {src.category && <Tag>{src.category}</Tag>}
+            {src.dofollow && <Tag color="#9d6cff">{src.dofollow}</Tag>}
+            {src.da && <Tag>DA {src.da}</Tag>}
+            <Tag color={src.sourceStatus === 'active' ? '#22c55e' : '#ffb03c'}>{src.sourceStatus}</Tag>
+            {src.audienceTags.map((t) => <Tag key={t}>{t}</Tag>)}
+          </div>
+          {sourceDetail.params && (
+            <div style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-1)' }}>
+              <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Params điền cho project này</div>
+              {(['product', 'domain', 'pitch', 'link'] as const).map((k) => (
+                <div key={k} style={{ fontSize: 11.5, display: 'flex', gap: 8, marginBottom: 2 }}>
+                  <code style={{ color: 'var(--accent)', flexShrink: 0 }}>{'{' + k + '}'}</code>
+                  <span style={{ color: 'var(--fg-2)', wordBreak: 'break-all' }}>{sourceDetail.params![k]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <details open>
+            <summary style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>Template gốc (còn {'{params}'})</summary>
+            <pre style={{ fontSize: 10.5, whiteSpace: 'pre-wrap', color: 'var(--fg-2)', background: 'var(--bg-2)', padding: 8, borderRadius: 6, marginTop: 4, maxHeight: 240, overflow: 'auto' }}>{src.instructionTemplate || '(trống)'}</pre>
+          </details>
+          {sourceDetail.filled && (
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>Preview đã điền params cho project</summary>
+              <pre style={{ fontSize: 10.5, whiteSpace: 'pre-wrap', color: 'var(--fg-2)', background: 'var(--bg-2)', padding: 8, borderRadius: 6, marginTop: 4, maxHeight: 240, overflow: 'auto' }}>{sourceDetail.filled}</pre>
+            </details>
+          )}
+          <div style={{ marginTop: 10 }}>
+            <a href={`/architecture?obj=backlink`} style={{ fontSize: 11, color: 'var(--fg-3)', textDecoration: 'none' }} title="Nguồn dùng chung cho mọi project — sửa ở catalog (Seed catalog → ✎)">↗ Sửa nguồn trong catalog</a>
+          </div>
+        </>); })()}
       </Drawer>
     )}
     </>

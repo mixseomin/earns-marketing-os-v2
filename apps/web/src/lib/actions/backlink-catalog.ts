@@ -88,6 +88,29 @@ export async function listBacklinkSources(opts?: {
   return list;
 }
 
+// Source detail for a backlink task's drawer: the shared catalog row + the params it fills for THIS
+// project ({product}/{domain}/{pitch}/{link}) + the filled preview. Lets the operator see which standard
+// source a task comes from and how the generic template becomes project-specific.
+export async function getBacklinkSourceForTask(sourceId: number, projectId: string): Promise<{ ok: boolean; source?: BacklinkSource; params?: { product: string; domain: string; pitch: string; link: string }; filled?: string; error?: string }> {
+  const db = getDb(); if (!db) return { ok: false, error: 'no-db' };
+  const rows = (await db.execute(sql`SELECT * FROM backlink_sources WHERE id = ${Number(sourceId)} LIMIT 1`)) as unknown as Row[];
+  const r = rows[0]; if (!r) return { ok: false, error: 'source không tồn tại' };
+  const source = mapRow(r);
+  let params: { product: string; domain: string; pitch: string; link: string } | undefined;
+  let filled: string | undefined;
+  if (projectId) {
+    const pr = (await db.execute(sql`SELECT name, website, one_liner FROM projects WHERE id = ${projectId} LIMIT 1`)) as unknown as Row[];
+    const proj = pr[0];
+    if (proj) {
+      const product = String(proj.name || projectId);
+      const domain = domainOf(String(proj.website || ''), projectId);
+      params = { product, domain, pitch: String(proj.one_liner || '').trim() || `${product} (https://${domain})`, link: `https://${domain}` };
+      filled = fillTemplate(source.instructionTemplate, params);
+    }
+  }
+  return { ok: true, source, params, filled };
+}
+
 // Instantiate backlink tasks for a project from selected catalog sources (dedupe: skip sources the
 // project already has). Fills {product}/{domain} from the project's name/website.
 export async function seedBacklinksFromCatalog(

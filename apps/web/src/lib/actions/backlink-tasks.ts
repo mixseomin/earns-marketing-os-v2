@@ -40,6 +40,10 @@ export interface BacklinkTask {
   grounded: { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string } | null;  // instructions rewritten against real captured DOM
   fillFields: { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> } | null;  // ✨ Chuẩn bị điền: prepared per-field values for the source's real form
   domSampleId: number | null;   // latest dom_samples row for this task's source host (for the drawer "🔎 DOM" check link)
+  // Catalog provenance: the shared backlink_sources row this task's source_url comes from (null = ad-hoc, not in catalog).
+  catalogSourceId: number | null;
+  catalogSourceName: string | null;
+  catalogSourceStatus: string | null;
   siteStatus: Record<string, string>;
   siteUrl: Record<string, string>;
   appliesTo: string[];
@@ -173,6 +177,15 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       for (const r of ds as unknown as Array<{ hostname: string; id: number }>) domByHost.set(String(r.hostname), Number(r.id));
     }
 
+    // Catalog provenance BATCHED: which shared backlink_sources row each task's source_url comes from.
+    const srcByUrl = new Map<string, { id: number; name: string; status: string }>();
+    const srcUrls = [...new Set(base.map((t) => t.sourceUrl).filter(Boolean) as string[])];
+    if (srcUrls.length) {
+      const urlList = sql.join(srcUrls.map((u) => sql`${u}`), sql`, `);
+      const cs = await db.execute(sql`SELECT id, name, canonical_url, source_status FROM backlink_sources WHERE canonical_url IN (${urlList})`);
+      for (const r of cs as unknown as Array<{ id: number; name: string; canonical_url: string; source_status: string }>) srcByUrl.set(String(r.canonical_url), { id: Number(r.id), name: String(r.name), status: String(r.source_status) });
+    }
+
     // Explicit per-task account override (human_tasks.account_id). When set, it wins over
     // the platform auto-match — the auto-match may pick a shared account that belongs to
     // another project (e.g. @oritapp for Product Hunt) which is wrong for this site.
@@ -220,6 +233,9 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       return {
         ...t,
         domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
+        catalogSourceId: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.id ?? null) : null,
+        catalogSourceName: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.name ?? null) : null,
+        catalogSourceStatus: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.status ?? null) : null,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         readiness: readinessBucket(t.accountType, acct?.status ?? null),

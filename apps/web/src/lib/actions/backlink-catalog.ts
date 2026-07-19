@@ -132,6 +132,58 @@ export async function seedBacklinksFromCatalog(
   }
 }
 
+export interface BacklinkSourceInput {
+  id?: number;
+  canonicalUrl: string;
+  name: string;
+  category?: string | null;
+  mechanism?: string | null;
+  dofollow?: string | null;
+  da?: string | null;
+  traffic?: string | null;
+  audienceTags?: string[];
+  instructionTemplate?: string | null;
+  gates?: string | null;
+  platformKey?: string | null;
+  sourceStatus?: string;
+}
+
+// Create or edit a catalog source (admin). New rows upsert by canonical_url; edits target the id.
+export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<{ ok: boolean; id?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const url = (input.canonicalUrl || '').trim();
+  const name = (input.name || '').trim();
+  if (!url || !name) return { ok: false, error: 'thiếu URL hoặc tên' };
+  const tags = (input.audienceTags || []).map((t) => t.trim().toLowerCase()).filter(Boolean);
+  const tagsSql = tags.length ? sql`ARRAY[${sql.join(tags.map((t) => sql`${t}`), sql`, `)}]::text[]` : sql`'{}'::text[]`;
+  const status = input.sourceStatus && ['active', 'broken', 'needs-review', 'archived'].includes(input.sourceStatus) ? input.sourceStatus : 'active';
+  try {
+    if (input.id) {
+      await db.execute(sql`
+        UPDATE backlink_sources SET canonical_url = ${url}, name = ${name}, category = ${input.category ?? null},
+          mechanism = ${input.mechanism ?? null}, dofollow = ${input.dofollow ?? null}, da = ${input.da ?? null},
+          traffic = ${input.traffic ?? null}, audience_tags = ${tagsSql}, instruction_template = ${input.instructionTemplate ?? null},
+          gates = ${input.gates ?? null}, platform_key = ${input.platformKey ?? null}, source_status = ${status}, updated_at = now()
+        WHERE id = ${input.id}`);
+      revalidatePath('/p/[id]/backlinks', 'page');
+      return { ok: true, id: input.id };
+    }
+    const ins = (await db.execute(sql`
+      INSERT INTO backlink_sources (canonical_url, name, category, mechanism, dofollow, da, traffic, audience_tags, instruction_template, gates, platform_key, source_status)
+      VALUES (${url}, ${name}, ${input.category ?? null}, ${input.mechanism ?? null}, ${input.dofollow ?? null}, ${input.da ?? null}, ${input.traffic ?? null}, ${tagsSql}, ${input.instructionTemplate ?? null}, ${input.gates ?? null}, ${input.platformKey ?? null}, ${status})
+      ON CONFLICT (canonical_url) DO UPDATE SET name = EXCLUDED.name, category = EXCLUDED.category, mechanism = EXCLUDED.mechanism,
+        dofollow = EXCLUDED.dofollow, da = EXCLUDED.da, traffic = EXCLUDED.traffic, audience_tags = EXCLUDED.audience_tags,
+        instruction_template = EXCLUDED.instruction_template, gates = EXCLUDED.gates, platform_key = EXCLUDED.platform_key,
+        source_status = EXCLUDED.source_status, updated_at = now()
+      RETURNING id`)) as unknown as Array<{ id: number }>;
+    revalidatePath('/p/[id]/backlinks', 'page');
+    return { ok: true, id: Number(ins[0]?.id) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export async function setBacklinkSourceStatus(id: number, status: string): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };

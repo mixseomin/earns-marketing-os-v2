@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
-import { listBacklinkSources, seedBacklinksFromCatalog, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, seedBacklinksFromCatalog, upsertBacklinkSource, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -16,7 +16,7 @@ import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
-import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, type AiContentRow } from '@/lib/actions/ai-content';
+import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, type AiContentRow } from '@/lib/actions/ai-content';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import type { BacklinkTask, BacklinkVerify } from '@/lib/actions/backlink-tasks';
@@ -312,6 +312,68 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
+// Catalog source editor (add/edit a backlink_sources row). Stacks over the seed picker.
+function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource | Record<string, never>; onClose: () => void; onSaved: () => void | Promise<void> }) {
+  const s = initial as Partial<BacklinkSource>;
+  const [name, setName] = useState(s.name ?? '');
+  const [url, setUrl] = useState(s.canonicalUrl ?? '');
+  const [category, setCategory] = useState(s.category ?? '');
+  const [dofollow, setDofollow] = useState(s.dofollow ?? '');
+  const [da, setDa] = useState(s.da ?? '');
+  const [traffic, setTraffic] = useState(s.traffic ?? '');
+  const [aud, setAud] = useState((s.audienceTags ?? []).join(', '));
+  const [platformKey, setPlatformKey] = useState(s.platformKey ?? '');
+  const [gates, setGates] = useState(s.gates ?? '');
+  const [tpl, setTpl] = useState(s.instructionTemplate ?? '');
+  const [status, setStatus] = useState(s.sourceStatus ?? 'active');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const save = async () => {
+    setBusy(true); setErr('');
+    const r = await upsertBacklinkSource({ id: s.id, canonicalUrl: url, name, category, dofollow, da, traffic, audienceTags: aud.split(',').map((x) => x.trim()).filter(Boolean), instructionTemplate: tpl, gates, platformKey, sourceStatus: status });
+    setBusy(false);
+    if (r.ok) await onSaved(); else setErr(r.error || 'lỗi');
+  };
+  const field: CSSProperties = { fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', width: '100%', boxSizing: 'border-box' };
+  const lbl: CSSProperties = { fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3, display: 'block' };
+  return (
+    <Drawer onClose={onClose} width={560} zIndex={300}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{s.id ? '✎ Sửa nguồn' : '➕ Nguồn mới'}</h2>
+        <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div><label style={lbl}>Tên *</label><input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" style={field} /></div>
+        <div><label style={lbl}>URL hành động *</label><input value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="off" placeholder="https://…/submit" style={field} /></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>Category</label>
+            <select value={category ?? ''} onChange={(e) => setCategory(e.target.value)} style={field}>
+              <option value="">—</option>{['tool-dir', 'forum', 'edu-resource', 'haro', 'listicle', 'wiki', 'social', 'llms', 'qa', 'directory', 'guest-post'].map((c) => <option key={c} value={c}>{c}</option>)}
+            </select></div>
+          <div style={{ flex: 1 }}><label style={lbl}>Dofollow</label>
+            <select value={dofollow ?? ''} onChange={(e) => setDofollow(e.target.value)} style={field}>
+              <option value="">—</option>{['dofollow', 'nofollow', 'mixed'].map((c) => <option key={c} value={c}>{c}</option>)}
+            </select></div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>DA</label><input value={da ?? ''} onChange={(e) => setDa(e.target.value)} autoComplete="off" style={field} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>Traffic</label><input value={traffic ?? ''} onChange={(e) => setTraffic(e.target.value)} autoComplete="off" style={field} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>Platform key</label><input value={platformKey ?? ''} onChange={(e) => setPlatformKey(e.target.value)} autoComplete="off" style={field} /></div>
+        </div>
+        <div><label style={lbl}>Audience tags (phẩy)</label><input value={aud} onChange={(e) => setAud(e.target.value)} autoComplete="off" placeholder="games, general, finance…" style={field} /></div>
+        <div><label style={lbl}>Gates / điều kiện</label><input value={gates ?? ''} onChange={(e) => setGates(e.target.value)} autoComplete="off" style={field} /></div>
+        <div><label style={lbl}>Instruction template (chỗ trống {'{product}'} / {'{domain}'})</label><textarea value={tpl ?? ''} onChange={(e) => setTpl(e.target.value)} rows={9} style={{ ...field, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} /></div>
+        <div><label style={lbl}>Trạng thái</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} style={field}>{['active', 'needs-review', 'broken', 'archived'].map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+        <button type="button" onClick={save} disabled={busy || !name.trim() || !url.trim()} style={{ ...btn, background: 'var(--accent)', color: '#fff', borderColor: 'transparent', fontWeight: 700 }}>{busy ? '⏳ lưu…' : '💾 Lưu'}</button>
+        {err && <span style={{ fontSize: 12, color: 'var(--bad,#ef4444)' }}>✗ {err}</span>}
+      </div>
+    </Drawer>
+  );
+}
+
 export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
@@ -372,6 +434,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     setSeedBusy(false);
     if (r.ok) { setSeedMsg(`✓ Tạo ${r.created} task${r.skipped ? ` · bỏ qua ${r.skipped} (đã có)` : ''}`); setSeedSel(new Set()); start(() => router.refresh()); await reloadSeed(); }
     else setSeedMsg(`✗ ${r.error}`);
+  };
+  // Catalog admin — add/edit a source (stacked over the seed picker). null=closed, {}=new, {id,…}=edit.
+  const [srcEdit, setSrcEdit] = useState<BacklinkSource | Record<string, never> | null>(null);
+  // Bulk-reshape this project's genuinely-thin instructions to the template (AI, content-preserving).
+  const [normBusy, setNormBusy] = useState(false);
+  const [normMsg, setNormMsg] = useState('');
+  const doNormalize = async () => {
+    setNormBusy(true); setNormMsg('');
+    const r = await normalizeProjectInstructions(projectId);
+    setNormBusy(false);
+    setNormMsg(r.ok ? `✓ Chuẩn hoá ${r.done} task${r.failed ? ` · ${r.failed} lỗi` : ''}` : `✗ ${r.error}`);
+    if (r.ok && r.done) start(() => router.refresh());
   };
 
   // Single source of URL truth — reflect every view-changing state (shallow, no refetch).
@@ -496,6 +570,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
           </button>
           <button type="button" onClick={openSeed} style={{ ...btn, color: 'var(--accent)' }} title="Seed nguồn backlink từ catalog dùng chung (mọi dự án) — lọc theo audience, tạo task hàng loạt">➕ Seed catalog</button>
+          <button type="button" onClick={doNormalize} disabled={normBusy} style={{ ...btn }} title="Chuẩn hoá khuôn cho các task hướng dẫn còn sơ sài (thiếu bước/📍) của site này — AI reshape giữ nội dung, không bịa">
+            {normBusy ? '⏳ đang chuẩn hoá…' : normMsg && normMsg.startsWith('✓') ? normMsg : '✨ Chuẩn khuôn'}
+          </button>
           <button type="button" onClick={openTrash} style={{ ...btn }} title="Nguồn đã drop — khôi phục bất cứ lúc nào">🗑 Đã drop</button>
           <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
         </div>
@@ -529,10 +606,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         const shown = (seedSrcs || []).filter((s) => !seedAud || s.audienceTags.includes(seedAud));
         const newCount = seedSel.size;
         return (
-          <Drawer onClose={() => setSeedOpen(false)} width={660}>
+          <Drawer onClose={() => setSeedOpen(false)} width={660} backgrounded={!!srcEdit}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>➕ Seed từ catalog nguồn</h2>
-              <button type="button" onClick={() => setSeedOpen(false)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button type="button" onClick={() => setSrcEdit({})} style={{ ...btn, color: 'var(--accent)', padding: '2px 9px' }} title="Thêm nguồn mới vào catalog dùng chung">➕ Thêm nguồn</button>
+                <button type="button" onClick={() => setSeedOpen(false)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+              </div>
             </div>
             <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10 }}>
               Catalog nguồn dùng chung cho mọi dự án. Chọn nguồn → tạo task cho <b>{siteLabel}</b>. Nguồn đã có tự bỏ qua. <code>{'{product}'}</code>/<code>{'{domain}'}</code> điền sẵn; ví dụ chủ đề trong hướng dẫn nhớ chỉnh cho đúng sản phẩm.
@@ -544,18 +624,21 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             {seedSrcs === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang tải catalog…</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '52vh', overflowY: 'auto' }}>
                   {shown.map((s) => (
-                    <label key={s.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', border: '1px solid var(--line)', borderRadius: 8, background: s.usedByHere ? 'var(--bg-2)' : 'var(--bg-1)', padding: '8px 10px', cursor: s.usedByHere ? 'default' : 'pointer', opacity: s.usedByHere ? 0.55 : 1 }}>
-                      <input type="checkbox" disabled={s.usedByHere} checked={s.usedByHere || seedSel.has(s.id)} onChange={() => toggleSeed(s.id)} style={{ marginTop: 2 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{s.name} {s.usedByHere && <span style={{ fontSize: 10, color: 'var(--fg-4)', fontWeight: 400 }}>· đã có</span>}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 1, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <span>{s.category}</span>
-                          {s.dofollow && <span style={{ color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
-                          {s.da && <span>DA {s.da}</span>}
-                          <span style={{ color: 'var(--fg-4)' }}>{s.audienceTags.join(' · ')}</span>
+                    <div key={s.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                      <label style={{ flex: 1, minWidth: 0, display: 'flex', gap: 9, alignItems: 'flex-start', border: '1px solid var(--line)', borderRadius: 8, background: s.usedByHere ? 'var(--bg-2)' : 'var(--bg-1)', padding: '8px 10px', cursor: s.usedByHere ? 'default' : 'pointer', opacity: s.usedByHere ? 0.55 : 1 }}>
+                        <input type="checkbox" disabled={s.usedByHere} checked={s.usedByHere || seedSel.has(s.id)} onChange={() => toggleSeed(s.id)} style={{ marginTop: 2 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{s.name} {s.usedByHere && <span style={{ fontSize: 10, color: 'var(--fg-4)', fontWeight: 400 }}>· đã có</span>}</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 1, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <span>{s.category}</span>
+                            {s.dofollow && <span style={{ color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
+                            {s.da && <span>DA {s.da}</span>}
+                            <span style={{ color: 'var(--fg-4)' }}>{s.audienceTags.join(' · ')}</span>
+                          </div>
                         </div>
-                      </div>
-                    </label>
+                      </label>
+                      <button type="button" onClick={() => setSrcEdit(s)} title="Sửa nguồn trong catalog" style={{ ...btn, padding: '2px 8px', flexShrink: 0 }}>✎</button>
+                    </div>
                   ))}
                   {shown.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có nguồn nào khớp bộ lọc.</div>}
                 </div>}
@@ -566,6 +649,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           </Drawer>
         );
       })()}
+
+      {srcEdit && <SourceEditor initial={srcEdit} onClose={() => setSrcEdit(null)} onSaved={async () => { setSrcEdit(null); await reloadSeed(); }} />}
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>

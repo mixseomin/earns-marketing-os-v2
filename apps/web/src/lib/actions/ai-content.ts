@@ -106,6 +106,33 @@ Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. Chỉ xuất ph�
   }
 }
 
+// Bulk-reshape a project's genuinely non-conforming backlink instructions to the template. Targets
+// only tasks with NEITHER the 📍 line NOR numbered steps (the truly-thin ones) — a single-mechanism
+// task that already has the 📍/meta lines is correct as-is and left alone (never invents fake steps).
+// Content-preserving reshape via normalizeInstructions (OpenAI), one task at a time.
+export async function normalizeProjectInstructions(projectId: string): Promise<{ ok: boolean; done: number; failed: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, done: 0, failed: 0, error: 'no db' };
+  if (!aiEnabled()) return { ok: false, done: 0, failed: 0, error: 'OPENAI_API_KEY chưa cấu hình' };
+  if (!/^[a-z0-9_-]+$/i.test(projectId)) return { ok: false, done: 0, failed: 0, error: 'projectId không hợp lệ' };
+  try {
+    const rows = await db.execute(sql`
+      SELECT id FROM human_tasks
+      WHERE platform_key = 'backlink' AND prep_payload->'site_status' ? ${projectId}
+        AND instructions NOT LIKE '%📍%' AND instructions !~ '[0-9]\\. '
+        AND instructions NOT LIKE '%ĐÃ CHUYỂN%' AND COALESCE(length(instructions), 0) > 0`);
+    const ids = (rows as unknown as Array<{ id: number }>).map((r) => Number(r.id));
+    let done = 0, failed = 0;
+    for (const id of ids) {
+      const r = await normalizeInstructions(id);
+      if (r.ok) done++; else failed++;
+    }
+    return { ok: true, done, failed };
+  } catch (e) {
+    return { ok: false, done: 0, failed: 0, error: (e as Error).message || String(e) };
+  }
+}
+
 export async function deleteAiContent(id: number): Promise<{ ok: boolean; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };

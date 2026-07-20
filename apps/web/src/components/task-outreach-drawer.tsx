@@ -10,6 +10,7 @@ import { Drawer } from '@/components/ui';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { loadProspect, updateProspectDraft, setProspectStatus, markFormSubmitted } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
+import { CHANNELS } from '@/lib/outreach/channels';
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   to_send: { label: 'Chưa gửi', color: 'var(--fg-3)' },
@@ -31,15 +32,6 @@ const btn: CSSProperties = { fontSize: 12, padding: '5px 11px', borderRadius: 6,
 const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '0 0 3px' };
 const taStyle: CSSProperties = { width: '100%', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.5, padding: 10, borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical' };
 const inputStyle: CSSProperties = { width: '100%', padding: '6px 9px', fontSize: 13, borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
-
-// Planned outreach channels beyond email — the operator reaches the SAME owner via whichever is open.
-// Sending on these is ext-assisted/manual for now (open their profile/post, paste the message).
-const CHANNELS: Array<{ key: string; icon: string; label: string; hint: string }> = [
-  { key: 'email', icon: '✉️', label: 'Email', hint: 'Gửi tự động qua Mailjet (đang bật)' },
-  { key: 'form', icon: '📝', label: 'Contact form', hint: 'Mở form của họ + dán message (gửi tay)' },
-  { key: 'social_dm', icon: '💬', label: 'DM (FB/IG/X/LinkedIn)', hint: 'Nhắn tin trực tiếp qua profile của họ' },
-  { key: 'comment', icon: '🗨️', label: 'Comment trên post', hint: 'Bình luận dưới bài của họ, gài nhẹ' },
-];
 
 export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, backgrounded }: {
   projectId: string; prospectId: number; onClose: () => void; onChange: () => void; backgrounded?: boolean;
@@ -89,17 +81,18 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
       </div>
 
       {!p ? <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 16 }}>Đang tải…</div> : (<>
-        {/* Channels — reach the SAME owner via whichever is open. Email/form wired; social planned. */}
+        {/* Channels — reach the SAME owner via whichever is open (taxonomy ported from orit.app).
+            Email/form wired now; social/messaging/dev = ext-assisted, đang xây (xem plan multi-channel). */}
         <div style={{ margin: '14px 0 0' }}>
-          <div style={lbl}>Kênh liên hệ</div>
+          <div style={lbl}>Kênh liên hệ <span style={{ color: 'var(--fg-4)' }}>· hover xem cách tiếp cận</span></div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {CHANNELS.map((c) => {
-              const active = (c.key === 'email' && !isForm) || (c.key === 'form' && isForm);
-              const planned = c.key === 'social_dm' || c.key === 'comment';
+              const active = (c.key === 'email' && !isForm) || (c.key === 'contact_form' && isForm);
+              const planned = c.send === 'assisted';
               return (
-                <span key={c.key} title={c.hint + (planned ? ' · sắp có' : '')}
+                <span key={c.key} title={c.tip + (planned ? ' · (ext-assisted, sắp có)' : '')}
                   style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, border: `1px solid ${active ? 'var(--neon-lime)' : 'var(--bg-3)'}`, background: active ? 'color-mix(in srgb, var(--neon-lime) 15%, transparent)' : 'transparent', color: active ? 'var(--neon-lime)' : planned ? 'var(--fg-4)' : 'var(--fg-2)', opacity: planned ? 0.7 : 1 }}>
-                  {c.icon} {c.label}{planned ? ' · sắp có' : ''}
+                  {c.icon} {c.label}{planned ? ' ·' : ''}
                 </span>
               );
             })}

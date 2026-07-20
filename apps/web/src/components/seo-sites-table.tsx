@@ -47,6 +47,11 @@ interface RowData {
   review?: string; // manual review/checkpoint date (YYYY-MM-DD), shown as AI-group countdown
   // Subscribers group — email list size (per site that captures emails)
   subscribers?: number | null;
+  // Yandex group — Yandex Webmaster stats (CIS search engine)
+  yandex_impr_7d?: number | null;
+  yandex_clicks_7d?: number | null;
+  yandex_in_search?: number | null;
+  yandex_sqi?: number | null;
 }
 
 interface Props {
@@ -56,8 +61,8 @@ interface Props {
   initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
-type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai' | 'subs';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true, subs: false };
+type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai' | 'subs' | 'yandex';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true, subs: false, yandex: false };
 const STORAGE_KEY = 'seo-table-cols-v2';
 const COOKIE_KEY = 'seo_cols';
 
@@ -72,8 +77,9 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
   bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
   ai:      { fg: '#10b981', bg: 'rgba(16,185,129,0.22)', bgSoft: 'rgba(16,185,129,0.06)' }, // emerald = AI/LLM referrals
   subs:    { fg: '#14b8a6', bg: 'rgba(20,184,166,0.22)',bgSoft: 'rgba(20,184,166,0.06)' }, // teal = email list
+  yandex:  { fg: '#fc3f1d', bg: 'rgba(252,63,29,0.20)', bgSoft: 'rgba(252,63,29,0.06)' }, // red = Yandex/CIS
 };
-const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI', subs: 'Subs' };
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI', subs: 'Subs', yandex: 'Yandex' };
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -114,7 +120,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   }
 
   // Tighter padding (was 8/10 → 5/8). Sparkline column narrower (no horizontal pad).
-  const cell: React.CSSProperties = { padding: '5px 8px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
+  const cell: React.CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', fontWeight: 500 };
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
 
@@ -147,6 +153,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
   const totalInteractions = rows.reduce((s, r) => s + (r.ga4_interactions_7d ?? 0), 0);
   const totalSubs = rows.reduce((s, r) => s + (r.subscribers ?? 0), 0);
+  const totalYaImpr = rows.reduce((s, r) => s + (r.yandex_impr_7d ?? 0), 0);
+  const totalYaClk = rows.reduce((s, r) => s + (r.yandex_clicks_7d ?? 0), 0);
+  const totalYaIdx = rows.reduce((s, r) => s + (r.yandex_in_search ?? 0), 0);
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
@@ -172,7 +181,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai', 'subs'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai', 'yandex', 'subs'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -195,7 +204,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth: 640 }}>
         <thead>
           <tr>
-            <th style={{ ...head, textAlign: 'left' }}>Site</th>
+            <th style={{ ...head, textAlign: 'left', width: '100%' }}>Site</th>
             {cols.live && <>
               <th style={{ ...headOf('live', true), textAlign: 'center' }} title="GA4 Realtime: active users in the last 5 minutes (updates every 5 min)">
                 <span className="live-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: GROUP_COLOR.live.fg, boxShadow: '0 0 0 0 rgba(34,197,94,0.7)' }} />
@@ -237,6 +246,12 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('ai')} title="AI answer-engine referred sessions, last 28 days. Hover a row for the per-engine breakdown.">AI 28d</th>
               <th style={headOf('ai')} title="Manual review/checkpoint per site — countdown to the next scheduled SEO/AI review.">Review</th>
             </>}
+            {cols.yandex && <>
+              <th style={headOf('yandex', true)} title="Yandex impressions last 7 days (Yandex Webmaster / CIS). New hosts show — for a few days after being added.">Impr</th>
+              <th style={headOf('yandex')} title="Yandex clicks last 7 days">Clk</th>
+              <th style={headOf('yandex')} title="Pages in the Yandex search index">Idx</th>
+              <th style={headOf('yandex')} title="Yandex Site Quality Index (SQI)">SQI</th>
+            </>}
             {cols.subs && <>
               <th style={headOf('subs', true)} title="Email subscribers (list size). Sites show — until they capture emails; add the site to /opt/cgg-report/subs-pull.mjs as it gets a subscribe form.">Subs</th>
             </>}
@@ -260,6 +275,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               bing: `https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`,
               adsense: 'https://www.google.com/adsense/new/u/0/home',
               subs: null,
+              yandex: `https://webmaster.yandex.com/site/https:${r.domain}:443/dashboard/`,
             };
             return (
               <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
@@ -371,6 +387,21 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     })()}
                   </td>
                 </>}
+                {cols.yandex && <>
+                  <td data-tool="yandex" style={cellOf('yandex', true, { textAlign: 'right', ...tone((r.yandex_impr_7d ?? 0) > 0) })}>
+                    {r.yandex_impr_7d == null ? '—' : r.yandex_impr_7d.toLocaleString()}
+                  </td>
+                  <td data-tool="yandex" style={cellOf('yandex', false, { textAlign: 'right', ...tone((r.yandex_clicks_7d ?? 0) > 0) })}>
+                    {r.yandex_clicks_7d == null ? '—' : r.yandex_clicks_7d.toLocaleString()}
+                  </td>
+                  <td data-tool="yandex" style={cellOf('yandex', false, { textAlign: 'right', ...tone((r.yandex_in_search ?? 0) > 0) })}>
+                    {r.yandex_in_search == null ? '—' : r.yandex_in_search.toLocaleString()}
+                  </td>
+                  <td data-tool="yandex" style={cellOf('yandex', false, { textAlign: 'right' })}
+                    title="Yandex Site Quality Index">
+                    {r.yandex_sqi == null ? '—' : r.yandex_sqi.toLocaleString()}
+                  </td>
+                </>}
                 {cols.subs && <>
                   <td data-tool="subs" style={cellOf('subs', true, { textAlign: 'right', ...tone((r.subscribers ?? 0) > 0), fontWeight: (r.subscribers ?? 0) > 0 ? 600 : 400 })}
                     title={r.subscribers == null ? 'No email capture on this site yet' : `${r.subscribers.toLocaleString()} email subscribers`}>
@@ -418,6 +449,12 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td data-tool="ai" style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
               <td data-tool="ai" style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
               <td data-tool="ai" style={cellOf('ai', false)} />
+            </>}
+            {cols.yandex && <>
+              <td data-tool="yandex" style={cellOf('yandex', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.yandex.fg })}>{totalYaImpr.toLocaleString()}</td>
+              <td data-tool="yandex" style={cellOf('yandex', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.yandex.fg })}>{totalYaClk.toLocaleString()}</td>
+              <td data-tool="yandex" style={cellOf('yandex', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.yandex.fg })}>{totalYaIdx.toLocaleString()}</td>
+              <td data-tool="yandex" style={cellOf('yandex', false)} />
             </>}
             {cols.subs && <>
               <td data-tool="subs" style={cellOf('subs', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.subs.fg })}>{totalSubs.toLocaleString()}</td>

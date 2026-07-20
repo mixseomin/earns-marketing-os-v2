@@ -9,11 +9,28 @@ import { getOpenAI, DEFAULT_MODEL } from '@/lib/ai/openai';
 type Db = NonNullable<ReturnType<typeof getDb>>;
 export const EMAIL_RE = '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}';
 
+export const firstNameOf = (name: string | null | undefined): string => String(name || '').trim().split(/\s+/)[0] || '';
+
+// Substitute any placeholder tokens the LLM leaves (e.g. "[Your Name]", "[Company]") with the real
+// signer / product so what's stored IS what sends — never a literal "[Your Name]" out the door.
+export function fillSignoff(text: string, signer: string, product?: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\[(?:your\s+)?(?:full\s+|first\s+)?name\]/gi, signer || 'Jake')
+    .replace(/\[(?:your\s+)?(?:sender|signature)(?:\s+name)?\]/gi, signer || 'Jake')
+    .replace(/\[(?:your\s+)?company(?:\s+name)?\]/gi, product || signer || '')
+    .replace(/[ \t]*\[[A-Za-z][^\]\n]{0,38}\][ \t]*/g, '')   // strip any remaining bracket placeholder
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}
+
 // One short outreach email suggesting a free tool for someone's resource page/list. English only.
-export async function genPitch(proj: Record<string, unknown>, task: Record<string, unknown>): Promise<{ subject: string; body: string } | null> {
+// signer = real first name to sign off with (campaign from_name) so no "[Your Name]" survives.
+export async function genPitch(proj: Record<string, unknown>, task: Record<string, unknown>, signer?: string): Promise<{ subject: string; body: string } | null> {
   const ai = getOpenAI();
   if (!ai) return null;
   const site = String(proj.website || '').replace(/\/$/, '');
+  const sign = firstNameOf(signer) || 'Jake';
   const sys = 'You write ONE short outreach email suggesting a free tool for someone\'s resource page/list. Output ENGLISH only.';
   const usr = `PRODUCT: ${proj.name ?? ''}${site ? ` (${site})` : ''} - ${proj.one_liner ?? ''}
 RECIPIENT PAGE: ${task.title ?? ''} · ${task.source_url ?? ''}
@@ -22,15 +39,17 @@ TASK NOTES (Vietnamese, obey): ${task.instructions ?? ''}
 
 Rules:
 - First line EXACTLY "Subject: <short specific subject>", then a blank line, then the body.
-- Body 4-7 short sentences: warm greeting, note their specific page, one-line tool intro, one sentence why it helps their audience, say it's free with no signup, offer the link${site ? ` (${site})` : ''}, thank them, sign off with a generic first name.
+- Body 4-7 short sentences: warm greeting, note their specific page, one-line tool intro, one sentence why it helps their audience, say it's free with no signup, offer the link${site ? ` (${site})` : ''}, thank them, then sign off.
+- Sign off EXACTLY with "Best," then a new line then "${sign}". NEVER output a bracketed placeholder such as [Your Name], [Name], or [Your Company] - use "${sign}".
 - Human, specific, no "I hope this finds you well", no em dashes (use "-"), no SEO/backlink mention.
 Return ONLY the email.`;
   try {
     const c = await ai.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.7, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] });
     const raw = (c.choices[0]?.message?.content || '').trim();
     const m = raw.match(/^\s*subject:\s*(.+?)\s*\n+([\s\S]*)$/i);
-    if (!m) return { subject: `A free tool for ${String(task.title || 'your page').slice(0, 60)}`, body: raw };
-    return { subject: (m[1] || '').trim(), body: (m[2] || '').trim() };
+    const product = String(proj.name || '');
+    if (!m) return { subject: `A free tool for ${String(task.title || 'your page').slice(0, 60)}`, body: fillSignoff(raw, sign, product) };
+    return { subject: fillSignoff((m[1] || '').trim(), sign, product), body: fillSignoff((m[2] || '').trim(), sign, product) };
   } catch { return null; }
 }
 
@@ -68,6 +87,7 @@ export async function linkTaskToOutreachCore(db: Db, taskId: number): Promise<{ 
     const channel: 'email' | 'form' = email ? 'email' : 'form';
     const host = String(t.source_url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || String(t.title || 'site');
     const camp = await ensureBacklinkCampaign(db, projectId);
+    const signer = firstNameOf(camp.from_name);
     const proj = { name: t.pname, website: t.website, one_liner: t.one_liner, bio: t.bio };
 
     // Existing prospect for this task? (task_id link, or the legacy notes marker). Reuse it.
@@ -76,14 +96,14 @@ export async function linkTaskToOutreachCore(db: Db, taskId: number): Promise<{ 
       const pid = ex[0]!.id;
       // Backfill pitch + ensure task_id link if missing.
       if (!ex[0]!.email_body) {
-        const pitch = await genPitch(proj, t);
+        const pitch = await genPitch(proj, t, signer);
         if (pitch) await db.execute(sql`UPDATE outreach_prospects SET email_subject = ${pitch.subject}, email_body = ${pitch.body}, updated_at = now() WHERE id = ${pid}`);
       }
       await db.execute(sql`UPDATE outreach_prospects SET task_id = ${taskId}, contact_url = COALESCE(contact_url, ${String(t.source_url || '')}), updated_at = now() WHERE id = ${pid} AND task_id IS NULL`);
       return { ok: true, prospectId: pid, projectId, campId: camp.id, email, channel, created: false, url: `/p/${projectId}/outreach?c=${camp.id}&prospect=${pid}` };
     }
 
-    const pitch = await genPitch(proj, t);
+    const pitch = await genPitch(proj, t, signer);
     const ins = (await db.execute(sql`
       INSERT INTO outreach_prospects (tenant_id, project_id, campaign_id, task_id, agent_name, company, email, contact_url, website, status, source, email_subject, email_body, notes)
       VALUES ('self', ${projectId}, ${camp.id}, ${taskId}, ${host}, ${String(t.title ?? '')}, ${email || null}, ${String(t.source_url ?? '')}, ${String(t.source_url ?? '')}, 'to_send', 'backlink', ${pitch?.subject ?? null}, ${pitch?.body ?? null}, ${'từ backlink task #' + taskId})

@@ -8,8 +8,16 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { syncProspectToTask } from './backlink-outreach-sync';
+import { getOutreachProspect } from './outreach';
+import type { OutreachProspect } from './outreach';
 
 const FOLLOWUP_CAP = 2; // total follow-ups before a prospect is closed as 'no_response' (CAN-SPAM friendly)
+
+// Client-callable loader (the reader in ./outreach is a plain server module) — for opening the
+// Outreach drawer IN-PLACE from a linked backlink task's drawer.
+export async function loadProspect(projectId: string, prospectId: number): Promise<OutreachProspect | null> {
+  return getOutreachProspect(projectId, prospectId);
+}
 
 async function rerender(projectId: string) {
   revalidatePath(`/p/${projectId}/outreach`);

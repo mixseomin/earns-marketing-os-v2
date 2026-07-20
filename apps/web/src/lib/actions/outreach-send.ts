@@ -8,6 +8,7 @@ import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { syncProspectToTask } from './backlink-outreach-sync';
+import { fillSignoff, firstNameOf } from '@/lib/outreach/link-task';
 
 const FROM_EMAIL = process.env.MAILJET_FROM || 'hello@militarycalc.com';
 const FROM_NAME = 'Jake Miller';
@@ -64,6 +65,10 @@ export async function sendProspectEmail(
     subject = tpl.subject; body = tpl.body;
   }
   if (!body.trim()) return { ok: false, error: 'No email body to send' };
+  // Defensive: never let a leftover "[Your Name]" placeholder go out — sign with the real sender.
+  const signer = firstNameOf(String(fromName));
+  body = fillSignoff(body, signer, '');
+  subject = fillSignoff(subject, signer, '');
 
   let resp: Response;
   try {

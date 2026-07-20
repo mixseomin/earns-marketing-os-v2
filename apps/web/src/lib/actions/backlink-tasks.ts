@@ -44,6 +44,8 @@ export interface BacklinkTask {
   catalogSourceId: number | null;
   catalogSourceName: string | null;
   catalogSourceStatus: string | null;
+  // Linked outreach prospect (this task was sent into the Outreach pipeline). null = not linked yet.
+  outreach: { prospectId: number; status: string; channel: 'email' | 'form'; campaignId: number | null } | null;
   siteStatus: Record<string, string>;
   siteUrl: Record<string, string>;
   appliesTo: string[];
@@ -186,6 +188,16 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       for (const r of cs as unknown as Array<{ id: number; name: string; canonical_url: string; source_status: string }>) srcByUrl.set(String(r.canonical_url), { id: Number(r.id), name: String(r.name), status: String(r.source_status) });
     }
 
+    // Linked outreach prospects BATCHED: which tasks are already in the Outreach pipeline (by task_id).
+    const outreachByTask = new Map<number, { prospectId: number; status: string; channel: 'email' | 'form'; campaignId: number | null }>();
+    if (base.length) {
+      const taskIdList = sql.join(base.map((t) => sql`${t.id}`), sql`, `);
+      const pr = await db.execute(sql`SELECT id, task_id, status, campaign_id, (email IS NOT NULL AND email <> '') AS has_email FROM outreach_prospects WHERE task_id IN (${taskIdList})`);
+      for (const r of pr as unknown as Array<{ id: number; task_id: number; status: string; campaign_id: number | null; has_email: boolean }>) {
+        outreachByTask.set(Number(r.task_id), { prospectId: Number(r.id), status: String(r.status), channel: r.has_email ? 'email' : 'form', campaignId: r.campaign_id != null ? Number(r.campaign_id) : null });
+      }
+    }
+
     // Explicit per-task account override (human_tasks.account_id). When set, it wins over
     // the platform auto-match — the auto-match may pick a shared account that belongs to
     // another project (e.g. @oritapp for Product Hunt) which is wrong for this site.
@@ -236,6 +248,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         catalogSourceId: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.id ?? null) : null,
         catalogSourceName: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.name ?? null) : null,
         catalogSourceStatus: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.status ?? null) : null,
+        outreach: outreachByTask.get(t.id) ?? null,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         readiness: readinessBucket(t.accountType, acct?.status ?? null),

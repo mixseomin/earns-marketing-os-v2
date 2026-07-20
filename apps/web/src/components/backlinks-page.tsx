@@ -19,6 +19,10 @@ import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, listTaskDomSamples, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
 import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
+import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
+
+// Compact status labels for the Outreach linkage chip on a backlink task.
+const OUTREACH_ST: Record<string, string> = { to_send: 'chưa gửi', sent: 'đã gửi', followup_1: 'FU1', followup_2: 'FU2', replied: 'đã hồi', interested: 'quan tâm', embedded: 'đã đặt ★', declined: 'từ chối', bounced: 'bounced', unreachable: 'ko liên hệ được', no_response: 'ko hồi' };
 import { listIdentities } from '@/lib/actions/identities';
 import type { PhotoCandidate } from '@/lib/stock-photos';
 import { READINESS_META, ACCOUNT_ROLE_META, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
@@ -1028,15 +1032,18 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   // with the existing follow-up badge. Recipient auto-parsed from the task; none → form-only.
   const recipientEmail = useMemo(() => (`${task.mechanism || ''} ${task.instructions || ''}`.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0] || '', [task.mechanism, task.instructions]);
   const lastEmail = useMemo(() => aiList.find((a) => a.status === 'done' && a.result && /email|pitch|outreach/i.test(a.kind))?.result || '', [aiList]);
-  const router = useRouter();
   const [outBusy, setOutBusy] = useState(false);
+  const [outreachOpen, setOutreachOpen] = useState(false);
+  const [outreachPid, setOutreachPid] = useState<number | null>(task.outreach?.prospectId ?? null);
   // → Outreach: link this direct-contact task to the managed outreach pipeline (campaign + prospect +
-  // AI pitch, status synced both ways, cron auto-sends when there's a recipient email) then open it.
-  const doOutreach = async () => {
+  // AI pitch, status synced both ways, cron auto-sends when there's a recipient email). Already linked →
+  // just OPEN the drawer in-place (no page nav). See feedback_openable_opens_immediately + modal-first.
+  const openOutreach = async () => {
+    if (outreachPid != null) { setOutreachOpen(true); return; }
     setOutBusy(true); setAiErr(null);
     const r = await linkTaskToOutreach(task.id);
     setOutBusy(false);
-    if (r.ok && r.url) router.push(r.url);
+    if (r.ok && r.prospectId) { setOutreachPid(r.prospectId); setOutreachOpen(true); onChange(); }
     else setAiErr(r.error || 'lỗi outreach');
   };
   const doSendEmail = async () => {
@@ -1080,7 +1087,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const doStack = async () => { setStackBusy(true); const r = await suggestProjectStack(project.id); setStackBusy(false); if (r.ok) onChange(); };
   return (
     <>
-    <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || backgrounded}>
+    <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || outreachOpen || backgrounded}>
       <div>
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
@@ -1101,6 +1108,14 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           )}
           {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
           {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
+          {/* Outreach linkage — visible up top (not buried in Email Pitch). Linked → open drawer in-place; else offer to link. */}
+          {(task.outreach || isEmailPitch) && (
+            <button type="button" onClick={openOutreach} disabled={outBusy}
+              title={task.outreach ? `Mở Outreach của task này ngay tại đây — kênh ${task.outreach.channel === 'form' ? 'form' : 'email'}, trạng thái đồng bộ 2 chiều` : 'Đưa task vào hệ Outreach (campaign + prospect + pitch) rồi mở drawer ngay tại đây'}
+              style={{ background: task.outreach ? 'color-mix(in srgb, var(--neon-lime) 14%, transparent)' : 'none', border: '1px solid var(--neon-lime)', borderRadius: 4, padding: '0 6px', fontSize: 10.5, color: 'var(--neon-lime)', cursor: 'pointer', lineHeight: '1.7', fontWeight: 700 }}>
+              {outBusy ? '…' : task.outreach ? `✉️ Outreach · ${OUTREACH_ST[task.outreach.status] || task.outreach.status}` : '→ Outreach'}
+            </button>
+          )}
         </div>
 
         {/* Blocker banner — active when a staffer flagged this task stuck. Actionable: shows the
@@ -1361,8 +1376,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                   style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : lastEmail ? '↻ Sinh lại' : isFollowUp ? '🔁 Sinh email nhắc (follow-up)' : `✉️ Sinh email${recipientEmail ? ` cho ${recipientEmail}` : ''}`}</button>
                 <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
                   style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
-                <button type="button" onClick={doOutreach} disabled={outBusy} title="Đưa task này vào hệ Outreach (campaign + prospect + pitch, đồng bộ trạng thái 2 chiều; có email → cron tự gửi & follow-up). Mở luôn trong Outreach."
-                  style={{ ...btn, fontWeight: 700, color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)' }}>{outBusy ? '⏳…' : '→ Outreach'}</button>
+                <button type="button" onClick={openOutreach} disabled={outBusy} title={outreachPid != null ? 'Mở Outreach của task này (ngay tại đây)' : 'Đưa task này vào hệ Outreach (campaign + prospect + pitch, đồng bộ trạng thái 2 chiều; có email → cron tự gửi & follow-up). Mở drawer ngay tại đây.'}
+                  style={{ ...btn, fontWeight: 700, color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)' }}>{outBusy ? '⏳…' : outreachPid != null ? '✉️ Mở Outreach' : '→ Outreach'}</button>
               </div>
               {lastEmail && (<>
                 <button type="button" onClick={doSendEmail} title={recipientEmail ? 'Mở Gmail soạn sẵn email này (review rồi Send), task chuyển Chờ duyệt' : 'Mở trang/form gửi, task chuyển Chờ duyệt — dán email vào form của họ'}
@@ -1669,6 +1684,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         </>); })()}
       </Drawer>
+    )}
+    {outreachOpen && outreachPid != null && (
+      <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} onClose={() => setOutreachOpen(false)} onChange={onChange} backgrounded={!!domPicker} />
     )}
     </>
   );

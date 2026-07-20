@@ -45,6 +45,8 @@ interface RowData {
   ai_sessions_28d?: number | null;
   ai_by_engine?: Record<string, number> | null;
   review?: string; // manual review/checkpoint date (YYYY-MM-DD), shown as AI-group countdown
+  // Subscribers group — email list size (per site that captures emails)
+  subscribers?: number | null;
 }
 
 interface Props {
@@ -54,8 +56,8 @@ interface Props {
   initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
-type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true };
+type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai' | 'subs';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true, subs: false };
 const STORAGE_KEY = 'seo-table-cols-v2';
 const COOKIE_KEY = 'seo_cols';
 
@@ -69,8 +71,9 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
   adsense: { fg: '#ffb03c', bg: 'rgba(255,176,60,0.22)', bgSoft: 'rgba(255,176,60,0.06)' },  // amber = money
   bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
   ai:      { fg: '#10b981', bg: 'rgba(16,185,129,0.22)', bgSoft: 'rgba(16,185,129,0.06)' }, // emerald = AI/LLM referrals
+  subs:    { fg: '#14b8a6', bg: 'rgba(20,184,166,0.22)',bgSoft: 'rgba(20,184,166,0.06)' }, // teal = email list
 };
-const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI' };
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI', subs: 'Subs' };
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -143,6 +146,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
   const totalLive30 = rows.reduce((s, r) => s + (r.ga4_active_30min ?? 0), 0);
   const totalInteractions = rows.reduce((s, r) => s + (r.ga4_interactions_7d ?? 0), 0);
+  const totalSubs = rows.reduce((s, r) => s + (r.subscribers ?? 0), 0);
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
@@ -168,7 +172,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai', 'subs'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -233,6 +237,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('ai')} title="AI answer-engine referred sessions, last 28 days. Hover a row for the per-engine breakdown.">AI 28d</th>
               <th style={headOf('ai')} title="Manual review/checkpoint per site — countdown to the next scheduled SEO/AI review.">Review</th>
             </>}
+            {cols.subs && <>
+              <th style={headOf('subs', true)} title="Email subscribers (list size). Sites show — until they capture emails; add the site to /opt/cgg-report/subs-pull.mjs as it gets a subscribe form.">Subs</th>
+            </>}
           </tr>
         </thead>
         <tbody>
@@ -252,6 +259,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               gsc: `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`,
               bing: `https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`,
               adsense: 'https://www.google.com/adsense/new/u/0/home',
+              subs: null,
             };
             return (
               <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
@@ -363,6 +371,12 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     })()}
                   </td>
                 </>}
+                {cols.subs && <>
+                  <td data-tool="subs" style={cellOf('subs', true, { textAlign: 'right', ...tone((r.subscribers ?? 0) > 0), fontWeight: (r.subscribers ?? 0) > 0 ? 600 : 400 })}
+                    title={r.subscribers == null ? 'No email capture on this site yet' : `${r.subscribers.toLocaleString()} email subscribers`}>
+                    {r.subscribers == null ? '—' : r.subscribers.toLocaleString()}
+                  </td>
+                </>}
               </tr>
             );
           })}
@@ -404,6 +418,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td data-tool="ai" style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>
               <td data-tool="ai" style={cellOf('ai', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi28.toLocaleString()}</td>
               <td data-tool="ai" style={cellOf('ai', false)} />
+            </>}
+            {cols.subs && <>
+              <td data-tool="subs" style={cellOf('subs', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.subs.fg })}>{totalSubs.toLocaleString()}</td>
             </>}
           </tr>
         </tbody>

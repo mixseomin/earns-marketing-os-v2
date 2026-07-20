@@ -8,6 +8,7 @@ import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
 import { loadGa4Events, pickGa4Events } from '@/lib/projects/ga4-events';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 import { loadGa4AiReferrals, pickGa4Ai } from '@/lib/projects/ga4-ai-referrals';
+import { loadSubscribers, pickSubs } from '@/lib/projects/subscribers';
 import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
@@ -98,7 +99,7 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
 // Pull the user's column-group preference out of cookies so the table SSR
 // renders with the right set hidden from frame one. Matches what the client
 // component would do on hydration — no FOUC, no layout jump on F5.
-async function readInitialCols(): Promise<Partial<Record<'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai', boolean>>> {
+async function readInitialCols(): Promise<Partial<Record<'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai' | 'subs', boolean>>> {
   try {
     const raw = (await cookies()).get('seo_cols')?.value;
     if (!raw) return {};
@@ -120,6 +121,7 @@ export async function SeoSitesPanel() {
   const bingPayload = await loadBingStats();
   const ga4AiPayload = await loadGa4AiReferrals();
   const adsenseByDomain = await loadAdsenseByDomain(7);
+  const subsPayload = await loadSubscribers();
   const initialCols = await readInitialCols();
 
   if (!payload) {
@@ -173,6 +175,7 @@ export async function SeoSitesPanel() {
             project: meta.project,
             review: meta.review,
             ga4PropertyId: pickGa4(ga4Payload, r.domain),
+            subscribers: pickSubs(subsPayload, r.domain),
             ga4_active_5min: rt?.last5min ?? null,
             ga4_active_30min: rt?.last30min ?? null,
             ga4_interactions_7d: ev?.total ?? null,

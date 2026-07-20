@@ -8,7 +8,8 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
-import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { aiEnabled } from '@/lib/ai/openai';
+import { EMAIL_RE, genPitch, ensureBacklinkCampaign, linkTaskToOutreachCore } from '@/lib/outreach/link-task';
 
 async function isAdmin(): Promise<boolean> {
   const me = await getCurrentUser();
@@ -128,32 +129,8 @@ export async function updateCampaign(id: number, projectId: string, patch: {
 // to_send prospects WITH an AI-generated pitch stored on each, so the outreach cron auto-sends
 // them (initial + follow-ups) with zero clicking. Form-only tasks (no recipient email) are left
 // for the Backlinks tab (mandatory manual). Idempotent via notes marker. Also backfills content
-// for backlink prospects that were bridged without an email body.
-const EMAIL_RE = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}";
-
-async function genPitch(proj: Record<string, unknown>, task: Record<string, unknown>): Promise<{ subject: string; body: string } | null> {
-  const ai = getOpenAI();
-  if (!ai) return null;
-  const site = String(proj.website || '').replace(/\/$/, '');
-  const sys = 'You write ONE short outreach email suggesting a free tool for someone\'s resource page/list. Output ENGLISH only.';
-  const usr = `PRODUCT: ${proj.name ?? ''}${site ? ` (${site})` : ''} - ${proj.one_liner ?? ''}
-RECIPIENT PAGE: ${task.title ?? ''} · ${task.source_url ?? ''}
-HOW IT FITS: ${task.mechanism ?? ''}
-TASK NOTES (Vietnamese, obey): ${task.instructions ?? ''}
-
-Rules:
-- First line EXACTLY "Subject: <short specific subject>", then a blank line, then the body.
-- Body 4-7 short sentences: warm greeting, note their specific page, one-line tool intro, one sentence why it helps their audience, say it's free with no signup, offer the link${site ? ` (${site})` : ''}, thank them, sign off with a generic first name.
-- Human, specific, no "I hope this finds you well", no em dashes (use "-"), no SEO/backlink mention.
-Return ONLY the email.`;
-  try {
-    const c = await ai.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.7, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] });
-    const raw = (c.choices[0]?.message?.content || '').trim();
-    const m = raw.match(/^\s*subject:\s*(.+?)\s*\n+([\s\S]*)$/i);
-    if (!m) return { subject: `A free tool for ${String(task.title || 'your page').slice(0, 60)}`, body: raw };
-    return { subject: (m[1] || '').trim(), body: (m[2] || '').trim() };
-  } catch { return null; }
-}
+// for backlink prospects that were bridged without an email body. EMAIL_RE + genPitch +
+// ensureBacklinkCampaign shared with the single-task linker in @/lib/outreach/link-task.
 
 export async function importBacklinkTasks(projectId: string): Promise<{ ok: boolean; created: number; filled: number; skippedForm: number; error?: string }> {
   if (!(await isAdmin())) return { ok: false, created: 0, filled: 0, skippedForm: 0, error: 'forbidden' };
@@ -161,15 +138,7 @@ export async function importBacklinkTasks(projectId: string): Promise<{ ok: bool
   const db = getDb();
   if (!db) return { ok: false, created: 0, filled: 0, skippedForm: 0, error: 'no db' };
   try {
-    // Ensure a backlink campaign exists (sender defaults to the project's verified embed sender).
-    let camp = (await db.execute(sql`SELECT id, from_email, from_name FROM outreach_campaigns WHERE project_id = ${projectId} AND type = 'backlink' ORDER BY id LIMIT 1`)) as unknown as Array<{ id: number; from_email: string | null; from_name: string | null }>;
-    if (!camp.length) {
-      const verified = (await db.execute(sql`SELECT from_email, from_name FROM outreach_campaigns WHERE project_id = ${projectId} AND type = 'embed' AND from_email IS NOT NULL ORDER BY id LIMIT 1`)) as unknown as Array<{ from_email: string; from_name: string }>;
-      const ins = await db.execute(sql`INSERT INTO outreach_campaigns (tenant_id, project_id, name, type, status, goal, from_email, from_name, daily_cap, followup_gap_days, max_followups)
-        VALUES ('self', ${projectId}, 'Backlink outreach', 'backlink', 'active', 'Xin đặt link (resource page / directory / community)', ${verified[0]?.from_email ?? null}, ${verified[0]?.from_name ?? null}, 10, 5, 2) RETURNING id, from_email, from_name`);
-      camp = ins as unknown as Array<{ id: number; from_email: string | null; from_name: string | null }>;
-    }
-    const campId = camp[0]!.id;
+    const campId = (await ensureBacklinkCampaign(db, projectId)).id;
 
     const proj = ((await db.execute(sql`SELECT name, website, one_liner, bio FROM projects WHERE id = ${projectId} LIMIT 1`)) as unknown as Array<Record<string, unknown>>)[0] || {};
 
@@ -214,4 +183,15 @@ export async function importBacklinkTasks(projectId: string): Promise<{ ok: bool
   } catch (e) {
     return { ok: false, created: 0, filled: 0, skippedForm: 0, error: `import lỗi: ${(e as Error).message}` };
   }
+}
+
+// Link ONE backlink task to outreach (from its drawer / the ext) — ensure campaign + prospect + pitch,
+// return a deep link to open it. For direct-contact placements (email the site owner/maintainer). Admin
+// cookie; the ext uses the token-authed route /api/ext/tasks/[id]/outreach (same core).
+export async function linkTaskToOutreach(taskId: number) {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const r = await linkTaskToOutreachCore(db, taskId);
+  if (r.ok && r.projectId) revalidatePath(`/p/${r.projectId}/outreach`);
+  return r;
 }

@@ -233,7 +233,11 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     urlTab === 'pipeline' || urlTab === 'due' || urlTab === 'needs' || urlTab === 'all' ? urlTab : 'all',
   );
   const [pending, start] = useTransition();
-  const [preview, setPreview] = useState<OutreachProspect | null>(null);
+  // ?prospect=<id> (deep link from a backlink task's "→ Outreach") opens that prospect on first render.
+  const [preview, setPreview] = useState<OutreachProspect | null>(() => {
+    const pid = sp.get('prospect');
+    return pid && /^\d+$/.test(pid) ? allProspects.find((x) => x.id === Number(pid)) ?? null : null;
+  });
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState('');
   const [q, setQ] = useState('');

@@ -217,7 +217,8 @@ function CampaignForm({ init, projectId, identities, onClose, onSaved }: { init:
   );
 }
 
-export function OutreachPage(props: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[] }) {
+type TouchSummary = { prospectId: number; channel: string; status: string };
+export function OutreachPage(props: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[]; touchRows?: TouchSummary[] }) {
   return (
     <Suspense fallback={null}>
       <OutreachInner {...props} />
@@ -225,9 +226,27 @@ export function OutreachPage(props: { projectId: string; prospects: OutreachPros
   );
 }
 
-function OutreachInner({ projectId, prospects: allProspects, campaigns, identities }: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[] }) {
+// Channel dots on a prospect row — email (always, from the prospect) + every touch channel, ✓ when sent.
+// Makes multi-channel outreach VISIBLE on the list instead of buried in the drawer.
+const CH_ICON: Record<string, string> = { email: '✉️', contact_form: '📝', facebook: 'f', x: '𝕏', linkedin: 'in', instagram: '📷', reddit: '🤖', youtube: '▶️', comment: '🗨️', telegram: '✈️', discord: '🎮', medium: '✍️', devto: '👩‍💻', github: '🐙' };
+function ChanDots({ p, touches }: { p: OutreachProspect; touches: TouchSummary[] }) {
+  const dots: Array<{ ch: string; done: boolean; title: string }> = [];
+  if (p.email) dots.push({ ch: 'email', done: ACTIVE.has(p.status) || DEAD.has(p.status) || p.status === 'interested' || p.status === 'embedded' || p.status === 'replied', title: 'Email · ' + meta(p.status).label });
+  for (const t of touches) dots.push({ ch: t.channel, done: t.status === 'sent' || t.status === 'replied', title: (CH_ICON[t.channel] || t.channel) + ' · ' + (t.status === 'sent' ? 'đã gửi' : t.status === 'replied' ? 'đã hồi' : 'chưa gửi') });
+  if (!dots.length) return null;
+  return (
+    <span style={{ display: 'inline-flex', gap: 3, marginLeft: 6, verticalAlign: 'middle' }}>
+      {dots.map((d, i) => (
+        <span key={i} title={d.title} style={{ fontSize: 9, fontWeight: 700, lineHeight: '14px', minWidth: 14, height: 14, padding: '0 3px', borderRadius: 4, textAlign: 'center', background: d.done ? 'color-mix(in srgb, var(--neon-lime) 20%, transparent)' : 'var(--bg-3)', color: d.done ? 'var(--neon-lime)' : 'var(--fg-3)' }}>{CH_ICON[d.ch] || '•'}</span>
+      ))}
+    </span>
+  );
+}
+
+function OutreachInner({ projectId, prospects: allProspects, campaigns, identities, touchRows }: { projectId: string; prospects: OutreachProspect[]; campaigns: OutreachCampaign[]; identities: IdentityRow[]; touchRows?: TouchSummary[] }) {
   const sp = useSearchParams();
   const router = useRouter();
+  const touchesByProspect = useMemo(() => { const m = new Map<number, TouchSummary[]>(); for (const t of (touchRows || [])) { const a = m.get(t.prospectId) || []; a.push(t); m.set(t.prospectId, a); } return m; }, [touchRows]);
   const urlTab = sp.get('tab');
   // Defaults (no URL params): Calendar view + All status.
   const [tab, setTabState] = useState<TabKey>(
@@ -419,7 +438,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {newReplies.map((p) => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px', border: '1px solid color-mix(in srgb, var(--neon-violet) 45%, var(--bg-3))', borderRadius: 7, background: 'color-mix(in srgb, var(--neon-violet) 7%, var(--bg-1))', flexWrap: 'wrap' }}>
-                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button>
+                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button><ChanDots p={p} touches={touchesByProspect.get(p.id) || []} />
                   <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.base || '—'}</span>
                   <span style={{ flex: 1 }} />
                   <button style={chanStyle('var(--neon-lime)')} disabled={pending} onClick={() => act(() => setProspectStatus(projectId, p.id, 'interested'))}>👍 Interested</button>
@@ -471,7 +490,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {awaiting.map((p) => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid var(--bg-3)', borderRadius: 7, background: 'var(--bg-1)', flexWrap: 'wrap' }}>
-                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button>
+                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>{p.agentName}</button><ChanDots p={p} touches={touchesByProspect.get(p.id) || []} />
                   <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.base || '—'}</span>
                   <Badge status={p.status} />
                   <span style={{ flex: 1 }} />
@@ -507,7 +526,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
             return (
               <tr key={p.id} style={{ borderBottom: '1px solid var(--bg-2)' }}>
                 <td style={{ padding: '6px 8px' }}>
-                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button>
+                  <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button><ChanDots p={p} touches={touchesByProspect.get(p.id) || []} />
                   {p.company && <div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{p.company}</div>}
                 </td>
                 <td style={{ padding: '6px 8px', color: 'var(--fg-2)' }}>{p.base || '—'}</td>
@@ -653,7 +672,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {g.items.map((p) => (
                   <div key={p.id} style={{ border: '1px solid var(--bg-3)', borderRadius: 8, padding: 8, background: 'var(--bg-1)' }}>
-                    <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button>
+                    <button onClick={() => setPreview(p)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--fg-0)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>{p.agentName}</button><ChanDots p={p} touches={touchesByProspect.get(p.id) || []} />
                     <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '1px 0 6px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span>{p.base || '—'}</span>
                       <ChannelTag email={p.email} />

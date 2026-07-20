@@ -34,6 +34,15 @@ export async function getProspectSender(projectId: string, prospectId: number): 
   return { name: r?.from_name || 'Jake Miller', email: r?.from_email || 'hello@militarycalc.com' };
 }
 
+// Flat touch summary for the whole project → the list can show which channels each prospect was reached
+// through (so social touches aren't invisible/scattered). Client builds the per-prospect map.
+export interface TouchSummary { prospectId: number; channel: string; status: string }
+export async function listTouchSummaries(projectId: string): Promise<TouchSummary[]> {
+  const db = getDb(); if (!db) return [];
+  const rows = await db.execute(sql`SELECT prospect_id, channel, status FROM outreach_touches WHERE project_id = ${projectId}`);
+  return (rows as unknown as Array<{ prospect_id: number; channel: string; status: string }>).map((r) => ({ prospectId: Number(r.prospect_id), channel: String(r.channel), status: String(r.status) }));
+}
+
 export async function listTouches(projectId: string, prospectId: number): Promise<Touch[]> {
   const db = getDb(); if (!db) return [];
   const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at, sent_as FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);

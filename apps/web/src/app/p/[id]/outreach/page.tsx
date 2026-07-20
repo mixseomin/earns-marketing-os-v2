@@ -4,6 +4,7 @@ import { OutreachPage } from '@/components/outreach-page';
 import { getProject, getProjectMode, listProjects } from '@/lib/data';
 import { listOutreachProspects } from '@/lib/actions/outreach';
 import { listCampaigns } from '@/lib/actions/outreach-campaigns';
+import { listTouchSummaries } from '@/lib/actions/outreach-touches';
 import { listIdentities } from '@/lib/actions/identities';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -19,12 +20,13 @@ export default async function OutreachRoute({ params }: { params: Promise<{ id: 
   if (me?.role !== 'admin') redirect(`/p/${id}/inbox`);
 
   const isDemo = project.isDemo === true;
-  const [mode, projects, prospects, campaigns, identities] = await Promise.all([
+  const [mode, projects, prospects, campaigns, identities, touchRows] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     isDemo ? Promise.resolve([]) : listOutreachProspects(id),
     isDemo ? Promise.resolve([]) : listCampaigns(id),
     isDemo ? Promise.resolve([]) : listIdentities(id),
+    isDemo ? Promise.resolve([]) : listTouchSummaries(id),
   ]);
 
   return (
@@ -35,7 +37,7 @@ export default async function OutreachRoute({ params }: { params: Promise<{ id: 
       tab="outreach"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <OutreachPage projectId={id} prospects={prospects} campaigns={campaigns} identities={identities} />
+      <OutreachPage projectId={id} prospects={prospects} campaigns={campaigns} identities={identities} touchRows={touchRows} />
     </AppShell>
   );
 }

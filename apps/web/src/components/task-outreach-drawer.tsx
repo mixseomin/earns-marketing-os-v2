@@ -33,7 +33,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   const reloadAll = async () => { const [pr, ts] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId)]); setP(pr); setTouches(ts); onChange(); };
   useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(pr?.email ? 'email' : 'contact_form'); })(); return () => { live = false; }; }, [projectId, prospectId]);
 
-  if (!p) return <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded} closeOnOutside={false}><div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Đang tải…</div></Drawer>;
+  if (!p) return <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded}><div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Đang tải…</div></Drawer>;
 
   const primaryChannel = p.email ? 'email' : 'contact_form';
   const isPrimary = sel === primaryChannel;
@@ -57,7 +57,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   );
 
   return (
-    <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded} closeOnOutside={false}>
+    <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded}>
       {/* Header = OWNER — matches the /outreach EmailDrawer header exactly */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>

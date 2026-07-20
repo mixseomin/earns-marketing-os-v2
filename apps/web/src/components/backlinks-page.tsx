@@ -399,12 +399,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
   const [blockedOnly, setBlockedOnly] = useState(sp.get('blocked') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
+  const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);
-  const closeTask = () => setOpenId(null);
+  const closeTask = () => { setOpenId(null); setOutreachPid(null); };
 
   // Delete a backlink task with a 10s undo (destructive-action pattern). undoRow holds the
   // snapshot; restore re-inserts it with the same id so the deep-link still resolves.
@@ -470,8 +471,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
+    set('outreach', outreachPid);
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId, outreachPid]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -785,7 +787,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
+      {open && outreachPid != null && <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} onClose={() => setOutreachPid(null)} onChange={() => start(() => router.refresh())} />}
 
       {undoRows && undoRows.length > 0 && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
@@ -808,8 +812,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
+function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1033,17 +1037,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const recipientEmail = useMemo(() => (`${task.mechanism || ''} ${task.instructions || ''}`.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0] || '', [task.mechanism, task.instructions]);
   const lastEmail = useMemo(() => aiList.find((a) => a.status === 'done' && a.result && /email|pitch|outreach/i.test(a.kind))?.result || '', [aiList]);
   const [outBusy, setOutBusy] = useState(false);
-  const [outreachOpen, setOutreachOpen] = useState(false);
-  const [outreachPid, setOutreachPid] = useState<number | null>(task.outreach?.prospectId ?? null);
-  // → Outreach: link this direct-contact task to the managed outreach pipeline (campaign + prospect +
-  // AI pitch, status synced both ways, cron auto-sends when there's a recipient email). Already linked →
-  // just OPEN the drawer in-place (no page nav). See feedback_openable_opens_immediately + modal-first.
+  // → Outreach: link this direct-contact task to the managed outreach pipeline, then open the Outreach
+  // drawer — which the PAGE renders + URL-drives (?outreach=<pid>), stacked on this drawer. Already
+  // linked → open immediately. See feedback_url_state + feedback_openable_opens_immediately.
   const openOutreach = async () => {
-    if (outreachPid != null) { setOutreachOpen(true); return; }
+    if (task.outreach?.prospectId != null) { onOpenOutreach(task.outreach.prospectId); return; }
     setOutBusy(true); setAiErr(null);
     const r = await linkTaskToOutreach(task.id);
     setOutBusy(false);
-    if (r.ok && r.prospectId) { setOutreachPid(r.prospectId); setOutreachOpen(true); onChange(); }
+    if (r.ok && r.prospectId) { onOpenOutreach(r.prospectId); onChange(); }
     else setAiErr(r.error || 'lỗi outreach');
   };
   const doSendEmail = async () => {
@@ -1087,7 +1089,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
   const doStack = async () => { setStackBusy(true); const r = await suggestProjectStack(project.id); setStackBusy(false); if (r.ok) onChange(); };
   return (
     <>
-    <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || outreachOpen || backgrounded}>
+    <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || backgrounded}>
       <div>
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
@@ -1376,8 +1378,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
                   style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy === 'openai' ? '⏳ đang sinh…' : lastEmail ? '↻ Sinh lại' : isFollowUp ? '🔁 Sinh email nhắc (follow-up)' : `✉️ Sinh email${recipientEmail ? ` cho ${recipientEmail}` : ''}`}</button>
                 <button type="button" onClick={() => genEmail('claude')} disabled={!!aiBusy} title="Đẩy vào queue — Claude sinh khi mở phiên chat"
                   style={{ ...btn, fontWeight: 700, color: '#d19a66', borderColor: '#d19a66' }}>{aiBusy === 'claude' ? '⏳…' : '🧠 Nhờ Claude'}</button>
-                <button type="button" onClick={openOutreach} disabled={outBusy} title={outreachPid != null ? 'Mở Outreach của task này (ngay tại đây)' : 'Đưa task này vào hệ Outreach (campaign + prospect + pitch, đồng bộ trạng thái 2 chiều; có email → cron tự gửi & follow-up). Mở drawer ngay tại đây.'}
-                  style={{ ...btn, fontWeight: 700, color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)' }}>{outBusy ? '⏳…' : outreachPid != null ? '✉️ Mở Outreach' : '→ Outreach'}</button>
+                <button type="button" onClick={openOutreach} disabled={outBusy} title={task.outreach ? 'Mở Outreach của task này (ngay tại đây)' : 'Đưa task này vào hệ Outreach (campaign + prospect + pitch, đồng bộ trạng thái 2 chiều; có email → cron tự gửi & follow-up). Mở drawer ngay tại đây.'}
+                  style={{ ...btn, fontWeight: 700, color: 'var(--neon-lime)', borderColor: 'var(--neon-lime)' }}>{outBusy ? '⏳…' : task.outreach ? '✉️ Mở Outreach' : '→ Outreach'}</button>
               </div>
               {lastEmail && (<>
                 <button type="button" onClick={doSendEmail} title={recipientEmail ? 'Mở Gmail soạn sẵn email này (review rồi Send), task chuyển Chờ duyệt' : 'Mở trang/form gửi, task chuyển Chờ duyệt — dán email vào form của họ'}
@@ -1684,9 +1686,6 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onClos
           </div>
         </>); })()}
       </Drawer>
-    )}
-    {outreachOpen && outreachPid != null && (
-      <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} onClose={() => setOutreachOpen(false)} onChange={onChange} backgrounded={!!domPicker} />
     )}
     </>
   );

@@ -2114,6 +2114,31 @@ export const outreachProspects = pgTable(
   ],
 );
 
+// Multi-channel outreach touches — one prospect (owner) reached via N channels. Email/form stays on
+// outreach_prospects; this holds the extra channels (social DM, comment, messaging, dev forge).
+export const outreachTouches = pgTable(
+  'outreach_touches',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    prospectId: bigint('prospect_id', { mode: 'number' }).notNull(),   // → outreach_prospects.id (cascade)
+    projectId: text('project_id'),
+    channel: text('channel').notNull(),                                // linkedin|x|facebook|instagram|reddit|youtube|comment|telegram|discord|medium|devto|github|…
+    targetRef: text('target_ref'),                                     // handle / profile URL / post URL
+    content: text('content'),                                          // per-channel message
+    status: text('status').notNull().default('to_send'),               // to_send|sent|replied|skipped
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    meta: jsonb('meta').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('outreach_touches_prospect_idx').on(t.prospectId),
+    index('outreach_touches_project_idx').on(t.projectId),
+    uniqueIndex('outreach_touches_prospect_channel_uidx').on(t.prospectId, t.channel),
+  ],
+);
+
 // Outreach campaigns — group prospects by outreach GOAL (embed | backlink | sales | recruit).
 // Each campaign carries its own sender identity + pacing; a prospect belongs to one campaign.
 // Decision: earns-strategy 2026-07-04-outreach-multi-campaign-platform.
@@ -2157,4 +2182,4 @@ export const aiUsage = pgTable(
 );
 
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachCampaigns, aiUsage };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachTouches, outreachCampaigns, aiUsage };

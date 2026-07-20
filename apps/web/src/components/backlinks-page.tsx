@@ -400,12 +400,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [blockedOnly, setBlockedOnly] = useState(sp.get('blocked') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
+  const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);
-  const closeTask = () => { setOpenId(null); setOutreachPid(null); };
+  const closeTask = () => { setOpenId(null); setOutreachPid(null); setOutreachCh(''); };
 
   // Delete a backlink task with a 10s undo (destructive-action pattern). undoRow holds the
   // snapshot; restore re-inserts it with the same id so the deep-link still resolves.
@@ -472,8 +473,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     set('outreach', outreachPid);
+    set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId, outreachPid]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId, outreachPid, outreachCh]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -789,7 +791,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
-      {open && outreachPid != null && <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} onClose={() => setOutreachPid(null)} onChange={() => start(() => router.refresh())} />}
+      {open && outreachPid != null && <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
 
       {undoRows && undoRows.length > 0 && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>

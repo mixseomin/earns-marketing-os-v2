@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { genChannelContent } from '@/lib/outreach/touch-content';
 import { firstNameOf } from '@/lib/outreach/link-task';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 async function isAdmin(): Promise<boolean> {
   const me = await getCurrentUser();
@@ -65,6 +66,24 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   for (const a of accts) opts.push({ kind: 'account', id: Number(a.id), label: '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true });
   for (const i of idents) opts.push({ kind: 'identity', id: Number(i.id), label: String(i.label), sub: `persona · ${i.kind}`, match: false });
   return opts;   // already platform-match-first from SQL
+}
+
+// Inline "thêm nhanh" from the "Gửi bằng" picker when the identity you acted as isn't saved yet. Creates
+// a GLOBAL (project_id null) account for the channel's platform — dedup via the unique index. Same infra
+// as the FB Pages import, one at a time. Returns the new option to select immediately.
+export async function addSendAsAccount(projectId: string, channel: string, handle: string): Promise<{ ok: boolean; option?: SendAsOption; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const h = handle.trim(); if (!h) return { ok: false, error: 'nhập tên/handle' };
+  try {
+    const platform = await reconcilePlatformKey(db, (CHANNEL_PLATFORM[channel] || [channel])[0] || channel);
+    await db.execute(sql`INSERT INTO platforms (key, label, signup_url, description) VALUES (${platform}, ${platform}, '', 'Auto (send-as)') ON CONFLICT (key) DO NOTHING`);
+    await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type) VALUES ('self', ${platform}, NULL, ${h}, 'active', 'brand') ON CONFLICT (tenant_id, platform_key, handle) DO NOTHING`);
+    const ex = (await db.execute(sql`SELECT id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platform} AND handle = ${h} LIMIT 1`)) as unknown as Array<{ id: number }>;
+    const id = Number(ex[0]?.id);
+    if (!id) return { ok: false, error: 'không tạo được' };
+    return { ok: true, option: { kind: 'account', id, label: '@' + h, sub: `${platform} · brand`, match: true } };
+  } catch (e) { return { ok: false, error: `thêm lỗi: ${(e as Error).message}` }; }
 }
 
 // Add (or re-target) a channel for this prospect. Unique (prospect, channel) → idempotent.

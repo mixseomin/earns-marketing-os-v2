@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer } from '@/components/ui';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { loadProspect, setProspectStatus } from '@/lib/actions/outreach-mutations';
-import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, listSendAs, type Touch, type SendAsOption, type SentAs } from '@/lib/actions/outreach-touches';
+import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, listSendAs, addSendAsAccount, type Touch, type SendAsOption, type SentAs } from '@/lib/actions/outreach-touches';
 import { OutreachEmailBody, Badge, ChannelTag, oStyles, type Sender } from '@/components/outreach-email-drawer';
 import { CHANNELS, CHANNEL_BY_KEY } from '@/lib/outreach/channels';
 
@@ -17,8 +17,8 @@ const fmtDay = (s: string | null) => (s ? new Date(s).toLocaleDateString('vi-VN'
 const chLabel = (k: string) => CHANNEL_BY_KEY[k]?.label || k;
 const chIcon = (k: string) => CHANNEL_BY_KEY[k]?.icon || '•';
 
-export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, backgrounded }: {
-  projectId: string; prospectId: number; onClose: () => void; onChange: () => void; backgrounded?: boolean;
+export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onChannel, onClose, onChange, backgrounded }: {
+  projectId: string; prospectId: number; initialChannel?: string; onChannel?: (c: string) => void; onClose: () => void; onChange: () => void; backgrounded?: boolean;
 }) {
   const [p, setP] = useState<OutreachProspect | null>(null);
   const [touches, setTouches] = useState<Touch[]>([]);
@@ -28,11 +28,14 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   const [msg, setMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [sendAs, setSendAs] = useState<SendAsOption[]>([]);   // "gửi bằng" options for the selected touch channel
+  const [addIdent, setAddIdent] = useState('');              // inline "thêm nhanh" account handle
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 1800); };
   const reloadTouches = async () => setTouches(await listTouches(projectId, prospectId));
   const reloadAll = async () => { const [pr, ts] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId)]); setP(pr); setTouches(ts); onChange(); };
-  useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(pr?.email ? 'email' : 'contact_form'); })(); return () => { live = false; }; }, [projectId, prospectId]);
+  useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(initialChannel || (pr?.email ? 'email' : 'contact_form')); })(); return () => { live = false; }; /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [projectId, prospectId]);
+  // Reflect the selected channel tab to the URL (?ch=) so F5 reopens on the same tab. See feedback_url_state.
+  useEffect(() => { if (sel && onChannel) onChannel(sel); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sel]);
   // "Gửi bằng" options for the selected touch channel — accounts for that platform + identities.
   // Auto-default the touch to the best match (comment-as-Page etc.) the first time, so it's never empty.
   useEffect(() => {
@@ -62,6 +65,9 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   const addChannel = async (channel: string) => { setBusy('add'); const r = await addTouch(projectId, prospectId, channel, ''); setBusy(null); setAdding(false); if (r.ok && r.touch) { await reloadTouches(); setSel(channel); } else flash(r.error || 'lỗi'); };
   const genTouchContent = async () => { if (!selTouch) return; setBusy('gen'); const r = await genTouch(projectId, prospectId, selTouch.id); setBusy(null); if (r.ok && r.content) { await reloadTouches(); flash('✓ đã sinh'); } else flash(r.error || 'lỗi sinh'); };
   const saveTouchField = async (patch: { targetRef?: string; content?: string }) => { if (!selTouch) return; await saveTouch(projectId, selTouch.id, patch); await reloadTouches(); };
+  const pickSentAs = (sa: SentAs) => { if (!selTouch) return; setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, sentAs: sa } : t)); saveTouch(projectId, selTouch.id, { sentAs: sa }); };
+  // "Thêm nhanh" a send-as identity when the picker is empty (or the Page you used isn't saved) → global account.
+  const doAddIdent = async () => { const h = addIdent.trim(); if (!h || !selTouch) return; setBusy('addident'); const r = await addSendAsAccount(projectId, sel, h); setBusy(null); if (r.ok && r.option) { setSendAs((o) => [r.option!, ...o.filter((x) => !(x.kind === r.option!.kind && x.id === r.option!.id))]); pickSentAs({ kind: r.option.kind, id: r.option.id, label: r.option.label }); setAddIdent(''); flash('✓ đã thêm ' + r.option.label); } else flash(r.error || 'lỗi thêm'); };
   const markSent = async () => { if (!selTouch) return; if (!selTouch.sentAs?.id) { flash('Chọn "Gửi bằng" (danh tính đã dùng) trước'); return; } setBusy('sent'); await markTouchSent(projectId, prospectId, selTouch.id); await reloadAll(); setBusy(null); flash('✓ đã đánh dấu gửi'); };
   const delTouch = async () => { if (!selTouch) return; setBusy('del'); await deleteTouch(projectId, selTouch.id); await reloadTouches(); setSel(primaryChannel); setBusy(null); onChange(); };
 
@@ -116,12 +122,20 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
             <input defaultValue={selTouch.targetRef} onBlur={(e) => saveTouchField({ targetRef: e.target.value })} placeholder="@handle hoặc URL profile/post của họ" autoComplete="off" style={inputStyle} />
             {/* Gửi bằng (comment/DM as) — account của platform kênh này + identities; đổi lúc nào cũng được, chốt khi ✓ Đã gửi */}
             <div style={lbl}>Gửi bằng <span style={{ color: 'var(--fg-4)' }}>· comment/DM as</span></div>
-            <select value={selTouch.sentAs?.id ? `${selTouch.sentAs.kind}:${selTouch.sentAs.id}` : ''}
-              onChange={(e) => { const [k, id] = e.target.value.split(':'); const o = sendAs.find((x) => x.kind === k && x.id === Number(id)); const sa: SentAs = o ? { kind: o.kind, id: o.id, label: o.label } : {}; setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, sentAs: sa } : t)); saveTouch(projectId, selTouch.id, { sentAs: sa }); }}
-              style={{ ...inputStyle, marginBottom: 8 }}>
-              <option value="">— chọn danh tính —</option>
-              {sendAs.map((o) => <option key={o.kind + o.id} value={`${o.kind}:${o.id}`}>{o.label} · {o.sub}{o.match ? ' ✓' : ''}</option>)}
-            </select>
+            {sendAs.length > 0 && (
+              <select value={selTouch.sentAs?.id ? `${selTouch.sentAs.kind}:${selTouch.sentAs.id}` : ''}
+                onChange={(e) => { const [k, id] = e.target.value.split(':'); const o = sendAs.find((x) => x.kind === k && x.id === Number(id)); pickSentAs(o ? { kind: o.kind, id: o.id, label: o.label } : {}); }}
+                style={{ ...inputStyle, marginBottom: 6 }}>
+                <option value="">— chọn danh tính —</option>
+                {sendAs.map((o) => <option key={o.kind + o.id} value={`${o.kind}:${o.id}`}>{o.label} · {o.sub}{o.match ? ' ✓' : ''}</option>)}
+              </select>
+            )}
+            {/* Chưa có / thiếu danh tính → thêm nhanh tại chỗ (tạo account global) hoặc nhập hàng loạt bằng ext trên FB. */}
+            <div style={{ display: 'flex', gap: 6, margin: '0 0 6px', alignItems: 'center' }}>
+              <input value={addIdent} onChange={(e) => setAddIdent(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doAddIdent(); } }} placeholder={sendAs.length ? 'thêm Page/account khác…' : 'chưa có — nhập tên Page/account đã dùng'} autoComplete="off" style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+              <button type="button" onClick={doAddIdent} disabled={!addIdent.trim() || !!busy} style={{ ...btn, padding: '6px 10px', fontWeight: 700 }}>{busy === 'addident' ? '…' : '➕ thêm'}</button>
+            </div>
+            {sendAs.length === 0 && <div style={{ fontSize: 11, color: 'var(--fg-4)', margin: '0 0 6px', lineHeight: 1.5 }}>Chưa có danh tính cho kênh này. Thêm 1 cái ở trên, hoặc nhập hàng loạt: mở facebook.com → switcher &ldquo;Your profiles &amp; Pages&rdquo; → nút <b>⬇ Nhập Pages</b> của ext.</div>}
             <div style={{ fontSize: 11.5, color: 'var(--fg-3)', margin: '0 0 8px' }}>Cách: {CHANNEL_BY_KEY[sel]?.tip}</div>
             <div style={lbl}>Nội dung ({chLabel(sel)})</div>
             <textarea value={selTouch.content} onChange={(e) => setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, content: e.target.value } : t))} onBlur={(e) => saveTouchField({ content: e.target.value })} rows={6} placeholder="Bấm ✨ Sinh để AI viết theo giọng kênh này" style={taStyle} />

@@ -51,7 +51,7 @@ export async function listTouches(projectId: string, prospectId: number): Promis
 
 // "Gửi bằng" (comment/DM as) options for a channel: the project's accounts for that channel's platform
 // first, then its other accounts, then identities (personas). Generic — any channel picks who acted.
-export interface SendAsOption { kind: 'account' | 'identity'; id: number; label: string; sub: string; match: boolean }
+export interface SendAsOption { kind: 'account' | 'identity'; id: number; label: string; sub: string; match: boolean; avatar?: string; editable?: boolean }
 const CHANNEL_PLATFORM: Record<string, string[]> = {
   facebook: ['facebook'], x: ['x', 'twitter'], linkedin: ['linkedin'], instagram: ['instagram'],
   reddit: ['reddit'], youtube: ['youtube'], telegram: ['telegram'], discord: ['discord'],
@@ -63,16 +63,17 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   // GLOBAL POOL: FB Pages / social accounts anh sở hữu = asset portfolio-wide, tái dùng MỌI dự án. Lấy TẤT CẢ
   // account của platform kênh này (bất kể project), + account của project này ở platform khác (ngữ cảnh) + identities.
   const accts = (await db.execute(sql`
-    SELECT pa.id, pa.platform_key, pa.handle, pa.account_type,
+    SELECT pa.id, pa.platform_key, pa.handle, pa.account_type, pa.project_id,
+           pa.persona->>'avatar' AS avatar, pa.persona->>'displayName' AS display,
            (pa.platform_key = ANY(${plats}::text[])) AS platmatch
     FROM platform_accounts pa
     WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> ''
       AND ( pa.platform_key = ANY(${plats}::text[])
             OR EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}) )
-    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; platmatch: boolean }>;
+    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; platmatch: boolean }>;
   const idents = (await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>;
   const opts: SendAsOption[] = [];
-  for (const a of accts) opts.push({ kind: 'account', id: Number(a.id), label: '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true });
+  for (const a of accts) opts.push({ kind: 'account', id: Number(a.id), label: (a.display && a.display.trim()) || '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true, avatar: a.avatar || undefined, editable: a.project_id === null });
   for (const i of idents) opts.push({ kind: 'identity', id: Number(i.id), label: String(i.label), sub: `persona · ${i.kind}`, match: false });
   return opts;   // already platform-match-first from SQL
 }
@@ -93,6 +94,25 @@ export async function addSendAsAccount(projectId: string, channel: string, handl
     if (!id) return { ok: false, error: 'không tạo được' };
     return { ok: true, option: { kind: 'account', id, label: '@' + h, sub: `${platform} · brand`, match: true } };
   } catch (e) { return { ok: false, error: `thêm lỗi: ${(e as Error).message}` }; }
+}
+
+// Rename a send-as account (CRUD update). GLOBAL accounts only (project-owned ones are managed in the vault).
+export async function renameSendAsAccount(accountId: number, handle: string): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const h = handle.trim(); if (!h) return { ok: false, error: 'nhập tên' };
+  try {
+    await db.execute(sql`UPDATE platform_accounts SET handle = ${h}, persona = COALESCE(persona, '{}'::jsonb) || jsonb_build_object('displayName', ${h}::text), updated_at = now() WHERE id = ${accountId} AND project_id IS NULL`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: /unique|duplicate/i.test(String(e)) ? 'tên đã tồn tại' : `sửa lỗi: ${(e as Error).message}` }; }
+}
+
+// Delete a send-as account (CRUD delete). GLOBAL accounts only → never nukes a project's real vault account.
+export async function deleteSendAsAccount(accountId: number): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  await db.execute(sql`DELETE FROM platform_accounts WHERE id = ${accountId} AND project_id IS NULL`);
+  return { ok: true };
 }
 
 // Add (or re-target) a channel for this prospect. Unique (prospect, channel) → idempotent.

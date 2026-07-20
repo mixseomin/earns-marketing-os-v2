@@ -2128,6 +2128,7 @@ export const outreachTouches = pgTable(
     content: text('content'),                                          // per-channel message
     status: text('status').notNull().default('to_send'),               // to_send|sent|replied|skipped
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    sentAs: jsonb('sent_as').notNull().default({}),                     // "comment/DM as" — {kind:'account'|'identity', id, label}
     meta: jsonb('meta').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

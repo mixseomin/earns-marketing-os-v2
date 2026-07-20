@@ -16,11 +16,13 @@ async function isAdmin(): Promise<boolean> {
   return me?.role === 'admin';
 }
 
-export interface Touch { id: number; channel: string; targetRef: string; content: string; status: string; sentAt: string | null }
+export interface SentAs { kind?: 'account' | 'identity'; id?: number; label?: string }
+export interface Touch { id: number; channel: string; targetRef: string; content: string; status: string; sentAt: string | null; sentAs: SentAs }
 
 const mapTouch = (r: Record<string, unknown>): Touch => ({
   id: Number(r.id), channel: String(r.channel), targetRef: String(r.target_ref ?? ''), content: String(r.content ?? ''),
   status: String(r.status ?? 'to_send'), sentAt: r.sent_at ? String(r.sent_at) : null,
+  sentAs: (r.sent_as && typeof r.sent_as === 'object') ? r.sent_as as SentAs : {},
 });
 
 // Campaign sender for this prospect (de-hardcode the email drawer's From line). Fallback = militarycalc.
@@ -33,8 +35,36 @@ export async function getProspectSender(projectId: string, prospectId: number): 
 
 export async function listTouches(projectId: string, prospectId: number): Promise<Touch[]> {
   const db = getDb(); if (!db) return [];
-  const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);
+  const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at, sent_as FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);
   return (rows as unknown as Array<Record<string, unknown>>).map(mapTouch);
+}
+
+// "Gửi bằng" (comment/DM as) options for a channel: the project's accounts for that channel's platform
+// first, then its other accounts, then identities (personas). Generic — any channel picks who acted.
+export interface SendAsOption { kind: 'account' | 'identity'; id: number; label: string; sub: string; match: boolean }
+const CHANNEL_PLATFORM: Record<string, string[]> = {
+  facebook: ['facebook'], x: ['x', 'twitter'], linkedin: ['linkedin'], instagram: ['instagram'],
+  reddit: ['reddit'], youtube: ['youtube'], telegram: ['telegram'], discord: ['discord'],
+  medium: ['medium'], devto: ['devto', 'dev-to'], github: ['github'],
+};
+export async function listSendAs(projectId: string, channel: string): Promise<SendAsOption[]> {
+  const db = getDb(); if (!db) return [];
+  const plats = CHANNEL_PLATFORM[channel] || [];
+  // GLOBAL POOL: FB Pages / social accounts anh sở hữu = asset portfolio-wide, tái dùng MỌI dự án. Lấy TẤT CẢ
+  // account của platform kênh này (bất kể project), + account của project này ở platform khác (ngữ cảnh) + identities.
+  const accts = (await db.execute(sql`
+    SELECT pa.id, pa.platform_key, pa.handle, pa.account_type,
+           (pa.platform_key = ANY(${plats}::text[])) AS platmatch
+    FROM platform_accounts pa
+    WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> ''
+      AND ( pa.platform_key = ANY(${plats}::text[])
+            OR EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}) )
+    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; platmatch: boolean }>;
+  const idents = (await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>;
+  const opts: SendAsOption[] = [];
+  for (const a of accts) opts.push({ kind: 'account', id: Number(a.id), label: '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true });
+  for (const i of idents) opts.push({ kind: 'identity', id: Number(i.id), label: String(i.label), sub: `persona · ${i.kind}`, match: false });
+  return opts;   // already platform-match-first from SQL
 }
 
 // Add (or re-target) a channel for this prospect. Unique (prospect, channel) → idempotent.
@@ -46,16 +76,17 @@ export async function addTouch(projectId: string, prospectId: number, channel: s
       INSERT INTO outreach_touches (tenant_id, prospect_id, project_id, channel, target_ref)
       VALUES ('self', ${prospectId}, ${projectId}, ${channel}, ${targetRef || null})
       ON CONFLICT (prospect_id, channel) DO UPDATE SET target_ref = COALESCE(EXCLUDED.target_ref, outreach_touches.target_ref), updated_at = now()
-      RETURNING id, channel, target_ref, content, status, sent_at`);
+      RETURNING id, channel, target_ref, content, status, sent_at, sent_as`);
     revalidatePath(`/p/${projectId}/outreach`);
     return { ok: true, touch: mapTouch((ins as unknown as Array<Record<string, unknown>>)[0]!) };
   } catch (e) { return { ok: false, error: `add touch lỗi: ${(e as Error).message}` }; }
 }
 
-export async function saveTouch(projectId: string, touchId: number, patch: { targetRef?: string; content?: string }): Promise<{ ok: boolean; error?: string }> {
+export async function saveTouch(projectId: string, touchId: number, patch: { targetRef?: string; content?: string; sentAs?: SentAs }): Promise<{ ok: boolean; error?: string }> {
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
-  await db.execute(sql`UPDATE outreach_touches SET target_ref = COALESCE(${patch.targetRef ?? null}, target_ref), content = COALESCE(${patch.content ?? null}, content), updated_at = now() WHERE id = ${touchId} AND project_id = ${projectId}`);
+  const sentAsFrag = patch.sentAs !== undefined ? sql`, sent_as = ${JSON.stringify(patch.sentAs)}::jsonb` : sql``;
+  await db.execute(sql`UPDATE outreach_touches SET target_ref = COALESCE(${patch.targetRef ?? null}, target_ref), content = COALESCE(${patch.content ?? null}, content)${sentAsFrag}, updated_at = now() WHERE id = ${touchId} AND project_id = ${projectId}`);
   return { ok: true };
 }
 

@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer } from '@/components/ui';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { loadProspect, setProspectStatus } from '@/lib/actions/outreach-mutations';
-import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, type Touch } from '@/lib/actions/outreach-touches';
+import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, listSendAs, type Touch, type SendAsOption, type SentAs } from '@/lib/actions/outreach-touches';
 import { OutreachEmailBody, Badge, ChannelTag, oStyles, type Sender } from '@/components/outreach-email-drawer';
 import { CHANNELS, CHANNEL_BY_KEY } from '@/lib/outreach/channels';
 
@@ -27,11 +27,27 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [sendAs, setSendAs] = useState<SendAsOption[]>([]);   // "gửi bằng" options for the selected touch channel
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 1800); };
   const reloadTouches = async () => setTouches(await listTouches(projectId, prospectId));
   const reloadAll = async () => { const [pr, ts] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId)]); setP(pr); setTouches(ts); onChange(); };
   useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(pr?.email ? 'email' : 'contact_form'); })(); return () => { live = false; }; }, [projectId, prospectId]);
+  // "Gửi bằng" options for the selected touch channel — accounts for that platform + identities.
+  // Auto-default the touch to the best match (comment-as-Page etc.) the first time, so it's never empty.
+  useEffect(() => {
+    const t = touches.find((x) => x.channel === sel);
+    if (!t) { setSendAs([]); return; }
+    let live = true;
+    listSendAs(projectId, sel).then((o) => {
+      if (!live) return;
+      setSendAs(o);
+      const d = o[0];
+      if (!t.sentAs?.id && d) { const sa = { kind: d.kind, id: d.id, label: d.label }; setTouches((ts) => ts.map((x) => x.id === t.id ? { ...x, sentAs: sa } : x)); saveTouch(projectId, t.id, { sentAs: sa }); }
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel, projectId]);
 
   if (!p) return <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded}><div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Đang tải…</div></Drawer>;
 
@@ -46,7 +62,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
   const addChannel = async (channel: string) => { setBusy('add'); const r = await addTouch(projectId, prospectId, channel, ''); setBusy(null); setAdding(false); if (r.ok && r.touch) { await reloadTouches(); setSel(channel); } else flash(r.error || 'lỗi'); };
   const genTouchContent = async () => { if (!selTouch) return; setBusy('gen'); const r = await genTouch(projectId, prospectId, selTouch.id); setBusy(null); if (r.ok && r.content) { await reloadTouches(); flash('✓ đã sinh'); } else flash(r.error || 'lỗi sinh'); };
   const saveTouchField = async (patch: { targetRef?: string; content?: string }) => { if (!selTouch) return; await saveTouch(projectId, selTouch.id, patch); await reloadTouches(); };
-  const markSent = async () => { if (!selTouch) return; setBusy('sent'); await markTouchSent(projectId, prospectId, selTouch.id); await reloadAll(); setBusy(null); flash('✓ đã đánh dấu gửi'); };
+  const markSent = async () => { if (!selTouch) return; if (!selTouch.sentAs?.id) { flash('Chọn "Gửi bằng" (danh tính đã dùng) trước'); return; } setBusy('sent'); await markTouchSent(projectId, prospectId, selTouch.id); await reloadAll(); setBusy(null); flash('✓ đã đánh dấu gửi'); };
   const delTouch = async () => { if (!selTouch) return; setBusy('del'); await deleteTouch(projectId, selTouch.id); await reloadTouches(); setSel(primaryChannel); setBusy(null); onChange(); };
 
   const pill = (key: string, badge: string, active: boolean, onClick: () => void) => (
@@ -98,6 +114,14 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
             <div style={{ ...lbl, color: 'var(--fg-2)', fontSize: 11 }}>Đang: {chIcon(sel)} {chLabel(sel)}</div>
             <div style={lbl}>Tới</div>
             <input defaultValue={selTouch.targetRef} onBlur={(e) => saveTouchField({ targetRef: e.target.value })} placeholder="@handle hoặc URL profile/post của họ" autoComplete="off" style={inputStyle} />
+            {/* Gửi bằng (comment/DM as) — account của platform kênh này + identities; đổi lúc nào cũng được, chốt khi ✓ Đã gửi */}
+            <div style={lbl}>Gửi bằng <span style={{ color: 'var(--fg-4)' }}>· comment/DM as</span></div>
+            <select value={selTouch.sentAs?.id ? `${selTouch.sentAs.kind}:${selTouch.sentAs.id}` : ''}
+              onChange={(e) => { const [k, id] = e.target.value.split(':'); const o = sendAs.find((x) => x.kind === k && x.id === Number(id)); const sa: SentAs = o ? { kind: o.kind, id: o.id, label: o.label } : {}; setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, sentAs: sa } : t)); saveTouch(projectId, selTouch.id, { sentAs: sa }); }}
+              style={{ ...inputStyle, marginBottom: 8 }}>
+              <option value="">— chọn danh tính —</option>
+              {sendAs.map((o) => <option key={o.kind + o.id} value={`${o.kind}:${o.id}`}>{o.label} · {o.sub}{o.match ? ' ✓' : ''}</option>)}
+            </select>
             <div style={{ fontSize: 11.5, color: 'var(--fg-3)', margin: '0 0 8px' }}>Cách: {CHANNEL_BY_KEY[sel]?.tip}</div>
             <div style={lbl}>Nội dung ({chLabel(sel)})</div>
             <textarea value={selTouch.content} onChange={(e) => setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, content: e.target.value } : t))} onBlur={(e) => saveTouchField({ content: e.target.value })} rows={6} placeholder="Bấm ✨ Sinh để AI viết theo giọng kênh này" style={taStyle} />
@@ -119,7 +143,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, onClose, onChange, b
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <HistRow icon={chIcon(primaryChannel)} label={chLabel(primaryChannel)} status={<Badge status={p.status} />} day={fmtDay(p.sentAt)} />
           {touches.filter((t) => t.status === 'sent' || t.status === 'replied').map((t) => (
-            <HistRow key={t.id} icon={chIcon(t.channel)} label={chLabel(t.channel)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}</span>} day={fmtDay(t.sentAt)} />
+            <HistRow key={t.id} icon={chIcon(t.channel)} label={chLabel(t.channel)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}{t.sentAs?.label ? <span style={{ color: 'var(--fg-4)' }}> · as {t.sentAs.label}</span> : ''}</span>} day={fmtDay(t.sentAt)} />
           ))}
           {(!p.sentAt && touches.every((t) => t.status !== 'sent')) && <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa chạm kênh nào.</div>}
         </div>

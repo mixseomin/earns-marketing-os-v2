@@ -23,6 +23,14 @@ const mapTouch = (r: Record<string, unknown>): Touch => ({
   status: String(r.status ?? 'to_send'), sentAt: r.sent_at ? String(r.sent_at) : null,
 });
 
+// Campaign sender for this prospect (de-hardcode the email drawer's From line). Fallback = militarycalc.
+export async function getProspectSender(projectId: string, prospectId: number): Promise<{ name: string; email: string }> {
+  const db = getDb(); if (!db) return { name: 'Jake Miller', email: 'hello@militarycalc.com' };
+  const rows = await db.execute(sql`SELECT c.from_name, c.from_email FROM outreach_prospects p LEFT JOIN outreach_campaigns c ON c.id = p.campaign_id WHERE p.id = ${prospectId} AND p.project_id = ${projectId} LIMIT 1`);
+  const r = (rows as unknown as Array<{ from_name: string | null; from_email: string | null }>)[0];
+  return { name: r?.from_name || 'Jake Miller', email: r?.from_email || 'hello@militarycalc.com' };
+}
+
 export async function listTouches(projectId: string, prospectId: number): Promise<Touch[]> {
   const db = getDb(); if (!db) return [];
   const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);

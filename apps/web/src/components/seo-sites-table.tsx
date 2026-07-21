@@ -125,6 +125,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const cell: React.CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', fontWeight: 500 };
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
+  // Hierarchy: clicks = the metric that matters (real visitor) → bold; impressions = context → dim.
+  const dimImpr = { color: 'var(--fg-3)', opacity: 0.7 };
+  const boldClk = (cond: boolean) => ({ ...tone(cond), fontWeight: 700 });
 
   // Per-group styling helpers — bg tint only (no borders). Header bg is a
   // touch stronger than body so the group reads as a vertical band.
@@ -318,11 +321,11 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.gsc && <>
-                  <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...dimImpr })}>{r.impressions_7d.toLocaleString()}</td>
                   <td data-chart="gsc" style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={sparkValues} />
                   </td>
-                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
+                  <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...boldClk(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
                   <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(ctr > 0) })}>{ctr > 0 ? ctr.toFixed(2) + '%' : '—'}</td>
                   <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.avg_position_7d > 0 && r.avg_position_7d < 20) })}>{r.avg_position_7d > 0 ? r.avg_position_7d.toFixed(1) : '—'}</td>
                   <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right' })}>{r.pages_with_impressions_7d}</td>
@@ -353,13 +356,13 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.bing && <>
-                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
+                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...dimImpr })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
                   </td>
                   <td data-chart="bing" style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={bingSpark} color={GROUP_COLOR.bing.fg} />
                   </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...boldClk((r.bing_clicks_7d ?? 0) > 0) })}>
                     {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
                   </td>
                   <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}

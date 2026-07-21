@@ -38,6 +38,7 @@ export async function GET() {
     domains.map(async (d) => ({
       domain: d.domain,
       send: d.send === true,
+      warmupStart: d.warmupStart || null,
       auth: await authOf(d.domain, d.dkimSelector || 'mailer._domainkey'),
       postmaster: await trafficStats(d.domain),
       spamTest: await spamTestOf(d.domain),

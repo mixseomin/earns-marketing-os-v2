@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 // Tracked sending/monitored domains for the deliverability table. Untracked file on the box
 // (survives GHA reset --hard). The mail-tester cron reads the same file.
-export interface TrackedDomain { domain: string; dkimSelector?: string; listUid?: string; send?: boolean }
+export interface TrackedDomain { domain: string; dkimSelector?: string; listUid?: string; send?: boolean; warmupStart?: string }
 
 const FILE = process.env.DOMAINS_FILE || '/opt/earns-marketing-os-v2/.domains.json';
 

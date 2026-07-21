@@ -6,7 +6,7 @@ interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
 interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
-interface Row { domain: string; send?: boolean; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
+interface Row { domain: string; send?: boolean; warmupStart?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
 
 const repColor: Record<string, string> = { HIGH: '#5ac47e', MEDIUM: '#37d4c2', LOW: '#e0a94a', BAD: '#d16b6b' };
@@ -35,12 +35,97 @@ function Spark({ pts }: { pts: number[] }) {
   );
 }
 
+// Standard warm-up ramp: daily send caps for a brand-new sending domain (opt-in list).
+// After the last step → steady/full volume. See reference_mailwizz.md.
+const RAMP = [50, 100, 250, 500, 1000, 2500, 5000, 10000];
+const DAY_MS = 86_400_000;
+const isoUTC = (d: Date) => d.toISOString().slice(0, 10);
+const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const capLabel = (n: number) => (n >= 1000 ? n / 1000 + 'k' : String(n));
+
+// A calendar strip for one sending domain: one cell per warm-up day (D1..D8 + steady),
+// each showing that day's target volume + the real reputation/mail-tester result on that date.
+function WarmupCalendar({ row, onChange }: { row: Row; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const set = useCallback(async (action: 'start' | 'stop') => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain, action }) });
+      onChange();
+    } finally { setBusy(false); }
+  }, [busy, row.domain, onChange]);
+
+  const btn: CSSProperties = { ...mono, fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: busy ? 'default' : 'pointer' };
+
+  if (!row.warmupStart) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+        <span style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>{row.domain}</span>
+        <button onClick={() => set('start')} disabled={busy} title="Stamp today as day 1 of the warm-up ramp">🔥 Start warm-up</button>
+        <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>ramp 50 → full over {RAMP.length} days</span>
+      </div>
+    );
+  }
+
+  const repByDate = new Map((row.postmaster || []).map((p) => [p.date, p.reputation] as const));
+  const scoreByDate = new Map((row.spamTest || []).filter((p) => p.score != null).map((p) => [p.date, p.score] as const));
+  const startD = new Date(row.warmupStart + 'T00:00:00Z');
+  const todayD = new Date(isoUTC(new Date()) + 'T00:00:00Z');
+  const dayIdx = Math.floor((todayD.getTime() - startD.getTime()) / DAY_MS); // 0-based
+  const done = dayIdx >= RAMP.length;
+
+  return (
+    <div style={{ padding: '3px 0 6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+        <span style={{ ...mono, fontSize: 11, color: 'var(--fg-0)', fontWeight: 700 }}>{row.domain}</span>
+        <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>
+          {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
+        </span>
+        <button onClick={() => set('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
+      </div>
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+        {RAMP.map((cap, i) => {
+          const dt = new Date(startD.getTime() + i * DAY_MS);
+          const key = isoUTC(dt);
+          const isToday = i === dayIdx;
+          const past = i < dayIdx;
+          const rep = repByDate.get(key) || null;
+          const score = scoreByDate.get(key);
+          const dot = rep ? repColor[rep] || null : null;
+          return (
+            <div key={i}
+              title={`${key} · target ${cap.toLocaleString()}${rep ? ' · rep ' + repShort(rep) : ''}${score != null ? ' · mail-tester ' + score + '/10' : ''}`}
+              style={{ width: 58, padding: '4px 4px', borderRadius: 6, textAlign: 'center', border: isToday ? '1.5px solid var(--accent,#37d4c2)' : '1px solid var(--line)', background: past ? 'var(--bg-1)' : 'transparent', opacity: i > dayIdx ? 0.5 : 1 }}>
+              <div style={{ fontSize: 9, color: isToday ? 'var(--accent,#37d4c2)' : 'var(--fg-3)', fontWeight: isToday ? 700 : 400 }}>D{i + 1}</div>
+              <div style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>{capLabel(cap)}</div>
+              <div style={{ fontSize: 8.5, color: 'var(--fg-3)' }}>{fmtDay(dt)}</div>
+              <div style={{ height: 8, marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                {dot && <span title={`rep ${repShort(rep)}`} style={{ width: 6, height: 6, borderRadius: '50%', background: dot, display: 'inline-block' }} />}
+                {score != null && <span style={{ ...mono, fontSize: 8, color: scoreColor(score) }}>{score}</span>}
+                {past && !dot && score == null && <span style={{ fontSize: 8, color: 'var(--fg-3)' }}>·</span>}
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ width: 58, padding: '4px 4px', borderRadius: 6, textAlign: 'center', border: done ? '1.5px solid #5ac47e' : '1px dashed var(--line)', opacity: done ? 1 : 0.5 }}>
+          <div style={{ fontSize: 9, color: 'var(--fg-3)' }}>D{RAMP.length + 1}+</div>
+          <div style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>full</div>
+          <div style={{ fontSize: 8.5, color: 'var(--fg-3)' }}>steady</div>
+          <div style={{ height: 8 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DeliverabilityCard() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
+  const [view, setView] = useState<'table' | 'warmup'>('table');
 
   const load = useCallback(async () => {
     try {
@@ -80,7 +165,18 @@ export function DeliverabilityCard() {
   return (
     <div style={{ margin: '0 16px 14px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
+          <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
+            {(['table', 'warmup'] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)}
+                style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                  background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
+                {v === 'table' ? 'Table' : '🔥 Warm-up'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {addMsg && <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{addMsg}</span>}
           <input
@@ -101,6 +197,16 @@ export function DeliverabilityCard() {
             style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
         </div>
       </div>
+      {view === 'warmup' ? (
+        <div style={{ paddingTop: 2 }}>
+          {d.rows.filter((r) => r.send).length === 0
+            ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
+            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} />)}
+          <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
+            Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
+          </div>
+        </div>
+      ) : (
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -184,6 +290,7 @@ export function DeliverabilityCard() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

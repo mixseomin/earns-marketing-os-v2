@@ -74,6 +74,7 @@ export function GscDetailDrawer({ domain, points, bingPoints = [], onClose, inte
           width: 'min(820px, 100%)',
           background: 'var(--bg-1)',
           border: '1px solid var(--line-strong)',
+          borderTop: `4px solid ${sc.color}`,
           borderRadius: 10,
           padding: 20,
           boxShadow: '0 16px 48px rgba(0,0,0,.6)',
@@ -82,8 +83,8 @@ export function GscDetailDrawer({ domain, points, bingPoints = [], onClose, inte
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
             <h2 style={{ fontSize: 16, fontFamily: 'var(--font-sans)', margin: '0 0 4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 9, height: 9, borderRadius: 2, background: sc.color, display: 'inline-block' }} />
-              {sc.label} · {domain}
+              <span style={{ background: sc.color, color: 'var(--bg-0)', padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>{sc.label}</span>
+              {domain}
             </h2>
             <small style={{ color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
               last {filtered.length} days · ends {filtered[filtered.length - 1]?.date ?? '—'}
@@ -138,7 +139,8 @@ export function GscDetailDrawer({ domain, points, bingPoints = [], onClose, inte
         <MultiLineChart points={filtered} color={sc.color} showPos={sc.hasPos} />
 
         <div style={{ marginTop: 12, color: 'var(--fg-4)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
-          impressions ({sc.impWord}) · clicks (lime){sc.hasPos ? ' · position right-axis (amber, lower=better)' : ' · Bing has no daily position'}
+          <b style={{ color: sc.color }}>■ impressions</b> · <b style={{ color: 'var(--ok)' }}>■ clicks</b>
+          {sc.hasPos ? <> · <b style={{ color: '#fbbf24' }}>▪ position</b> (right-axis, lower=better)</> : ' · Bing has no daily position'}
         </div>
 
         {/* Interactions breakdown (GA4 custom events, 7d) */}
@@ -300,14 +302,14 @@ function MultiLineChart({ points, color, showPos }: { points: DayPoint[]; color:
       {/* lines */}
       <path d={pathImps} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
       <path d={pathClicks} fill="none" stroke="var(--ok)" strokeWidth="1.5" strokeLinejoin="round" />
-      {showPos && <path d={pathPos} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" strokeDasharray="3 2" />}
+      {showPos && <path d={pathPos} fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinejoin="round" strokeDasharray="3 2" />}
 
       {/* right-axis label for position (top/bottom) */}
       {showPos && <>
-        <text x={W - padR + 4} y={padT + 8} fontSize="9" fill="var(--accent)" fontFamily="var(--font-mono)">
+        <text x={W - padR + 4} y={padT + 8} fontSize="9" fill="#fbbf24" fontFamily="var(--font-mono)">
           pos {posMax.toFixed(0)}
         </text>
-        <text x={W - padR + 4} y={H - padB - 2} fontSize="9" fill="var(--accent)" fontFamily="var(--font-mono)">
+        <text x={W - padR + 4} y={H - padB - 2} fontSize="9" fill="#fbbf24" fontFamily="var(--font-mono)">
           pos {posMin.toFixed(0)}
         </text>
       </>}

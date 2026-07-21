@@ -245,11 +245,11 @@ export async function addTouch(projectId: string, prospectId: number, channel: s
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   try {
+    // Always INSERT a fresh touch — same channel can repeat (FB 1, FB 2…); the unique index was dropped (0149).
     const ins = await db.execute(sql`
       INSERT INTO outreach_touches (tenant_id, prospect_id, project_id, channel, target_ref)
       VALUES ('self', ${prospectId}, ${projectId}, ${channel}, ${targetRef || null})
-      ON CONFLICT (prospect_id, channel) DO UPDATE SET target_ref = COALESCE(EXCLUDED.target_ref, outreach_touches.target_ref), updated_at = now()
-      RETURNING id, channel, target_ref, content, status, sent_at, sent_as`);
+      RETURNING id, channel, target_ref, content, status, sent_at, sent_as, meta`);
     revalidatePath(`/p/${projectId}/outreach`);
     return { ok: true, touch: mapTouch((ins as unknown as Array<Record<string, unknown>>)[0]!) };
   } catch (e) { return { ok: false, error: `add touch lỗi: ${(e as Error).message}` }; }

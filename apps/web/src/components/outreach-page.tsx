@@ -258,6 +258,16 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     const pid = sp.get('prospect');
     return pid && /^\d+$/.test(pid) ? allProspects.find((x) => x.id === Number(pid)) ?? null : null;
   });
+  // Drawer is URL-driven (like the backlinks page): ?prospect=<id> + ?ch=<channel> → F5 reopens the same
+  // prospect on the same channel. setPreview stays the plain setter; this effect mirrors it to the URL.
+  const [outreachCh, setOutreachChState] = useState<string>(() => sp.get('ch') || '');
+  const setOutreachCh = (c: string) => { setOutreachChState(c); const u = new URL(window.location.href); if (c) u.searchParams.set('ch', c); else u.searchParams.delete('ch'); window.history.replaceState(null, '', u.toString()); };
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (preview) u.searchParams.set('prospect', String(preview.id));
+    else { u.searchParams.delete('prospect'); u.searchParams.delete('ch'); }
+    window.history.replaceState(null, '', u.toString());
+  }, [preview]);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState('');
   const [q, setQ] = useState('');
@@ -694,6 +704,8 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
         <TaskOutreachDrawer
           projectId={projectId}
           prospectId={preview.id}
+          initialChannel={outreachCh || undefined}
+          onChannel={setOutreachCh}
           onClose={() => setPreview(null)}
           onChange={() => router.refresh()}
         />

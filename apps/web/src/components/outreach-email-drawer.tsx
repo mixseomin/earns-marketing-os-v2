@@ -10,6 +10,7 @@ import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
+import { GuardedButton } from '@/components/ui/guarded-button';
 
 export type Sender = { name: string; email: string };
 
@@ -133,7 +134,7 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
             <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
             <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Tạo lại từ mẫu (bỏ chỉnh sửa)">Đặt lại</button>
             {sendable && (<>
-              <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>{formBusy ? 'Đang lưu…' : '✓ Đã gửi form'}</button>
+              <GuardedButton reason={!body.trim() ? 'Nhập nội dung trước khi đánh dấu đã gửi' : ''} style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>{formBusy ? 'Đang lưu…' : '✓ Đã gửi form'}</GuardedButton>
               <button style={{ ...btn, padding: '7px 12px', borderColor: 'var(--bad)', color: 'var(--bad)' }} disabled={formBusy} onClick={() => doForm('unreachable')} title="Form hỏng, không phải form thật, bị captcha chặn, hoặc không gửi được">Ko gửi được / form hỏng</button>
             </>)}
           </div>
@@ -158,7 +159,7 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={16} style={taStyle} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-            {sendable && send === 'idle' && <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => setSend('confirm')}>{isFollowup ? 'Gửi nhắc' : 'Gửi email'}</button>}
+            {sendable && send === 'idle' && <GuardedButton reason={!body.trim() ? 'Nhập nội dung email trước khi gửi' : ''} disabled={pending} style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} onClick={() => setSend('confirm')}>{isFollowup ? 'Gửi nhắc' : 'Gửi email'}</GuardedButton>}
             {sendable && send === 'confirm' && (<>
               <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Xác nhận: gửi email tới {cur.email}</button>
               <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Huỷ</button>

@@ -5,7 +5,7 @@
 // visual language, not a bespoke copy — see feedback about matching the house drawer). Social/comment =
 // "touches" (outreach_touches), ext-assisted. Tabs · panel · touch history · roll-up.
 import { useEffect, useState, type ReactNode } from 'react';
-import { Drawer } from '@/components/ui';
+import { Drawer, GuardedButton } from '@/components/ui';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { loadProspect, setProspectStatus } from '@/lib/actions/outreach-mutations';
 import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, listSendAs, type Touch, type SentAs } from '@/lib/actions/outreach-touches';
@@ -17,6 +17,15 @@ const { btn, lbl, taStyle, inputStyle } = oStyles;
 const fmtDay = (s: string | null) => (s ? new Date(s).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '');
 const chLabel = (k: string) => CHANNEL_BY_KEY[k]?.label || k;
 const chIcon = (k: string) => CHANNEL_BY_KEY[k]?.icon || '•';
+// `sel` identifies a TAB: 'email'/'contact_form' (the primary channel on the prospect) or a touch id (string).
+// Touches can repeat a channel (FB 1, FB 2…), so a tab is a touch id, not a channel key. Resolve ?ch= on load.
+const resolveSel = (initial: string | undefined, ts: Touch[], primary: string): string => {
+  if (!initial) return primary;
+  if (initial === 'email' || initial === 'contact_form') return initial;
+  if (ts.some((t) => String(t.id) === initial)) return initial;   // a specific touch id
+  const byCh = ts.find((t) => t.channel === initial);             // backward-compat ?ch=facebook → first such touch
+  return byCh ? String(byCh.id) : primary;
+};
 
 export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onChannel, onClose, onChange, backgrounded }: {
   projectId: string; prospectId: number; initialChannel?: string; onChannel?: (c: string) => void; onClose: () => void; onChange: () => void; backgrounded?: boolean;
@@ -33,16 +42,16 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 1800); };
   const reloadTouches = async () => setTouches(await listTouches(projectId, prospectId));
   const reloadAll = async () => { const [pr, ts] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId)]); setP(pr); setTouches(ts); onChange(); };
-  useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(initialChannel || (pr?.email ? 'email' : 'contact_form')); })(); return () => { live = false; }; /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [projectId, prospectId]);
+  useEffect(() => { let live = true; (async () => { const [pr, ts, sd] = await Promise.all([loadProspect(projectId, prospectId), listTouches(projectId, prospectId), getProspectSender(projectId, prospectId)]); if (!live) return; setP(pr); setTouches(ts); setSender(sd); setSel(resolveSel(initialChannel, ts, pr?.email ? 'email' : 'contact_form')); })(); return () => { live = false; }; /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [projectId, prospectId]);
   // Reflect the selected channel tab to the URL (?ch=) so F5 reopens on the same tab. See feedback_url_state.
   useEffect(() => { if (sel && onChannel) onChannel(sel); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sel]);
   // Auto-default the touch's "gửi bằng" to the best match (comment-as-Page etc.) the first time, so it's
   // never empty. The full choose/create/edit/delete UI lives in <SendAsPicker>.
   useEffect(() => {
-    const t = touches.find((x) => x.channel === sel);
+    const t = touches.find((x) => String(x.id) === sel);
     if (!t || t.sentAs?.id) return;
     let live = true;
-    listSendAs(projectId, sel).then((o) => {
+    listSendAs(projectId, t.channel).then((o) => {
       if (!live) return;
       const d = o.find((x) => x.id > 0);   // real account only — Directus-only options (id 0) adopt on explicit pick
       if (d) { const sa = { kind: d.kind, id: d.id, label: d.label }; setTouches((ts) => ts.map((x) => x.id === t.id ? { ...x, sentAs: sa } : x)); saveTouch(projectId, t.id, { sentAs: sa }); }
@@ -55,23 +64,23 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
 
   const primaryChannel = p.email ? 'email' : 'contact_form';
   const isPrimary = sel === primaryChannel;
-  const selTouch = touches.find((t) => t.channel === sel) || null;
-  const presentChannels = [primaryChannel, ...touches.map((t) => t.channel)];
-  const addable = CHANNELS.filter((c) => !presentChannels.includes(c.key) && c.key !== 'email' && c.key !== 'contact_form');
+  const selTouch = touches.find((t) => String(t.id) === sel) || null;
+  const addable = CHANNELS.filter((c) => c.key !== 'email' && c.key !== 'contact_form');   // dupes allowed (FB 1, FB 2…)
+  const dupLabel = (t: Touch) => { const same = touches.filter((x) => x.channel === t.channel); const i = same.findIndex((x) => x.id === t.id); return same.length > 1 ? `${chLabel(t.channel)} ${i + 1}` : chLabel(t.channel); };
 
   const copy = (t: string, m: string) => { navigator.clipboard?.writeText(t).then(() => flash(m)).catch(() => {}); };
   const doStatus = async (s: string) => { setBusy(s); await setProspectStatus(projectId, prospectId, s); await reloadAll(); setBusy(null); };
-  const addChannel = async (channel: string) => { setBusy('add'); const r = await addTouch(projectId, prospectId, channel, ''); setBusy(null); setAdding(false); if (r.ok && r.touch) { await reloadTouches(); setSel(channel); } else flash(r.error || 'lỗi'); };
+  const addChannel = async (channel: string) => { setBusy('add'); const r = await addTouch(projectId, prospectId, channel, ''); setBusy(null); setAdding(false); if (r.ok && r.touch) { await reloadTouches(); setSel(String(r.touch.id)); } else flash(r.error || 'lỗi'); };
   const genTouchContent = async () => { if (!selTouch) return; setBusy('gen'); const r = await genTouch(projectId, prospectId, selTouch.id); setBusy(null); if (r.ok && r.content) { await reloadTouches(); flash('✓ đã sinh'); } else flash(r.error || 'lỗi sinh'); };
   const saveTouchField = async (patch: { targetRef?: string; content?: string; resultUrl?: string }) => { if (!selTouch) return; await saveTouch(projectId, selTouch.id, patch); await reloadTouches(); };
   const pickSentAs = (sa: SentAs) => { if (!selTouch) return; setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, sentAs: sa } : t)); saveTouch(projectId, selTouch.id, { sentAs: sa }); };
   const markSent = async () => { if (!selTouch) return; if (!selTouch.sentAs?.id) { flash('Chọn "Gửi bằng" (danh tính đã dùng) trước'); return; } setBusy('sent'); await markTouchSent(projectId, prospectId, selTouch.id); await reloadAll(); setBusy(null); flash('✓ đã đánh dấu gửi'); };
   const delTouch = async () => { if (!selTouch) return; setBusy('del'); await deleteTouch(projectId, selTouch.id); await reloadTouches(); setSel(primaryChannel); setBusy(null); onChange(); };
 
-  const pill = (key: string, badge: string, active: boolean, onClick: () => void) => (
-    <button key={key} type="button" onClick={onClick} title={CHANNEL_BY_KEY[key]?.tip || key}
+  const pill = (key: string, channelKey: string, labelText: string, badge: string, active: boolean, onClick: () => void) => (
+    <button key={key} type="button" onClick={onClick} title={CHANNEL_BY_KEY[channelKey]?.tip || channelKey}
       style={{ ...btn, fontWeight: 700, ...(active ? { borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)', background: 'color-mix(in srgb, var(--neon-lime) 14%, transparent)' } : {}) }}>
-      {chIcon(key)} {chLabel(key)}{badge}
+      {chIcon(channelKey)} {labelText}{badge}
     </button>
   );
 
@@ -92,8 +101,8 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
       <div style={{ margin: '14px 0 0' }}>
         <div style={lbl}>Kênh <span style={{ color: 'var(--fg-4)' }}>· hover xem cách tiếp cận</span></div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          {pill(primaryChannel, SENDABLE_DONE(p.status) ? ' ✓' : ' •', isPrimary, () => setSel(primaryChannel))}
-          {touches.map((t) => pill(t.channel, t.status === 'sent' ? ' ✓' : t.status === 'replied' ? ' ↩' : ' •', sel === t.channel, () => setSel(t.channel)))}
+          {pill(primaryChannel, primaryChannel, chLabel(primaryChannel), SENDABLE_DONE(p.status) ? ' ✓' : ' •', isPrimary, () => setSel(primaryChannel))}
+          {touches.map((t) => pill(String(t.id), t.channel, dupLabel(t), t.status === 'sent' ? ' ✓' : t.status === 'replied' ? ' ↩' : ' •', sel === String(t.id), () => setSel(String(t.id))))}
           <div style={{ position: 'relative' }}>
             <button type="button" onClick={() => setAdding((v) => !v)} style={{ ...btn, borderStyle: 'dashed' }}>+ kênh</button>
             {adding && (
@@ -114,7 +123,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
           <OutreachEmailBody projectId={projectId} prospect={p} sender={sender} onAfterAction={reloadAll} />
         ) : selTouch ? (
           <>
-            <div style={{ ...lbl, color: 'var(--fg-2)', fontSize: 11 }}>Đang: {chIcon(sel)} {chLabel(sel)}</div>
+            <div style={{ ...lbl, color: 'var(--fg-2)', fontSize: 11 }}>Đang: {chIcon(selTouch.channel)} {dupLabel(selTouch)}</div>
             <div style={lbl}>Tới</div>
             <input key={'t' + selTouch.id} defaultValue={selTouch.targetRef} onBlur={(e) => saveTouchField({ targetRef: e.target.value })} placeholder="@handle hoặc URL profile/post của họ" autoComplete="off" style={inputStyle} />
             {/* Gửi bằng (comment/DM as) — account của platform kênh này + identities; đổi lúc nào cũng được, chốt khi ✓ Đã gửi */}
@@ -123,14 +132,16 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
               <span style={{ color: selTouch.sentAs?.label ? 'var(--fg-0)' : 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selTouch.sentAs?.label || 'Chọn danh tính (Page/account)…'}</span>
               <span style={{ color: 'var(--fg-4)', fontSize: 11, flexShrink: 0 }}>chọn / thêm ▸</span>
             </button>
-            <div style={{ fontSize: 11.5, color: 'var(--fg-3)', margin: '0 0 8px' }}>Cách: {CHANNEL_BY_KEY[sel]?.tip}</div>
-            <div style={lbl}>Nội dung ({chLabel(sel)})</div>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-3)', margin: '0 0 8px' }}>Cách: {CHANNEL_BY_KEY[selTouch.channel]?.tip}</div>
+            <div style={lbl}>Nội dung ({chLabel(selTouch.channel)})</div>
             <textarea value={selTouch.content} onChange={(e) => setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, content: e.target.value } : t))} onBlur={(e) => saveTouchField({ content: e.target.value })} rows={6} placeholder="Bấm ✨ Sinh để AI viết theo giọng kênh này" style={taStyle} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
               <button type="button" onClick={genTouchContent} disabled={!!busy} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--accent)', color: 'var(--accent)' }}>{busy === 'gen' ? '⏳…' : '✨ Sinh'}</button>
-              {selTouch.targetRef && <a href={selTouch.targetRef.startsWith('http') ? selTouch.targetRef : `https://${selTouch.targetRef.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Mở {chLabel(sel)} ↗</a>}
-              <button type="button" onClick={() => copy(selTouch.content, '✓ đã copy — dán vào ' + chLabel(sel))} style={{ ...btn, padding: '7px 12px' }}>Copy</button>
-              {selTouch.status !== 'sent' ? <button type="button" onClick={markSent} disabled={!!busy} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>✓ Đã gửi</button> : <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ đã gửi {fmtDay(selTouch.sentAt)}</span>}
+              {selTouch.targetRef && <a href={selTouch.targetRef.startsWith('http') ? selTouch.targetRef : `https://${selTouch.targetRef.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Mở {chLabel(selTouch.channel)} ↗</a>}
+              <button type="button" onClick={() => copy(selTouch.content, '✓ đã copy — dán vào ' + chLabel(selTouch.channel))} style={{ ...btn, padding: '7px 12px' }}>Copy</button>
+              {selTouch.status !== 'sent'
+                ? <GuardedButton reason={!selTouch.sentAs?.id ? 'Chọn "Gửi bằng" (danh tính) trước' : ''} onClick={markSent} disabled={!!busy} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>✓ Đã gửi</GuardedButton>
+                : <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ đã gửi {fmtDay(selTouch.sentAt)}</span>}
               <button type="button" onClick={delTouch} disabled={!!busy} style={{ ...btn, padding: '7px 12px', color: 'var(--bad)', borderColor: 'var(--bad)' }}>Xoá kênh</button>
             </div>
             {/* Tracking URL — link/comment đã đặt (proof of placement), lưu để theo dõi. */}
@@ -139,7 +150,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
               <input key={'r' + selTouch.id} defaultValue={selTouch.resultUrl} onBlur={(e) => saveTouchField({ resultUrl: e.target.value })} placeholder="https://facebook.com/…/posts/… (URL bài/comment vừa đăng)" autoComplete="off" style={inputStyle} />
               {selTouch.resultUrl && <a href={selTouch.resultUrl.startsWith('http') ? selTouch.resultUrl : `https://${selTouch.resultUrl}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ fontSize: 11, color: 'var(--accent)' }}>↗ mở link đã đặt</a>}
             </div>
-            <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: '12px 0 0', lineHeight: 1.5 }}>Ext-assisted: mở {chLabel(sel)} của họ, dán nội dung, tự bấm Send, rồi ✓ Đã gửi + dán URL kết quả. (Auto-paste qua ext = bản sau.)</p>
+            <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: '12px 0 0', lineHeight: 1.5 }}>Ext-assisted: mở {chLabel(selTouch.channel)} của họ, dán nội dung, tự bấm Send, rồi ✓ Đã gửi + dán URL kết quả. (Auto-paste qua ext = bản sau.)</p>
           </>
         ) : null}
       </div>
@@ -150,7 +161,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <HistRow icon={chIcon(primaryChannel)} label={chLabel(primaryChannel)} status={<Badge status={p.status} />} day={fmtDay(p.sentAt)} />
           {touches.filter((t) => t.status === 'sent' || t.status === 'replied').map((t) => (
-            <HistRow key={t.id} icon={chIcon(t.channel)} label={chLabel(t.channel)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}{t.sentAs?.label ? <span style={{ color: 'var(--fg-4)' }}> · bằng {t.sentAs.label}</span> : ''}</span>} day={fmtDay(t.sentAt)} />
+            <HistRow key={t.id} icon={chIcon(t.channel)} label={dupLabel(t)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}{t.sentAs?.label ? <span style={{ color: 'var(--fg-4)' }}> · bằng {t.sentAs.label}</span> : ''}</span>} day={fmtDay(t.sentAt)} />
           ))}
           {(!p.sentAt && touches.every((t) => t.status !== 'sent')) && <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa chạm kênh nào.</div>}
         </div>
@@ -166,7 +177,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
 
       {msg && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 10 }}>{msg}</div>}
       <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: '12px 0 0', lineHeight: 1.5 }}>Trạng thái đồng bộ 2 chiều với backlink task (gửi bất kỳ kênh → task chuyển &ldquo;Chờ duyệt&rdquo;).</p>
-      {pickerOpen && selTouch && <SendAsPicker projectId={projectId} channel={sel} value={selTouch.sentAs} onPick={(sa) => { pickSentAs(sa); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
+      {pickerOpen && selTouch && <SendAsPicker projectId={projectId} channel={selTouch.channel} value={selTouch.sentAs} onPick={(sa) => { pickSentAs(sa); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
     </Drawer>
   );
 }

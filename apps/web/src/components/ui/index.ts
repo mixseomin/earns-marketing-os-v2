@@ -12,6 +12,9 @@ export { ResourcePicker, type ResourcePickerProps, type PickerItem } from './res
 // EntityPicker = pick + inline CRUD (create/rename/delete) + rich rows (avatar/badge/meta). Use over
 // ResourcePicker when the picker also owns create/rename/delete. See feedback_picker_inline_crud.
 export { EntityPicker, type EntityOption, type EntityPickerProps } from './entity-picker';
+// GuardedButton = the standard for "can't submit until precondition holds" (empty content, missing pick…).
+// Disables + explains on hover instead of a bare disabled / silent no-op. See feedback_guarded_action_button.
+export { GuardedButton } from './guarded-button';
 export {
   IconPlatform, IconCommunity, FormatIcon, type FormatKind,
   IconFilePlus, IconList, IconCheck, IconBan, IconGear, IconUndo,

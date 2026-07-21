@@ -39,6 +39,8 @@ export async function GET() {
       domain: d.domain,
       send: d.send === true,
       warmupStart: d.warmupStart || null,
+      warmupCampaign: d.warmupCampaign || null,
+      listUid: d.listUid || null,
       auth: await authOf(d.domain, d.dkimSelector || 'mailer._domainkey'),
       postmaster: await trafficStats(d.domain),
       spamTest: await spamTestOf(d.domain),

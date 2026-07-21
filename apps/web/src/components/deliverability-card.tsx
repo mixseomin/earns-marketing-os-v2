@@ -6,7 +6,7 @@ interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
 interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
-interface Row { domain: string; send?: boolean; warmupStart?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
+interface Row { domain: string; send?: boolean; warmupStart?: string | null; warmupCampaign?: string | null; listUid?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
 interface MwList { uid: string; name: string; description: string; fromName: string | null; fromEmail: string | null; replyTo: string | null; subject: string | null; company: string | null; subscribers: number | null }
 interface MwField { label: string; tag: string; type: string; required: boolean }
@@ -48,28 +48,88 @@ const isoUTC = (d: Date) => d.toISOString().slice(0, 10);
 const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const capLabel = (n: number) => (n >= 1000 ? n / 1000 + 'k' : String(n));
 
-// A calendar strip for one sending domain: one cell per warm-up day (D1..D8 + steady),
-// each showing that day's target volume + the real reputation/mail-tester result on that date.
-function WarmupCalendar({ row, onChange, onView }: { row: Row; onChange: () => void; onView: (d: string) => void }) {
+const cbtn = (busy = false): CSSProperties => ({ ...mono, fontSize: 10, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: busy ? 'default' : 'pointer', fontWeight: 700 });
+
+// One sending domain's warm-up: content first (create/pick a campaign, preview it) → THEN start.
+// You can't start without a campaign — no email = nothing to send, and a bad first send burns
+// reputation. Once started, a calendar strip tracks the daily ramp vs real reputation/scores.
+function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void }) {
   const [busy, setBusy] = useState(false);
-  const set = useCallback(async (action: 'start' | 'stop') => {
+  const [camps, setCamps] = useState<MwCamp[] | null>(null); // null = loading
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/deliverability/mailwizz?domain=${encodeURIComponent(row.domain)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive) setCamps(j?.campaigns || []); })
+      .catch(() => { if (alive) setCamps([]); });
+  }, [row.domain, row.warmupCampaign]);
+
+  const post = useCallback(async (action: 'start' | 'stop' | 'select', campaign?: string) => {
     if (busy) return;
     setBusy(true);
     try {
-      await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain, action }) });
+      const r = await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain, action, campaign }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'failed'); }
       onChange();
     } finally { setBusy(false); }
   }, [busy, row.domain, onChange]);
 
-  const btn: CSSProperties = { ...mono, fontSize: 10, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: busy ? 'default' : 'pointer', fontWeight: 700 };
+  const createCampaign = useCallback(async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain }) });
+      const j = await r.json();
+      if (!r.ok) { alert(j.error || 'create failed'); return; }
+      if (j.uid) await post('select', j.uid); else onChange();
+    } finally { setCreating(false); }
+  }, [creating, row.domain, post, onChange]);
+
+  const btn = cbtn(busy);
+  const selected = camps?.find((c) => c.uid === row.warmupCampaign) || null;
+
+  // Content step — shown in every state (above the calendar too).
+  const contentStep = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {camps === null ? <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>loading campaigns…</span>
+        : camps.length === 0 ? (
+          <>
+            <span style={{ fontSize: 11, color: '#e0a94a' }}>⚠ No email yet</span>
+            <button onClick={createCampaign} disabled={creating} style={cbtn(creating)} title="Create a branded draft warm-up email in MailWizz (with unsubscribe + address). You can edit it in MailWizz.">
+              {creating ? 'creating…' : '＋ Create warm-up email'}
+            </button>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Email:</span>
+            <select value={row.warmupCampaign || ''} onChange={(e) => post('select', e.target.value)}
+              style={{ ...mono, fontSize: 10.5, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', maxWidth: 200 }}>
+              <option value="">— choose —</option>
+              {camps.map((c) => <option key={c.uid} value={c.uid}>{c.name} · {c.status}</option>)}
+            </select>
+            {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
+            <button onClick={createCampaign} disabled={creating} style={cbtn(creating)} title="Create another warm-up draft">{creating ? '…' : '＋'}</button>
+          </>
+        )}
+    </div>
+  );
 
   if (!row.warmupStart) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
-        <span style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>{row.domain}</span>
-        <button onClick={() => set('start')} disabled={busy} style={btn} title="Stamp today as day 1 of the warm-up ramp">🔥 Start warm-up</button>
-        <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments, campaigns">✉️ Campaign & list</button>
-        <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>ramp 50 → full over {RAMP.length} days</span>
+      <div style={{ padding: '4px 0 8px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>{row.domain}</span>
+          <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List detail</button>
+        </div>
+        {contentStep}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => post('start')} disabled={busy || !selected}
+            style={{ ...btn, color: selected ? '#e0a94a' : 'var(--fg-3)', borderColor: selected ? '#e0a94a66' : 'var(--line)', cursor: selected ? 'pointer' : 'not-allowed', opacity: selected ? 1 : 0.6 }}
+            title={selected ? 'Mark today as day 1 of the ramp' : 'Pick or create the warm-up email first'}>🔥 Start warm-up</button>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{selected ? `ramp 50 → full over ${RAMP.length} days` : 'pick the email above first'}</span>
+        </div>
       </div>
     );
   }
@@ -82,14 +142,15 @@ function WarmupCalendar({ row, onChange, onView }: { row: Row; onChange: () => v
   const done = dayIdx >= RAMP.length;
 
   return (
-    <div style={{ padding: '3px 0 6px' }}>
+    <div style={{ padding: '4px 0 8px', borderBottom: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
         <span style={{ ...mono, fontSize: 11, color: 'var(--fg-0)', fontWeight: 700 }}>{row.domain}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>
           {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
         </span>
-        <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments, campaigns">✉️ Campaign & list</button>
-        <button onClick={() => set('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
+        {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the email being sent">👁 {selected.subject || 'Preview'}</button>}
+        <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List</button>
+        <button onClick={() => post('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
       </div>
       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
         {RAMP.map((cap, i) => {
@@ -136,6 +197,8 @@ export function DeliverabilityCard() {
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
+  const [preview, setPreview] = useState<{ uid: string; name: string } | null>(null);
+  const openPreview = useCallback((uid: string, name: string) => setPreview({ uid, name }), []);
 
   useEffect(() => {
     if (!viewDomain) { setMw(null); setMwErr(''); return; }
@@ -222,7 +285,7 @@ export function DeliverabilityCard() {
         <div style={{ paddingTop: 2 }}>
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
-            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} />)}
+            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} />)}
           <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
             Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
           </div>
@@ -313,15 +376,50 @@ export function DeliverabilityCard() {
       </div>
       )}
       {viewDomain && (
-        <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} />
+        <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} />
       )}
+      {preview && (
+        <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)} />
+      )}
+    </div>
+  );
+}
+
+// Renders the actual email HTML (sandboxed iframe) so you see exactly what recipients get.
+function ContentPreview({ uid, name, onClose }: { uid: string; name: string; onClose: () => void }) {
+  const [c, setC] = useState<{ subject: string; fromName: string; fromEmail: string; status: string; html: string; editedElsewhere?: boolean } | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/deliverability/campaign-content?uid=${encodeURIComponent(uid)}`, { cache: 'no-store' })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => { if (alive) (ok ? setC(j) : setErr(j.error || 'failed')); })
+      .catch(() => alive && setErr('network error'));
+    return () => { alive = false; };
+  }, [uid]);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px,96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c?.subject || name}</div>
+            <div style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{c ? <>{c.fromName} &lt;{c.fromEmail}&gt; · {c.status}</> : uid}</div>
+          </div>
+          <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
+        </div>
+        {err && <div style={{ padding: 16, fontSize: 12, color: '#d16b6b' }}>{err}</div>}
+        {!c && !err && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>}
+        {c && (c.html
+          ? <iframe title="email preview" sandbox="" srcDoc={c.html} style={{ flex: 1, minHeight: 360, border: 'none', background: '#fff' }} />
+          : <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>{c.editedElsewhere ? 'Edited in MailWizz — open MailWizz to view the body.' : 'No content stored.'}</div>)}
+      </div>
     </div>
   );
 }
 
 // Read-only drawer: everything MailWizz holds for a sending domain's list — defaults/params,
 // merge tags, segments, campaigns. No editing here; compose stays in MailWizz.
-function MailwizzDrawer({ domain, data, err, onClose }: { domain: string; data: MwView | null; err: string; onClose: () => void }) {
+function MailwizzDrawer({ domain, data, err, onClose, onPreview }: { domain: string; data: MwView | null; err: string; onClose: () => void; onPreview: (uid: string, name: string) => void }) {
   const secTitle: CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', fontWeight: 700, margin: '14px 0 6px' };
   const kv = (k: string, v: ReactNode) => (
     <div style={{ display: 'flex', gap: 8, fontSize: 11.5, padding: '2px 0' }}>
@@ -379,9 +477,12 @@ function MailwizzDrawer({ domain, data, err, onClose }: { domain: string; data: 
             {data.campaigns.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>no campaigns yet — create one in MailWizz to send the warm-up</div>
               : data.campaigns.map((c) => (
                 <div key={c.uid} style={{ borderBottom: '1px solid var(--line)', padding: '5px 0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{c.name}</span>
-                    <span style={{ ...mono, fontSize: 9.5, color: statusColor[c.status] || 'var(--fg-3)', textTransform: 'uppercase' }}>{c.status}</span>
+                    <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button onClick={() => onPreview(c.uid, c.name)} title="Preview email" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer', padding: '1px 6px' }}>👁</button>
+                      <span style={{ ...mono, fontSize: 9.5, color: statusColor[c.status] || 'var(--fg-3)', textTransform: 'uppercase' }}>{c.status}</span>
+                    </span>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.subject}</div>
                   {c.sendAt && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{c.type} · {c.sendAt}</div>}

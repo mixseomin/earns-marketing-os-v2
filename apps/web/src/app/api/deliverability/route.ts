@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 // Sending domains + DKIM selector. Add a row per domain (or subdomain) that sends.
 const DOMAINS: Array<{ domain: string; dkimSelector: string }> = [
-  { domain: 'militarycalc.com', dkimSelector: 'mailer._domainkey' },
+  { domain: 'news.militarycalc.com', dkimSelector: 'mailer._domainkey' }, // list/newsletter sending subdomain (reputation isolated from root)
 ];
 const SPAMTEST_FILE = process.env.SPAMTEST_FILE || '/opt/earns-marketing-os-v2/.spamtest.json';
 

@@ -5,7 +5,7 @@ import {
   Pill, PriorityPill, EffortPill, StatusPill, StatusFlag, LinkChip,
   Segmented, StatusSegmented, ViewToggle, MultiSelect, LIST_CALENDAR_VIEWS,
   Spinner, EmptyState, InfoHint, ConfirmDeleteButton, CTACard,
-  Section, Collapsible, StatsStrip, ModalHeader, EntityPicker, type EntityOption,
+  Section, Collapsible, StatsStrip, ModalHeader, EntityPicker, GuardedButton, type EntityOption,
   IconGear, IconUser, IconList, IconCheck, IconBan, IconGlobe, IconClock,
   IconSparkles, IconSliders, IconChevron, IconWarn, IconSwap, IconPencil,
   IconTrash, IconLock, IconInfo, IconX, IconUndo, IconFilePlus, IconDots,
@@ -131,6 +131,15 @@ function SegDemo() { const [v, setV] = useState<'a' | 'b' | 'c'>('a'); return <S
 function StatusSegDemo() { const [v, setV] = useState('draft'); return <StatusSegmented options={[{ value: 'draft', label: 'Draft', color: 'var(--fg-3)' }, { value: 'live', label: 'Live', color: 'var(--ok)' }, { value: 'paused', label: 'Paused', color: 'var(--warn)' }]} value={v} onChange={setV} />; }
 function ViewToggleDemo() { const [v, setV] = useState('list'); return <ViewToggle options={LIST_CALENDAR_VIEWS} value={v} onChange={setV} />; }
 function MultiDemo() { const [v, setV] = useState<string[]>(['x']); return <MultiSelect label="Platform" options={[{ value: 'x', label: 'X' }, { value: 'reddit', label: 'Reddit' }, { value: 'devto', label: 'dev.to' }]} selected={v} onChange={setV} variant="chip" />; }
+function GuardedButtonDemo() {
+  const [v, setV] = useState('');
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <input value={v} onChange={(e) => setV(e.target.value)} placeholder="gõ nội dung…" style={{ padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 11, width: 104 }} />
+      <GuardedButton reason={!v.trim() ? 'Nhập nội dung trước' : ''} onClick={() => setV('')} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--neon-lime)', background: 'var(--bg-2)', color: 'var(--neon-lime)', cursor: 'pointer' }}>Gửi</GuardedButton>
+    </div>
+  );
+}
 function EntityPickerDemo() {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState('');
@@ -173,6 +182,7 @@ const COMPONENTS: Comp[] = [
   { name: 'Section', file: 'section.tsx', props: [{ n: 'title', t: 'ReactNode', req: true }, { n: 'children', t: 'ReactNode', req: true }, { n: 'subtitle', t: 'ReactNode' }, { n: 'accent', t: 'string' }, { n: 'defaultOpen', t: 'boolean' }], snippet: `<Section title="Title" subtitle="sub" defaultOpen>…</Section>`, render: () => <div style={{ width: '100%' }}><Section title="Section" subtitle="mô tả" accent="var(--accent)" defaultOpen><span style={{ fontSize: 12, color: 'var(--fg-2)' }}>body</span></Section></div> },
   { name: 'Collapsible', file: 'collapsible.tsx', props: [{ n: 'title', t: 'ReactNode', req: true }, { n: 'children', t: 'ReactNode', req: true }, { n: 'badge', t: 'ReactNode' }, { n: 'defaultOpen', t: 'boolean' }], snippet: `<Collapsible title="Title" badge={badge}>…</Collapsible>`, render: () => <div style={{ width: '100%' }}><Collapsible title="Collapsible" badge={<Pill color="var(--accent)" label="3" size="xs" />}><span style={{ fontSize: 12, color: 'var(--fg-2)' }}>nội dung</span></Collapsible></div> },
   { name: 'ModalHeader', file: 'modal-header.tsx', props: [{ n: 'kind', t: 'ModalKind', req: true }, { n: 'action', t: "'edit'|'create'|'view'", req: true }, { n: 'title', t: 'ReactNode', req: true }, { n: 'onClose', t: '() => void', req: true }, { n: 'idText', t: 'string' }], snippet: `<ModalHeader kind="account" action="edit" title="Title" onClose={close} />`, render: () => <div style={{ width: '100%' }}><ModalHeader kind="account" action="edit" title="Tiêu đề" idText="#14" subtitle="platform · habitat" onClose={() => { /* demo */ }} /></div> },
+  { name: 'GuardedButton', file: 'guarded-button.tsx', props: [{ n: 'reason', t: 'string|false', d: 'truthy = chặn + tooltip lý do' }, { n: 'onClick', t: '() => void' }, { n: 'disabled', t: 'boolean' }, { n: '…rest', t: 'button props (style…)' }], snippet: `<GuardedButton reason={!body.trim() ? 'Nhập nội dung trước' : ''} onClick={send}>Gửi</GuardedButton>`, render: () => <GuardedButtonDemo /> },
   { name: 'EntityPicker', file: 'entity-picker.tsx', props: [{ n: 'title', t: 'string', req: true }, { n: 'load', t: '() => Promise<EntityOption[]>', req: true }, { n: 'onPick', t: '(o) => void|Promise', req: true }, { n: 'onClose', t: '() => void', req: true }, { n: 'onCreate', t: '(name) => Promise<{ok}>' }, { n: 'onRename', t: '(o,name) => Promise<{ok}>' }, { n: 'onDelete', t: '(o) => Promise<{ok}>' }, { n: 'value', t: '{ key }' }, { n: 'hint', t: 'string' }], snippet: `<EntityPicker title="Chọn" load={load} onPick={pick} onClose={close}\n  onCreate={create} onRename={rename} onDelete={del} />`, render: () => <EntityPickerDemo /> },
 ];
 

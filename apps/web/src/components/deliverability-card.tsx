@@ -6,7 +6,7 @@ interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
 interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
-interface Row { domain: string; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
+interface Row { domain: string; send?: boolean; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
 
 const repColor: Record<string, string> = { HIGH: '#5ac47e', MEDIUM: '#37d4c2', LOW: '#e0a94a', BAD: '#d16b6b' };
@@ -38,6 +38,9 @@ function Spark({ pts }: { pts: number[] }) {
 export function DeliverabilityCard() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
+  const [newDomain, setNewDomain] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addMsg, setAddMsg] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -48,17 +51,44 @@ export function DeliverabilityCard() {
   }, []);
   useEffect(() => { load(); const t = setInterval(load, 300_000); return () => clearInterval(t); }, [load]);
 
+  const addDomain = useCallback(async () => {
+    const dom = newDomain.trim().toLowerCase();
+    if (!dom || adding) return;
+    setAdding(true); setAddMsg('registering…');
+    try {
+      const r = await fetch('/api/deliverability/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: dom }) });
+      const j = await r.json();
+      if (!r.ok) { setAddMsg(j.error || 'failed'); }
+      else { setAddMsg(`${dom}: ${j.state}`); setNewDomain(''); load(); }
+    } catch { setAddMsg('network error'); }
+    finally { setAdding(false); }
+  }, [newDomain, adding, load]);
+
   if (err || !d) return null;
 
   return (
     <div style={{ margin: '0 16px 14px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
-        <a href="https://postmaster.google.com/managedomains" target="_blank" rel="noopener noreferrer"
-          title="Add / manage sending domains in Google Postmaster Tools (domain add is web-only, no API)"
-          style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px' }}>
-          Manage in Postmaster ↗
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {addMsg && <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{addMsg}</span>}
+          <input
+            value={newDomain}
+            onChange={(e) => setNewDomain(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }}
+            placeholder="add domain / subdomain…"
+            spellCheck={false} autoComplete="off"
+            style={{ ...mono, fontSize: 11, padding: '3px 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', width: 180 }}
+          />
+          <button onClick={addDomain} disabled={adding || !newDomain.trim()}
+            title="Register + verify this domain in Postmaster (v2 API) and track it here"
+            style={{ ...mono, fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: adding ? 'var(--fg-3)' : 'var(--accent, #37d4c2)', cursor: adding ? 'default' : 'pointer' }}>
+            {adding ? '…' : '+ Register'}
+          </button>
+          <a href="https://postmaster.google.com/managedomains" target="_blank" rel="noopener noreferrer"
+            title="Open Google Postmaster Tools"
+            style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
+        </div>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

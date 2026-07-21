@@ -19,12 +19,13 @@ async function isAdmin(): Promise<boolean> {
 }
 
 export interface SentAs { kind?: 'account' | 'identity'; id?: number; label?: string }
-export interface Touch { id: number; channel: string; targetRef: string; content: string; status: string; sentAt: string | null; sentAs: SentAs }
+export interface Touch { id: number; channel: string; targetRef: string; content: string; status: string; sentAt: string | null; sentAs: SentAs; resultUrl: string }
 
 const mapTouch = (r: Record<string, unknown>): Touch => ({
   id: Number(r.id), channel: String(r.channel), targetRef: String(r.target_ref ?? ''), content: String(r.content ?? ''),
   status: String(r.status ?? 'to_send'), sentAt: r.sent_at ? String(r.sent_at) : null,
   sentAs: (r.sent_as && typeof r.sent_as === 'object') ? r.sent_as as SentAs : {},
+  resultUrl: (r.meta && typeof r.meta === 'object' && (r.meta as Record<string, unknown>).resultUrl) ? String((r.meta as Record<string, unknown>).resultUrl) : '',
 });
 
 // Campaign sender for this prospect (de-hardcode the email drawer's From line). Fallback = militarycalc.
@@ -46,7 +47,7 @@ export async function listTouchSummaries(projectId: string): Promise<TouchSummar
 
 export async function listTouches(projectId: string, prospectId: number): Promise<Touch[]> {
   const db = getDb(); if (!db) return [];
-  const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at, sent_as FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);
+  const rows = await db.execute(sql`SELECT id, channel, target_ref, content, status, sent_at, sent_as, meta FROM outreach_touches WHERE prospect_id = ${prospectId} AND project_id = ${projectId} ORDER BY created_at`);
   return (rows as unknown as Array<Record<string, unknown>>).map(mapTouch);
 }
 
@@ -254,11 +255,13 @@ export async function addTouch(projectId: string, prospectId: number, channel: s
   } catch (e) { return { ok: false, error: `add touch lỗi: ${(e as Error).message}` }; }
 }
 
-export async function saveTouch(projectId: string, touchId: number, patch: { targetRef?: string; content?: string; sentAs?: SentAs }): Promise<{ ok: boolean; error?: string }> {
+export async function saveTouch(projectId: string, touchId: number, patch: { targetRef?: string; content?: string; sentAs?: SentAs; resultUrl?: string }): Promise<{ ok: boolean; error?: string }> {
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   const sentAsFrag = patch.sentAs !== undefined ? sql`, sent_as = ${JSON.stringify(patch.sentAs)}::jsonb` : sql``;
-  await db.execute(sql`UPDATE outreach_touches SET target_ref = COALESCE(${patch.targetRef ?? null}, target_ref), content = COALESCE(${patch.content ?? null}, content)${sentAsFrag}, updated_at = now() WHERE id = ${touchId} AND project_id = ${projectId}`);
+  // resultUrl = tracking/placement link (the comment/post URL where our link landed) → meta.resultUrl.
+  const metaFrag = patch.resultUrl !== undefined ? sql`, meta = COALESCE(meta, '{}'::jsonb) || ${JSON.stringify({ resultUrl: patch.resultUrl })}::jsonb` : sql``;
+  await db.execute(sql`UPDATE outreach_touches SET target_ref = COALESCE(${patch.targetRef ?? null}, target_ref), content = COALESCE(${patch.content ?? null}, content)${sentAsFrag}${metaFrag}, updated_at = now() WHERE id = ${touchId} AND project_id = ${projectId}`);
   return { ok: true };
 }
 

@@ -9,7 +9,7 @@ import { Drawer } from '@/components/ui';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { loadProspect, setProspectStatus } from '@/lib/actions/outreach-mutations';
 import { listTouches, addTouch, saveTouch, genTouch, markTouchSent, deleteTouch, getProspectSender, listSendAs, type Touch, type SentAs } from '@/lib/actions/outreach-touches';
-import { OutreachEmailBody, Badge, ChannelTag, oStyles, type Sender } from '@/components/outreach-email-drawer';
+import { OutreachEmailBody, Badge, oStyles, type Sender } from '@/components/outreach-email-drawer';
 import { SendAsPicker } from '@/components/send-as-picker';
 import { CHANNELS, CHANNEL_BY_KEY } from '@/lib/outreach/channels';
 
@@ -63,7 +63,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
   const doStatus = async (s: string) => { setBusy(s); await setProspectStatus(projectId, prospectId, s); await reloadAll(); setBusy(null); };
   const addChannel = async (channel: string) => { setBusy('add'); const r = await addTouch(projectId, prospectId, channel, ''); setBusy(null); setAdding(false); if (r.ok && r.touch) { await reloadTouches(); setSel(channel); } else flash(r.error || 'lỗi'); };
   const genTouchContent = async () => { if (!selTouch) return; setBusy('gen'); const r = await genTouch(projectId, prospectId, selTouch.id); setBusy(null); if (r.ok && r.content) { await reloadTouches(); flash('✓ đã sinh'); } else flash(r.error || 'lỗi sinh'); };
-  const saveTouchField = async (patch: { targetRef?: string; content?: string }) => { if (!selTouch) return; await saveTouch(projectId, selTouch.id, patch); await reloadTouches(); };
+  const saveTouchField = async (patch: { targetRef?: string; content?: string; resultUrl?: string }) => { if (!selTouch) return; await saveTouch(projectId, selTouch.id, patch); await reloadTouches(); };
   const pickSentAs = (sa: SentAs) => { if (!selTouch) return; setTouches((ts) => ts.map((t) => t.id === selTouch.id ? { ...t, sentAs: sa } : t)); saveTouch(projectId, selTouch.id, { sentAs: sa }); };
   const markSent = async () => { if (!selTouch) return; if (!selTouch.sentAs?.id) { flash('Chọn "Gửi bằng" (danh tính đã dùng) trước'); return; } setBusy('sent'); await markTouchSent(projectId, prospectId, selTouch.id); await reloadAll(); setBusy(null); flash('✓ đã đánh dấu gửi'); };
   const delTouch = async () => { if (!selTouch) return; setBusy('del'); await deleteTouch(projectId, selTouch.id); await reloadTouches(); setSel(primaryChannel); setBusy(null); onChange(); };
@@ -77,12 +77,12 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
 
   return (
     <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded}>
-      {/* Header = OWNER — matches the /outreach EmailDrawer header exactly */}
+      {/* Header = OWNER (channel-neutral — multi-channel drawer, KHÔNG neo "EMAIL" ở head). Kênh chọn ở thanh dưới. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>
           <div style={{ fontSize: 16, fontWeight: 800 }}>{p.agentName}</div>
           <div style={{ color: 'var(--fg-3)', fontSize: 12, display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-            <span>{p.base || '—'}</span><ChannelTag email={p.email || null} /><Badge status={p.status} />
+            <span>{p.base || '—'}</span><Badge status={p.status} />
           </div>
         </div>
         <button type="button" onClick={onClose} style={{ ...btn, fontSize: 14, padding: '2px 9px' }}>✕</button>
@@ -116,7 +116,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
           <>
             <div style={{ ...lbl, color: 'var(--fg-2)', fontSize: 11 }}>Đang: {chIcon(sel)} {chLabel(sel)}</div>
             <div style={lbl}>Tới</div>
-            <input defaultValue={selTouch.targetRef} onBlur={(e) => saveTouchField({ targetRef: e.target.value })} placeholder="@handle hoặc URL profile/post của họ" autoComplete="off" style={inputStyle} />
+            <input key={'t' + selTouch.id} defaultValue={selTouch.targetRef} onBlur={(e) => saveTouchField({ targetRef: e.target.value })} placeholder="@handle hoặc URL profile/post của họ" autoComplete="off" style={inputStyle} />
             {/* Gửi bằng (comment/DM as) — account của platform kênh này + identities; đổi lúc nào cũng được, chốt khi ✓ Đã gửi */}
             <div style={lbl}>Gửi bằng <span style={{ color: 'var(--fg-4)' }}>· comment/DM as</span></div>
             <button type="button" onClick={() => setPickerOpen(true)} style={{ ...inputStyle, marginBottom: 8, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -133,7 +133,13 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
               {selTouch.status !== 'sent' ? <button type="button" onClick={markSent} disabled={!!busy} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>✓ Đã gửi</button> : <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ đã gửi {fmtDay(selTouch.sentAt)}</span>}
               <button type="button" onClick={delTouch} disabled={!!busy} style={{ ...btn, padding: '7px 12px', color: 'var(--bad)', borderColor: 'var(--bad)' }}>Xoá kênh</button>
             </div>
-            <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: '12px 0 0', lineHeight: 1.5 }}>Ext-assisted: mở {chLabel(sel)} của họ, dán nội dung, tự bấm Send, rồi ✓ Đã gửi. (Auto-paste qua ext = bản sau.)</p>
+            {/* Tracking URL — link/comment đã đặt (proof of placement), lưu để theo dõi. */}
+            <div style={{ margin: '14px 0 0' }}>
+              <div style={lbl}>URL kết quả <span style={{ color: 'var(--fg-4)' }}>· link/comment đã đặt — dán sau khi đăng để lưu</span></div>
+              <input key={'r' + selTouch.id} defaultValue={selTouch.resultUrl} onBlur={(e) => saveTouchField({ resultUrl: e.target.value })} placeholder="https://facebook.com/…/posts/… (URL bài/comment vừa đăng)" autoComplete="off" style={inputStyle} />
+              {selTouch.resultUrl && <a href={selTouch.resultUrl.startsWith('http') ? selTouch.resultUrl : `https://${selTouch.resultUrl}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" style={{ fontSize: 11, color: 'var(--accent)' }}>↗ mở link đã đặt</a>}
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: '12px 0 0', lineHeight: 1.5 }}>Ext-assisted: mở {chLabel(sel)} của họ, dán nội dung, tự bấm Send, rồi ✓ Đã gửi + dán URL kết quả. (Auto-paste qua ext = bản sau.)</p>
           </>
         ) : null}
       </div>
@@ -144,7 +150,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <HistRow icon={chIcon(primaryChannel)} label={chLabel(primaryChannel)} status={<Badge status={p.status} />} day={fmtDay(p.sentAt)} />
           {touches.filter((t) => t.status === 'sent' || t.status === 'replied').map((t) => (
-            <HistRow key={t.id} icon={chIcon(t.channel)} label={chLabel(t.channel)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}{t.sentAs?.label ? <span style={{ color: 'var(--fg-4)' }}> · as {t.sentAs.label}</span> : ''}</span>} day={fmtDay(t.sentAt)} />
+            <HistRow key={t.id} icon={chIcon(t.channel)} label={chLabel(t.channel)} status={<span style={{ fontSize: 11, color: t.status === 'replied' ? 'var(--neon-violet)' : 'var(--neon-cyan)' }}>{t.status === 'replied' ? 'đã hồi' : 'đã gửi'}{t.sentAs?.label ? <span style={{ color: 'var(--fg-4)' }}> · bằng {t.sentAs.label}</span> : ''}</span>} day={fmtDay(t.sentAt)} />
           ))}
           {(!p.sentAt && touches.every((t) => t.status !== 'sent')) && <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa chạm kênh nào.</div>}
         </div>

@@ -14,7 +14,7 @@ import { sendProspectEmail } from '@/lib/actions/outreach-send';
 import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
 import { createCampaign, updateCampaign, importBacklinkTasks, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
 import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
-import { EmailDrawer } from '@/components/outreach-email-drawer';
+import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
@@ -689,13 +689,13 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
       </>)}
 
       {preview && (
-        <EmailDrawer
+        // UNIFIED: same multi-channel drawer as the backlinks page (email + FB/social touches), not a
+        // separate email-only drawer. One drawer to maintain; FB etc. checkable here too.
+        <TaskOutreachDrawer
           projectId={projectId}
-          prospect={preview}
-          sender={(() => { const c = campaigns.find((x) => x.id === preview.campaignId); return { name: c?.fromName || 'Jake Miller', email: c?.fromEmail || 'hello@militarycalc.com' }; })()}
-          pending={pending}
+          prospectId={preview.id}
           onClose={() => setPreview(null)}
-          onAfterAction={() => { setPreview(null); router.refresh(); }}
+          onChange={() => router.refresh()}
         />
       )}
     </div>

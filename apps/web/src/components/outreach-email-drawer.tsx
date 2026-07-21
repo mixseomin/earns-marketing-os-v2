@@ -17,11 +17,11 @@ const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-
 const gmailUrl = (to: string, subject: string, body: string) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  to_send: { label: 'To send', color: 'var(--fg-3)' }, sent: { label: 'Sent', color: 'var(--neon-cyan)' },
-  followup_1: { label: 'Follow-up 1', color: 'var(--neon-amber)' }, followup_2: { label: 'Follow-up 2', color: 'var(--neon-amber)' },
-  replied: { label: 'Replied', color: 'var(--neon-violet)' }, interested: { label: 'Interested', color: 'var(--neon-lime)' },
-  embedded: { label: 'Embedded ★', color: 'var(--neon-lime)' }, declined: { label: 'Declined', color: 'var(--fg-3)' },
-  bounced: { label: 'Bounced', color: 'var(--bad)' }, unreachable: { label: 'Unreachable', color: 'var(--bad)' }, no_response: { label: 'No response', color: 'var(--fg-3)' },
+  to_send: { label: 'Chưa gửi', color: 'var(--fg-3)' }, sent: { label: 'Đã gửi', color: 'var(--neon-cyan)' },
+  followup_1: { label: 'Nhắc 1', color: 'var(--neon-amber)' }, followup_2: { label: 'Nhắc 2', color: 'var(--neon-amber)' },
+  replied: { label: 'Đã hồi', color: 'var(--neon-violet)' }, interested: { label: 'Quan tâm', color: 'var(--neon-lime)' },
+  embedded: { label: 'Đã gắn ★', color: 'var(--neon-lime)' }, declined: { label: 'Từ chối', color: 'var(--fg-3)' },
+  bounced: { label: 'Bị trả', color: 'var(--bad)' }, unreachable: { label: 'Ko liên hệ', color: 'var(--bad)' }, no_response: { label: 'Ko hồi', color: 'var(--fg-3)' },
 };
 const meta = (s: string) => STATUS_META[s] || { label: s, color: 'var(--fg-2)' };
 const ACTIVE = new Set(['sent', 'followup_1', 'followup_2']);
@@ -48,7 +48,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '0 0 6px' }}>
       <div style={{ width: 70, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
-      <div style={{ flex: 1, fontSize: 13, color: value ? 'var(--fg-0)' : 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '— (optional, leave blank)'}</div>
+      <div style={{ flex: 1, fontSize: 13, color: value ? 'var(--fg-0)' : 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '— (tuỳ chọn)'}</div>
       {value && <button style={btn} onClick={() => { navigator.clipboard?.writeText(value).then(() => { setC(true); setTimeout(() => setC(false), 1200); }).catch(() => {}); }}>{c ? '✓' : 'Copy'}</button>}
     </div>
   );
@@ -95,85 +95,85 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '2px 0 0' }}>
-        {!editing && <button onClick={openEdit} style={{ ...btn, fontSize: 11 }} title="Fix the email / form link from what you found on their site">✎ Edit contact</button>}
+        {!editing && <button onClick={openEdit} style={{ ...btn, fontSize: 11 }} title="Sửa email / link form theo đúng thông tin trên trang của họ">✎ Sửa liên hệ</button>}
       </div>
 
       {editing ? (
         <div style={{ margin: '10px 0 0' }}>
-          <div style={lbl}>Fix contact (from what is actually on their site)</div>
+          <div style={lbl}>Sửa liên hệ (theo đúng trang của họ)</div>
           <div style={lbl}>Email</div>
-          <input value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="leave blank = form-only" autoComplete="off" style={inputStyle} />
-          <div style={lbl}>Contact form URL</div>
-          <input value={draft.contactUrl} onChange={(e) => setDraft({ ...draft, contactUrl: e.target.value })} placeholder="https://their-site.com/contact" autoComplete="off" style={inputStyle} />
+          <input value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="để trống = chỉ dùng form" autoComplete="off" style={inputStyle} />
+          <div style={lbl}>URL form liên hệ</div>
+          <input value={draft.contactUrl} onChange={(e) => setDraft({ ...draft, contactUrl: e.target.value })} placeholder="https://trang-cua-ho.com/contact" autoComplete="off" style={inputStyle} />
           <div style={lbl}>Website</div>
-          <input value={draft.website} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="https://their-site.com" autoComplete="off" style={inputStyle} />
+          <input value={draft.website} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="https://trang-cua-ho.com" autoComplete="off" style={inputStyle} />
           {saveErr && <div style={{ fontSize: 12, color: 'var(--bad)', margin: '0 0 8px' }}>✗ {saveErr}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={saving} onClick={saveEdit}>{saving ? 'Saving…' : 'Save'}</button>
-            <button style={{ ...btn, padding: '7px 12px' }} disabled={saving} onClick={() => setEditing(false)}>Cancel</button>
+            <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={saving} onClick={saveEdit}>{saving ? 'Đang lưu…' : 'Lưu'}</button>
+            <button style={{ ...btn, padding: '7px 12px' }} disabled={saving} onClick={() => setEditing(false)}>Huỷ</button>
           </div>
-          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Add an <b>email</b> to upgrade a FORM prospect to EMAIL (then you can auto-send). <b>Website</b> is what the GA4 embed-detector matches on - keep it their real homepage.</p>
+          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Thêm <b>email</b> để nâng prospect FORM lên EMAIL (rồi mới auto-send được). <b>Website</b> là cái GA4 embed-detector so khớp — giữ đúng homepage thật của họ.</p>
         </div>
       ) : isForm ? (
         <>
           <div style={{ margin: '14px 0 0' }}>
-            <div style={lbl}>Submit via their contact form</div>
-            {formLink ? <a href={formLink} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block', borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)', fontWeight: 700 }}>Open {hostOf(formLink)} form ↗</a> : <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>No contact link on file.</div>}
-            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>Opens with no referrer - their site won&apos;t see this tool. Contact forms usually have one message box and no subject, so paste the message below into it.</div>
+            <div style={lbl}>Gửi qua form liên hệ của họ</div>
+            {formLink ? <a href={formLink} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block', borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)', fontWeight: 700 }}>Mở form {hostOf(formLink)} ↗</a> : <div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Chưa có link liên hệ.</div>}
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>Mở không kèm referrer — trang họ không thấy tool này. Form liên hệ thường chỉ có 1 ô nội dung, không có tiêu đề, nên dán nội dung dưới vào đó.</div>
           </div>
           <div style={{ margin: '14px 0 0' }}>
-            <div style={lbl}>Form fields - copy each into the matching box on their form</div>
-            <CopyField label="Name" value={sender.name} />
+            <div style={lbl}>Điền form — copy từng ô vào đúng chỗ trên form của họ</div>
+            <CopyField label="Tên" value={sender.name} />
             <CopyField label="Email" value={sender.email} />
-            <div style={{ ...lbl, marginTop: 6 }}>Message <span style={{ color: 'var(--fg-3)' }}>· editable</span></div>
+            <div style={{ ...lbl, marginTop: 6 }}>Nội dung <span style={{ color: 'var(--fg-3)' }}>· sửa được</span></div>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12} style={taStyle} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-            <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(body)}>{didCopy ? '✓ Copied' : 'Copy message'}</button>
-            <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Save your edits without sending">{savedDraft ? '✓ Saved' : 'Save draft'}</button>
-            <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Regenerate from template (discards edits)">Reset</button>
+            <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(body)}>{didCopy ? '✓ Đã copy' : 'Copy nội dung'}</button>
+            <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
+            <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Tạo lại từ mẫu (bỏ chỉnh sửa)">Đặt lại</button>
             {sendable && (<>
-              <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>{formBusy ? 'Saving…' : '✓ Submitted the form'}</button>
-              <button style={{ ...btn, padding: '7px 12px', borderColor: 'var(--bad)', color: 'var(--bad)' }} disabled={formBusy} onClick={() => doForm('unreachable')} title="Broken form, not a real form, captcha-blocked, or won't send">Can&apos;t send / form broken</button>
+              <button style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>{formBusy ? 'Đang lưu…' : '✓ Đã gửi form'}</button>
+              <button style={{ ...btn, padding: '7px 12px', borderColor: 'var(--bad)', color: 'var(--bad)' }} disabled={formBusy} onClick={() => doForm('unreachable')} title="Form hỏng, không phải form thật, bị captcha chặn, hoặc không gửi được">Ko gửi được / form hỏng</button>
             </>)}
           </div>
         </>
       ) : (
         <>
           <div style={{ margin: '14px 0 0' }}>
-            <div style={lbl}>From</div>
+            <div style={lbl}>Từ</div>
             <div style={{ fontSize: 13, color: 'var(--fg-1)' }}>{sender.name} &lt;{sender.email}&gt;</div>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Sent via Mailjet · replies land in your inbox</div>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Gửi qua Mailjet · reply về inbox của anh</div>
           </div>
           <div style={{ margin: '12px 0 0' }}>
-            <div style={lbl}>To</div>
+            <div style={lbl}>Tới</div>
             <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{cur.email}</div>
           </div>
           <div style={{ margin: '12px 0 0' }}>
-            <div style={lbl}>Subject <span style={{ color: 'var(--fg-3)' }}>· editable</span>{isFollowup && <span style={{ color: 'var(--neon-amber)' }}> · follow-up</span>}</div>
+            <div style={lbl}>Tiêu đề <span style={{ color: 'var(--fg-3)' }}>· sửa được</span>{isFollowup && <span style={{ color: 'var(--neon-amber)' }}> · nhắc</span>}</div>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} autoComplete="off" style={{ ...inputStyle, fontWeight: 600, marginBottom: 0 }} />
           </div>
           <div style={{ margin: '12px 0 0' }}>
-            <div style={lbl}>Body <span style={{ color: 'var(--fg-3)' }}>· editable — fix the greeting/wording before sending</span></div>
+            <div style={lbl}>Nội dung <span style={{ color: 'var(--fg-3)' }}>· sửa được — chỉnh lời chào/câu chữ trước khi gửi</span></div>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={16} style={taStyle} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-            {sendable && send === 'idle' && <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => setSend('confirm')}>{isFollowup ? 'Send follow-up' : 'Send email'}</button>}
+            {sendable && send === 'idle' && <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={pending} onClick={() => setSend('confirm')}>{isFollowup ? 'Gửi nhắc' : 'Gửi email'}</button>}
             {sendable && send === 'confirm' && (<>
-              <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Confirm: email {cur.email} now</button>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Cancel</button>
+              <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Xác nhận: gửi email tới {cur.email}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Huỷ</button>
             </>)}
-            {send === 'sending' && <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Sending…</span>}
-            {send === 'sent' && <span style={{ fontSize: 13, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ Sent</span>}
+            {send === 'sending' && <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Đang gửi…</span>}
+            {send === 'sent' && <span style={{ fontSize: 13, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ Đã gửi</span>}
             {send === 'error' && <span style={{ fontSize: 12, color: 'var(--bad)' }}>✗ {err}</span>}
             {send !== 'sending' && send !== 'sent' && (<>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Copied' : 'Copy email'}</button>
-              <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Open in Gmail ↗</a>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Save your edits without sending">{savedDraft ? '✓ Saved' : 'Save draft'}</button>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Regenerate from template (discards edits)">Reset</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Đã copy' : 'Copy email'}</button>
+              <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Mở Gmail ↗</a>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Tạo lại từ mẫu (bỏ chỉnh sửa)">Đặt lại</button>
             </>)}
           </div>
-          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Send goes out through Mailjet from {sender.email} (replies come to your inbox) and advances the pipeline. Or open it prefilled in Gmail to send by hand.</p>
+          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Gửi qua Mailjet từ {sender.email} (reply về inbox của anh) và đẩy pipeline tiến. Hoặc mở sẵn trong Gmail để gửi tay.</p>
         </>
       )}
     </>

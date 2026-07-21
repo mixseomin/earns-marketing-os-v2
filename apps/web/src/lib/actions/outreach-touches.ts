@@ -95,7 +95,7 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
            (pa.platform_key = ANY(${platArr})) AS platmatch
     FROM platform_accounts pa
     WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> '' AND (${scope})
-    ORDER BY (pa.platform_key = ANY(${platArr})) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;
+    ORDER BY (pa.platform_key = ANY(${platArr})) DESC, pa.platform_key, pa.id DESC`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;   // id DESC = mới tạo lên đầu (thấy ngay, không lọt cuối)
   // Persona chung (identities) không thuộc platform nào → CHỈ cho kênh không map platform. FB/social = chỉ account platform đó.
   const idents = plats.length ? [] : ((await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>);
   const opts: SendAsOption[] = [];
@@ -146,6 +146,32 @@ export async function updateSendAsAccount(accountId: number, patch: { handle?: s
     await db.execute(sql`UPDATE platform_accounts SET ${sql.join(parts, sql`, `)} WHERE id = ${accountId} AND project_id IS NULL`);
     return { ok: true };
   } catch (e) { return { ok: false, error: /unique|duplicate/i.test(String(e)) ? 'handle đã tồn tại' : `sửa lỗi: ${(e as Error).message}` }; }
+}
+
+// Create a GLOBAL send-as account WITH details (the create-drawer path — user fills name/handle/URL/followers,
+// not a bare inline handle). Handle derives from displayName if left blank. Dedup via the partial unique index.
+export async function createSendAsAccount(projectId: string, channel: string, fields: { handle?: string; displayName?: string; fbUrl?: string; followers?: string; status?: string }): Promise<{ ok: boolean; id?: number; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  const name = (fields.displayName || '').trim();
+  let handle = (fields.handle || '').trim();
+  if (!handle) handle = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  if (!handle) return { ok: false, error: 'nhập Tên hiển thị hoặc Handle' };
+  try {
+    const platform = await reconcilePlatformKey(db, (CHANNEL_PLATFORM[channel] || [channel])[0] || channel);
+    await db.execute(sql`INSERT INTO platforms (key, label, signup_url, description) VALUES (${platform}, ${platform}, '', 'Auto (send-as)') ON CONFLICT (key) DO NOTHING`);
+    const persona: Record<string, string> = { source: 'manual' };
+    if (name) persona.displayName = name;
+    if (fields.fbUrl?.trim()) persona.fbUrl = fields.fbUrl.trim();
+    if (fields.followers?.trim()) persona.followerCount = fields.followers.trim();
+    const status = fields.status || 'active';
+    await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type, persona)
+      VALUES ('self', ${platform}, NULL, ${handle}, ${status}, 'brand', ${JSON.stringify(persona)}::jsonb)
+      ON CONFLICT (tenant_id, platform_key, handle) WHERE handle IS NOT NULL DO UPDATE SET persona = platform_accounts.persona || EXCLUDED.persona, status = EXCLUDED.status, updated_at = now()`);
+    const ex = (await db.execute(sql`SELECT id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platform} AND handle = ${handle} LIMIT 1`)) as unknown as Array<{ id: number }>;
+    const id = Number(ex[0]?.id); if (!id) return { ok: false, error: 'không tạo được' };
+    return { ok: true, id };
+  } catch (e) { return { ok: false, error: /unique|duplicate/i.test(String(e)) ? 'handle đã tồn tại' : `tạo lỗi: ${(e as Error).message}` }; }
 }
 
 // Adopt a Directus account (master registry) into the GLOBAL send-as pool so a touch references a stable

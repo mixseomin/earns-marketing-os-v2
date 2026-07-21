@@ -1,14 +1,14 @@
 'use client';
 
 // SendAsPicker — "comment/DM as" identity chooser. Thin wrapper over the house <EntityPicker> primitive:
-// maps send-as options ⇄ EntityOption + wires create / adopt-from-Directus / rich edit. Editing a page opens a
-// stacked detail Drawer (SendAsDetailDrawer) with all its fields — not just a name rename. Delete lives in that
-// drawer (confirm), so the picker list itself shows no inline ✕.
+// maps send-as options ⇄ EntityOption + wires create / adopt-from-Directus / rich edit. Both CREATE and EDIT
+// open the SAME stacked detail Drawer (SendAsDetailDrawer) with all fields — never a bare inline handle box.
+// Delete lives in that drawer (confirm), so the picker list shows no inline ✕.
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { EntityPicker, Drawer, ConfirmDeleteButton, type EntityOption } from '@/components/ui';
 import {
-  listSendAs, addSendAsAccount, adoptSendAsFromDirectus,
-  getSendAsAccount, updateSendAsAccount, deleteSendAsAccount,
+  listSendAs, adoptSendAsFromDirectus,
+  getSendAsAccount, createSendAsAccount, updateSendAsAccount, deleteSendAsAccount,
   type SendAsOption, type SentAs,
 } from '@/lib/actions/outreach-touches';
 
@@ -31,35 +31,44 @@ const toOption = (o: SendAsOption): EntityOption => ({
 
 const lbl: CSSProperties = { display: 'block', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--fg-3)', marginBottom: 4 };
 const inp: CSSProperties = { width: '100%', padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
+type Fields = { id: number; handle: string; displayName: string; fbUrl: string; followers: string; status: string; platformKey: string };
+const EMPTY: Fields = { id: 0, handle: '', displayName: '', fbUrl: '', followers: '', status: 'active', platformKey: '' };
 
-// Rich edit drawer — the entity has many attributes (name · handle · URL · followers · status), so editing is a
-// stacked Drawer, not an inline name box. GLOBAL accounts only.
-function SendAsDetailDrawer({ accountId, onClose }: { accountId: number; onClose: () => void }) {
-  const [f, setF] = useState<Awaited<ReturnType<typeof getSendAsAccount>>>(null);
-  const [loading, setLoading] = useState(true);
+// One rich Drawer for BOTH create (accountId null → empty form) and edit (load fields). Delete only in edit.
+function SendAsDetailDrawer({ projectId, channel, accountId, onClose }: { projectId: string; channel: string; accountId: number | null; onClose: () => void }) {
+  const isCreate = accountId == null;
+  const [f, setF] = useState<Fields | null>(isCreate ? { ...EMPTY } : null);
+  const [loading, setLoading] = useState(!isCreate);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  useEffect(() => { let live = true; getSendAsAccount(accountId).then((a) => { if (live) { setF(a); setLoading(false); } }); return () => { live = false; }; }, [accountId]);
+  useEffect(() => {
+    if (accountId == null) return;   // create mode → empty form, nothing to load
+    let live = true;
+    getSendAsAccount(accountId).then((a) => { if (live) { setF(a ? { ...a } : null); setLoading(false); } });
+    return () => { live = false; };
+  }, [accountId]);
   const set = (k: 'handle' | 'displayName' | 'fbUrl' | 'followers' | 'status', v: string) => setF((p) => p ? { ...p, [k]: v } : p);
   const save = async () => {
-    if (!f) return; setBusy(true); setErr('');
-    const r = await updateSendAsAccount(accountId, { handle: f.handle, displayName: f.displayName, fbUrl: f.fbUrl, followers: f.followers, status: f.status });
+    if (!f) return;
+    const payload = { handle: f.handle, displayName: f.displayName, fbUrl: f.fbUrl, followers: f.followers, status: f.status };
+    setBusy(true); setErr('');
+    const r = isCreate ? await createSendAsAccount(projectId, channel, payload) : await updateSendAsAccount(accountId as number, payload);
     setBusy(false); if (r.ok) onClose(); else setErr(r.error || 'lỗi lưu');
   };
-  const del = async () => { setBusy(true); setErr(''); const r = await deleteSendAsAccount(accountId); setBusy(false); if (r.ok) onClose(); else setErr(r.error || 'lỗi xoá'); };
+  const del = async () => { if (accountId == null) return; setBusy(true); setErr(''); const r = await deleteSendAsAccount(accountId); setBusy(false); if (r.ok) onClose(); else setErr(r.error || 'lỗi xoá'); };
 
   return (
     <Drawer onClose={onClose} width={460} zIndex={640} closeOnOutside={false} padding={0}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 12px', borderBottom: '1px solid var(--line)' }}>
-          <h2 style={{ flex: 1, fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--fg-0)' }}>Sửa danh tính</h2>
+          <h2 style={{ flex: 1, fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--fg-0)' }}>{isCreate ? 'Tạo danh tính mới' : 'Sửa danh tính'}</h2>
           <button className="btn ghost" onClick={onClose} style={{ padding: '2px 8px' }}>✕</button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {loading ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải…</div> : !f ? <div style={{ color: 'var(--bad)', fontSize: 12 }}>Không thấy account.</div> : (
             <>
-              <label><span style={lbl}>Tên hiển thị</span><input value={f.displayName} onChange={(e) => set('displayName', e.target.value)} style={inp} placeholder="VD: Animals Care" /></label>
-              <label><span style={lbl}>Handle</span><input value={f.handle} onChange={(e) => set('handle', e.target.value)} style={inp} placeholder="vanity hoặc id" /></label>
+              <label><span style={lbl}>Tên hiển thị</span><input value={f.displayName} onChange={(e) => set('displayName', e.target.value)} autoFocus style={inp} placeholder="VD: Animals Care" /></label>
+              <label><span style={lbl}>Handle {isCreate && <span style={{ textTransform: 'none', color: 'var(--fg-4)' }}>(bỏ trống = tự tạo từ tên)</span>}</span><input value={f.handle} onChange={(e) => set('handle', e.target.value)} style={inp} placeholder="vanity hoặc id" /></label>
               <label><span style={lbl}>URL trang FB</span><input value={f.fbUrl} onChange={(e) => set('fbUrl', e.target.value)} style={inp} placeholder="https://facebook.com/…" />
                 {f.fbUrl && <a href={f.fbUrl} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: 'var(--accent)', marginTop: 3, display: 'inline-block' }}>↗ mở</a>}</label>
               <label><span style={lbl}>Followers</span><input value={f.followers} onChange={(e) => set('followers', e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={inp} placeholder="số" /></label>
@@ -74,10 +83,10 @@ function SendAsDetailDrawer({ accountId, onClose }: { accountId: number; onClose
         </div>
         {!loading && f && (
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderTop: '1px solid var(--line)' }}>
-            <ConfirmDeleteButton onDelete={del} labelIdle="🗑 Xoá" />
+            {!isCreate && <ConfirmDeleteButton onDelete={del} labelIdle="🗑 Xoá" />}
             <span style={{ flex: 1 }} />
             <button className="btn ghost" onClick={onClose} style={{ padding: '7px 13px' }}>Huỷ</button>
-            <button className="btn primary" onClick={save} disabled={busy} style={{ padding: '7px 15px' }}>{busy ? '…' : 'Lưu'}</button>
+            <button className="btn primary" onClick={save} disabled={busy} style={{ padding: '7px 15px' }}>{busy ? '…' : (isCreate ? 'Tạo' : 'Lưu')}</button>
           </div>
         )}
       </div>
@@ -104,15 +113,15 @@ export function SendAsPicker({ projectId, channel, value, onPick, onClose }: {
   return (
     <EntityPicker
       title="Gửi bằng — chọn danh tính"
-      hint="Page/account FB bạn sở hữu (dùng chung mọi dự án). Chọn, tạo mới, hoặc ✎ sửa chi tiết."
+      hint="Page/account FB bạn sở hữu (dùng chung mọi dự án). Chọn, ＋ tạo mới, hoặc ✎ sửa chi tiết."
       load={load}
       value={value?.id != null ? { key: `${value.kind || 'account'}:${value.id}` } : undefined}
       onPick={handlePick}
       onClose={onClose}
-      onCreate={(name) => addSendAsAccount(projectId, channel, name).then((r) => ({ ok: r.ok, error: r.error }))}
-      renderEditor={(opt, close) => <SendAsDetailDrawer accountId={(opt.data as SendAsOption).id} onClose={close} />}
-      createPlaceholder="Tạo mới: nhập tên Page/account…"
-      emptyHint={<>Chưa có danh tính. Tạo mới ở trên, hoặc nhập hàng loạt bằng nút <b>⬇ Nhập Pages</b> của ext trên facebook.com.</>}
+      renderEditor={(opt, close) => (
+        <SendAsDetailDrawer projectId={projectId} channel={channel} accountId={opt ? (opt.data as SendAsOption).id : null} onClose={close} />
+      )}
+      emptyHint={<>Chưa có danh tính. Bấm <b>＋ Tạo mới</b> ở trên, hoặc nhập hàng loạt bằng nút <b>⬇ Nhập Pages</b> của ext trên facebook.com.</>}
     />
   );
 }

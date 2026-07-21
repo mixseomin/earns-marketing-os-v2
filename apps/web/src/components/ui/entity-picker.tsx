@@ -32,8 +32,9 @@ export interface EntityPickerProps {
   onPick: (o: EntityOption) => void | Promise<void>;   // parent typically closes; async → row shows busy
   onClose: () => void;
   onCreate?: (name: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Rich edit: open a stacked detail drawer for the whole entity. Preferred for multi-field entities. */
-  renderEditor?: (o: EntityOption, close: () => void) => ReactNode;
+  /** Rich edit/create: open a stacked detail drawer for the whole entity. o=null → create a new one.
+   *  Preferred for multi-field entities (the create button opens this instead of an inline name box). */
+  renderEditor?: (o: EntityOption | null, close: () => void) => ReactNode;
   /** Inline single-field rename — used only when renderEditor is absent. */
   onRename?: (o: EntityOption, name: string) => Promise<{ ok: boolean; error?: string }>;
   /** OPT-IN delete (row shows ✕ only when this is passed). Always confirms before firing. */
@@ -61,7 +62,8 @@ export function EntityPicker({
   const [editKey, setEditKey] = useState<string | null>(null);     // inline rename target
   const [editName, setEditName] = useState('');
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
-  const [detailKey, setDetailKey] = useState<string | null>(null); // rich-editor (renderEditor) target
+  const [detailKey, setDetailKey] = useState<string | null>(null); // rich-editor target (edit existing)
+  const [creating, setCreating] = useState(false);                  // rich-editor in create mode (o=null)
   const selRef = useRef<HTMLDivElement | null>(null);
 
   const reload = async () => { setOpts(await load()); setLoading(false); };
@@ -107,10 +109,11 @@ export function EntityPicker({
   };
 
   const detailOpt = detailKey != null ? opts.find((o) => o.key === detailKey) : undefined;
+  const editorOpen = creating || !!detailOpt;
 
   return (
     <>
-      <Drawer onClose={onClose} width={440} zIndex={zIndex} backgrounded={!!detailOpt} closeOnOutside padding={0}>
+      <Drawer onClose={onClose} width={440} zIndex={zIndex} backgrounded={editorOpen} closeOnOutside padding={0}>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ flexShrink: 0, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '16px 18px 12px', borderBottom: '1px solid var(--line)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,13 +124,16 @@ export function EntityPicker({
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {onCreate && (
+            {renderEditor ? (
+              // Rich entity → create opens the SAME detail drawer (empty) so the user fills all fields.
+              <button type="button" className="btn primary" onClick={() => setCreating(true)} style={{ padding: '9px 12px', width: '100%', fontWeight: 700 }}>＋ Tạo mới</button>
+            ) : onCreate ? (
               <div style={{ display: 'flex', gap: 6 }}>
                 <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); create(); } }} placeholder={createPlaceholder}
                   style={{ flex: 1, padding: '7px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none' }} />
                 <button type="button" className="btn primary" onClick={create} disabled={!newName.trim() || !!busy} style={{ padding: '7px 13px' }}>{busy === 'create' ? '…' : '＋ Tạo'}</button>
               </div>
-            )}
+            ) : null}
 
             {opts.length > searchThreshold && (
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm…"
@@ -189,7 +195,7 @@ export function EntityPicker({
           </div>
         </div>
       </Drawer>
-      {detailOpt && renderEditor && renderEditor(detailOpt, () => { setDetailKey(null); reload(); })}
+      {editorOpen && renderEditor && renderEditor(creating ? null : (detailOpt as EntityOption), () => { setCreating(false); setDetailKey(null); reload(); })}
     </>
   );
 }

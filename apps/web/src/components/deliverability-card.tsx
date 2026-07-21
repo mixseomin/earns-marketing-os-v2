@@ -51,6 +51,17 @@ export function DeliverabilityCard() {
   }, []);
   useEffect(() => { load(); const t = setInterval(load, 300_000); return () => clearInterval(t); }, [load]);
 
+  const [testing, setTesting] = useState<string | null>(null);
+  const runTest = useCallback(async (domain: string) => {
+    if (testing) return;
+    setTesting(domain);
+    try {
+      const r = await fetch('/api/deliverability/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain }) });
+      if (!r.ok) { setTesting(null); return; }
+      setTimeout(() => { load(); setTesting((t) => (t === domain ? null : t)); }, 98_000);
+    } catch { setTesting(null); }
+  }, [testing, load]);
+
   const addDomain = useCallback(async () => {
     const dom = newDomain.trim().toLowerCase();
     if (!dom || adding) return;
@@ -110,7 +121,10 @@ export function DeliverabilityCard() {
               const scores = (row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null);
               return (
                 <tr key={row.domain}>
-                  <td style={{ ...td, fontWeight: 700, color: 'var(--fg-0)', whiteSpace: 'nowrap' }}>{row.domain}</td>
+                  <td style={{ ...td, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)', whiteSpace: 'nowrap' }}>
+                    {row.domain}
+                    {!row.send && <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
+                  </td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <Tick ok={row.auth.spf} label="SPF" />
                     <Tick ok={row.auth.dkim} label="DKIM" />
@@ -123,8 +137,21 @@ export function DeliverabilityCard() {
                   </td>
                   <td style={{ ...td, ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</td>
                   <td style={{ ...td, ...mono }}>
-                    {st?.score != null ? <b style={{ color: scoreColor(st.score) }}>{st.score.toFixed(1)}<span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>/10</span></b> : <span style={{ color: 'var(--fg-3)' }}>—</span>}
-                    {st?.date && <div style={{ color: 'var(--fg-3)', fontSize: 9.5 }}>{st.date}</div>}
+                    {!row.send ? (
+                      <span title="No send path — set up sending (DNS + DKIM + MailWizz list) to spam-test this domain"
+                        style={{ fontSize: 10, color: '#e0a94a', border: '1px solid #e0a94a66', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>⚠ no send path</span>
+                    ) : testing === row.domain ? (
+                      <span style={{ fontSize: 10, color: 'var(--accent,#37d4c2)' }}>testing… ~90s</span>
+                    ) : (
+                      <>
+                        {st?.score != null && <b style={{ color: scoreColor(st.score) }}>{st.score.toFixed(1)}<span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>/10</span></b>}
+                        <button onClick={() => runTest(row.domain)} title="Run mail-tester now"
+                          style={{ ...mono, fontSize: 10, marginLeft: st?.score != null ? 6 : 0, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>
+                          {st?.score != null ? '↻' : 'test now'}
+                        </button>
+                        {st?.date && <div style={{ color: 'var(--fg-3)', fontSize: 9.5 }}>{st.date}</div>}
+                      </>
+                    )}
                   </td>
                   <td style={td}><Spark pts={scores.slice(-10)} /></td>
                   <td style={td}>

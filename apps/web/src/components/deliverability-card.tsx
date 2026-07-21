@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Fragment, type CSSProperties } from 'react';
+import { useEffect, useState, useCallback, Fragment, type CSSProperties, type ReactNode } from 'react';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -8,6 +8,11 @@ interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
 interface Row { domain: string; send?: boolean; warmupStart?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
+interface MwList { uid: string; name: string; description: string; fromName: string | null; fromEmail: string | null; replyTo: string | null; subject: string | null; company: string | null; subscribers: number | null }
+interface MwField { label: string; tag: string; type: string; required: boolean }
+interface MwSeg { uid: string; name: string; count: number }
+interface MwCamp { uid: string; name: string; subject: string; status: string; type: string; sendAt: string | null }
+interface MwView { list: MwList; fields: MwField[]; segments: MwSeg[]; campaigns: MwCamp[] }
 
 const repColor: Record<string, string> = { HIGH: '#5ac47e', MEDIUM: '#37d4c2', LOW: '#e0a94a', BAD: '#d16b6b' };
 const repShort = (r: string | null) => (r ? r.replace('REPUTATION_', '').replace('_', ' ') : '—');
@@ -45,7 +50,7 @@ const capLabel = (n: number) => (n >= 1000 ? n / 1000 + 'k' : String(n));
 
 // A calendar strip for one sending domain: one cell per warm-up day (D1..D8 + steady),
 // each showing that day's target volume + the real reputation/mail-tester result on that date.
-function WarmupCalendar({ row, onChange }: { row: Row; onChange: () => void }) {
+function WarmupCalendar({ row, onChange, onView }: { row: Row; onChange: () => void; onView: (d: string) => void }) {
   const [busy, setBusy] = useState(false);
   const set = useCallback(async (action: 'start' | 'stop') => {
     if (busy) return;
@@ -56,13 +61,14 @@ function WarmupCalendar({ row, onChange }: { row: Row; onChange: () => void }) {
     } finally { setBusy(false); }
   }, [busy, row.domain, onChange]);
 
-  const btn: CSSProperties = { ...mono, fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: busy ? 'default' : 'pointer' };
+  const btn: CSSProperties = { ...mono, fontSize: 10, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: busy ? 'default' : 'pointer', fontWeight: 700 };
 
   if (!row.warmupStart) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
         <span style={{ ...mono, fontSize: 11, color: 'var(--fg-1)', fontWeight: 700 }}>{row.domain}</span>
-        <button onClick={() => set('start')} disabled={busy} title="Stamp today as day 1 of the warm-up ramp">🔥 Start warm-up</button>
+        <button onClick={() => set('start')} disabled={busy} style={btn} title="Stamp today as day 1 of the warm-up ramp">🔥 Start warm-up</button>
+        <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments, campaigns">✉️ Campaign & list</button>
         <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>ramp 50 → full over {RAMP.length} days</span>
       </div>
     );
@@ -82,6 +88,7 @@ function WarmupCalendar({ row, onChange }: { row: Row; onChange: () => void }) {
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>
           {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
         </span>
+        <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments, campaigns">✉️ Campaign & list</button>
         <button onClick={() => set('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
       </div>
       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -126,6 +133,20 @@ export function DeliverabilityCard() {
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
   const [view, setView] = useState<'table' | 'warmup'>('table');
+  const [viewDomain, setViewDomain] = useState<string | null>(null);
+  const [mw, setMw] = useState<MwView | null>(null);
+  const [mwErr, setMwErr] = useState('');
+
+  useEffect(() => {
+    if (!viewDomain) { setMw(null); setMwErr(''); return; }
+    let alive = true;
+    setMw(null); setMwErr('');
+    fetch(`/api/deliverability/mailwizz?domain=${encodeURIComponent(viewDomain)}`, { cache: 'no-store' })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => { if (!alive) return; ok ? setMw(j) : setMwErr(j.error || 'failed'); })
+      .catch(() => alive && setMwErr('network error'));
+    return () => { alive = false; };
+  }, [viewDomain]);
 
   const load = useCallback(async () => {
     try {
@@ -201,7 +222,7 @@ export function DeliverabilityCard() {
         <div style={{ paddingTop: 2 }}>
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
-            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} />)}
+            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} />)}
           <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
             Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
           </div>
@@ -291,6 +312,84 @@ export function DeliverabilityCard() {
         </table>
       </div>
       )}
+      {viewDomain && (
+        <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} />
+      )}
+    </div>
+  );
+}
+
+// Read-only drawer: everything MailWizz holds for a sending domain's list — defaults/params,
+// merge tags, segments, campaigns. No editing here; compose stays in MailWizz.
+function MailwizzDrawer({ domain, data, err, onClose }: { domain: string; data: MwView | null; err: string; onClose: () => void }) {
+  const secTitle: CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', fontWeight: 700, margin: '14px 0 6px' };
+  const kv = (k: string, v: ReactNode) => (
+    <div style={{ display: 'flex', gap: 8, fontSize: 11.5, padding: '2px 0' }}>
+      <span style={{ color: 'var(--fg-3)', minWidth: 78 }}>{k}</span>
+      <span style={{ ...mono, color: 'var(--fg-1)', wordBreak: 'break-word' }}>{v ?? '—'}</span>
+    </div>
+  );
+  const statusColor: Record<string, string> = { sent: '#5ac47e', sending: '#37d4c2', 'draft': 'var(--fg-3)', 'pending-sending': '#e0a94a', paused: '#e0a94a' };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 60, display: 'flex', justifyContent: 'flex-end' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px,92vw)', height: '100%', overflowY: 'auto', background: 'var(--bg-2)', borderLeft: '1px solid var(--line)', padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>✉️ {domain}</div>
+            <div style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>MailWizz list {data ? `· ${data.list.subscribers ?? '?'} subs` : ''}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <a href="https://mail.on.tc/customer/campaigns" target="_blank" rel="noopener noreferrer" style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>MailWizz ↗</a>
+            <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          </div>
+        </div>
+
+        {err && <div style={{ marginTop: 16, fontSize: 12, color: '#d16b6b' }}>{err}</div>}
+        {!data && !err && <div style={{ marginTop: 16, fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>}
+        {data && (
+          <>
+            <div style={secTitle}>Params · sending defaults</div>
+            {kv('list', `${data.list.name} · ${data.list.uid}`)}
+            {kv('from', data.list.fromEmail && <>{data.list.fromName} &lt;{data.list.fromEmail}&gt;</>)}
+            {kv('reply-to', data.list.replyTo)}
+            {kv('subject', data.list.subject)}
+            {kv('CAN-SPAM', data.list.company)}
+            {data.list.description && kv('note', data.list.description)}
+
+            <div style={secTitle}>Merge tags · {data.fields.length}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {data.fields.map((f) => (
+                <span key={f.tag} title={`${f.label} · ${f.type}${f.required ? ' · required' : ''}`}
+                  style={{ ...mono, fontSize: 10, color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 6px' }}>
+                  [{f.tag}]{f.required && <span style={{ color: '#e0a94a' }}> *</span>}
+                </span>
+              ))}
+            </div>
+
+            <div style={secTitle}>Segments · {data.segments.length}</div>
+            {data.segments.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>none</div>
+              : data.segments.map((s) => (
+                <div key={s.uid} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, padding: '2px 0' }}>
+                  <span style={{ color: 'var(--fg-1)' }}>{s.name}</span>
+                  <span style={{ ...mono, color: 'var(--fg-2)' }}>{s.count.toLocaleString()} subs</span>
+                </div>
+              ))}
+
+            <div style={secTitle}>Campaigns · {data.campaigns.length}</div>
+            {data.campaigns.length === 0 ? <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>no campaigns yet — create one in MailWizz to send the warm-up</div>
+              : data.campaigns.map((c) => (
+                <div key={c.uid} style={{ borderBottom: '1px solid var(--line)', padding: '5px 0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{c.name}</span>
+                    <span style={{ ...mono, fontSize: 9.5, color: statusColor[c.status] || 'var(--fg-3)', textTransform: 'uppercase' }}>{c.status}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.subject}</div>
+                  {c.sendAt && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{c.type} · {c.sendAt}</div>}
+                </div>
+              ))}
+          </>
+        )}
+      </div>
     </div>
   );
 }

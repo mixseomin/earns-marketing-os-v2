@@ -9,13 +9,16 @@ export const runtime = 'nodejs';
 const API = process.env.MAILWIZZ_API_URL || 'https://mail.on.tc/api/index.php';
 const KEY = process.env.MAILWIZZ_API_KEY || '';
 
-// A genuine, low-key warm-up email so early sends don't trigger unsubscribes. English only
-// (public content). Required MailWizz tags [UNSUBSCRIBE_URL] + [COMPANY_FULL_ADDRESS] included.
-function defaultBody(brand: string) {
+// A value-first warm-up email (NOT a "welcome" — subscribers already know the brand from an
+// earlier send). One genuine CTA link so clicks — the strongest warm-up signal — are measurable
+// via MailWizz tracking. English only (public content). Required MailWizz tags included.
+function defaultBody(brand: string, site: string) {
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;color:#222;line-height:1.6;max-width:560px;margin:0 auto">
 <p>Hi there,</p>
-<p>Thanks for subscribing to <strong>${brand}</strong>. You'll get occasional, useful updates — new tools, pay and benefit changes, and the odd tip worth your time. No spam, and never more than you signed up for.</p>
-<p>Glad to have you here.</p>
+<p>Quick reminder while you're thinking about your military pay and benefits: every calculator on <strong>${brand}</strong> is free, takes under a minute, and needs no sign-up.</p>
+<p>Checking BAH, base pay, or planning a PCS move — it's all in one place, kept current.</p>
+<p style="margin:22px 0"><a href="${site}" style="background:#1D1F27;color:#fff;text-decoration:none;padding:11px 20px;border-radius:6px;font-weight:600;display:inline-block">Open the calculators →</a></p>
+<p>We only email when there's something genuinely worth your time. Thanks for reading.</p>
 <p>— The ${brand} team</p>
 <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
 <p style="font-size:12px;color:#888">You're receiving this because you subscribed at ${brand}. <a href="[UNSUBSCRIBE_URL]" style="color:#888">Unsubscribe</a>.<br>[COMPANY_FULL_ADDRESS]</p>
@@ -42,9 +45,10 @@ export async function POST(req: NextRequest) {
   const fromEmail = def.from_email;
   if (!fromEmail) return NextResponse.json({ error: 'List has no default from-email set in MailWizz' }, { status: 400 });
 
-  const html = (body && body.trim()) || defaultBody(brand);
+  const site = `https://${d.split('.').slice(-2).join('.')}`; // root site, e.g. news.x.com → https://x.com
+  const html = (body && body.trim()) || defaultBody(brand, site);
   const name = `Warm-up — ${d}`;
-  const subj = (subject && subject.trim()) || `Welcome to ${brand}`;
+  const subj = (subject && subject.trim()) || `A quick tip from ${brand}`;
   const fromName = def.from_name || brand;
   const form = new URLSearchParams();
   form.set('campaign[name]', name);

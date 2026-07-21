@@ -160,6 +160,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalRpm = totalAdsenseImpr > 0 ? (totalAdsenseEarnings / totalAdsenseImpr) * 1000 : 0;
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
+  const openBing = openDomain ? (rows.find((r) => r.domain === openDomain)?.bing_ts_30d || []) : [];
   const fmtUsd = (n: number) => n >= 10 ? `$${n.toFixed(2)}` : n > 0 ? `$${n.toFixed(3)}` : '—';
 
   return (
@@ -475,6 +476,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
         <GscDetailDrawer
           domain={openDomain}
           points={openPoints}
+          bingPoints={openBing}
           interactions={rows.find((r) => r.domain === openDomain)?.ga4_interactions_by ?? null}
           onClose={() => setOpenDomain(null)}
         />

@@ -193,6 +193,7 @@ export async function SeoSitesPanel() {
             sitemap_urls_submitted: r.stats.sitemap_urls_submitted,
             bing_impressions_7d: bing?.impressions_7d ?? null,
             bing_clicks_7d: bing?.clicks_7d ?? null,
+            bing_ts_30d: bing?.ts_30d ?? null,
             bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
             bing_in_index: bing?.in_index ?? null,
             bing_in_links: bing?.in_links ?? null,

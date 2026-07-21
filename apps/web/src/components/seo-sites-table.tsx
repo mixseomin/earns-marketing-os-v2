@@ -35,6 +35,7 @@ interface RowData {
   // Bing group
   bing_impressions_7d?: number | null;
   bing_clicks_7d?: number | null;
+  bing_ts_30d?: { date: string; imp: number; clicks: number }[] | null;   // 30-day daily impressions → trend sparkline
   bing_feeds_indexed?: number | null;
   bing_in_index?: number | null;
   bing_in_links?: number | null;
@@ -236,6 +237,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             </>}
             {cols.bing && <>
               <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr</th>
+              <th style={{ ...headOf('bing'), padding: '5px 4px' }} title="30-day Bing impressions trend sparkline">Trend</th>
               <th style={headOf('bing')} title="Bing clicks last 7 days">Clk</th>
               <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
               <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
@@ -262,6 +264,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             const ctr = r.impressions_7d ? (r.clicks_7d / r.impressions_7d * 100) : 0;
             const pts = timeseries[r.domain] || [];
             const sparkValues = pts.slice(-30).map((p) => p.impressions);
+            const bingSpark = (r.bing_ts_30d || []).slice(-30).map((p) => p.imp);
             const SiteCell = r.project
               ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
               : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>;
@@ -346,6 +349,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                 {cols.bing && <>
                   <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
+                  </td>
+                  <td style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
+                    <Sparkline values={bingSpark} color={GROUP_COLOR.bing.fg} />
                   </td>
                   <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
                     {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
@@ -440,6 +446,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             </>}
             {cols.bing && <>
               <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
+              <td style={cellOf('bing', false)} />
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>

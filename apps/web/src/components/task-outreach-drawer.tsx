@@ -44,7 +44,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
     let live = true;
     listSendAs(projectId, sel).then((o) => {
       if (!live) return;
-      const d = o[0];
+      const d = o.find((x) => x.id > 0);   // real account only — Directus-only options (id 0) adopt on explicit pick
       if (d) { const sa = { kind: d.kind, id: d.id, label: d.label }; setTouches((ts) => ts.map((x) => x.id === t.id ? { ...x, sentAs: sa } : x)); saveTouch(projectId, t.id, { sentAs: sa }); }
     });
     return () => { live = false; };

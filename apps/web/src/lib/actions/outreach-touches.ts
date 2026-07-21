@@ -11,6 +11,7 @@ import { syncProspectToTask } from './backlink-outreach-sync';
 import { genChannelContent } from '@/lib/outreach/touch-content';
 import { firstNameOf } from '@/lib/outreach/link-task';
 import { reconcilePlatformKey } from '@/lib/resolve-platform';
+import { fetchDirectusAccountsByPlatform, directusEnabled, type DirectusAccount } from '@/lib/bridge/directus';
 
 async function isAdmin(): Promise<boolean> {
   const me = await getCurrentUser();
@@ -51,12 +52,28 @@ export async function listTouches(projectId: string, prospectId: number): Promis
 
 // "Gửi bằng" (comment/DM as) options for a channel: the project's accounts for that channel's platform
 // first, then its other accounts, then identities (personas). Generic — any channel picks who acted.
-export interface SendAsOption { kind: 'account' | 'identity'; id: number; label: string; sub: string; match: boolean; avatar?: string; editable?: boolean }
+export interface SendAsOption { kind: 'account' | 'identity'; id: number; label: string; sub: string; match: boolean; avatar?: string; editable?: boolean; url?: string; followers?: number; directusId?: string }
 const CHANNEL_PLATFORM: Record<string, string[]> = {
   facebook: ['facebook'], x: ['x', 'twitter'], linkedin: ['linkedin'], instagram: ['instagram'],
   reddit: ['reddit'], youtube: ['youtube'], telegram: ['telegram'], discord: ['discord'],
   medium: ['medium'], devto: ['devto', 'dev-to'], github: ['github'],
 };
+// Directus `accounts` is the master asset registry (as.on.tc). A page there carries handle + notes(profile URL)
+// + stats(followers). Pull those into the picker instead of re-typing. Extract the rich bits:
+const urlFromNotes = (notes?: string | null): string | undefined => { const m = (notes || '').match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\].,]+$/, '') : undefined; };
+const followersOf = (stats: unknown): number | undefined => {
+  if (stats && typeof stats === 'object') { const s = stats as Record<string, unknown>; const n = Number(s.followers ?? s.friends); if (Number.isFinite(n) && n > 0) return n; }
+  return undefined;
+};
+// Cache the Directus fetch per platform for the process lifetime — listSendAs runs on the drawer's
+// auto-default hot path and the registry barely changes within a session. ponytail: no TTL, restart clears;
+// failures aren't cached. adoptSendAsFromDirectus fetches fresh (it mutates), so no stale-after-write.
+const _dxCache = new Map<string, Promise<DirectusAccount[]>>();
+function dxAccounts(pk: string): Promise<DirectusAccount[]> {
+  const hit = _dxCache.get(pk); if (hit) return hit;
+  const p = fetchDirectusAccountsByPlatform(pk).catch(() => { _dxCache.delete(pk); return [] as DirectusAccount[]; });
+  _dxCache.set(pk, p); return p;
+}
 export async function listSendAs(projectId: string, channel: string): Promise<SendAsOption[]> {
   const db = getDb(); if (!db) return [];
   const plats = CHANNEL_PLATFORM[channel] || [];
@@ -65,17 +82,60 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   const accts = (await db.execute(sql`
     SELECT pa.id, pa.platform_key, pa.handle, pa.account_type, pa.project_id,
            pa.persona->>'avatar' AS avatar, pa.persona->>'displayName' AS display,
+           pa.persona->>'followerCount' AS followers,
+           COALESCE(pa.persona->>'fbUrl', pa.persona->>'url', pa.persona->>'profileUrl') AS url,
            (pa.platform_key = ANY(${plats}::text[])) AS platmatch
     FROM platform_accounts pa
     WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> ''
       AND ( pa.platform_key = ANY(${plats}::text[])
             OR EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}) )
-    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; platmatch: boolean }>;
+    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;
   const idents = (await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>;
   const opts: SendAsOption[] = [];
-  for (const a of accts) opts.push({ kind: 'account', id: Number(a.id), label: (a.display && a.display.trim()) || '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true, avatar: a.avatar || undefined, editable: a.project_id === null });
+  const seen = new Set<string>();
+  for (const a of accts) {
+    const h = (a.handle || '').trim().toLowerCase(); if (h) seen.add(h);
+    opts.push({ kind: 'account', id: Number(a.id), label: (a.display && a.display.trim()) || '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true, avatar: a.avatar || undefined, editable: a.project_id === null, url: a.url || undefined, followers: a.followers ? Number(a.followers) || undefined : undefined });
+  }
+  // Merge the master registry (Directus) — pages anh đã có ở as.on.tc mà MOS2 chưa nhập. Chọn 1 cái sẽ
+  // adopt vào global pool (adoptSendAsFromDirectus). Dedup theo handle vs MOS2 + trong chính Directus.
+  if (plats.length && directusEnabled()) {
+    for (const pk of plats) {
+      let rows: DirectusAccount[] = []; try { rows = await dxAccounts(pk); } catch { rows = []; }
+      for (const d of rows) {
+        const h = (d.handle || '').trim().toLowerCase(); if (!h || seen.has(h)) continue; seen.add(h);
+        opts.push({ kind: 'account', id: 0, directusId: d.id, label: '@' + (d.handle || ''), sub: `${d.platform || pk} · Directus`, match: true, editable: false, url: urlFromNotes(d.notes), followers: followersOf(d.stats) });
+      }
+    }
+  }
   for (const i of idents) opts.push({ kind: 'identity', id: Number(i.id), label: String(i.label), sub: `persona · ${i.kind}`, match: false });
-  return opts;   // already platform-match-first from SQL
+  return opts;   // MOS2 accounts first, then Directus-only, then identities
+}
+
+// Adopt a Directus account (master registry) into the GLOBAL send-as pool so a touch references a stable
+// local id + it's reused everywhere. Enriches persona with the URL + followers from Directus. Dedup via the
+// unique index. Returns the resolved option (real int id).
+export async function adoptSendAsFromDirectus(projectId: string, channel: string, directusId: string): Promise<{ ok: boolean; option?: SendAsOption; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  if (!directusEnabled()) return { ok: false, error: 'directus off' };
+  try {
+    const pk0 = (CHANNEL_PLATFORM[channel] || [channel])[0] || channel;
+    const rows = await fetchDirectusAccountsByPlatform(pk0);
+    const d = rows.find((x) => x.id === directusId);
+    if (!d || !d.handle) return { ok: false, error: 'không thấy account Directus' };
+    const platform = await reconcilePlatformKey(db, (d.platform || pk0).toLowerCase());
+    const url = urlFromNotes(d.notes); const followers = followersOf(d.stats);
+    const persona: Record<string, string> = { displayName: d.handle, source: 'directus', directusId };
+    if (url) persona.fbUrl = url; if (followers) persona.followerCount = String(followers);
+    await db.execute(sql`INSERT INTO platforms (key, label, signup_url, description) VALUES (${platform}, ${platform}, '', 'Auto (send-as)') ON CONFLICT (key) DO NOTHING`);
+    await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type, persona)
+      VALUES ('self', ${platform}, NULL, ${d.handle}, 'active', 'brand', ${JSON.stringify(persona)}::jsonb)
+      ON CONFLICT (tenant_id, platform_key, handle) DO UPDATE SET persona = platform_accounts.persona || EXCLUDED.persona, updated_at = now()`);
+    const ex = (await db.execute(sql`SELECT id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platform} AND handle = ${d.handle} LIMIT 1`)) as unknown as Array<{ id: number }>;
+    const id = Number(ex[0]?.id); if (!id) return { ok: false, error: 'không tạo được' };
+    return { ok: true, option: { kind: 'account', id, label: '@' + d.handle, sub: `${platform} · brand`, match: true, editable: true, url, followers } };
+  } catch (e) { return { ok: false, error: `adopt lỗi: ${(e as Error).message}` }; }
 }
 
 // Inline "thêm nhanh" from the "Gửi bằng" picker when the identity you acted as isn't saved yet. Creates

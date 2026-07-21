@@ -4,10 +4,12 @@
 // create new inline, rename or delete (global accounts only). One shared object instead of an ad-hoc
 // select + text box. Uses the house modal classes so it matches every other picker. See feedback_picker_inline_crud.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { listSendAs, addSendAsAccount, renameSendAsAccount, deleteSendAsAccount, type SendAsOption, type SentAs } from '@/lib/actions/outreach-touches';
+import { listSendAs, addSendAsAccount, renameSendAsAccount, deleteSendAsAccount, adoptSendAsFromDirectus, type SendAsOption, type SentAs } from '@/lib/actions/outreach-touches';
 
-const optKey = (o: SendAsOption) => `${o.kind}:${o.id}`;
+const optKey = (o: SendAsOption) => `${o.kind}:${o.directusId || o.id}`;
 const avatarStyle: CSSProperties = { width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--bg-3)' };
+const fmtK = (n?: number): string => n == null ? '' : n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
+const shortUrl = (u?: string): string => (u || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
 export function SendAsPicker({ projectId, channel, value, onPick, onClose }: {
   projectId: string; channel: string; value?: SentAs; onPick: (sa: SentAs) => void; onClose: () => void;
@@ -37,7 +39,17 @@ export function SendAsPicker({ projectId, channel, value, onPick, onClose }: {
     return ql ? opts.filter((o) => (o.label + ' ' + o.sub).toLowerCase().includes(ql)) : opts;
   }, [opts, q]);
 
-  const pick = (o: SendAsOption) => onPick({ kind: o.kind, id: o.id, label: o.label });
+  const pick = async (o: SendAsOption) => {
+    if (o.id === 0 && o.directusId) {   // from Directus registry → import once into the global pool, then select
+      setBusy('adopt:' + o.directusId); setErr(null);
+      const r = await adoptSendAsFromDirectus(projectId, channel, o.directusId);
+      setBusy(null);
+      if (r.ok && r.option) { await reload(); onPick({ kind: r.option.kind, id: r.option.id, label: r.option.label }); }
+      else setErr(r.error || 'lỗi nhập từ Directus');
+      return;
+    }
+    onPick({ kind: o.kind, id: o.id, label: o.label });
+  };
   const create = async () => {
     const h = newName.trim(); if (!h) return;
     setBusy('create'); setErr(null);
@@ -105,13 +117,20 @@ export function SendAsPicker({ projectId, channel, value, onPick, onClose }: {
                       <button type="button" className="btn ghost" onClick={() => setEditId(null)} style={{ padding: '4px 9px' }}>Huỷ</button>
                     </div>
                   );
+                  const adopting = busy === 'adopt:' + o.directusId;
+                  const meta = adopting ? 'đang nhập từ Directus…'
+                    : [o.followers ? `${fmtK(o.followers)} followers` : '', o.url ? shortUrl(o.url) : ''].filter(Boolean).join(' · ') || o.sub;
                   return (
                     <div key={optKey(o)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: selected ? 'color-mix(in srgb, var(--neon-lime) 12%, transparent)' : 'transparent', border: '1px solid ' + (selected ? 'var(--neon-lime)' : 'transparent') }}>
-                      <button type="button" onClick={() => pick(o)} className="btn ghost" style={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none' }}>
+                      <button type="button" onClick={() => pick(o)} disabled={!!busy} className="btn ghost" style={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none', opacity: busy && !adopting ? 0.5 : 1 }}>
                         {o.avatar ? <img src={o.avatar} alt="" style={avatarStyle} referrerPolicy="no-referrer" /> : <span style={{ ...avatarStyle, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--fg-3)' }}>{o.kind === 'identity' ? '👤' : '•'}</span>}
                         <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}{o.match ? ' ✓' : ''}</span>
-                          <span style={{ display: 'block', fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{o.sub}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--fg-0)' }}>
+                            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
+                            {o.match && !o.directusId && <span style={{ color: 'var(--neon-lime)', flexShrink: 0 }}>✓</span>}
+                            {o.directusId && <span title="Có trong Directus — chọn để nhập vào MOS2" style={{ fontSize: 9, padding: '0 5px', borderRadius: 999, background: 'var(--bg-3)', color: 'var(--fg-3)', flexShrink: 0 }}>⬇ Directus</span>}
+                          </span>
+                          <span style={{ display: 'block', fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
                         </span>
                       </button>
                       {o.editable && (confirmDel === o.id ? (

@@ -46,12 +46,13 @@ export interface DirectusAccount {
   warmup_checklist?: Record<string, unknown> | null;
   purpose?: string | null;
   value_tier?: string | null;
+  stats?: Record<string, unknown> | null;   // {followers, following, friends, ...} — social metrics
 }
 
 const ACCOUNT_FIELDS = [
   'id', 'platform', 'platform_id', 'handle', 'email', 'status', 'auth_method',
   'has_2fa', 'monthly_cost', 'collect_stats', 'tags', 'notes',
-  'recovery_info', 'warmup_checklist', 'purpose', 'value_tier',
+  'recovery_info', 'warmup_checklist', 'purpose', 'value_tier', 'stats',
 ].join(',');
 
 // Fetch accounts matching platform key (case-insensitive). Limited to 50.

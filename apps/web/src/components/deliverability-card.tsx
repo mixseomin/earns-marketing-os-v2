@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, type CSSProperties } from 'react';
+import { useEffect, useState, useCallback, Fragment, type CSSProperties } from 'react';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -115,14 +115,27 @@ export function DeliverabilityCard() {
             </tr>
           </thead>
           <tbody>
-            {d.rows.map((row) => {
+            {Object.entries(
+              d.rows.reduce<Record<string, Row[]>>((acc, r) => {
+                const root = r.domain.split('.').slice(-2).join('.');
+                (acc[root] ||= []).push(r);
+                return acc;
+              }, {}),
+            ).sort(([a], [b]) => a.localeCompare(b)).map(([root, rows]) => (
+              <Fragment key={root}>
+                <tr>
+                  <td colSpan={7} style={{ padding: '5px 10px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', ...mono, fontSize: 11, fontWeight: 700, color: 'var(--fg-1)' }}>{root}</td>
+                </tr>
+                {rows.slice().sort((a, b) => a.domain.length - b.domain.length).map((row) => {
               const pm = row.postmaster && row.postmaster.length ? row.postmaster[row.postmaster.length - 1] : null;
               const st = row.spamTest && row.spamTest.length ? row.spamTest[row.spamTest.length - 1] : null;
               const scores = (row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null);
+              const label = row.domain === root ? '@ root' : row.domain.slice(0, row.domain.length - root.length - 1);
               return (
                 <tr key={row.domain}>
-                  <td style={{ ...td, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)', whiteSpace: 'nowrap' }}>
-                    {row.domain}
+                  <td style={{ ...td, whiteSpace: 'nowrap', paddingLeft: 22 }}>
+                    <span style={{ fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{label}</span>
+                    {row.send && <span style={{ ...mono, fontSize: 9, color: '#5ac47e', marginLeft: 6 }}>sending</span>}
                     {!row.send && <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
                   </td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
@@ -165,7 +178,9 @@ export function DeliverabilityCard() {
                   </td>
                 </tr>
               );
-            })}
+                })}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>

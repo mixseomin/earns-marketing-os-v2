@@ -81,8 +81,12 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   // single-element array (pg sends the bare scalar → "malformed array literal: facebook", 22P02). sql.join
   // spreads them → ARRAY['facebook']::text[]; empty → ARRAY[]::text[] (still valid).
   const platArr = sql`ARRAY[${sql.join(plats.map((p) => sql`${p}`), sql`, `)}]::text[]`;
-  // GLOBAL POOL: FB Pages / social accounts anh sở hữu = asset portfolio-wide, tái dùng MỌI dự án. Lấy TẤT CẢ
-  // account của platform kênh này (bất kể project), + account của project này ở platform khác (ngữ cảnh) + identities.
+  // PLATFORM-STRICT: 1 kênh (FB) CHỈ hiện account của platform đó — FB Page/brand anh sở hữu, portfolio-wide
+  // (bất kể project). KHÔNG kéo account platform khác của project vào (user: "modal FB chỉ danh tính FB").
+  // Kênh KHÔNG map platform (plats rỗng) → fallback account của project (ngữ cảnh chung).
+  const scope = plats.length
+    ? sql`pa.platform_key = ANY(${platArr})`
+    : sql`EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId})`;
   const accts = (await db.execute(sql`
     SELECT pa.id, pa.platform_key, pa.handle, pa.account_type, pa.project_id,
            pa.persona->>'avatar' AS avatar, pa.persona->>'displayName' AS display,
@@ -90,11 +94,10 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
            COALESCE(pa.persona->>'fbUrl', pa.persona->>'url', pa.persona->>'profileUrl') AS url,
            (pa.platform_key = ANY(${platArr})) AS platmatch
     FROM platform_accounts pa
-    WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> ''
-      AND ( pa.platform_key = ANY(${platArr})
-            OR EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}) )
+    WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> '' AND (${scope})
     ORDER BY (pa.platform_key = ANY(${platArr})) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;
-  const idents = (await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>;
+  // Persona chung (identities) không thuộc platform nào → CHỈ cho kênh không map platform. FB/social = chỉ account platform đó.
+  const idents = plats.length ? [] : ((await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>);
   const opts: SendAsOption[] = [];
   const seen = new Set<string>();
   for (const a of accts) {
@@ -135,7 +138,7 @@ export async function adoptSendAsFromDirectus(projectId: string, channel: string
     await db.execute(sql`INSERT INTO platforms (key, label, signup_url, description) VALUES (${platform}, ${platform}, '', 'Auto (send-as)') ON CONFLICT (key) DO NOTHING`);
     await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type, persona)
       VALUES ('self', ${platform}, NULL, ${d.handle}, 'active', 'brand', ${JSON.stringify(persona)}::jsonb)
-      ON CONFLICT (tenant_id, platform_key, handle) DO UPDATE SET persona = platform_accounts.persona || EXCLUDED.persona, updated_at = now()`);
+      ON CONFLICT (tenant_id, platform_key, handle) WHERE handle IS NOT NULL DO UPDATE SET persona = platform_accounts.persona || EXCLUDED.persona, updated_at = now()`);
     const ex = (await db.execute(sql`SELECT id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platform} AND handle = ${d.handle} LIMIT 1`)) as unknown as Array<{ id: number }>;
     const id = Number(ex[0]?.id); if (!id) return { ok: false, error: 'không tạo được' };
     return { ok: true, option: { kind: 'account', id, label: '@' + d.handle, sub: `${platform} · brand`, match: true, editable: true, url, followers } };
@@ -152,7 +155,9 @@ export async function addSendAsAccount(projectId: string, channel: string, handl
   try {
     const platform = await reconcilePlatformKey(db, (CHANNEL_PLATFORM[channel] || [channel])[0] || channel);
     await db.execute(sql`INSERT INTO platforms (key, label, signup_url, description) VALUES (${platform}, ${platform}, '', 'Auto (send-as)') ON CONFLICT (key) DO NOTHING`);
-    await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type) VALUES ('self', ${platform}, NULL, ${h}, 'active', 'brand') ON CONFLICT (tenant_id, platform_key, handle) DO NOTHING`);
+    // Unique index is PARTIAL (accounts_tenant_platform_handle_uniq … WHERE handle IS NOT NULL) → ON CONFLICT
+    // MUST repeat the predicate or pg errors "no unique or exclusion constraint matching".
+    await db.execute(sql`INSERT INTO platform_accounts (tenant_id, platform_key, project_id, handle, status, account_type) VALUES ('self', ${platform}, NULL, ${h}, 'active', 'brand') ON CONFLICT (tenant_id, platform_key, handle) WHERE handle IS NOT NULL DO NOTHING`);
     const ex = (await db.execute(sql`SELECT id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platform} AND handle = ${h} LIMIT 1`)) as unknown as Array<{ id: number }>;
     const id = Number(ex[0]?.id);
     if (!id) return { ok: false, error: 'không tạo được' };

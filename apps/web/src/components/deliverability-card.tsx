@@ -39,11 +39,22 @@ export function DeliverabilityCard() {
 
   return (
     <div style={{ margin: '0 16px 14px', padding: '11px 14px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
-        {!d.postmasterConfigured && (
-          <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>Postmaster chưa nối — chỉ hiện auth</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {!d.postmasterConfigured && (
+            <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>Postmaster chưa nối — chỉ hiện auth</span>
+          )}
+          <a
+            href="https://postmaster.google.com/managedomains"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Add / manage sending domains in Google Postmaster Tools (domain add is web-only, no API)"
+            style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px' }}
+          >
+            Manage in Postmaster ↗
+          </a>
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {d.rows.map((row) => (

@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+
+// Escape must close only the TOPMOST drawer, not every mounted one. Each drawer registered a document
+// keydown listener that closed ITSELF → a stack (task → outreach → picker → detail) collapsed entirely on
+// one Escape. Track mount order in a module-level stack; a drawer's listener acts only when it's on top.
+let drawerSeq = 0;
+const drawerStack: number[] = [];
 
 // Standard right-side slide-over drawer. Handles backdrop, ESC + click-outside
 // close, and STACKING: when another drawer opens on top, pass `backgrounded`
@@ -43,11 +49,25 @@ export function Drawer({
   resizable?: boolean;
 }) {
   const [w, setW] = useState(width);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const id = ++drawerSeq;
+    drawerStack.push(id);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (drawerStack[drawerStack.length - 1] !== id) return;   // not the top drawer → ignore
+      e.stopPropagation();
+      closeRef.current();
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      const i = drawerStack.lastIndexOf(id);
+      if (i >= 0) drawerStack.splice(i, 1);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startResize = (e: ReactMouseEvent) => {
     e.preventDefault();

@@ -77,6 +77,10 @@ function dxAccounts(pk: string): Promise<DirectusAccount[]> {
 export async function listSendAs(projectId: string, channel: string): Promise<SendAsOption[]> {
   const db = getDb(); if (!db) return [];
   const plats = CHANNEL_PLATFORM[channel] || [];
+  // Bind each platform as its own param inside an ARRAY[...] literal. `${jsArray}::text[]` mis-serializes a
+  // single-element array (pg sends the bare scalar → "malformed array literal: facebook", 22P02). sql.join
+  // spreads them → ARRAY['facebook']::text[]; empty → ARRAY[]::text[] (still valid).
+  const platArr = sql`ARRAY[${sql.join(plats.map((p) => sql`${p}`), sql`, `)}]::text[]`;
   // GLOBAL POOL: FB Pages / social accounts anh sở hữu = asset portfolio-wide, tái dùng MỌI dự án. Lấy TẤT CẢ
   // account của platform kênh này (bất kể project), + account của project này ở platform khác (ngữ cảnh) + identities.
   const accts = (await db.execute(sql`
@@ -84,12 +88,12 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
            pa.persona->>'avatar' AS avatar, pa.persona->>'displayName' AS display,
            pa.persona->>'followerCount' AS followers,
            COALESCE(pa.persona->>'fbUrl', pa.persona->>'url', pa.persona->>'profileUrl') AS url,
-           (pa.platform_key = ANY(${plats}::text[])) AS platmatch
+           (pa.platform_key = ANY(${platArr})) AS platmatch
     FROM platform_accounts pa
     WHERE pa.tenant_id = 'self' AND COALESCE(pa.handle, '') <> ''
-      AND ( pa.platform_key = ANY(${plats}::text[])
+      AND ( pa.platform_key = ANY(${platArr})
             OR EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = pa.id AND pj.project_id = ${projectId}) )
-    ORDER BY (pa.platform_key = ANY(${plats}::text[])) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;
+    ORDER BY (pa.platform_key = ANY(${platArr})) DESC, pa.platform_key, pa.id`)) as unknown as Array<{ id: number; platform_key: string; handle: string; account_type: string; project_id: string | null; avatar: string | null; display: string | null; followers: string | null; url: string | null; platmatch: boolean }>;
   const idents = (await db.execute(sql`SELECT id, kind, COALESCE(NULLIF(display_name, ''), name) AS label FROM identities WHERE project_id = ${projectId} OR project_id IS NULL ORDER BY (project_id IS NOT NULL) DESC, id`)) as unknown as Array<{ id: number; kind: string; label: string }>;
   const opts: SendAsOption[] = [];
   const seen = new Set<string>();

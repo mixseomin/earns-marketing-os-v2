@@ -10,7 +10,7 @@ interface Counts {
   campaigns: { total: number; by_status?: Record<string, number> };
   messages: number;
 }
-interface Stats { counts: Counts; lists: ListRow[]; campaigns: CampRow[]; listmonkUrl: string; }
+interface Stats { counts: Counts; lists: ListRow[]; campaigns: CampRow[]; consoleUrl: string; }
 
 const muted = 'var(--fg-2, #7c879b)';
 const accent = 'var(--accent, #37d4c2)';
@@ -59,21 +59,21 @@ export function ColdmailPanel() {
   const openBtn = (url: string) => (
     <a href={url} target="_blank" rel="noopener noreferrer"
       style={{ background: accent, color: '#08131f', fontWeight: 700, fontSize: 13, textDecoration: 'none', padding: '7px 14px', borderRadius: 8 }}>
-      Open Listmonk ↗
+      Open MailWizz ↗
     </a>
   );
 
-  const header = (url = 'https://lists.on.tc') => (
+  const header = (url = 'https://mail.on.tc/customer') => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 14px' }}>
       <div>
         <div style={{ fontSize: 16, fontWeight: 700 }}>Email OS — owned audiences</div>
-        <div style={{ color: muted, fontSize: 12, marginTop: 2 }}>Warm lane: Listmonk lists + broadcasts, SES backend. Deep work happens in Listmonk; this is the glance.</div>
+        <div style={{ color: muted, fontSize: 12, marginTop: 2 }}>Warm lane: MailWizz lists + broadcasts, SES backend. Deep work happens in MailWizz; this is the glance.</div>
       </div>
       {openBtn(url)}
     </div>
   );
 
-  if (err) return <div style={{ margin: '16px 0' }}>{header()}<div style={{ ...card, color: muted }}>Listmonk metrics: {err}.</div></div>;
+  if (err) return <div style={{ margin: '16px 0' }}>{header()}<div style={{ ...card, color: muted }}>MailWizz metrics: {err}.</div></div>;
   if (!d) return <div style={{ margin: '16px 0' }}>{header()}<div style={{ ...card, color: muted }}>Loading Email OS…</div></div>;
 
   const c = d.counts;
@@ -82,7 +82,7 @@ export function ColdmailPanel() {
 
   return (
     <div style={{ margin: '16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {header(d.listmonkUrl)}
+      {header(d.consoleUrl)}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
         <Card k="Subscribers" v={intf(c.subscribers.total)} s={`${intf(c.subscribers.blocklisted)} blocklisted`} />
@@ -121,12 +121,12 @@ export function ColdmailPanel() {
               <td style={{ ...td, textAlign: 'right' }}>{intf(cp.clicks)}</td>
             </tr>
           ))}
-          {!d.campaigns.length && <tr><td style={{ ...td, color: muted }} colSpan={5}>No campaigns yet — compose one in Listmonk.</td></tr>}
+          {!d.campaigns.length && <tr><td style={{ ...td, color: muted }} colSpan={5}>No campaigns yet — compose one in MailWizz.</td></tr>}
         </tbody>
       </Panel>
 
       <div style={{ ...card, color: muted, fontSize: 12 }}>
-        Transactional lane (sign-in links, welcome) sends via <b style={{ color: 'var(--fg,#c9d4e3)' }}>Amazon SES</b> directly from each site — infra, not managed here. Broadcasts to these lists send from Listmonk via SES SMTP.
+        Transactional lane (sign-in links, welcome) sends via <b style={{ color: 'var(--fg,#c9d4e3)' }}>Amazon SES</b> directly from each site — infra, not managed here. Broadcasts to these lists send from MailWizz via SES delivery server.
       </div>
     </div>
   );

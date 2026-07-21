@@ -3,7 +3,7 @@
 // Multi-channel outreach touches — CRUD + per-channel content gen + mark-sent. Email/form live on the
 // prospect (auto-send unchanged); these are the EXTRA channels (social DM, comment, dev). A touch
 // marked 'sent' advances the prospect (→ backlink task sync). See 2026-07-20-outreach-multichannel-plan.
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
@@ -102,7 +102,7 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   const seen = new Set<string>();
   for (const a of accts) {
     const h = (a.handle || '').trim().toLowerCase(); if (h) seen.add(h);
-    opts.push({ kind: 'account', id: Number(a.id), label: (a.display && a.display.trim()) || '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: a.platmatch === true, avatar: a.avatar || undefined, editable: a.project_id === null, url: a.url || undefined, followers: a.followers ? Number(a.followers) || undefined : undefined });
+    opts.push({ kind: 'account', id: Number(a.id), label: (a.display && a.display.trim()) || '@' + a.handle, sub: `${a.platform_key} · ${a.account_type}`, match: false, avatar: a.avatar || undefined, editable: a.project_id === null, url: a.url || undefined, followers: a.followers ? Number(a.followers) || undefined : undefined });
   }
   // Merge the master registry (Directus) — pages anh đã có ở as.on.tc mà MOS2 chưa nhập. Chọn 1 cái sẽ
   // adopt vào global pool (adoptSendAsFromDirectus). Dedup theo handle vs MOS2 + trong chính Directus.
@@ -111,12 +111,41 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
       let rows: DirectusAccount[] = []; try { rows = await dxAccounts(pk); } catch { rows = []; }
       for (const d of rows) {
         const h = (d.handle || '').trim().toLowerCase(); if (!h || seen.has(h)) continue; seen.add(h);
-        opts.push({ kind: 'account', id: 0, directusId: d.id, label: '@' + (d.handle || ''), sub: `${d.platform || pk} · Directus`, match: true, editable: false, url: urlFromNotes(d.notes), followers: followersOf(d.stats) });
+        opts.push({ kind: 'account', id: 0, directusId: d.id, label: '@' + (d.handle || ''), sub: `${d.platform || pk} · Directus`, match: false, editable: false, url: urlFromNotes(d.notes), followers: followersOf(d.stats) });
       }
     }
   }
   for (const i of idents) opts.push({ kind: 'identity', id: Number(i.id), label: String(i.label), sub: `persona · ${i.kind}`, match: false });
   return opts;   // MOS2 accounts first, then Directus-only, then identities
+}
+
+// Full detail of a GLOBAL send-as account for the edit drawer (rich entity, not just the name).
+export async function getSendAsAccount(accountId: number): Promise<{ id: number; handle: string; displayName: string; fbUrl: string; followers: string; status: string; platformKey: string } | null> {
+  const db = getDb(); if (!db) return null;
+  const rows = (await db.execute(sql`SELECT id, handle, platform_key, status, persona->>'displayName' AS display,
+    COALESCE(persona->>'fbUrl', persona->>'url', persona->>'profileUrl') AS url, persona->>'followerCount' AS followers
+    FROM platform_accounts WHERE id = ${accountId} LIMIT 1`)) as unknown as Array<Record<string, unknown>>;
+  const r = rows[0]; if (!r) return null;
+  return { id: Number(r.id), handle: String(r.handle ?? ''), displayName: String(r.display ?? ''), fbUrl: String(r.url ?? ''), followers: String(r.followers ?? ''), status: String(r.status ?? 'active'), platformKey: String(r.platform_key ?? '') };
+}
+
+// Update a GLOBAL send-as account (rich edit — name/handle/url/followers/status). project_id IS NULL only.
+export async function updateSendAsAccount(accountId: number, patch: { handle?: string; displayName?: string; fbUrl?: string; followers?: string; status?: string }): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
+  const db = getDb(); if (!db) return { ok: false, error: 'no db' };
+  try {
+    const persona: Record<string, string> = {};
+    if (patch.displayName !== undefined) persona.displayName = patch.displayName;
+    if (patch.fbUrl !== undefined) persona.fbUrl = patch.fbUrl;
+    if (patch.followers !== undefined) persona.followerCount = patch.followers;
+    const parts: SQL[] = [];
+    if (patch.handle !== undefined && patch.handle.trim()) parts.push(sql`handle = ${patch.handle.trim()}`);
+    if (patch.status) parts.push(sql`status = ${patch.status}`);
+    parts.push(sql`persona = COALESCE(persona, '{}'::jsonb) || ${JSON.stringify(persona)}::jsonb`);
+    parts.push(sql`updated_at = now()`);
+    await db.execute(sql`UPDATE platform_accounts SET ${sql.join(parts, sql`, `)} WHERE id = ${accountId} AND project_id IS NULL`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: /unique|duplicate/i.test(String(e)) ? 'handle đã tồn tại' : `sửa lỗi: ${(e as Error).message}` }; }
 }
 
 // Adopt a Directus account (master registry) into the GLOBAL send-as pool so a touch references a stable

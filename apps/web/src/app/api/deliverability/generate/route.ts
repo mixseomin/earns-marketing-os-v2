@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { readDomains } from '@/lib/domains-store';
+import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { logAiUsage } from '@/lib/ai/usage';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 30;
+
+const API = process.env.MAILWIZZ_API_URL || 'https://mail.on.tc/api/index.php';
+const KEY = process.env.MAILWIZZ_API_KEY || '';
+
+// Merge tags MailWizz requires in every campaign body; if the model omits them we append a footer.
+const REQUIRED = ['[UNSUBSCRIBE_URL]', '[COMPANY_FULL_ADDRESS]'];
+
+// POST /api/deliverability/generate { domain, prompt, subject? } — draft an email body with
+// gpt-4o-mini from a free-form brief (promo, coupon, link to a specific page…). Admin-only.
+export async function POST(req: NextRequest) {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!aiEnabled()) return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 503 });
+
+  const { domain, prompt, subject } = (await req.json().catch(() => ({}))) as { domain?: string; prompt?: string; subject?: string };
+  const d = (domain || '').trim().toLowerCase();
+  const brief = (prompt || '').trim();
+  if (!brief) return NextResponse.json({ error: 'Describe the email (prompt is empty)' }, { status: 400 });
+  const row = (await readDomains()).find((x) => x.domain === d);
+  if (!row?.listUid) return NextResponse.json({ error: 'No MailWizz list mapped to this domain' }, { status: 400 });
+
+  // Brand + sending identity from the list defaults.
+  let brand = d.split('.').slice(-2).join('.');
+  if (KEY) {
+    const lj = await fetch(`${API}/lists/${row.listUid}`, { headers: { 'X-API-KEY': KEY }, cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+    brand = lj?.data?.record?.general?.display_name || lj?.data?.record?.general?.name || brand;
+  }
+  const site = `https://${d.split('.').slice(-2).join('.')}`;
+
+  const sys = [
+    `You write ONE marketing email for the brand "${brand}" (site ${site}).`,
+    'Audience: existing opt-in subscribers who already know the brand (this is not their first email — never say "welcome" or "thanks for subscribing").',
+    'Output STRICT JSON: {"subject": string, "html": string}. No markdown, no commentary.',
+    'HTML rules: inline CSS only, email-safe, single container max-width 560px, system font stack.',
+    'Language: English only.',
+    'Personalization tag allowed: [FNAME].',
+    `You MUST include these literal MailWizz tags exactly once: ${REQUIRED.join(' and ')} — put them in a small grey footer.`,
+    'Every link must be a real absolute URL. If the brief names specific pages/offers, link to those; otherwise link to ' + site + '.',
+    'Keep it tight and genuinely useful — deliverability matters, so no spammy ALL-CAPS, no excessive links.',
+  ].join('\n');
+
+  const client = getOpenAI()!;
+  let res;
+  try {
+    res = await client.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: subject?.trim() ? `Brief: ${brief}\nUse this subject verbatim: ${subject.trim()}` : `Brief: ${brief}` },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e instanceof Error ? e.message : e).slice(0, 160) }, { status: 502 });
+  }
+  logAiUsage('warmup-email', DEFAULT_MODEL, res.usage);
+
+  let out: { subject?: string; html?: string } = {};
+  try { out = JSON.parse(res.choices[0]?.message?.content || '{}'); } catch { /* fall through */ }
+  let html = (out.html || '').trim();
+  const subj = (subject?.trim() || out.subject || `Update from ${brand}`).trim();
+  if (!html) return NextResponse.json({ error: 'Model returned no HTML — try rephrasing the brief' }, { status: 502 });
+
+  // Safety net: guarantee the required tags so MailWizz won't reject the draft.
+  const missing = REQUIRED.filter((t) => !html.includes(t));
+  if (missing.length) {
+    html += `\n<p style="font-size:12px;color:#888;margin-top:24px"><a href="[UNSUBSCRIBE_URL]" style="color:#888">Unsubscribe</a>.<br>[COMPANY_FULL_ADDRESS]</p>`;
+  }
+
+  return NextResponse.json({ subject: subj, html, model: DEFAULT_MODEL, tokens: res.usage?.total_tokens ?? null });
+}

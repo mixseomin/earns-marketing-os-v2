@@ -53,10 +53,9 @@ const cbtn = (busy = false): CSSProperties => ({ ...mono, fontSize: 10, padding:
 // One sending domain's warm-up: content first (create/pick a campaign, preview it) → THEN start.
 // You can't start without a campaign — no email = nothing to send, and a bad first send burns
 // reputation. Once started, a calendar strip tracks the daily ramp vs real reputation/scores.
-function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void }) {
+function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void; onCompose: (d: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [camps, setCamps] = useState<MwCamp[] | null>(null); // null = loading
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -76,17 +75,6 @@ function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChan
     } finally { setBusy(false); }
   }, [busy, row.domain, onChange]);
 
-  const createCampaign = useCallback(async () => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain }) });
-      const j = await r.json();
-      if (!r.ok) { alert(j.error || 'create failed'); return; }
-      if (j.uid) await post('select', j.uid); else onChange();
-    } finally { setCreating(false); }
-  }, [creating, row.domain, post, onChange]);
-
   const btn = cbtn(busy);
   const selected = camps?.find((c) => c.uid === row.warmupCampaign) || null;
 
@@ -97,8 +85,8 @@ function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChan
         : camps.length === 0 ? (
           <>
             <span style={{ fontSize: 11, color: '#e0a94a' }}>⚠ No email yet</span>
-            <button onClick={createCampaign} disabled={creating} style={cbtn(creating)} title="Create a branded draft warm-up email in MailWizz (with unsubscribe + address). You can edit it in MailWizz.">
-              {creating ? 'creating…' : '＋ Create warm-up email'}
+            <button onClick={() => onCompose(row.domain)} style={cbtn()} title="Compose a warm-up email — default template or AI-generated from your brief">
+              ＋ Create warm-up email
             </button>
           </>
         ) : (
@@ -110,7 +98,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChan
               {camps.map((c) => <option key={c.uid} value={c.uid}>{c.subject || c.name}{c.createdAt ? ` · ${c.createdAt.slice(0, 16)}` : ''} · {c.status}</option>)}
             </select>
             {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
-            <button onClick={createCampaign} disabled={creating} style={cbtn(creating)} title="Create another warm-up draft">{creating ? '…' : '＋'}</button>
+            <button onClick={() => onCompose(row.domain)} style={cbtn()} title="Compose another campaign (default or AI)">＋</button>
           </>
         )}
     </div>
@@ -200,6 +188,7 @@ export function DeliverabilityCard() {
   const [mwNonce, setMwNonce] = useState(0);
   const [preview, setPreview] = useState<{ uid: string; name: string } | null>(null);
   const openPreview = useCallback((uid: string, name: string) => setPreview({ uid, name }), []);
+  const [composeDomain, setComposeDomain] = useState<string | null>(null);
 
   useEffect(() => {
     if (!viewDomain) { setMw(null); setMwErr(''); return; }
@@ -286,7 +275,7 @@ export function DeliverabilityCard() {
         <div style={{ paddingTop: 2 }}>
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
-            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} />)}
+            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} onCompose={setComposeDomain} />)}
           <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
             Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
           </div>
@@ -382,6 +371,84 @@ export function DeliverabilityCard() {
       {preview && (
         <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)} />
       )}
+      {composeDomain && (
+        <CreateCampaignModal domain={composeDomain} onClose={() => setComposeDomain(null)} onDone={() => { setComposeDomain(null); setMwNonce((n) => n + 1); load(); }} />
+      )}
+    </div>
+  );
+}
+
+// Compose a warm-up/promo email: free-form brief → gpt-4o-mini draft (subject + HTML), fully
+// editable, live preview, then saved as a MailWizz draft and selected for this domain.
+// Leave the brief blank + Create = the free static default template (no AI call).
+function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onClose: () => void; onDone: () => void }) {
+  const [prompt, setPrompt] = useState('');
+  const [subject, setSubject] = useState('');
+  const [html, setHtml] = useState('');
+  const [gen, setGen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [tab, setTab] = useState<'html' | 'preview'>('html');
+  const [msg, setMsg] = useState('');
+
+  const generate = async () => {
+    if (gen || !prompt.trim()) return;
+    setGen(true); setMsg('generating with gpt-4o-mini…');
+    try {
+      const r = await fetch('/api/deliverability/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt, subject: subject.trim() || undefined }) });
+      const j = await r.json();
+      if (!r.ok) { setMsg(j.error || 'generate failed'); return; }
+      setSubject(j.subject || subject); setHtml(j.html || ''); setTab('preview');
+      setMsg(`✓ ${j.model}${j.tokens ? ` · ${j.tokens} tok · ~$${((j.tokens / 1e6) * 0.4).toFixed(4)}` : ''}`);
+    } catch { setMsg('network error'); } finally { setGen(false); }
+  };
+
+  const create = async () => {
+    if (creating) return;
+    setCreating(true); setMsg(html.trim() ? 'saving draft…' : 'saving default template…');
+    try {
+      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, body: html.trim() || undefined }) });
+      const j = await r.json();
+      if (!r.ok) { setMsg(j.error || 'create failed'); return; }
+      if (j.uid) await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, action: 'select', campaign: j.uid }) });
+      onDone();
+    } catch { setMsg('network error'); } finally { setCreating(false); }
+  };
+
+  const field: CSSProperties = { ...mono, fontSize: 12, padding: '6px 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', width: '100%' };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>✉️ New email · <span style={{ ...mono, color: 'var(--fg-2)' }}>{domain}</span></div>
+          <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
+        </div>
+        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
+          <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Brief (optional — blank = free default template)</label>
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2}
+            placeholder="e.g. Promo: 20% coupon for the BAH premium, link to militarymarkdown VA-loan page, friendly + short"
+            style={{ ...field, resize: 'vertical' }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={generate} disabled={gen || !prompt.trim()} style={{ ...cbtn(gen), opacity: prompt.trim() ? 1 : 0.5 }} title="Draft with gpt-4o-mini">{gen ? '…' : '✨ Generate with AI'}</button>
+            <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>gpt-4o-mini · ~$0.0005/email</span>
+            {msg && <span style={{ ...mono, fontSize: 10, color: msg.startsWith('✓') ? '#5ac47e' : 'var(--fg-2)' }}>{msg}</span>}
+          </div>
+          <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Subject</label>
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="(auto if blank)" style={field} spellCheck={false} />
+          <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+            {(['html', 'preview'] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)} style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer', background: tab === t ? 'var(--bg-1)' : 'transparent', color: tab === t ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: tab === t ? 700 : 400 }}>{t === 'html' ? 'Edit HTML' : 'Preview'}</button>
+            ))}
+          </div>
+          {tab === 'html'
+            ? <textarea value={html} onChange={(e) => setHtml(e.target.value)} rows={12} placeholder="(blank = default warm-up template; or Generate above, then trim here)" style={{ ...field, fontFamily: 'var(--font-mono)', fontSize: 11, resize: 'vertical' }} spellCheck={false} />
+            : <iframe title="preview" sandbox="" srcDoc={html || '<p style="font-family:sans-serif;color:#888;padding:20px">Nothing to preview — generate or paste HTML.</p>'} style={{ width: '100%', height: 300, border: '1px solid var(--line)', borderRadius: 5, background: '#fff' }} />}
+          <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>Required tags [UNSUBSCRIBE_URL] + [COMPANY_FULL_ADDRESS] are auto-added if missing. Draft only — never auto-sends.</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
+          <button onClick={onClose} style={{ ...mono, fontSize: 11, padding: '5px 12px', borderRadius: 5, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={create} disabled={creating} style={{ ...mono, fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>{creating ? 'saving…' : 'Create draft'}</button>
+        </div>
+      </div>
     </div>
   );
 }

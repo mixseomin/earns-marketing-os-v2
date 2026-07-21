@@ -15,6 +15,8 @@ interface Props {
   onClose: () => void;
   /** GA4 interaction events (7d) per event name, for the breakdown section. */
   interactions?: Record<string, number> | null;
+  /** Which source to open on — set by the cell that opened the drawer (GSC trend vs Bing trend). */
+  initialSrc?: 'google' | 'bing';
 }
 
 type Range = 7 | 30 | 90;
@@ -26,9 +28,9 @@ const SRC: Record<Src, { label: string; color: string; hasPos: boolean; impWord:
   bing:   { label: 'Bing', color: '#9d6cff', hasPos: false, impWord: 'violet' },
 };
 
-export function GscDetailDrawer({ domain, points, bingPoints = [], onClose, interactions }: Props) {
+export function GscDetailDrawer({ domain, points, bingPoints = [], onClose, interactions, initialSrc = 'google' }: Props) {
   const [range, setRange] = useState<Range>(30);
-  const [src, setSrc] = useState<Src>('google');
+  const [src, setSrc] = useState<Src>(initialSrc);
   const [queries, setQueries] = useState<{ google: Q[]; bing: Q[] } | null>(null);
   const [qLoading, setQLoading] = useState(true);
 

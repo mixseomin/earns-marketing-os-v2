@@ -84,6 +84,7 @@ const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Int
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
+  const [openSrc, setOpenSrc] = useState<'google' | 'bing'>('google');
   // Seed from server-supplied cookie value (passed via initialCols prop) so the
   // very first render — server AND client — matches the user's saved view.
   // Avoids the FOUC where AdSense/Bing flashed visible then collapsed after
@@ -284,17 +285,21 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             return (
               <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
                   onClick={(e) => {
-                    const td = (e.target as HTMLElement).closest('td[data-tool]') as HTMLElement | null;
+                    const target = e.target as HTMLElement;
+                    const td = target.closest('td[data-tool]') as HTMLElement | null;
                     const g = td?.dataset.tool as ColGroup | undefined;
                     const u = g ? toolUrl[g] : null;
                     if (u) { window.open(u, '_blank', 'noopener,noreferrer'); return; }
+                    // Chart cell carries data-chart → open the drawer already on that source.
+                    const chartTd = target.closest('td[data-chart]') as HTMLElement | null;
+                    setOpenSrc(chartTd?.dataset.chart === 'bing' ? 'bing' : 'google');
                     setOpenDomain(r.domain);
                   }}
                   title={`Ô số → mở tool (GSC/GA/Bing) · ô chart → chi tiết ${r.domain}`}>
                 <td style={{ ...cell, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                   {SiteCell}
                   <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId}
-                    onOpenDetail={() => setOpenDomain(r.domain)} />
+                    onOpenDetail={() => { setOpenSrc('google'); setOpenDomain(r.domain); }} />
                 </td>
                 {cols.live && <>
                   <td data-tool="live" style={{ ...cellOf('live', true, { textAlign: 'right', ...tone((r.ga4_active_5min ?? 0) > 0), fontWeight: (r.ga4_active_5min ?? 0) > 0 ? 600 : 400 }) }}>
@@ -314,7 +319,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                 </>}
                 {cols.gsc && <>
                   <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...tone(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
-                  <td style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
+                  <td data-chart="gsc" style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={sparkValues} />
                   </td>
                   <td data-tool="gsc" style={cellOf('gsc', false, { textAlign: 'right', ...tone(r.clicks_7d > 0) })}>{r.clicks_7d.toLocaleString()}</td>
@@ -351,7 +356,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...tone((r.bing_impressions_7d ?? 0) > 0) })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
                   </td>
-                  <td style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
+                  <td data-chart="bing" style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={bingSpark} color={GROUP_COLOR.bing.fg} />
                   </td>
                   <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_clicks_7d ?? 0) > 0) })}>
@@ -474,9 +479,11 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
 
       {openDomain && (
         <GscDetailDrawer
+          key={openDomain + openSrc}
           domain={openDomain}
           points={openPoints}
           bingPoints={openBing}
+          initialSrc={openSrc}
           interactions={rows.find((r) => r.domain === openDomain)?.ga4_interactions_by ?? null}
           onClose={() => setOpenDomain(null)}
         />

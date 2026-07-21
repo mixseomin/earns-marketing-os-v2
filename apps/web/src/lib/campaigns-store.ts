@@ -15,3 +15,7 @@ export async function saveCampaign(uid: string, c: StoredCampaign): Promise<void
   all[uid] = c;
   await writeFile(FILE, JSON.stringify(all, null, 2));
 }
+export async function deleteCampaign(uid: string): Promise<void> {
+  const all = await readCampaigns();
+  if (all[uid]) { delete all[uid]; await writeFile(FILE, JSON.stringify(all, null, 2)); }
+}

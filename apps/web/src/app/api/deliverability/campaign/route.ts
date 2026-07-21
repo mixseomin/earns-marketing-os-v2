@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { readDomains } from '@/lib/domains-store';
-import { saveCampaign } from '@/lib/campaigns-store';
+import { readDomains, writeDomains } from '@/lib/domains-store';
+import { saveCampaign, deleteCampaign } from '@/lib/campaigns-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
 
   const site = `https://${d.split('.').slice(-2).join('.')}`; // root site, e.g. news.x.com → https://x.com
   const html = (body && body.trim()) || defaultBody(brand, site);
-  const name = `Warm-up — ${d}`;
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', ' '); // so multiple drafts differ
+  const name = `Warm-up ${stamp} — ${d}`;
   const subj = (subject && subject.trim()) || `A quick tip from ${brand}`;
   const fromName = def.from_name || brand;
   const form = new URLSearchParams();
@@ -69,4 +70,26 @@ export async function POST(req: NextRequest) {
   const uid = j.data?.campaign_uid || j.campaign_uid || null;
   if (uid) await saveCampaign(uid, { name, subject: subj, fromName, fromEmail, html });
   return NextResponse.json({ ok: true, uid });
+}
+
+// DELETE /api/deliverability/campaign?uid= — remove a draft from MailWizz (source of truth),
+// then mirror the removal locally. Admin-only.
+export async function DELETE(req: NextRequest) {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!KEY) return NextResponse.json({ error: 'MailWizz API not configured' }, { status: 503 });
+
+  const uid = (req.nextUrl.searchParams.get('uid') || '').trim();
+  if (!uid) return NextResponse.json({ error: 'Missing campaign uid' }, { status: 400 });
+
+  const r = await fetch(`${API}/campaigns/${uid}`, { method: 'DELETE', headers: { 'X-API-KEY': KEY } });
+  const j = await r.json().catch(() => null);
+  if (j?.status !== 'success') return NextResponse.json({ error: j?.error || 'MailWizz refused to delete' }, { status: 502 });
+
+  await deleteCampaign(uid);
+  const list = await readDomains();
+  let touched = false;
+  for (const row of list) if (row.warmupCampaign === uid) { delete row.warmupCampaign; delete row.warmupStart; touched = true; }
+  if (touched) await writeDomains(list);
+  return NextResponse.json({ ok: true });
 }

@@ -11,7 +11,7 @@ interface Data { rows: Row[]; postmasterConfigured: boolean }
 interface MwList { uid: string; name: string; description: string; fromName: string | null; fromEmail: string | null; replyTo: string | null; subject: string | null; company: string | null; subscribers: number | null }
 interface MwField { label: string; tag: string; type: string; required: boolean }
 interface MwSeg { uid: string; name: string; count: number }
-interface MwCamp { uid: string; name: string; subject: string; status: string; type: string; sendAt: string | null }
+interface MwCamp { uid: string; name: string; subject: string | null; status: string; type: string; sendAt: string | null; createdAt: string | null }
 interface MwView { list: MwList; fields: MwField[]; segments: MwSeg[]; campaigns: MwCamp[] }
 
 const repColor: Record<string, string> = { HIGH: '#5ac47e', MEDIUM: '#37d4c2', LOW: '#e0a94a', BAD: '#d16b6b' };
@@ -107,7 +107,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview }: { row: Row; onChan
             <select value={row.warmupCampaign || ''} onChange={(e) => post('select', e.target.value)}
               style={{ ...mono, fontSize: 10.5, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', maxWidth: 200 }}>
               <option value="">— choose —</option>
-              {camps.map((c) => <option key={c.uid} value={c.uid}>{c.name} · {c.status}</option>)}
+              {camps.map((c) => <option key={c.uid} value={c.uid}>{c.subject || c.name}{c.createdAt ? ` · ${c.createdAt.slice(0, 16)}` : ''} · {c.status}</option>)}
             </select>
             {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
             <button onClick={createCampaign} disabled={creating} style={cbtn(creating)} title="Create another warm-up draft">{creating ? '…' : '＋'}</button>
@@ -197,6 +197,7 @@ export function DeliverabilityCard() {
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
+  const [mwNonce, setMwNonce] = useState(0);
   const [preview, setPreview] = useState<{ uid: string; name: string } | null>(null);
   const openPreview = useCallback((uid: string, name: string) => setPreview({ uid, name }), []);
 
@@ -209,7 +210,7 @@ export function DeliverabilityCard() {
       .then(({ ok, j }) => { if (!alive) return; ok ? setMw(j) : setMwErr(j.error || 'failed'); })
       .catch(() => alive && setMwErr('network error'));
     return () => { alive = false; };
-  }, [viewDomain]);
+  }, [viewDomain, mwNonce]);
 
   const load = useCallback(async () => {
     try {
@@ -376,7 +377,7 @@ export function DeliverabilityCard() {
       </div>
       )}
       {viewDomain && (
-        <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} />
+        <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} onChanged={() => { setMwNonce((n) => n + 1); load(); }} />
       )}
       {preview && (
         <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)} />
@@ -419,7 +420,17 @@ function ContentPreview({ uid, name, onClose }: { uid: string; name: string; onC
 
 // Read-only drawer: everything MailWizz holds for a sending domain's list — defaults/params,
 // merge tags, segments, campaigns. No editing here; compose stays in MailWizz.
-function MailwizzDrawer({ domain, data, err, onClose, onPreview }: { domain: string; data: MwView | null; err: string; onClose: () => void; onPreview: (uid: string, name: string) => void }) {
+function MailwizzDrawer({ domain, data, err, onClose, onPreview, onChanged }: { domain: string; data: MwView | null; err: string; onClose: () => void; onPreview: (uid: string, name: string) => void; onChanged: () => void }) {
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const del = async (uid: string, name: string) => {
+    if (deleting || !confirm(`Delete campaign "${name}" from MailWizz? This cannot be undone.`)) return;
+    setDeleting(uid);
+    try {
+      const r = await fetch(`/api/deliverability/campaign?uid=${encodeURIComponent(uid)}`, { method: 'DELETE' });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'delete failed'); return; }
+      onChanged();
+    } finally { setDeleting(null); }
+  };
   const secTitle: CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', fontWeight: 700, margin: '14px 0 6px' };
   const kv = (k: string, v: ReactNode) => (
     <div style={{ display: 'flex', gap: 8, fontSize: 11.5, padding: '2px 0' }}>
@@ -481,11 +492,12 @@ function MailwizzDrawer({ domain, data, err, onClose, onPreview }: { domain: str
                     <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{c.name}</span>
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <button onClick={() => onPreview(c.uid, c.name)} title="Preview email" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer', padding: '1px 6px' }}>👁</button>
+                      <button onClick={() => del(c.uid, c.name)} disabled={deleting === c.uid} title="Delete from MailWizz" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: '#d16b6b', cursor: 'pointer', padding: '1px 6px' }}>{deleting === c.uid ? '…' : '🗑'}</button>
                       <span style={{ ...mono, fontSize: 9.5, color: statusColor[c.status] || 'var(--fg-3)', textTransform: 'uppercase' }}>{c.status}</span>
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.subject}</div>
-                  {c.sendAt && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{c.type} · {c.sendAt}</div>}
+                  <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{[c.createdAt && `created ${c.createdAt.slice(0, 16)}`, c.type].filter(Boolean).join(' · ')}</div>
                 </div>
               ))}
           </>

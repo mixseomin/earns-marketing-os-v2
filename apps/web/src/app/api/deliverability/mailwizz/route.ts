@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
   const [detail, fieldsD, segsD, campsD] = await Promise.all([
     mw(`/lists/${L}`), mw(`/lists/${L}/fields`), mw(`/lists/${L}/segments`), mw(`/campaigns?per_page=50`),
   ]);
+  // The /campaigns list is sparse (no subject/date/list). Fetch detail per campaign so the UI
+  // can tell them apart — and so we can filter to THIS list. Capped so it can't run away.
+  const campDetails = await Promise.all(
+    (campsD?.records || []).slice(0, 30).map((c: any) => mw(`/campaigns/${c.campaign_uid}`)),
+  );
 
   const g = detail?.record?.general || {};
   const def = detail?.record?.defaults || {};
@@ -42,9 +47,11 @@ export async function GET(req: NextRequest) {
   };
   const fields = (fieldsD?.records || []).map((f: any) => ({ label: f.label, tag: f.tag, type: f.type?.name || f.type?.identifier || '', required: f.required === 'yes' }));
   const segments = (segsD?.records || []).map((s: any) => ({ uid: s.segment_uid, name: s.name, count: Number(s.subscribers_count) || 0 }));
-  const campaigns = (campsD?.records || [])
-    .filter((c: any) => !c.list?.list_uid || c.list.list_uid === L)
-    .map((c: any) => ({ uid: c.campaign_uid, name: c.name, subject: c.subject, status: c.status, type: c.type, sendAt: c.send_at || null }));
+  const campaigns = campDetails
+    .map((dd: any) => dd?.record)
+    .filter((c: any) => c && c.list?.list_uid === L)
+    .map((c: any) => ({ uid: c.campaign_uid, name: c.name, subject: c.subject || null, status: c.status, type: c.type, sendAt: c.send_at || null, createdAt: c.date_added || null }))
+    .sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
   return NextResponse.json({ list, fields, segments, campaigns }, { headers: { 'Cache-Control': 'no-store' } });
 }

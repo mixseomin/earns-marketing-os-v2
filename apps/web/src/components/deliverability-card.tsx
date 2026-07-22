@@ -7,7 +7,8 @@ interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
 interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
-interface Row { domain: string; send?: boolean; warmupStart?: string | null; warmupCampaign?: string | null; listUid?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null; autoWarm?: boolean; graduatedAt?: string | null; channel?: string; mjListId?: string | null; fromEmail?: string | null }
+interface Placement { inbox: number; spam: number; missing: number; seeds: number; channel: string; date: string }
+interface Row { domain: string; send?: boolean; warmupStart?: string | null; warmupCampaign?: string | null; listUid?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null; autoWarm?: boolean; graduatedAt?: string | null; channel?: string; mjListId?: string | null; fromEmail?: string | null; placement?: Placement | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
 interface WarmupEvent { domain: string; date: string; dayIdx: number; sentSeeds: number; sentReal: number; inbox: number; spam: number; placementPct: number; moved: number; replied: number; graduated?: boolean }
 interface SeedRow { id: string; provider: string; email: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; active?: boolean; hasPass?: boolean }
@@ -39,6 +40,21 @@ function Spark({ pts }: { pts: number[] }) {
       {pts.map((s, i) => (
         <span key={i} title={`${s}/10`} style={{ width: 4, height: Math.max(2, (s / 10) * 16), background: scoreColor(s), borderRadius: 1, display: 'inline-block' }} />
       ))}
+    </span>
+  );
+}
+
+// Saved seed-measured inbox placement (inbox/seeds), color-coded, with channel + date on hover.
+function PlacementBadge({ p }: { p: Placement | null | undefined }) {
+  if (!p) return <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>—</span>;
+  const measured = p.inbox + p.spam;
+  const pctInbox = measured ? Math.round((p.inbox / measured) * 100) : 0;
+  const color = measured === 0 ? 'var(--fg-3)' : pctInbox >= 80 ? '#5ac47e' : pctInbox >= 40 ? '#e0a94a' : '#d16b6b';
+  return (
+    <span title={`${p.channel} · measured ${p.date} · inbox ${p.inbox}/${p.seeds} · spam ${p.spam} · missing ${p.missing}`} style={{ ...mono, fontSize: 11, whiteSpace: 'nowrap' }}>
+      <b style={{ color }}>{p.inbox}<span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>/{p.seeds}</span></b>
+      {p.spam > 0 && <span style={{ color: '#d16b6b', fontSize: 9.5, marginLeft: 4 }}>{p.spam}✕spam</span>}
+      <span style={{ color: 'var(--fg-3)', fontSize: 8.5, marginLeft: 4 }}>{p.date.slice(5)}</span>
     </span>
   );
 }
@@ -379,6 +395,7 @@ export function DeliverabilityCard() {
   const [newDomain, setNewDomain] = useState('');
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
+  const [measuring, setMeasuring] = useState(false);
   const [view, setView] = useState<'table' | 'warmup' | 'calendar'>('table');
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
@@ -418,6 +435,17 @@ export function DeliverabilityCard() {
       setTimeout(() => { load(); setTesting((t) => (t === domain ? null : t)); }, 98_000);
     } catch { setTesting(null); }
   }, [testing, load]);
+
+  const runPlacement = useCallback(async () => {
+    if (measuring) return;
+    setMeasuring(true);
+    try {
+      const r = await fetch('/api/deliverability/placement', { method: 'POST' });
+      if (!r.ok) { setMeasuring(false); return; }
+      // measurement runs ~2 min on the box then writes .placement.json; reload after.
+      setTimeout(() => { load(); setMeasuring(false); }, 135_000);
+    } catch { setMeasuring(false); }
+  }, [measuring, load]);
 
   const addDomain = useCallback(async () => {
     const dom = newDomain.trim().toLowerCase();
@@ -464,6 +492,11 @@ export function DeliverabilityCard() {
             style={{ ...mono, fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: adding ? 'var(--fg-3)' : 'var(--accent, #37d4c2)', cursor: adding ? 'default' : 'pointer' }}>
             {adding ? '…' : '+ Register'}
           </button>
+          <button onClick={runPlacement} disabled={measuring}
+            title="Send a probe from every sending domain to your seed inboxes and save inbox-vs-spam placement (~2 min). Occasional re-check — not per load."
+            style={{ ...mono, fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: measuring ? 'var(--fg-3)' : 'var(--accent, #37d4c2)', cursor: measuring ? 'default' : 'pointer' }}>
+            {measuring ? 'measuring… ~2m' : '↻ measure placement'}
+          </button>
           <a href="https://postmaster.google.com/managedomains" target="_blank" rel="noopener noreferrer"
             title="Open Google Postmaster Tools"
             style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
@@ -488,6 +521,7 @@ export function DeliverabilityCard() {
             <tr>
               <th style={th}>Domain</th>
               <th style={th}>Auth</th>
+              <th style={th} title="Seed-measured inbox placement (inbox / #seeds); saved, re-measure on demand">Inbox (seed)</th>
               <th style={th}>Postmaster rep</th>
               <th style={th}>Spam rate</th>
               <th style={th}>Spam-test</th>
@@ -518,6 +552,7 @@ export function DeliverabilityCard() {
                     <Tick ok={row.auth.dkim} label="DKIM" />
                     <Tick ok={!!row.auth.dmarc} label={`DMARC${row.auth.dmarc ? ':' + row.auth.dmarc : ''}`} warn={row.auth.dmarc === 'none'} />
                   </td>
+                  <td style={tdc}><PlacementBadge p={row.placement} /></td>
                   <td style={{ ...tdc, ...mono }}>
                     {!d.postmasterConfigured ? <span style={{ color: 'var(--fg-3)' }}>off</span>
                       : pm ? <b style={{ color: repColor[pm.reputation || ''] || 'var(--fg-2)' }}>{repShort(pm.reputation)}</b>

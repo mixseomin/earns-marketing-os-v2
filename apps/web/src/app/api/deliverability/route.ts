@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { resolveTxt } from 'node:dns/promises';
 import { readFile } from 'node:fs/promises';
 import { readDomains } from '@/lib/domains-store';
+import { readPlacement } from '@/lib/placement-store';
 import { trafficStats } from '@/lib/postmaster';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,7 @@ export async function GET() {
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const domains = await readDomains();
+  const placement = await readPlacement();
   const rows = await Promise.all(
     domains.map(async (d) => ({
       domain: d.domain,
@@ -53,6 +55,7 @@ export async function GET() {
       auth: await authOf(d.domain, d.dkimSelector || 'mailer._domainkey'),
       postmaster: await trafficStats(d.domain),
       spamTest: await spamTestOf(d.domain),
+      placement: placement[d.domain] || null,
     })),
   );
   return NextResponse.json(

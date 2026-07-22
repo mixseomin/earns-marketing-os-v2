@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import postgres from 'postgres';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,18 +14,40 @@ const MJ_LISTS: Record<string, number> = {
   'mintalmanac.com': 10626754,
 };
 
+// Self-hosted sites that store subscribers in their own Postgres (env var holds the connection URL).
+const SELF_HOSTED_PG: Record<string, string> = {
+  'steamsolo.com': 'STEAMSOLO_DATABASE_URL',
+};
+
 const PAGE = 50;
 
-// GET ?domain=&offset= — the actual contacts behind a site's Subs number (Mailjet list). Admin-only.
+// GET ?domain=&offset= — the actual contacts behind a site's Subs number. Mailjet list for the calc
+// sites; a direct Postgres read for self-hosted sites. Admin-only.
 export async function GET(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const domain = (req.nextUrl.searchParams.get('domain') || '').trim().toLowerCase();
+  const offset = Math.max(0, Number(req.nextUrl.searchParams.get('offset') || 0));
+
+  // Self-hosted: read the site's own subscribers table directly.
+  const pgEnv = SELF_HOSTED_PG[domain];
+  if (pgEnv) {
+    const url = process.env[pgEnv];
+    if (!url) return NextResponse.json({ error: `${pgEnv} not configured` }, { status: 503 });
+    const sql = postgres(url, { max: 1, prepare: false });
+    try {
+      const rows = await sql`SELECT email, status, source, created_at FROM subscribers ORDER BY created_at DESC LIMIT 500`;
+      const contacts = rows.map((r) => ({ email: r.email, name: r.source || '', createdAt: r.created_at, excluded: false, unsubbed: r.status !== 'active' }));
+      return NextResponse.json({ total: contacts.length, offset: 0, pageSize: contacts.length || 1, contacts, source: 'self-hosted' }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (e) {
+      return NextResponse.json({ error: String(e instanceof Error ? e.message : e).slice(0, 140) }, { status: 502 });
+    } finally { await sql.end({ timeout: 3 }); }
+  }
+
   const key = process.env.MAILJET_API_KEY, secret = process.env.MAILJET_SECRET;
   if (!key || !secret) return NextResponse.json({ error: 'Mailjet not configured' }, { status: 503 });
 
-  const domain = (req.nextUrl.searchParams.get('domain') || '').trim().toLowerCase();
-  const offset = Math.max(0, Number(req.nextUrl.searchParams.get('offset') || 0));
   const listId = MJ_LISTS[domain];
   if (!listId) return NextResponse.json({ error: `No contact list mapped for ${domain}` }, { status: 400 });
 

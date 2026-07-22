@@ -9,7 +9,7 @@ import { SiteMenu } from './site-menu';
 import { ContactsDrawer } from './contacts-drawer';
 
 // Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
-const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com']);
+const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com', 'steamsolo.com']);
 
 interface RowData {
   domain: string;

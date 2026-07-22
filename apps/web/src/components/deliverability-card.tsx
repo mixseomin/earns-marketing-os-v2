@@ -563,7 +563,7 @@ function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: str
           </div>
           {tab === 'html'
             ? <textarea value={html} onChange={(e) => setHtml(e.target.value)} rows={12} placeholder="(blank = default warm-up template; or Generate above, then trim here)" style={{ ...field, fontFamily: 'var(--font-mono)', fontSize: 11, resize: 'vertical' }} spellCheck={false} />
-            : <iframe title="preview" sandbox="" srcDoc={html || '<p style="font-family:sans-serif;color:#888;padding:20px">Nothing to preview — generate or paste HTML.</p>'} style={{ width: '100%', height: 300, border: '1px solid var(--line)', borderRadius: 5, background: '#fff' }} />}
+            : <EmailPreview html={html} domain={domain} minHeight={300} />}
           <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>Required tags [UNSUBSCRIBE_URL] + [COMPANY_FULL_ADDRESS] are auto-added if missing. Draft only — never auto-sends.</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
@@ -588,30 +588,52 @@ function mergeTags(html: string, contact: PreviewContact | null, company: string
   return out;
 }
 
-function ContentPreview({ uid, name, onClose, onEdit }: { uid: string; name: string; onClose: () => void; onEdit: () => void }) {
-  const [c, setC] = useState<{ subject: string; fromName: string; fromEmail: string; status: string; html: string; listUid?: string | null; editedElsewhere?: boolean } | null>(null);
-  const [err, setErr] = useState('');
+// Reusable email body preview with a "Preview as <contact>" picker that fills merge tags with a
+// real subscriber's field values. Give it listUid (campaign) or domain (compose) to load contacts.
+function EmailPreview({ html, listUid, domain, minHeight = 300, grow }: { html: string; listUid?: string | null; domain?: string; minHeight?: number; grow?: boolean }) {
   const [contacts, setContacts] = useState<PreviewContact[]>([]);
   const [company, setCompany] = useState<string | null>(null);
   const [asUid, setAsUid] = useState('');
+  useEffect(() => {
+    const qs = listUid ? `list=${encodeURIComponent(listUid)}` : domain ? `domain=${encodeURIComponent(domain)}` : '';
+    if (!qs) { setContacts([]); return; }
+    let alive = true;
+    fetch(`/api/deliverability/subscribers?${qs}`, { cache: 'no-store' })
+      .then((r) => r.json()).then((s) => { if (alive && s.contacts) { setContacts(s.contacts); setCompany(s.company || null); } }).catch(() => {});
+    return () => { alive = false; };
+  }, [listUid, domain]);
+  const asContact = contacts.find((x) => x.uid === asUid) || null;
+  const rendered = html ? mergeTags(html, asContact, company) : '';
+  return (
+    <>
+      {contacts.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Preview as</span>
+          <select value={asUid} onChange={(e) => setAsUid(e.target.value)}
+            style={{ ...mono, fontSize: 10.5, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', maxWidth: 260 }}>
+            <option value="">— raw tags (no contact) —</option>
+            {contacts.map((ct) => <option key={ct.uid} value={ct.uid}>{ct.email}{ct.fields.FNAME ? ` · ${ct.fields.FNAME}` : ''}</option>)}
+          </select>
+          {asContact && <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{Object.entries(asContact.fields).filter(([, v]) => v).map(([k, v]) => `[${k}]=${v}`).join(' · ') || 'no field values set'}</span>}
+        </div>
+      )}
+      <iframe title="email preview" sandbox="" srcDoc={rendered || '<p style="font-family:sans-serif;color:#888;padding:20px">Nothing to preview yet — generate or paste HTML.</p>'}
+        style={{ width: '100%', ...(grow ? { flex: 1 } : {}), minHeight, border: '1px solid var(--line)', borderRadius: grow ? 0 : 5, background: '#fff' }} />
+    </>
+  );
+}
 
+function ContentPreview({ uid, name, onClose, onEdit }: { uid: string; name: string; onClose: () => void; onEdit: () => void }) {
+  const [c, setC] = useState<{ subject: string; fromName: string; fromEmail: string; status: string; html: string; listUid?: string | null; editedElsewhere?: boolean } | null>(null);
+  const [err, setErr] = useState('');
   useEffect(() => {
     let alive = true;
     fetch(`/api/deliverability/campaign-content?uid=${encodeURIComponent(uid)}`, { cache: 'no-store' })
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => {
-        if (!alive) return;
-        if (!ok) { setErr(j.error || 'failed'); return; }
-        setC(j);
-        if (j.listUid) fetch(`/api/deliverability/subscribers?list=${encodeURIComponent(j.listUid)}`, { cache: 'no-store' })
-          .then((r) => r.json()).then((s) => { if (alive && s.contacts) { setContacts(s.contacts); setCompany(s.company || null); } }).catch(() => {});
-      })
+      .then(({ ok, j }) => { if (alive) (ok ? setC(j) : setErr(j.error || 'failed')); })
       .catch(() => alive && setErr('network error'));
     return () => { alive = false; };
   }, [uid]);
-
-  const asContact = contacts.find((x) => x.uid === asUid) || null;
-  const rendered = c?.html ? mergeTags(c.html, asContact, company) : '';
   const iconBtn: CSSProperties = { ...mono, fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' };
 
   return (
@@ -627,21 +649,10 @@ function ContentPreview({ uid, name, onClose, onEdit }: { uid: string; name: str
             <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
           </div>
         </div>
-        {contacts.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Preview as</span>
-            <select value={asUid} onChange={(e) => setAsUid(e.target.value)}
-              style={{ ...mono, fontSize: 10.5, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', maxWidth: 260 }}>
-              <option value="">— raw tags (no contact) —</option>
-              {contacts.map((ct) => <option key={ct.uid} value={ct.uid}>{ct.email}{ct.fields.FNAME ? ` · ${ct.fields.FNAME}` : ''}</option>)}
-            </select>
-            {asContact && <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{Object.entries(asContact.fields).filter(([, v]) => v).map(([k, v]) => `[${k}]=${v}`).join(' · ') || 'no field values set'}</span>}
-          </div>
-        )}
         {err && <div style={{ padding: 16, fontSize: 12, color: '#d16b6b' }}>{err}</div>}
         {!c && !err && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>}
         {c && (c.html
-          ? <iframe title="email preview" sandbox="" srcDoc={rendered} style={{ flex: 1, minHeight: 360, border: 'none', background: '#fff' }} />
+          ? <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0 14px 14px' }}><EmailPreview html={c.html} listUid={c.listUid} grow minHeight={340} /></div>
           : <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>{c.editedElsewhere ? 'Edited in MailWizz — open MailWizz to view the body.' : 'No content stored.'}</div>)}
       </div>
     </div>

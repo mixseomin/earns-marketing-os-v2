@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { readDomains } from '@/lib/domains-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -7,16 +8,18 @@ export const runtime = 'nodejs';
 const API = process.env.MAILWIZZ_API_URL || 'https://mail.on.tc/api/index.php';
 const KEY = process.env.MAILWIZZ_API_KEY || '';
 
-// GET ?list=<uid> — a sample of real subscribers with their field values, so a campaign can be
-// previewed "as" a specific contact (merge tags filled). Also returns the list's CAN-SPAM address
-// for [COMPANY_FULL_ADDRESS]. Admin-only.
+// GET ?list=<uid> | ?domain= — a sample of real subscribers with their field values, so a campaign
+// can be previewed "as" a specific contact (merge tags filled). Also returns the list's CAN-SPAM
+// address for [COMPANY_FULL_ADDRESS]. Admin-only.
 export async function GET(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!KEY) return NextResponse.json({ error: 'MailWizz API not configured' }, { status: 503 });
 
-  const list = (req.nextUrl.searchParams.get('list') || '').trim();
-  if (!list) return NextResponse.json({ error: 'Missing list uid' }, { status: 400 });
+  let list = (req.nextUrl.searchParams.get('list') || '').trim();
+  const domain = (req.nextUrl.searchParams.get('domain') || '').trim().toLowerCase();
+  if (!list && domain) list = (await readDomains()).find((x) => x.domain === domain)?.listUid || '';
+  if (!list) return NextResponse.json({ contacts: [], company: null });
 
   const [subsR, detailR] = await Promise.all([
     fetch(`${API}/lists/${list}/subscribers?per_page=25`, { headers: { 'X-API-KEY': KEY }, cache: 'no-store' }),

@@ -323,7 +323,7 @@ function SeedPanel() {
           <select value={provider} onChange={(e) => setProvider(e.target.value)} style={ip}>
             <option value="gmail">Gmail</option><option value="outlook">Outlook</option><option value="yahoo">Yahoo</option><option value="other">Other</option>
           </select>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seed@gmail.com" spellCheck={false} autoComplete="off" style={{ ...ip, width: 180 }} />
+          <input value={email} onChange={(e) => { setEmail(e.target.value); const p = detectProvider(e.target.value); if (p !== 'other') setProvider(p); }} placeholder="seed@gmail.com" spellCheck={false} autoComplete="off" style={{ ...ip, width: 180 }} />
           <input value={pass} onChange={(e) => setPass(e.target.value)} type="password" placeholder="app-password (16-char)" autoComplete="new-password" style={{ ...ip, width: 170 }} />
           <button onClick={add} disabled={busy || !email.trim() || !pass.trim()} style={{ ...cbtn(busy), color: 'var(--accent,#37d4c2)' }}>＋ Add seed</button>
           <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>Other = fill IMAP/SMTP host manually (edit .warmup-seeds.json)</span>

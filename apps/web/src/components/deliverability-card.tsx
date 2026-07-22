@@ -269,10 +269,35 @@ function SeedPanel() {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bulk, setBulk] = useState('');
+  const [bulkMsg, setBulkMsg] = useState('');
   const load = useCallback(() => {
     fetch('/api/deliverability/seeds', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => setSeeds(j?.seeds || [])).catch(() => setSeeds([]));
   }, []);
   useEffect(load, [load]);
+
+  // Guess provider from the email domain so bulk paste only needs email + app-password.
+  const detectProvider = (em: string) => {
+    const dom = (em.split('@')[1] || '').toLowerCase();
+    if (/gmail\.com$|googlemail\.com$/.test(dom)) return 'gmail';
+    if (/(outlook|hotmail|live|msn)\.[a-z.]+$/.test(dom)) return 'outlook';
+    if (/(yahoo|ymail)\.[a-z.]+$/.test(dom)) return 'yahoo';
+    return 'other';
+  };
+  const addBulk = async () => {
+    const lines = bulk.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (busy || !lines.length) return;
+    setBusy(true); setBulkMsg('');
+    let ok = 0; const fails: string[] = [];
+    for (const line of lines) {
+      const m = line.match(/^([^\s:,]+@[^\s:,]+)\s*[:,]\s*(.+)$/); // email <: or ,> app-password
+      if (!m) { fails.push(line.slice(0, 24)); continue; }
+      const em = m[1]!.toLowerCase(), pw = m[2]!.trim();
+      const r = await fetch('/api/deliverability/seeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: detectProvider(em), email: em, pass: pw }) });
+      r.ok ? ok++ : fails.push(em);
+    }
+    setBusy(false); setBulk(''); setBulkMsg(`added ${ok}${fails.length ? ` · ${fails.length} failed (${fails.slice(0, 3).join(', ')}${fails.length > 3 ? '…' : ''})` : ''}`); load();
+  };
 
   const add = async () => {
     if (busy || !email.trim() || !pass.trim()) return;
@@ -303,6 +328,33 @@ function SeedPanel() {
           <button onClick={add} disabled={busy || !email.trim() || !pass.trim()} style={{ ...cbtn(busy), color: 'var(--accent,#37d4c2)' }}>＋ Add seed</button>
           <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>Other = fill IMAP/SMTP host manually (edit .warmup-seeds.json)</span>
         </div>
+
+        {/* Bulk paste — one per line, provider auto-detected from the address. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Or paste many at once — one per line, <code style={{ ...mono, color: 'var(--fg-2)' }}>email:app-password</code> (provider auto-detected):</span>
+          <textarea value={bulk} onChange={(e) => setBulk(e.target.value)} rows={3} spellCheck={false} autoComplete="off"
+            placeholder={'seed1@gmail.com:abcdefghijklmnop\nseed2@outlook.com:qrstuvwxyz012345\nseed3@yahoo.com:...'}
+            style={{ ...mono, fontSize: 10.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', resize: 'vertical' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={addBulk} disabled={busy || !bulk.trim()} style={{ ...cbtn(busy), color: 'var(--accent,#37d4c2)' }}>＋ Add all</button>
+            {bulkMsg && <span style={{ ...mono, fontSize: 10, color: 'var(--fg-2)' }}>{bulkMsg}</span>}
+          </div>
+        </div>
+
+        {/* Inline how-to — do it whenever you have time. */}
+        <details style={{ fontSize: 10.5, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '2px 8px', background: 'var(--bg-2)' }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--fg-1)', fontWeight: 600, padding: '4px 0' }}>ℹ️ How to get an app-password (2FA required — do it at your leisure)</summary>
+          <div style={{ paddingBottom: 6, lineHeight: 1.6 }}>
+            An app-password is a 16-char code just for IMAP — <b>not</b> your normal login. You need 2-Step Verification (2FA) on first.
+            <ul style={{ margin: '4px 0', paddingLeft: 18 }}>
+              <li><b>Gmail:</b> turn on 2FA → <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent,#37d4c2)' }}>myaccount.google.com/apppasswords</a> → name it "warmup" → copy the 16 chars (type them without spaces).</li>
+              <li><b>Outlook/Hotmail:</b> turn on 2FA → <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent,#37d4c2)' }}>account.microsoft.com/security</a> → Advanced security → App passwords → Create.</li>
+              <li><b>Yahoo:</b> <a href="https://login.yahoo.com/account/security" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent,#37d4c2)' }}>login.yahoo.com/account/security</a> → Generate app password → "Other app" → name it.</li>
+            </ul>
+            Tip: reuse inboxes you already own (social/brand accounts) — just generate an app-password. Mix providers (Gmail + Outlook + Yahoo) so placement is measured per-ISP. Seeds are optional — a domain with a Mailjet list warms without them.
+          </div>
+        </details>
+
         {seeds && seeds.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {seeds.map((s) => (

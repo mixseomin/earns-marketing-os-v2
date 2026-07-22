@@ -6,6 +6,10 @@ import { Sparkline } from './sparkline';
 import { GscDetailDrawer } from './gsc-detail-drawer';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { SiteMenu } from './site-menu';
+import { ContactsDrawer } from './contacts-drawer';
+
+// Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
+const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com']);
 
 interface RowData {
   domain: string;
@@ -85,6 +89,7 @@ const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Int
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   const [openSrc, setOpenSrc] = useState<'google' | 'bing'>('google');
+  const [contactsDomain, setContactsDomain] = useState<string | null>(null);
   // Seed from server-supplied cookie value (passed via initialCols prop) so the
   // very first render — server AND client — matches the user's saved view.
   // Avoids the FOUC where AdSense/Bing flashed visible then collapsed after
@@ -418,10 +423,17 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.subs && <>
-                  <td data-tool="subs" style={cellOf('subs', true, { textAlign: 'right', ...tone((r.subscribers ?? 0) > 0), fontWeight: (r.subscribers ?? 0) > 0 ? 600 : 400 })}
-                    title={r.subscribers == null ? 'No email capture on this site yet' : `${r.subscribers.toLocaleString()} email subscribers`}>
-                    {r.subscribers == null ? '—' : r.subscribers.toLocaleString()}
-                  </td>
+                  {(() => {
+                    const canView = CONTACT_DOMAINS.has(r.domain) && (r.subscribers ?? 0) > 0;
+                    return (
+                      <td data-tool="subs"
+                        onClick={canView ? (e) => { e.stopPropagation(); setContactsDomain(r.domain); } : undefined}
+                        style={cellOf('subs', true, { textAlign: 'right', ...tone((r.subscribers ?? 0) > 0), fontWeight: (r.subscribers ?? 0) > 0 ? 600 : 400, ...(canView ? { cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 } : {}) })}
+                        title={r.subscribers == null ? 'No email capture on this site yet' : canView ? `${r.subscribers.toLocaleString()} contacts — click to view the list` : `${r.subscribers.toLocaleString()} email subscribers`}>
+                        {r.subscribers == null ? '—' : r.subscribers.toLocaleString()}
+                      </td>
+                    );
+                  })()}
                 </>}
               </tr>
             );
@@ -491,6 +503,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
           onClose={() => setOpenDomain(null)}
         />
       )}
+      {contactsDomain && <ContactsDrawer domain={contactsDomain} onClose={() => setContactsDomain(null)} />}
     </>
   );
 }

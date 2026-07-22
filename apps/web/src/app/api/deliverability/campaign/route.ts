@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { readDomains, writeDomains } from '@/lib/domains-store';
-import { saveCampaign, deleteCampaign } from '@/lib/campaigns-store';
+import { saveCampaign, deleteCampaign, readCampaigns } from '@/lib/campaigns-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -74,6 +74,32 @@ export async function POST(req: NextRequest) {
   }
   const uid = j.data?.campaign_uid || j.campaign_uid || null;
   if (uid) await saveCampaign(uid, { name, subject: subj, fromName, fromEmail, html, offers: links.map((o) => ({ label: o!.label!.trim(), url: o!.url!.trim(), interest: (o!.interest || '').trim() })) });
+  return NextResponse.json({ ok: true, uid });
+}
+
+// PUT /api/deliverability/campaign?uid= { subject?, body } — edit an existing draft's subject +
+// HTML in MailWizz, then re-store the copy MOS2 previews. Admin-only.
+export async function PUT(req: NextRequest) {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!KEY) return NextResponse.json({ error: 'MailWizz API not configured' }, { status: 503 });
+
+  const uid = (req.nextUrl.searchParams.get('uid') || '').trim();
+  if (!uid) return NextResponse.json({ error: 'Missing campaign uid' }, { status: 400 });
+  const { subject, body } = (await req.json().catch(() => ({}))) as { subject?: string; body?: string };
+  const html = (body || '').trim();
+  if (!html) return NextResponse.json({ error: 'Body is empty' }, { status: 400 });
+
+  const form = new URLSearchParams();
+  if (subject?.trim()) form.set('campaign[subject]', subject.trim());
+  form.set('campaign[template][content]', Buffer.from(html, 'utf8').toString('base64'));
+  const r = await fetch(`${API}/campaigns/${uid}`, { method: 'PUT', headers: { 'X-API-KEY': KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+  const j = await r.json().catch(() => null);
+  if (j?.status !== 'success') return NextResponse.json({ error: j?.error?.content || j?.error || 'MailWizz rejected the edit' }, { status: 502 });
+
+  // Merge into the stored copy (keep name/from/offers).
+  const prev = (await readCampaigns())[uid];
+  await saveCampaign(uid, { name: prev?.name || uid, fromName: prev?.fromName || '', fromEmail: prev?.fromEmail || '', offers: prev?.offers, subject: subject?.trim() || prev?.subject || '', html });
   return NextResponse.json({ ok: true, uid });
 }
 

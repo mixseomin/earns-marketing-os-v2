@@ -54,7 +54,7 @@ const cbtn = (busy = false): CSSProperties => ({ ...mono, fontSize: 10, padding:
 // One sending domain's warm-up: content first (create/pick a campaign, preview it) → THEN start.
 // You can't start without a campaign — no email = nothing to send, and a bad first send burns
 // reputation. Once started, a calendar strip tracks the daily ramp vs real reputation/scores.
-function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void; onCompose: (d: string) => void }) {
+function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void; onCompose: (d: string, editUid?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [camps, setCamps] = useState<MwCamp[] | null>(null); // null = loading
 
@@ -99,6 +99,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
               {camps.map((c) => <option key={c.uid} value={c.uid}>{c.subject || c.name}{c.createdAt ? ` · ${c.createdAt.slice(0, 16)}` : ''} · {c.status}</option>)}
             </select>
             {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
+            {selected && <button onClick={() => onCompose(row.domain, selected.uid)} style={btn} title="Edit this email (subject + content)">✏️ Edit</button>}
             <button onClick={() => onCompose(row.domain)} style={cbtn()} title="Compose another campaign (default or AI)">＋</button>
           </>
         )}
@@ -138,6 +139,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
           {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
         </span>
         {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the email being sent">👁 {selected.subject || 'Preview'}</button>}
+        {selected && <button onClick={() => onCompose(row.domain, selected.uid)} style={btn} title="Edit this email">✏️ Edit</button>}
         <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List</button>
         <button onClick={() => post('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
       </div>
@@ -229,7 +231,7 @@ export function DeliverabilityCard() {
   const [mwNonce, setMwNonce] = useState(0);
   const [preview, setPreview] = useState<{ uid: string; name: string } | null>(null);
   const openPreview = useCallback((uid: string, name: string) => setPreview({ uid, name }), []);
-  const [composeDomain, setComposeDomain] = useState<string | null>(null);
+  const [compose, setCompose] = useState<{ domain: string; editUid?: string } | null>(null);
 
   useEffect(() => {
     if (!viewDomain) { setMw(null); setMwErr(''); return; }
@@ -316,7 +318,7 @@ export function DeliverabilityCard() {
         <div style={{ paddingTop: 2 }}>
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
-            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} onCompose={setComposeDomain} />)}
+            : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} onCompose={(dom, editUid) => setCompose({ domain: dom, editUid })} />)}
           <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
             Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
           </div>
@@ -414,8 +416,8 @@ export function DeliverabilityCard() {
       {preview && (
         <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)} />
       )}
-      {composeDomain && (
-        <CreateCampaignModal domain={composeDomain} onClose={() => setComposeDomain(null)} onDone={() => { setComposeDomain(null); setMwNonce((n) => n + 1); load(); }} />
+      {compose && (
+        <CreateCampaignModal domain={compose.domain} editUid={compose.editUid} onClose={() => setCompose(null)} onDone={() => { setCompose(null); setMwNonce((n) => n + 1); load(); }} />
       )}
     </div>
   );
@@ -424,7 +426,7 @@ export function DeliverabilityCard() {
 // Compose a warm-up/promo email: free-form brief → gpt-4o-mini draft (subject + HTML), fully
 // editable, live preview, then saved as a MailWizz draft and selected for this domain.
 // Leave the brief blank + Create = the free static default template (no AI call).
-function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onClose: () => void; onDone: () => void }) {
+function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: string; editUid?: string; onClose: () => void; onDone: () => void }) {
   const [prompt, setPrompt] = useState('');
   const [subject, setSubject] = useState('');
   const [html, setHtml] = useState('');
@@ -432,6 +434,7 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
   const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState<'html' | 'preview'>('html');
   const [msg, setMsg] = useState('');
+  const [model, setModel] = useState('gpt-4o-mini');
   const [savedOffers, setSavedOffers] = useState<Array<{ id: number; label: string; url: string; interest: string }>>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [projectName, setProjectName] = useState('');
@@ -466,7 +469,7 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
     if (gen || (!prompt.trim() && !cleanOffers.length)) return;
     setGen(true); setMsg('generating with gpt-4o-mini…');
     try {
-      const r = await fetch('/api/deliverability/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt, subject: subject.trim() || undefined, offers: cleanOffers }) });
+      const r = await fetch('/api/deliverability/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt, subject: subject.trim() || undefined, offers: cleanOffers, model }) });
       const j = await r.json();
       if (!r.ok) { setMsg(j.error || 'generate failed'); return; }
       setSubject(j.subject || subject); setHtml(j.html || ''); setTab('preview');
@@ -474,10 +477,26 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
     } catch { setMsg('network error'); } finally { setGen(false); }
   };
 
+  // In edit mode, load the campaign's current subject + HTML to tweak.
+  useEffect(() => {
+    if (!editUid) return;
+    fetch(`/api/deliverability/campaign-content?uid=${encodeURIComponent(editUid)}`, { cache: 'no-store' })
+      .then((r) => r.json()).then((j) => { if (j && !j.error) { setSubject(j.subject || ''); setHtml(j.html || ''); setTab('preview'); } }).catch(() => {});
+  }, [editUid]);
+
   const create = async () => {
     if (creating) return;
-    setCreating(true); setMsg(html.trim() ? 'saving draft…' : 'saving default template…');
+    setCreating(true);
     try {
+      if (editUid) {
+        setMsg('saving changes…');
+        if (!html.trim()) { setMsg('body is empty'); return; }
+        const r = await fetch(`/api/deliverability/campaign?uid=${encodeURIComponent(editUid)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: subject.trim() || undefined, body: html }) });
+        const j = await r.json();
+        if (!r.ok) { setMsg(j.error || 'save failed'); return; }
+        onDone(); return;
+      }
+      setMsg(html.trim() ? 'saving draft…' : 'saving default template…');
       const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, body: html.trim() || undefined, offers: cleanOffers }) });
       const j = await r.json();
       if (!r.ok) { setMsg(j.error || 'create failed'); return; }
@@ -491,22 +510,17 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>✉️ New email · <span style={{ ...mono, color: 'var(--fg-2)' }}>{domain}</span></div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)' }}>{editUid ? '✏️ Edit email' : '✉️ New email'} · <span style={{ ...mono, color: 'var(--fg-2)' }}>{domain}</span></div>
           <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
         </div>
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Brief (optional — blank = free default template)</label>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2}
-            placeholder="e.g. Promo: 20% coupon for the BAH premium, link to militarymarkdown VA-loan page, friendly + short"
+            placeholder="e.g. Promo: 20% coupon for the BAH premium, friendly + short — weave in the offers below"
             style={{ ...field, resize: 'vertical' }} />
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={generate} disabled={gen || (!prompt.trim() && !cleanOffers.length)} style={{ ...cbtn(gen), opacity: (prompt.trim() || cleanOffers.length) ? 1 : 0.5 }} title="Draft with gpt-4o-mini">{gen ? '…' : '✨ Generate with AI'}</button>
-            <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>gpt-4o-mini · ~$0.0005/email</span>
-            {msg && <span style={{ ...mono, fontSize: 10, color: msg.startsWith('✓') ? '#5ac47e' : 'var(--fg-2)' }}>{msg}</span>}
-          </div>
 
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-            Offer links <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— pick from {projectName || 'project'}; clicks reveal & tag interest</span>
+            Offer links <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— pick from {projectName || 'project'}; AI builds the email around them</span>
           </label>
           {savedOffers.length === 0
             ? <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>No saved offers for this project yet — add one below (reusable).</span>
@@ -526,6 +540,19 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
             <button onClick={addOffer} disabled={savingOffer || !newOffer.label.trim() || !newOffer.url.trim()} style={cbtn(savingOffer)}>{savingOffer ? '…' : '＋ save'}</button>
           </div>
           {cleanOffers.length > 0 && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{cleanOffers.length} selected · tracked per subscriber via {domain}. After sending, each link’s clickers = an interest segment to target next.</div>}
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid var(--line)', paddingTop: 8, marginTop: 2 }}>
+            <button onClick={generate} disabled={gen || (!prompt.trim() && !cleanOffers.length)} style={{ ...cbtn(gen), opacity: (prompt.trim() || cleanOffers.length) ? 1 : 0.5 }} title="Draft with AI — writes the email around your brief + selected offers">{gen ? '…' : '✨ Generate with AI'}</button>
+            <select value={model} onChange={(e) => setModel(e.target.value)} title="Model — 4o-mini is cheapest; 4o/4.1 write better for special campaigns"
+              style={{ ...mono, fontSize: 10.5, padding: '3px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }}>
+              <option value="gpt-4o-mini">gpt-4o-mini · ~$0.0005</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini · ~$0.001</option>
+              <option value="gpt-4o">gpt-4o · ~$0.008</option>
+              <option value="gpt-4.1">gpt-4.1 · ~$0.008</option>
+            </select>
+            {msg && <span style={{ ...mono, fontSize: 10, color: msg.startsWith('✓') ? '#5ac47e' : 'var(--fg-2)' }}>{msg}</span>}
+          </div>
+
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Subject</label>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="(auto if blank)" style={field} spellCheck={false} />
           <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
@@ -540,7 +567,7 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
           <button onClick={onClose} style={{ ...mono, fontSize: 11, padding: '5px 12px', borderRadius: 5, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={create} disabled={creating} style={{ ...mono, fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>{creating ? 'saving…' : 'Create draft'}</button>
+          <button onClick={create} disabled={creating} style={{ ...mono, fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>{creating ? 'saving…' : editUid ? 'Save changes' : 'Create draft'}</button>
         </div>
       </div>
     </div>

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!aiEnabled()) return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 503 });
 
-  const { domain, prompt, subject, offers } = (await req.json().catch(() => ({}))) as { domain?: string; prompt?: string; subject?: string; offers?: Array<{ label?: string; url?: string; interest?: string }> };
+  const { domain, prompt, subject, offers, model } = (await req.json().catch(() => ({}))) as { domain?: string; prompt?: string; subject?: string; offers?: Array<{ label?: string; url?: string; interest?: string }>; model?: string };
+  const MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
+  const useModel = MODELS.includes(model || '') ? model! : DEFAULT_MODEL;
   const d = (domain || '').trim().toLowerCase();
   const brief = (prompt || '').trim();
   const links = (offers || []).filter((o) => o?.url?.trim() && o?.label?.trim());
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
     `You MUST include these literal MailWizz tags exactly once: ${REQUIRED.join(' and ')} — put them in a small grey footer.`,
     'Every link must be a real absolute URL. If the brief names specific pages/offers, link to those; otherwise link to ' + site + '.',
     links.length
-      ? 'Include EACH of these offer links as a clear, distinct CTA (button or bold link), using the exact URL and label — they let us learn each reader\'s interest by what they click:\n' + links.map((o) => `- ${o!.label} → ${o!.url}${o!.interest ? ` (interest: ${o!.interest})` : ''}`).join('\n')
+      ? 'Build the email AROUND these offer links — weave each one naturally into the copy where it fits (a sentence that leads into it), then also render it as a clear clickable CTA, using the exact URL and label. Clicks tell us each reader\'s interest:\n' + links.map((o) => `- ${o!.label} → ${o!.url}${o!.interest ? ` (interest: ${o!.interest})` : ''}`).join('\n')
       : '',
     'Keep it tight and genuinely useful — deliverability matters, so no spammy ALL-CAPS. With multiple offer links, present them as a short tidy list, not a wall.',
   ].filter(Boolean).join('\n');
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
   let res;
   try {
     res = await client.chat.completions.create({
-      model: DEFAULT_MODEL,
+      model: useModel,
       messages: [
         { role: 'system', content: sys },
         { role: 'user', content: (brief ? `Brief: ${brief}` : 'Brief: a short, useful update that leads readers to the offer links below.') + (subject?.trim() ? `\nUse this subject verbatim: ${subject.trim()}` : '') },
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e instanceof Error ? e.message : e).slice(0, 160) }, { status: 502 });
   }
-  logAiUsage('warmup-email', DEFAULT_MODEL, res.usage);
+  logAiUsage('warmup-email', useModel, res.usage);
 
   let out: { subject?: string; html?: string } = {};
   try { out = JSON.parse(res.choices[0]?.message?.content || '{}'); } catch { /* fall through */ }
@@ -81,5 +83,5 @@ export async function POST(req: NextRequest) {
     html += `\n<p style="font-size:12px;color:#888;margin-top:24px"><a href="[UNSUBSCRIBE_URL]" style="color:#888">Unsubscribe</a>.<br>[COMPANY_FULL_ADDRESS]</p>`;
   }
 
-  return NextResponse.json({ subject: subj, html, model: DEFAULT_MODEL, tokens: res.usage?.total_tokens ?? null });
+  return NextResponse.json({ subject: subj, html, model: useModel, tokens: res.usage?.total_tokens ?? null });
 }

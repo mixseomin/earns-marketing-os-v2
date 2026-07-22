@@ -32,8 +32,9 @@ export async function POST(req: NextRequest) {
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!KEY) return NextResponse.json({ error: 'MailWizz API not configured' }, { status: 503 });
 
-  const { domain, subject, body } = (await req.json().catch(() => ({}))) as { domain?: string; subject?: string; body?: string };
+  const { domain, subject, body, offers } = (await req.json().catch(() => ({}))) as { domain?: string; subject?: string; body?: string; offers?: Array<{ label?: string; url?: string; interest?: string }> };
   const d = (domain || '').trim().toLowerCase();
+  const links = (offers || []).filter((o) => o?.url?.trim() && o?.label?.trim());
   const row = (await readDomains()).find((x) => x.domain === d);
   if (!row?.listUid) return NextResponse.json({ error: 'No MailWizz list mapped to this domain' }, { status: 400 });
 
@@ -46,7 +47,11 @@ export async function POST(req: NextRequest) {
   if (!fromEmail) return NextResponse.json({ error: 'List has no default from-email set in MailWizz' }, { status: 400 });
 
   const site = `https://${d.split('.').slice(-2).join('.')}`; // root site, e.g. news.x.com → https://x.com
-  const html = (body && body.trim()) || defaultBody(brand, site);
+  // Offer links block appended to the default template (AI-generated bodies already embed them).
+  const offersBlock = links.length
+    ? `<div style="margin:18px 0"><table role="presentation" cellpadding="0" cellspacing="0"><tbody>${links.map((o) => `<tr><td style="padding:4px 0"><a href="${o!.url}" style="color:#1D1F27;font-weight:600">${o!.label} →</a></td></tr>`).join('')}</tbody></table></div>`
+    : '';
+  const html = (body && body.trim()) || defaultBody(brand, site).replace('<hr', offersBlock + '<hr');
   const stamp = new Date().toISOString().slice(0, 16).replace('T', ' '); // so multiple drafts differ
   const name = `Warm-up ${stamp} — ${d}`;
   const subj = (subject && subject.trim()) || `A quick tip from ${brand}`;
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: j?.error?.content || j?.error || 'MailWizz rejected the campaign' }, { status: 502 });
   }
   const uid = j.data?.campaign_uid || j.campaign_uid || null;
-  if (uid) await saveCampaign(uid, { name, subject: subj, fromName, fromEmail, html });
+  if (uid) await saveCampaign(uid, { name, subject: subj, fromName, fromEmail, html, offers: links.map((o) => ({ label: o!.label!.trim(), url: o!.url!.trim(), interest: (o!.interest || '').trim() })) });
   return NextResponse.json({ ok: true, uid });
 }
 

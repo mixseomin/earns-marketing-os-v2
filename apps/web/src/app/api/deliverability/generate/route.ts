@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!aiEnabled()) return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 503 });
 
-  const { domain, prompt, subject } = (await req.json().catch(() => ({}))) as { domain?: string; prompt?: string; subject?: string };
+  const { domain, prompt, subject, offers } = (await req.json().catch(() => ({}))) as { domain?: string; prompt?: string; subject?: string; offers?: Array<{ label?: string; url?: string; interest?: string }> };
   const d = (domain || '').trim().toLowerCase();
   const brief = (prompt || '').trim();
-  if (!brief) return NextResponse.json({ error: 'Describe the email (prompt is empty)' }, { status: 400 });
+  const links = (offers || []).filter((o) => o?.url?.trim() && o?.label?.trim());
+  if (!brief && !links.length) return NextResponse.json({ error: 'Add a brief or at least one offer link' }, { status: 400 });
   const row = (await readDomains()).find((x) => x.domain === d);
   if (!row?.listUid) return NextResponse.json({ error: 'No MailWizz list mapped to this domain' }, { status: 400 });
 
@@ -45,8 +46,11 @@ export async function POST(req: NextRequest) {
     'Personalization tag allowed: [FNAME].',
     `You MUST include these literal MailWizz tags exactly once: ${REQUIRED.join(' and ')} — put them in a small grey footer.`,
     'Every link must be a real absolute URL. If the brief names specific pages/offers, link to those; otherwise link to ' + site + '.',
-    'Keep it tight and genuinely useful — deliverability matters, so no spammy ALL-CAPS, no excessive links.',
-  ].join('\n');
+    links.length
+      ? 'Include EACH of these offer links as a clear, distinct CTA (button or bold link), using the exact URL and label — they let us learn each reader\'s interest by what they click:\n' + links.map((o) => `- ${o!.label} → ${o!.url}${o!.interest ? ` (interest: ${o!.interest})` : ''}`).join('\n')
+      : '',
+    'Keep it tight and genuinely useful — deliverability matters, so no spammy ALL-CAPS. With multiple offer links, present them as a short tidy list, not a wall.',
+  ].filter(Boolean).join('\n');
 
   const client = getOpenAI()!;
   let res;
@@ -55,7 +59,7 @@ export async function POST(req: NextRequest) {
       model: DEFAULT_MODEL,
       messages: [
         { role: 'system', content: sys },
-        { role: 'user', content: subject?.trim() ? `Brief: ${brief}\nUse this subject verbatim: ${subject.trim()}` : `Brief: ${brief}` },
+        { role: 'user', content: (brief ? `Brief: ${brief}` : 'Brief: a short, useful update that leads readers to the offer links below.') + (subject?.trim() ? `\nUse this subject verbatim: ${subject.trim()}` : '') },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,

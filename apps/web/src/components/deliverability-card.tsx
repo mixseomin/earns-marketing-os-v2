@@ -186,12 +186,13 @@ function CalendarView({ rows }: { rows: Row[] }) {
 
   const items: CalItem[] = [];
   for (const r of picked) {
-    if (r.warmupStart) {
-      const start = new Date(r.warmupStart + 'T00:00:00Z');
-      RAMP.forEach((cap, i) => {
-        items.push({ id: `p-${r.domain}-${i}`, date: isoUTC(new Date(start.getTime() + i * DAY_MS)), label: `🎯 ${capLabel(cap)}`, dim: true, color: '#e0a94a', title: `${r.domain} · warm-up D${i + 1} · target ${cap.toLocaleString()}` });
-      });
-    }
+    // Planned ramp — from warmupStart if started, else PROJECTED from today so the schedule
+    // (50 → 100 → 250 …) is visible before you press Start.
+    const projected = !r.warmupStart;
+    const start = new Date((r.warmupStart || isoUTC(new Date())) + 'T00:00:00Z');
+    RAMP.forEach((cap, i) => {
+      items.push({ id: `p-${r.domain}-${i}`, date: isoUTC(new Date(start.getTime() + i * DAY_MS)), label: `🎯 ${capLabel(cap)}`, dim: true, color: projected ? '#8a8a8a' : '#e0a94a', title: `${r.domain} · ${projected ? 'PROJECTED (not started — press Start to lock) · ' : ''}warm-up D${i + 1} · send ${cap.toLocaleString()}` });
+    });
     for (const p of r.postmaster || []) if (p.reputation) items.push({ id: `r-${r.domain}-${p.date}`, date: p.date, label: `● ${repShort(p.reputation)}`, color: repColor[p.reputation] || 'var(--fg-2)', title: `${r.domain} · reputation ${repShort(p.reputation)}${p.spam != null ? ` · spam ${(p.spam * 100).toFixed(1)}%` : ''}` });
     for (const p of r.spamTest || []) if (p.score != null) items.push({ id: `s-${r.domain}-${p.date}`, date: p.date, label: `⭐ ${p.score}`, color: scoreColor(p.score), title: `${r.domain} · mail-tester ${p.score}/10` });
   }
@@ -205,7 +206,7 @@ function CalendarView({ rows }: { rows: Row[] }) {
           <option value="all">all sending</option>
           {sending.map((r) => <option key={r.domain} value={r.domain}>{r.domain}</option>)}
         </select>
-        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>🎯 planned · ● reputation · ⭐ score</span>
+        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>🎯 send target (grey = projected until you Start) · ● reputation · ⭐ score</span>
       </div>
       {sending.length === 0
         ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet.</span>
@@ -431,12 +432,14 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
   const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState<'html' | 'preview'>('html');
   const [msg, setMsg] = useState('');
+  const [offers, setOffers] = useState<Array<{ label: string; url: string; interest: string }>>([]);
+  const cleanOffers = offers.filter((o) => o.label.trim() && o.url.trim());
 
   const generate = async () => {
-    if (gen || !prompt.trim()) return;
+    if (gen || (!prompt.trim() && !cleanOffers.length)) return;
     setGen(true); setMsg('generating with gpt-4o-mini…');
     try {
-      const r = await fetch('/api/deliverability/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt, subject: subject.trim() || undefined }) });
+      const r = await fetch('/api/deliverability/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, prompt, subject: subject.trim() || undefined, offers: cleanOffers }) });
       const j = await r.json();
       if (!r.ok) { setMsg(j.error || 'generate failed'); return; }
       setSubject(j.subject || subject); setHtml(j.html || ''); setTab('preview');
@@ -448,7 +451,7 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
     if (creating) return;
     setCreating(true); setMsg(html.trim() ? 'saving draft…' : 'saving default template…');
     try {
-      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, body: html.trim() || undefined }) });
+      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, body: html.trim() || undefined, offers: cleanOffers }) });
       const j = await r.json();
       if (!r.ok) { setMsg(j.error || 'create failed'); return; }
       if (j.uid) await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, action: 'select', campaign: j.uid }) });
@@ -470,10 +473,24 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
             placeholder="e.g. Promo: 20% coupon for the BAH premium, link to militarymarkdown VA-loan page, friendly + short"
             style={{ ...field, resize: 'vertical' }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={generate} disabled={gen || !prompt.trim()} style={{ ...cbtn(gen), opacity: prompt.trim() ? 1 : 0.5 }} title="Draft with gpt-4o-mini">{gen ? '…' : '✨ Generate with AI'}</button>
+            <button onClick={generate} disabled={gen || (!prompt.trim() && !cleanOffers.length)} style={{ ...cbtn(gen), opacity: (prompt.trim() || cleanOffers.length) ? 1 : 0.5 }} title="Draft with gpt-4o-mini">{gen ? '…' : '✨ Generate with AI'}</button>
             <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>gpt-4o-mini · ~$0.0005/email</span>
             {msg && <span style={{ ...mono, fontSize: 10, color: msg.startsWith('✓') ? '#5ac47e' : 'var(--fg-2)' }}>{msg}</span>}
           </div>
+
+          <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            Offer links <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— clicks reveal & tag each reader’s interest</span>
+          </label>
+          {offers.map((o, i) => (
+            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input value={o.label} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder="label (button text)" style={{ ...field, flex: 1.2 }} spellCheck={false} />
+              <input value={o.url} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="https://…" style={{ ...field, flex: 1.6 }} spellCheck={false} />
+              <input value={o.interest} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, interest: e.target.value } : x))} placeholder="interest tag" style={{ ...field, flex: 1 }} spellCheck={false} />
+              <button onClick={() => setOffers((a) => a.filter((_, j) => j !== i))} title="Remove" style={{ ...mono, fontSize: 12, border: 'none', background: 'transparent', color: '#d16b6b', cursor: 'pointer' }}>✕</button>
+            </div>
+          ))}
+          <button onClick={() => setOffers((a) => [...a, { label: '', url: '', interest: '' }])} style={{ ...cbtn(), alignSelf: 'flex-start' }}>＋ offer link</button>
+          {cleanOffers.length > 0 && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>Links are tracked per subscriber (branded {domain} tracking domain). After sending, each link’s clickers = an interest segment in MailWizz you can target next.</div>}
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Subject</label>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="(auto if blank)" style={field} spellCheck={false} />
           <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>

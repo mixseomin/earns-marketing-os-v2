@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
     smtpHost: b.smtpHost || existing?.smtpHost || preset.smtpHost || '',
     smtpPort: Number(b.smtpPort || existing?.smtpPort || preset.smtpPort || 587),
     user: b.user || email,
-    pass: b.pass || existing?.pass || '',   // keep old pass if not re-supplied
+    // App-passwords are shown with spaces (e.g. "abcd efgh ijkl mnop") but IMAP/SMTP AUTH needs
+    // them stripped — otherwise login fails. Keep old pass if not re-supplied.
+    pass: (b.pass || '').replace(/\s+/g, '') || existing?.pass || '',
     active: b.active !== undefined ? b.active : (existing?.active ?? true),
   };
   if (!seed.pass) return NextResponse.json({ error: 'app-password required' }, { status: 400 });

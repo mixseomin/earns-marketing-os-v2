@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Fragment, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
@@ -496,41 +496,35 @@ export function DeliverabilityCard() {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(
-              d.rows.reduce<Record<string, Row[]>>((acc, r) => {
-                const root = r.domain.split('.').slice(-2).join('.');
-                (acc[root] ||= []).push(r);
-                return acc;
-              }, {}),
-            ).sort(([a], [b]) => a.localeCompare(b)).map(([root, rows]) => (
-              <Fragment key={root}>
-                <tr>
-                  <td colSpan={7} style={{ padding: '5px 10px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', ...mono, fontSize: 11, fontWeight: 700, color: 'var(--fg-1)' }}>{root}</td>
-                </tr>
-                {rows.slice().sort((a, b) => a.domain.length - b.domain.length).map((row) => {
+            {d.rows.slice().sort((a, b) => {
+              // Keep a root and its subdomains adjacent, but every row shows its FULL name.
+              const ra = a.domain.split('.').slice(-2).join('.'), rb = b.domain.split('.').slice(-2).join('.');
+              return ra.localeCompare(rb) || a.domain.length - b.domain.length || a.domain.localeCompare(b.domain);
+            }).map((row) => {
               const pm = row.postmaster && row.postmaster.length ? row.postmaster[row.postmaster.length - 1] : null;
               const st = row.spamTest && row.spamTest.length ? row.spamTest[row.spamTest.length - 1] : null;
               const scores = (row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null);
-              const label = row.domain === root ? '@ root' : row.domain.slice(0, row.domain.length - root.length - 1);
+              const tdc: CSSProperties = { ...td, padding: '3px 10px' }; // compact rows
               return (
                 <tr key={row.domain}>
-                  <td style={{ ...td, whiteSpace: 'nowrap', paddingLeft: 22 }}>
-                    <span style={{ fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{label}</span>
-                    {row.send && <span style={{ ...mono, fontSize: 9, color: '#5ac47e', marginLeft: 6 }}>sending</span>}
-                    {!row.send && <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
+                  <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
+                    <span style={{ ...mono, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{row.domain}</span>
+                    {row.send
+                      ? <span style={{ ...mono, fontSize: 9, color: '#5ac47e', marginLeft: 6 }}>sending</span>
+                      : <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
                   </td>
-                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                  <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
                     <Tick ok={row.auth.spf} label="SPF" />
                     <Tick ok={row.auth.dkim} label="DKIM" />
                     <Tick ok={!!row.auth.dmarc} label={`DMARC${row.auth.dmarc ? ':' + row.auth.dmarc : ''}`} warn={row.auth.dmarc === 'none'} />
                   </td>
-                  <td style={{ ...td, ...mono }}>
+                  <td style={{ ...tdc, ...mono }}>
                     {!d.postmasterConfigured ? <span style={{ color: 'var(--fg-3)' }}>off</span>
                       : pm ? <b style={{ color: repColor[pm.reputation || ''] || 'var(--fg-2)' }}>{repShort(pm.reputation)}</b>
                         : <span style={{ color: 'var(--fg-3)' }} title="registered, awaiting volume">no data</span>}
                   </td>
-                  <td style={{ ...td, ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</td>
-                  <td style={{ ...td, ...mono }}>
+                  <td style={{ ...tdc, ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</td>
+                  <td style={{ ...tdc, ...mono }}>
                     {!row.send ? (
                       <span title="No send path — set up sending (DNS + DKIM + MailWizz list) to spam-test this domain"
                         style={{ fontSize: 10, color: '#e0a94a', border: '1px solid #e0a94a66', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>⚠ no send path</span>
@@ -543,12 +537,12 @@ export function DeliverabilityCard() {
                           style={{ ...mono, fontSize: 10, marginLeft: st?.score != null ? 6 : 0, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>
                           {st?.score != null ? '↻' : 'test now'}
                         </button>
-                        {st?.date && <div style={{ color: 'var(--fg-3)', fontSize: 9.5 }}>{st.date}</div>}
+                        {st?.date && <span style={{ color: 'var(--fg-3)', fontSize: 9.5, marginLeft: 6 }}>{st.date}</span>}
                       </>
                     )}
                   </td>
-                  <td style={td}><Spark pts={scores.slice(-10)} /></td>
-                  <td style={td}>
+                  <td style={tdc}><Spark pts={scores.slice(-10)} /></td>
+                  <td style={tdc}>
                     {st?.blacklisted && <span style={{ ...mono, fontSize: 10, color: '#d16b6b' }}>⚠ blacklisted </span>}
                     {st?.issues?.length
                       ? st.issues.map((is) => (
@@ -559,9 +553,7 @@ export function DeliverabilityCard() {
                   </td>
                 </tr>
               );
-                })}
-              </Fragment>
-            ))}
+            })}
           </tbody>
         </table>
       </div>

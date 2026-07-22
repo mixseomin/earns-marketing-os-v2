@@ -54,7 +54,7 @@ const cbtn = (busy = false): CSSProperties => ({ ...mono, fontSize: 10, padding:
 // One sending domain's warm-up: content first (create/pick a campaign, preview it) → THEN start.
 // You can't start without a campaign — no email = nothing to send, and a bad first send burns
 // reputation. Once started, a calendar strip tracks the daily ramp vs real reputation/scores.
-function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string) => void; onCompose: (d: string, editUid?: string) => void }) {
+function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string, domain: string) => void; onCompose: (d: string, editUid?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [camps, setCamps] = useState<MwCamp[] | null>(null); // null = loading
 
@@ -98,7 +98,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
               <option value="">— choose —</option>
               {camps.map((c) => <option key={c.uid} value={c.uid}>{c.subject || c.name}{c.createdAt ? ` · ${c.createdAt.slice(0, 16)}` : ''} · {c.status}</option>)}
             </select>
-            {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
+            {selected && <button onClick={() => onPreview(selected.uid, selected.name, row.domain)} style={btn} title="Preview the actual email that goes out">👁 Preview</button>}
             {selected && <button onClick={() => onCompose(row.domain, selected.uid)} style={btn} title="Edit this email (subject + content)">✏️ Edit</button>}
             <button onClick={() => onCompose(row.domain)} style={cbtn()} title="Compose another campaign (default or AI)">＋</button>
           </>
@@ -138,7 +138,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>
           {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
         </span>
-        {selected && <button onClick={() => onPreview(selected.uid, selected.name)} style={btn} title="Preview the email being sent">👁 {selected.subject || 'Preview'}</button>}
+        {selected && <button onClick={() => onPreview(selected.uid, selected.name, row.domain)} style={btn} title="Preview the email being sent">👁 {selected.subject || 'Preview'}</button>}
         {selected && <button onClick={() => onCompose(row.domain, selected.uid)} style={btn} title="Edit this email">✏️ Edit</button>}
         <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List</button>
         <button onClick={() => post('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
@@ -229,8 +229,8 @@ export function DeliverabilityCard() {
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
   const [mwNonce, setMwNonce] = useState(0);
-  const [preview, setPreview] = useState<{ uid: string; name: string } | null>(null);
-  const openPreview = useCallback((uid: string, name: string) => setPreview({ uid, name }), []);
+  const [preview, setPreview] = useState<{ uid: string; name: string; domain: string } | null>(null);
+  const openPreview = useCallback((uid: string, name: string, domain: string) => setPreview({ uid, name, domain }), []);
   const [compose, setCompose] = useState<{ domain: string; editUid?: string } | null>(null);
 
   useEffect(() => {
@@ -414,7 +414,8 @@ export function DeliverabilityCard() {
         <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} onChanged={() => { setMwNonce((n) => n + 1); load(); }} />
       )}
       {preview && (
-        <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)} />
+        <ContentPreview uid={preview.uid} name={preview.name} onClose={() => setPreview(null)}
+          onEdit={() => { setCompose({ domain: preview.domain, editUid: preview.uid }); setPreview(null); }} />
       )}
       {compose && (
         <CreateCampaignModal domain={compose.domain} editUid={compose.editUid} onClose={() => setCompose(null)} onDone={() => { setCompose(null); setMwNonce((n) => n + 1); load(); }} />
@@ -575,17 +576,44 @@ function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: str
 }
 
 // Renders the actual email HTML (sandboxed iframe) so you see exactly what recipients get.
-function ContentPreview({ uid, name, onClose }: { uid: string; name: string; onClose: () => void }) {
-  const [c, setC] = useState<{ subject: string; fromName: string; fromEmail: string; status: string; html: string; editedElsewhere?: boolean } | null>(null);
+interface PreviewContact { uid: string; email: string; status: string; fields: Record<string, string> }
+// Fill the merge tags in an email body with one contact's real field values, so preview shows
+// exactly what that person receives. System tags get realistic placeholders.
+function mergeTags(html: string, contact: PreviewContact | null, company: string | null): string {
+  let out = html;
+  if (contact) for (const [k, v] of Object.entries(contact.fields)) out = out.split(`[${k}]`).join(v || '');
+  out = out.split('[EMAIL]').join(contact?.email || '');
+  out = out.split('[UNSUBSCRIBE_URL]').join('#unsubscribe');
+  out = out.split('[COMPANY_FULL_ADDRESS]').join(company || '(your mailing address)');
+  return out;
+}
+
+function ContentPreview({ uid, name, onClose, onEdit }: { uid: string; name: string; onClose: () => void; onEdit: () => void }) {
+  const [c, setC] = useState<{ subject: string; fromName: string; fromEmail: string; status: string; html: string; listUid?: string | null; editedElsewhere?: boolean } | null>(null);
   const [err, setErr] = useState('');
+  const [contacts, setContacts] = useState<PreviewContact[]>([]);
+  const [company, setCompany] = useState<string | null>(null);
+  const [asUid, setAsUid] = useState('');
+
   useEffect(() => {
     let alive = true;
     fetch(`/api/deliverability/campaign-content?uid=${encodeURIComponent(uid)}`, { cache: 'no-store' })
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => { if (alive) (ok ? setC(j) : setErr(j.error || 'failed')); })
+      .then(({ ok, j }) => {
+        if (!alive) return;
+        if (!ok) { setErr(j.error || 'failed'); return; }
+        setC(j);
+        if (j.listUid) fetch(`/api/deliverability/subscribers?list=${encodeURIComponent(j.listUid)}`, { cache: 'no-store' })
+          .then((r) => r.json()).then((s) => { if (alive && s.contacts) { setContacts(s.contacts); setCompany(s.company || null); } }).catch(() => {});
+      })
       .catch(() => alive && setErr('network error'));
     return () => { alive = false; };
   }, [uid]);
+
+  const asContact = contacts.find((x) => x.uid === asUid) || null;
+  const rendered = c?.html ? mergeTags(c.html, asContact, company) : '';
+  const iconBtn: CSSProperties = { ...mono, fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' };
+
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px,96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
@@ -594,12 +622,26 @@ function ContentPreview({ uid, name, onClose }: { uid: string; name: string; onC
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c?.subject || name}</div>
             <div style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{c ? <>{c.fromName} &lt;{c.fromEmail}&gt; · {c.status}</> : uid}</div>
           </div>
-          <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button onClick={onEdit} style={iconBtn} title="Edit this email">✏️ Edit</button>
+            <button onClick={onClose} style={{ ...mono, fontSize: 14, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer' }}>✕</button>
+          </div>
         </div>
+        {contacts.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Preview as</span>
+            <select value={asUid} onChange={(e) => setAsUid(e.target.value)}
+              style={{ ...mono, fontSize: 10.5, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', maxWidth: 260 }}>
+              <option value="">— raw tags (no contact) —</option>
+              {contacts.map((ct) => <option key={ct.uid} value={ct.uid}>{ct.email}{ct.fields.FNAME ? ` · ${ct.fields.FNAME}` : ''}</option>)}
+            </select>
+            {asContact && <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{Object.entries(asContact.fields).filter(([, v]) => v).map(([k, v]) => `[${k}]=${v}`).join(' · ') || 'no field values set'}</span>}
+          </div>
+        )}
         {err && <div style={{ padding: 16, fontSize: 12, color: '#d16b6b' }}>{err}</div>}
         {!c && !err && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>}
         {c && (c.html
-          ? <iframe title="email preview" sandbox="" srcDoc={c.html} style={{ flex: 1, minHeight: 360, border: 'none', background: '#fff' }} />
+          ? <iframe title="email preview" sandbox="" srcDoc={rendered} style={{ flex: 1, minHeight: 360, border: 'none', background: '#fff' }} />
           : <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>{c.editedElsewhere ? 'Edited in MailWizz — open MailWizz to view the body.' : 'No content stored.'}</div>)}
       </div>
     </div>
@@ -608,7 +650,7 @@ function ContentPreview({ uid, name, onClose }: { uid: string; name: string; onC
 
 // Read-only drawer: everything MailWizz holds for a sending domain's list — defaults/params,
 // merge tags, segments, campaigns. No editing here; compose stays in MailWizz.
-function MailwizzDrawer({ domain, data, err, onClose, onPreview, onChanged }: { domain: string; data: MwView | null; err: string; onClose: () => void; onPreview: (uid: string, name: string) => void; onChanged: () => void }) {
+function MailwizzDrawer({ domain, data, err, onClose, onPreview, onChanged }: { domain: string; data: MwView | null; err: string; onClose: () => void; onPreview: (uid: string, name: string, domain: string) => void; onChanged: () => void }) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const del = async (uid: string, name: string) => {
     if (deleting || !confirm(`Delete campaign "${name}" from MailWizz? This cannot be undone.`)) return;
@@ -679,7 +721,7 @@ function MailwizzDrawer({ domain, data, err, onClose, onPreview, onChanged }: { 
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{c.name}</span>
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <button onClick={() => onPreview(c.uid, c.name)} title="Preview email" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer', padding: '1px 6px' }}>👁</button>
+                      <button onClick={() => onPreview(c.uid, c.name, domain)} title="Preview email" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer', padding: '1px 6px' }}>👁</button>
                       <button onClick={() => del(c.uid, c.name)} disabled={deleting === c.uid} title="Delete from MailWizz" style={{ ...mono, fontSize: 10, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-1)', color: '#d16b6b', cursor: 'pointer', padding: '1px 6px' }}>{deleting === c.uid ? '…' : '🗑'}</button>
                       <span style={{ ...mono, fontSize: 9.5, color: statusColor[c.status] || 'var(--fg-3)', textTransform: 'uppercase' }}>{c.status}</span>
                     </span>

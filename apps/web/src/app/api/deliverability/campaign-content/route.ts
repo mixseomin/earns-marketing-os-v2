@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     name: rec.name, subject: rec.subject, status: rec.status,
     fromName: rec.from_name, fromEmail: rec.from_email,
+    listUid: rec.list?.list_uid || null,
     html: stored?.html || '',
     editedElsewhere: !stored,
   }, { headers: { 'Cache-Control': 'no-store' } });

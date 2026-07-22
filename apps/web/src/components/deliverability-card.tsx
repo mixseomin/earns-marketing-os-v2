@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, Fragment, type CSSProperties, type ReactNode } from 'react';
+import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -175,13 +176,52 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
   );
 }
 
+// Month calendar of email ops — one row's worth of dated events per sending domain:
+// 🎯 planned warm-up target, ● Postmaster reputation, ⭐ mail-tester score. Filter by domain.
+// Actual sends/clicks/unsubs land here once warm-up sending starts (needs a daily MailWizz snapshot).
+function CalendarView({ rows }: { rows: Row[] }) {
+  const sending = rows.filter((r) => r.send);
+  const [dom, setDom] = useState<string>('all');
+  const picked = dom === 'all' ? sending : sending.filter((r) => r.domain === dom);
+
+  const items: CalItem[] = [];
+  for (const r of picked) {
+    if (r.warmupStart) {
+      const start = new Date(r.warmupStart + 'T00:00:00Z');
+      RAMP.forEach((cap, i) => {
+        items.push({ id: `p-${r.domain}-${i}`, date: isoUTC(new Date(start.getTime() + i * DAY_MS)), label: `🎯 ${capLabel(cap)}`, dim: true, color: '#e0a94a', title: `${r.domain} · warm-up D${i + 1} · target ${cap.toLocaleString()}` });
+      });
+    }
+    for (const p of r.postmaster || []) if (p.reputation) items.push({ id: `r-${r.domain}-${p.date}`, date: p.date, label: `● ${repShort(p.reputation)}`, color: repColor[p.reputation] || 'var(--fg-2)', title: `${r.domain} · reputation ${repShort(p.reputation)}${p.spam != null ? ` · spam ${(p.spam * 100).toFixed(1)}%` : ''}` });
+    for (const p of r.spamTest || []) if (p.score != null) items.push({ id: `s-${r.domain}-${p.date}`, date: p.date, label: `⭐ ${p.score}`, color: scoreColor(p.score), title: `${r.domain} · mail-tester ${p.score}/10` });
+  }
+
+  return (
+    <div style={{ paddingTop: 4 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>Domain</span>
+        <select value={dom} onChange={(e) => setDom(e.target.value)}
+          style={{ ...mono, fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }}>
+          <option value="all">all sending</option>
+          {sending.map((r) => <option key={r.domain} value={r.domain}>{r.domain}</option>)}
+        </select>
+        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>🎯 planned · ● reputation · ⭐ score</span>
+      </div>
+      {sending.length === 0
+        ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet.</span>
+        : <MonthCalendar items={items} />}
+      <div style={{ fontSize: 9.5, color: 'var(--fg-3)', marginTop: 6 }}>Actual sends / clicks / unsubscribes will populate once warm-up sending starts (daily MailWizz stats snapshot — added when the first send goes out).</div>
+    </div>
+  );
+}
+
 export function DeliverabilityCard() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
-  const [view, setView] = useState<'table' | 'warmup'>('table');
+  const [view, setView] = useState<'table' | 'warmup' | 'calendar'>('table');
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
@@ -242,11 +282,11 @@ export function DeliverabilityCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
           <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
-            {(['table', 'warmup'] as const).map((v) => (
+            {(['table', 'warmup', 'calendar'] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
                 style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
-                {v === 'table' ? 'Table' : '🔥 Warm-up'}
+                {v === 'table' ? 'Table' : v === 'warmup' ? '🔥 Warm-up' : '📅 Calendar'}
               </button>
             ))}
           </div>
@@ -280,6 +320,8 @@ export function DeliverabilityCard() {
             Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
           </div>
         </div>
+      ) : view === 'calendar' ? (
+        <CalendarView rows={d.rows} />
       ) : (
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

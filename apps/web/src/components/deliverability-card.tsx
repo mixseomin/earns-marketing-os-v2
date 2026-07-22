@@ -7,8 +7,10 @@ interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
 interface Issue { rule: string; pts: number }
 interface SpamPoint { date: string; score?: number; dkimAligned?: boolean; spfPass?: boolean; listUnsub?: boolean; blacklisted?: boolean; issues?: Issue[]; error?: string }
-interface Row { domain: string; send?: boolean; warmupStart?: string | null; warmupCampaign?: string | null; listUid?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null }
+interface Row { domain: string; send?: boolean; warmupStart?: string | null; warmupCampaign?: string | null; listUid?: string | null; auth: Auth; postmaster: PmPoint[] | null; spamTest: SpamPoint[] | null; autoWarm?: boolean; graduatedAt?: string | null; channel?: string; mjListId?: string | null; fromEmail?: string | null }
 interface Data { rows: Row[]; postmasterConfigured: boolean }
+interface WarmupEvent { domain: string; date: string; dayIdx: number; sentSeeds: number; sentReal: number; inbox: number; spam: number; placementPct: number; moved: number; replied: number; graduated?: boolean }
+interface SeedRow { id: string; provider: string; email: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; active?: boolean; hasPass?: boolean }
 interface MwList { uid: string; name: string; description: string; fromName: string | null; fromEmail: string | null; replyTo: string | null; subject: string | null; company: string | null; subscribers: number | null }
 interface MwField { label: string; tag: string; type: string; required: boolean }
 interface MwSeg { uid: string; name: string; count: number }
@@ -57,6 +59,8 @@ const cbtn = (busy = false): CSSProperties => ({ ...mono, fontSize: 10, padding:
 function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: Row; onChange: () => void; onView: (d: string) => void; onPreview: (uid: string, name: string, domain: string) => void; onCompose: (d: string, editUid?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [camps, setCamps] = useState<MwCamp[] | null>(null); // null = loading
+  const [events, setEvents] = useState<WarmupEvent[]>([]);
+  const [cfgOpen, setCfgOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -64,17 +68,53 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (alive) setCamps(j?.campaigns || []); })
       .catch(() => { if (alive) setCamps([]); });
-  }, [row.domain, row.warmupCampaign]);
+    fetch(`/api/deliverability/warmup-events?domain=${encodeURIComponent(row.domain)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive) setEvents(j?.events || []); })
+      .catch(() => { if (alive) setEvents([]); });
+  }, [row.domain, row.warmupCampaign, row.autoWarm]);
 
-  const post = useCallback(async (action: 'start' | 'stop' | 'select', campaign?: string) => {
+  const post = useCallback(async (action: 'start' | 'stop' | 'select' | 'auto-on' | 'auto-off' | 'config', campaign?: string, config?: Record<string, string>) => {
     if (busy) return;
     setBusy(true);
     try {
-      const r = await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain, action, campaign }) });
+      const r = await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: row.domain, action, campaign, config }) });
       if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'failed'); }
       onChange();
     } finally { setBusy(false); }
   }, [busy, row.domain, onChange]);
+
+  const lastEv = events[events.length - 1] || null;
+  // Auto-warm control + latest placement + graduation — shown in every state.
+  const autoRow = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {row.graduatedAt ? (
+        <span style={{ ...mono, fontSize: 10.5, fontWeight: 700, color: '#5ac47e', border: '1px solid #5ac47e66', borderRadius: 5, padding: '2px 8px' }} title={`Placement threshold met on ${row.graduatedAt} — ready to blast`}>✅ Graduated · {row.graduatedAt}</span>
+      ) : (
+        <button onClick={() => post(row.autoWarm ? 'auto-off' : 'auto-on')} disabled={busy}
+          style={{ ...cbtn(busy), color: row.autoWarm ? '#5ac47e' : 'var(--fg-2)', borderColor: row.autoWarm ? '#5ac47e66' : 'var(--line)' }}
+          title={row.autoWarm ? 'Automated: the box worker advances the ramp, engages seeds, and graduates this domain daily. Click to pause.' : 'Hand the ramp to the box worker — it sends daily, engages seed inboxes, measures inbox placement, and graduates automatically.'}>
+          {row.autoWarm ? '🟢 Auto-warm ON' : '⚪ Auto-warm OFF'}
+        </button>
+      )}
+      {lastEv && <span style={{ fontSize: 10, color: 'var(--fg-2)' }} title={`Last run ${lastEv.date}: ${lastEv.inbox} inbox / ${lastEv.spam} spam · moved ${lastEv.moved} · replied ${lastEv.replied}`}>
+        placement <b style={{ ...mono, color: lastEv.placementPct >= 90 ? '#5ac47e' : lastEv.placementPct >= 60 ? '#e0a94a' : '#d16b6b' }}>{lastEv.placementPct}%</b>
+        {events.length > 1 && <span style={{ marginLeft: 6 }}><Spark pts={events.slice(-14).map((e) => e.placementPct / 10)} /></span>}
+      </span>}
+      <button onClick={() => setCfgOpen((v) => !v)} style={{ ...cbtn(), color: 'var(--fg-3)' }} title="Warm-up config — Mailjet list for real-subscriber ramp, from-address">⚙</button>
+    </div>
+  );
+  const cfgRow = cfgOpen && (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 10, color: 'var(--fg-3)' }}>
+      <span>Mailjet list id</span>
+      <input defaultValue={row.mjListId || ''} onBlur={(e) => e.target.value !== (row.mjListId || '') && post('config', undefined, { mjListId: e.target.value })}
+        placeholder="(seed-only)" spellCheck={false} autoComplete="off" style={{ ...mono, fontSize: 10, width: 90, padding: '2px 5px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+      <span>from</span>
+      <input defaultValue={row.fromEmail || ''} onBlur={(e) => e.target.value !== (row.fromEmail || '') && post('config', undefined, { fromEmail: e.target.value })}
+        placeholder={`hello@${row.domain}`} spellCheck={false} autoComplete="off" style={{ ...mono, fontSize: 10, width: 150, padding: '2px 5px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' }} />
+      <span style={{ color: 'var(--fg-3)' }}>· ramp to real subs needs a Mailjet list; else seed-only warm</span>
+    </div>
+  );
 
   const btn = cbtn(busy);
   const selected = camps?.find((c) => c.uid === row.warmupCampaign) || null;
@@ -114,11 +154,13 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
           <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List detail</button>
         </div>
         {contentStep}
+        {autoRow}
+        {cfgRow}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => post('start')} disabled={busy || !selected}
             style={{ ...btn, color: selected ? '#e0a94a' : 'var(--fg-3)', borderColor: selected ? '#e0a94a66' : 'var(--line)', cursor: selected ? 'pointer' : 'not-allowed', opacity: selected ? 1 : 0.6 }}
-            title={selected ? 'Mark today as day 1 of the ramp' : 'Pick or create the warm-up email first'}>🔥 Start warm-up</button>
-          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{selected ? `ramp 50 → full over ${RAMP.length} days` : 'pick the email above first'}</span>
+            title={selected ? 'Manual: mark today as day 1 (you ramp in MailWizz yourself)' : 'Pick or create the warm-up email first'}>🔥 Start (manual)</button>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{selected ? 'or flip Auto-warm above to let the worker run it' : 'pick the email above first'}</span>
         </div>
       </div>
     );
@@ -143,6 +185,7 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
         <button onClick={() => onView(row.domain)} style={btn} title="View the MailWizz list — params, merge tags, segments">✉️ List</button>
         <button onClick={() => post('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
       </div>
+      <div style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>{autoRow}{cfgRow}</div>
       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
         {RAMP.map((cap, i) => {
           const dt = new Date(startD.getTime() + i * DAY_MS);
@@ -215,6 +258,66 @@ function CalendarView({ rows }: { rows: Row[] }) {
         : <MonthCalendar items={items} />}
       <div style={{ fontSize: 9.5, color: 'var(--fg-3)', marginTop: 6 }}>Actual sends / clicks / unsubscribes will populate once warm-up sending starts (daily MailWizz stats snapshot — added when the first send goes out).</div>
     </div>
+  );
+}
+
+// Seed inbox pool — the worker sends warm-up mail here, then over IMAP measures Inbox-vs-Spam
+// placement and pushes positive signals (move-out-of-spam, reply, mark-read). Real inboxes only.
+function SeedPanel() {
+  const [seeds, setSeeds] = useState<SeedRow[] | null>(null);
+  const [provider, setProvider] = useState('gmail');
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => {
+    fetch('/api/deliverability/seeds', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => setSeeds(j?.seeds || [])).catch(() => setSeeds([]));
+  }, []);
+  useEffect(load, [load]);
+
+  const add = async () => {
+    if (busy || !email.trim() || !pass.trim()) return;
+    setBusy(true);
+    try {
+      const r = await fetch('/api/deliverability/seeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, email: email.trim(), pass: pass.trim() }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'failed'); }
+      else { setEmail(''); setPass(''); load(); }
+    } finally { setBusy(false); }
+  };
+  const toggle = async (s: SeedRow) => { await fetch('/api/deliverability/seeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id, email: s.email, provider: s.provider, active: !(s.active !== false) }) }); load(); };
+  const del = async (s: SeedRow) => { if (!confirm(`Remove seed ${s.email}?`)) return; await fetch(`/api/deliverability/seeds?id=${s.id}`, { method: 'DELETE' }); load(); };
+
+  const ip: CSSProperties = { ...mono, fontSize: 10.5, padding: '3px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
+  const n = seeds?.length ?? 0, active = seeds?.filter((s) => s.active !== false).length ?? 0;
+  return (
+    <details style={{ marginBottom: 10, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
+      <summary style={{ cursor: 'pointer', padding: '7px 10px', fontSize: 11, fontWeight: 700, color: 'var(--fg-1)' }}>
+        🌱 Seed inboxes <span style={{ fontWeight: 400, color: 'var(--fg-3)' }}>· {active}/{n} active {n === 0 ? '— add real Gmail/Outlook/Yahoo inboxes (app-password) to measure placement + auto-graduate' : ''}</span>
+      </summary>
+      <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={provider} onChange={(e) => setProvider(e.target.value)} style={ip}>
+            <option value="gmail">Gmail</option><option value="outlook">Outlook</option><option value="yahoo">Yahoo</option><option value="other">Other</option>
+          </select>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seed@gmail.com" spellCheck={false} autoComplete="off" style={{ ...ip, width: 180 }} />
+          <input value={pass} onChange={(e) => setPass(e.target.value)} type="password" placeholder="app-password (16-char)" autoComplete="new-password" style={{ ...ip, width: 170 }} />
+          <button onClick={add} disabled={busy || !email.trim() || !pass.trim()} style={{ ...cbtn(busy), color: 'var(--accent,#37d4c2)' }}>＋ Add seed</button>
+          <span style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>Other = fill IMAP/SMTP host manually (edit .warmup-seeds.json)</span>
+        </div>
+        {seeds && seeds.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {seeds.map((s) => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '3px 6px', borderRadius: 5, background: 'var(--bg-2)' }}>
+                <span style={{ ...mono, color: 'var(--fg-0)', minWidth: 190 }}>{s.email}</span>
+                <span style={{ fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>{s.provider}</span>
+                <span style={{ fontSize: 9.5, color: s.hasPass ? '#5ac47e' : '#d16b6b' }}>{s.hasPass ? '🔑 pass set' : 'no pass'}</span>
+                <button onClick={() => toggle(s)} style={{ ...cbtn(), fontSize: 9.5, color: s.active !== false ? '#5ac47e' : 'var(--fg-3)' }} title="Include/exclude from warm-up runs">{s.active !== false ? 'active' : 'paused'}</button>
+                <button onClick={() => del(s)} style={{ ...cbtn(), fontSize: 9.5, color: '#d16b6b' }} title="Remove seed">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -316,11 +419,12 @@ export function DeliverabilityCard() {
       </div>
       {view === 'warmup' ? (
         <div style={{ paddingTop: 2 }}>
+          <SeedPanel />
           {d.rows.filter((r) => r.send).length === 0
             ? <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>No sending domains yet — set up a send path first.</span>
             : d.rows.filter((r) => r.send).map((r) => <WarmupCalendar key={r.domain} row={r} onChange={load} onView={setViewDomain} onPreview={openPreview} onCompose={(dom, editUid) => setCompose({ domain: dom, editUid })} />)}
           <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
-            Ramp the daily send cap in MailWizz to each day’s target; send to most-engaged first. Dot = Postmaster reputation that day, number = mail-tester score. Green → step up, red → hold a day.
+            <b>Auto-warm ON</b> = the box worker sends daily via Mailjet (DKIM-aligned), engages your seed inboxes (moves out of spam, replies, marks read), measures inbox placement, and graduates the domain automatically. Add seeds above first. Manual Start just tracks the ramp calendar. Dot = Postmaster reputation, number = mail-tester score.
           </div>
         </div>
       ) : view === 'calendar' ? (

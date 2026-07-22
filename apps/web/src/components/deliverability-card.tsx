@@ -432,8 +432,35 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
   const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState<'html' | 'preview'>('html');
   const [msg, setMsg] = useState('');
-  const [offers, setOffers] = useState<Array<{ label: string; url: string; interest: string }>>([]);
-  const cleanOffers = offers.filter((o) => o.label.trim() && o.url.trim());
+  const [savedOffers, setSavedOffers] = useState<Array<{ id: number; label: string; url: string; interest: string }>>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [projectName, setProjectName] = useState('');
+  const [newOffer, setNewOffer] = useState({ label: '', url: '', interest: '' });
+  const [savingOffer, setSavingOffer] = useState(false);
+  const cleanOffers = savedOffers.filter((o) => selected.has(o.id)).map((o) => ({ label: o.label, url: o.url, interest: o.interest }));
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/deliverability/offers?domain=${encodeURIComponent(domain)}`, { cache: 'no-store' })
+      .then((r) => r.json()).then((j) => { if (alive) { setSavedOffers(j.offers || []); setProjectName(j.project?.name || ''); } }).catch(() => {});
+    return () => { alive = false; };
+  }, [domain]);
+
+  const addOffer = async () => {
+    if (savingOffer || !newOffer.label.trim() || !newOffer.url.trim()) return;
+    setSavingOffer(true);
+    try {
+      const r = await fetch('/api/deliverability/offers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, ...newOffer }) });
+      const j = await r.json();
+      if (!r.ok) { alert(j.error || 'failed'); return; }
+      setSavedOffers((a) => [j.offer, ...a]); setSelected((s) => new Set(s).add(j.offer.id)); setNewOffer({ label: '', url: '', interest: '' });
+    } finally { setSavingOffer(false); }
+  };
+  const delOffer = async (id: number) => {
+    await fetch(`/api/deliverability/offers?id=${id}`, { method: 'DELETE' });
+    setSavedOffers((a) => a.filter((o) => o.id !== id)); setSelected((s) => { const n = new Set(s); n.delete(id); return n; });
+  };
+  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const generate = async () => {
     if (gen || (!prompt.trim() && !cleanOffers.length)) return;
@@ -479,18 +506,26 @@ function CreateCampaignModal({ domain, onClose, onDone }: { domain: string; onCl
           </div>
 
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-            Offer links <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— clicks reveal & tag each reader’s interest</span>
+            Offer links <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— pick from {projectName || 'project'}; clicks reveal & tag interest</span>
           </label>
-          {offers.map((o, i) => (
-            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input value={o.label} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder="label (button text)" style={{ ...field, flex: 1.2 }} spellCheck={false} />
-              <input value={o.url} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="https://…" style={{ ...field, flex: 1.6 }} spellCheck={false} />
-              <input value={o.interest} onChange={(e) => setOffers((a) => a.map((x, j) => j === i ? { ...x, interest: e.target.value } : x))} placeholder="interest tag" style={{ ...field, flex: 1 }} spellCheck={false} />
-              <button onClick={() => setOffers((a) => a.filter((_, j) => j !== i))} title="Remove" style={{ ...mono, fontSize: 12, border: 'none', background: 'transparent', color: '#d16b6b', cursor: 'pointer' }}>✕</button>
-            </div>
-          ))}
-          <button onClick={() => setOffers((a) => [...a, { label: '', url: '', interest: '' }])} style={{ ...cbtn(), alignSelf: 'flex-start' }}>＋ offer link</button>
-          {cleanOffers.length > 0 && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>Links are tracked per subscriber (branded {domain} tracking domain). After sending, each link’s clickers = an interest segment in MailWizz you can target next.</div>}
+          {savedOffers.length === 0
+            ? <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>No saved offers for this project yet — add one below (reusable).</span>
+            : savedOffers.map((o) => (
+              <div key={o.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5 }}>
+                <input type="checkbox" checked={selected.has(o.id)} onChange={() => toggle(o.id)} style={{ cursor: 'pointer' }} />
+                <span style={{ fontWeight: 600, color: 'var(--fg-0)' }}>{o.label}</span>
+                <a href={o.url} target="_blank" rel="noopener noreferrer" style={{ ...mono, fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.url}</a>
+                {o.interest && <span style={{ ...mono, fontSize: 9, color: 'var(--accent,#37d4c2)', border: '1px solid var(--line)', borderRadius: 4, padding: '0 5px' }}>{o.interest}</span>}
+                <button onClick={() => delOffer(o.id)} title="Delete offer" style={{ ...mono, fontSize: 11, border: 'none', background: 'transparent', color: '#d16b6b', cursor: 'pointer' }}>🗑</button>
+              </div>
+            ))}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 6 }}>
+            <input value={newOffer.label} onChange={(e) => setNewOffer((o) => ({ ...o, label: e.target.value }))} placeholder="label" style={{ ...field, flex: 1.1 }} spellCheck={false} />
+            <input value={newOffer.url} onChange={(e) => setNewOffer((o) => ({ ...o, url: e.target.value }))} placeholder="https://…" style={{ ...field, flex: 1.6 }} spellCheck={false} />
+            <input value={newOffer.interest} onChange={(e) => setNewOffer((o) => ({ ...o, interest: e.target.value }))} placeholder="interest" style={{ ...field, flex: 0.9 }} spellCheck={false} />
+            <button onClick={addOffer} disabled={savingOffer || !newOffer.label.trim() || !newOffer.url.trim()} style={cbtn(savingOffer)}>{savingOffer ? '…' : '＋ save'}</button>
+          </div>
+          {cleanOffers.length > 0 && <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)' }}>{cleanOffers.length} selected · tracked per subscriber via {domain}. After sending, each link’s clickers = an interest segment to target next.</div>}
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Subject</label>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="(auto if blank)" style={field} spellCheck={false} />
           <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>

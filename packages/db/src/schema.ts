@@ -2182,5 +2182,23 @@ export const aiUsage = pgTable(
   (t) => [index('ai_usage_created_idx').on(t.createdAt), index('ai_usage_feature_idx').on(t.feature)],
 );
 
+// ── email_offers (warm-up / newsletter offer links, per project) ────────
+// Reusable CTA links picked into email campaigns. Which link a subscriber clicks
+// reveals their interest → interest tagging. Scoped to a project (filter + show by project).
+export const emailOffers = pgTable(
+  'email_offers',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: text('tenant_id').notNull().default('self'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    url: text('url').notNull(),
+    interest: text('interest').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('email_offers_project_idx').on(t.projectId)],
+);
+
 // Re-export helper for convenience.
-export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachTouches, outreachCampaigns, aiUsage };
+export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachTouches, outreachCampaigns, aiUsage, emailOffers };

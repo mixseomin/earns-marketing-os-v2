@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const key = process.env.MAILJET_API_KEY, secret = process.env.MAILJET_API_SECRET;
+  const key = process.env.MAILJET_API_KEY, secret = process.env.MAILJET_SECRET;
   if (!key || !secret) return NextResponse.json({ error: 'Mailjet not configured' }, { status: 503 });
 
   const domain = (req.nextUrl.searchParams.get('domain') || '').trim().toLowerCase();

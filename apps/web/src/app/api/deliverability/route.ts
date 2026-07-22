@@ -14,11 +14,15 @@ async function txt(name: string): Promise<string[]> {
   try { return (await resolveTxt(name)).map((r) => r.join('')); } catch { return []; }
 }
 async function authOf(domain: string, selector: string) {
-  const [root, dkim, dmarc] = await Promise.all([txt(domain), txt(`${selector}.${domain}`), txt(`_dmarc.${domain}`)]);
+  // Check the configured selector plus the two common ones — a domain may sign via Mailjet
+  // (mailjet._domainkey) or MailWizz (mailer._domainkey) regardless of what's stored.
+  const selectors = Array.from(new Set([selector || 'mailer._domainkey', 'mailjet._domainkey', 'mailer._domainkey']));
+  const [root, dmarc, ...dkimSets] = await Promise.all([txt(domain), txt(`_dmarc.${domain}`), ...selectors.map((s) => txt(`${s}.${domain}`))]);
   const dmarcRec = dmarc.find((r) => r.toLowerCase().startsWith('v=dmarc1')) || null;
   return {
     spf: root.some((r) => r.toLowerCase().startsWith('v=spf1')),
-    dkim: dkim.some((r) => /v=DKIM1/i.test(r) && /p=/i.test(r)),
+    // A published DKIM key = any selector carrying a non-empty p= (Mailjet omits the optional v=DKIM1 tag).
+    dkim: dkimSets.flat().some((r) => /(^|;|\s)p=[A-Za-z0-9+/]/i.test(r)),
     dmarc: dmarcRec ? (/(p=[a-z]+)/i.exec(dmarcRec)?.[1]?.replace('p=', '') ?? 'set') : null,
   };
 }

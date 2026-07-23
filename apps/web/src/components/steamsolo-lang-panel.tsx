@@ -13,7 +13,7 @@ interface LangStats {
 
 async function load(): Promise<LangStats | null> {
   try {
-    const r = await fetch('https://steamsolo.com/api/lang-stats/', { next: { revalidate: 600, tags: ['gsc-json'] } });
+    const r = await fetch('https://steamsolo.com/api/lang-stats/', { next: { revalidate: 60, tags: ['gsc-json'] } });
     if (!r.ok) return null;
     return (await r.json()) as LangStats;
   } catch {

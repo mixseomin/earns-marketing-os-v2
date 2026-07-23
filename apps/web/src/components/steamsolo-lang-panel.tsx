@@ -1,6 +1,7 @@
 // SteamSolo language coverage + on-demand translation demand.
 // Data: https://steamsolo.com/api/lang-stats/ (guides.language, guide_translations, translation_demand).
 // The demand meter tells us which language versions to actually publish (indexed) vs leave on-demand.
+import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 
 interface LangStats {
   ok: boolean;
@@ -15,7 +16,7 @@ interface LangStats {
 
 async function load(): Promise<LangStats | null> {
   try {
-    const r = await fetch('https://steamsolo.com/api/lang-stats/', { next: { revalidate: 60, tags: ['gsc-json'] } });
+    const r = await fetch('https://steamsolo.com/api/lang-stats/', { next: { revalidate: 60, tags: ['steamsolo-stats'] } });
     if (!r.ok) return null;
     return (await r.json()) as LangStats;
   } catch {
@@ -43,9 +44,12 @@ export async function SteamsoloLangPanel() {
     <div style={card} className="steamsolo-lang-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <h2 style={{ ...mono, fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--fg-0)' }}>🎮 SteamSolo — Engagement &amp; languages</h2>
-        <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>
-          {done} translated · {queued} queued · {demandTotal} on-demand requests
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>
+            {done} translated · {queued} queued · {demandTotal} on-demand requests
+          </span>
+          <RefreshSteamsoloBtn />
+        </div>
       </div>
 
       {/* Reader engagement on our own site (likes/shares/views/comments we log per guide) */}

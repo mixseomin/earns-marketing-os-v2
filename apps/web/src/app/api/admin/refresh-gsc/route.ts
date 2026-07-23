@@ -55,6 +55,7 @@ export async function POST() {
     } catch { /* swallow */ }
 
     revalidateTag('gsc-json');
+    revalidateTag('steamsolo-stats');
 
     return NextResponse.json({ ok: true, updated_at: updatedAt, results });
   } catch (e) {

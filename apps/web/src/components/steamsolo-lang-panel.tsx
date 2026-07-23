@@ -56,7 +56,7 @@ export async function SteamsoloLangPanel() {
                 <span style={{ flex: 1, height: 6, background: 'var(--bg-2)', borderRadius: 3, overflow: 'hidden' }}>
                   <span style={{ display: 'block', height: '100%', width: `${pct}%`, background: 'var(--accent)' }} />
                 </span>
-                <span style={{ ...mono, fontSize: 11, color: 'var(--fg-2)', width: 64, textAlign: 'right' }}>{s.n.toLocaleString()} · {pct}%</span>
+                <span style={{ ...mono, fontSize: 11, color: 'var(--fg-2)', width: 96, textAlign: 'right', whiteSpace: 'nowrap' }}>{s.n.toLocaleString()} · {pct}%</span>
               </div>
             );
           })}

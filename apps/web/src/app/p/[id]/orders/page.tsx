@@ -14,8 +14,8 @@ export default async function OrdersRoute({ params }: { params: Promise<{ id: st
   if (!project) notFound();
 
   // filter state from cookie so SSR renders the saved filter -> no localStorage flash on F5
-  let initialFilter = { range: '24h', grouped: true, hideClosed: false, sort: 'cagr' };
-  try { const slf = (await cookies()).get('slf')?.value; if (slf) initialFilter = { ...initialFilter, ...JSON.parse(decodeURIComponent(slf)) }; } catch { /* ignore */ }
+  let initialFilter = { range: '24h', grouped: true, hideClosed: false, sort: 'equity' };
+  try { const slf = (await cookies()).get('slf2')?.value; if (slf) initialFilter = { ...initialFilter, ...JSON.parse(decodeURIComponent(slf)) }; } catch { /* ignore */ }
 
   const [, eff] = await Promise.all([getCurrentUser(), getEffectiveUser()]);
   const [mode, projects, tradeRows, testRows, forwardRows, brokerNowMs] = await Promise.all([

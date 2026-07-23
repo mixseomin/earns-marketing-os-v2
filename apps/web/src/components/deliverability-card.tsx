@@ -188,13 +188,14 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
   const todayD = new Date(isoUTC(new Date()) + 'T00:00:00Z');
   const dayIdx = Math.floor((todayD.getTime() - startD.getTime()) / DAY_MS); // 0-based
   const done = dayIdx >= RAMP.length;
+  const seedOnly = row.channel === 'mailbaby' || !row.mjListId; // real-subscriber ramp not wired
 
   return (
     <div style={{ padding: '4px 0 8px', borderBottom: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
         <span style={{ ...mono, fontSize: 11, color: 'var(--fg-0)', fontWeight: 700 }}>{row.domain}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>
-          {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · today’s cap <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
+          {done ? <b style={{ color: '#5ac47e' }}>full volume ✓</b> : <>Day {Math.max(dayIdx + 1, 1)} of {RAMP.length} · {seedOnly ? 'ramp target' : 'today’s cap'} <b style={{ ...mono, color: 'var(--fg-1)' }}>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b></>}
         </span>
         {selected && <button onClick={() => onPreview(selected.uid, selected.name, row.domain)} style={btn} title="Preview the email being sent">👁 {selected.subject || 'Preview'}</button>}
         {selected && <button onClick={() => onCompose(row.domain, selected.uid)} style={btn} title="Edit this email">✏️ Edit</button>}
@@ -202,6 +203,14 @@ function WarmupCalendar({ row, onChange, onView, onPreview, onCompose }: { row: 
         <button onClick={() => post('stop')} disabled={busy} style={btn} title="Reset — clears the start date">reset</button>
       </div>
       <div style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>{autoRow}{cfgRow}</div>
+      <div style={{ fontSize: 10, lineHeight: 1.55, color: 'var(--fg-2)', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 8px', marginBottom: 6 }}>
+        {seedOnly ? (
+          <>🌱 <b>Seed-only warm-up.</b> Actually sending to <b>{lastEv?.sentSeeds ?? 'your'} seed inbox{(lastEv?.sentSeeds ?? 2) === 1 ? '' : 'es'}/day</b> to measure inbox placement — <b style={{ color: '#e0a94a' }}>0 real subscribers</b> yet. The D1–D{RAMP.length} numbers below are <b>send targets</b> for real subscribers, <b>not</b> mails already sent. Real-subscriber sending + open/click/bounce reports turn on when the ramp is enabled{row.channel === 'mailbaby' ? ' — needs the MailWizz list pull (not built yet)' : ' (⚙ → set a Mailjet list)'}.</>
+        ) : (
+          <>📈 <b>Real ramp on.</b> Today’s target <b>{capLabel(RAMP[Math.min(Math.max(dayIdx, 0), RAMP.length - 1)] ?? RAMP[0]!)}</b> real subscribers.</>
+        )}
+        {lastEv && <> <span style={{ color: 'var(--fg-3)' }}>Last run <b style={{ color: 'var(--fg-2)' }}>{lastEv.date}</b>: {lastEv.sentSeeds} seed + {lastEv.sentReal} real sent · {lastEv.inbox} inbox / {lastEv.spam} spam · {lastEv.moved} moved-out · {lastEv.replied} replied.</span></>}
+      </div>
       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
         {RAMP.map((cap, i) => {
           const dt = new Date(startD.getTime() + i * DAY_MS);

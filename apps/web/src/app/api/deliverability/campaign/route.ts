@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!me || me.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!KEY) return NextResponse.json({ error: 'MailWizz API not configured' }, { status: 503 });
 
-  const { domain, subject, body, offers } = (await req.json().catch(() => ({}))) as { domain?: string; subject?: string; body?: string; offers?: Array<{ label?: string; url?: string; interest?: string }> };
+  const { domain, subject, body, offers, fromName } = (await req.json().catch(() => ({}))) as { domain?: string; subject?: string; body?: string; fromName?: string; offers?: Array<{ label?: string; url?: string; interest?: string }> };
   const d = (domain || '').trim().toLowerCase();
   const links = (offers || []).filter((o) => o?.url?.trim() && o?.label?.trim());
   const row = (await readDomains()).find((x) => x.domain === d);
@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
   const stamp = new Date().toISOString().slice(0, 16).replace('T', ' '); // so multiple drafts differ
   const name = `Warm-up ${stamp} — ${d}`;
   const subj = (subject && subject.trim()) || `A quick tip from ${brand}`;
-  const fromName = def.from_name || brand;
+  const fromNameFinal = (fromName && fromName.trim()) || def.from_name || brand;
   const form = new URLSearchParams();
   form.set('campaign[name]', name);
   form.set('campaign[type]', 'regular');
-  form.set('campaign[from_name]', fromName);
+  form.set('campaign[from_name]', fromNameFinal);
   form.set('campaign[from_email]', fromEmail);
   form.set('campaign[reply_to]', def.reply_to || fromEmail);
   form.set('campaign[subject]', subj);
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: j?.error?.content || j?.error || 'MailWizz rejected the campaign' }, { status: 502 });
   }
   const uid = j.data?.campaign_uid || j.campaign_uid || null;
-  if (uid) await saveCampaign(uid, { name, subject: subj, fromName, fromEmail, html, offers: links.map((o) => ({ label: o!.label!.trim(), url: o!.url!.trim(), interest: (o!.interest || '').trim() })) });
+  if (uid) await saveCampaign(uid, { name, subject: subj, fromName: fromNameFinal, fromEmail, html, offers: links.map((o) => ({ label: o!.label!.trim(), url: o!.url!.trim(), interest: (o!.interest || '').trim() })) });
   return NextResponse.json({ ok: true, uid });
 }
 
@@ -86,12 +86,13 @@ export async function PUT(req: NextRequest) {
 
   const uid = (req.nextUrl.searchParams.get('uid') || '').trim();
   if (!uid) return NextResponse.json({ error: 'Missing campaign uid' }, { status: 400 });
-  const { subject, body } = (await req.json().catch(() => ({}))) as { subject?: string; body?: string };
+  const { subject, body, fromName } = (await req.json().catch(() => ({}))) as { subject?: string; body?: string; fromName?: string };
   const html = (body || '').trim();
   if (!html) return NextResponse.json({ error: 'Body is empty' }, { status: 400 });
 
   const form = new URLSearchParams();
   if (subject?.trim()) form.set('campaign[subject]', subject.trim());
+  if (fromName?.trim()) form.set('campaign[from_name]', fromName.trim());
   form.set('campaign[template][content]', Buffer.from(html, 'utf8').toString('base64'));
   const r = await fetch(`${API}/campaigns/${uid}`, { method: 'PUT', headers: { 'X-API-KEY': KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   const j = await r.json().catch(() => null);
@@ -99,7 +100,7 @@ export async function PUT(req: NextRequest) {
 
   // Merge into the stored copy (keep name/from/offers).
   const prev = (await readCampaigns())[uid];
-  await saveCampaign(uid, { name: prev?.name || uid, fromName: prev?.fromName || '', fromEmail: prev?.fromEmail || '', offers: prev?.offers, subject: subject?.trim() || prev?.subject || '', html });
+  await saveCampaign(uid, { name: prev?.name || uid, fromName: fromName?.trim() || prev?.fromName || '', fromEmail: prev?.fromEmail || '', offers: prev?.offers, subject: subject?.trim() || prev?.subject || '', html });
   return NextResponse.json({ ok: true, uid });
 }
 

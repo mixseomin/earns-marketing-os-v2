@@ -613,6 +613,7 @@ export function DeliverabilityCard() {
 function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: string; editUid?: string; onClose: () => void; onDone: () => void }) {
   const [prompt, setPrompt] = useState('');
   const [subject, setSubject] = useState('');
+  const [fromName, setFromName] = useState('');
   const [html, setHtml] = useState('');
   const [gen, setGen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -665,7 +666,7 @@ function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: str
   useEffect(() => {
     if (!editUid) return;
     fetch(`/api/deliverability/campaign-content?uid=${encodeURIComponent(editUid)}`, { cache: 'no-store' })
-      .then((r) => r.json()).then((j) => { if (j && !j.error) { setSubject(j.subject || ''); setHtml(j.html || ''); setTab('preview'); } }).catch(() => {});
+      .then((r) => r.json()).then((j) => { if (j && !j.error) { setSubject(j.subject || ''); setFromName(j.fromName || ''); setHtml(j.html || ''); setTab('preview'); } }).catch(() => {});
   }, [editUid]);
 
   const create = async () => {
@@ -675,13 +676,13 @@ function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: str
       if (editUid) {
         setMsg('saving changes…');
         if (!html.trim()) { setMsg('body is empty'); return; }
-        const r = await fetch(`/api/deliverability/campaign?uid=${encodeURIComponent(editUid)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: subject.trim() || undefined, body: html }) });
+        const r = await fetch(`/api/deliverability/campaign?uid=${encodeURIComponent(editUid)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: subject.trim() || undefined, fromName: fromName.trim() || undefined, body: html }) });
         const j = await r.json();
         if (!r.ok) { setMsg(j.error || 'save failed'); return; }
         onDone(); return;
       }
       setMsg(html.trim() ? 'saving draft…' : 'saving default template…');
-      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, body: html.trim() || undefined, offers: cleanOffers }) });
+      const r = await fetch('/api/deliverability/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, subject: subject.trim() || undefined, fromName: fromName.trim() || undefined, body: html.trim() || undefined, offers: cleanOffers }) });
       const j = await r.json();
       if (!r.ok) { setMsg(j.error || 'create failed'); return; }
       if (j.uid) await fetch('/api/deliverability/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, action: 'select', campaign: j.uid }) });
@@ -737,6 +738,8 @@ function CreateCampaignModal({ domain, editUid, onClose, onDone }: { domain: str
             {msg && <span style={{ ...mono, fontSize: 10, color: msg.startsWith('✓') ? '#5ac47e' : 'var(--fg-2)' }}>{msg}</span>}
           </div>
 
+          <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Sender name <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)' }}>— shows in the inbox as the From name</span></label>
+          <input value={fromName} onChange={(e) => setFromName(e.target.value)} placeholder="e.g. MilitaryCalc (blank = list default)" style={field} spellCheck={false} />
           <label style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Subject</label>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="(auto if blank)" style={field} spellCheck={false} />
           <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>

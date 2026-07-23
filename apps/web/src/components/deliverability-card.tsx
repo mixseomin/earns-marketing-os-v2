@@ -472,7 +472,7 @@ export function DeliverabilityCard() {
               <button key={v} onClick={() => setView(v)}
                 style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
-                {v === 'table' ? 'Table' : v === 'warmup' ? '🔥 Warm-up' : '📅 Calendar'}
+                {v === 'table' ? 'Domains' : v === 'warmup' ? '🔥 Warm-up' : '📅 Calendar'}
               </button>
             ))}
           </div>

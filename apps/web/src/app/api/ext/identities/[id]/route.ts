@@ -74,3 +74,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   await db.update(identities).set(patch).where(eq(identities.id, Number(id)));
   return NextResponse.json({ ok: true });
 }
+
+// DELETE /api/ext/identities/[id] → xoá identity (persona lỗi/trùng). admin-only
+// (deniedForStaff chặn mọi method DELETE cho staff token). identity_projects.identity_id CASCADE;
+// platform_accounts.persona.identityId = soft-ref (no FK) → để dangling, không chặn xoá.
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = await checkAuth(req);
+  if (err) return err;
+  const db = getDb();
+  if (!db) return errorResponse('DB unavailable', 503);
+  const { id } = await params;
+  const idNum = Number(id);
+  if (!Number.isFinite(idNum)) return errorResponse('bad id', 400);
+  const [row] = await db.select({ id: identities.id }).from(identities).where(eq(identities.id, idNum)).limit(1);
+  if (!row) return errorResponse('not found', 404);
+  try {
+    await db.delete(identities).where(eq(identities.id, idNum));
+  } catch (e) {
+    return errorResponse('delete failed (FK?): ' + (e instanceof Error ? e.message : String(e)), 409);
+  }
+  return NextResponse.json({ ok: true, id: idNum });
+}

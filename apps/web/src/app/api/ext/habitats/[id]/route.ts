@@ -92,3 +92,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   await db.update(habitats).set(patch).where(eq(habitats.id, Number(id)));
   return NextResponse.json({ ok: true });
 }
+
+// DELETE /api/ext/habitats/[id] → xoá habitat (tạo nhầm). admin-only (deniedForStaff chặn DELETE).
+// FK: habitat_channels/community_briefs/habitat_tribes CASCADE · people.habitat_id SET NULL ·
+// cards.habitat_id (bare bigint, no FK) → giữ card, chỉ dangling ref. FK chặn → 409 (không 500 mù).
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const err = await checkAuth(req);
+  if (err) return err;
+  const db = getDb();
+  if (!db) return errorResponse('DB unavailable', 503);
+  const { id } = await params;
+  const idNum = Number(id);
+  if (!Number.isFinite(idNum)) return errorResponse('bad id', 400);
+  const [row] = await db.select({ id: habitats.id }).from(habitats).where(eq(habitats.id, idNum)).limit(1);
+  if (!row) return errorResponse('not found', 404);
+  try {
+    await db.delete(habitats).where(eq(habitats.id, idNum));
+  } catch (e) {
+    return errorResponse('delete failed (FK?): ' + (e instanceof Error ? e.message : String(e)), 409);
+  }
+  return NextResponse.json({ ok: true, id: idNum });
+}

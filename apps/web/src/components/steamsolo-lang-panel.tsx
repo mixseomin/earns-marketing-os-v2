@@ -4,6 +4,8 @@
 
 interface LangStats {
   ok: boolean;
+  engagement: { views: number; likes: number; shares: number; helpful: number; guides: number; comments: number };
+  top_guides: { views: number; likes: number; shares: number; slug: string; title: string; game: string }[];
   source_lang: { lang: string; n: number }[];
   translations: { lang: string; status: string; n: number }[];
   demand: { lang: string; hits: number; guides: number; last_at: string | null }[];
@@ -34,15 +36,54 @@ export async function SteamsoloLangPanel() {
   const done = d.translations.filter((t) => t.status === 'done').reduce((s, t) => s + t.n, 0);
   const queued = d.translations.filter((t) => t.status === 'queued').reduce((s, t) => s + t.n, 0);
   const demandTotal = d.demand.reduce((s, x) => s + x.hits, 0);
+  const e = d.engagement;
+  const tiles: [string, number][] = [['Views', e.views], ['Likes', e.likes], ['Shares', e.shares], ['Comments', e.comments]];
 
   return (
     <div style={card} className="steamsolo-lang-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <h2 style={{ ...mono, fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--fg-0)' }}>🎮 SteamSolo — Languages &amp; translation demand</h2>
+        <h2 style={{ ...mono, fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--fg-0)' }}>🎮 SteamSolo — Engagement &amp; languages</h2>
         <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>
           {done} translated · {queued} queued · {demandTotal} on-demand requests
         </span>
       </div>
+
+      {/* Reader engagement on our own site (likes/shares/views/comments we log per guide) */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        {tiles.map(([label, n]) => (
+          <div key={label} style={{ flex: '1 1 90px', background: 'var(--bg-2)', borderRadius: 6, padding: '8px 10px' }}>
+            <div style={{ ...mono, fontSize: 18, fontWeight: 700, color: 'var(--fg-0)' }}>{n.toLocaleString()}</div>
+            <div style={{ ...mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-3)' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {d.top_guides.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={th}>Top guides by views</div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={th}>Guide</th>
+              <th style={{ ...th, textAlign: 'right' }}>Views</th>
+              <th style={{ ...th, textAlign: 'right' }}>Likes</th>
+              <th style={{ ...th, textAlign: 'right' }}>Shares</th>
+            </tr></thead>
+            <tbody>
+              {d.top_guides.slice(0, 8).map((x, i) => (
+                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td style={td}>
+                    <a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a>
+                    <span style={{ color: 'var(--fg-3)' }}> · {x.game}</span>
+                  </td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>{x.views}</td>
+                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{x.likes}</td>
+                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{x.shares}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
         {/* Source-language coverage of the library */}

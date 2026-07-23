@@ -390,8 +390,8 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
         {grouped ? (
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} title="sort strategy groups by" style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--panel,#0e1420)', color: 'var(--fg)', fontWeight: 600, cursor: 'pointer' }}>
             <optgroup label="Sort groups by ↓">
-              <option value="cagr">CAGR* (backtest)</option>
-              <option value="equity">Equity %</option>
+              <option value="cagr">CAGR* — backtest edge</option>
+              <option value="equity">Equity % — live 💰 badge</option>
               <option value="pnl">P&amp;L (period)</option>
               <option value="float">Float</option>
               <option value="capital">Capital</option>
@@ -441,6 +441,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                             title="strategy rules & expected metrics"
                             style={{ flexShrink: 0, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
                         </span>
+                        {sortBy === 'cagr' ? (() => { const tt = metaByStrategy[g.name]?.test; const c = tt ? cagrPct(tt) : NaN; return <span title="backtest CAGR* (risk-normalized to 20% DD) — the metric these groups are sorted by; NOT the live equity % on the 💰 badge" style={{ flexShrink: 0, fontSize: 10, fontWeight: 800, color: Number.isNaN(c) ? 'var(--muted)' : c >= 10 ? '#2ecc71' : '#f5a623' }}>{Number.isNaN(c) ? '—' : `CAGR* ${c.toFixed(0)}%`}</span>; })() : null}
                         {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
                         <span className="lo-ghs" style={{ width: 84, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="capital deployed = sum of open-position notional ($) — how much money this sleeve is putting to work right now">{g.notl > 0 ? <>🏦 <b style={{ fontWeight: 700, color: 'var(--fg)' }}>{fmtUsd(g.notl)}</b></> : ''}</span>
                         <span className="lo-ghs" style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>

@@ -123,7 +123,7 @@ const rangeCutoff = (range: string, latestMs: number, nowMs: number): number => 
   if (range === 'YTD') return Date.UTC(d.getUTCFullYear(), 0, 1);
   return -Infinity;   // All
 };
-type Filter = { range: string; grouped: boolean; hideClosed: boolean };
+type Filter = { range: string; grouped: boolean; hideClosed: boolean; sort?: string };
 // P&L in account $ for ANY row (uniform): crypto stores % (convert via notional), MT5 stores $ directly. Never sum the raw `profit` (mixes units).
 const usdOf = (t: StrategyTradeRow): number => {
   const p = t.profit == null ? null : Number(t.profit);
@@ -267,10 +267,11 @@ function HoverCard({ name, meta, x, y }: { name: string; meta: StratMeta; x: num
 
 export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, initial }: { trades: StrategyTradeRow[]; tests?: StrategyTestRow[]; forward?: StrategyForwardRow[]; brokerNowMs?: number | null; initial?: Filter }) {
   const [range, setRange] = useState(initial?.range ?? '24h');
+  const [sortBy, setSortBy] = useState(initial?.sort ?? 'cagr');   // group ordering; persisted to cookie
   const [hideClosed, setHideClosed] = useState(initial?.hideClosed ?? false);
   const [grouped, setGrouped] = useState(initial?.grouped ?? true);
   // persist to a cookie so the server can render the saved filter on next load (no flash). 1-year, lax.
-  useEffect(() => { document.cookie = `slf=${encodeURIComponent(JSON.stringify({ range, grouped, hideClosed }))};path=/;max-age=31536000;samesite=lax`; }, [range, grouped, hideClosed]);
+  useEffect(() => { document.cookie = `slf=${encodeURIComponent(JSON.stringify({ range, grouped, hideClosed, sort: sortBy }))};path=/;max-age=31536000;samesite=lax`; }, [range, grouped, hideClosed, sortBy]);
   const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());   // groups whose closed trades are revealed (overrides Open-only per group)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());   // groups whose rows are hidden -> header-only overview (many strategies)
@@ -348,6 +349,24 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
   // bot-tracked equity if available, else synthetic balance ($10k base + all-time realized $). Every group gets a 💰.
   const groupEquity = (name: string) => metaByStrategy[name]?.fwd?.equity ?? (10000 + (balByStrategy[name] ?? 0));
 
+  // group ordering — user-selectable (persisted). CAGR* = backtest edge; others read live metrics. 'default' keeps open-first.
+  const sortedGroups = useMemo(() => {
+    if (sortBy === 'default') return groups;
+    if (sortBy === 'name') return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+    const val = (g: (typeof groups)[number]): number => {
+      switch (sortBy) {
+        case 'cagr': { const t = metaByStrategy[g.name]?.test; const c = t ? cagrPct(t) : NaN; return Number.isNaN(c) ? -Infinity : c; }
+        case 'equity': return groupEquity(g.name);
+        case 'pnl': return g.net;
+        case 'float': return g.float;
+        case 'open': return g.open;
+        case 'capital': return g.notl;
+        default: return 0;
+      }
+    };
+    return [...groups].sort((a, b) => (val(b) - val(a)) || a.name.localeCompare(b.name));
+  }, [groups, sortBy, metaByStrategy, balByStrategy]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   // grand total across the FUNDED sleeves only (real paper bots, $10k each) — MT5 synthetic balances excluded to keep it honest.
   const sleeveEq = groups.map((g) => metaByStrategy[g.name]?.fwd?.equity).filter((e): e is number => e != null);
   const totalEquity = sleeveEq.reduce((a, e) => a + e, 0);
@@ -368,6 +387,20 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
         <span style={{ flex: 1 }} />
         <button type="button" onClick={() => setGrouped((v) => !v)} style={{ ...chip(grouped), minWidth: 84, textAlign: 'center' }}>{grouped ? '▣ Grouped' : '☰ Flat'}</button>
         {grouped && groups.length > 0 ? (() => { const allC = groups.every((g) => collapsed.has(g.name)); return <button type="button" onClick={() => setCollapsed(allC ? new Set() : new Set(groups.map((g) => g.name)))} style={chip(false)} title="collapse/expand every strategy group">{allC ? '▸ Expand all' : '▾ Collapse all'}</button>; })() : null}
+        {grouped ? (
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} title="sort strategy groups by" style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--panel,#0e1420)', color: 'var(--fg)', fontWeight: 600, cursor: 'pointer' }}>
+            <optgroup label="Sort groups by ↓">
+              <option value="cagr">CAGR* (backtest)</option>
+              <option value="equity">Equity %</option>
+              <option value="pnl">P&amp;L (period)</option>
+              <option value="float">Float</option>
+              <option value="capital">Capital</option>
+              <option value="open">Open positions</option>
+            </optgroup>
+            <option value="name">Name A→Z</option>
+            <option value="default">Default (open first)</option>
+          </select>
+        ) : null}
         <button type="button" onClick={() => setHideClosed((v) => !v)} style={chip(hideClosed)} title="show open positions only">Open only</button>
         <select value={range} onChange={(e) => setRange(e.target.value)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--panel,#0e1420)', color: 'var(--fg)', fontWeight: 600, cursor: 'pointer' }}>
           <optgroup label="Rolling">
@@ -391,7 +424,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
           <thead><tr>{HEADERS.map((h) => <th key={h} className={HIDE_M.has(h) ? 'lo-hm' : undefined} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' || h === 'CAGR' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
-              ? groups.map((g) => (
+              ? sortedGroups.map((g) => (
                 <Fragment key={g.name}>
                   <tr style={{ background: 'rgba(0,229,255,0.06)' }}>
                     <td colSpan={HEADERS.length}

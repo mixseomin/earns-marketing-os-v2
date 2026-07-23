@@ -5,7 +5,7 @@ import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 
 interface LangStats {
   ok: boolean;
-  engagement: { views: number; likes: number; shares: number; helpful: number; guides: number; comments: number };
+  engagement: { views: number; likes: number; shares: number; helpful: number; guides: number; comments: number; followers: number };
   top_guides: { views: number; likes: number; shares: number; slug: string; title: string; game: string }[];
   source_lang: { lang: string; n: number }[];
   translations: { lang: string; status: string; n: number }[];
@@ -38,7 +38,7 @@ export async function SteamsoloLangPanel() {
   const queued = d.translations.filter((t) => t.status === 'queued').reduce((s, t) => s + t.n, 0);
   const demandTotal = d.demand.reduce((s, x) => s + x.hits, 0);
   const e = d.engagement;
-  const tiles: [string, number][] = [['Views', e.views], ['Likes', e.likes], ['Shares', e.shares], ['Comments', e.comments]];
+  const tiles: [string, number][] = [['Views', e.views], ['Likes', e.likes], ['Shares', e.shares], ['Comments', e.comments], ['Followers', e.followers ?? 0]];
 
   return (
     <div style={card} className="steamsolo-lang-panel">

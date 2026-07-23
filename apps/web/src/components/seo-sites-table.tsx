@@ -192,7 +192,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'interactions', 'gsc', 'adsense', 'bing', 'ai', 'yandex', 'subs'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'bing', 'gsc', 'adsense', 'ai', 'yandex', 'subs'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -227,6 +227,14 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             {cols.interactions && <>
               <th style={headOf('interactions', true)} title="GA4 interaction events last 7 days: share, save, subscribe, calc_used, compare, command palette, location clicks + outbound clicks/downloads/forms. Hover a row for the per-event breakdown. Sites show 0 until their UI is instrumented.">Inter</th>
             </>}
+            {cols.bing && <>
+              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr</th>
+              <th style={{ ...headOf('bing'), padding: '5px 4px' }} title="30-day Bing impressions trend sparkline">Trend</th>
+              <th style={headOf('bing')} title="Bing clicks last 7 days">Clk</th>
+              <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
+              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
+              <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
+            </>}
             {cols.gsc && <>
               <th style={headOf('gsc', true)} title="GSC impressions last 7 days">Impr</th>
               <th style={{ ...headOf('gsc'), padding: '5px 4px' }} title="30-day impressions trend sparkline">Trend</th>
@@ -244,14 +252,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('adsense')} title="AdSense RPM last 7 days (USD per 1k impressions)">RPM</th>
               <th style={headOf('adsense')} title="AdSense ad impressions last 7 days">Impr</th>
               <th style={headOf('adsense')} title="AdSense page views last 7 days">PV</th>
-            </>}
-            {cols.bing && <>
-              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr</th>
-              <th style={{ ...headOf('bing'), padding: '5px 4px' }} title="30-day Bing impressions trend sparkline">Trend</th>
-              <th style={headOf('bing')} title="Bing clicks last 7 days">Clk</th>
-              <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
-              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
-              <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
             </>}
             {cols.ai && <>
               <th style={headOf('ai', true)} title="Sessions referred by an AI answer engine (ChatGPT, Perplexity, Gemini, Copilot, Claude) in the last 7 days — GA4 sessionSource. Tier-3 proof of LLM SEO: the engine cited the page AND a human clicked through.">AI 7d</th>
@@ -325,6 +325,28 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     {r.ga4_interactions_7d == null ? '—' : r.ga4_interactions_7d > 0 ? r.ga4_interactions_7d.toLocaleString() : '0'}
                   </td>
                 </>}
+                {cols.bing && <>
+                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...lightImpr((r.bing_impressions_7d ?? 0) > 0) })}>
+                    {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
+                  </td>
+                  <td data-chart="bing" style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
+                    <Sparkline values={bingSpark} color={GROUP_COLOR.bing.fg} />
+                  </td>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...boldClk((r.bing_clicks_7d ?? 0) > 0) })}>
+                    {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
+                  </td>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}
+                    title={`Indexed pages (latest snapshot) · ${(r.bing_crawled_30d ?? 0).toLocaleString()} crawled in 30d · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} via sitemap`}>
+                    {r.bing_in_index == null ? '—' : r.bing_in_index.toLocaleString()}
+                  </td>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
+                    {r.bing_in_links == null ? '—' : r.bing_in_links.toLocaleString()}
+                  </td>
+                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
+                    title={(r.bing_errors_4xx_30d ?? 0) > 20 ? 'Many 4xx errors — check Bing Webmaster crawl report' : 'Bing crawler 4xx hits in last 30 days'}>
+                    {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
+                  </td>
+                </>}
                 {cols.gsc && <>
                   <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...lightImpr(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
                   <td data-chart="gsc" style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
@@ -358,28 +380,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                   <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right' })}>
                     {r.adsense_page_views_7d == null ? '—' : r.adsense_page_views_7d.toLocaleString()}
-                  </td>
-                </>}
-                {cols.bing && <>
-                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...lightImpr((r.bing_impressions_7d ?? 0) > 0) })}>
-                    {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
-                  </td>
-                  <td data-chart="bing" style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
-                    <Sparkline values={bingSpark} color={GROUP_COLOR.bing.fg} />
-                  </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...boldClk((r.bing_clicks_7d ?? 0) > 0) })}>
-                    {r.bing_clicks_7d == null ? '—' : r.bing_clicks_7d.toLocaleString()}
-                  </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_index ?? 0) > 0) })}
-                    title={`Indexed pages (latest snapshot) · ${(r.bing_crawled_30d ?? 0).toLocaleString()} crawled in 30d · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} via sitemap`}>
-                    {r.bing_in_index == null ? '—' : r.bing_in_index.toLocaleString()}
-                  </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
-                    {r.bing_in_links == null ? '—' : r.bing_in_links.toLocaleString()}
-                  </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
-                    title={(r.bing_errors_4xx_30d ?? 0) > 20 ? 'Many 4xx errors — check Bing Webmaster crawl report' : 'Bing crawler 4xx hits in last 30 days'}>
-                    {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
                   </td>
                 </>}
                 {cols.ai && <>
@@ -447,6 +447,14 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             {cols.interactions && <>
               <td data-tool="interactions" style={cellOf('interactions', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.interactions.fg })}>{totalInteractions.toLocaleString()}</td>
             </>}
+            {cols.bing && <>
+              <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
+              <td style={cellOf('bing', false)} />
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
+              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
+            </>}
             {cols.gsc && <>
               <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>
               <td data-tool="gsc" style={cellOf('gsc', false)} />
@@ -464,14 +472,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalRpm > 0 ? `$${totalRpm.toFixed(2)}` : '—'}</td>
               <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsenseImpr.toLocaleString()}</td>
               <td data-tool="adsense" style={cellOf('adsense', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.adsense.fg })}>{totalAdsensePV.toLocaleString()}</td>
-            </>}
-            {cols.bing && <>
-              <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingImpr.toLocaleString()}</td>
-              <td style={cellOf('bing', false)} />
-              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingClk.toLocaleString()}</td>
-              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
-              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
-              <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
             </>}
             {cols.ai && <>
               <td data-tool="ai" style={cellOf('ai', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.ai.fg })}>{totalAi7.toLocaleString()}</td>

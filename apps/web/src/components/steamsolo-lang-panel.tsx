@@ -112,9 +112,11 @@ export async function SteamsoloLangPanel() {
       )}
 
       {d.recent_comments?.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={th}>Recent comments ({d.engagement.comments})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <details style={{ marginBottom: 14 }}>
+          <summary style={{ ...th, cursor: 'pointer', userSelect: 'none', marginBottom: 0 }}>
+            Recent comments <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{d.engagement.comments}</span>
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
             {d.recent_comments.map((c, i) => (
               <div key={i} style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}>
                 <div style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>
@@ -127,7 +129,7 @@ export async function SteamsoloLangPanel() {
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>

@@ -52,6 +52,14 @@ interface RowData {
   review?: string; // manual review/checkpoint date (YYYY-MM-DD), shown as AI-group countdown
   // Subscribers group — email list size (per site that captures emails)
   subscribers?: number | null;
+  // BL group — OUR backlink campaign (human_tasks platform_key='backlink'),
+  // i.e. links we went after, vs the Bing LINKS column = links Bing counted.
+  bl_total?: number | null;
+  bl_done?: number | null;
+  bl_inflight?: number | null;
+  bl_pending?: number | null;
+  bl_broken?: number | null;
+  bl_by_status?: Record<string, number> | null;
   // Yandex group — Yandex Webmaster stats (CIS search engine)
   yandex_impr_7d?: number | null;
   yandex_clicks_7d?: number | null;
@@ -66,8 +74,8 @@ interface Props {
   initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
-type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'ai' | 'subs' | 'yandex';
-const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, ai: true, subs: false, yandex: false };
+type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'bl' | 'ai' | 'subs' | 'yandex';
+const DEFAULT_COLS: Record<ColGroup, boolean> = { live: true, interactions: true, gsc: true, adsense: true, bing: true, bl: true, ai: true, subs: false, yandex: false };
 const STORAGE_KEY = 'seo-table-cols-v2';
 const COOKIE_KEY = 'seo_cols';
 
@@ -80,11 +88,12 @@ const GROUP_COLOR: Record<ColGroup, { fg: string; bg: string; bgSoft: string }> 
   gsc:     { fg: '#3c9bff', bg: 'rgba(60,155,255,0.22)', bgSoft: 'rgba(60,155,255,0.06)' },  // blue = Google
   adsense: { fg: '#ffb03c', bg: 'rgba(255,176,60,0.22)', bgSoft: 'rgba(255,176,60,0.06)' },  // amber = money
   bing:    { fg: '#9d6cff', bg: 'rgba(157,108,255,0.22)',bgSoft: 'rgba(157,108,255,0.06)' }, // violet = Bing/MS
+  bl:      { fg: '#22d3ee', bg: 'rgba(34,211,238,0.22)', bgSoft: 'rgba(34,211,238,0.06)' }, // cyan = our backlink campaign
   ai:      { fg: '#10b981', bg: 'rgba(16,185,129,0.22)', bgSoft: 'rgba(16,185,129,0.06)' }, // emerald = AI/LLM referrals
   subs:    { fg: '#14b8a6', bg: 'rgba(20,184,166,0.22)',bgSoft: 'rgba(20,184,166,0.06)' }, // teal = email list
   yandex:  { fg: '#fc3f1d', bg: 'rgba(252,63,29,0.20)', bgSoft: 'rgba(252,63,29,0.06)' }, // red = Yandex/CIS
 };
-const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', ai: 'AI', subs: 'Subs', yandex: 'Yandex' };
+const GROUP_LABEL: Record<ColGroup, string> = { live: 'Live', interactions: 'Interact', gsc: 'GSC', adsense: 'AdSense', bing: 'Bing', bl: 'BL', ai: 'AI', subs: 'Subs', yandex: 'Yandex' };
 
 export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
@@ -157,6 +166,8 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalBingIndex = rows.reduce((s, r) => s + (r.bing_in_index ?? 0), 0);
   const totalBingLinks = rows.reduce((s, r) => s + (r.bing_in_links ?? 0), 0);
   const totalBing4xx = rows.reduce((s, r) => s + (r.bing_errors_4xx_30d ?? 0), 0);
+  const totalBlTotal = rows.reduce((s, r) => s + (r.bl_total ?? 0), 0);
+  const totalBlDone = rows.reduce((s, r) => s + (r.bl_done ?? 0), 0);
   const totalAi7 = rows.reduce((s, r) => s + (r.ai_sessions_7d ?? 0), 0);
   const totalAi28 = rows.reduce((s, r) => s + (r.ai_sessions_28d ?? 0), 0);
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
@@ -192,7 +203,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
       {/* Column-group toggles — chip color matches the column band below */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
         <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-        {(['live', 'interactions', 'bing', 'gsc', 'adsense', 'ai', 'yandex', 'subs'] as ColGroup[]).map(g => {
+        {(['live', 'interactions', 'bing', 'bl', 'gsc', 'adsense', 'ai', 'yandex', 'subs'] as ColGroup[]).map(g => {
           const c = GROUP_COLOR[g];
           return (
             <button key={g} type="button" onClick={() => toggle(g)}
@@ -234,6 +245,9 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
               <th style={headOf('bing')} title="Inbound links (backlinks) — Bing count · click a cell → Bing Backlinks report">Links</th>
               <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
+            </>}
+            {cols.bl && <>
+              <th style={headOf('bl', true)} title="OUR backlink campaign: links landed / total tasks for this site. Hover a cell for the status breakdown · click → the site's backlink board">BL</th>
             </>}
             {cols.gsc && <>
               <th style={headOf('gsc', true)} title="GSC impressions last 7 days · click a cell → Google keywords (Performance)">Impr</th>
@@ -287,6 +301,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               gsc: `https://search.google.com/search-console?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`,
               bing: `https://www.bing.com/webmasters/?siteUrl=${encodeURIComponent('https://' + r.domain + '/')}`,
               adsense: 'https://www.google.com/adsense/new/u/0/home',
+              bl: r.project ? `/p/${r.project}/backlinks` : null,
               subs: null,
               yandex: `https://webmaster.yandex.com/site/https:${r.domain}:443/dashboard/`,
             };
@@ -352,6 +367,16 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
                     title={(r.bing_errors_4xx_30d ?? 0) > 20 ? 'Many 4xx errors — check Bing Webmaster crawl report' : 'Bing crawler 4xx hits in last 30 days'}>
                     {r.bing_errors_4xx_30d == null ? '—' : r.bing_errors_4xx_30d > 0 ? r.bing_errors_4xx_30d.toLocaleString() : '0'}
+                  </td>
+                </>}
+                {cols.bl && <>
+                  <td data-tool="bl" style={cellOf('bl', true, { textAlign: 'right', ...tone((r.bl_done ?? 0) > 0) })}
+                    title={r.bl_total
+                      ? `Our backlink campaign — ${r.bl_done ?? 0} live of ${r.bl_total} tasks · `
+                        + Object.entries(r.bl_by_status || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ')
+                        + (r.project ? ' · click → backlink board' : '')
+                      : 'No backlink task targets this site yet'}>
+                    {!r.bl_total ? '—' : `${r.bl_done ?? 0}/${r.bl_total}`}
                   </td>
                 </>}
                 {cols.gsc && <>
@@ -461,6 +486,10 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingIndex.toLocaleString()}</td>
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBingLinks.toLocaleString()}</td>
               <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bing.fg })}>{totalBing4xx.toLocaleString()}</td>
+            </>}
+            {cols.bl && <>
+              <td style={cellOf('bl', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bl.fg })}
+                title={`Portfolio backlink campaign — ${totalBlDone} live of ${totalBlTotal} tasks`}>{totalBlDone}/{totalBlTotal}</td>
             </>}
             {cols.gsc && <>
               <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>

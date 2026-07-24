@@ -10,6 +10,7 @@ import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 import { loadGa4AiReferrals, pickGa4Ai } from '@/lib/projects/ga4-ai-referrals';
 import { loadSubscribers, pickSubs } from '@/lib/projects/subscribers';
 import { loadYandexStats, pickYandex } from '@/lib/projects/yandex-stats';
+import { loadBacklinkStats, pickBacklinks } from '@/lib/projects/backlink-stats';
 import { loadAdsenseByDomain } from '@/lib/adsense/by-domain';
 
 const GSC_JSON_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/gsc-latest.json';
@@ -57,7 +58,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'scriptinstant.blogspot.com': { emoji: '📜' },
   'chatlt.com': { emoji: '💬' },
   'bestweightlosspills.reviews': { emoji: '💊' },
-  'hljournal.xyz': { emoji: '📓' },
+  'hljournal.xyz': { project: 'hyperjournal', emoji: '📓' },
   'astrolas.com': { project: 'astrolas', emoji: '🔭' },
   'mamphat.com': { emoji: '☸️' },
 };
@@ -124,6 +125,7 @@ export async function SeoSitesPanel() {
   const adsenseByDomain = await loadAdsenseByDomain(7);
   const subsPayload = await loadSubscribers();
   const yandexPayload = await loadYandexStats();
+  const backlinkPayload = await loadBacklinkStats();
   const initialCols = await readInitialCols();
 
   if (!payload) {
@@ -168,6 +170,7 @@ export async function SeoSitesPanel() {
         rows={rows.map((r) => {
           const meta = SITE_META[r.domain] || { emoji: '🌐' };
           const bing = pickBing(bingPayload, r.domain);
+          const bl = pickBacklinks(backlinkPayload, r.domain, meta.project);
           const ai = pickGa4Ai(ga4AiPayload, r.domain);
           const rt = pickGa4Realtime(ga4Realtime, r.domain);
           const ev = pickGa4Events(ga4Events, r.domain);
@@ -199,6 +202,12 @@ export async function SeoSitesPanel() {
             bing_in_links: bing?.in_links ?? null,
             bing_errors_4xx_30d: bing?.errors_4xx_30d ?? null,
             bing_crawled_30d: bing?.crawled_pages_30d ?? null,
+            bl_total: bl?.total ?? null,
+            bl_done: bl?.done ?? null,
+            bl_inflight: bl?.inflight ?? null,
+            bl_pending: bl?.pending ?? null,
+            bl_broken: bl?.broken ?? null,
+            bl_by_status: bl?.byStatus ?? null,
             ai_sessions_7d: ai?.sessions_7d ?? null,
             ai_sessions_28d: ai?.sessions_28d ?? null,
             ai_by_engine: ai?.byEngine_28d ?? null,

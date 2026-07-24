@@ -228,15 +228,15 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               <th style={headOf('interactions', true)} title="GA4 interaction events last 7 days: share, save, subscribe, calc_used, compare, command palette, location clicks + outbound clicks/downloads/forms. Hover a row for the per-event breakdown. Sites show 0 until their UI is instrumented.">Inter</th>
             </>}
             {cols.bing && <>
-              <th style={headOf('bing', true)} title="Bing impressions last 7 days">Impr</th>
+              <th style={headOf('bing', true)} title="Bing impressions last 7 days · click a cell → Bing search keywords">Impr</th>
               <th style={{ ...headOf('bing'), padding: '5px 4px' }} title="30-day Bing impressions trend sparkline">Trend</th>
               <th style={headOf('bing')} title="Bing clicks last 7 days">Clk</th>
               <th style={headOf('bing')} title="Pages currently in the Bing index (latest snapshot)">Idx</th>
-              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing webmaster count">Links</th>
+              <th style={headOf('bing')} title="Inbound links (backlinks) — Bing count · click a cell → Bing Backlinks report">Links</th>
               <th style={headOf('bing')} title="4xx errors Bing crawler hit in last 30 days">4xx</th>
             </>}
             {cols.gsc && <>
-              <th style={headOf('gsc', true)} title="GSC impressions last 7 days">Impr</th>
+              <th style={headOf('gsc', true)} title="GSC impressions last 7 days · click a cell → Google keywords (Performance)">Impr</th>
               <th style={{ ...headOf('gsc'), padding: '5px 4px' }} title="30-day impressions trend sparkline">Trend</th>
               <th style={headOf('gsc')} title="GSC clicks last 7 days">Clk</th>
               <th style={headOf('gsc')} title="Click-through rate last 7 days">CTR</th>
@@ -290,13 +290,18 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
               subs: null,
               yandex: `https://webmaster.yandex.com/site/https:${r.domain}:443/dashboard/`,
             };
+            // Per-cell deep-link overrides (data-href beats the group's default toolUrl).
+            const bEnc = encodeURIComponent('https://' + r.domain + '/');
+            const bingBacklinks = `https://www.bing.com/webmasters/backlinks?siteUrl=${bEnc}`;
+            const bingKeywords = `https://www.bing.com/webmasters/searchperformance?siteUrl=${bEnc}`;
+            const gscKeywords = `https://search.google.com/search-console/performance/search-analytics?resource_id=${encodeURIComponent('sc-domain:' + r.domain)}`;
             return (
               <tr key={r.domain} className="seo-row" style={{ cursor: 'pointer' }}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     const td = target.closest('td[data-tool]') as HTMLElement | null;
                     const g = td?.dataset.tool as ColGroup | undefined;
-                    const u = g ? toolUrl[g] : null;
+                    const u = td?.dataset.href || (g ? toolUrl[g] : null);
                     if (u) { window.open(u, '_blank', 'noopener,noreferrer'); return; }
                     // Chart cell carries data-chart → open the drawer already on that source.
                     const chartTd = target.closest('td[data-chart]') as HTMLElement | null;
@@ -326,7 +331,8 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.bing && <>
-                  <td data-tool="bing" style={cellOf('bing', true, { textAlign: 'right', ...lightImpr((r.bing_impressions_7d ?? 0) > 0) })}>
+                  <td data-tool="bing" data-href={bingKeywords} title="Bing impressions (7d) · click → Bing search keywords (Search Performance)"
+                    style={cellOf('bing', true, { textAlign: 'right', ...lightImpr((r.bing_impressions_7d ?? 0) > 0) })}>
                     {r.bing_impressions_7d == null ? '—' : r.bing_impressions_7d.toLocaleString()}
                   </td>
                   <td data-chart="bing" style={cellOf('bing', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
@@ -339,7 +345,8 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                     title={`Indexed pages (latest snapshot) · ${(r.bing_crawled_30d ?? 0).toLocaleString()} crawled in 30d · ${(r.bing_feeds_indexed ?? 0).toLocaleString()} via sitemap`}>
                     {r.bing_in_index == null ? '—' : r.bing_in_index.toLocaleString()}
                   </td>
-                  <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0) })}>
+                  <td data-tool="bing" data-href={bingBacklinks} title="Backlinks (Bing count) · click → Bing Backlinks report"
+                    style={cellOf('bing', false, { textAlign: 'right', ...tone((r.bing_in_links ?? 0) > 0), textDecoration: (r.bing_in_links ?? 0) > 0 ? 'underline dotted' : undefined, textUnderlineOffset: 3 })}>
                     {r.bing_in_links == null ? '—' : r.bing_in_links.toLocaleString()}
                   </td>
                   <td data-tool="bing" style={cellOf('bing', false, { textAlign: 'right', color: (r.bing_errors_4xx_30d ?? 0) > 20 ? 'var(--warn)' : (r.bing_errors_4xx_30d ?? 0) > 0 ? 'var(--fg-2)' : 'var(--fg-3)' })}
@@ -348,7 +355,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                   </td>
                 </>}
                 {cols.gsc && <>
-                  <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', ...lightImpr(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
+                  <td data-tool="gsc" data-href={gscKeywords} title="GSC impressions (7d) · click → Google keywords (Search Console Performance)" style={cellOf('gsc', true, { textAlign: 'right', ...lightImpr(r.impressions_7d > 0) })}>{r.impressions_7d.toLocaleString()}</td>
                   <td data-chart="gsc" style={cellOf('gsc', false, { textAlign: 'center', padding: '2px 4px', width: 70 })}>
                     <Sparkline values={sparkValues} />
                   </td>

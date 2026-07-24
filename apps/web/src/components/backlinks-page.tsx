@@ -414,6 +414,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
+  const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
@@ -483,13 +484,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('draft', draftOnly ? '1' : '');
     set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
+    set('tier', tierFilter);
     set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     set('outreach', outreachPid);
     set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, view, groupBy, openId, outreachPid, outreachCh]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, view, groupBy, openId, outreachPid, outreachCh]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -533,10 +535,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (draftOnly && !t.hasDraft) return false;
       if (blockedOnly && !t.blocker) return false;
       if (readyFilter && t.readiness !== readyFilter) return false;
+      if (tierFilter && (tierFilter === 'any' ? !t.tier : t.tier !== tierFilter)) return false;
       if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter]);
+  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter]);
 
   const shown = useMemo(() => {
     const base = tab === 'pending'
@@ -777,7 +780,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
         <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
         <button type="button" onClick={() => setBlockedOnly((v) => !v)} title="Chỉ hiện task nhân sự báo vướng" style={chip('#ef4444', blockedOnly)}>🚩 vướng</button>
-        {(q || follow || traf || draftOnly || blockedOnly) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); }} style={btn}>Clear</button>}
+        <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
+        {(['A', 'B', 'C'] as const).map((tv) => <button key={tv} type="button" onClick={() => setTierFilter(tierFilter === tv ? '' : tv)} title={`Chỉ hiện tier ${tv} (${tv === 'A' ? 'high-value seeding' : tv === 'B' ? 'outreach' : 'directory'})`} style={chip(TIER_META[tv]!.color, tierFilter === tv)}>★{tv}</button>)}
+        <button type="button" onClick={() => setTierFilter(tierFilter === 'any' ? '' : 'any')} title="Chỉ hiện task ĐÃ gắn tier (A/B/C) — tập trung vào target giá trị" style={chip('#f5c518', tierFilter === 'any')}>★ tiered</button>
+        {(q || follow || traf || draftOnly || blockedOnly || tierFilter) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); setTierFilter(''); }} style={btn}>Clear</button>}
         {view === 'list' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)', marginLeft: 'auto' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
             <span>nhóm</span>

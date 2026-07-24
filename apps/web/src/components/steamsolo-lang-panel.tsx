@@ -6,6 +6,7 @@ import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 interface LangStats {
   ok: boolean;
   engagement: { views: number; likes: number; shares: number; helpful: number; guides: number; comments: number; followers: number };
+  features: { feature: string; hits: number }[];
   top_guides: { views: number; likes: number; shares: number; slug: string; title: string; game: string }[];
   source_lang: { lang: string; n: number }[];
   translations: { lang: string; status: string; n: number }[];
@@ -28,6 +29,12 @@ const card: React.CSSProperties = { background: 'var(--bg-1)', border: '1px soli
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
 const th: React.CSSProperties = { ...mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-3)', textAlign: 'left', padding: '3px 8px', fontWeight: 500 };
 const td: React.CSSProperties = { ...mono, fontSize: 12, padding: '3px 8px', color: 'var(--fg-1)' };
+const FEATURE_LABEL: Record<string, string> = {
+  select_translate: '🌐 Translate selection',
+  select_copy: '📋 Copy selection',
+  select_share_x: '𝕏 Quote → X',
+  select_share_reddit: '👽 Quote → Reddit',
+};
 
 export async function SteamsoloLangPanel() {
   const d = await load();
@@ -86,6 +93,19 @@ export async function SteamsoloLangPanel() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {d.features?.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={th}>Feature usage (selection popup)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {d.features.map((f) => (
+              <div key={f.feature} style={{ ...mono, fontSize: 12, background: 'var(--bg-2)', borderRadius: 6, padding: '5px 9px', color: 'var(--fg-1)' }}>
+                {FEATURE_LABEL[f.feature] || f.feature} <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{f.hits.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -7,6 +7,7 @@ interface LangStats {
   ok: boolean;
   engagement: { views: number; likes: number; shares: number; helpful: number; guides: number; comments: number; followers: number };
   features: { feature: string; hits: number }[];
+  recent_comments: { name: string; body: string; created_at: string; slug: string; title: string; game: string }[];
   top_guides: { views: number; likes: number; shares: number; slug: string; title: string; game: string }[];
   source_lang: { lang: string; n: number }[];
   translations: { lang: string; status: string; n: number }[];
@@ -101,8 +102,28 @@ export async function SteamsoloLangPanel() {
           <div style={th}>Feature usage (selection popup)</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {d.features.map((f) => (
-              <div key={f.feature} style={{ ...mono, fontSize: 12, background: 'var(--bg-2)', borderRadius: 6, padding: '5px 9px', color: 'var(--fg-1)' }}>
-                {FEATURE_LABEL[f.feature] || f.feature} <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{f.hits.toLocaleString()}</span>
+              <div key={f.feature} style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '7px 11px', minWidth: 92 }}>
+                <div style={{ ...mono, fontSize: 17, fontWeight: 700, color: 'var(--accent)' }}>{f.hits.toLocaleString()}</div>
+                <div style={{ ...mono, fontSize: 11, color: 'var(--fg-2)' }}>{FEATURE_LABEL[f.feature] || f.feature}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {d.recent_comments?.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={th}>Recent comments ({d.engagement.comments})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {d.recent_comments.map((c, i) => (
+              <div key={i} style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}>
+                <div style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>
+                  <span style={{ fontWeight: 600 }}>{c.name}</span>
+                  <span style={{ color: 'var(--fg-2)' }}> {c.body}</span>
+                </div>
+                <a href={`https://steamsolo.com/guide/${c.slug}/`} target="_blank" rel="noopener" style={{ ...mono, fontSize: 10.5, color: 'var(--fg-3)' }}>
+                  {c.title} · {c.game}
+                </a>
               </div>
             ))}
           </div>

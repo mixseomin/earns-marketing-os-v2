@@ -28,6 +28,7 @@ export interface BacklinkTask {
   traffic: string | null;
   rank: string | null;
   mechanism: string | null;
+  tier: string | null;             // A = high-value focus · B = editorial outreach · C = self-serve directory · null
   draft: string | null;
   draftShort: string | null;      // AI-condensed short version (persisted)
   draftImages: string[];          // optional images embedded in the draft (all formats)
@@ -82,7 +83,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
   if (!db) return [];
   try {
     const rows = await db.execute(sql`
-      SELECT id, title, status, source_url, da, dofollow, traffic, rank, mechanism,
+      SELECT id, title, status, source_url, da, dofollow, traffic, rank, mechanism, tier,
              draft, draft_short, draft_images, has_draft, instructions, notes, site_status, site_url, applies_to,
              publish_url, screenshot_url, assigned_user_id, assignee,
              (site_status->>${slug}) AS site_state,
@@ -139,6 +140,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         traffic: (r.traffic as string | null) || null,
         rank: (r.rank as string | null) || null,
         mechanism: (r.mechanism as string | null) || null,
+        tier: (r.tier as string | null) || null,
         draft: (r.draft as string | null) || null,
         draftShort: (r.draft_short as string | null) || null,
         draftImages: Array.isArray(r.draft_images) ? (r.draft_images as string[]) : [],
@@ -263,5 +265,24 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
     });
   } catch {
     return [];
+  }
+}
+
+// Set (or clear) the value tier of a backlink task — A/B/C to focus, null to unmark.
+// Tier is task-level (applies across every site the source targets), stored in
+// prep_payload.tier. The board renders a ★ badge + sorts tier A→B→C first.
+export async function setBacklinkTier(taskId: number, tier: 'A' | 'B' | 'C' | null): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (tier !== null && !['A', 'B', 'C'].includes(tier)) return { ok: false, error: 'bad tier' };
+  try {
+    if (tier === null) {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'tier', updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    } else {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('tier', to_jsonb(${tier}::text)), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e).slice(0, 120) };
   }
 }

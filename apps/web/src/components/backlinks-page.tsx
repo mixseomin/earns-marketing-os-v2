@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
 import { listBacklinkSources, seedBacklinksFromCatalog, upsertBacklinkSource, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -117,6 +118,17 @@ function Pill({ status }: { status: string }) {
 function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; color?: string }) {
   return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
 }
+
+// Value tier of a backlink target: A = high-value focus (niche community seeding
+// where our tool genuinely helps), B = editorial outreach, C = self-serve directory.
+// Drives the ★ badge, the gold row highlight, and the focus sort — same on every project.
+const TIER_META: Record<string, { label: string; color: string; bg: string }> = {
+  A: { label: '★ A', color: '#f5c518', bg: 'rgba(245,197,24,0.10)' },
+  B: { label: '★ B', color: '#b9c2cf', bg: 'rgba(185,194,207,0.08)' },
+  C: { label: '★ C', color: '#cd7f32', bg: 'rgba(205,127,50,0.08)' },
+};
+const TIER_RANK: Record<string, number> = { A: 0, B: 1, C: 2 };
+const nextTier = (t: string | null): 'A' | 'B' | 'C' | null => t === 'A' ? 'B' : t === 'B' ? 'C' : t === 'C' ? null : 'A';
 
 // Draft comes authored as Markdown. Derive HTML + plain so each platform gets the
 // right paste format (Markdown → dev.to/Reddit, HTML → forum/WP, Plain → comment/bio).
@@ -406,6 +418,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);
+  // Cycle the value tier A→B→C→(unset). One action, all projects; row refreshes after.
+  const cycleTier = async (id: number, cur: string | null) => { await setBacklinkTier(id, nextTier(cur)); start(() => router.refresh()); };
   const closeTask = () => { setOpenId(null); setOutreachPid(null); setOutreachCh(''); };
 
   // Delete a backlink task with a 10s undo (destructive-action pattern). undoRow holds the
@@ -524,9 +538,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     });
   }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter]);
 
-  const shown = useMemo(() => (tab === 'pending'
-    ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
-    : filtered), [filtered, tab]);
+  const shown = useMemo(() => {
+    const base = tab === 'pending'
+      ? [...filtered].sort((a, b) => Number(!!a.assignedUserId) - Number(!!b.assignedUserId))
+      : [...filtered];
+    // Float valued tiers to the top (A→B→C→unset). Stable sort keeps prior order within a tier.
+    return base.sort((a, b) => (TIER_RANK[a.tier ?? ''] ?? 9) - (TIER_RANK[b.tier ?? ''] ?? 9));
+  }, [filtered, tab]);
 
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
   const grouped = useMemo(() => {
@@ -580,7 +598,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
   // One list row — shared by the flat list and each group section.
   const rowEl = (t: BacklinkTask) => (
-    <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', cursor: 'pointer' }}>
+    <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); cycleTier(t.id, t.tier); }}
+        title={t.tier ? `Tier ${t.tier} (giá trị) — click đổi A→B→C→bỏ` : 'Đánh dấu tier giá trị để tập trung — click'}
+        style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: `1px solid ${t.tier ? (TIER_META[t.tier]?.color ?? 'var(--line)') : 'var(--line)'}`, background: t.tier ? (TIER_META[t.tier]?.bg ?? 'transparent') : 'transparent', color: t.tier ? (TIER_META[t.tier]?.color ?? 'var(--fg-4)') : 'var(--fg-4)', cursor: 'pointer', fontSize: 11, fontWeight: 700, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {t.tier || '☆'}
+      </button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
         <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1147,6 +1170,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} {...EXT} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
+          {task.tier && TIER_META[task.tier] && <Tag color={TIER_META[task.tier]!.color}>{TIER_META[task.tier]!.label} · tier</Tag>}
           {task.da && <Tag>DA {task.da}</Tag>}
           {task.dofollow && <Tag color="#9d6cff">{task.dofollow}</Tag>}
           {task.traffic && <Tag color="#22c55e">{task.traffic}</Tag>}

@@ -35,6 +35,7 @@ const FEATURE_LABEL: Record<string, string> = {
   select_copy: '📋 Copy selection',
   select_share_x: '𝕏 Quote → X',
   select_share_reddit: '👽 Quote → Reddit',
+  read_in_language: '🌐 Read in your language',
 };
 
 export async function SteamsoloLangPanel() {

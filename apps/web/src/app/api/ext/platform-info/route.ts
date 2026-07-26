@@ -50,6 +50,7 @@ export async function GET(req: Request) {
       techLabel: platformTechnologies.label,
       notes: platforms.notes,
       signupVerify: platforms.signupVerify,
+      acquisitionMethod: platforms.acquisitionMethod,
     })
     .from(platforms)
     .leftJoin(platformTechnologies, eq(platforms.technologyKey, platformTechnologies.key))
@@ -86,6 +87,7 @@ export async function GET(req: Request) {
       emailVerifyBroken,
       notes: platformRow.notes ?? '',
       signupVerify: platformRow.signupVerify ?? '',
+      acquisitionMethod: platformRow.acquisitionMethod ?? '',
     } : null,
   });
 }
@@ -107,6 +109,7 @@ export async function POST(req: Request) {
     emailVerifyBroken?: boolean;
     notes?: string;
     signupVerify?: string;
+    acquisitionMethod?: string;
     // P2.4: login challenges per-platform (ext 🛡 recorder) — [{type,label?,note?,prepare?}].
     // Cột platforms.login_challenges (jsonb, raw — accounts GET :116 đã đọc để trả PREP_ICON cho console).
     login_challenges?: Array<Record<string, unknown>>;
@@ -137,6 +140,13 @@ export async function POST(req: Request) {
     if (typeof body.signupVerify === 'string') {
       await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', signupVerify: body.signupVerify })
         .onConflictDoUpdate({ target: platforms.key, set: { signupVerify: body.signupVerify, updatedAt: new Date() } });
+    }
+    // P3 no-signup routing: phương thức lấy backlink khi ko tạo account (oauth_only/no_account_form/guest_post_email/gated/no_ugc).
+    // '' = clear (chủ đích). Nhớ per-platform → advisor bỏ bước tạo account lần sau + report phân bổ nhân sự.
+    if (typeof body.acquisitionMethod === 'string') {
+      const am = body.acquisitionMethod.trim().slice(0, 40) || null;
+      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', acquisitionMethod: am })
+        .onConflictDoUpdate({ target: platforms.key, set: { acquisitionMethod: am, updatedAt: new Date() } });
     }
     // P2.4: login challenges (mirror pattern signupVerify; cột raw jsonb → sql). Sanitize: giữ string fields
     // quen thuộc, cap 10 entries. Mảng rỗng = clear (chủ đích của user).

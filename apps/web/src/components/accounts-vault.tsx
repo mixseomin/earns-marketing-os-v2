@@ -2285,6 +2285,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 tags: platform.tags ?? [],
                 userCountEstimate: platform.userCountEstimate ?? null,
                 notes: null,
+                acquisitionMethod: null,
                 accountsCount: 1, // hide delete button khi edit từ context account
                 technologyKey: platform.technologyKey ?? null,
                 signupFields: (platform.signupFields as PlatformWithUsage['signupFields']) ?? [],

@@ -325,6 +325,8 @@ export interface PlatformWithUsage {
   tags: string[];
   userCountEstimate: string | null;
   notes: string | null;
+  /** P3 no-signup routing: oauth_only|no_account_form|guest_post_email|gated|no_ugc · null = self-serve/chưa phân loại. */
+  acquisitionMethod: string | null;
   accountsCount: number;
   technologyKey: string | null;
   signupFields: SignupField[];
@@ -341,7 +343,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   if (!db) return [];
   const rows = await db.execute(sql`
     SELECT p.key, p.label, p.signup_url, p.post_url, p.profile_url_pattern, p.priority, p.icon_slug, p.fallback_keys,
-           p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes,
+           p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes, p.acquisition_method,
            p.technology_key, p.signup_fields, p.allowed_formats, p.format_mix,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
     FROM platforms p
@@ -378,6 +380,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
     userCountEstimate: (r.user_count_estimate as string | null) ?? null,
     notes: (r.notes as string | null) ?? null,
+    acquisitionMethod: (r.acquisition_method as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
     technologyKey: (r.technology_key as string | null) ?? null,
     signupFields: Array.isArray(r.signup_fields) ? (r.signup_fields as SignupField[]) : [],

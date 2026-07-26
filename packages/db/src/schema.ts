@@ -487,6 +487,9 @@ export const platforms = pgTable(
     // Yêu cầu xác minh SAU đăng ký, MAP vào OUTCOMES ext ('active'|'email'|'mod'|'phone') — knowledge đi
     // theo platform (vd Wikidata='email': auto-login xong vẫn phải confirm email). Nhớ 1 lần, nhắc lần sau.
     signupVerify: text('signup_verify'),
+    // migration 0151: phương thức lấy backlink khi KHÔNG tạo account thường được (no-signup routing).
+    // enum: oauth_only|no_account_form|guest_post_email|gated|no_ugc · NULL = self-serve/chưa phân loại.
+    acquisitionMethod: text('acquisition_method'),
     // Override content formats hardcoded (content-formats.ts PROFILE_BY_KEY/CATEGORY).
     // allowedFormats = JSONB array of format keys; NULL = dùng hardcoded fallback.
     // formatMix = JSONB object {format_key: weight}.

@@ -23,6 +23,50 @@ const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; st
   low:      { label: 'LOW',      color: 'var(--fg-3)',      star: '·'   },
 };
 
+// P3 no-signup routing (decision earns-strategy 2026-07-27): phương thức lấy backlink khi KHÔNG tạo account
+// thường được (ext Crew advisor ghi qua platform-info). bucket=làm tay account/form · cần Outreach (email chủ site).
+const ACQ_META: Record<string, { label: string; color: string; icon: string; bucket: 'account' | 'outreach' }> = {
+  oauth_only:       { label: 'OAuth login',    color: '#5ec8e6', icon: '🔑', bucket: 'account' },
+  no_account_form:  { label: 'Form khách',     color: '#22c55e', icon: '📝', bucket: 'account' },
+  guest_post_email: { label: 'Guest post',     color: '#f59e0b', icon: '✉',  bucket: 'outreach' },
+  gated:            { label: 'Gated/xin quyền', color: '#f59e0b', icon: '🔒', bucket: 'outreach' },
+  no_ugc:           { label: 'Không UGC',      color: '#ef4444', icon: '🚫', bucket: 'outreach' },
+};
+
+// Report phân bổ: bao nhiêu site làm-tay (account/form) vs phải đi Outreach. Chỉ hiện khi có site đã phân loại.
+function AcqBreakdown({ platforms }: { platforms: PlatformWithUsage[] }) {
+  const classified = platforms.filter((p) => p.acquisitionMethod && ACQ_META[p.acquisitionMethod]);
+  if (classified.length === 0) return null;
+  const counts: Record<string, number> = {};
+  let outreachN = 0;
+  for (const p of classified) {
+    const m = ACQ_META[p.acquisitionMethod!];
+    if (!m) continue;
+    counts[p.acquisitionMethod!] = (counts[p.acquisitionMethod!] ?? 0) + 1;
+    if (m.bucket === 'outreach') outreachN++;
+  }
+  const accountN = classified.length - outreachN;
+  return (
+    <div style={{ marginBottom: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700 }}>⛔ Phương thức lấy backlink (no-signup)</span>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{classified.length} site đã phân loại · <b style={{ color: '#3ecf8e' }}>{accountN}</b> làm tay (account/form) · <b style={{ color: 'var(--warn)' }}>{outreachN}</b> cần Outreach (email chủ site)</span>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px' }}>
+        {Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => {
+          const m = ACQ_META[k];
+          if (!m) return null;
+          return (
+            <span key={k} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 999, border: `1px solid ${m.color}`, color: m.color, display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+              {m.icon} {m.label} <b>{n}</b>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Shallow URL sync — uses window.history.replaceState so the URL stays
 // shareable/F5-able without triggering Next.js RSC roundtrip on every click.
 // Local state is the source of truth so filter UI is instant. URL update
@@ -232,6 +276,8 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
 
       <PlatformReadinessMatrix platforms={platforms} onOpen={setQ} />
 
+      <AcqBreakdown platforms={platforms} />
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <NoFillInput
           style={{
@@ -365,6 +411,17 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
                       {p.pricing && <span>· {p.pricing}</span>}
                       {p.userCountEstimate && <span>· {p.userCountEstimate}</span>}
                     </div>
+                    {(() => {
+                      const m = p.acquisitionMethod ? ACQ_META[p.acquisitionMethod] : undefined;
+                      return m ? (
+                        <div style={{ marginTop: 4 }}>
+                          <span title="Phương thức lấy backlink khi không tạo account (phân loại từ Crew advisor)"
+                                style={{ fontSize: 9.5, padding: '2px 7px', borderRadius: 999, display: 'inline-flex', gap: 4, alignItems: 'center', border: `1px solid ${m.color}`, color: m.color }}>
+                            {m.icon} {m.label}
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
                     <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                       <LinkChip href={p.signupUrl} size="xs" onClick={(e) => e.stopPropagation()}>↗ signup</LinkChip>
                       {p.postUrl && <LinkChip href={p.postUrl} size="xs" onClick={(e) => e.stopPropagation()}>↗ post</LinkChip>}

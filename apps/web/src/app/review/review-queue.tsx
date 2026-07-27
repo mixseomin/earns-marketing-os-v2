@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { CoursesBrowser } from './courses-browser';
 
 interface Item {
   id: number; project_id: string; title: string; instructions: string;
@@ -18,6 +19,7 @@ export function ReviewQueue({ reviewer }: { reviewer: string }) {
   const [busy, setBusy] = useState<number | null>(null);
   const [note, setNote] = useState<Record<number, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [tab, setTab] = useState<'queue' | 'courses'>('queue');
 
   const load = useCallback(async () => {
     const qs = statusFilter === 'open' ? '' : `?status=${statusFilter}`;
@@ -46,20 +48,29 @@ export function ReviewQueue({ reviewer }: { reviewer: string }) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-0)', color: 'var(--fg-0)', padding: '20px', fontFamily: 'var(--font-sans, system-ui)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <h1 style={{ fontSize: 20, margin: 0 }}>🔍 Review Queue</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <h1 style={{ fontSize: 20, margin: 0 }}>🔍 Review</h1>
           <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>reviewer: {reviewer}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <button onClick={() => setTab('queue')} className="btn" style={{ fontSize: 12.5, padding: '6px 12px', opacity: tab === 'queue' ? 1 : 0.5 }}>Queue</button>
+            <button onClick={() => setTab('courses')} className="btn" style={{ fontSize: 12.5, padding: '6px 12px', opacity: tab === 'courses' ? 1 : 0.5 }}>Courses</button>
+          </div>
+        </div>
+
+        {tab === 'courses' && <CoursesBrowser />}
+
+        {tab === 'queue' && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
             {(['open', ...STATUSES] as string[]).map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)} className="btn"
                 style={{ fontSize: 12, padding: '5px 10px', opacity: statusFilter === s ? 1 : 0.55 }}>{s}</button>
             ))}
           </div>
-        </div>
+        )}
 
-        {items.length === 0 && <div style={{ color: 'var(--fg-3)', padding: 30, textAlign: 'center' }}>No review items.</div>}
+        {tab === 'queue' && items.length === 0 && <div style={{ color: 'var(--fg-3)', padding: 30, textAlign: 'center' }}>No review items.</div>}
 
-        {items.map((it) => (
+        {tab === 'queue' && items.map((it) => (
           <div key={it.id} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--bg-1)' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, fontFamily: 'monospace', color: badge[it.status] || 'var(--fg-3)', border: `1px solid ${badge[it.status] || 'var(--line)'}`, borderRadius: 4, padding: '1px 7px' }}>{it.status}</span>

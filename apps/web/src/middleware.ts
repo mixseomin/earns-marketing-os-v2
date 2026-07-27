@@ -12,6 +12,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/cron/',
   '/api/health',
   '/api/ext/',
+  '/api/auth/', // /api/auth/verify runs its own session check (204/401) for nginx auth_request SSO — must not be redirected
 ];
 
 const SESSION_COOKIE = 'mos2-session';

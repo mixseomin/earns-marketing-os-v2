@@ -36,6 +36,7 @@ interface OfferRow {
   views7: number; clicks7: number; ctr7: number;
   views30: number; clicks30: number; ctr30: number;
   sample_url?: string | null; // a live page on OUR site currently showing this offer
+  recent_clicks?: { url: string; title: string; ts: string }[]; // exact guides that converted
 }
 
 async function load(url: string): Promise<{ offers: OfferRow[] } | null> {
@@ -73,6 +74,9 @@ function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<string,
                     ? <a href={link} target="_blank" rel="noopener" title={o.sample_url ? 'See how it looks on-site' : 'Offer page'} style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{m.label} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>↗</span></a>
                     : <span style={{ fontWeight: 600 }}>{m.label}</span>}
                   {m.merchant && <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: 11 }}>{m.merchant}</span>}
+                  {(o.recent_clicks ?? []).map((c, i) => (
+                    <a key={i} href={c.url} target="_blank" rel="noopener" title={`Clicked ${c.ts}`} style={{ display: 'block', color: 'var(--ok)', fontSize: 11, marginTop: 2 }}>✓ clicked: {c.title} ↗</a>
+                  ))}
                 </td>
                 <td style={td}>{o.views7}</td>
                 <td style={td}>{o.clicks7}</td>

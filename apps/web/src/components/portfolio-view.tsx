@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
 import { SteamsoloLangPanel } from './steamsolo-lang-panel';
-import { CitiesOfferStats } from './cities-offer-stats';
+import { AffiliateOffersPanel } from './affiliate-offers-panel';
 import { AwarenessFunnelPanel } from './awareness-funnel-panel';
 import { AwinDailyPanel } from './awin-daily-panel';
 import { PortfolioGrid } from './portfolio-grid';
@@ -29,8 +29,8 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
       {/* SteamSolo language coverage + on-demand translation demand meter */}
       <SteamsoloLangPanel />
 
-      {/* cities.gg affiliate-offer funnel (Awin CTAs on walk pages) */}
-      <CitiesOfferStats />
+      {/* Cross-site affiliate-offer funnel (Awin CTAs), config-driven per site */}
+      <AffiliateOffersPanel />
 
       {/* Awareness Funnel — cities.gg paid (Bidvertiser) ÷ organic spillover */}
       <AwarenessFunnelPanel />

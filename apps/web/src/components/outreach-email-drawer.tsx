@@ -96,7 +96,9 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '2px 0 0' }}>
-        {!editing && <button onClick={openEdit} style={{ ...btn, fontSize: 11 }} title="Sửa email / link form theo đúng thông tin trên trang của họ">✎ Sửa liên hệ</button>}
+        {!editing && (isForm
+          ? <button onClick={openEdit} style={{ ...btn, fontSize: 11, fontWeight: 700, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }} title="Thêm địa chỉ email của họ → nâng FORM lên EMAIL → gửi tự động qua Mailjet">✉️ Thêm email → gửi tự động</button>
+          : <button onClick={openEdit} style={{ ...btn, fontSize: 11 }} title="Sửa email / link form theo đúng thông tin trên trang của họ">✎ Sửa liên hệ</button>)}
       </div>
 
       {editing ? (

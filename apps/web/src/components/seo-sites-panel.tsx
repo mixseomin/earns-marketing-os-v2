@@ -40,12 +40,12 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
-  'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-07-25' },
+  'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-10-25' },  // dormant husk (pivoted to militarycalc): 31 impr/0 clk 07-27 → quarterly, not 2-wk
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-08-19' },
-  'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-07-25' },  // ramping, accelerating (573 impr/40 URL); recheck rank movement + Dataset schema citation
-  'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl
+  'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-08-14' },  // 07-27 review: GROWTH (impr 607 +2790%, 41 URL, clicks 7 new); pos deep 38-86 = fresh index ramping. Lever=authority on head terms (visa bulletin/uscis processing times). recheck rank movement
+  'govcalcs.com': { project: 'govcalcs', emoji: '🏛️', review: '2026-08-17' },  // 07-27 review: prune CONFIRMED working — clicks +100%/impr +40%/pos improved despite -18% URLs (intentional thin-page cut). GEO ok. Lever=backlinks on '<state> paycheck calculator' (pos 39-50). recheck salary-page rank (pos 7-14 ramping)
   'mintalmanac.com': { project: 'mint-almanac', emoji: '🪙', review: '2026-07-29' },  // launched 07-15, first review ~2wk
-  'paydochub.com': { emoji: '🧾', review: '2026-07-25' },  // recovery recheck: scaled-content de-index fixed 07-11, needs ~2wk re-crawl
+  'paydochub.com': { emoji: '🧾', review: '2026-08-10' },  // 07-27 review: clicks -33%/impr -52% BUT pos held 2-8 + pages serve 200 + URLs +73% (not deindex/derank) → demand-side (seasonal brand-portal terms). No fix. Watch: if pos holds + impr keeps dropping = confirmed seasonal
   'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-08-01' },
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },

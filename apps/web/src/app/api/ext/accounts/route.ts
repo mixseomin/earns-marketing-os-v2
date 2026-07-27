@@ -40,7 +40,7 @@ export async function GET(req: Request) {
       const emailCond = email ? sql`lower(${platformAccounts.email}) = ${email}` : undefined;
       const handleCond = hdl ? eq(platformAccounts.handle, hdl) : undefined;
       const [acc] = await db
-        .select({ id: platformAccounts.id, handle: platformAccounts.handle, email: platformAccounts.email, status: platformAccounts.status, projectId: platformAccounts.projectId, accountType: platformAccounts.accountType })
+        .select({ id: platformAccounts.id, handle: platformAccounts.handle, email: platformAccounts.email, status: platformAccounts.status, projectId: platformAccounts.projectId, accountType: platformAccounts.accountType, persona: platformAccounts.persona })
         .from(platformAccounts)
         .where(and(eq(platformAccounts.platformKey, slug), or(emailCond, handleCond)))
         .limit(1);
@@ -141,6 +141,7 @@ export async function GET(req: Request) {
         status: platformAccounts.status,
         accountType: platformAccounts.accountType,
         notes: platformAccounts.notes,
+        persona: platformAccounts.persona,   // site-specific fields đã lưu → fillPageForm prefill lại sau F5
         platformKey: platformAccounts.platformKey,
         platformLabel: platforms.label,
         signupUrl: platforms.signupUrl,

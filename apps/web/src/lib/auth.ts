@@ -2,6 +2,7 @@
 // Cookie 'mos2-session' = random 32-byte hex token, validated against DB.
 
 import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
@@ -194,7 +195,7 @@ export async function logout(): Promise<void> {
 // ── Role guards ────────────────────────────────────────────────────
 export async function requireAuth(): Promise<AuthUser> {
   const u = await getCurrentUser();
-  if (!u) throw new Error('UNAUTHENTICATED');
+  if (!u) redirect('/login');   // page/server-component guard — redirect, not a 500
   return u;
 }
 

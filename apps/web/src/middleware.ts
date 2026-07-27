@@ -13,7 +13,18 @@ const PUBLIC_API_PREFIXES = [
   '/api/health',
   '/api/ext/',
   '/api/auth/', // /api/auth/verify runs its own session check (204/401) for nginx auth_request SSO — must not be redirected
+  '/api/review', // generic review queue — does its own auth (agent token OR session)
 ];
+
+// user.on.tc = staff review portal. Confine that host to the review queue only (need-to-know):
+// staff can't reach the rest of MOS2 there even though the .on.tc session is shared.
+const STAFF_PORTAL_HOST = 'user.on.tc';
+function allowedOnStaffPortal(pathname: string): boolean {
+  return pathname.startsWith('/review') || pathname.startsWith('/api/review')
+    || pathname.startsWith('/api/auth') || pathname === '/login'
+    || pathname.startsWith('/_next/') || pathname.startsWith('/static/')
+    || pathname === '/icon.svg' || pathname === '/favicon.ico';
+}
 
 const SESSION_COOKIE = 'mos2-session';
 
@@ -32,6 +43,15 @@ export function middleware(req: NextRequest) {
   // CORS preflight for /api/ext/* (called from browser extension cross-origin)
   if (pathname.startsWith('/api/ext/') && req.method === 'OPTIONS') {
     return new NextResponse(null, { status: 204, headers: corsHeaders() });
+  }
+
+  // Staff portal host is confined to the review queue (need-to-know).
+  const host = (req.headers.get('host') || '').split(':')[0];
+  if (host === STAFF_PORTAL_HOST && !allowedOnStaffPortal(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/review';
+    url.search = '';
+    return NextResponse.redirect(url);
   }
 
   // Allow public paths

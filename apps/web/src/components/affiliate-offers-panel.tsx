@@ -3,7 +3,7 @@
 // clicks30, ctr30 }] } — the on-site open/click funnel that precedes Awin conversions/commission.
 // Add a site by dropping a config entry here once its endpoint is live; the panel picks it up.
 
-type OfferMeta = { label: string; merchant: string };
+type OfferMeta = { label: string; merchant: string; url?: string };
 type SiteCfg = { key: string; title: string; statsUrl: string; offerMeta: Record<string, OfferMeta>; note?: string };
 
 const SITES: SiteCfg[] = [
@@ -12,8 +12,8 @@ const SITES: SiteCfg[] = [
     title: '🏙️ cities.gg',
     statsUrl: 'https://cities.gg/api/offer-stats',
     offerMeta: {
-      ghost: { label: '👻 Ghost walking tours', merchant: 'US Ghost Adventures · US cities' },
-      samboat: { label: '⛵ Boat rental', merchant: 'SamBoat · water cities' },
+      ghost: { label: '👻 Ghost walking tours', merchant: 'US Ghost Adventures · US cities', url: 'https://usghostadventures.com/' },
+      samboat: { label: '⛵ Boat rental', merchant: 'SamBoat · water cities', url: 'https://www.samboat.com/' },
     },
     note: 'CTAs live on walk pages (Ghost on US cities, SamBoat on water cities).',
   },
@@ -22,9 +22,9 @@ const SITES: SiteCfg[] = [
     title: '🎮 steamsolo.com',
     statsUrl: 'https://steamsolo.com/api/offer-stats',
     offerMeta: {
-      fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting' },
-      fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods' },
-      eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain' },
+      fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting', url: 'https://www.fiverr.com/search/gigs?query=game%20coaching' },
+      fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods', url: 'https://www.fiverr.com/search/gigs?query=game%20art' },
+      eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain', url: 'https://www.sojoseyewear.com/' },
     },
     note: 'Bridged CTA on guide pages (one offer per game, rotated to compare CTR).',
   },
@@ -66,7 +66,9 @@ function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<string,
             return (
               <tr key={o.key} style={{ borderBottom: '1px solid var(--line)' }}>
                 <td style={{ padding: '6px 8px' }}>
-                  <span style={{ fontWeight: 600 }}>{m.label}</span>
+                  {m.url
+                    ? <a href={m.url} target="_blank" rel="noopener" style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{m.label} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>↗</span></a>
+                    : <span style={{ fontWeight: 600 }}>{m.label}</span>}
                   {m.merchant && <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: 11 }}>{m.merchant}</span>}
                 </td>
                 <td style={td}>{o.views7}</td>

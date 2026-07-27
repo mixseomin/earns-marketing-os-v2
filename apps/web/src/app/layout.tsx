@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import './globals.css';
 import { RootProviders } from '@/components/root-providers';
+import { getCurrentUser } from '@/lib/auth';
 
 // Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
 const GA_ID = 'G-GBENC4P7CB';
@@ -36,7 +39,15 @@ const NO_FLASH_SCRIPT = `(function(){try{
   }
 }catch(e){}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Reviewers (role 'viewer') are confined to the user.on.tc review portal. If one lands
+  // on the main dashboard host, bounce them to the portal. (course.on.tc is gated at nginx
+  // via /api/auth/verify.) Only costs a getCurrentUser on mos2.on.tc renders.
+  const host = (await headers()).get('host')?.split(':')[0] || '';
+  if (host === 'mos2.on.tc') {
+    const u = await getCurrentUser();
+    if (u && u.role === 'viewer') redirect('https://user.on.tc/review');
+  }
   return (
     <html lang="vi" data-theme="dark">
       <head>

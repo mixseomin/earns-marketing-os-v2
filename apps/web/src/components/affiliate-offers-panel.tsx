@@ -12,8 +12,9 @@ const SITES: SiteCfg[] = [
     title: '🏙️ cities.gg',
     statsUrl: 'https://cities.gg/api/offer-stats',
     offerMeta: {
-      ghost: { label: '👻 Ghost walking tours', merchant: 'US Ghost Adventures · US cities', url: 'https://usghostadventures.com/' },
-      samboat: { label: '⛵ Boat rental', merchant: 'SamBoat · water cities', url: 'https://www.samboat.com/' },
+      // cities.gg /api/offer-stats doesn't return sample_url yet; add it there for on-site preview links.
+      ghost: { label: '👻 Ghost walking tours', merchant: 'US Ghost Adventures · US cities' },
+      samboat: { label: '⛵ Boat rental', merchant: 'SamBoat · water cities' },
     },
     note: 'CTAs live on walk pages (Ghost on US cities, SamBoat on water cities).',
   },
@@ -22,9 +23,9 @@ const SITES: SiteCfg[] = [
     title: '🎮 steamsolo.com',
     statsUrl: 'https://steamsolo.com/api/offer-stats',
     offerMeta: {
-      fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting', url: 'https://www.fiverr.com/search/gigs?query=game%20coaching' },
-      fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods', url: 'https://www.fiverr.com/search/gigs?query=game%20art' },
-      eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain', url: 'https://www.sojoseyewear.com/' },
+      fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting' },
+      fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods' },
+      eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain' },
     },
     note: 'Bridged CTA on guide pages (one offer per game, rotated to compare CTR).',
   },
@@ -34,6 +35,7 @@ interface OfferRow {
   key: string;
   views7: number; clicks7: number; ctr7: number;
   views30: number; clicks30: number; ctr30: number;
+  sample_url?: string | null; // a live page on OUR site currently showing this offer
 }
 
 async function load(url: string): Promise<{ offers: OfferRow[] } | null> {
@@ -63,11 +65,12 @@ function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<string,
         <tbody>
           {offers.map((o) => {
             const m = meta[o.key] ?? { label: o.key, merchant: '' };
+            const link = o.sample_url || m.url; // prefer a live on-site page showing the offer
             return (
               <tr key={o.key} style={{ borderBottom: '1px solid var(--line)' }}>
                 <td style={{ padding: '6px 8px' }}>
-                  {m.url
-                    ? <a href={m.url} target="_blank" rel="noopener" style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{m.label} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>↗</span></a>
+                  {link
+                    ? <a href={link} target="_blank" rel="noopener" title={o.sample_url ? 'See how it looks on-site' : 'Offer page'} style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{m.label} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>↗</span></a>
                     : <span style={{ fontWeight: 600 }}>{m.label}</span>}
                   {m.merchant && <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: 11 }}>{m.merchant}</span>}
                 </td>

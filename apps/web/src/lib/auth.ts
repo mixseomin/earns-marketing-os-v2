@@ -9,6 +9,9 @@ import { getDb } from '@mos2/db';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const SESSION_COOKIE = 'mos2-session';
+// Share the session across all *.on.tc subdomains (course.on.tc, user.on.tc …) for SSO.
+// Host-only in dev (localhost). Widening the domain logs existing prod sessions out once.
+const SESSION_COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? '.on.tc' : undefined;
 const SESSION_TTL_DAYS = 30;
 const BCRYPT_ROUNDS = 10;
 // Bootstrap: if no admin has password set yet, allow setting initial password
@@ -102,6 +105,7 @@ async function createSession(userId: number): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     path: '/',
+    domain: SESSION_COOKIE_DOMAIN,
     maxAge: SESSION_TTL_DAYS * 86400,
     httpOnly: true,
     sameSite: 'lax',
@@ -184,7 +188,7 @@ export async function logout(): Promise<void> {
     const db = getDb();
     if (db) await db.execute(sql`UPDATE auth_sessions SET revoked_at = NOW() WHERE session_token = ${token}`);
   }
-  cookieStore.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+  cookieStore.set(SESSION_COOKIE, '', { path: '/', domain: SESSION_COOKIE_DOMAIN, maxAge: 0 });
 }
 
 // ── Role guards ────────────────────────────────────────────────────

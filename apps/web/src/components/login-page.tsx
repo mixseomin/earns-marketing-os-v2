@@ -23,6 +23,10 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [okMessage, setOkMessage] = useState<string | null>(null);
 
+  // nextUrl may be an absolute URL to another *.on.tc subdomain (SSO) — router.push only
+  // handles internal paths, so full navigate for absolute URLs.
+  const goNext = () => { if (/^https?:\/\//i.test(nextUrl)) window.location.assign(nextUrl); else router.push(nextUrl); };
+
   const handleLogin = () => {
     setError(null); setOkMessage(null);
     if (!email.trim() || !password) { setError('Email + password bắt buộc'); return; }
@@ -31,7 +35,7 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
       const res = await loginAction(email.trim().toLowerCase(), password);
       setBusy(false);
       if (!res.ok) { setError(res.error || 'Login thất bại'); return; }
-      router.push(nextUrl);
+      goNext();
     });
   };
 
@@ -47,7 +51,7 @@ export function LoginPage({ nextUrl, bootstrapMode, initialError }: { nextUrl: s
       setBusy(false);
       if (!res.ok) { setError(res.error || 'Bootstrap thất bại'); return; }
       setOkMessage('Bootstrap OK — đang vào dashboard...');
-      setTimeout(() => router.push(nextUrl), 800);
+      setTimeout(() => goNext(), 800);
     });
   };
 

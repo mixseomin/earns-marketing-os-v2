@@ -398,6 +398,85 @@ function SeedPanel() {
   );
 }
 
+interface EngData {
+  list: string; updatedAt: string; total: number; sendable: number; engaged: number; engagedPct: number;
+  tiers: { hot: number; warm: number; cold: number }; suppressed: number; unsubProcessed?: number;
+  drip: { campaign: string; sent: number; target: number; processed?: number | null; delivered?: number | null; opened?: number; clicked?: number; bounced?: number; blocked?: number; spam?: number; unsub?: number };
+}
+
+// Mailjet-style engagement view for the militarycalc list: tier breakdown + live engaged-drip stats.
+function EngagementPanel() {
+  const [e, setE] = useState<EngData | null | 'err'>(null);
+  useEffect(() => {
+    fetch('/api/deliverability/engagement', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j) => setE(j && j.total ? j : 'err'))
+      .catch(() => setE('err'));
+  }, []);
+  if (e === null) return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>loading engagement…</div>;
+  if (e === 'err') return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>No engagement summary yet — the box worker writes it hourly.</div>;
+
+  const pct = (n: number, dd: number) => (dd ? Math.round((n / dd) * 100) : 0);
+  const t = e.tiers;
+  const dr = e.drip || ({} as EngData['drip']);
+  const sentN = dr.sent || 0;
+  const base = dr.processed || sentN;
+
+  const Bar = ({ label, n, of, color }: { label: string; n: number; of: number; color: string }) => (
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 2 }}>
+        <span style={{ color: 'var(--fg-2)' }}>{label}</span>
+        <span style={{ ...mono, color: 'var(--fg-1)' }}>{n.toLocaleString()} <span style={{ color: 'var(--fg-3)' }}>· {pct(n, of)}%</span></span>
+      </div>
+      <div style={{ height: 6, background: 'var(--bg-1)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: `${pct(n, of)}%`, height: '100%', background: color }} />
+      </div>
+    </div>
+  );
+  const Stat = ({ label, val, sub, color }: { label: string; val: string | number; sub?: string; color?: string }) => (
+    <div style={{ flex: '1 1 78px', minWidth: 76, background: 'var(--bg-1)', borderRadius: 6, padding: '7px 9px' }}>
+      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)' }}>{label}</div>
+      <div style={{ ...mono, fontSize: 16, fontWeight: 700, color: color || 'var(--fg-0)' }}>{val}</div>
+      {sub && <div style={{ fontSize: 9, color: 'var(--fg-3)' }}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Stat label="List · militarycalc" val={e.total.toLocaleString()} sub={`${e.sendable.toLocaleString()} sendable`} />
+        <Stat label="Engaged" val={`${e.engagedPct}%`} sub={`${e.engaged.toLocaleString()} opened/clicked`} color="#5ac47e" />
+        <Stat label="Suppressed" val={e.suppressed.toLocaleString()} sub="bounce/unsub/spam" color="#d16b6b" />
+      </div>
+      <div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)', marginBottom: 6 }}>Engagement tiers</div>
+        <Bar label="🔥 Hot · opened ≥2×" n={t.hot} of={e.total} color="#5ac47e" />
+        <Bar label="🌤 Warm · opened 1×" n={t.warm} of={e.total} color="#e0a94a" />
+        <Bar label="❄️ Cold · never opened" n={t.cold} of={e.total} color="#6b7684" />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+          <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)' }}>Engaged drip · live (Mailjet)</span>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{sentN.toLocaleString()} / {e.engaged.toLocaleString()} sent</span>
+        </div>
+        <div style={{ height: 6, background: 'var(--bg-1)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
+          <div style={{ width: `${pct(sentN, e.engaged)}%`, height: '100%', background: 'var(--accent, #37d4c2)' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Stat label="Opened" val={(dr.opened || 0).toLocaleString()} sub={`${pct(dr.opened || 0, base)}% of sent`} color="#5ac47e" />
+          <Stat label="Clicked" val={(dr.clicked || 0).toLocaleString()} sub={`${pct(dr.clicked || 0, base)}%`} />
+          <Stat label="Bounced" val={(dr.bounced || 0).toLocaleString()} color={dr.bounced ? '#e0a94a' : undefined} />
+          <Stat label="Spam" val={(dr.spam || 0).toLocaleString()} color={dr.spam ? '#d16b6b' : undefined} />
+          <Stat label="Unsub" val={(dr.unsub || 0).toLocaleString()} />
+        </div>
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+        Sending <b>engaged-first</b> (hot → warm) via Mailjet from <span style={mono}>noreply@militarycalc.com</span>, ~180/day. Clicks are scanner-inflated on B2B lists — trust <b>opens</b> + <b>spam</b> rate. Cold {t.cold.toLocaleString()} sent after engaged. <span style={{ color: 'var(--fg-3)' }}>· updated {new Date(e.updatedAt).toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
 export function DeliverabilityCard() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState(false);
@@ -405,7 +484,7 @@ export function DeliverabilityCard() {
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState('');
   const [measuring, setMeasuring] = useState(false);
-  const [view, setView] = useState<'table' | 'warmup' | 'calendar'>('table');
+  const [view, setView] = useState<'table' | 'warmup' | 'calendar' | 'engagement'>('table');
   const [viewDomain, setViewDomain] = useState<string | null>(null);
   const [mw, setMw] = useState<MwView | null>(null);
   const [mwErr, setMwErr] = useState('');
@@ -477,11 +556,11 @@ export function DeliverabilityCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>
           <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-1)', borderRadius: 6, padding: 2 }}>
-            {(['table', 'warmup', 'calendar'] as const).map((v) => (
+            {(['table', 'warmup', 'calendar', 'engagement'] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
                 style={{ ...mono, fontSize: 10, padding: '2px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   background: view === v ? 'var(--bg-2)' : 'transparent', color: view === v ? 'var(--fg-0)' : 'var(--fg-3)', fontWeight: view === v ? 700 : 400 }}>
-                {v === 'table' ? 'Domains' : v === 'warmup' ? '🔥 Warm-up' : '📅 Calendar'}
+                {v === 'table' ? 'Domains' : v === 'warmup' ? '🔥 Warm-up' : v === 'calendar' ? '📅 Calendar' : '📊 Engagement'}
               </button>
             ))}
           </div>
@@ -511,7 +590,9 @@ export function DeliverabilityCard() {
             style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', textDecoration: 'none' }}>Postmaster ↗</a>
         </div>
       </div>
-      {view === 'warmup' ? (
+      {view === 'engagement' ? (
+        <EngagementPanel />
+      ) : view === 'warmup' ? (
         <div style={{ paddingTop: 2 }}>
           <SeedPanel />
           {d.rows.filter((r) => r.send).length === 0

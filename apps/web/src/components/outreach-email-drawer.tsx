@@ -8,7 +8,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
-import { setProspectStatus, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
+import { setProspectStatus, markFormSubmitted, updateProspectContact, updateProspectDraft, genProspectEmail } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
 import { GuardedButton } from '@/components/ui/guarded-button';
 
@@ -55,9 +55,17 @@ function CopyField({ label, value }: { label: string; value: string }) {
   );
 }
 
+// The legacy hardcoded template is MilitaryCalc-specific (BAH widget pitch). Every OTHER project
+// generates its own copy via ✨ Sinh (genProspectEmail — product + Content Pillar). So we only seed
+// the old template for militarycalc; elsewhere the body starts blank and the operator hits ✨ Sinh.
+const LEGACY_TPL_PROJECT = 'militarycalc';
+
 // Embeddable email/form panel. No outer shell, no owner-name header — the container supplies those.
-export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onAfterAction }: {
-  projectId: string; prospect: OutreachProspect; sender: Sender; pending?: boolean; onAfterAction: () => void;
+// `mode` (optional) forces the email vs form view; when omitted it auto-detects from whether an email
+// address exists (the /outreach page relies on that). The multi-channel drawer passes it explicitly so
+// the Email and Contact-form channel pills each render their own view.
+export function OutreachEmailBody({ projectId, prospect: p, sender, pending, mode, onAfterAction }: {
+  projectId: string; prospect: OutreachProspect; sender: Sender; pending?: boolean; mode?: 'email' | 'form'; onAfterAction: () => void;
 }) {
   const router = useRouter();
   const isFollowup = ACTIVE.has(p.status);
@@ -74,24 +82,37 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
   const [draft, setDraft] = useState(cur);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState('');
+  const [gening, setGening] = useState(false);
+  const [genErr, setGenErr] = useState('');
   const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
   const saveDraft = async () => { await updateProspectDraft(projectId, p.id, { subject, body }); setSavedDraft(true); setTimeout(() => setSavedDraft(false), 1500); router.refresh(); };
-  const resetTpl = () => { if (p.source === 'backlink') { setSubject(''); setBody(''); return; } const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source }); setSubject(e.subject); setBody(e.body); };
+  // ponytail: only militarycalc keeps its hardcoded BAH template; every other project starts blank and
+  // generates per-project copy via ✨ Sinh (genProspectEmail). Never seed MilitaryCalc copy elsewhere.
+  const projectTpl = () => (projectId === LEGACY_TPL_PROJECT && p.source !== 'backlink')
+    ? buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source })
+    : { subject: p.emailSubject ?? '', body: '' };
+  const resetTpl = () => { const e = projectTpl(); setSubject(e.subject); setBody(e.body); };
+  const genEmail = async () => { setGening(true); setGenErr(''); const res = await genProspectEmail(projectId, p.id); setGening(false); if (res.ok) { setSubject(res.subject || ''); setBody(res.body || ''); router.refresh(); } else setGenErr(res.error || 'gen lỗi'); };
   useEffect(() => {
     const c = { email: p.email ?? '', contactUrl: p.contactUrl ?? '', website: p.website ?? '' };
     setCur(c); setDraft(c); setEditing(false); setSaveErr('');
     setSend('idle'); setErr(''); setFormBusy(false); setDidCopy(false); setSavedDraft(false);
+    setGenErr('');
     if (p.emailBody) { setSubject(p.emailSubject ?? ''); setBody(p.emailBody); }
-    else if (p.source === 'backlink') { setSubject(p.emailSubject ?? ''); setBody(''); }
-    else { const e = buildEmailForProspect({ agentName: p.agentName, base: p.base, status: p.status, source: p.source }); setSubject(e.subject); setBody(e.body); }
-  }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status, p.emailSubject, p.emailBody, p.source]);
+    else { const e = projectTpl(); setSubject(e.subject); setBody(e.body); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.id, p.email, p.contactUrl, p.website, p.agentName, p.base, p.status, p.emailSubject, p.emailBody, p.source, projectId]);
 
-  const isForm = !cur.email.trim();
+  // `mode` (from the channel pill) wins; else fall back to auto-detect for the standalone /outreach drawer.
+  const isForm = mode ? mode === 'form' : !cur.email.trim();
   const formLink = (cur.contactUrl || cur.website || '').trim();
   const doSend = async () => { setSend('sending'); const res = await sendProspectEmail(projectId, p.id, { subject, body }); if (res.ok) { setSend('sent'); setTimeout(onAfterAction, 900); } else { setSend('error'); setErr(res.error || 'Send failed'); } };
   const doForm = async (kind: 'submitted' | 'unreachable') => { setFormBusy(true); if (kind === 'submitted') await markFormSubmitted(projectId, p.id); else await setProspectStatus(projectId, p.id, 'unreachable'); onAfterAction(); };
   const openEdit = () => { setDraft(cur); setSaveErr(''); setEditing(true); };
   const saveEdit = async () => { setSaving(true); setSaveErr(''); const res = await updateProspectContact(projectId, p.id, draft); setSaving(false); if (res.ok) { setCur(draft); setEditing(false); router.refresh(); } else setSaveErr(res.error || 'Save failed'); };
+  // Inline email edit from the email view's "Tới" field — fill/correct the address without opening the
+  // full contact editor (YDNI: the address IS the essential of email compose, not a hidden sub-form).
+  const saveEmail = async () => { setSaveErr(''); if (cur.email.trim() === (p.email ?? '')) return; const res = await updateProspectContact(projectId, p.id, cur); if (res.ok) router.refresh(); else setSaveErr(res.error || 'Save failed'); };
 
   return (
     <>
@@ -131,15 +152,22 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
             <div style={{ ...lbl, marginTop: 6 }}>Nội dung <span style={{ color: 'var(--fg-3)' }}>· sửa được</span></div>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12} style={taStyle} />
           </div>
+          {genErr && <div style={{ fontSize: 11, color: 'var(--bad)', margin: '8px 0 0' }}>✗ {genErr}</div>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
+            <button type="button" onClick={genEmail} disabled={gening} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--accent)', color: 'var(--accent)' }} title="AI viết nội dung theo product + Content Pillar của project này">{gening ? '⏳ Đang sinh…' : '✨ Sinh'}</button>
             <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(body)}>{didCopy ? '✓ Đã copy' : 'Copy nội dung'}</button>
-            <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
-            <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Tạo lại từ mẫu (bỏ chỉnh sửa)">Đặt lại</button>
             {sendable && (<>
               <GuardedButton reason={!body.trim() ? 'Nhập nội dung trước khi đánh dấu đã gửi' : ''} style={{ ...btn, padding: '7px 14px', fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} disabled={formBusy} onClick={() => doForm('submitted')}>{formBusy ? 'Đang lưu…' : '✓ Đã gửi form'}</GuardedButton>
               <button style={{ ...btn, padding: '7px 12px', borderColor: 'var(--bad)', color: 'var(--bad)' }} disabled={formBusy} onClick={() => doForm('unreachable')} title="Form hỏng, không phải form thật, bị captcha chặn, hoặc không gửi được">Ko gửi được / form hỏng</button>
             </>)}
           </div>
+          <details style={{ margin: '8px 0 0' }}>
+            <summary style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'pointer', userSelect: 'none' }}>Khác · lưu nháp / đặt lại</summary>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0 0' }}>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
+              <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title={projectId === LEGACY_TPL_PROJECT ? 'Tạo lại từ mẫu' : 'Xoá về trống'}>Đặt lại</button>
+            </div>
+          </details>
         </>
       ) : (
         <>
@@ -149,8 +177,10 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
             <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Gửi qua Mailjet · reply về inbox của anh</div>
           </div>
           <div style={{ margin: '12px 0 0' }}>
-            <div style={lbl}>Tới</div>
-            <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{cur.email}</div>
+            <div style={lbl}>Tới <span style={{ color: 'var(--fg-3)' }}>· email của họ — điền/sửa rồi gửi tự động</span></div>
+            <input value={cur.email} onChange={(e) => setCur({ ...cur, email: e.target.value })} onBlur={saveEmail}
+              placeholder="ten@trang-cua-ho.com" autoComplete="off" style={{ ...inputStyle, marginBottom: 0, color: 'var(--fg-0)' }} />
+            {saveErr && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>✗ {saveErr}</div>}
           </div>
           <div style={{ margin: '12px 0 0' }}>
             <div style={lbl}>Tiêu đề <span style={{ color: 'var(--fg-3)' }}>· sửa được</span>{isFollowup && <span style={{ color: 'var(--neon-amber)' }}> · nhắc</span>}</div>
@@ -160,23 +190,30 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, onA
             <div style={lbl}>Nội dung <span style={{ color: 'var(--fg-3)' }}>· sửa được — chỉnh lời chào/câu chữ trước khi gửi</span></div>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={16} style={taStyle} />
           </div>
+          {genErr && <div style={{ fontSize: 11, color: 'var(--bad)', margin: '8px 0 0' }}>✗ {genErr}</div>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 0', alignItems: 'center' }}>
-            {sendable && send === 'idle' && <GuardedButton reason={!body.trim() ? 'Nhập nội dung email trước khi gửi' : ''} disabled={pending} style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} onClick={() => setSend('confirm')}>{isFollowup ? 'Gửi nhắc' : 'Gửi email'}</GuardedButton>}
+            <button type="button" onClick={genEmail} disabled={gening} style={{ ...btn, padding: '7px 12px', fontWeight: 700, borderColor: 'var(--accent)', color: 'var(--accent)' }} title="AI viết email theo product + Content Pillar của project này">{gening ? '⏳ Đang sinh…' : '✨ Sinh'}</button>
+            {sendable && send === 'idle' && <GuardedButton reason={!cur.email.trim() ? 'Điền email của họ trước' : !body.trim() ? 'Nhập nội dung email trước khi gửi' : ''} disabled={pending} style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 700, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }} onClick={() => setSend('confirm')}>{isFollowup ? 'Gửi nhắc' : 'Gửi email'}</GuardedButton>}
             {sendable && send === 'confirm' && (<>
-              <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Xác nhận: gửi email tới {cur.email}</button>
+              <button style={{ ...btn, padding: '7px 14px', fontSize: 13, fontWeight: 800, background: 'var(--neon-lime)', color: 'var(--bg-0)', borderColor: 'var(--neon-lime)' }} onClick={doSend}>Xác nhận: gửi tới {cur.email}</button>
               <button style={{ ...btn, padding: '7px 12px' }} onClick={() => setSend('idle')}>Huỷ</button>
             </>)}
             {send === 'sending' && <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Đang gửi…</span>}
             {send === 'sent' && <span style={{ fontSize: 13, color: 'var(--neon-lime)', fontWeight: 700 }}>✓ Đã gửi</span>}
             {send === 'error' && <span style={{ fontSize: 12, color: 'var(--bad)' }}>✗ {err}</span>}
-            {send !== 'sending' && send !== 'sent' && (<>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Đã copy' : 'Copy email'}</button>
-              <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Mở Gmail ↗</a>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
-              <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title="Tạo lại từ mẫu (bỏ chỉnh sửa)">Đặt lại</button>
-            </>)}
           </div>
-          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Gửi qua Mailjet từ {sender.email} (reply về inbox của anh) và đẩy pipeline tiến. Hoặc mở sẵn trong Gmail để gửi tay.</p>
+          {send !== 'sending' && send !== 'sent' && (
+            <details style={{ margin: '8px 0 0' }}>
+              <summary style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'pointer', userSelect: 'none' }}>Khác · copy / Gmail / lưu nháp</summary>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0 0', alignItems: 'center' }}>
+                <button style={{ ...btn, padding: '7px 12px' }} onClick={() => copyLocal(`Subject: ${subject}\n\n${body}`)}>{didCopy ? '✓ Đã copy' : 'Copy email'}</button>
+                <a href={gmailUrl(cur.email, subject, body)} {...EXT} style={{ ...btn, padding: '7px 12px', textDecoration: 'none', display: 'inline-block' }}>Mở Gmail ↗</a>
+                <button style={{ ...btn, padding: '7px 12px' }} onClick={saveDraft} title="Lưu chỉnh sửa mà không gửi">{savedDraft ? '✓ Đã lưu' : 'Lưu nháp'}</button>
+                <button style={{ ...btn, padding: '7px 12px' }} onClick={resetTpl} title={projectId === LEGACY_TPL_PROJECT ? 'Tạo lại từ mẫu' : 'Xoá về trống'}>Đặt lại</button>
+              </div>
+            </details>
+          )}
+          <p style={{ color: 'var(--fg-3)', fontSize: 11, margin: '12px 0 0' }}>Gửi qua Mailjet từ {sender.email} (reply về inbox của anh) và đẩy pipeline tiến. <b>✨ Sinh</b> = AI viết theo product + Content Pillar của project.</p>
         </>
       )}
     </>

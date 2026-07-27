@@ -62,8 +62,8 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
 
   if (!p) return <Drawer onClose={onClose} width={560} zIndex={320} backgrounded={backgrounded}><div style={{ fontSize: 13, color: 'var(--fg-3)' }}>Đang tải…</div></Drawer>;
 
-  const primaryChannel = p.email ? 'email' : 'contact_form';
-  const isPrimary = sel === primaryChannel;
+  const primaryChannel = p.email ? 'email' : 'contact_form';   // which of the two is selected by default
+  const isEmailForm = sel === 'email' || sel === 'contact_form';   // both are always-present direct-channel pills
   const selTouch = touches.find((t) => String(t.id) === sel) || null;
   const addable = CHANNELS.filter((c) => c.key !== 'email' && c.key !== 'contact_form');   // dupes allowed (FB 1, FB 2…)
   const dupLabel = (t: Touch) => { const same = touches.filter((x) => x.channel === t.channel); const i = same.findIndex((x) => x.id === t.id); return same.length > 1 ? `${chLabel(t.channel)} ${i + 1}` : chLabel(t.channel); };
@@ -101,7 +101,7 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
       <div style={{ margin: '14px 0 0' }}>
         <div style={lbl}>Kênh <span style={{ color: 'var(--fg-4)' }}>· hover xem cách tiếp cận</span></div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          {pill(primaryChannel, primaryChannel, chLabel(primaryChannel), SENDABLE_DONE(p.status) ? ' ✓' : ' •', isPrimary, () => setSel(primaryChannel))}
+          {(['email', 'contact_form'] as const).map((ck) => pill(ck, ck, chLabel(ck), SENDABLE_DONE(p.status) ? ' ✓' : ' •', sel === ck, () => setSel(ck)))}
           {touches.map((t) => pill(String(t.id), t.channel, dupLabel(t), t.status === 'sent' ? ' ✓' : t.status === 'replied' ? ' ↩' : ' •', sel === String(t.id), () => setSel(String(t.id))))}
           <div style={{ position: 'relative' }}>
             <button type="button" onClick={() => setAdding((v) => !v)} style={{ ...btn, borderStyle: 'dashed' }}>+ kênh</button>
@@ -118,9 +118,9 @@ export function TaskOutreachDrawer({ projectId, prospectId, initialChannel, onCh
 
       {/* ACTIVE CHANNEL PANEL */}
       <div style={{ margin: '12px 0 0', paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-        {isPrimary ? (
-          /* The standard email/form body, reused verbatim from /outreach */
-          <OutreachEmailBody projectId={projectId} prospect={p} sender={sender} onAfterAction={reloadAll} />
+        {isEmailForm ? (
+          /* The standard email/form body, reused verbatim from /outreach — mode = which pill is active */
+          <OutreachEmailBody projectId={projectId} prospect={p} sender={sender} mode={sel === 'email' ? 'email' : 'form'} onAfterAction={reloadAll} />
         ) : selTouch ? (
           <>
             <div style={{ ...lbl, color: 'var(--fg-2)', fontSize: 11 }}>Đang: {chIcon(selTouch.channel)} {dupLabel(selTouch)}</div>

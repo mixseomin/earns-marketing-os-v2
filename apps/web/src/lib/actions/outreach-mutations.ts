@@ -10,6 +10,8 @@ import { revalidatePath } from 'next/cache';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { getOutreachProspect } from './outreach';
 import type { OutreachProspect } from './outreach';
+import { listContentPillars } from './content-pillars';
+import { genOutreachEmail } from '@/lib/outreach/email-content';
 
 const FOLLOWUP_CAP = 2; // total follow-ups before a prospect is closed as 'no_response' (CAN-SPAM friendly)
 
@@ -95,6 +97,52 @@ export async function updateProspectDraft(projectId: string, id: number, data: {
     UPDATE outreach_prospects SET email_subject = ${data.subject}, email_body = ${data.body}, updated_at = now()
     WHERE id = ${id}`);
   await rerender(projectId);
+}
+
+// AI-generate the outreach email FOR THIS PROJECT (product + its Content Pillar), not a hardcoded
+// template. Mirrors genTouch (touch-content) but email-shaped and pillar-aware. Saves the draft so
+// the auto-send cron (which prefers saved body) sends exactly what was generated + reviewed.
+const EMAIL_FOLLOWUP = new Set(['sent', 'followup_1', 'followup_2', 'replied']);
+export async function genProspectEmail(
+  projectId: string, id: number,
+): Promise<{ ok: boolean; subject?: string; body?: string; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB unavailable' };
+  try {
+    const rows = await db.execute(sql`
+      SELECT p.agent_name, p.company, p.base, p.status, p.website AS p_site,
+             c.from_name,
+             pr.name AS product, pr.website AS website, pr.one_liner,
+             ht.title AS src_title, ht.prep_payload->>'source_url' AS src_url
+      FROM outreach_prospects p
+      LEFT JOIN outreach_campaigns c ON c.id = p.campaign_id
+      LEFT JOIN projects pr ON pr.id = p.project_id
+      LEFT JOIN human_tasks ht ON ht.id = p.task_id
+      WHERE p.id = ${id} AND p.project_id = ${projectId} LIMIT 1`);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (!r) return { ok: false, error: 'prospect not found' };
+    // Pillar chính của project: ưu tiên pillar khai báo dùng cho 'email', else pillar top-priority.
+    const pillars = await listContentPillars(projectId);
+    const pillar = pillars.find((pl) => pl.preferredTypes?.includes('email')) || pillars[0] || null;
+    const fromName = String(r.from_name || 'Jake Miller');
+    const out = await genOutreachEmail({
+      product: String(r.product || ''), website: String(r.website || ''), oneLiner: String(r.one_liner || ''),
+      ownerName: String(r.agent_name || r.company || ''), sourceTitle: String(r.src_title || ''),
+      sourceUrl: String(r.src_url || r.p_site || ''), base: String(r.base || ''),
+      signer: fromName.trim().split(/\s+/)[0] || 'Jake',
+      isFollowup: EMAIL_FOLLOWUP.has(String(r.status || '')),
+      positioning: pillar?.positioningMd, keyMessages: pillar?.keyMessages,
+      forbiddenMsgs: pillar?.forbiddenMsgs, voiceNotes: pillar?.voiceNotes,
+    });
+    if (!out) return { ok: false, error: 'Không sinh được (AI off hoặc lỗi). Kiểm tra OPENAI_API_KEY.' };
+    await db.execute(sql`
+      UPDATE outreach_prospects SET email_subject = ${out.subject}, email_body = ${out.body}, updated_at = now()
+      WHERE id = ${id} AND project_id = ${projectId}`);
+    await rerender(projectId);
+    return { ok: true, subject: out.subject, body: out.body };
+  } catch (e) {
+    return { ok: false, error: `gen lỗi: ${(e as Error).message}` };
+  }
 }
 
 function etld1FromUrl(u: string): string | null {

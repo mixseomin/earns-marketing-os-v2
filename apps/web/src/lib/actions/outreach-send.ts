@@ -60,9 +60,13 @@ export async function sendProspectEmail(
     subject = savedSubject; body = savedBody;
   } else if (source === 'backlink') {
     return { ok: false, error: 'Backlink prospect chưa có nội dung email — sinh trước (Import từ Backlinks)' };
-  } else {
+  } else if (projectId === 'militarycalc') {
+    // ponytail: the hardcoded template is MilitaryCalc-only. Other projects MUST have a saved body
+    // (✨ Sinh — per-project AI) so we never send MilitaryCalc's BAH pitch under another brand.
     const tpl = buildEmailForProspect({ agentName: r.agent_name as string | null, base: r.base as string | null, status, source: r.source as string | null });
     subject = tpl.subject; body = tpl.body;
+  } else {
+    return { ok: false, error: 'Chưa có nội dung email — bấm ✨ Sinh (AI viết theo project) trước khi gửi' };
   }
   if (!body.trim()) return { ok: false, error: 'No email body to send' };
   // Defensive: never let a leftover "[Your Name]" placeholder go out — sign with the real sender.

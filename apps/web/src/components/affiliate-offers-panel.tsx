@@ -17,9 +17,17 @@ const SITES: SiteCfg[] = [
     },
     note: 'CTAs live on walk pages (Ghost on US cities, SamBoat on water cities).',
   },
-  // Next: add sites once they embed Awin CTAs + expose /api/offer-stats. See the affiliate-embed
-  // plan (decisions/2026-07-27-affiliate-offers-cross-site-plan.md). steamsolo is gated on joining
-  // gaming programmes (no game-key/gear advertiser is joined on Awin yet).
+  {
+    key: 'steamsolo.com',
+    title: '🎮 steamsolo.com',
+    statsUrl: 'https://steamsolo.com/api/offer-stats',
+    offerMeta: {
+      fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting' },
+      fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods' },
+      eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain' },
+    },
+    note: 'Bridged CTA on guide pages (one offer per game, rotated to compare CTR).',
+  },
 ];
 
 interface OfferRow {

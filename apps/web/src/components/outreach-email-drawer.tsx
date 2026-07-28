@@ -84,6 +84,7 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, mod
   const [saveErr, setSaveErr] = useState('');
   const [gening, setGening] = useState(false);
   const [genErr, setGenErr] = useState('');
+  const [emailSaved, setEmailSaved] = useState(false);   // ambient: flash the "Tới" border after silent auto-save (§36)
   const copyLocal = (text: string) => { navigator.clipboard?.writeText(text).then(() => { setDidCopy(true); setTimeout(() => setDidCopy(false), 1500); }).catch(() => {}); };
   const saveDraft = async () => { await updateProspectDraft(projectId, p.id, { subject, body }); setSavedDraft(true); setTimeout(() => setSavedDraft(false), 1500); router.refresh(); };
   // ponytail: only militarycalc keeps its hardcoded BAH template; every other project starts blank and
@@ -112,7 +113,7 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, mod
   const saveEdit = async () => { setSaving(true); setSaveErr(''); const res = await updateProspectContact(projectId, p.id, draft); setSaving(false); if (res.ok) { setCur(draft); setEditing(false); router.refresh(); } else setSaveErr(res.error || 'Save failed'); };
   // Inline email edit from the email view's "Tới" field — fill/correct the address without opening the
   // full contact editor (YDNI: the address IS the essential of email compose, not a hidden sub-form).
-  const saveEmail = async () => { setSaveErr(''); if (cur.email.trim() === (p.email ?? '')) return; const res = await updateProspectContact(projectId, p.id, cur); if (res.ok) router.refresh(); else setSaveErr(res.error || 'Save failed'); };
+  const saveEmail = async () => { setSaveErr(''); if (cur.email.trim() === (p.email ?? '')) return; const res = await updateProspectContact(projectId, p.id, cur); if (res.ok) { setEmailSaved(true); setTimeout(() => setEmailSaved(false), 800); router.refresh(); } else setSaveErr(res.error || 'Save failed'); };
 
   return (
     <>
@@ -179,7 +180,7 @@ export function OutreachEmailBody({ projectId, prospect: p, sender, pending, mod
           <div style={{ margin: '12px 0 0' }}>
             <div style={lbl}>Tới <span style={{ color: 'var(--fg-3)' }}>· email của họ — điền/sửa rồi gửi tự động</span></div>
             <input value={cur.email} onChange={(e) => setCur({ ...cur, email: e.target.value })} onBlur={saveEmail}
-              placeholder="ten@trang-cua-ho.com" autoComplete="off" style={{ ...inputStyle, marginBottom: 0, color: 'var(--fg-0)' }} />
+              placeholder="ten@trang-cua-ho.com" autoComplete="off" style={{ ...inputStyle, marginBottom: 0, color: 'var(--fg-0)', transition: 'box-shadow .2s', ...(emailSaved ? { boxShadow: '0 0 0 2px var(--neon-lime)' } : {}) }} />
             {saveErr && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>✗ {saveErr}</div>}
           </div>
           <div style={{ margin: '12px 0 0' }}>

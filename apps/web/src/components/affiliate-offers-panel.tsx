@@ -25,9 +25,10 @@ const SITES: SiteCfg[] = [
     offerMeta: {
       fiverr_coach: { label: '🎯 Game coaching', merchant: 'Fiverr · per-game coaching/boosting' },
       fiverr_art: { label: '🎨 Custom game art', merchant: 'Fiverr · logos, art, mods' },
+      amazon: { label: '📦 Amazon gear', merchant: 'Amazon · steamsolo-20 (gear/setup/universal)' },
       eyewear: { label: '👓 Blue-light glasses', merchant: 'SOJOS · long-session eye strain' },
     },
-    note: 'Bridged CTA on guide pages (one offer per game, rotated to compare CTR).',
+    note: 'Bridged CTA on guide pages, offer chosen by guide intent (Amazon convs tracked in Amazon dashboard by ascsubtag=guide_<slug>).',
   },
 ];
 
@@ -101,9 +102,10 @@ export async function AffiliateOffersPanel() {
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>💸 Affiliate offers (Awin)</h2>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>💸 Affiliate offers</h2>
         <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>
           conversions → <a href="https://ui.awin.com/" target="_blank" rel="noopener" style={{ color: 'var(--ok)' }}>Awin</a>
+          {' · '}<a href="https://affiliate-program.amazon.com/home/reports" target="_blank" rel="noopener" style={{ color: 'var(--ok)' }}>Amazon</a>
         </span>
       </div>
 

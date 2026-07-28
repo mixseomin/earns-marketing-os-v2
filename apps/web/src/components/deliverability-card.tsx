@@ -398,29 +398,35 @@ function SeedPanel() {
   );
 }
 
-interface EngData {
-  list: string; updatedAt: string; total: number; sendable: number; engaged: number; engagedPct: number;
-  tiers: { hot: number; warm: number; cold: number }; suppressed: number; unsubProcessed?: number;
-  drip: { campaign: string; sent: number; target: number; processed?: number | null; delivered?: number | null; opened?: number; clicked?: number; bounced?: number; blocked?: number; spam?: number; unsub?: number };
+interface ListSummary {
+  source: 'mailjet' | 'beehiiv';
+  list: string; total: number; sendable: number;
+  engaged?: number; engagedPct?: number;
+  tiers?: { hot: number; warm: number; cold: number }; suppressed?: number; unsubProcessed?: number;
+  drip?: { campaign: string; sent: number; target: number; processed?: number | null; delivered?: number | null; opened?: number; clicked?: number; bounced?: number; blocked?: number; spam?: number; unsub?: number };
+  openRate?: number | null; clickRate?: number | null; sent?: number;
 }
+interface EngData { updatedAt: string; lists: ListSummary[] }
 
-// Mailjet-style engagement view for the militarycalc list: tier breakdown + live engaged-drip stats.
+// Engagement view for ALL email lists (Mailjet contact lists + beehiiv publications). Overview
+// table of every list, then detail for the selected one: militarycalc shows engagement tiers +
+// live engaged-drip; a beehiiv list shows open/click rate; a plain Mailjet list shows its count.
 function EngagementPanel() {
   const [e, setE] = useState<EngData | null | 'err'>(null);
+  const [selName, setSelName] = useState<string | null>(null);
   useEffect(() => {
     fetch('/api/deliverability/engagement', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((j) => setE(j && j.total ? j : 'err'))
+      .then((j) => setE(j && Array.isArray(j.lists) && j.lists.length ? j : 'err'))
       .catch(() => setE('err'));
   }, []);
   if (e === null) return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>loading engagement…</div>;
   if (e === 'err') return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>No engagement summary yet — the box worker writes it hourly.</div>;
 
   const pct = (n: number, dd: number) => (dd ? Math.round((n / dd) * 100) : 0);
-  const t = e.tiers;
-  const dr = e.drip || ({} as EngData['drip']);
-  const sentN = dr.sent || 0;
-  const base = dr.processed || sentN;
+  const lists = e.lists;
+  const sel = lists.find((l) => l.list === selName) || lists.find((l) => l.tiers) || lists[0];
+  if (!sel) return <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8 }}>No lists yet.</div>;
 
   const Bar = ({ label, n, of, color }: { label: string; n: number; of: number; color: string }) => (
     <div style={{ marginBottom: 6 }}>
@@ -440,38 +446,93 @@ function EngagementPanel() {
       {sub && <div style={{ fontSize: 9, color: 'var(--fg-3)' }}>{sub}</div>}
     </div>
   );
+  const SrcBadge = ({ s }: { s: string }) => (
+    <span style={{ ...mono, fontSize: 8.5, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: s === 'beehiiv' ? 'rgba(224,169,74,.16)' : 'rgba(55,212,194,.16)', color: s === 'beehiiv' ? '#c99633' : '#2ba898' }}>{s === 'beehiiv' ? 'BH' : 'MJ'}</span>
+  );
+  const engView = (l: ListSummary) => (l.tiers ? `${l.engagedPct}%` : l.source === 'beehiiv' && l.openRate != null ? `${l.openRate}%` : '—');
+  const sentView = (l: ListSummary) => (l.drip ? (l.drip.sent || 0).toLocaleString() : l.sent != null ? l.sent.toLocaleString() : '—');
+  const COLS = '1fr 62px 66px 52px';
 
   return (
     <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <Stat label="List · militarycalc" val={e.total.toLocaleString()} sub={`${e.sendable.toLocaleString()} sendable`} />
-        <Stat label="Engaged" val={`${e.engagedPct}%`} sub={`${e.engaged.toLocaleString()} opened/clicked`} color="#5ac47e" />
-        <Stat label="Suppressed" val={e.suppressed.toLocaleString()} sub="bounce/unsub/spam" color="#d16b6b" />
-      </div>
+      {/* Overview — every list, click a row for detail */}
       <div>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)', marginBottom: 6 }}>Engagement tiers</div>
-        <Bar label="🔥 Hot · opened ≥2×" n={t.hot} of={e.total} color="#5ac47e" />
-        <Bar label="🌤 Warm · opened 1×" n={t.warm} of={e.total} color="#e0a94a" />
-        <Bar label="❄️ Cold · never opened" n={t.cold} of={e.total} color="#6b7684" />
-      </div>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)' }}>Engaged drip · live (Mailjet)</span>
-          <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{sentN.toLocaleString()} / {e.engaged.toLocaleString()} sent</span>
+        <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 6, fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)', padding: '0 8px 4px' }}>
+          <span>List ({lists.length})</span><span style={{ textAlign: 'right' }}>Subs</span><span style={{ textAlign: 'right' }}>Eng/Open</span><span style={{ textAlign: 'right' }}>Sent</span>
         </div>
-        <div style={{ height: 6, background: 'var(--bg-1)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
-          <div style={{ width: `${pct(sentN, e.engaged)}%`, height: '100%', background: 'var(--accent, #37d4c2)' }} />
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Stat label="Opened" val={(dr.opened || 0).toLocaleString()} sub={`${pct(dr.opened || 0, base)}% of sent`} color="#5ac47e" />
-          <Stat label="Clicked" val={(dr.clicked || 0).toLocaleString()} sub={`${pct(dr.clicked || 0, base)}%`} />
-          <Stat label="Bounced" val={(dr.bounced || 0).toLocaleString()} color={dr.bounced ? '#e0a94a' : undefined} />
-          <Stat label="Spam" val={(dr.spam || 0).toLocaleString()} color={dr.spam ? '#d16b6b' : undefined} />
-          <Stat label="Unsub" val={(dr.unsub || 0).toLocaleString()} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {lists.map((l) => (
+            <div key={l.list} onClick={() => setSelName(l.list)} title={`${l.list} — click for detail`}
+              style={{ display: 'grid', gridTemplateColumns: COLS, gap: 6, alignItems: 'center', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12, background: sel.list === l.list ? 'var(--bg-2)' : 'transparent' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                <SrcBadge s={l.source} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: sel.list === l.list ? 'var(--fg-0)' : 'var(--fg-1)' }}>{l.list}</span>
+              </span>
+              <span style={{ ...mono, textAlign: 'right', color: 'var(--fg-1)' }}>{l.total.toLocaleString()}</span>
+              <span style={{ ...mono, textAlign: 'right', color: l.tiers || l.openRate != null ? '#5ac47e' : 'var(--fg-3)' }}>{engView(l)}</span>
+              <span style={{ ...mono, textAlign: 'right', color: 'var(--fg-2)' }}>{sentView(l)}</span>
+            </div>
+          ))}
         </div>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>
-        Sending <b>engaged-first</b> (hot → warm) via Mailjet from <span style={mono}>noreply@militarycalc.com</span>, ~180/day. Clicks are scanner-inflated on B2B lists — trust <b>opens</b> + <b>spam</b> rate. Cold {t.cold.toLocaleString()} sent after engaged. <span style={{ color: 'var(--fg-3)' }}>· updated {new Date(e.updatedAt).toLocaleString()}</span>
+
+      {/* Detail of the selected list */}
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {sel.tiers && sel.drip ? (() => {
+          const t = sel.tiers!; const dr = sel.drip!; const sentN = dr.sent || 0; const base = dr.processed || sentN; const engaged = sel.engaged || 0;
+          return (
+            <>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub={`${sel.sendable.toLocaleString()} sendable`} />
+                <Stat label="Engaged" val={`${sel.engagedPct}%`} sub={`${engaged.toLocaleString()} opened/clicked`} color="#5ac47e" />
+                <Stat label="Suppressed" val={(sel.suppressed || 0).toLocaleString()} sub="bounce/unsub/spam" color="#d16b6b" />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)', marginBottom: 6 }}>Engagement tiers</div>
+                <Bar label="🔥 Hot · opened ≥2×" n={t.hot} of={sel.total} color="#5ac47e" />
+                <Bar label="🌤 Warm · opened 1×" n={t.warm} of={sel.total} color="#e0a94a" />
+                <Bar label="❄️ Cold · never opened" n={t.cold} of={sel.total} color="#6b7684" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)' }}>Engaged drip · live (Mailjet)</span>
+                  <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{sentN.toLocaleString()} / {engaged.toLocaleString()} sent</span>
+                </div>
+                <div style={{ height: 6, background: 'var(--bg-1)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ width: `${pct(sentN, engaged)}%`, height: '100%', background: 'var(--accent, #37d4c2)' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Stat label="Opened" val={(dr.opened || 0).toLocaleString()} sub={`${pct(dr.opened || 0, base)}% of sent`} color="#5ac47e" />
+                  <Stat label="Clicked" val={(dr.clicked || 0).toLocaleString()} sub={`${pct(dr.clicked || 0, base)}%`} />
+                  <Stat label="Bounced" val={(dr.bounced || 0).toLocaleString()} color={dr.bounced ? '#e0a94a' : undefined} />
+                  <Stat label="Spam" val={(dr.spam || 0).toLocaleString()} color={dr.spam ? '#d16b6b' : undefined} />
+                  <Stat label="Unsub" val={(dr.unsub || 0).toLocaleString()} />
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+                Sending <b>engaged-first</b> (hot → warm) via Mailjet from <span style={mono}>noreply@militarycalc.com</span>, ~180/day. Clicks are scanner-inflated on B2B lists — trust <b>opens</b> + <b>spam</b> rate. Cold {t.cold.toLocaleString()} sent after engaged.
+              </div>
+            </>
+          );
+        })() : sel.source === 'beehiiv' ? (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub="active subscribers" />
+              <Stat label="Open rate" val={sel.openRate != null ? `${sel.openRate}%` : '—'} color="#5ac47e" />
+              <Stat label="Click rate" val={sel.clickRate != null ? `${sel.clickRate}%` : '—'} />
+              <Stat label="Sent" val={(sel.sent || 0).toLocaleString()} sub="issues" />
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>beehiiv publication. Open/click are averaged across all issues sent. Grow subscribers from the site signup form.</div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub={`${sel.sendable.toLocaleString()} sendable`} />
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>Mailjet contact list · subscriber count only. Engagement tiers + open/click appear once a tracked send campaign runs for this list.</div>
+          </>
+        )}
+        <div style={{ fontSize: 10, color: 'var(--fg-3)' }}>updated {new Date(e.updatedAt).toLocaleString()}</div>
       </div>
     </div>
   );

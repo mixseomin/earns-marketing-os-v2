@@ -1,19 +1,21 @@
 import { readFile } from 'node:fs/promises';
 
-// List engagement summary for the militarycalc list, written hourly by the box worker
-// (engagement-summary.mjs): tiers from the Mailjet engagement pull + live drip open/click/bounce
-// from Mailjet statcounters. Read-only view for the deliverability card — no per-load Mailjet calls.
-export interface EngagementSummary {
+// Multi-list email engagement summary, written hourly by the box worker (engagement-summary.mjs):
+// every Mailjet contact list (militarycalc keeps rich tiers + live drip; other lists = subscriber
+// count) plus beehiiv publications (open/click/sent). Read-only view for the deliverability card —
+// no per-load Mailjet/beehiiv calls.
+export interface ListSummary {
+  source: 'mailjet' | 'beehiiv';
   list: string;
-  updatedAt: string;
   total: number;
   sendable: number;
-  engaged: number;
-  engagedPct: number;
-  tiers: { hot: number; warm: number; cold: number };
-  suppressed: number;
+  // rich (militarycalc engaged drip)
+  engaged?: number;
+  engagedPct?: number;
+  tiers?: { hot: number; warm: number; cold: number };
+  suppressed?: number;
   unsubProcessed?: number;
-  drip: {
+  drip?: {
     campaign: string;
     sent: number;
     target: number;
@@ -27,6 +29,15 @@ export interface EngagementSummary {
     unsub?: number;
     error?: string;
   };
+  // beehiiv publication stats
+  openRate?: number | null;
+  clickRate?: number | null;
+  sent?: number;
+}
+
+export interface EngagementSummary {
+  updatedAt: string;
+  lists: ListSummary[];
 }
 
 const FILE = process.env.ENGAGEMENT_FILE || '/opt/earns-marketing-os-v2/.engagement-summary.json';
@@ -34,7 +45,13 @@ const FILE = process.env.ENGAGEMENT_FILE || '/opt/earns-marketing-os-v2/.engagem
 export async function readEngagement(): Promise<EngagementSummary | null> {
   try {
     const j = JSON.parse(await readFile(FILE, 'utf8'));
-    return j && typeof j === 'object' && j.total ? j : null;
+    if (j && Array.isArray(j.lists)) return j;
+    // ponytail: back-compat with the old single-object format (pre multi-list writer)
+    if (j && typeof j === 'object' && j.total) {
+      const { updatedAt, ...rest } = j;
+      return { updatedAt, lists: [{ source: 'mailjet', ...rest }] };
+    }
+    return null;
   } catch {
     return null;
   }

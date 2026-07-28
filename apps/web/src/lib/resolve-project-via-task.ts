@@ -115,21 +115,26 @@ export async function listLiveTasks(
 ): Promise<{ id: number; title: string; projectId: string; projectName: string; accountId: number | null; platformKey: string | null; siteMatch: boolean; siteStatus: string }[]> {
   const sel = { id: humanTasks.id, title: humanTasks.title, projectId: humanTasks.projectId, projectName: projects.name, accountId: humanTasks.accountId, platformKey: humanTasks.platformKey, sourceUrl: sql<string>`${humanTasks.prepPayload}->>'source_url'`, siteStatus: sql<string>`(${humanTasks.prepPayload}->'site_status') ->> ${humanTasks.projectId}` };
   const host = (opts.host || '').replace(/^www\./, '').trim().toLowerCase();
-  const base = host.split('.')[0];
+  const parts = host ? host.split('.') : [];
+  const base = parts.length >= 2 ? parts[parts.length - 2] : (parts[0] || '');   // 'archive.recomendo.com' → 'recomendo' (BRAND), KHÔNG lấy subdomain 'archive'
+  const regDom = parts.length >= 2 ? parts.slice(-2).join('.') : host;           // 'recomendo.com' — khớp CẢ subdomain khác cùng site
+  // Điều kiện SITE-MATCH (source_url theo DOMAIN GỐC hoặc title chứa BRAND). Dùng lại: ors · nới status · ưu tiên sort.
+  const siteCond = host ? or(sql`${humanTasks.prepPayload}->>'source_url' ILIKE ${'%' + regDom + '%'}`, ilike(humanTasks.title, '%' + base + '%')) : null;
   const map = (rows: Array<{ id: number; title: string | null; projectId: string | null; projectName: string | null; accountId: number | null; platformKey: string | null; sourceUrl: string | null; siteStatus: string | null }>) =>
     rows.map((r) => ({ id: r.id, title: r.title || '', projectId: r.projectId || '', projectName: r.projectName || '', accountId: r.accountId ?? null, platformKey: r.platformKey ?? null,
-      siteMatch: !!host && ((r.sourceUrl || '').toLowerCase().includes(host) || (!!base && (r.title || '').toLowerCase().includes(base))), siteStatus: r.siteStatus || 'pending' }));
+      siteMatch: !!host && ((r.sourceUrl || '').toLowerCase().includes(regDom) || (!!base && (r.title || '').toLowerCase().includes(base))), siteStatus: r.siteStatus || 'pending' }));
   const pid = (opts.projectId || '').trim();
   const ors = [];
   if (opts.accountId) ors.push(eq(humanTasks.accountId, Number(opts.accountId)));            // đã gán account NÀY
   if (pid) ors.push(and(isNull(humanTasks.accountId), eq(humanTasks.projectId, pid)));         // CHƯA gán acc, cùng project
-  if (host) ors.push(and(isNull(humanTasks.accountId), or(                                     // CHƯA gán acc, khớp SITE đang mở (title/source_url) — hiện cả khi chưa pin project
-    sql`${humanTasks.prepPayload}->>'source_url' ILIKE ${'%' + host + '%'}`, ilike(humanTasks.title, '%' + base + '%'))));
+  if (siteCond) ors.push(siteCond);                                                            // KHỚP SITE đang mở — thấy CẢ task đã gán acc + đã SUBMIT/DONE (ko gate isNull) → "site này đã có task"
   if (ors.length) {
     const rows = await db.select(sel).from(humanTasks)
       .leftJoin(projects, eq(projects.id, humanTasks.projectId))
-      .where(and(or(...ors), isNotNull(humanTasks.projectId), inArray(humanTasks.status, LIVE)))
-      .orderBy(desc(humanTasks.updatedAt)).limit(20);
+      // Hiện khi: khớp 1 ors VÀ (còn LIVE HOẶC khớp site). → task ĐÃ SUBMIT/DONE của ĐÚNG site vẫn hiện (trước LIVE-only nuốt mất — user 2026-07-28).
+      .where(and(or(...ors), isNotNull(humanTasks.projectId), siteCond ? or(inArray(humanTasks.status, LIVE), siteCond) : inArray(humanTasks.status, LIVE)))
+      // Site-matched lên ĐẦU (khỏi bị limit 20 nuốt), rồi mới nhất trước.
+      .orderBy(...(siteCond ? [sql`CASE WHEN ${siteCond} THEN 0 ELSE 1 END`] : []), desc(humanTasks.updatedAt)).limit(20);
     return map(rows);
   }
   if (opts.platform) {

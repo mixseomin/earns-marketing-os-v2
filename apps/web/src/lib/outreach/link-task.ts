@@ -67,10 +67,40 @@ export async function ensureBacklinkCampaign(db: Db, projectId: string): Promise
 
 const firstEmail = (s: string): string => (s.match(new RegExp(EMAIL_RE))?.[0] ?? '');
 
-// Link a single backlink task to outreach. Idempotent (existing prospect by task_id is reused +
-// pitch backfilled if empty). Works with OR without a recipient email — no email → a form/contact
-// prospect the staffer sends manually; email present → the cron auto-sends. Returns a deep link.
-export async function linkTaskToOutreachCore(db: Db, taskId: number): Promise<{ ok: boolean; error?: string; prospectId?: number; projectId?: string; campId?: number; email?: string; channel?: 'email' | 'form'; url?: string; created?: boolean }> {
+export type ProspectState = {
+  prospectId: number; projectId: string; email: string; channel: 'email' | 'form';
+  subject: string; body: string; status: string; sentAt: string; repliedAt: string;
+  followupCount: number; nextFollowupAt: string;
+};
+
+// Read the outreach prospect linked to a backlink task — live status + saved pitch for the ext to
+// show inline (no MOS2 deep-link needed). Null = task not yet pushed to outreach.
+export async function readProspectState(db: Db, taskId: number): Promise<ProspectState | null> {
+  const rows = (await db.execute(sql`
+    SELECT id, project_id, email, email_subject, email_body, status, sent_at, replied_at, followup_count, next_followup_at
+    FROM outreach_prospects WHERE task_id = ${taskId} ORDER BY id DESC LIMIT 1`)) as unknown as Array<Record<string, unknown>>;
+  const p = rows[0];
+  if (!p) return null;
+  const iso = (v: unknown) => (v ? new Date(v as string | number | Date).toISOString() : '');
+  return {
+    prospectId: Number(p.id), projectId: String(p.project_id || ''),
+    email: String(p.email || ''), channel: p.email ? 'email' : 'form',
+    subject: String(p.email_subject || ''), body: String(p.email_body || ''),
+    status: String(p.status || ''), sentAt: iso(p.sent_at), repliedAt: iso(p.replied_at),
+    followupCount: Number(p.followup_count || 0), nextFollowupAt: iso(p.next_followup_at),
+  };
+}
+
+// Link a single backlink task to outreach. Idempotent (existing prospect by task_id is reused).
+// opts.saveSubject/saveBody → persist operator edits (no AI, fillSignoff applied). opts.regenerate →
+// force a fresh AI pitch (overwrite). Neither → backfill a pitch only if the prospect has none.
+// Works with OR without a recipient email — no email → a form/contact prospect the staffer sends
+// manually; email present → the cron auto-sends. Always returns the live prospect state (subject/
+// body/status/…) so the ext shows what will send + where it stands.
+export async function linkTaskToOutreachCore(
+  db: Db, taskId: number,
+  opts?: { regenerate?: boolean; saveSubject?: string | null; saveBody?: string | null },
+): Promise<{ ok: boolean; error?: string; created?: boolean; campId?: number } & Partial<ProspectState>> {
   try {
     const tr = (await db.execute(sql`
       SELECT ht.id, ht.title, ht.project_id, ht.instructions,
@@ -84,33 +114,46 @@ export async function linkTaskToOutreachCore(db: Db, taskId: number): Promise<{ 
     if (!projectId) return { ok: false, error: 'task chưa gắn project' };
 
     const email = firstEmail(`${t.mechanism || ''} ${t.instructions || ''}`);
-    const channel: 'email' | 'form' = email ? 'email' : 'form';
     const host = String(t.source_url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || String(t.title || 'site');
     const camp = await ensureBacklinkCampaign(db, projectId);
     const signer = firstNameOf(camp.from_name);
     const proj = { name: t.pname, website: t.website, one_liner: t.one_liner, bio: t.bio };
+    const product = String(t.pname || '');
+    const saving = opts?.saveSubject != null || opts?.saveBody != null;
 
-    // Existing prospect for this task? (task_id link, or the legacy notes marker). Reuse it.
-    const ex = (await db.execute(sql`SELECT id, email_body FROM outreach_prospects WHERE project_id = ${projectId} AND (task_id = ${taskId} OR notes = ${'từ backlink task #' + taskId}) LIMIT 1`)) as unknown as Array<{ id: number; email_body: string | null }>;
+    // Ensure the prospect (task_id link, or the legacy notes marker). On create, seed with the saved
+    // pitch when saving, else generate one.
+    const ex = (await db.execute(sql`SELECT id FROM outreach_prospects WHERE project_id = ${projectId} AND (task_id = ${taskId} OR notes = ${'từ backlink task #' + taskId}) LIMIT 1`)) as unknown as Array<{ id: number }>;
+    let prospectId: number; let created = false;
     if (ex.length) {
-      const pid = ex[0]!.id;
-      // Backfill pitch + ensure task_id link if missing.
-      if (!ex[0]!.email_body) {
-        const pitch = await genPitch(proj, t, signer);
-        if (pitch) await db.execute(sql`UPDATE outreach_prospects SET email_subject = ${pitch.subject}, email_body = ${pitch.body}, updated_at = now() WHERE id = ${pid}`);
-      }
-      await db.execute(sql`UPDATE outreach_prospects SET task_id = ${taskId}, contact_url = COALESCE(contact_url, ${String(t.source_url || '')}), updated_at = now() WHERE id = ${pid} AND task_id IS NULL`);
-      return { ok: true, prospectId: pid, projectId, campId: camp.id, email, channel, created: false, url: `/p/${projectId}/outreach?c=${camp.id}&prospect=${pid}` };
+      prospectId = ex[0]!.id;
+      await db.execute(sql`UPDATE outreach_prospects SET task_id = ${taskId}, contact_url = COALESCE(contact_url, ${String(t.source_url || '')}), updated_at = now() WHERE id = ${prospectId} AND task_id IS NULL`);
+    } else {
+      // Insert with an empty pitch; the mutation block below fills it (save / regen / backfill) so
+      // there is exactly ONE genPitch path and the ON CONFLICT (existing-by-email) row keeps its body.
+      const ins = (await db.execute(sql`
+        INSERT INTO outreach_prospects (tenant_id, project_id, campaign_id, task_id, agent_name, company, email, contact_url, website, status, source, notes)
+        VALUES ('self', ${projectId}, ${camp.id}, ${taskId}, ${host}, ${String(t.title ?? '')}, ${email || null}, ${String(t.source_url ?? '')}, ${String(t.source_url ?? '')}, 'to_send', 'backlink', ${'từ backlink task #' + taskId})
+        ON CONFLICT (project_id, email) DO UPDATE SET task_id = ${taskId}, updated_at = now()
+        RETURNING id`)) as unknown as Array<{ id: number }>;
+      prospectId = Number(ins[0]?.id);
+      created = true;
     }
 
-    const pitch = await genPitch(proj, t, signer);
-    const ins = (await db.execute(sql`
-      INSERT INTO outreach_prospects (tenant_id, project_id, campaign_id, task_id, agent_name, company, email, contact_url, website, status, source, email_subject, email_body, notes)
-      VALUES ('self', ${projectId}, ${camp.id}, ${taskId}, ${host}, ${String(t.title ?? '')}, ${email || null}, ${String(t.source_url ?? '')}, ${String(t.source_url ?? '')}, 'to_send', 'backlink', ${pitch?.subject ?? null}, ${pitch?.body ?? null}, ${'từ backlink task #' + taskId})
-      ON CONFLICT (project_id, email) DO UPDATE SET task_id = ${taskId}, updated_at = now()
-      RETURNING id`)) as unknown as Array<{ id: number }>;
-    const pid = Number(ins[0]?.id);
-    return { ok: true, prospectId: pid, projectId, campId: camp.id, email, channel, created: true, url: `/p/${projectId}/outreach?c=${camp.id}&prospect=${pid}` };
+    // Apply the pitch mutation: operator save wins, else regenerate on demand, else backfill if empty.
+    const [{ email_body: curBody } = { email_body: null }] = (await db.execute(sql`SELECT email_body FROM outreach_prospects WHERE id = ${prospectId} LIMIT 1`)) as unknown as Array<{ email_body: string | null }>;
+    if (saving) {
+      await db.execute(sql`UPDATE outreach_prospects SET email_subject = ${fillSignoff(String(opts?.saveSubject ?? ''), signer, product)}, email_body = ${fillSignoff(String(opts?.saveBody ?? ''), signer, product)}, updated_at = now() WHERE id = ${prospectId}`);
+    } else if (opts?.regenerate) {
+      const pitch = await genPitch(proj, t, signer);
+      if (pitch) await db.execute(sql`UPDATE outreach_prospects SET email_subject = ${pitch.subject}, email_body = ${pitch.body}, updated_at = now() WHERE id = ${prospectId}`);
+    } else if (!curBody) {
+      const pitch = await genPitch(proj, t, signer);
+      if (pitch) await db.execute(sql`UPDATE outreach_prospects SET email_subject = ${pitch.subject}, email_body = ${pitch.body}, updated_at = now() WHERE id = ${prospectId}`);
+    }
+
+    const state = await readProspectState(db, taskId);
+    return { ok: true, created, campId: camp.id, ...(state || {}) };
   } catch (e) {
     return { ok: false, error: `link outreach lỗi: ${(e as Error).message || String(e)}` };
   }

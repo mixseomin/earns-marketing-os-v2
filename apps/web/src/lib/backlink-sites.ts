@@ -11,6 +11,8 @@ export const BACKLINK_SITES: { slug: string; domain: string; label: string; emoj
   { slug: 'chatlt',           domain: 'chatlt.com',           label: 'ChatLT',           emoji: '💬' },
   { slug: 'cities',           domain: 'cities.gg',            label: 'Cities.gg',        emoji: '🏙️' },
   { slug: 'militarymarkdown', domain: 'militarymarkdown.com', label: 'MilitaryMarkdown', emoji: '🪖' },
+  { slug: 'mint-almanac',     domain: 'mintalmanac.com',      label: 'Mint Almanac',     emoji: '🪙' },
+  { slug: 'steamsolo',        domain: 'steamsolo.com',        label: 'steamsolo.com',    emoji: '🎮' },
 ];
 
 const BY_DOMAIN = new Map(BACKLINK_SITES.map((s) => [s.domain, s.slug]));

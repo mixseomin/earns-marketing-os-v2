@@ -728,7 +728,7 @@ export function ResourcesPage({
               <span style={{ fontSize: 20 }}>{v.icon}</span>
               <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                 <b style={{ fontSize: 12.5, color: "var(--fg-0)", whiteSpace: "nowrap" }}>{v.name}</b>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--fg-3)", whiteSpace: "nowrap" }}>{realSub ?? v.sub}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 500, color: "var(--fg-1)", whiteSpace: "nowrap", marginTop: 1 }}>{realSub ?? v.sub}</span>
               </div>
             </button>
           );

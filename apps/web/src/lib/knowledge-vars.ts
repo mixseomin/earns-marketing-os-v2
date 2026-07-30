@@ -29,6 +29,6 @@ export function projectKnowledgeVars(
 // The {{tokens}} a template actually uses — for the catalog editor's "variables" hint.
 export function detectTemplateVars(text: string): string[] {
   const out = new Set<string>();
-  for (const m of text.matchAll(/\{\{(\w[\w\s-]*)\}\}/g)) out.add(m[1].trim());
+  for (const m of text.matchAll(/\{\{(\w[\w\s-]*)\}\}/g)) if (m[1]) out.add(m[1].trim());
   return [...out];
 }

@@ -21,18 +21,17 @@
 //     </FormModalFooter>
 //   </FormModal>
 
-import { useEffect, type ReactNode, type CSSProperties } from 'react';
+import { type ReactNode, type CSSProperties } from 'react';
 import { ModalHeader, type ModalKind } from './modal-header';
+import { Drawer } from './drawer';
 
 type ActionKind = 'edit' | 'create' | 'view';
 
 export type ModalWidth = 'sm' | 'md' | 'lg' | 'xl' | number;
 
-const WIDTH_MAP: Record<Exclude<ModalWidth, number>, string> = {
-  sm: 'min(480px, 95vw)',
-  md: 'min(760px, 95vw)',
-  lg: 'min(1100px, 95vw)',
-  xl: 'min(1480px, 97vw)',
+// Was centered-modal widths; now drawer panel widths (px, caps at 96vw in Drawer).
+const WIDTH_PX: Record<Exclude<ModalWidth, number>, number> = {
+  sm: 480, md: 760, lg: 1100, xl: 1480,
 };
 
 export interface FormModalProps {
@@ -60,52 +59,43 @@ export interface FormModalProps {
   children: ReactNode;
 }
 
+// Renders as a right-side slide-over Drawer (stackable, resizable, ESC-topmost) —
+// converted from centered modal so viewing detail keeps list context and doesn't
+// break rhythm. API unchanged; every FormModal consumer flips to a drawer at once.
 export function FormModal({
   kind, action, title, idText, subtitle, context, accentColor,
   width = 'md', preventBackdropClose, preventEscClose,
   modalStyle, bodyStyle, bodyPadding,
   zIndex, onClose, children,
 }: FormModalProps) {
-  // ESC to close
-  useEffect(() => {
-    if (preventEscClose) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose, preventEscClose]);
-
-  const widthCss = typeof width === 'number' ? `${width}px` : WIDTH_MAP[width];
+  const widthPx = typeof width === 'number' ? width : WIDTH_PX[width];
 
   return (
-    <div className="modal-backdrop"
-         style={zIndex ? { zIndex } : undefined}
-         onClick={(e) => {
-           if (preventBackdropClose) return;
-           if (e.target === e.currentTarget) onClose();
-         }}>
-      <div className="modal"
-           style={{ width: widthCss, maxWidth: typeof width === 'number' ? width : undefined, ...modalStyle }}
-           onClick={(e) => e.stopPropagation()}>
-        <ModalHeader
-          kind={kind}
-          action={action}
-          title={title}
-          idText={idText}
-          subtitle={subtitle}
-          context={context}
-          accentColor={accentColor}
-          onClose={onClose}
-        />
-        <div style={{
-          padding: bodyPadding ?? 0,
-          overflow: 'auto',
-          flex: 1,
-          ...bodyStyle,
-        }}>
-          {children}
-        </div>
+    <Drawer
+      onClose={onClose}
+      width={widthPx}
+      zIndex={zIndex ?? 1000}
+      closeOnOutside={!preventBackdropClose}
+      closeOnEsc={!preventEscClose}
+      padding={0}
+      // Panel is a flex column: sticky header + scrollable body. Own scroll lives on the
+      // body div, so the panel itself must not also scroll. modalStyle merges last (rare).
+      bodyStyle={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column', ...modalStyle }}
+    >
+      <ModalHeader
+        kind={kind}
+        action={action}
+        title={title}
+        idText={idText}
+        subtitle={subtitle}
+        context={context}
+        accentColor={accentColor}
+        onClose={onClose}
+      />
+      <div style={{ padding: bodyPadding ?? 0, overflow: 'auto', flex: 1, ...bodyStyle }}>
+        {children}
       </div>
-    </div>
+    </Drawer>
   );
 }
 

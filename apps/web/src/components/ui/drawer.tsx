@@ -26,6 +26,7 @@ export function Drawer({
   zIndex = 200,
   backgrounded = false,
   closeOnOutside = true,
+  closeOnEsc = true,
   dimBackdrop = true,
   padding = 20,
   bodyStyle,
@@ -41,6 +42,8 @@ export function Drawer({
   backgrounded?: boolean;
   /** Click backdrop closes. Set false for form drawers guarding unsaved data. */
   closeOnOutside?: boolean;
+  /** ESC closes (topmost only). Set false for form drawers guarding unsaved data. */
+  closeOnEsc?: boolean;
   /** Paint the dim scrim. Off when a base drawer already supplies the dim. */
   dimBackdrop?: boolean;
   padding?: number;
@@ -51,12 +54,15 @@ export function Drawer({
   const [w, setW] = useState(width);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
+  const escRef = useRef(closeOnEsc);
+  escRef.current = closeOnEsc;
   useEffect(() => {
     const id = ++drawerSeq;
     drawerStack.push(id);
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (drawerStack[drawerStack.length - 1] !== id) return;   // not the top drawer → ignore
+      if (!escRef.current) return;                              // ESC-close disabled (form guarding data)
       e.stopPropagation();
       closeRef.current();
     };

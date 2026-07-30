@@ -1,16 +1,18 @@
 import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
-import { PlaysPage } from '@/components/plays-page';
-import { getProject, getProjectMode, listProjects } from '@/lib/data';
-import { listInbox } from '@/lib/actions/inbox';
+import { BacklinksPage } from '@/components/backlinks-page';
+import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
+import { listTeamMembers } from '@/lib/actions/team';
+import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
+import { getBacklinkTasks } from '@/lib/actions/backlink-tasks';
+import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 
 export const dynamic = 'force-dynamic';
 
-// Unified per-project "Plays" board. Every distribution task for this site lives in
-// human_tasks (backlink = platform_key 'backlink', community/reddit/etc = their keys);
-// the Backlinks/Inbox tabs are just filtered views on the same table. This tab drops
-// the platform_key filter and shows ALL statuses (incl. backlog) in one place.
+// "Plays" = the SAME surface as /backlinks (real list/calendar/filters + the real task
+// drawer with its built-in Outreach chip), just opened Kanban-first. One place to see /
+// assign / follow every distribution play. No reinvented UI — reuses BacklinksPage whole.
 export default async function PlaysRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -20,10 +22,18 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect(`/p/${id}/inbox`);
 
-  const [mode, projects, tasks] = await Promise.all([
+  const slug = resolveSiteSlug(id);
+  const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
+  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
-    listInbox('all', id, { assignment: 'all', limit: 1000 }),
+    slug ? getBacklinkTasks(id) : Promise.resolve([]),
+    listPlatforms(),
+    listAccounts(id),
+    listTeamMembers(),
+    listProxies(),
+    listBrowserProfiles(),
+    listMedia(id),
   ]);
 
   return (
@@ -34,7 +44,9 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
       tab="plays"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <PlaysPage projectId={id} tasks={tasks} />
+      <BacklinksPage projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks}
+        project={project} platforms={platforms} accounts={accounts}
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} initialView="kanban" />
     </AppShell>
   );
 }

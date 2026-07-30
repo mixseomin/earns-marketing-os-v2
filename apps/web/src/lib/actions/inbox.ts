@@ -48,13 +48,12 @@ export interface InboxFilter {
 export async function listInbox(
   filterStatus: string = 'all',
   projectId?: string,
-  opts?: { assignment?: 'all' | 'mine' | 'unassigned' | number; currentUserId?: number; limit?: number },
+  opts?: { assignment?: 'all' | 'mine' | 'unassigned' | number; currentUserId?: number },
 ): Promise<HumanTaskRow[]> {
   const db = getDb();
   if (!db) return [];
   const assignment = opts?.assignment ?? 'all';
   const currentUid = opts?.currentUserId ?? null;
-  const lim = Math.min(2000, Math.max(1, opts?.limit ?? 100));   // plays board passes a high limit to show the full backlog
   const rows = await db.execute(sql`
     WITH ht_with_run AS (
       SELECT ht.*, c.workflow_run_id
@@ -98,7 +97,7 @@ export async function listInbox(
       END,
       ht.sla_due_at ASC NULLS LAST,
       ht.created_at DESC
-    LIMIT ${lim}
+    LIMIT 100
   `);
   const toIso = (v: unknown): string | null => {
     if (!v) return null;

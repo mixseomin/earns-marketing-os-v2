@@ -393,10 +393,11 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource |
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, initialView }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
+  initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -415,7 +416,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
-  const [view, setView] = useState<'list' | 'calendar'>(sp.get('view') === 'list' ? 'list' : 'calendar');
+  const [view, setView] = useState<'list' | 'calendar' | 'kanban'>(() => { const v = sp.get('view'); if (v === 'list' || v === 'kanban') return v; if (v === 'calendar') return 'calendar'; return initialView === 'kanban' ? 'kanban' : 'calendar'; });
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);
@@ -485,7 +486,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
     set('tier', tierFilter);
-    set('view', view === 'list' ? 'list' : '');   // default (calendar) → clean URL
+    set('view', view === 'calendar' ? '' : view);   // calendar = default (clean URL); list/kanban explicit
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     set('outreach', outreachPid);
@@ -768,7 +769,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {STATUS_ORDER.map((s) => <TabBtn key={s} k={s} label={SITE_STATUS[s]!.label} n={kpi[s]} />)}
         <TabBtn k="all" label="All" n={kpi.total} />
-        <ViewToggle style={{ marginLeft: 'auto' }} options={LIST_CALENDAR_VIEWS} value={view} onChange={(v) => setView(v as 'list' | 'calendar')} />
+        <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban')} />
       </div>
 
       {/* filters — apply to BOTH list & calendar */}
@@ -797,7 +798,24 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         )}
       </div>
 
-      {view === 'calendar' ? (
+      {view === 'kanban' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
+          {STATUS_ORDER.map((st) => {
+            const col = shown.filter((t) => t.siteState === st);
+            return (
+              <div key={st} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: SITE_STATUS[st]!.color, paddingLeft: 2 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: SITE_STATUS[st]!.color }} />
+                  {SITE_STATUS[st]!.label}<span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{col.length}</span>
+                </div>
+                {col.map(rowEl)}
+                {!col.length && <div style={{ fontSize: 11, color: 'var(--fg-4)', padding: '6px 2px' }}>—</div>}
+              </div>
+            );
+          })}
+          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
+        </div>
+      ) : view === 'calendar' ? (
         <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

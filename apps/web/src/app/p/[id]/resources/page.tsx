@@ -7,7 +7,7 @@ import { ContactsVault } from '@/components/contacts-vault';
 import { MediaVault } from '@/components/media-vault';
 import { InfraVault } from '@/components/infra-vault';
 import { BudgetVault } from '@/components/budget-vault';
-import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listKnowledge, listContacts, listMedia, listInfra, listBudget } from '@/lib/data';
+import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listProjectKnowledge, listSharedKnowledge, listContacts, listMedia, listInfra, listBudget } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
 import { getCurrentUser, getEffectiveUser } from '@/lib/auth';
@@ -33,13 +33,15 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
   const [, eff] = await Promise.all([getCurrentUser(), getEffectiveUser()]);
   const isOperator = eff?.role !== 'admin';
 
-  const [mode, projects, platforms, accounts, knowledge, contacts, media, infra, budget, teamMembers, impCtx, visData, proxies, browserProfiles] = await Promise.all([
+  const [mode, projects, platforms, accounts, knowledge, sharedKnowledge, contacts, media, infra, budget, teamMembers, impCtx, visData, proxies, browserProfiles] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     listPlatforms(),
     listAccounts(id),
-    // Only fetch non-account vaults if operator has visibility or is admin
-    isDemo ? Promise.resolve([]) : listKnowledge(id),
+    // Knowledge: project-own + referenced shared templates (default no longer floods with all shared)
+    isDemo ? Promise.resolve([]) : listProjectKnowledge(project),
+    // Shared catalog for the "📎 Tham khảo từ chung" picker (admin only)
+    isDemo || isOperator ? Promise.resolve([]) : listSharedKnowledge(),
     isDemo ? Promise.resolve([]) : listContacts(id),
     isDemo ? Promise.resolve([]) : listMedia(id),
     isDemo ? Promise.resolve([]) : listInfra(id),
@@ -94,7 +96,7 @@ export default async function ResourcesRoute({ params }: { params: Promise<{ id:
         accountsOverride={
           <AccountsVault projectId={id} project={project} platforms={platforms} accounts={accounts} teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} isAdmin={!isOperator} />
         }
-        knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} projectName={project.name} projectId={id} />) : <></>}
+        knowledgeOverride={canSeeKnowledge ? (isDemo ? undefined : <KnowledgeVault items={knowledge} sharedCatalog={sharedKnowledge} projectName={project.name} projectId={id} />) : <></>}
         contactsOverride ={canSeeContacts  ? (isDemo ? undefined : <ContactsVault  contacts={contacts} projectName={project.name} />) : <></>}
         mediaOverride    ={canSeeMedia     ? (isDemo ? undefined : <MediaVault     items={media} projectId={id} />) : <></>}
         infraOverride    ={canSeeInfra     ? (isDemo ? undefined : <InfraVault     items={infra} projectId={id} />) : <></>}

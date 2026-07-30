@@ -1280,6 +1280,9 @@ export const knowledgeItems = pgTable(
     title: text('title').notNull(),
     content: text('content').notNull().default(''),
     tags: jsonb('tags').notNull().default([]),
+    // Shared rows (project_id NULL) are template catalog entries; refs = {projectId: {var overrides}}
+    // maps which projects reference this template. Empty {} = project uses its default variables.
+    refs: jsonb('refs').notNull().default({}),
     importedFrom: text('imported_from'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

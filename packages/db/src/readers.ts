@@ -317,6 +317,36 @@ export async function listKnowledgeByProject(projectId: string | null) {
   return db.select().from(knowledgeItems).where(cond).orderBy(desc(knowledgeItems.updatedAt));
 }
 
+// Project vault (new default): the project's OWN items + shared templates it REFERENCES
+// (project_id NULL AND refs ? projectId). NOT every portfolio-wide item — that was the flood.
+export async function listProjectKnowledge(projectId: string) {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(knowledgeItems)
+    .where(and(
+      eq(knowledgeItems.tenantId, TENANT),
+      or(
+        eq(knowledgeItems.projectId, projectId),
+        and(isNull(knowledgeItems.projectId), sql`jsonb_exists(${knowledgeItems.refs}, ${projectId})`),
+      ),
+    ))
+    .orderBy(desc(knowledgeItems.updatedAt));
+}
+
+// Shared template catalog ("knowledge chung") — every portfolio-wide row. refs jsonb comes
+// along so the app can count referencing projects.
+export async function listSharedKnowledge() {
+  const db = getDb();
+  if (!db) return null;
+  return db
+    .select()
+    .from(knowledgeItems)
+    .where(and(eq(knowledgeItems.tenantId, TENANT), isNull(knowledgeItems.projectId)))
+    .orderBy(desc(knowledgeItems.updatedAt));
+}
+
 export async function listAllKnowledge(projectId?: string) {
   // Includes both project-specific AND portfolio-wide (project_id IS NULL).
   const db = getDb();

@@ -274,8 +274,8 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
     {
       key: 'library', label: 'Library',
       items: [
-        { href: '/library', icon: '🗂', color: 'var(--neon-cyan)',  label: 'Tools & Skills', sub: 'shared catalog' },
-        {                   icon: '⌖',  color: 'var(--neon-amber)', label: 'Playbooks',      sub: 'soon', soon: true },
+        { href: '/library',   icon: '🗂', color: 'var(--neon-cyan)',  label: 'Tools & Skills', sub: 'shared catalog' },
+        { href: '/knowledge', icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',    sub: 'shared templates', role: 'admin' },
       ],
     },
     {

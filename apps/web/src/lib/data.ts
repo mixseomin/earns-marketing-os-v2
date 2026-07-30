@@ -2,10 +2,12 @@
 // otherwise falls back to mock fixtures in src/lib/mock/.
 // Same shape returned regardless — page components don't know the difference.
 
-import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, getAccountByIdTenant, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades, getBrokerNowMs as dbGetBrokerNowMs } from '@mos2/db';
+import { getDb, listProjects as dbListProjects, getProjectById, getModeById, listSquadsByProject, listCardsByProject, listAlertsByProject, listRecentFeed, listAllModes, listAllPlatforms, listAccountsByProject, getAccountByIdTenant, listUnmappedAccounts as dbListUnmappedAccounts, listAllUseCases, listAllRoadmap, listTribesByProject, listHabitatsByProject, listAllKnowledge, listProjectKnowledge as dbListProjectKnowledge, listSharedKnowledge as dbListSharedKnowledge, listAllContacts, listMediaAssets, listInfraResources, listBudgetEntries, listContentPiecesByProject, listAgentRuns, listHumanTasks, listPlaybooks, listDailySpendCaps, listStrategyTests as dbListStrategyTests, listStrategyTestAssets as dbListStrategyTestAssets, listStrategyForward as dbListStrategyForward, listStrategyTrades as dbListStrategyTrades, getBrokerNowMs as dbGetBrokerNowMs } from '@mos2/db';
 import { PROJECTS as MOCK_PROJECTS, SHARED_POOL } from './mock/projects';
 import { MODES as MOCK_MODES, getMode as getMockMode } from './mock/modes';
 import type { Mode, Project, Squad, Card, FeedEvent, Alert } from './mock/types';
+import { fillTemplate } from './template';
+import { projectKnowledgeVars } from './knowledge-vars';
 
 export const dataMode = (): 'db' | 'mock' => (getDb() ? 'db' : 'mock');
 
@@ -679,7 +681,14 @@ export interface HabitatRow {
   // migration 0077: own habitat (brand mình quản lý)
   isOwn: boolean;
 }
-export interface KnowledgeRow { id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date }
+export interface KnowledgeRow {
+  id: number; projectId: string | null; kind: string; title: string; content: string; tags: string[]; importedFrom: string | null; updatedAt: Date;
+  refs?: Record<string, Record<string, string>>;   // shared rows: {projectId: {var overrides}}
+  isRef?: boolean;                                   // in a project view: this is a referenced shared template
+  rendered?: string;                                 // content with {{vars}} filled (referenced items)
+  overrides?: Record<string, string>;                // this project's var overrides for the ref
+  refCount?: number;                                 // catalog view: how many projects reference it
+}
 export interface ContactRow { id: number; projectId: string | null; name: string; email: string | null; role: string; company: string | null; socialHandles: Record<string, string>; notes: string | null; tags: string[]; lastTouchedAt: Date | null; importedFrom: string | null }
 
 export async function listTribes(projectId: string): Promise<TribeRow[]> {
@@ -860,6 +869,42 @@ export async function listKnowledge(projectId?: string): Promise<KnowledgeRow[]>
       importedFrom: r.importedFrom, updatedAt: r.updatedAt,
     }));
   }, [], 'listKnowledge');
+}
+
+// Project Knowledge vault (default): own items + referenced shared templates, with {{vars}} filled.
+export async function listProjectKnowledge(project: Project): Promise<KnowledgeRow[]> {
+  return tryDb(async () => {
+    const rows = await dbListProjectKnowledge(project.id);
+    const vars = projectKnowledgeVars(project);
+    return (rows ?? []).map((r) => {
+      const isRef = r.projectId == null;   // shared template referenced by this project
+      const refs = (r.refs as Record<string, Record<string, string>>) ?? {};
+      const overrides = isRef ? (refs[project.id] ?? {}) : undefined;
+      return {
+        id: r.id, projectId: r.projectId, kind: r.kind, title: r.title,
+        content: r.content, tags: (r.tags as string[]) ?? [],
+        importedFrom: r.importedFrom, updatedAt: r.updatedAt,
+        isRef, overrides,
+        rendered: isRef ? fillTemplate(r.content, { ...vars, ...(overrides ?? {}) }) : r.content,
+      };
+    });
+  }, [], 'listProjectKnowledge');
+}
+
+// Shared template catalog ("knowledge chung") for /knowledge — every portfolio-wide row + ref count.
+export async function listSharedKnowledge(): Promise<KnowledgeRow[]> {
+  return tryDb(async () => {
+    const rows = await dbListSharedKnowledge();
+    return (rows ?? []).map((r) => {
+      const refs = (r.refs as Record<string, Record<string, string>>) ?? {};
+      return {
+        id: r.id, projectId: r.projectId, kind: r.kind, title: r.title,
+        content: r.content, tags: (r.tags as string[]) ?? [],
+        importedFrom: r.importedFrom, updatedAt: r.updatedAt,
+        refs, refCount: Object.keys(refs).length,
+      };
+    });
+  }, [], 'listSharedKnowledge');
 }
 
 export interface StrategyTestRow {

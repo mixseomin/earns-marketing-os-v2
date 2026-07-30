@@ -44,6 +44,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         ],
       },
       { href: `/p/${pid}/studio`, label: t('nav.studio', 'Studio'), icon: '🎬' },
+      { href: `/p/${pid}/plays`,  label: t('nav.plays', 'Plays'), icon: '🎯' },
       { href: `/p/${pid}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
     ]),
     {
@@ -155,6 +156,13 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
               <Link href={`/p/${currentProjectId}/backlinks`} className="squad" data-active={navActive("backlinks")} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>🔗</div>
                 <div className="squad-name"><b>{t('nav.backlinks', 'Backlinks')}</b><span>source pipeline · assign · verify</span></div>
+                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
+              </Link>
+            )}
+            {currentUser?.role === 'admin' && (
+              <Link href={`/p/${currentProjectId}/plays`} className="squad" data-active={navActive("plays")} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="squad-icon" style={{ borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }}>🎯</div>
+                <div className="squad-name"><b>{t('nav.plays', 'Plays')}</b><span>mọi kênh phân phối · 1 màn</span></div>
                 <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
               </Link>
             )}

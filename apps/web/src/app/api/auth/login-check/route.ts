@@ -1,10 +1,7 @@
-// Credential check for course.on.tc's OWN login form. Both admin and staff/reviewers log in
-// on course.on.tc with the same email+password (same user store as MOS2 / user.on.tc). This
-// verifies the credential WITHOUT creating a session — course.on.tc issues its own
-// self-contained signed cookie, so the console keeps working if MOS2 restarts (no more nginx
-// auth_request SSO coupling uptime). Any valid MOS2 user passes; course.on.tc's own accessFor()
-// decides admin vs reviewer. Localhost-only: nginx always stamps x-forwarded-for on public
-// requests, so its presence means "not the internal control-plane" → refuse (no public oracle).
+// Credential check for course.on.tc's OWN login form (admin + staff/reviewers, same user store
+// as MOS2 / user.on.tc). Verifies email+password WITHOUT creating a session — course.on.tc issues
+// its own self-contained cookie. Any valid user passes; course.on.tc's accessFor() scopes access.
+// Internal-only is enforced at nginx (deny public /api/auth/login-check), not in-app.
 import { sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { getDb } from '@mos2/db';
@@ -13,12 +10,21 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  if (req.headers.get('x-forwarded-for')) return Response.json({ ok: false }); // ponytail: internal-only
   let email = '', password = '';
-  try { const b = await req.json(); email = String(b?.email || '').trim().toLowerCase(); password = String(b?.password || ''); } catch { /* bad body → ok:false */ }
-  if (!email || !password) return Response.json({ ok: false });
+  try {
+    const ct = req.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      const b = await req.json();
+      email = String(b?.email || ''); password = String(b?.password || '');
+    } else {
+      const p = new URLSearchParams(await req.text());
+      email = p.get('email') || ''; password = p.get('password') || '';
+    }
+  } catch { /* unparseable body → empty → ok:false */ }
+  email = email.trim().toLowerCase();
+  if (!email || !password) return Response.json({ ok: false, why: 'empty' });
   const db = getDb();
-  if (!db) return Response.json({ ok: false });
+  if (!db) return Response.json({ ok: false, why: 'nodb' });
   const rows = await db.execute(sql`
     SELECT u.password_hash, m.role
     FROM users u
@@ -26,6 +32,7 @@ export async function POST(req: Request) {
     WHERE u.tenant_id = ${TENANT} AND u.email = ${email} LIMIT 1
   `);
   const r = (rows as unknown as Array<{ password_hash: string | null; role: string | null }>)[0];
-  if (!r?.password_hash || !(await bcrypt.compare(password, r.password_hash))) return Response.json({ ok: false });
+  if (!r?.password_hash) return Response.json({ ok: false, why: 'nouser' });
+  if (!(await bcrypt.compare(password, r.password_hash))) return Response.json({ ok: false, why: 'badpw' });
   return Response.json({ ok: true, email, role: r.role || 'viewer' });
 }

@@ -6,6 +6,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
+import { nichesForProject } from '../backlink-sites';
 
 export interface BacklinkSource {
   id: number;
@@ -166,16 +167,22 @@ export async function seedBacklinksFromCatalog(
   }
 }
 
-// One-click generator: seed a project with every reusable play-source template (audience_tags @> {play}).
-// Reuses seedBacklinksFromCatalog → fills {product}/{domain}/{pitch}/{link} per project, dedups by source_url,
-// and the results are living-templates (edit the source in the catalog → syncTasksFromSource propagates here).
+// One-click generator: seed a project with the play-source templates (audience_tags @> {play}) that FIT
+// this site's niches — a 'universal' source (any topic) or one whose niche tags overlap the site's
+// (nichesForProject). A site with no niche mapping falls back to every play. Reuses seedBacklinksFromCatalog
+// → fills {product}/{domain}/{pitch}/{link}, dedups by source_url; results are living-templates.
 export async function generatePlaysForProject(projectId: string): Promise<{ ok: boolean; created?: number; skipped?: number; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   try {
+    const niches = nichesForProject(projectId);
+    const nicheFilter = niches.length
+      ? sql`AND ('universal' = ANY(audience_tags) OR audience_tags && ARRAY[${sql.join(niches.map((n) => sql`${n}`), sql`, `)}]::text[])`
+      : sql``;   // unmapped site → all plays
     const rows = (await db.execute(sql`
       SELECT id FROM backlink_sources
       WHERE source_status = 'active' AND audience_tags @> ARRAY['play']::text[]
+      ${nicheFilter}
       ORDER BY id
     `)) as unknown as Array<{ id: number }>;
     const ids = rows.map((r) => Number(r.id));

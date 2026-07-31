@@ -365,9 +365,9 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource |
         <div><label style={lbl}>Tên *</label><input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" style={field} /></div>
         <div><label style={lbl}>URL hành động *</label><input value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="off" placeholder="https://…/submit" style={field} /></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><label style={lbl}>Category</label>
+          <div style={{ flex: 1 }}><label style={lbl}>Channel (kênh/loại post)</label>
             <select value={category ?? ''} onChange={(e) => setCategory(e.target.value)} style={field}>
-              <option value="">—</option>{['tool-dir', 'forum', 'edu-resource', 'haro', 'listicle', 'wiki', 'social', 'llms', 'qa', 'directory', 'guest-post'].map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="">—</option>{['community', 'editorial', 'pr', 'guest-post', 'directory', 'tool-dir', 'launch', 'qa', 'forum', 'wiki', 'reference', 'dev', 'listicle', 'social', 'edu-resource', 'haro', 'llms'].map((c) => <option key={c} value={c}>{c}</option>)}
             </select></div>
           <div style={{ flex: 1 }}><label style={lbl}>Dofollow</label>
             <select value={dofollow ?? ''} onChange={(e) => setDofollow(e.target.value)} style={field}>
@@ -379,7 +379,7 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource |
           <div style={{ flex: 1 }}><label style={lbl}>Traffic</label><input value={traffic ?? ''} onChange={(e) => setTraffic(e.target.value)} autoComplete="off" style={field} /></div>
           <div style={{ flex: 1 }}><label style={lbl}>Platform key</label><input value={platformKey ?? ''} onChange={(e) => setPlatformKey(e.target.value)} autoComplete="off" style={field} /></div>
         </div>
-        <div><label style={lbl}>Audience tags (phẩy)</label><input value={aud} onChange={(e) => setAud(e.target.value)} autoComplete="off" placeholder="games, general, finance…" style={field} /></div>
+        <div><label style={lbl}>Niche tags — nhóm site khớp (phẩy)</label><input value={aud} onChange={(e) => setAud(e.target.value)} autoComplete="off" placeholder="coins, games, finance, immigration… · 'universal' = mọi niche · 'play'" style={field} /></div>
         <div><label style={lbl}>Gates / điều kiện</label><input value={gates ?? ''} onChange={(e) => setGates(e.target.value)} autoComplete="off" style={field} /></div>
         <div><label style={lbl}>Instruction template (chỗ trống {'{product}'} / {'{domain}'})</label><textarea value={tpl ?? ''} onChange={(e) => setTpl(e.target.value)} rows={9} style={{ ...field, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} /></div>
         <div><label style={lbl}>Trạng thái</label>
@@ -447,11 +447,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [seedOpen, setSeedOpen] = useState(false);
   const [seedSrcs, setSeedSrcs] = useState<BacklinkSource[] | null>(null);
   const [seedAud, setSeedAud] = useState('');
+  const [seedCat, setSeedCat] = useState('');
   const [seedSel, setSeedSel] = useState<Set<number>>(new Set());
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
   const reloadSeed = async () => setSeedSrcs(await listBacklinkSources({ projectId, status: 'active' }));
-  const openSeed = async () => { setSeedOpen(true); setSeedSrcs(null); setSeedSel(new Set()); setSeedMsg(''); setSeedAud(''); await reloadSeed(); };
+  const openSeed = async () => { setSeedOpen(true); setSeedSrcs(null); setSeedSel(new Set()); setSeedMsg(''); setSeedAud(''); setSeedCat(''); await reloadSeed(); };
   const toggleSeed = (id: number) => setSeedSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const doSeed = async () => {
     if (!seedSel.size) return;
@@ -735,7 +736,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {seedOpen && (() => {
         const auds = seedSrcs ? [...new Set(seedSrcs.flatMap((s) => s.audienceTags))].sort() : [];
-        const shown = (seedSrcs || []).filter((s) => !seedAud || s.audienceTags.includes(seedAud));
+        const cats = seedSrcs ? [...new Set(seedSrcs.map((s) => s.category).filter(Boolean) as string[])].sort() : [];
+        const shown = (seedSrcs || []).filter((s) => (!seedAud || s.audienceTags.includes(seedAud)) && (!seedCat || s.category === seedCat));
         const newCount = seedSel.size;
         return (
           <Drawer onClose={() => setSeedOpen(false)} width={660} backgrounded={!!srcEdit}>
@@ -749,10 +751,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10 }}>
               Catalog nguồn dùng chung cho mọi dự án. Chọn nguồn → tạo task cho <b>{siteLabel}</b>. Nguồn đã có tự bỏ qua. <code>{'{product}'}</code>/<code>{'{domain}'}</code> điền sẵn; ví dụ chủ đề trong hướng dẫn nhớ chỉnh cho đúng sản phẩm.
             </div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
-              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Audience</span>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', width: 52 }}>Niche</span>
               {auds.map((a) => <button key={a} type="button" onClick={() => setSeedAud(seedAud === a ? '' : a)} style={chip('var(--accent)', seedAud === a)}>{a}</button>)}
             </div>
+            {cats.length > 0 && (
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', width: 52 }}>Channel</span>
+                {cats.map((c) => <button key={c} type="button" onClick={() => setSeedCat(seedCat === c ? '' : c)} style={chip('var(--fg-2)', seedCat === c)}>{c}</button>)}
+              </div>
+            )}
             {seedSrcs === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang tải catalog…</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '52vh', overflowY: 'auto' }}>
                   {shown.map((s) => (

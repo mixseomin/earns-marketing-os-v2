@@ -22,9 +22,9 @@ export async function POST(req: Request) {
     }
   } catch { /* unparseable body → empty → ok:false */ }
   email = email.trim().toLowerCase();
-  if (!email || !password) return Response.json({ ok: false, why: 'empty' });
+  if (!email || !password) return Response.json({ ok: false });
   const db = getDb();
-  if (!db) return Response.json({ ok: false, why: 'nodb' });
+  if (!db) return Response.json({ ok: false });
   const rows = await db.execute(sql`
     SELECT u.password_hash, m.role
     FROM users u
@@ -32,7 +32,6 @@ export async function POST(req: Request) {
     WHERE u.tenant_id = ${TENANT} AND u.email = ${email} LIMIT 1
   `);
   const r = (rows as unknown as Array<{ password_hash: string | null; role: string | null }>)[0];
-  if (!r?.password_hash) return Response.json({ ok: false, why: 'nouser' });
-  if (!(await bcrypt.compare(password, r.password_hash))) return Response.json({ ok: false, why: 'badpw' });
+  if (!r?.password_hash || !(await bcrypt.compare(password, r.password_hash))) return Response.json({ ok: false });
   return Response.json({ ok: true, email, role: r.role || 'viewer' });
 }

@@ -24,6 +24,7 @@ export interface BacklinkSource {
   verifiedAt: string | null;
   sourceStatus: string;
   usedByHere?: boolean; // already seeded to the queried project
+  usageCount: number;   // distinct projects that have a task from this source
 }
 
 type Row = Record<string, unknown>;
@@ -44,6 +45,7 @@ function mapRow(r: Row): BacklinkSource {
     verifiedAt: r.verified_at ? String(r.verified_at) : null,
     sourceStatus: String(r.source_status ?? 'active'),
     usedByHere: r.used_here === true || r.used_here === 't',
+    usageCount: 0,
   };
 }
 
@@ -75,6 +77,15 @@ export async function listBacklinkSources(opts?: {
     SELECT * FROM backlink_sources ORDER BY source_status, COALESCE(category, 'zzz'), name
   `)) as unknown as Row[];
   let list = rows.map(mapRow);
+  // usage = distinct projects that have a task from each source (batched, not per-row — see reference_backlinks_view_perf).
+  const usage = (await db.execute(sql`
+    SELECT prep_payload->>'source_url' AS u, count(DISTINCT proj) AS n
+    FROM human_tasks, jsonb_object_keys(COALESCE(prep_payload->'site_status', '{}'::jsonb)) AS proj
+    WHERE platform_key = 'backlink' AND prep_payload->>'source_url' IS NOT NULL
+    GROUP BY 1
+  `)) as unknown as Row[];
+  const useN = new Map(usage.map((r) => [String(r.u), Number(r.n)]));
+  list = list.map((s) => ({ ...s, usageCount: useN.get(s.canonicalUrl) ?? 0 }));
   if (opts?.projectId) {
     const used = (await db.execute(sql`
       SELECT DISTINCT prep_payload->>'source_url' AS u FROM human_tasks

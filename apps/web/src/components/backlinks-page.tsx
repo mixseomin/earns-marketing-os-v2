@@ -444,15 +444,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const restoreTrash = async (id: string) => { await restoreDroppedSource(id); setTrash(await listDroppedSources()); start(() => router.refresh()); };
 
   // Seed-from-catalog — instantiate tasks for this project from the shared source catalog (backlink_sources).
-  const [seedOpen, setSeedOpen] = useState(false);
+  const [seedOpen, setSeedOpen] = useState(sp.get('seed') === '1');
   const [seedSrcs, setSeedSrcs] = useState<BacklinkSource[] | null>(null);
-  const [seedAud, setSeedAud] = useState('');
-  const [seedCat, setSeedCat] = useState('');
+  const [seedAud, setSeedAud] = useState(sp.get('sniche') ?? '');
+  const [seedCat, setSeedCat] = useState(sp.get('schan') ?? '');
+  const [seedSort, setSeedSort] = useState(sp.get('ssort') ?? '');
+  const [seedQ, setSeedQ] = useState(sp.get('sq') ?? '');
+  const [seedHideUsed, setSeedHideUsed] = useState(sp.get('shide') === '1');
   const [seedSel, setSeedSel] = useState<Set<number>>(new Set());
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
   const reloadSeed = async () => setSeedSrcs(await listBacklinkSources({ projectId, status: 'active' }));
-  const openSeed = async () => { setSeedOpen(true); setSeedSrcs(null); setSeedSel(new Set()); setSeedMsg(''); setSeedAud(''); setSeedCat(''); await reloadSeed(); };
+  const openSeed = async () => { setSeedOpen(true); setSeedSrcs(null); setSeedSel(new Set()); setSeedMsg(''); setSeedAud(''); setSeedCat(''); setSeedSort(''); setSeedQ(''); setSeedHideUsed(false); await reloadSeed(); };
+  // Restore an URL-opened drawer (F5 with ?seed=1) — load the catalog without resetting the restored filters.
+  useEffect(() => { if (seedOpen && seedSrcs === null) void reloadSeed(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   const toggleSeed = (id: number) => setSeedSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const doSeed = async () => {
     if (!seedSel.size) return;
@@ -502,8 +507,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('task', openId);
     set('outreach', outreachPid);
     set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
+    // seed-catalog drawer state (only meaningful while open)
+    set('seed', seedOpen ? '1' : '');
+    set('sniche', seedOpen ? seedAud : '');
+    set('schan', seedOpen ? seedCat : '');
+    set('ssort', seedOpen ? seedSort : '');
+    set('sq', seedOpen ? seedQ.trim() : '');
+    set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, view, groupBy, openId, outreachPid, outreachCh]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -737,32 +749,59 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       {seedOpen && (() => {
         const auds = seedSrcs ? [...new Set(seedSrcs.flatMap((s) => s.audienceTags))].sort() : [];
         const cats = seedSrcs ? [...new Set(seedSrcs.map((s) => s.category).filter(Boolean) as string[])].sort() : [];
-        const shown = (seedSrcs || []).filter((s) => (!seedAud || s.audienceTags.includes(seedAud)) && (!seedCat || s.category === seedCat));
+        const qLow = seedQ.trim().toLowerCase();
+        const trafRank = (t: string | null) => (t === 'high' ? 3 : t === 'medium' ? 2 : t === 'low' ? 1 : 0);
+        const shown = (seedSrcs || [])
+          .filter((s) =>
+            (!seedAud || s.audienceTags.includes(seedAud)) &&
+            (!seedCat || s.category === seedCat) &&
+            (!seedHideUsed || !s.usedByHere) &&
+            (!qLow || `${s.name} ${s.canonicalUrl} ${s.audienceTags.join(' ')}`.toLowerCase().includes(qLow)))
+          .sort((a, b) =>
+            seedSort === 'da' ? (Number(b.da) || 0) - (Number(a.da) || 0)
+              : seedSort === 'usage' ? b.usageCount - a.usageCount
+              : seedSort === 'traffic' ? trafRank(b.traffic) - trafRank(a.traffic)
+              : seedSort === 'name' ? a.name.localeCompare(b.name)
+              : 0);
         const newCount = seedSel.size;
+        const inp: CSSProperties = { fontSize: 12, padding: '5px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)' };
+        const lblCol: CSSProperties = { fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', width: 52, flexShrink: 0 };
         return (
-          <Drawer onClose={() => setSeedOpen(false)} width={660} backgrounded={!!srcEdit}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Drawer onClose={() => setSeedOpen(false)} width={660} backgrounded={!!srcEdit} bodyStyle={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflowY: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexShrink: 0 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>➕ Seed từ catalog nguồn</h2>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <button type="button" onClick={() => setSrcEdit({})} style={{ ...btn, color: 'var(--accent)', padding: '2px 9px' }} title="Thêm nguồn mới vào catalog dùng chung">➕ Thêm nguồn</button>
                 <button type="button" onClick={() => setSeedOpen(false)} style={{ ...btn, padding: '2px 9px' }}>✕</button>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10, flexShrink: 0 }}>
               Catalog nguồn dùng chung cho mọi dự án. Chọn nguồn → tạo task cho <b>{siteLabel}</b>. Nguồn đã có tự bỏ qua. <code>{'{product}'}</code>/<code>{'{domain}'}</code> điền sẵn; ví dụ chủ đề trong hướng dẫn nhớ chỉnh cho đúng sản phẩm.
             </div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', width: 52 }}>Niche</span>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center', flexShrink: 0 }}>
+              <input value={seedQ} onChange={(e) => setSeedQ(e.target.value)} autoComplete="off" placeholder="🔎 tìm tên / URL / tag…" style={{ ...inp, flex: 1, minWidth: 0 }} />
+              <select value={seedSort} onChange={(e) => setSeedSort(e.target.value)} title="Sắp xếp" style={{ ...inp, padding: '5px 6px' }}>
+                <option value="">Mặc định</option>
+                <option value="usage">Nhiều dự án dùng</option>
+                <option value="da">DA cao</option>
+                <option value="traffic">Traffic cao</option>
+                <option value="name">Tên A→Z</option>
+              </select>
+              <button type="button" onClick={() => setSeedHideUsed((v) => !v)} title="Ẩn nguồn site này đã có" style={chip('var(--fg-2)', seedHideUsed)}>ẩn đã có</button>
+            </div>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center', flexShrink: 0 }}>
+              <span style={lblCol}>Niche</span>
               {auds.map((a) => <button key={a} type="button" onClick={() => setSeedAud(seedAud === a ? '' : a)} style={chip('var(--accent)', seedAud === a)}>{a}</button>)}
             </div>
             {cats.length > 0 && (
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', width: 52 }}>Channel</span>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center', flexShrink: 0 }}>
+                <span style={lblCol}>Channel</span>
                 {cats.map((c) => <button key={c} type="button" onClick={() => setSeedCat(seedCat === c ? '' : c)} style={chip('var(--fg-2)', seedCat === c)}>{c}</button>)}
               </div>
             )}
-            {seedSrcs === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang tải catalog…</div>
-              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '52vh', overflowY: 'auto' }}>
+            {seedSrcs && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 6, flexShrink: 0 }}>{shown.length}/{seedSrcs.length} nguồn{(seedAud || seedCat || qLow || seedHideUsed) ? ' (đã lọc)' : ''}</div>}
+            {seedSrcs === null ? <div style={{ fontSize: 12, color: 'var(--fg-4)', flex: 1 }}>đang tải catalog…</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto' }}>
                   {shown.map((s) => (
                     <div key={s.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                       <label style={{ flex: 1, minWidth: 0, display: 'flex', gap: 9, alignItems: 'flex-start', border: '1px solid var(--line)', borderRadius: 8, background: s.usedByHere ? 'var(--bg-2)' : 'var(--bg-1)', padding: '8px 10px', cursor: s.usedByHere ? 'default' : 'pointer', opacity: s.usedByHere ? 0.55 : 1 }}>
@@ -773,6 +812,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                             <span>{s.category}</span>
                             {s.dofollow && <span style={{ color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
                             {s.da && <span>DA {s.da}</span>}
+                            {s.usageCount > 0 && <span title="Số dự án đang dùng nguồn này" style={{ color: 'var(--accent)', fontWeight: 600 }}>{s.usageCount} dự án</span>}
                             <span style={{ color: 'var(--fg-4)' }}>{s.audienceTags.join(' · ')}</span>
                           </div>
                         </div>
@@ -782,7 +822,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                   ))}
                   {shown.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có nguồn nào khớp bộ lọc.</div>}
                 </div>}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)', flexShrink: 0 }}>
               <button type="button" onClick={doSeed} disabled={seedBusy || newCount === 0} style={{ ...btn, background: 'var(--accent)', color: '#fff', borderColor: 'transparent', fontWeight: 700, opacity: newCount === 0 ? 0.5 : 1 }}>{seedBusy ? '⏳ đang tạo…' : `➕ Seed ${newCount} nguồn`}</button>
               {seedMsg && <span style={{ fontSize: 12, color: seedMsg.startsWith('✓') ? 'var(--good,#39c07a)' : 'var(--bad,#ef4444)' }}>{seedMsg}</span>}
             </div>

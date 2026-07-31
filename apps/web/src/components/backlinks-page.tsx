@@ -601,7 +601,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   );
 
   // One list row — shared by the flat list and each group section.
-  const rowEl = (t: BacklinkTask) => (
+  // Fixed column widths so list rows line up as real columns (not free-flowing badges).
+  const COL = { date: 104, acct: 96, asgn: 108, status: 84, live: 40 };
+  // One canonical date per task for the Ngày column: done > awaiting-approval > scheduled.
+  const taskDate = (t: BacklinkTask): { icon: string; text: string; color: string; title: string } | null => {
+    if (t.siteDoneAt) return { icon: '✓', text: t.siteDoneAt.slice(0, 10), color: '#22c55e', title: 'Ngày đặt link xong' };
+    if (t.siteState === 'submitted' && t.siteSubmittedAt) return { icon: '⏳', text: `chờ ${daysSince(t.siteSubmittedAt)}d`, color: '#9d6cff', title: `Gửi chờ duyệt từ ${t.siteSubmittedAt.slice(0, 10)}` };
+    if (t.siteScheduledAt && !t.siteDoneAt) return { icon: '🗓', text: t.siteScheduledAt.slice(0, 10), color: '#ffb03c', title: 'Ngày hẹn làm' };
+    return null;
+  };
+  // cols = list view → fixed columns + Ngày cell. Kanban keeps the compact wrap layout.
+  const rowEl = (t: BacklinkTask, cols = false) => {
+    const d = taskDate(t);
+    return (
     <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) }}>
       <button type="button" onClick={(e) => { e.stopPropagation(); cycleTier(t.id, t.tier); }}
         title={t.tier ? `Tier ${t.tier} (giá trị) — click đổi A→B→C→bỏ` : 'Đánh dấu tier giá trị để tập trung — click'}
@@ -616,19 +628,48 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
           {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
           {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
-          {t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
-          {t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
-          {t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+          {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
+          {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
+          {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
+          {!cols && t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
           {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
           {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
           {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
           {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
         </div>
       </div>
-      <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
-      <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-      <Pill status={t.siteState} />
-      {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+      {cols ? (
+        <>
+          <div style={{ width: COL.date, flexShrink: 0, fontSize: 11 }} title={d?.title}>
+            {d ? <span style={{ color: d.color }}>{d.icon} {d.text}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}
+          </div>
+          <div style={{ width: COL.acct, flexShrink: 0, display: 'flex' }}><AcctChip task={t} onClick={(e) => goAccount(e, t)} /></div>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: COL.asgn, flexShrink: 0 }}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+          <div style={{ width: COL.status, flexShrink: 0, display: 'flex' }}><Pill status={t.siteState} /></div>
+          <div style={{ width: COL.live, flexShrink: 0, textAlign: 'center' }}>{t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}</div>
+        </>
+      ) : (
+        <>
+          <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
+          <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+          <Pill status={t.siteState} />
+          {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+        </>
+      )}
+    </div>
+    );
+  };
+
+  // Column header for the list view — aligns with the fixed widths above.
+  const listHead = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px 2px', fontSize: 9, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--fg-4)' }}>
+      <span style={{ width: 24, flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>Nguồn</span>
+      <span style={{ width: COL.date, flexShrink: 0 }}>Ngày</span>
+      <span style={{ width: COL.acct, flexShrink: 0 }}>Account</span>
+      <span style={{ width: COL.asgn, flexShrink: 0 }}>Người</span>
+      <span style={{ width: COL.status, flexShrink: 0 }}>Trạng thái</span>
+      <span style={{ width: COL.live, flexShrink: 0 }} />
     </div>
   );
 
@@ -808,7 +849,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: SITE_STATUS[st]!.color }} />
                   {SITE_STATUS[st]!.label}<span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{col.length}</span>
                 </div>
-                {col.map(rowEl)}
+                {col.map((t) => rowEl(t))}
                 {!col.length && <div style={{ fontSize: 11, color: 'var(--fg-4)', padding: '6px 2px' }}>—</div>}
               </div>
             );
@@ -819,19 +860,21 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {shown.length > 0 && listHead}
           {grouped.map((g) => (
             <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em', display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 2 }}>
                 {g.label}<span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{g.items.length}</span>
               </div>
-              {g.items.map(rowEl)}
+              {g.items.map((t) => rowEl(t, true))}
             </div>
           ))}
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
         </div>
       ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {shown.map(rowEl)}
+        {shown.length > 0 && listHead}
+        {shown.map((t) => rowEl(t, true))}
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
       )}

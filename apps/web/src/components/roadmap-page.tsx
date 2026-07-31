@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { RoadmapRow, RoadmapStatus } from '@/lib/data';
 import { markRoadmapItem, addRoadmapNote } from '@/lib/actions/roadmap';
-import { PriorityPill, EffortPill, StatsStrip, EmptyState, type Priority, type Effort, type StatCard } from './ui';
+import { PriorityPill, EffortPill, StatsStrip, EmptyState, Drawer, type Priority, type Effort, type StatCard } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_META: Record<RoadmapStatus, { label: string; icon: string; color: string }> = {
@@ -353,8 +353,7 @@ function NotesModal({ item, onClose }: { item: RoadmapRow; onClose: () => void }
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={620} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{item.slug}</div>
@@ -383,7 +382,6 @@ function NotesModal({ item, onClose }: { item: RoadmapRow; onClose: () => void }
             <button className="btn primary" disabled={saving} onClick={handleSave}>{saving ? 'Saving…' : 'Save notes'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

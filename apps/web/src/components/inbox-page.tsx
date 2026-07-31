@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { type HumanTaskRow, claimTask, completeTask, cancelTask, unclaimTask, pollWorkflowProgress, listInbox, getTaskLineage, resumeTaskAsRevise, getTaskExecutionContext, type WorkflowProgress, type LineageEntry, type TaskExecutionContext } from '@/lib/actions/inbox';
 import { assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
 import { ExternalLink } from './external-link';
-import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
+import { Pill, EmptyState, StatsStrip, Drawer, type StatCard } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -494,8 +494,7 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, current
   };
 
   return (
-    <div className="modal-backdrop" onClick={safeClose}>
-      <div className="modal" style={{ maxWidth: 720, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={safeClose} width={720} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">
@@ -943,7 +942,6 @@ function TaskDetailModal({ task, teamMembers = [], currentUserId = null, current
             {isViewer && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>Viewer — read only</span>}
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

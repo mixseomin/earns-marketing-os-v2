@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition, useRef } from 'react';
+import { Drawer } from './ui';
 import type { AgentRow, AgentLearnRow, AgentTimelineRow, AgentMessageRow } from '@/lib/actions/agents-detail';
 import {
   listAgentLearnings, listAgentTimeline, saveAgentBaseSkill,
@@ -140,8 +141,7 @@ export function AgentDetailModal({
   const completedRuns = timeline.filter((t) => t.status === 'completed').length;
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 960, maxHeight: '92vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={960} closeOnOutside={false} padding={0} bodyStyle={{ display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
 
         {/* Header */}
         <div className="modal-head" style={{ flexShrink: 0 }}>
@@ -378,7 +378,6 @@ export function AgentDetailModal({
           </div>
         )}
 
-      </div>
-    </div>
+    </Drawer>
   );
 }

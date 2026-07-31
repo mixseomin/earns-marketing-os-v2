@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { UseCaseRow, UseCaseStatus } from '@/lib/data';
 import { markUseCase, addFeedback, clearStatus } from '@/lib/actions/use-cases';
-import { Pill, PriorityPill, StatsStrip, EmptyState, type Priority, type StatCard } from './ui';
+import { Pill, PriorityPill, StatsStrip, EmptyState, Drawer, type Priority, type StatCard } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
 
 const STATUS_META: Record<UseCaseStatus, { label: string; icon: string; color: string }> = {
@@ -375,8 +375,7 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={620} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{useCase.slug}</div>
@@ -435,7 +434,6 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

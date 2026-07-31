@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import type { ContactRow } from '@/lib/data';
-import { Pill, EmptyState } from './ui';
+import { Pill, EmptyState, Drawer } from './ui';
 
 const ROLE_COLOR: Record<string, string> = {
   KOC: '#a78bfa', partner: '#10b981', brand: '#fbbf24',
@@ -109,8 +109,7 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
 
 function ContactModal({ contact, onClose }: { contact: ContactRow; onClose: () => void }) {
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={540} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{contact.role || 'contact'} · {contact.projectId ?? 'portfolio'}</div>
@@ -149,7 +148,6 @@ function ContactModal({ contact, onClose }: { contact: ContactRow; onClose: () =
             <button className="btn ghost" onClick={onClose}>Close</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

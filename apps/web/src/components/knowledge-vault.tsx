@@ -178,8 +178,7 @@ function KnowledgeModal({ item, projectId, onClose, onEdit }: { item: KnowledgeR
   const body = item.isRef ? (item.rendered ?? item.content) : item.content;
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={720} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{item.kind} · {item.isRef ? '📎 shared template' : 'riêng'}</div>
@@ -204,8 +203,7 @@ function KnowledgeModal({ item, projectId, onClose, onEdit }: { item: KnowledgeR
             <button className="btn ghost" onClick={onClose}>Close</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -229,8 +227,7 @@ function OwnEditor({ item, projectId, onClose }: { item: KnowledgeRow | null; pr
   const del = () => start(async () => { if (item) await deleteKnowledgeItem(item.id); onClose(); router.refresh(); });
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={680} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">riêng · {projectId}{item ? ` · #${item.id}` : ''}</div>
@@ -260,7 +257,6 @@ function OwnEditor({ item, projectId, onClose }: { item: KnowledgeRow | null; pr
             <button className="btn" onClick={save} disabled={pending || !title.trim()}>{pending ? 'Saving…' : item ? 'Lưu' : 'Tạo'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

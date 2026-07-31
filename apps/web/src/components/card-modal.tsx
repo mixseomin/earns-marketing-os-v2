@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { Drawer } from './ui';
 import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
 import { listCardAgentRuns, deleteAgentRun, type CardRunDetail } from '@/lib/actions/agents-admin';
@@ -184,8 +185,7 @@ export function CardModal({
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={880} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div style={{ flex: 1 }}>
             <div className="id-line">
@@ -359,8 +359,7 @@ export function CardModal({
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 

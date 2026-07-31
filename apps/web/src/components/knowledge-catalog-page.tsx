@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from 'react';
 import type { KnowledgeRow } from '@/lib/data';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import { createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem } from '@/lib/actions/knowledge';
-import { EmptyState } from './ui';
+import { EmptyState, Drawer } from './ui';
 
 const KIND_COLOR: Record<string, string> = {
   playbook: '#fbbf24', prompt: '#a78bfa', template: '#10b981', lesson: '#38bdf8', gotcha: '#f87171',
@@ -111,8 +111,7 @@ function TemplateEditor({ item, projName, onClose }: { item: KnowledgeRow | null
   const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '7px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={720} closeOnOutside={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">shared template{item ? ` · #${item.id}` : ' · new'}</div>
@@ -152,7 +151,6 @@ function TemplateEditor({ item, projName, onClose }: { item: KnowledgeRow | null
             <button className="btn" onClick={save} disabled={pending || !title.trim()}>{pending ? 'Saving…' : item ? 'Lưu' : 'Tạo'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

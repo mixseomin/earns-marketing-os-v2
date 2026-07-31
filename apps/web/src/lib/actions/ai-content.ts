@@ -107,9 +107,12 @@ Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ 
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
     const text = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
     if (!text) return { ok: false, error: 'AI không trả nội dung' };
+    // custom_instructions=true → this task is now locally reshaped, so it DETACHES from its catalog
+    // source template: a later source edit (syncTasksFromSource) will skip it instead of clobbering
+    // this bespoke text. See backlink-catalog.syncTasksFromSource.
     const groundStamp = g.prov
-      ? sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
-      : sql``;
+      ? sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('custom_instructions', true, 'grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
+      : sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('custom_instructions', true)`;
     await db.execute(sql`UPDATE human_tasks SET instructions = ${text}${groundStamp}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true, instructions: text, grounded: !!g.prov };
   } catch (e) {

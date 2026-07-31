@@ -183,7 +183,7 @@ export interface BacklinkSourceInput {
 }
 
 // Create or edit a catalog source (admin). New rows upsert by canonical_url; edits target the id.
-export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<{ ok: boolean; id?: number; error?: string }> {
+export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<{ ok: boolean; id?: number; synced?: number; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   const url = (input.canonicalUrl || '').trim();
@@ -201,7 +201,9 @@ export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<
           gates = ${input.gates ?? null}, platform_key = ${input.platformKey ?? null}, source_status = ${status}, updated_at = now()
         WHERE id = ${input.id}`);
       revalidatePath('/p/[id]/backlinks', 'page');
-      return { ok: true, id: input.id };
+      // Propagate this template edit to every task already seeded from the source (living template).
+      const sync = await syncTasksFromSource(input.id);
+      return { ok: true, id: input.id, synced: sync.updated ?? 0 };
     }
     const ins = (await db.execute(sql`
       INSERT INTO backlink_sources (canonical_url, name, category, mechanism, dofollow, da, traffic, audience_tags, instruction_template, gates, platform_key, source_status)
@@ -213,6 +215,57 @@ export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<
       RETURNING id`)) as unknown as Array<{ id: number }>;
     revalidatePath('/p/[id]/backlinks', 'page');
     return { ok: true, id: Number(ins[0]?.id) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// Living template: propagate a source's instruction_template edit to EVERY task seeded from it,
+// across all projects. The seed (seedBacklinksFromCatalog) only snapshots the filled template into
+// human_tasks.instructions at creation time; without this the copy stays frozen. Here we re-fill the
+// current template with each task's own project params and overwrite its instructions — EXCEPT tasks
+// flagged prep_payload.custom_instructions (locally reshaped via normalizeInstructions → detached).
+// Link is prep_payload.source_url === backlink_sources.canonical_url (same key the seed/list use).
+export async function syncTasksFromSource(sourceId: number): Promise<{ ok: boolean; updated?: number; skipped?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const sr = (await db.execute(sql`SELECT canonical_url, instruction_template FROM backlink_sources WHERE id = ${Number(sourceId)} LIMIT 1`)) as unknown as Row[];
+    const s = sr[0];
+    if (!s) return { ok: false, error: 'source không tồn tại' };
+    const tpl = (s.instruction_template as string | null) || null;
+    if (!tpl) return { ok: true, updated: 0, skipped: 0 };   // no template → nothing to propagate
+    const canonical = String(s.canonical_url);
+    const tasks = (await db.execute(sql`
+      SELECT id, project_id, (prep_payload->>'custom_instructions') AS custom
+      FROM human_tasks
+      WHERE platform_key = 'backlink' AND prep_payload->>'source_url' = ${canonical}
+    `)) as unknown as Array<{ id: number; project_id: string | null; custom: string | null }>;
+    const paramCache = new Map<string, { product: string; domain: string; pitch: string; link: string }>();
+    const paramsFor = async (pid: string) => {
+      const hit = paramCache.get(pid);
+      if (hit) return hit;
+      const pr = (await db.execute(sql`SELECT name, website, one_liner FROM projects WHERE id = ${pid} LIMIT 1`)) as unknown as Row[];
+      const p = pr[0];
+      const product = String(p?.name || pid);
+      const domain = domainOf(String(p?.website || ''), pid);
+      const v = { product, domain, pitch: String(p?.one_liner || '').trim() || `${product} (https://${domain})`, link: `https://${domain}` };
+      paramCache.set(pid, v);
+      return v;
+    };
+    let updated = 0, skipped = 0;
+    const touched = new Set<string>();
+    for (const t of tasks) {
+      if (t.custom === 'true' || t.custom === 't') { skipped++; continue; }   // detached — keep bespoke text
+      const pid = t.project_id || '';
+      if (!pid) { skipped++; continue; }
+      const filled = fillTemplate(tpl, await paramsFor(pid));
+      await db.execute(sql`UPDATE human_tasks SET instructions = ${filled}, updated_at = now() WHERE id = ${Number(t.id)}`);
+      updated++;
+      touched.add(pid);
+    }
+    for (const pid of touched) { revalidatePath(`/p/${pid}/backlinks`, 'page'); revalidatePath(`/p/${pid}/plays`, 'page'); }
+    return { ok: true, updated, skipped };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

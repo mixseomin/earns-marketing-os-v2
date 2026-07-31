@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
-import { listBacklinkSources, seedBacklinksFromCatalog, upsertBacklinkSource, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, upsertBacklinkSource, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
@@ -466,6 +466,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   // Bulk-reshape this project's genuinely-thin instructions to the template (AI, content-preserving).
   const [normBusy, setNormBusy] = useState(false);
   const [normMsg, setNormMsg] = useState('');
+  // One-click generator: seed this site with the reusable play-source templates (living-template).
+  const [genBusy, setGenBusy] = useState(false);
+  const [genMsg, setGenMsg] = useState('');
+  const doGeneratePlays = async () => {
+    setGenBusy(true); setGenMsg('');
+    const r = await generatePlaysForProject(projectId);
+    setGenBusy(false);
+    setGenMsg(r.ok ? `✓ +${r.created ?? 0} play${r.skipped ? ` · bỏ qua ${r.skipped}` : ''}` : `✗ ${r.error}`);
+    if (r.ok && r.created) start(() => router.refresh());
+  };
   const doNormalize = async () => {
     setNormBusy(true); setNormMsg('');
     const r = await normalizeProjectInstructions(projectId);
@@ -689,6 +699,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
           </button>
           <button type="button" onClick={openSeed} style={{ ...btn, color: 'var(--accent)' }} title="Seed nguồn backlink từ catalog dùng chung (mọi dự án) — lọc theo audience, tạo task hàng loạt">➕ Seed catalog</button>
+          <button type="button" onClick={doGeneratePlays} disabled={genBusy} style={{ ...btn, color: 'var(--accent)' }} title="Sinh play chuẩn cho site này từ các play-source tái dùng (AlternativeTo · Product Hunt · GitHub · HARO/Featured · Reddit · Quora · Wikipedia · Show HN) — fill param theo product, dedup. Sửa template ở catalog sẽ lan về đây (living-template).">
+            {genBusy ? '⏳ đang sinh…' : genMsg && genMsg.startsWith('✓') ? genMsg : '🎯 Generate plays'}
+          </button>
           <button type="button" onClick={doNormalize} disabled={normBusy} style={{ ...btn }} title="Chuẩn hoá khuôn cho các task hướng dẫn còn sơ sài (thiếu bước/📍) của site này — AI reshape giữ nội dung, không bịa">
             {normBusy ? '⏳ đang chuẩn hoá…' : normMsg && normMsg.startsWith('✓') ? normMsg : '✨ Chuẩn khuôn'}
           </button>

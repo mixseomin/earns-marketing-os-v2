@@ -166,6 +166,26 @@ export async function seedBacklinksFromCatalog(
   }
 }
 
+// One-click generator: seed a project with every reusable play-source template (audience_tags @> {play}).
+// Reuses seedBacklinksFromCatalog → fills {product}/{domain}/{pitch}/{link} per project, dedups by source_url,
+// and the results are living-templates (edit the source in the catalog → syncTasksFromSource propagates here).
+export async function generatePlaysForProject(projectId: string): Promise<{ ok: boolean; created?: number; skipped?: number; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const rows = (await db.execute(sql`
+      SELECT id FROM backlink_sources
+      WHERE source_status = 'active' AND audience_tags @> ARRAY['play']::text[]
+      ORDER BY id
+    `)) as unknown as Array<{ id: number }>;
+    const ids = rows.map((r) => Number(r.id));
+    if (!ids.length) return { ok: true, created: 0, skipped: 0 };
+    return await seedBacklinksFromCatalog(projectId, ids);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export interface BacklinkSourceInput {
   id?: number;
   canonicalUrl: string;

@@ -3,6 +3,7 @@ import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
 import { SteamsoloLangPanel } from './steamsolo-lang-panel';
 import { AffiliateOffersPanel } from './affiliate-offers-panel';
+import { DeliverabilityCard } from './deliverability-card';
 import { AwarenessFunnelPanel } from './awareness-funnel-panel';
 import { AwinDailyPanel } from './awin-daily-panel';
 import { PortfolioGrid } from './portfolio-grid';
@@ -31,6 +32,9 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
 
       {/* Cross-site affiliate-offer funnel (Awin CTAs), config-driven per site */}
       <AffiliateOffersPanel />
+
+      {/* Email deliverability — below Affiliate (moved from top of the portfolio page) */}
+      <DeliverabilityCard />
 
       {/* Awareness Funnel — cities.gg paid (Bidvertiser) ÷ organic spillover */}
       <AwarenessFunnelPanel />

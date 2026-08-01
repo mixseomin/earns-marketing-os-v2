@@ -598,13 +598,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
     for (const t of filtered) {
-      const label = t.sourceUrl ? hostOf(t.sourceUrl) : t.title;
-      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${t.title}` });
-      else if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${t.title}` });
-      else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${t.title}` });
+      // Global /plays: prefix the project emoji so a calendar cell says which site it's for.
+      const pfx = allProjects && t.projectEmoji ? `${t.projectEmoji} ` : '';
+      const plbl = allProjects && t.projectLabel ? `[${t.projectLabel}] ` : '';
+      const label = pfx + (t.sourceUrl ? hostOf(t.sourceUrl) : t.title);
+      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${plbl}${t.title}` });
+      else if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}` });
+      else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${plbl}${t.title}` });
     }
     return out;
-  }, [filtered]);
+  }, [filtered, allProjects]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 

@@ -279,14 +279,14 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
 export async function getAllBacklinkTasks(
   projects: { id: string; name: string }[],
 ): Promise<BacklinkTask[]> {
-  const tracked = projects
-    .map((p) => ({ p, slug: resolveSiteSlug(p.id) }))
-    .filter((x): x is { p: { id: string; name: string }; slug: string } => !!x.slug);
+  // Iterate every tracked SITE (not just projects that have a row) so live sites with
+  // backlink tasks but no projects-table entry (e.g. paydochub, chatlt) still show up.
   const per = await Promise.all(
-    tracked.map(async ({ p, slug }) => {
-      const site = BACKLINK_SITES.find((s) => s.slug === slug);
-      const ts = await getBacklinkTasks(p.id);
-      return ts.map((t) => ({ ...t, projectId: p.id, projectSlug: slug, projectLabel: site?.label ?? p.name, projectEmoji: site?.emoji ?? '📦' }));
+    BACKLINK_SITES.map(async (site) => {
+      // A project id that resolves to this slug gives the drawer real project context; else use the slug itself.
+      const projId = projects.find((p) => resolveSiteSlug(p.id) === site.slug)?.id ?? site.slug;
+      const ts = await getBacklinkTasks(projId);
+      return ts.map((t) => ({ ...t, projectId: projId, projectSlug: site.slug, projectLabel: site.label, projectEmoji: site.emoji }));
     }),
   );
   return per.flat();

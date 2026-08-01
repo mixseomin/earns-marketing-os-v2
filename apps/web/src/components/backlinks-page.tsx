@@ -1315,6 +1315,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           )}
           {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
           {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
+          {!task.grounded && task.instructions && <span title={task.domSampleId ? 'Có DOM đã lưu nhưng hướng dẫn CHƯA bám theo — bấm ✨ Chuẩn hoá để viết lại đúng nút/field thật của trang.' : 'Hướng dẫn CHƯA dựa trên DOM thật (chưa capture trang này) — các bước điều hướng là SUY ĐOÁN, mở trang tự kiểm. Capture DOM qua ext (crew) để chuẩn hoá bám trang thật.'} style={{ color: 'var(--warn,#ffb03c)', fontWeight: 700, cursor: 'help' }}>⚠ {task.domSampleId ? 'chưa bám DOM' : 'chưa có DOM thật'}</span>}
           {/* Outreach linkage — visible up top (not buried in Email Pitch). Linked → open drawer in-place; else offer to link. */}
           {(task.outreach || isEmailPitch) && (
             <button type="button" onClick={openOutreach} disabled={outBusy}

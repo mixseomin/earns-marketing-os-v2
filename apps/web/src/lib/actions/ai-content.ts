@@ -103,16 +103,18 @@ Hướng dẫn hiện tại:
 ${cur || '(trống — dựng từ mechanism + source)'}
 ${g.block}
 --- YÊU CẦU ---
-Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ "CẤU TRÚC TRANG THẬT" ở trên — dùng đúng tên nút/field/label có thật đó cho các bước, KHÔNG bịa element không có trong cấu trúc.' : ''} Mô tả sản phẩm CHỈ dựa trên one-liner ở trên — KHÔNG bịa tính năng/danh mục (vd đừng gọi một calculator là "immigration tracker" nếu one-liner không nói vậy); nếu hướng dẫn hiện tại mô tả sai sản phẩm thì SỬA LẠI cho khớp one-liner. Mọi link CHỈ dùng URL THẬT: trang chủ (Website ở trên) hoặc URL có trong "CẤU TRÚC TRANG THẬT" — TUYỆT ĐỐI KHÔNG bịa sub-path (vd /visa-bulletin) không có thật. Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
+Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ "CẤU TRÚC TRANG THẬT" ở trên — dùng đúng tên nút/field/label có thật đó cho các bước, KHÔNG bịa element không có trong cấu trúc.' : 'CHƯA capture được DOM thật của trang này → TUYỆT ĐỐI KHÔNG bịa tên nút/field/label cụ thể (đừng viết "bấm Sign up", "ô Search", "nút Reply" khi chưa thấy). Viết bước điều hướng ở mức GENERIC trung thực: "tìm mục đăng ký/đăng nhập trên trang", "dùng ô tìm kiếm của diễn đàn nếu có", "mở thread rồi tìm chỗ trả lời". Và BẮT BUỘC thêm 1 dòng cuối bắt đầu bằng "⚠" ghi rõ: chưa capture DOM trang này nên bước điều hướng là suy đoán, người làm mở trang tự tìm nút tương ứng.'} Mô tả sản phẩm CHỈ dựa trên one-liner ở trên — KHÔNG bịa tính năng/danh mục (vd đừng gọi một calculator là "immigration tracker" nếu one-liner không nói vậy); nếu hướng dẫn hiện tại mô tả sai sản phẩm thì SỬA LẠI cho khớp one-liner. Mọi link CHỈ dùng URL THẬT: trang chủ (Website ở trên) hoặc URL có trong "CẤU TRÚC TRANG THẬT" — TUYỆT ĐỐI KHÔNG bịa sub-path (vd /visa-bulletin) không có thật. Chỉ xuất phần hướng dẫn (không giải thích, không markdown fence).`;
     const res = await getOpenAI()!.chat.completions.create({ model: DEFAULT_MODEL, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
     const text = res.choices?.[0]?.message?.content?.trim().replace(/^```[a-z]*\n?|\n?```$/g, '').trim() || '';
     if (!text) return { ok: false, error: 'AI không trả nội dung' };
     // custom_instructions=true → this task is now locally reshaped, so it DETACHES from its catalog
     // source template: a later source edit (syncTasksFromSource) will skip it instead of clobbering
     // this bespoke text. See backlink-catalog.syncTasksFromSource.
+    // grounded → stamp provenance + drop any stale "inferred" flag. ungrounded → mark instr_inferred
+    // so the drawer warns the steps are guessed (no real DOM). See the ⚠ note in backlinks-page.
     const groundStamp = g.prov
-      ? sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('custom_instructions', true, 'grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
-      : sql`, prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('custom_instructions', true)`;
+      ? sql`, prep_payload = (COALESCE(prep_payload, '{}'::jsonb) - 'instr_inferred') || jsonb_build_object('custom_instructions', true, 'grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
+      : sql`, prep_payload = (COALESCE(prep_payload, '{}'::jsonb) - 'grounded') || jsonb_build_object('custom_instructions', true, 'instr_inferred', true)`;
     await db.execute(sql`UPDATE human_tasks SET instructions = ${text}${groundStamp}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
     return { ok: true, instructions: text, grounded: !!g.prov };
   } catch (e) {

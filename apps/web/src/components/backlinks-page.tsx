@@ -645,53 +645,72 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     if (t.siteScheduledAt && !t.siteDoneAt) return { icon: '🗓', text: t.siteScheduledAt.slice(0, 10), color: '#ffb03c', title: 'Ngày hẹn làm' };
     return null;
   };
-  // cols = list view → fixed columns + Ngày cell. Kanban keeps the compact wrap layout.
+  // cols = list view → fixed columns + Ngày cell. Kanban (cols=false) = vertical card:
+  // title on top (2-line clamp, not truncated), meta row below. Same row height in a narrow column.
   const rowEl = (t: BacklinkTask, cols = false) => {
     const d = taskDate(t);
-    return (
-    <div key={t.id} onClick={() => openTask(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) }}>
+    const tierBtn = (
       <button type="button" onClick={(e) => { e.stopPropagation(); cycleTier(t.id, t.tier); }}
         title={t.tier ? `Tier ${t.tier} (giá trị) — click đổi A→B→C→bỏ` : 'Đánh dấu tier giá trị để tập trung — click'}
         style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: `1px solid ${t.tier ? (TIER_META[t.tier]?.color ?? 'var(--line)') : 'var(--line)'}`, background: t.tier ? (TIER_META[t.tier]?.bg ?? 'transparent') : 'transparent', color: t.tier ? (TIER_META[t.tier]?.color ?? 'var(--fg-4)') : 'var(--fg-4)', cursor: 'pointer', fontSize: 11, fontWeight: 700, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {t.tier || '☆'}
       </button>
+    );
+    const badges = (
+      <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+        {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 28%, transparent)', background: 'color-mix(in srgb, var(--accent) 9%, transparent)' }}>{t.projectEmoji} {t.projectLabel}</span>}
+        {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
+        {t.da && <Tag>DA {t.da}</Tag>}
+        {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
+        {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
+        {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+        {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
+        {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
+        {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
+        {!cols && t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+        {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
+        {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
+        {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
+        {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
+      </div>
+    );
+    const cardStyle: CSSProperties = { display: 'flex', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) };
+
+    if (!cols) {
+      // Kanban card — vertical so the title gets full width (2 lines) instead of "Bio-only …".
+      return (
+        <div key={t.id} onClick={() => openTask(t.id)} style={{ ...cardStyle, flexDirection: 'column', gap: 7 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+            {tierBtn}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div title={t.title} style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3 }}>{t.title}</div>
+              {badges}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingLeft: 32 }}>
+            <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
+            <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+            <Pill status={t.siteState} />
+            {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+          </div>
+        </div>
+      );
+    }
+    // List row — fixed columns, single-line title.
+    return (
+    <div key={t.id} onClick={() => openTask(t.id)} style={{ ...cardStyle, alignItems: 'center', gap: 10 }}>
+      {tierBtn}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-          {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 999, cursor: 'pointer', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>{t.projectEmoji} {t.projectLabel}</span>}
-          {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
-          {t.da && <Tag>DA {t.da}</Tag>}
-          {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
-          {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
-          {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
-          {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
-          {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
-          {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
-          {!cols && t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
-          {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
-          {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
-          {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
-          {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
-        </div>
+        {badges}
       </div>
-      {cols ? (
-        <>
-          <div style={{ width: COL.date, flexShrink: 0, fontSize: 11 }} title={d?.title}>
-            {d ? <span style={{ color: d.color }}>{d.icon} {d.text}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}
-          </div>
-          <div style={{ width: COL.acct, flexShrink: 0, display: 'flex' }}><AcctChip task={t} onClick={(e) => goAccount(e, t)} /></div>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: COL.asgn, flexShrink: 0 }}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-          <div style={{ width: COL.status, flexShrink: 0, display: 'flex' }}><Pill status={t.siteState} /></div>
-          <div style={{ width: COL.live, flexShrink: 0, textAlign: 'center' }}>{t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}</div>
-        </>
-      ) : (
-        <>
-          <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
-          <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-          <Pill status={t.siteState} />
-          {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
-        </>
-      )}
+      <div style={{ width: COL.date, flexShrink: 0, fontSize: 11 }} title={d?.title}>
+        {d ? <span style={{ color: d.color }}>{d.icon} {d.text}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}
+      </div>
+      <div style={{ width: COL.acct, flexShrink: 0, display: 'flex' }}><AcctChip task={t} onClick={(e) => goAccount(e, t)} /></div>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: COL.asgn, flexShrink: 0 }}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
+      <div style={{ width: COL.status, flexShrink: 0, display: 'flex' }}><Pill status={t.siteState} /></div>
+      <div style={{ width: COL.live, flexShrink: 0, textAlign: 'center' }}>{t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}</div>
     </div>
     );
   };

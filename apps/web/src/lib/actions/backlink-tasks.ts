@@ -6,7 +6,7 @@
 // membership — same data as the cross-project Architect grid, filtered to one site.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { resolveSiteSlug } from '@/lib/backlink-sites';
+import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 
@@ -68,6 +68,11 @@ export interface BacklinkTask {
   authMethod: string | null;
   hasProxy: boolean;
   hasProfile: boolean;
+  // Set ONLY in the global /plays aggregate (getAllBacklinkTasks). undefined on a per-project fetch.
+  projectId?: string;       // the task's real MOS2 project id (for the drawer's project-scoped actions)
+  projectSlug?: string;     // the site_status key (for setBacklinkSite) — differs from id only via override
+  projectLabel?: string;    // display label
+  projectEmoji?: string;
 }
 
 const asObj = (v: unknown): Record<string, string> =>
@@ -266,6 +271,25 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
   } catch {
     return [];
   }
+}
+
+// Global /plays aggregate: every backlink-tracked project's tasks in one list, each tagged with its
+// project (id/slug/label) so the shared BacklinksPage can render + act per-task. Reuses getBacklinkTasks
+// per project (same resolved siteState), so a shared source shows once per site it applies to.
+export async function getAllBacklinkTasks(
+  projects: { id: string; name: string }[],
+): Promise<BacklinkTask[]> {
+  const tracked = projects
+    .map((p) => ({ p, slug: resolveSiteSlug(p.id) }))
+    .filter((x): x is { p: { id: string; name: string }; slug: string } => !!x.slug);
+  const per = await Promise.all(
+    tracked.map(async ({ p, slug }) => {
+      const site = BACKLINK_SITES.find((s) => s.slug === slug);
+      const ts = await getBacklinkTasks(p.id);
+      return ts.map((t) => ({ ...t, projectId: p.id, projectSlug: slug, projectLabel: site?.label ?? p.name, projectEmoji: site?.emoji ?? '📦' }));
+    }),
+  );
+  return per.flat();
 }
 
 // Set (or clear) the value tier of a backlink task — A/B/C to focus, null to unmark.

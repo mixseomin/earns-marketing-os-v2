@@ -393,12 +393,19 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource |
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, initialView }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, initialView, allProjects, projectsById }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
   initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
+  // Global /plays (all projects): tasks carry projectId/projectSlug/projectLabel; per-task project resolved
+  // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
+  allProjects?: boolean;
+  projectsById?: Record<string, Project>;
 }) {
+  // In global mode a task acts on its OWN project/slug, not one page-level value.
+  const slugForTask = (t?: BacklinkTask | null) => (allProjects ? (t?.projectSlug ?? '') : slug);
+  const projectForTask = (t?: BacklinkTask | null) => (allProjects && t?.projectId ? (projectsById?.[t.projectId] ?? project) : project);
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
@@ -416,6 +423,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
+  const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
   const [view, setView] = useState<'list' | 'calendar' | 'kanban'>(() => { const v = sp.get('view'); if (v === 'list' || v === 'kanban') return v; if (v === 'calendar') return 'calendar'; return initialView === 'kanban' ? 'kanban' : 'calendar'; });
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
@@ -502,6 +510,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
     set('tier', tierFilter);
+    set('proj', allProjects ? projectFilter : '');
     set('view', view === 'calendar' ? '' : view);   // calendar = default (clean URL); list/kanban explicit
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
@@ -515,7 +524,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
@@ -560,10 +569,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (blockedOnly && !t.blocker) return false;
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (tierFilter && (tierFilter === 'any' ? !t.tier : t.tier !== tierFilter)) return false;
+      if (allProjects && projectFilter && t.projectSlug !== projectFilter) return false;
       if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter]);
+  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
 
   const shown = useMemo(() => {
     const base = tab === 'pending'
@@ -599,13 +609,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
   const setSite = async (taskId: number, status: string, url: string) => {
-    if (!slug) return;
-    await setBacklinkSite(taskId, slug, status, url);
+    const s = slugForTask(tasks.find((t) => t.id === taskId));
+    if (!s) return;
+    await setBacklinkSite(taskId, s, status, url);
     start(() => router.refresh());
   };
   const setSchedule = async (taskId: number, date: string) => {
-    if (!slug) return;
-    await setBacklinkSchedule(taskId, slug, date);
+    const s = slugForTask(tasks.find((t) => t.id === taskId));
+    if (!s) return;
+    await setBacklinkSchedule(taskId, s, date);
     start(() => router.refresh());
   };
 
@@ -646,6 +658,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
         <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 999, cursor: 'pointer', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>{t.projectEmoji} {t.projectLabel}</span>}
           {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
           {t.da && <Tag>DA {t.da}</Tag>}
           {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
@@ -700,17 +713,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     <div style={{ padding: '12px 16px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, margin: 0 }}>
-          Backlinks <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {siteLabel} · {kpi.total} sources</small>
+          {allProjects ? 'Plays' : 'Backlinks'} <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {allProjects ? 'All projects' : siteLabel} · {kpi.total} {allProjects ? 'plays' : 'sources'}</small>
         </h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button type="button" onClick={doAutoMedia} disabled={autoMedia === 'busy'} style={{ ...btn, color: 'var(--accent)' }}
-            title="Tự chuẩn bị media: cover OG + screenshot trang + logo → lưu vào Media vault">
-            {autoMedia === 'busy' ? '⏳ đang chuẩn bị…' : autoMedia ? `✓ ${autoMedia}` : '⚡ Auto media'}
-          </button>
+          {!allProjects && (
+            <button type="button" onClick={doAutoMedia} disabled={autoMedia === 'busy'} style={{ ...btn, color: 'var(--accent)' }}
+              title="Tự chuẩn bị media: cover OG + screenshot trang + logo → lưu vào Media vault">
+              {autoMedia === 'busy' ? '⏳ đang chuẩn bị…' : autoMedia ? `✓ ${autoMedia}` : '⚡ Auto media'}
+            </button>
+          )}
           <button type="button" onClick={doCheckLinks} disabled={chk === 'busy'} style={{ ...btn }}
             title="Kiểm tra sức khoẻ mọi link đã đặt (còn sống? dofollow?) — kết quả hiện badge ngay trong list">
             {chk === 'busy' ? '⏳ đang kiểm…' : chk ? `✓ ${chk}` : '🔍 Check links'}
           </button>
+          {!allProjects && <>
           <button type="button" onClick={openSeed} style={{ ...btn, color: 'var(--accent)' }} title="Seed nguồn backlink từ catalog dùng chung (mọi dự án) — lọc theo audience, tạo task hàng loạt">➕ Seed catalog</button>
           <button type="button" onClick={doGeneratePlays} disabled={genBusy} style={{ ...btn, color: 'var(--accent)' }} title="Sinh play chuẩn cho site này từ các play-source tái dùng (AlternativeTo · Product Hunt · GitHub · HARO/Featured · Reddit · Quora · Wikipedia · Show HN) — fill param theo product, dedup. Sửa template ở catalog sẽ lan về đây (living-template).">
             {genBusy ? '⏳ đang sinh…' : genMsg && genMsg.startsWith('✓') ? genMsg : '🎯 Generate plays'}
@@ -720,6 +736,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           </button>
           <button type="button" onClick={openTrash} style={{ ...btn }} title="Nguồn đã drop — khôi phục bất cứ lúc nào">🗑 Đã drop</button>
           <a href={`/architecture?obj=backlink&site=${slug}`} style={{ ...btn, textDecoration: 'none' }} title="Mở bird's-eye cross-project trong Architect">↗ Architect</a>
+          </>}
         </div>
       </div>
       {trashOpen && (
@@ -842,8 +859,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         ))}
       </div>
 
-      {/* account-readiness rollup — click a bucket to filter the list below */}
-      <div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
+      {/* account-readiness rollup — per-project only (hidden in the global /plays aggregate) */}
+      {!allProjects && (<div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 9.5 }}>Accounts</span>
           {(['ready', 'missing', 'warming', 'setup', 'locked', 'no-account'] as ReadinessBucket[]).map((b) => prep.c[b] ? (
@@ -865,7 +882,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
             ))}
           </div>
         )}
-      </div>
+      </div>)}
 
       {/* tabs + filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -873,6 +890,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <TabBtn k="all" label="All" n={kpi.total} />
         <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban')} />
       </div>
+
+      {/* global /plays: filter by project */}
+      {allProjects && (() => {
+        const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: t.projectSlug, label: t.projectLabel, emoji: t.projectEmoji }])).values())
+          .filter((p) => p.slug).sort((a, b) => (a.label ?? '').localeCompare(b.label ?? ''));
+        return (
+          <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Project</span>
+            {projs.map((p) => <button key={p.slug} type="button" onClick={() => setProjectFilter((v) => v === p.slug ? '' : (p.slug ?? ''))} style={chip('var(--accent)', projectFilter === p.slug)}>{p.emoji} {p.label} <span style={{ opacity: 0.6 }}>{tasks.filter((t) => t.projectSlug === p.slug).length}</span></button>)}
+            {projectFilter && <button type="button" onClick={() => setProjectFilter('')} style={{ ...btn, padding: '1px 8px' }}>✕</button>}
+          </div>
+        );
+      })()}
 
       {/* filters — apply to BOTH list & calendar */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -940,9 +970,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
       )}
 
-      {open && <TaskDrawer task={open} slug={slug} project={project} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
-      {open && outreachPid != null && <TaskOutreachDrawer projectId={project.id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
+      {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
 
       {undoRows && undoRows.length > 0 && (
         <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 400, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-3)', border: '1px solid var(--line-2)', boxShadow: '0 8px 30px rgba(0,0,0,.4)', fontSize: 13 }}>
@@ -954,7 +984,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       {/* Account create/edit in-place as a right-side DRAWER — stacks above the task drawer. */}
       {acctModal && (
         <div style={{ position: 'relative', zIndex: 300 }}>
-          <AccountFormModal account={acctModal.account} project={project} projectId={projectId}
+          <AccountFormModal account={acctModal.account} project={projectForTask(open)} projectId={projectForTask(open).id}
             platforms={platforms} presetPlatformKey={acctModal.platformKey} presetAccountType={acctModal.recommendedRole}
             teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} asDrawer
             onCreated={acctModal.assignToTask != null ? (async (newId: number) => { await setBacklinkAccount(acctModal.assignToTask!, newId); setAcctModal(null); start(() => router.refresh()); }) : undefined}

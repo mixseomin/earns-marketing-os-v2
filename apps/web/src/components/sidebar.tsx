@@ -264,6 +264,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/department',icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
         { href: '/agents',    icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
         { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',        sub: 'human tasks queue' },
+        { href: '/plays',     icon: '📣', color: 'var(--neon-violet)', label: 'Plays',        sub: 'traffic plays · all sites', role: 'admin' },
         { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
         { href: '/scheduler', icon: '⏱',  color: 'var(--neon-lime)',   label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },
         { href: '/ai-log',    icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },

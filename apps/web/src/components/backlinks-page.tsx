@@ -570,7 +570,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (tierFilter && (tierFilter === 'any' ? !t.tier : t.tier !== tierFilter)) return false;
       if (allProjects && projectFilter && t.projectSlug !== projectFilter) return false;
-      if (s && !(t.title.toLowerCase().includes(s) || (t.sourceUrl || '').toLowerCase().includes(s))) return false;
+      if (s && !(`${t.title} ${t.sourceUrl || ''} ${t.catalogSourceName || ''} ${t.mechanism || ''} ${t.platformLabel || ''} ${t.projectLabel || ''} ${t.instructions || ''} ${t.notes || ''}`.toLowerCase().includes(s))) return false;
       return true;
     });
   }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
@@ -582,6 +582,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     // Float valued tiers to the top (A→B→C→unset). Stable sort keeps prior order within a tier.
     return base.sort((a, b) => (TIER_RANK[a.tier ?? ''] ?? 9) - (TIER_RANK[b.tier ?? ''] ?? 9));
   }, [filtered, tab]);
+
+  // Search also probes the shared CATALOG (backlink_sources), not just seeded tasks: lazy-load it the
+  // first time the query box is used so a play that exists as a template — but isn't seeded here yet —
+  // still surfaces (fixes "I added a play to /plays and can't find it": it was a template, not a task).
+  useEffect(() => { if (q.trim() && seedSrcs === null) void reloadSeed(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [q]);
+  const catalogHits = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s || !seedSrcs) return [] as BacklinkSource[];
+    const seeded = new Set(shown.map((t) => t.catalogSourceId).filter(Boolean));   // hide plays already shown as cards
+    return seedSrcs.filter((src) => !seeded.has(src.id)
+      && `${src.name} ${src.canonicalUrl} ${src.category || ''} ${src.mechanism || ''} ${src.audienceTags.join(' ')} ${src.instructionTemplate || ''}`.toLowerCase().includes(s)).slice(0, 24);
+  }, [q, seedSrcs, shown]);
 
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
   const grouped = useMemo(() => {
@@ -928,7 +940,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* filters — apply to BOTH list & calendar */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm nguồn / source…" autoComplete="off"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm task / play / tag / niche…" autoComplete="off"
           style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
         {['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={chip('#9d6cff', follow === f)}>{f}</button>)}
         <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
@@ -951,6 +963,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           </label>
         )}
       </div>
+
+      {q.trim() && catalogHits.length > 0 && (
+        <div style={{ marginBottom: 12, padding: '8px 10px', border: '1px dashed var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 6 }}>
+            🔎 {catalogHits.length} play trong <b>catalog</b> khớp “{q.trim()}” — template chưa seed (bấm để xem){allProjects ? ' · vào 1 project → Plays → “Seed từ catalog” để tạo task' : ' · dùng “Seed từ catalog” để tạo task cho site này'}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {catalogHits.map((s) => (
+              <button key={s.id} type="button" onClick={() => setSrcEdit(s)} title={`${s.category || ''} · ${s.audienceTags.join(', ')}`} style={{ ...btn, padding: '3px 9px', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                <span>📋 {s.name}</span>
+                <span style={{ opacity: 0.55, fontSize: 10 }}>{s.audienceTags.filter((t) => t !== 'play' && t !== 'universal').slice(0, 3).join(' · ')}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

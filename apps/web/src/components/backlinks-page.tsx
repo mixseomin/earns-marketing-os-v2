@@ -621,7 +621,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     start(() => router.refresh());
   };
 
-  if (!slug) {
+  if (!slug && !allProjects) {   // global /plays has no single slug — each task carries its own
     return (
       <div style={{ padding: 24, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
         Project này chưa phải site theo dõi backlink. Thêm site vào <code>BACKLINK_SITES</code> (lib/backlink-sites.ts) để bật.

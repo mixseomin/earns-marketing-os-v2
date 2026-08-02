@@ -244,19 +244,22 @@ export async function queueMethodFanout(sourceId: number, projectId: string): Pr
 
 // Persistent fan-out status (queued/done) per (source, project), read from ai_content so the pending
 // badge shows on ANY machine / after refresh — not just the browser that clicked 🎯.
-export async function listMethodFanouts(): Promise<Array<{ sourceId: number; projectId: string; status: string }>> {
+export async function listMethodFanouts(): Promise<Array<{ sourceId: number; projectId: string; status: string; taskCount: number }>> {
   const db = getDb();
   if (!db) return [];
   try {
     const r = (await db.execute(sql`
-      SELECT DISTINCT ON (context->>'source_id', project_id)
-             context->>'source_id' AS source_id, project_id, status
-      FROM ai_content
-      WHERE kind = 'method-fanout' AND (context->>'source_id') IS NOT NULL
-      ORDER BY context->>'source_id', project_id, created_at DESC
+      SELECT DISTINCT ON (a.context->>'source_id', a.project_id)
+             a.context->>'source_id' AS source_id, a.project_id, a.status,
+             (SELECT count(*) FROM human_tasks ht
+                WHERE ht.platform_key = 'backlink' AND ht.project_id = a.project_id
+                  AND ht.prep_payload->>'fanout_from' = a.context->>'source_id') AS task_count
+      FROM ai_content a
+      WHERE a.kind = 'method-fanout' AND (a.context->>'source_id') IS NOT NULL
+      ORDER BY a.context->>'source_id', a.project_id, a.created_at DESC
     `)) as unknown as Row[];
     return r.filter((x) => x.source_id && x.project_id)
-      .map((x) => ({ sourceId: Number(x.source_id), projectId: String(x.project_id), status: String(x.status) }));
+      .map((x) => ({ sourceId: Number(x.source_id), projectId: String(x.project_id), status: String(x.status), taskCount: Number(x.task_count ?? 0) }));
   } catch {
     return [];
   }

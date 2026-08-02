@@ -23,9 +23,9 @@ const groupsOf = (s: BacklinkSource) => s.audienceTags.filter((t) => !NOISE.has(
 const primaryGroup = (s: BacklinkSource) => (s.audienceTags.includes('leads') ? 'leads' : (groupsOf(s)[0] ?? '(chung)'));
 const groupLabel = (g: string) => (g === 'leads' ? '🎯 Kéo leads' : g === '(chung)' ? '📦 Chung / universal' : g);
 
-export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string }> }) {
+export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string; taskCount: number }> }) {
   const router = useRouter();
-  const fanoutMap = useMemo(() => { const m: Record<string, string> = {}; for (const f of fanouts) m[`${f.sourceId}:${f.projectId}`] = f.status; return m; }, [fanouts]);
+  const fanoutMap = useMemo(() => { const m: Record<string, { status: string; count: number }> = {}; for (const f of fanouts) m[`${f.sourceId}:${f.projectId}`] = { status: f.status, count: f.taskCount }; return m; }, [fanouts]);
   const [sources, setSources] = useState(initialSources);
   const [q, setQ] = useState('');
   const [nhom, setNhom] = useState('');
@@ -76,7 +76,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   const row = (s: BacklinkSource) => {
     const lv = levelOf(s);
     const gm = genMsg[s.id];
-    const fanoutStatus = genProject ? fanoutMap[`${s.id}:${genProject}`] : undefined;
+    const fo = genProject ? fanoutMap[`${s.id}:${genProject}`] : undefined;
     const extraTags = s.audienceTags.filter((t) => !NOISE.has(t) && !LEVEL_RE.test(t) && t !== primaryGroup(s));
     return (
       <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '7px 10px' }}>
@@ -101,8 +101,8 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
         )}
         {gm
           ? <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>
-          : fanoutStatus === 'queued' ? <span style={{ ...badge, color: 'var(--warn,#ffb03c)', borderColor: 'color-mix(in srgb, var(--warn,#ffb03c) 35%, transparent)' }} title="Đã queue — Claude sẽ research & tạo draft ở plays của project">⏳ đã xếp hàng</span>
-          : fanoutStatus === 'done' ? <span style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)' }} title="Đã sinh — xem draft ở plays của project">✓ đã sinh</span>
+          : fo?.status === 'queued' ? <span style={{ ...badge, color: 'var(--warn,#ffb03c)', borderColor: 'color-mix(in srgb, var(--warn,#ffb03c) 35%, transparent)' }} title="Đã queue — Claude sẽ research & tạo draft ở plays của project">⏳ đã xếp hàng</span>
+          : fo?.status === 'done' ? <a href={`/p/${genProject}/plays`} style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)', textDecoration: 'none' }} title="Đã sinh — mở plays của project để duyệt các task fan-out">✓ {fo.count} task → duyệt</a>
           : null}
         <button type="button" onClick={() => setEdit(s)} style={{ ...btn, padding: '3px 8px' }} title="Sửa">✎</button>
         {archived

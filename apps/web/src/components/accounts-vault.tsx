@@ -1120,7 +1120,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     proxyId: account?.proxyId ?? null as number | null,
     browserProfileId: account?.browserProfileId ?? null as number | null,
     persona: account?.persona ?? {} as Record<string, string>,
-    accountKind: ((account as { accountKind?: string } | null)?.accountKind ?? 'user') as 'user' | 'bot' | 'app',
+    accountKind: ((account as { accountKind?: string } | null)?.accountKind ?? 'user') as 'user' | 'bot' | 'app' | 'page',
     accountType: ((account as { accountType?: string } | null)?.accountType ?? presetAccountType ?? 'brand') as 'personal' | 'brand' | 'seeding',
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -1545,16 +1545,17 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           }}>
             {account?.id != null && <AccountMediaStrip accountId={account.id} handle={account.handle} />}
             <div>
-              <span style={lbl} title="user = manual login (cần warming + persona). bot = Discord/Slack bot có bot_token (auto-post API). app = OAuth integration (Reddit script-app).">
+              <span style={lbl} title="user = manual login (cần warming + persona). page = FB Page (đăng AS Page, chỉ hiện khi platform=Facebook). bot = Discord/Slack bot có bot_token (auto-post API). app = OAuth integration (Reddit script-app).">
                 Account kind *
               </span>
               <div style={{ display: 'flex', gap: 6 }}>
-                {(['user', 'bot', 'app'] as const).map((k) => {
+                {((form.platformKey === 'facebook' ? ['user', 'page', 'bot', 'app'] : ['user', 'bot', 'app']) as Array<'user' | 'page' | 'bot' | 'app'>).map((k) => {
                   const on = form.accountKind === k;
-                  const icon = k === 'bot' ? '🤖' : k === 'app' ? '🔌' : '👤';
-                  const label = k === 'bot' ? 'Bot' : k === 'app' ? 'App' : 'User';
+                  const icon = k === 'bot' ? '🤖' : k === 'app' ? '🔌' : k === 'page' ? '📄' : '👤';
+                  const label = k === 'bot' ? 'Bot' : k === 'app' ? 'App' : k === 'page' ? 'Page' : 'User';
                   const hint = k === 'bot' ? 'Discord/Slack bot, có bot_token, auto-post API'
                     : k === 'app' ? 'OAuth integration (Reddit script-app)'
+                    : k === 'page' ? 'FB Page — đăng AS Page (1 user quản lý), join & comment vào group as Page; không phải profile cá nhân'
                     : 'Manual login, cần warming + persona';
                   return (
                     <button key={k} type="button"

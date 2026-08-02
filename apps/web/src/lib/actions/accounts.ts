@@ -27,7 +27,7 @@ export type AccountStatus =
 
 // 0058: phân biệt user vs bot/app account. Logic gate khác nhau hoàn toàn —
 // xem brief-readiness.ts cho rule details + accountKindMeta() ở status-meta.
-export type AccountKind = 'user' | 'bot' | 'app';
+export type AccountKind = 'user' | 'bot' | 'app' | 'page';
 
 export type AuthMethod =
   | 'password' | 'sso-google' | 'sso-github' | 'sso-x' | 'sso-linkedin'

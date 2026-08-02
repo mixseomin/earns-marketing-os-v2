@@ -1532,7 +1532,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     email: form.email || '',
   }), [form.handle, form.email, form.platformKey, platform?.label, project]);
 
+  // A child house-<Drawer> (browser-profile detail) is stacked on top → THIS layer must
+  // background per stacked_drawer rule (slide left + dim + inert), else the child covers it
+  // flat/out-of-order. Rendered as a fragment SIBLING (not a DOM child) so the transform/filter
+  // here doesn't drag the fixed-position child drawer along.
+  const childDrawerOpen = detailProfileId != null;
   return (
+    <>
     <div className="modal-backdrop"
       // asDrawer = stacked on top of the task drawer. Backdrop is transparent
       // (the task drawer dims itself) and click-outside CLOSES this top drawer
@@ -1543,9 +1549,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
       {/* asDrawer: a narrower right-side drawer that STACKS on top of the parent task
           drawer — sits flush-right, narrower so the parent peeks on the left, lifted with
           an accent left border + heavy shadow so the layering reads clearly. */}
-      <div className="modal" style={asDrawer
-        ? { position: 'fixed', inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: drawerW, maxWidth: '96vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, borderLeft: '1px solid var(--accent-line)', boxShadow: '-24px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' }
-        : { width: 'min(1100px, 100%)', maxWidth: 1100 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{
+        ...(asDrawer
+          ? { position: 'fixed' as const, inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: drawerW, maxWidth: '96vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, borderLeft: '1px solid var(--accent-line)', boxShadow: '-24px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' as const }
+          : { width: 'min(1100px, 100%)', maxWidth: 1100 }),
+        transition: 'transform .2s ease, filter .2s ease',
+        ...(childDrawerOpen ? { transform: asDrawer ? 'translateX(-86%) scale(.94)' : 'scale(.97)', transformOrigin: 'left center', filter: 'brightness(.5)', pointerEvents: 'none' as const } : null),
+      }} onClick={(e) => e.stopPropagation()}>
         {asDrawer && (
           <div onMouseDown={startResize} title="Kéo để đổi độ rộng"
             style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
@@ -2450,10 +2460,6 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               }}
             />
           )}
-          {detailProfileId != null && (() => {
-            const cur = browserProfiles.find((b) => b.id === detailProfileId);
-            return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setDetailProfileId(null)} /> : null;
-          })()}
           {showCreateProfile && (
             <QuickCreateBrowserProfileModal
               proxies={proxies}
@@ -2687,6 +2693,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         </div>
       </div>
     </div>
+    {/* Browser-profile DETAIL — house Drawer PUSHED as a top layer (sibling, not DOM child of
+        the backgrounded panel above). zIndex 520 > account drawer wrapper (300). */}
+    {detailProfileId != null && (() => {
+      const cur = browserProfiles.find((b) => b.id === detailProfileId);
+      return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setDetailProfileId(null)} /> : null;
+    })()}
+    </>
   );
 }
 

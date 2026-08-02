@@ -15,7 +15,7 @@ import {
   JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON,
   type JoinStatus,
 } from '@/lib/join-status';
-import { TextField, TextAreaField } from './ui';
+import { TextField, TextAreaField, FormModal } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
 
 // Habitat context — đủ thông tin để user "biết phải làm gì khi join":
@@ -330,25 +330,20 @@ function JoinStatusEditPopover({
   const h = habitatInfo;
   const a = accountInfo;
   return (
-    <div className="modal-backdrop" style={{ zIndex: 2100 }}
-         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ width: 'min(640px, 95vw)', padding: 0, display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}
-           onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px',
-                      borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-          <span style={{ fontSize: 16 }}>{JOIN_STATUS_ICON[current]}</span>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 14 }}>Membership state</h3>
-            <div style={{ marginTop: 2, fontSize: 11, color: 'var(--fg-3)' }}>{habitatLabel}</div>
-          </div>
-          <span style={{ flex: 1 }} />
-          <button onClick={onClose} className="btn ghost" style={{ fontSize: 13 }}>✕</button>
-        </div>
-
-        {/* Body — scrollable */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: 16,
-                      display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <FormModal
+      kind="brief"
+      action="edit"
+      title="Membership state"
+      subtitle={habitatLabel}
+      accentColor={JOIN_STATUS_COLOR[current]}
+      width={640}
+      zIndex={2100}
+      onClose={onClose}
+      preventBackdropClose
+      preventEscClose
+    >
+        {/* Body */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Account context — show "đang sửa membership cho account nào".
               QUAN TRỌNG: 1 habitat thường có nhiều briefs (mỗi account 1 brief),
               user cần thấy rõ account hiện tại để không click nhầm. */}
@@ -402,8 +397,7 @@ function JoinStatusEditPopover({
                       fontStyle: 'italic', flexShrink: 0 }}>
           💡 Bấm 1 button trạng thái phía trên để lưu (auto close).
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 

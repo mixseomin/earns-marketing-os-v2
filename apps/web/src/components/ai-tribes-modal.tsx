@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { suggestTribesForProject, type SuggestedTribe } from '@/lib/ai/tribe-suggest';
 import { createTribe } from '@/lib/actions/tribes-crud';
 import { TagsInput } from './tags-input';
-import { Spinner } from './ui';
+import { Spinner, FormModal } from './ui';
 
 const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
 const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -96,18 +96,16 @@ export function AITribesModal({
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(820px, 100%)', maxWidth: 820 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1 }}>
-            <div className="id-line">✨ AI · TRIBE SUGGESTIONS</div>
-            <h2>Gợi ý Tribes theo context dự án</h2>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>
-              AI suy nhóm khán giả từ one-liner / bio + community thật của dự án. Sửa thoải mái rồi tick để tạo.
-            </div>
-          </div>
-          <button className="btn ghost" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="tribe"
+      action="create"
+      title="Gợi ý Tribes theo context dự án"
+      subtitle="AI suy nhóm khán giả từ one-liner / bio + community thật của dự án. Sửa thoải mái rồi tick để tạo."
+      width={820}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+    >
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Re-generate bar */}
@@ -246,7 +244,6 @@ export function AITribesModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

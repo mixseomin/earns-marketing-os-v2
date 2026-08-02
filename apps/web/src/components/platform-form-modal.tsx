@@ -19,7 +19,7 @@ import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type Sig
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity, FormatIcon } from './ui';
+import { IconCommunity, FormatIcon, FormModal } from './ui';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
@@ -175,15 +175,17 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{platform?.key ?? 'NEW PLATFORM'}</div>
-            <h2>{isCreate ? '+ New platform' : `Edit ${platform!.label}`}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <>
+    <FormModal
+      kind="generic"
+      action={isCreate ? 'create' : 'edit'}
+      title={isCreate ? '+ New platform' : `Edit ${platform!.label}`}
+      idText={platform?.key ?? 'NEW PLATFORM'}
+      width={540}
+      onClose={onClose}
+      preventBackdropClose
+      preventEscClose
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
@@ -512,7 +514,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             </button>
           </div>
         </div>
-      </div>
+    </FormModal>
       {confirmRemoval && (
         <div className="modal-backdrop" onClick={() => !busy && setConfirmRemoval(null)}>
           <div className="modal" style={{ width: 'min(560px, 96vw)' }} onClick={(e) => e.stopPropagation()}>
@@ -571,6 +573,6 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

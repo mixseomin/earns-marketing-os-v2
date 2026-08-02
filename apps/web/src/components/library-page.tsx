@@ -10,6 +10,7 @@ import {
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import { AIFormParser } from './ai-form-parser';
+import { Drawer } from './ui';
 
 // Read+write a single URL search param. Replace navigation (no scroll, no history bloat).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -199,8 +200,7 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={540} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{tool?.id ?? 'NEW TOOL'}</div>
@@ -295,8 +295,7 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -487,8 +486,7 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={720} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{skill?.slug ?? 'NEW SKILL'}</div>
@@ -573,7 +571,6 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

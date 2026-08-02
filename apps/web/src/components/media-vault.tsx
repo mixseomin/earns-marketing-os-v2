@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
 import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, uploadMediaAsset, type MediaInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, StatsStrip, type StatCard } from './ui';
+import { EmptyState, StatsStrip, FormModal, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { image: '🖼', video: '🎬', audio: '🎵', doc: '📄', other: '🗂' };
@@ -35,7 +35,7 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
   return (
     <>
       <StatsStrip cards={stats} />
-      <QuickPasteUpload projectId={projectId} />
+      <QuickPasteUpload projectId={projectId} modalOpen={!!(editing || creating)} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
         <button className="btn primary" onClick={() => modal.open("new")}>+ New asset (URL)</button>
       </div>
@@ -117,7 +117,7 @@ function Lightbox({ media, onClose }: { media: MediaRow; onClose: () => void }) 
 
 // Paste a screenshot (⌘V), describe it, save — straight to R2 + library.
 // Built for fast screenshot capture: stays open, clears after each save.
-function QuickPasteUpload({ projectId }: { projectId: string }) {
+function QuickPasteUpload({ projectId, modalOpen }: { projectId: string; modalOpen: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -150,11 +150,16 @@ function QuickPasteUpload({ projectId }: { projectId: string }) {
   };
   const onDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) accept(f); };
 
+  // Latest modal-open flag for the global paste guard below (listener is
+  // mount-once, so read via ref to avoid a stale closure).
+  const modalOpenRef = useRef(modalOpen);
+  modalOpenRef.current = modalOpen;
+
   // Global paste: copy a screenshot, hit ⌘V anywhere on the page (unless an
   // edit modal is open, which has its own paste handling).
   useEffect(() => {
     const h = (e: ClipboardEvent) => {
-      if (document.querySelector('.modal-backdrop')) return;       // edit modal open
+      if (modalOpenRef.current) return;                            // edit modal open
       const items = e.clipboardData?.items; if (!items) return;
       for (const it of items) if (it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { accept(f); return; } }
     };
@@ -373,12 +378,16 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div><div className="id-line">{asset ? `#${asset.id}` : 'NEW MEDIA'}</div><h2>{isCreate ? '+ New media asset' : `Edit ${asset!.filename}`}</h2></div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="generic"
+      action={isCreate ? 'create' : 'edit'}
+      title={isCreate ? '+ New media asset' : `Edit ${asset!.filename}`}
+      idText={asset ? `#${asset.id}` : 'NEW MEDIA'}
+      width={560}
+      onClose={onClose}
+      preventBackdropClose
+      preventEscClose
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser
           currentValues={form}
@@ -464,7 +473,6 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

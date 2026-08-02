@@ -12,6 +12,7 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser, type FormFieldSchema } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
+import { Drawer } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -336,8 +337,7 @@ function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow 
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{proxy ? `proxy #${proxy.id}` : 'NEW PROXY'}</div>
@@ -468,8 +468,7 @@ function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow 
             <button className="btn primary" onClick={save}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -637,8 +636,7 @@ function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { pro
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{profile ? `profile #${profile.id}` : 'NEW PROFILE'}</div>
@@ -725,7 +723,6 @@ function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { pro
             <button className="btn primary" onClick={save}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

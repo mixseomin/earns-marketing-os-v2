@@ -7,6 +7,7 @@
 
 import { memo, useState, useTransition } from 'react';
 import { Spinner } from './ui';
+import { FormModal } from './ui/form-modal';
 import { confirmCardPosted, unconfirmCardPosted } from '@/lib/actions/seeding';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
@@ -318,16 +319,17 @@ function ConfirmPostedModal({
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 2000 }}
-         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ width: 'min(560px, 95vw)', padding: 18 }}
-           onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 18 }}>🚀</span>
-          <h3 style={{ margin: 0, fontSize: 16 }}>Xác nhận đã đăng bài</h3>
-          <span style={{ flex: 1 }} />
-          <button onClick={onClose} className="btn ghost" style={{ fontSize: 14 }}>✕</button>
-        </div>
+    <FormModal
+      kind="generic"
+      action="create"
+      title="Xác nhận đã đăng bài"
+      width={560}
+      zIndex={2000}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+      bodyPadding={18}
+    >
         <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--fg-3)' }}>
           Sau khi bạn đã đăng bài lên <strong style={{ color: 'var(--accent)' }}>{targetLabel}</strong>, paste link bài để MOS2 có thể theo dõi reply.
         </div>
@@ -382,8 +384,7 @@ function ConfirmPostedModal({
             {busy ? <><Spinner size="xs" /> Đang lưu</> : '✓ Xác nhận đã đăng'}
           </button>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 

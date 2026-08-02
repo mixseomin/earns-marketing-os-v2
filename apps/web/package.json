@@ -8,7 +8,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p ${PORT:-3821}",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint:ui": "eslint src"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

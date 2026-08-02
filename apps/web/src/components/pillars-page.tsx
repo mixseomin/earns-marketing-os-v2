@@ -12,7 +12,7 @@ import {
 } from '@/lib/actions/content-pillars';
 import { VOICE_PROFILES, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
 import type { TribeRow } from '@/lib/data';
-import { Spinner } from './ui';
+import { Drawer, Spinner } from './ui';
 import { TagsInput } from './tags-input';
 
 const CONTENT_KINDS = ['seed', 'blog', 'email', 'thread'] as const;
@@ -236,9 +236,7 @@ function PillarFormModal({ projectId, pillar, tribes, onClose, onSaved }: {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ width: 'min(900px, 95vw)', maxHeight: '92vh', overflowY: 'auto' }}
-           onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={900} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head" style={{ display: 'flex', alignItems: 'center', padding: 14, gap: 10 }}>
           <div style={{ flex: 1 }}>
             <div className="id-line">{isCreate ? 'TRỤ CỘT MỚI' : `Trụ cột #${pillar!.id}`}</div>
@@ -460,7 +458,6 @@ function PillarFormModal({ projectId, pillar, tribes, onClose, onSaved }: {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

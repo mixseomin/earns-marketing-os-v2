@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { InfraRow } from '@/lib/data';
 import { createInfraResource, updateInfraResource, deleteInfraResource, type InfraInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
+import { EmptyState, Pill, StatsStrip, Drawer, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = {
@@ -151,8 +151,7 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
         <div className="modal-head">
           <div><div className="id-line">{item ? `#${item.id}` : 'NEW'}</div><h2>{isCreate ? '+ New infra resource' : `Edit ${item!.label}`}</h2></div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -233,7 +232,6 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

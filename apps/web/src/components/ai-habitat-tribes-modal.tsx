@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { suggestHabitatTribes, type HabitatTribeSuggestion } from '@/lib/ai/habitat-tribe-suggest';
 import { bulkAssignHabitatTribe } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
-import { Spinner, Segmented } from './ui';
+import { Spinner, Segmented, FormModal } from './ui';
 
 const fld: React.CSSProperties = { padding: '4px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
 const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -111,18 +111,16 @@ export function AIHabitatTribesModal({
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(1000px, 100%)', maxWidth: 1000 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1 }}>
-            <div className="id-line">✨ AI · HABITAT → TRIBES</div>
-            <h2>Gán habitat vào tribe (nhiều tribe / 1 primary)</h2>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>
-              1 community có thể thuộc nhiều tribe. ★ = tribe trội (primary, đồng bộ vào habitat.tribe_id). Click chip để bật/tắt, click ★ để đổi primary.
-            </div>
-          </div>
-          <button className="btn ghost" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="tribe"
+      action="edit"
+      title="Gán habitat vào tribe (nhiều tribe / 1 primary)"
+      subtitle="1 community có thể thuộc nhiều tribe. ★ = tribe trội (primary, đồng bộ vào habitat.tribe_id). Click chip để bật/tắt, click ★ để đổi primary."
+      width={1000}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+    >
 
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -260,7 +258,6 @@ export function AIHabitatTribesModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

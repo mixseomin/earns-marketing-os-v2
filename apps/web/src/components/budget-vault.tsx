@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { BudgetRow } from '@/lib/data';
 import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, StatsStrip, type StatCard } from './ui';
+import { EmptyState, StatsStrip, FormModal, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { income: '⬆', expense: '⬇', recurring: '🔁' };
@@ -157,12 +157,16 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div><div className="id-line">{entry ? `#${entry.id}` : 'NEW'}</div><h2>{isCreate ? '+ New budget entry' : `Edit ${entry!.label}`}</h2></div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="generic"
+      action={isCreate ? 'create' : 'edit'}
+      title={isCreate ? '+ New budget entry' : `Edit ${entry!.label}`}
+      idText={entry ? `#${entry.id}` : 'NEW'}
+      width={540}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser
           currentValues={form}
@@ -243,7 +247,6 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

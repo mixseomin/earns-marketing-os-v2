@@ -12,7 +12,7 @@ import { useEffect, useState, useTransition } from 'react';
 import type { HabitatRow, AccountRow } from '@/lib/data';
 import { listAccountsForProjectByPlatform } from '@/lib/actions/accounts';
 import { upsertBrief } from '@/lib/actions/community-briefs';
-import { Spinner } from './ui';
+import { Spinner, FormModal } from './ui';
 import { AccountKindIcon } from './account-kind-icon';
 
 interface Props {
@@ -87,22 +87,16 @@ export function AddBriefModal({ projectId, habitats, onClose, onCreated }: Props
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ width: 'min(820px, 100%)', maxWidth: 820 }}
-           onClick={(e) => e.stopPropagation()}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)',
-                      display: 'flex', alignItems: 'center', gap: 10 }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--fg-0)' }}>
-            + Brief mới
-          </h2>
-          <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>
-            Pick habitat + account → skeleton brief → mở editor.
-          </span>
-          <span style={{ flex: 1 }} />
-          <button onClick={onClose} className="btn ghost"
-                  style={{ fontSize: 11, padding: '4px 8px' }}>✕</button>
-        </div>
-
+    <FormModal
+      kind="brief"
+      action="create"
+      title="Brief mới"
+      subtitle="Pick habitat + account → skeleton brief → mở editor."
+      width={820}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+    >
         <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
                       maxHeight: '70vh', overflow: 'auto' }}>
           {/* Step 1: habitat */}
@@ -234,7 +228,6 @@ export function AddBriefModal({ projectId, habitats, onClose, onCreated }: Props
             {busy ? '⟳ Đang tạo…' : '+ Tạo brief → Edit'}
           </button>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }

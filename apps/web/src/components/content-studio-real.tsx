@@ -8,6 +8,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { CHANNELS, STATUSES, type ContentStatus } from '@/lib/content-channels';
 import type { SkillRow } from '@/lib/actions/library';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
+import { FormModal } from './ui/form-modal';
 
 // URL state hook (same pattern as library-page.tsx).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -271,19 +272,17 @@ function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose 
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div
-        className="modal"
-        style={{
-          width: '94vw', maxWidth: 1600, height: '92vh',
-          display: 'flex', flexDirection: 'column',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-head">
-          <div><div className="id-line">{piece?.slug ?? 'NEW PIECE'}</div><h2>{isCreate ? '+ New content piece' : `Edit ${piece!.title}`}</h2></div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="generic"
+      action={isCreate ? 'create' : 'edit'}
+      title={isCreate ? '+ New content piece' : `Edit ${piece!.title}`}
+      idText={piece?.slug ?? 'NEW PIECE'}
+      width={1500}
+      preventBackdropClose
+      preventEscClose
+      onClose={onClose}
+      bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', flex: 1, minHeight: 0 }}>
@@ -424,8 +423,7 @@ function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose 
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 

@@ -11,6 +11,7 @@ import { enterImpersonateAction } from '@/lib/actions/impersonate';
 import { listMemberProjects, setProjectMembership, getMemberAssignments, listMemberActivity, getProjectAccountsForMember, assignAccountsToMember, enableResourcesForMember, listAllProjectsForAssignment, type MemberProjectRow, type MemberAssignmentSummary, type MemberActivityEvent } from '@/lib/actions/assignments';
 import { useModalParam } from '@/lib/use-modal-param';
 import { AIFormParser } from './ai-form-parser';
+import { FormModal } from './ui';
 import { NoFillInput } from './no-fill-input';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -229,15 +230,14 @@ function SetPasswordModal({ member, onClose }: { member: TeamMemberRow; onClose:
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{member.email}</div>
-            <h2>🔑 Set password — {member.displayName}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="generic" action="edit"
+      title={<>🔑 Set password — {member.displayName}</>}
+      idText={member.email}
+      width="sm"
+      onClose={onClose}
+      preventBackdropClose preventEscClose
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         {okMessage && <div style={{ padding: '8px 14px', background: 'rgba(16,185,129,.08)', borderBottom: '1px solid rgba(16,185,129,.3)', color: 'var(--ok)', fontSize: 12 }}>✓ {okMessage}</div>}
         <div className="modal-body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -282,8 +282,7 @@ function SetPasswordModal({ member, onClose }: { member: TeamMemberRow; onClose:
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 
@@ -341,15 +340,14 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{member ? `user #${member.userId}` : 'NEW MEMBER'}</div>
-            <h2>{isCreate ? '+ New team member' : `Edit ${member!.displayName}`}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+    <FormModal
+      kind="generic" action={isCreate ? 'create' : 'edit'}
+      title={isCreate ? 'New team member' : `Edit ${member!.displayName}`}
+      idText={member ? `user #${member.userId}` : 'NEW MEMBER'}
+      width={540}
+      onClose={onClose}
+      preventBackdropClose preventEscClose
+    >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
@@ -466,8 +464,7 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
             <button className="btn primary" onClick={save}>{isCreate ? 'Invite' : 'Save'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 

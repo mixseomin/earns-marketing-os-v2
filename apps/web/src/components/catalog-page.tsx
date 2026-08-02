@@ -10,8 +10,8 @@ import { SourceEditor } from './source-editor';
 const CATEGORY = new Set(['community', 'editorial', 'pr', 'guest-post', 'directory', 'tool-dir', 'launch', 'qa', 'forum', 'wiki', 'reference', 'dev', 'listicle', 'social', 'edu-resource', 'haro', 'llms']);
 const NOISE = new Set(['play', 'universal', 'general']);          // markers, not a Nhóm
 const LEVEL_RE = /^level-/;
-const LEVEL_LABEL: Record<string, string> = { 'level-1': 'L1', 'level-2': 'L2', 'level-3': 'L3' };
-const LEVEL_ORDER = ['level-1', 'level-2', 'level-3', ''];
+const LEVEL_LABEL: Record<string, string> = { 'level-1': 'NGAY', 'level-2': 'NHANH', 'level-3': 'TRUNG', 'level-4': 'TRẢ TIỀN' };
+const LEVEL_ORDER = ['level-1', 'level-2', 'level-3', 'level-4', ''];
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (on: boolean, c = 'var(--accent)'): CSSProperties => ({ fontSize: 11, fontWeight: 700, padding: '3px 11px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
@@ -74,7 +74,9 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
             {s.usageCount > 0 && <span style={{ ...badge, color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }} title="Số dự án đang dùng">{s.usageCount} dự án</span>}
           </div>
           <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <a href={s.canonicalUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-3)', textDecoration: 'none' }} title={s.canonicalUrl}>↗ {s.canonicalUrl.replace(/^https?:\/\//, '').slice(0, 52)}</a>
+            {/^https?:\/\//.test(s.canonicalUrl)
+              ? <a href={s.canonicalUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-3)', textDecoration: 'none' }} title={s.canonicalUrl}>↗ {s.canonicalUrl.replace(/^https?:\/\//, '').slice(0, 52)}</a>
+              : <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }} title={s.canonicalUrl}>· method (không có URL riêng — xem hướng dẫn)</span>}
             {extraTags.length > 0 && <span>{extraTags.join(' · ')}</span>}
           </div>
         </div>
@@ -112,7 +114,7 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
         {nhomCounts.map(([g, n]) => <button key={g} type="button" onClick={() => setNhom(nhom === g ? '' : g)} style={chip(nhom === g)}>{groupLabel(g)} <span style={{ opacity: 0.6 }}>{n}</span></button>)}
       </div>
 
-      {nhom === 'leads' && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 8 }}>L1 harvest (tay, ra lead sớm) · L2 organic · L3 authority · L4 paid</div>}
+      {nhom === 'leads' && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 8 }}>NGAY = harvest tay (ra lead sớm, proof) · NHANH = organic (Pinterest/pSEO) · TRUNG = authority (Digital-PR/email) · TRẢ TIỀN = ads (gated)</div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 6 }}>
         {sections.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có phương pháp nào khớp.</div>}

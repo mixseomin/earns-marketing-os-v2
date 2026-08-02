@@ -8,7 +8,8 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
-import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, upsertBacklinkSource, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { SourceEditor } from './source-editor';
 import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
@@ -331,68 +332,6 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-// Catalog source editor (add/edit a backlink_sources row). Stacks over the seed picker.
-function SourceEditor({ initial, onClose, onSaved }: { initial: BacklinkSource | Record<string, never>; onClose: () => void; onSaved: () => void | Promise<void> }) {
-  const s = initial as Partial<BacklinkSource>;
-  const [name, setName] = useState(s.name ?? '');
-  const [url, setUrl] = useState(s.canonicalUrl ?? '');
-  const [category, setCategory] = useState(s.category ?? '');
-  const [dofollow, setDofollow] = useState(s.dofollow ?? '');
-  const [da, setDa] = useState(s.da ?? '');
-  const [traffic, setTraffic] = useState(s.traffic ?? '');
-  const [aud, setAud] = useState((s.audienceTags ?? []).join(', '));
-  const [platformKey, setPlatformKey] = useState(s.platformKey ?? '');
-  const [gates, setGates] = useState(s.gates ?? '');
-  const [tpl, setTpl] = useState(s.instructionTemplate ?? '');
-  const [status, setStatus] = useState(s.sourceStatus ?? 'active');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
-  const save = async () => {
-    setBusy(true); setErr('');
-    const r = await upsertBacklinkSource({ id: s.id, canonicalUrl: url, name, category, dofollow, da, traffic, audienceTags: aud.split(',').map((x) => x.trim()).filter(Boolean), instructionTemplate: tpl, gates, platformKey, sourceStatus: status });
-    setBusy(false);
-    if (r.ok) await onSaved(); else setErr(r.error || 'lỗi');
-  };
-  const field: CSSProperties = { fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-0)', width: '100%', boxSizing: 'border-box' };
-  const lbl: CSSProperties = { fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3, display: 'block' };
-  return (
-    <Drawer onClose={onClose} width={560} zIndex={300}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{s.id ? '✎ Sửa nguồn' : '➕ Nguồn mới'}</h2>
-        <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <div><label style={lbl}>Tên *</label><input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" style={field} /></div>
-        <div><label style={lbl}>URL hành động *</label><input value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="off" placeholder="https://…/submit" style={field} /></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><label style={lbl}>Channel (kênh/loại post)</label>
-            <select value={category ?? ''} onChange={(e) => setCategory(e.target.value)} style={field}>
-              <option value="">—</option>{['community', 'editorial', 'pr', 'guest-post', 'directory', 'tool-dir', 'launch', 'qa', 'forum', 'wiki', 'reference', 'dev', 'listicle', 'social', 'edu-resource', 'haro', 'llms'].map((c) => <option key={c} value={c}>{c}</option>)}
-            </select></div>
-          <div style={{ flex: 1 }}><label style={lbl}>Dofollow</label>
-            <select value={dofollow ?? ''} onChange={(e) => setDofollow(e.target.value)} style={field}>
-              <option value="">—</option>{['dofollow', 'nofollow', 'mixed'].map((c) => <option key={c} value={c}>{c}</option>)}
-            </select></div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><label style={lbl}>DA</label><input value={da ?? ''} onChange={(e) => setDa(e.target.value)} autoComplete="off" style={field} /></div>
-          <div style={{ flex: 1 }}><label style={lbl}>Traffic</label><input value={traffic ?? ''} onChange={(e) => setTraffic(e.target.value)} autoComplete="off" style={field} /></div>
-          <div style={{ flex: 1 }}><label style={lbl}>Platform key</label><input value={platformKey ?? ''} onChange={(e) => setPlatformKey(e.target.value)} autoComplete="off" style={field} /></div>
-        </div>
-        <div><label style={lbl}>Niche tags — nhóm site khớp (phẩy)</label><input value={aud} onChange={(e) => setAud(e.target.value)} autoComplete="off" placeholder="coins, games, finance, immigration… · 'universal' = mọi niche · 'play'" style={field} /></div>
-        <div><label style={lbl}>Gates / điều kiện</label><input value={gates ?? ''} onChange={(e) => setGates(e.target.value)} autoComplete="off" style={field} /></div>
-        <div><label style={lbl}>Instruction template (chỗ trống {'{product}'} / {'{domain}'})</label><textarea value={tpl ?? ''} onChange={(e) => setTpl(e.target.value)} rows={9} style={{ ...field, fontFamily: 'var(--font-mono)', fontSize: 11.5, resize: 'vertical' }} /></div>
-        <div><label style={lbl}>Trạng thái</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} style={field}>{['active', 'needs-review', 'broken', 'archived'].map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-      </div>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
-        <button type="button" onClick={save} disabled={busy || !name.trim() || !url.trim()} style={{ ...btn, background: 'var(--accent)', color: '#fff', borderColor: 'transparent', fontWeight: 700 }}>{busy ? '⏳ lưu…' : '💾 Lưu'}</button>
-        {err && <span style={{ fontSize: 12, color: 'var(--bad,#ef4444)' }}>✗ {err}</span>}
-      </div>
-    </Drawer>
-  );
-}
-
 export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, initialView, allProjects, projectsById }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
@@ -583,18 +522,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     return base.sort((a, b) => (TIER_RANK[a.tier ?? ''] ?? 9) - (TIER_RANK[b.tier ?? ''] ?? 9));
   }, [filtered, tab]);
 
-  // Search also probes the shared CATALOG (backlink_sources), not just seeded tasks: lazy-load it the
-  // first time the query box is used so a play that exists as a template — but isn't seeded here yet —
-  // still surfaces (fixes "I added a play to /plays and can't find it": it was a template, not a task).
-  useEffect(() => { if (q.trim() && seedSrcs === null) void reloadSeed(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [q]);
-  const catalogHits = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s || !seedSrcs) return [] as BacklinkSource[];
-    const seeded = new Set(shown.map((t) => t.catalogSourceId).filter(Boolean));   // hide plays already shown as cards
-    return seedSrcs.filter((src) => !seeded.has(src.id)
-      && `${src.name} ${src.canonicalUrl} ${src.category || ''} ${src.mechanism || ''} ${src.audienceTags.join(' ')} ${src.instructionTemplate || ''}`.toLowerCase().includes(s)).slice(0, 24);
-  }, [q, seedSrcs, shown]);
-
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
   const grouped = useMemo(() => {
     if (groupBy === 'none') return null;
@@ -750,6 +677,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {allProjects ? 'Plays' : 'Backlinks'} <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {allProjects ? 'All projects' : siteLabel} · {kpi.total} {allProjects ? 'plays' : 'sources'}</small>
         </h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <a href="/catalog" style={{ ...btn, textDecoration: 'none', color: 'var(--accent)' }} title="Quản lý phương pháp (catalog mẫu play dùng chung) — theo Nhóm · Level">📋 Phương pháp</a>
           {!allProjects && (
             <button type="button" onClick={doAutoMedia} disabled={autoMedia === 'busy'} style={{ ...btn, color: 'var(--accent)' }}
               title="Tự chuẩn bị media: cover OG + screenshot trang + logo → lưu vào Media vault">
@@ -940,7 +868,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* filters — apply to BOTH list & calendar */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm task / play / tag / niche…" autoComplete="off"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm task (tên/URL/method/niche)…" autoComplete="off"
           style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
         {['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={chip('#9d6cff', follow === f)}>{f}</button>)}
         <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
@@ -963,22 +891,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           </label>
         )}
       </div>
-
-      {q.trim() && catalogHits.length > 0 && (
-        <div style={{ marginBottom: 12, padding: '8px 10px', border: '1px dashed var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
-          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 6 }}>
-            🔎 {catalogHits.length} play trong <b>catalog</b> khớp “{q.trim()}” — template chưa seed (bấm để xem){allProjects ? ' · vào 1 project → Plays → “Seed từ catalog” để tạo task' : ' · dùng “Seed từ catalog” để tạo task cho site này'}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {catalogHits.map((s) => (
-              <button key={s.id} type="button" onClick={() => setSrcEdit(s)} title={`${s.category || ''} · ${s.audienceTags.join(', ')}`} style={{ ...btn, padding: '3px 9px', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                <span>📋 {s.name}</span>
-                <span style={{ opacity: 0.55, fontSize: 10 }}>{s.audienceTags.filter((t) => t !== 'play' && t !== 'universal').slice(0, 3).join(' · ')}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { listAccountMedia } from '@/lib/actions/post-media';
@@ -28,7 +28,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, EntityPicker, Drawer, type EntityOption } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -984,7 +984,7 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
   );
 }
 
-// Browser profile DETAIL — house <Drawer> (NOT a modal). Shows the asset (open-from path · tool ·
+// Browser profile DETAIL — house <Drawer> (NOT a modal), opened per-item via "chi tiết ↗". Shows the asset (open-from path · tool ·
 // last-opened · #accounts-inside · proxy) + edits label/path/proxy/notes. Stacks over the picker.
 function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: BrowserProfileRow; proxies: ProxyRow[]; onClose: () => void }) {
   const router = useRouter();
@@ -1351,15 +1351,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // sẽ được generalize thành <ResourcePicker> sau (xem feedback memory).
   const [showCreateProxy, setShowCreateProxy] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
-  const [showBrowserPicker, setShowBrowserPicker] = useState(false);
-  const [showBrowserDetail, setShowBrowserDetail] = useState(false);
-  const loadBrowserProfiles = useCallback(async (): Promise<EntityOption[]> => [
-    { key: '', label: '— none —', fallbackIcon: '∅' },
-    ...browserProfiles.map((b) => ({
-      key: String(b.id), label: b.label, fallbackIcon: '🦊',
-      sub: `${b.tool}${b.externalId ? ` · ${b.externalId}` : ''}${b.defaultProxyLabel ? ` · proxy ${b.defaultProxyLabel}` : ''}`,
-    })),
-  ], [browserProfiles]);
+  const [showBrowserPick, setShowBrowserPick] = useState(false); // inline chooser list
+  const [browserQ, setBrowserQ] = useState('');
+  const [detailProfileId, setDetailProfileId] = useState<number | null>(null); // per-item detail drawer
   // Inline platform edit — mở PlatformFormModal stack lên trên account modal
   // (feedback_picker_inline_crud: edit-anywhere, không bắt vào /platforms)
   const [showEditPlatform, setShowEditPlatform] = useState(false);
@@ -2388,28 +2382,56 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
                 {(() => {
                   const cur = browserProfiles.find((b) => b.id === form.browserProfileId);
-                  // Selected → the field itself opens the DETAIL drawer (click = inspect); a small
-                  // "đổi" opens the chooser. None → the field opens the chooser.
+                  // Selected → field shows profile; "chi tiết" opens THIS item's drawer, "đổi" opens
+                  // the inline chooser. None → field opens the inline chooser.
                   return cur ? (
                     <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
-                      <button type="button" onClick={() => setShowBrowserDetail(true)} title="Xem/sửa chi tiết profile (path · proxy · session)"
+                      <button type="button" onClick={() => setDetailProfileId(cur.id)} title="Xem/sửa chi tiết profile (path · proxy · session)"
                         style={{ ...fld, flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-0)' }}>
                           🦊 {cur.label} · {cur.tool}{cur.defaultProxyLabel ? ` (proxy: ${cur.defaultProxyLabel})` : ''}
                         </span>
                         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>chi tiết ↗</span>
                       </button>
-                      <button type="button" onClick={() => setShowBrowserPicker(true)} title="Đổi profile"
-                        style={{ fontSize: 11, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', flexShrink: 0 }}>đổi</button>
+                      <button type="button" onClick={() => { setShowBrowserPick((v) => !v); setBrowserQ(''); }} title="Đổi profile"
+                        style={{ fontSize: 11, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line)', background: showBrowserPick ? 'var(--accent)' : 'var(--bg-2)', color: showBrowserPick ? '#fff' : 'var(--fg-2)', cursor: 'pointer', flexShrink: 0 }}>đổi</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setShowBrowserPicker(true)}
+                    <button type="button" onClick={() => { setShowBrowserPick((v) => !v); setBrowserQ(''); }}
                       style={{ ...fld, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <span style={{ color: 'var(--fg-3)' }}>{browserProfiles.length === 0 ? '— chưa có profile nào —' : '— chọn profile —'}</span>
                       <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>▾</span>
                     </button>
                   );
                 })()}
+                {/* INLINE chooser (đều inline) — pick = click row; "chi tiết ↗" = mở drawer riêng của item đó */}
+                {showBrowserPick && (
+                  <div style={{ border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', padding: 6, display: 'flex', flexDirection: 'column', gap: 5, marginTop: 6 }}>
+                    {browserProfiles.length > 4 && (
+                      <input value={browserQ} onChange={(e) => setBrowserQ(e.target.value)} placeholder="tìm profile…" autoComplete="off"
+                        style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 200, overflowY: 'auto' }}>
+                      <button type="button" onClick={() => { setF('browserProfileId', null); setShowBrowserPick(false); }}
+                        style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)', background: form.browserProfileId == null ? 'var(--accent)' : 'var(--bg-2)', color: form.browserProfileId == null ? '#fff' : 'var(--fg-3)' }}>∅ — none —</button>
+                      {browserProfiles
+                        .filter((b) => !browserQ || `${b.label} ${b.tool} ${b.externalId ?? ''}`.toLowerCase().includes(browserQ.toLowerCase()))
+                        .map((b) => (
+                          <div key={b.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
+                            <button type="button" onClick={() => { setF('browserProfileId', b.id); setShowBrowserPick(false); }}
+                              style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1, padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)', background: b.id === form.browserProfileId ? 'var(--accent)' : 'var(--bg-2)', color: b.id === form.browserProfileId ? '#fff' : 'var(--fg-1)' }}>
+                              <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🦊 {b.label}</span>
+                              <span style={{ fontSize: 10, opacity: .8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.tool}{b.externalId ? ` · ${b.externalId}` : ''}{b.defaultProxyLabel ? ` · proxy ${b.defaultProxyLabel}` : ''}</span>
+                            </button>
+                            <button type="button" onClick={() => setDetailProfileId(b.id)} title="Chi tiết profile này"
+                              style={{ fontSize: 10, padding: '0 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-3)', cursor: 'pointer', flexShrink: 0 }}>chi tiết ↗</button>
+                          </div>
+                        ))}
+                      {browserProfiles.filter((b) => !browserQ || `${b.label} ${b.tool} ${b.externalId ?? ''}`.toLowerCase().includes(browserQ.toLowerCase())).length === 0 &&
+                        <span style={{ fontSize: 11, color: 'var(--fg-4)', padding: '2px 4px' }}>Không match. ＋ tạo mới ở nút phía trên.</span>}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, fontStyle: 'italic' }}>
@@ -2428,20 +2450,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               }}
             />
           )}
-          {showBrowserPicker && (
-            <EntityPicker
-              title="Browser profile — chọn"
-              hint="Mỗi account gắn 1 profile (session/login/proxy sống trong đó). ＋ tạo mới ở nút phía trên."
-              load={loadBrowserProfiles}
-              value={{ key: form.browserProfileId != null ? String(form.browserProfileId) : '' }}
-              onPick={(o) => { setF('browserProfileId', o.key ? Number(o.key) : null); setShowBrowserPicker(false); }}
-              onClose={() => setShowBrowserPicker(false)}
-              searchThreshold={5}
-            />
-          )}
-          {showBrowserDetail && (() => {
-            const cur = browserProfiles.find((b) => b.id === form.browserProfileId);
-            return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setShowBrowserDetail(false)} /> : null;
+          {detailProfileId != null && (() => {
+            const cur = browserProfiles.find((b) => b.id === detailProfileId);
+            return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setDetailProfileId(null)} /> : null;
           })()}
           {showCreateProfile && (
             <QuickCreateBrowserProfileModal

@@ -11,6 +11,7 @@ import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklink
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { SourceEditor } from './source-editor';
 import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
+import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -50,6 +51,7 @@ type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+const domainForSlug = (s: string | null | undefined) => (s ? BACKLINK_SITES.find((x) => x.slug === s)?.domain ?? null : null);
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
 // Image actions on a thumbnail: fetch the bytes so both download and copy-as-image work even
@@ -348,6 +350,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
+  // A seeded editorial play with no concrete target URL carries a placeholder source_url on the
+  // site's OWN domain (e.g. mintalmanac.com#play-N) — showing that host on a card reads as a
+  // meaningless self-link. Hide it (return null) so the descriptive title speaks instead. In the
+  // global /plays grid each task's own site comes from its projectSlug.
+  const showHost = (url: string | null | undefined, taskSlug?: string | null): string | null => {
+    if (!url) return null;
+    const h = hostOf(url);
+    const own = allProjects ? domainForSlug(taskSlug) : domainForSlug(slug);
+    return own && h === own ? null : h;
+  };
   // All view state initialises from the URL so tabs/filters/drawer are deep-linkable + refresh-safe.
   // Defaults (no URL params): Calendar view + All status.
   const initTab = ([...STATUS_ORDER, 'all'] as const).find((t) => t === sp.get('tab')) ?? 'all';
@@ -540,7 +552,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       // Global /plays: prefix the project emoji so a calendar cell says which site it's for.
       const pfx = allProjects && t.projectEmoji ? `${t.projectEmoji} ` : '';
       const plbl = allProjects && t.projectLabel ? `[${t.projectLabel}] ` : '';
-      const label = pfx + (t.sourceUrl ? hostOf(t.sourceUrl) : t.title);
+      const label = pfx + (showHost(t.sourceUrl, t.projectSlug) ?? t.title);
       if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${plbl}${t.title}` });
       else if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}` });
       else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 ${plbl}${t.title}` });
@@ -601,7 +613,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     const badges = (
       <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 28%, transparent)', background: 'color-mix(in srgb, var(--accent) 9%, transparent)' }}>{t.projectEmoji} {t.projectLabel}</span>}
-        {t.sourceUrl && <a href={wrapExternalUrl(t.sourceUrl)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(t.sourceUrl)}</a>}
+        {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
         {t.da && <Tag>DA {t.da}</Tag>}
         {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
         {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}

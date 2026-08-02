@@ -242,6 +242,26 @@ export async function queueMethodFanout(sourceId: number, projectId: string): Pr
   }
 }
 
+// Persistent fan-out status (queued/done) per (source, project), read from ai_content so the pending
+// badge shows on ANY machine / after refresh — not just the browser that clicked 🎯.
+export async function listMethodFanouts(): Promise<Array<{ sourceId: number; projectId: string; status: string }>> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const r = (await db.execute(sql`
+      SELECT DISTINCT ON (context->>'source_id', project_id)
+             context->>'source_id' AS source_id, project_id, status
+      FROM ai_content
+      WHERE kind = 'method-fanout' AND (context->>'source_id') IS NOT NULL
+      ORDER BY context->>'source_id', project_id, created_at DESC
+    `)) as unknown as Row[];
+    return r.filter((x) => x.source_id && x.project_id)
+      .map((x) => ({ sourceId: Number(x.source_id), projectId: String(x.project_id), status: String(x.status) }));
+  } catch {
+    return [];
+  }
+}
+
 export interface BacklinkSourceInput {
   id?: number;
   canonicalUrl: string;

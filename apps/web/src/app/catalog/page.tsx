@@ -3,7 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { CatalogPage } from '@/components/catalog-page';
 import { getMode, listProjects } from '@/lib/data';
 import { getCurrentUser } from '@/lib/auth';
-import { listBacklinkSources } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, listMethodFanouts } from '@/lib/actions/backlink-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +12,11 @@ export default async function CatalogRoute() {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect('/');
 
-  const [mode, projects, sources] = await Promise.all([
+  const [mode, projects, sources, fanouts] = await Promise.all([
     getMode('affiliate'),
     listProjects(),
     listBacklinkSources({ status: 'active' }),
+    listMethodFanouts(),
   ]);
 
   return (
@@ -25,7 +26,7 @@ export default async function CatalogRoute() {
       isPortfolio
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <CatalogPage initialSources={sources} projects={projects.map((p) => ({ id: p.id, name: p.name, emoji: p.emoji }))} />
+      <CatalogPage initialSources={sources} projects={projects.map((p) => ({ id: p.id, name: p.name, emoji: p.emoji }))} fanouts={fanouts} />
     </AppShell>
   );
 }

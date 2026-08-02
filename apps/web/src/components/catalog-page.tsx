@@ -4,6 +4,7 @@
 // TASK instances). Grouped Nhóm → Level → method, so "Kéo leads" (or any niche) reads as a group with its
 // levels inside. Reuses SourceEditor for add/edit; archive via setBacklinkSourceStatus.
 import { useMemo, useState, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { SourceEditor } from './source-editor';
 
@@ -22,7 +23,9 @@ const groupsOf = (s: BacklinkSource) => s.audienceTags.filter((t) => !NOISE.has(
 const primaryGroup = (s: BacklinkSource) => (s.audienceTags.includes('leads') ? 'leads' : (groupsOf(s)[0] ?? '(chung)'));
 const groupLabel = (g: string) => (g === 'leads' ? '🎯 Kéo leads' : g === '(chung)' ? '📦 Chung / universal' : g);
 
-export function CatalogPage({ initialSources, projects }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }> }) {
+export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string }> }) {
+  const router = useRouter();
+  const fanoutMap = useMemo(() => { const m: Record<string, string> = {}; for (const f of fanouts) m[`${f.sourceId}:${f.projectId}`] = f.status; return m; }, [fanouts]);
   const [sources, setSources] = useState(initialSources);
   const [q, setQ] = useState('');
   const [nhom, setNhom] = useState('');
@@ -39,6 +42,7 @@ export function CatalogPage({ initialSources, projects }: { initialSources: Back
     const r = await queueMethodFanout(sourceId, genProject);
     setGenBusy(null);
     setGenMsg((m) => ({ ...m, [sourceId]: r.ok ? (r.already ? '⏳ đã xếp hàng rồi' : '✓ đã xếp hàng → Claude research') : `✗ ${r.error}` }));
+    if (r.ok) router.refresh();   // persist: reload DB fanout status so the badge shows on any machine
   };
 
   const reload = async (nextArchived = archived) => setSources(await listBacklinkSources({ status: nextArchived ? 'archived' : 'active' }));
@@ -72,6 +76,7 @@ export function CatalogPage({ initialSources, projects }: { initialSources: Back
   const row = (s: BacklinkSource) => {
     const lv = levelOf(s);
     const gm = genMsg[s.id];
+    const fanoutStatus = genProject ? fanoutMap[`${s.id}:${genProject}`] : undefined;
     const extraTags = s.audienceTags.filter((t) => !NOISE.has(t) && !LEVEL_RE.test(t) && t !== primaryGroup(s));
     return (
       <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '7px 10px' }}>
@@ -94,7 +99,11 @@ export function CatalogPage({ initialSources, projects }: { initialSources: Back
         {genProject && s.audienceTags.includes('play') && (
           <button type="button" disabled={genBusy === s.id} onClick={() => queueFanout(s.id)} style={{ ...btn, padding: '3px 8px', color: 'var(--accent)' }} title={`Sinh fan-out method này cho project đã chọn — Claude research target thật, tạo draft chờ duyệt`}>{genBusy === s.id ? '⏳' : '🎯'}</button>
         )}
-        {gm && <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>}
+        {gm
+          ? <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>
+          : fanoutStatus === 'queued' ? <span style={{ ...badge, color: 'var(--warn,#ffb03c)', borderColor: 'color-mix(in srgb, var(--warn,#ffb03c) 35%, transparent)' }} title="Đã queue — Claude sẽ research & tạo draft ở plays của project">⏳ đã xếp hàng</span>
+          : fanoutStatus === 'done' ? <span style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)' }} title="Đã sinh — xem draft ở plays của project">✓ đã sinh</span>
+          : null}
         <button type="button" onClick={() => setEdit(s)} style={{ ...btn, padding: '3px 8px' }} title="Sửa">✎</button>
         {archived
           ? <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'active')} style={{ ...btn, padding: '3px 8px' }} title="Khôi phục">♻</button>

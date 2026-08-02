@@ -1045,20 +1045,55 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   const [showJoinPicker, setShowJoinPicker] = useState(false);
   const [joinQ, setJoinQ] = useState('');
   const [msg, setMsg] = useState('');
+  const [expanded, setExpanded] = useState(false); // YDNI: 1-dòng chip mặc định; quản lý ẩn sau click
   const [busy, startT] = useTransition();
   const load = () => startT(async () => { try { setData(await accountProjectsPanel(accountId)); } catch { setMsg('⚠ Lỗi tải projects'); } });
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [accountId]);
   const parts = data?.participations ?? [];
   const joined = new Set(parts.map((p) => p.projectId));
   const addable = (data?.allProjects ?? []).filter((p) => !joined.has(p.id));
+  const primary = parts.find((p) => p.role === 'primary');
+  const others = parts.filter((p) => p.role !== 'primary');
   const isP = (k: 'primary' | 'leave', pid: string) => pending?.kind === k && pending.pid === pid;
   const doPrimary = (pid: string) => startT(async () => { setMsg(''); const r = await setAccountPrimaryProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã đặt làm chính'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
   const doLeave = (pid: string) => startT(async () => { setMsg(''); const r = await leaveAccountProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã rời'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
   const doJoin = (pid: string) => { if (!pid) return; startT(async () => { setMsg(''); const r = await joinAccountProjectShared(accountId, pid); if (r.ok) { setMsg(`✅ Đã tham gia (${r.role})`); setShowJoinPicker(false); load(); } else setMsg('⚠ lỗi'); }); };
+
+  // COLLAPSED (default) — 1 dòng: 📁 project chính ★ + "+N khác" + ⋯. Cả management ẩn sau 1 click.
+  if (!expanded) {
+    return (
+      <div style={{ padding: '5px 14px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, minHeight: 30 }}>
+        <span style={{ color: 'var(--fg-4)', flexShrink: 0 }} title="Projects tham gia · ★ = profile target chính">📁</span>
+        {!data ? <span style={{ color: 'var(--fg-4)' }}>…</span> : primary ? (
+          <button type="button" onClick={() => setExpanded(true)} title="Quản lý projects"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--fg-1)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, minWidth: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(primary.emoji ? primary.emoji + ' ' : '') + primary.name}</span>
+            <span style={{ color: 'var(--neon-lime,#84cc16)', flexShrink: 0 }}>★</span>
+          </button>
+        ) : (
+          <button type="button" onClick={() => { setExpanded(true); setShowJoinPicker(true); }}
+            style={{ fontWeight: 600, color: 'var(--accent,#7c3aed)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>+ gắn project</button>
+        )}
+        {others.length > 0 && (
+          <button type="button" onClick={() => setExpanded(true)}
+            style={{ fontSize: 10.5, color: 'var(--fg-4)', border: '1px solid var(--line)', borderRadius: 8, padding: '0 6px', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}>+{others.length} khác</button>
+        )}
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={() => setExpanded(true)} title="Quản lý projects (đổi chính · rời · thêm)"
+          style={{ fontSize: 13, color: 'var(--fg-4)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>⋯</button>
+      </div>
+    );
+  }
+  // EXPANDED — full management.
   return (
     <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 8 }}>
-        Projects tham gia <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--fg-4)' }}>· profile target = ★ chính</span>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4 }}>
+          Projects tham gia <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--fg-4)' }}>· ★ = profile target</span>
+        </span>
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={() => { setExpanded(false); setShowJoinPicker(false); }}
+          style={{ fontSize: 11, color: 'var(--fg-4)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>▴ thu gọn</button>
       </div>
       {!data ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>Đang tải…</span> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

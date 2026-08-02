@@ -25,10 +25,10 @@ import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import {
-  updateAccountEnvironment, createProxy, createBrowserProfile,
+  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, EntityPicker, type EntityOption } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, EntityPicker, Drawer, type EntityOption } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -65,7 +65,6 @@ import type { TribeRow } from '@/lib/data';
 import { BriefEditModal } from './brief-edit-modal';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ExternalLink } from './external-link';
-import { ProfileFormModal } from './environments-page';
 import { profileUrlFor } from '@/lib/platform-profile-urls';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
@@ -985,6 +984,59 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
   );
 }
 
+// Browser profile DETAIL — house <Drawer> (NOT a modal). Shows the asset (open-from path · tool ·
+// last-opened · #accounts-inside · proxy) + edits label/path/proxy/notes. Stacks over the picker.
+function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: BrowserProfileRow; proxies: ProxyRow[]; onClose: () => void }) {
+  const router = useRouter();
+  const [form, setForm] = useState({ label: profile.label, externalId: profile.externalId ?? '', defaultProxyId: profile.defaultProxyId ?? (null as number | null), notes: profile.notes ?? '' });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const fld = fieldStyle();
+  const lbl = labelStyle;
+  const idle = profile.lastOpenedAt ? Math.floor((Date.now() - new Date(profile.lastOpenedAt).getTime()) / 86400000) : null;
+  const save = async () => {
+    setBusy(true); setMsg(null);
+    const r = await updateBrowserProfile(profile.id, { label: form.label.trim() || profile.label, externalId: form.externalId || null, defaultProxyId: form.defaultProxyId, notes: form.notes || null });
+    setBusy(false);
+    if (r.ok) { router.refresh(); onClose(); } else setMsg(r.error || 'lỗi lưu');
+  };
+  return (
+    <Drawer onClose={onClose} width={460} zIndex={520}>
+      <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 2px' }}>🦊 {profile.label}</h2>
+      <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 12 }}>{profile.tool} · browser profile #{profile.id} · asset</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11.5, marginBottom: 14, padding: 10, borderRadius: 8, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
+        <span style={{ color: 'var(--fg-4)' }}>Mở bằng</span><span style={{ fontWeight: 700 }}>{profile.tool}</span>
+        <span style={{ color: 'var(--fg-4)' }}>Account bên trong</span><span>{profile.accountsCount} account đang login</span>
+        <span style={{ color: 'var(--fg-4)' }}>Mở gần nhất</span><span>{profile.lastOpenedAt ? `${profile.lastOpenedAt.slice(0, 10)} (${idle}d trước)` : 'chưa mở'}</span>
+      </div>
+      {msg && <div style={{ fontSize: 11.5, color: 'var(--bad)', marginBottom: 8 }}>⚠ {msg}</div>}
+      <div style={{ marginBottom: 10 }}>
+        <span style={lbl}>Label</span>
+        <input style={fld} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <span style={lbl} title="Đường dẫn profile dir (Playwright) hoặc profile-id trong tool — nơi mở browser từ đó">Open-from (path / external_id)</span>
+        <input style={fld} value={form.externalId} onChange={(e) => setForm((f) => ({ ...f, externalId: e.target.value }))} placeholder="/path/.capture-profile hoặc profile-id" />
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <span style={lbl}>Proxy mặc định</span>
+        <select style={fld} value={form.defaultProxyId ?? ''} onChange={(e) => setForm((f) => ({ ...f, defaultProxyId: e.target.value ? Number(e.target.value) : null }))}>
+          <option value="">— none —</option>
+          {proxies.map((p) => <option key={p.id} value={p.id}>{p.label} · {p.type}</option>)}
+        </select>
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <span style={lbl}>Notes (session / login / recipe mở)</span>
+        <textarea style={{ ...fld, minHeight: 90, resize: 'vertical' }} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" className="btn primary" disabled={busy} onClick={save} style={{ padding: '8px 16px' }}>{busy ? '…' : 'Lưu'}</button>
+        <button type="button" className="btn ghost" onClick={onClose} style={{ padding: '8px 14px' }}>Đóng</button>
+      </div>
+    </Drawer>
+  );
+}
+
 // Projects tham gia của account: ★ chính (profile-target=primary) + tham gia (shared) +
 // đặt-làm-chính (set-primary, non-destructive, inline confirm) + tham gia thêm + rời.
 function AccountProjectsSection({ accountId }: { accountId: number }) {
@@ -1300,10 +1352,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const [showCreateProxy, setShowCreateProxy] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [showBrowserPicker, setShowBrowserPicker] = useState(false);
+  const [showBrowserDetail, setShowBrowserDetail] = useState(false);
   const loadBrowserProfiles = useCallback(async (): Promise<EntityOption[]> => [
     { key: '', label: '— none —', fallbackIcon: '∅' },
     ...browserProfiles.map((b) => ({
-      key: String(b.id), label: b.label, fallbackIcon: '🦊', editable: true,
+      key: String(b.id), label: b.label, fallbackIcon: '🦊',
       sub: `${b.tool}${b.externalId ? ` · ${b.externalId}` : ''}${b.defaultProxyLabel ? ` · proxy ${b.defaultProxyLabel}` : ''}`,
     })),
   ], [browserProfiles]);
@@ -2335,12 +2388,24 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </div>
                 {(() => {
                   const cur = browserProfiles.find((b) => b.id === form.browserProfileId);
-                  return (
+                  // Selected → the field itself opens the DETAIL drawer (click = inspect); a small
+                  // "đổi" opens the chooser. None → the field opens the chooser.
+                  return cur ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                      <button type="button" onClick={() => setShowBrowserDetail(true)} title="Xem/sửa chi tiết profile (path · proxy · session)"
+                        style={{ ...fld, flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-0)' }}>
+                          🦊 {cur.label} · {cur.tool}{cur.defaultProxyLabel ? ` (proxy: ${cur.defaultProxyLabel})` : ''}
+                        </span>
+                        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>chi tiết ↗</span>
+                      </button>
+                      <button type="button" onClick={() => setShowBrowserPicker(true)} title="Đổi profile"
+                        style={{ fontSize: 11, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', flexShrink: 0 }}>đổi</button>
+                    </div>
+                  ) : (
                     <button type="button" onClick={() => setShowBrowserPicker(true)}
                       style={{ ...fld, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: cur ? 'var(--fg-0)' : 'var(--fg-3)' }}>
-                        {cur ? `🦊 ${cur.label} · ${cur.tool}${cur.defaultProxyLabel ? ` (proxy: ${cur.defaultProxyLabel})` : ''}` : (browserProfiles.length === 0 ? '— chưa có profile nào —' : '— chọn profile —')}
-                      </span>
+                      <span style={{ color: 'var(--fg-3)' }}>{browserProfiles.length === 0 ? '— chưa có profile nào —' : '— chọn profile —'}</span>
                       <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>▾</span>
                     </button>
                   );
@@ -2372,16 +2437,12 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               onPick={(o) => { setF('browserProfileId', o.key ? Number(o.key) : null); setShowBrowserPicker(false); }}
               onClose={() => setShowBrowserPicker(false)}
               searchThreshold={5}
-              renderEditor={(opt, close) => (
-                <ProfileFormModal
-                  profile={opt && opt.key ? (browserProfiles.find((b) => String(b.id) === opt.key) ?? null) : null}
-                  proxies={proxies}
-                  teamMembers={teamMembers}
-                  onClose={close}
-                />
-              )}
             />
           )}
+          {showBrowserDetail && (() => {
+            const cur = browserProfiles.find((b) => b.id === form.browserProfileId);
+            return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setShowBrowserDetail(false)} /> : null;
+          })()}
           {showCreateProfile && (
             <QuickCreateBrowserProfileModal
               proxies={proxies}

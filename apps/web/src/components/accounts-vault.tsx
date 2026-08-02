@@ -1588,11 +1588,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               </div>
             </div>
 
-            <details style={{ borderRadius: 6 }}>
-              <summary style={{ cursor: 'pointer' }} title="personal = persona thật (forum/Q&A/blog) — brand account dễ bị flag spam ở cộng đồng. brand = listing/directory/launch/social chính chủ. seeding = account cộng đồng gieo hạt hàng loạt.">
-                <span style={lbl}>Phân loại P/B/S: <b style={{ color: 'var(--fg-1)' }}>{form.accountType}</b>{presetAccountType ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)', fontWeight: 400 }}> · gợi ý: {presetAccountType}</span> : null}</span>
-              </summary>
-              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <div>
+              <span style={lbl} title="personal = persona thật (forum/Q&A/blog) — brand account dễ bị flag spam ở cộng đồng. brand = listing/directory/launch/social chính chủ. seeding = account cộng đồng gieo hạt hàng loạt.">
+                Account type (P/B/S){presetAccountType ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--fg-4)', fontWeight: 400 }}> · gợi ý cho nguồn này: {presetAccountType}</span> : null}
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
                 {(['personal', 'brand', 'seeding'] as const).map((k) => {
                   const on = form.accountType === k;
                   const icon = k === 'brand' ? '🏢' : k === 'seeding' ? '🌱' : '👤';
@@ -1617,7 +1617,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   );
                 })}
               </div>
-            </details>
+            </div>
 
             {form.accountKind === 'page' && (
               <div>
@@ -1842,15 +1842,15 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               {(() => {
                 const sLk = accountFieldLock('security', form.status, isCreate, form.authMethod);
                 return (
-                  <details>
-                    <summary style={{ cursor: 'pointer' }}><span style={lbl}>Auth method: <b style={{ color: 'var(--fg-1)' }}>{AUTH_METHODS.find((m) => m.key === form.authMethod)?.label ?? form.authMethod}</b></span></summary>
+                  <div>
+                    <span style={lbl}>Auth method</span>
                     <select style={sLk.locked ? { ...fld, opacity: 0.6, cursor: 'not-allowed' } : fld}
                             value={form.authMethod} disabled={sLk.locked}
                             onChange={(e) => setF('authMethod', e.target.value as AuthMethod)}>
                       {AUTH_METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                     </select>
                     <LockNote lock={sLk} />
-                  </details>
+                  </div>
                 );
               })()}
               {(form.status === 'limited' || form.status === 'blocked' || form.status === 'banned') && (

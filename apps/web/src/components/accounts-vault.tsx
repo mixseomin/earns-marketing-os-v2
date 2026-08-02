@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { listAccountMedia } from '@/lib/actions/post-media';
@@ -28,7 +28,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, EntityPicker, type EntityOption } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -989,7 +989,7 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
 function AccountProjectsSection({ accountId }: { accountId: number }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof accountProjectsPanel>> | null>(null);
   const [pending, setPending] = useState<{ kind: 'primary' | 'leave'; pid: string } | null>(null);
-  const [addPid, setAddPid] = useState('');
+  const [showJoinPicker, setShowJoinPicker] = useState(false);
   const [msg, setMsg] = useState('');
   const [busy, startT] = useTransition();
   const load = () => startT(async () => { try { setData(await accountProjectsPanel(accountId)); } catch { setMsg('⚠ Lỗi tải projects'); } });
@@ -997,10 +997,13 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   const parts = data?.participations ?? [];
   const joined = new Set(parts.map((p) => p.projectId));
   const addable = (data?.allProjects ?? []).filter((p) => !joined.has(p.id));
+  const loadAddable = useCallback(async (): Promise<EntityOption[]> =>
+    addable.map((p) => ({ key: p.id, label: (p.emoji ? p.emoji + ' ' : '') + p.name, fallbackIcon: '📁' })),
+    [addable]);
   const isP = (k: 'primary' | 'leave', pid: string) => pending?.kind === k && pending.pid === pid;
   const doPrimary = (pid: string) => startT(async () => { setMsg(''); const r = await setAccountPrimaryProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã đặt làm chính'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
   const doLeave = (pid: string) => startT(async () => { setMsg(''); const r = await leaveAccountProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã rời'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
-  const doJoin = () => { if (!addPid) return; startT(async () => { setMsg(''); const r = await joinAccountProjectShared(accountId, addPid); if (r.ok) { setMsg(`✅ Đã tham gia (${r.role})`); setAddPid(''); load(); } else setMsg('⚠ lỗi'); }); };
+  const doJoin = (pid: string) => { if (!pid) return; startT(async () => { setMsg(''); const r = await joinAccountProjectShared(accountId, pid); if (r.ok) { setMsg(`✅ Đã tham gia (${r.role})`); setShowJoinPicker(false); load(); } else setMsg('⚠ lỗi'); }); };
   return (
     <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 8 }}>
@@ -1031,13 +1034,20 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
             );
           })}
           {addable.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
-              <select value={addPid} onChange={(e) => setAddPid(e.target.value)} style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', flex: 1 }}>
-                <option value="">+ tham gia project khác…</option>
-                {addable.map((p) => <option key={p.id} value={p.id}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</option>)}
-              </select>
-              <button type="button" disabled={busy || !addPid} onClick={doJoin} style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 5, border: 'none', cursor: addPid ? 'pointer' : 'default', background: 'var(--accent,#7c3aed)', color: '#fff', opacity: addPid ? 1 : .5 }}>+ Tham gia</button>
-            </div>
+            <button type="button" onClick={() => setShowJoinPicker(true)} disabled={busy}
+              style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 5, border: '1px dashed var(--line)', cursor: 'pointer', background: 'transparent', color: 'var(--accent,#7c3aed)' }}>
+              + tham gia project khác…
+            </button>
+          )}
+          {showJoinPicker && (
+            <EntityPicker
+              title="Tham gia project — chọn"
+              hint="Account này tham gia thêm (shared). Đặt ★ chính sau nếu cần."
+              load={loadAddable}
+              onPick={(o) => doJoin(o.key)}
+              onClose={() => setShowJoinPicker(false)}
+              searchThreshold={6}
+            />
           )}
           {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? 'var(--good,#22c55e)' : 'var(--warn,#f59e0b)' }}>{msg}</div>}
         </div>
@@ -1279,6 +1289,14 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // sẽ được generalize thành <ResourcePicker> sau (xem feedback memory).
   const [showCreateProxy, setShowCreateProxy] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
+  const [showBrowserPicker, setShowBrowserPicker] = useState(false);
+  const loadBrowserProfiles = useCallback(async (): Promise<EntityOption[]> => [
+    { key: '', label: '— none —', fallbackIcon: '∅' },
+    ...browserProfiles.map((b) => ({
+      key: String(b.id), label: b.label, fallbackIcon: '🦊',
+      sub: `${b.tool}${b.externalId ? ` · ${b.externalId}` : ''}${b.defaultProxyLabel ? ` · proxy ${b.defaultProxyLabel}` : ''}`,
+    })),
+  ], [browserProfiles]);
   // Inline platform edit — mở PlatformFormModal stack lên trên account modal
   // (feedback_picker_inline_crud: edit-anywhere, không bắt vào /platforms)
   const [showEditPlatform, setShowEditPlatform] = useState(false);
@@ -2297,19 +2315,18 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                     + new profile
                   </button>
                 </div>
-                <select
-                  style={fld}
-                  value={form.browserProfileId ?? ''}
-                  onChange={(e) => setF('browserProfileId', e.target.value ? Number(e.target.value) : null)}
-                  disabled={browserProfiles.length === 0}
-                >
-                  <option value="">{browserProfiles.length === 0 ? '— chưa có profile nào —' : '— none —'}</option>
-                  {browserProfiles.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.label} · {b.tool}{b.defaultProxyLabel ? ` (proxy: ${b.defaultProxyLabel})` : ''}
-                    </option>
-                  ))}
-                </select>
+                {(() => {
+                  const cur = browserProfiles.find((b) => b.id === form.browserProfileId);
+                  return (
+                    <button type="button" onClick={() => setShowBrowserPicker(true)}
+                      style={{ ...fld, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: cur ? 'var(--fg-0)' : 'var(--fg-3)' }}>
+                        {cur ? `🦊 ${cur.label} · ${cur.tool}${cur.defaultProxyLabel ? ` (proxy: ${cur.defaultProxyLabel})` : ''}` : (browserProfiles.length === 0 ? '— chưa có profile nào —' : '— chọn profile —')}
+                      </span>
+                      <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>▾</span>
+                    </button>
+                  );
+                })()}
               </div>
             </div>
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 8, fontStyle: 'italic' }}>
@@ -2326,6 +2343,17 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 setF('proxyId', id);
                 setShowCreateProxy(false);
               }}
+            />
+          )}
+          {showBrowserPicker && (
+            <EntityPicker
+              title="Browser profile — chọn"
+              hint="Mỗi account gắn 1 profile (session/login/proxy sống trong đó). ＋ tạo mới ở nút phía trên."
+              load={loadBrowserProfiles}
+              value={{ key: form.browserProfileId != null ? String(form.browserProfileId) : '' }}
+              onPick={(o) => { setF('browserProfileId', o.key ? Number(o.key) : null); setShowBrowserPicker(false); }}
+              onClose={() => setShowBrowserPicker(false)}
+              searchThreshold={5}
             />
           )}
           {showCreateProfile && (

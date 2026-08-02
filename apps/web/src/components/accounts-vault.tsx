@@ -1728,15 +1728,19 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                         ↗ Profile @{form.handle.replace(/^@+/, '')}
                       </ExternalLink>
                     )}
-                    <ExternalLink href={platform.signupUrl}
-                      style={{ color: 'var(--fg-2)', textDecoration: 'none' }}>↗ Signup page</ExternalLink>
+                    {(isCreate || form.status === 'todo' || form.status === 'creating') && (
+                      <ExternalLink href={platform.signupUrl}
+                        style={{ color: 'var(--fg-2)', textDecoration: 'none' }}>↗ Signup page</ExternalLink>
+                    )}
                     {platform.postUrl && (
                       <ExternalLink href={platform.postUrl}
                         style={{ color: 'var(--fg-2)', textDecoration: 'none' }}>↗ Post page</ExternalLink>
                     )}
-                    <span style={{ color: 'var(--fg-3)' }}>
-                      Priority: <b style={{ color: PRIORITY_COLOR[platform.priority] }}>{platform.priority}</b>
-                    </span>
+                    {(isCreate || form.status === 'todo' || form.status === 'creating') && (
+                      <span style={{ color: 'var(--fg-3)' }}>
+                        Priority: <b style={{ color: PRIORITY_COLOR[platform.priority] }}>{platform.priority}</b>
+                      </span>
+                    )}
                     <button type="button"
                       onClick={() => setShowEditPlatform(true)}
                       title={`Edit platform "${platform.label}" — open CRUD modal`}
@@ -2120,7 +2124,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             return (
               <Collapsible
                 title="🧩 Profile fields"
-                defaultOpen
+                defaultOpen={form.status === 'todo' || form.status === 'creating'}
                 badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{fieldNames.length}</span>}
                 hint="selector + giá trị = 1 field; đổi tên đồng bộ cả selector lẫn persona"
               >

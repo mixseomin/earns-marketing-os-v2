@@ -45,6 +45,7 @@ export interface BacklinkTask {
   catalogSourceId: number | null;
   catalogSourceName: string | null;
   catalogSourceStatus: string | null;
+  catalogVia: 'source' | 'method' | null;  // 'method' = bung ra từ 1 catalog METHOD (fanout_from), không phải source trực tiếp
   // Linked outreach prospect (this task was sent into the Outreach pipeline). null = not linked yet.
   outreach: { prospectId: number; status: string; channel: 'email' | 'form'; campaignId: number | null } | null;
   siteStatus: Record<string, string>;
@@ -195,6 +196,24 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       for (const r of cs as unknown as Array<{ id: number; name: string; canonical_url: string; source_status: string }>) srcByUrl.set(String(r.canonical_url), { id: Number(r.id), name: String(r.name), status: String(r.source_status) });
     }
 
+    // Fan-out provenance: sibling tasks bung ra từ 1 catalog METHOD mang prep_payload.fanout_from = id method,
+    // nhưng source_url của chúng là target THẬT (không nằm trong backlink_sources) → url-match trượt. Resolve
+    // fanout_from để chúng đọc là catalog-derived (📚 method) thay vì báo nhầm "ngoài catalog". BATCHED 2 query.
+    const fanoutByTask = new Map<number, number>();
+    const taskIds = base.map((t) => t.id);
+    if (taskIds.length) {
+      const idList = sql.join(taskIds.map((i) => sql`${i}`), sql`, `);
+      const ff = await db.execute(sql`SELECT id, (prep_payload->>'fanout_from')::int AS ff FROM human_tasks WHERE id IN (${idList}) AND prep_payload ? 'fanout_from'`);
+      for (const r of ff as unknown as Array<{ id: number; ff: number | null }>) if (r.ff != null) fanoutByTask.set(Number(r.id), Number(r.ff));
+    }
+    const srcById = new Map<number, { id: number; name: string; status: string }>();
+    const fanoutSrcIds = [...new Set(fanoutByTask.values())];
+    if (fanoutSrcIds.length) {
+      const idList = sql.join(fanoutSrcIds.map((i) => sql`${i}`), sql`, `);
+      const cs = await db.execute(sql`SELECT id, name, source_status FROM backlink_sources WHERE id IN (${idList})`);
+      for (const r of cs as unknown as Array<{ id: number; name: string; source_status: string }>) srcById.set(Number(r.id), { id: Number(r.id), name: String(r.name), status: String(r.source_status) });
+    }
+
     // Linked outreach prospects BATCHED: which tasks are already in the Outreach pipeline (by task_id).
     const outreachByTask = new Map<number, { prospectId: number; status: string; channel: 'email' | 'form'; campaignId: number | null }>();
     if (base.length) {
@@ -253,12 +272,17 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
     return base.map((t): BacklinkTask => {
       const overrideId = overrideByTask.get(t.id);
       const acct = (overrideId != null && acctById.get(overrideId)) || (t.platformKey ? acctMap.get(t.platformKey) ?? null : null);
+      // Catalog provenance: source_url khớp catalog trực tiếp thắng; nếu không, fallback method gốc (fanout_from).
+      const urlSrc = t.sourceUrl ? srcByUrl.get(t.sourceUrl) ?? null : null;
+      const methodSrc = urlSrc ? null : (srcById.get(fanoutByTask.get(t.id) ?? -1) ?? null);
+      const catSrc = urlSrc ?? methodSrc;
       return {
         ...t,
         domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
-        catalogSourceId: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.id ?? null) : null,
-        catalogSourceName: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.name ?? null) : null,
-        catalogSourceStatus: t.sourceUrl ? (srcByUrl.get(t.sourceUrl)?.status ?? null) : null,
+        catalogSourceId: catSrc?.id ?? null,
+        catalogSourceName: catSrc?.name ?? null,
+        catalogSourceStatus: catSrc?.status ?? null,
+        catalogVia: catSrc ? (methodSrc ? 'method' : 'source') : null,
         outreach: outreachByTask.get(t.id) ?? null,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),

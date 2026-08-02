@@ -1267,9 +1267,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, fontSize: 11 }}>
           {task.sourceUrl && <a href={wrapExternalUrl(task.sourceUrl)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {hostOf(task.sourceUrl)}</a>}
           {task.catalogSourceId ? (
-            <button type="button" onClick={openSource} disabled={sourceBusy} title="Nguồn chuẩn trong catalog — bấm xem chi tiết + params ({product}/{domain}/{pitch}/{link})"
+            <button type="button" onClick={openSource} disabled={sourceBusy} title={task.catalogVia === 'method' ? 'Bung ra từ 1 METHOD trong catalog (fan-out) — bấm xem method gốc + params' : 'Nguồn chuẩn trong catalog — bấm xem chi tiết + params ({product}/{domain}/{pitch}/{link})'}
               style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 4, padding: '0 6px', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', lineHeight: '1.7' }}>
-              {sourceBusy ? '…' : `📚 #${task.catalogSourceId} ${task.catalogSourceName || 'nguồn'}${task.catalogSourceStatus && task.catalogSourceStatus !== 'active' ? ' · ' + task.catalogSourceStatus : ''}`}
+              {sourceBusy ? '…' : `📚 #${task.catalogSourceId} ${task.catalogSourceName || 'nguồn'}${task.catalogVia === 'method' ? ' · method' : ''}${task.catalogSourceStatus && task.catalogSourceStatus !== 'active' ? ' · ' + task.catalogSourceStatus : ''}`}
             </button>
           ) : (
             <span title="Task này KHÔNG khớp nguồn nào trong catalog — nên đưa nguồn vào catalog trước khi assign" style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>⚠ ngoài catalog nguồn</span>

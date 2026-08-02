@@ -226,6 +226,10 @@ export async function queueMethodFanout(sourceId: number, projectId: string): Pr
     const tR = (await db.execute(sql`SELECT id FROM human_tasks WHERE platform_key = 'backlink' AND project_id = ${projectId} AND prep_payload->>'source_url' = ${canonical} ORDER BY id DESC LIMIT 1`)) as unknown as Array<{ id: number }>;
     const taskId = Number(tR[0]?.id);
     if (!taskId) return { ok: false, error: 'không seed được anchor task' };
+    // Stamp the anchor with fanout_from = THIS source id, so listMethodFanouts (which counts
+    // human_tasks WHERE fanout_from = source_id) always reflects ≥ the anchor even before the
+    // Claude fulfiller runs, and every sibling it creates copies the same tag (skill backlink-content-queue).
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(prep_payload, '{fanout_from}', to_jsonb(${Number(sourceId)}::int)) WHERE id = ${taskId}`);
     // One open request per (task) — don't re-queue if already pending.
     const ex = (await db.execute(sql`SELECT id FROM ai_content WHERE task_id = ${taskId} AND kind = 'method-fanout' AND status = 'queued' LIMIT 1`)) as unknown as Row[];
     if (ex[0]) return { ok: true, status: 'queued', already: true };

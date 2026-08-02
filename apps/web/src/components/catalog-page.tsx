@@ -4,7 +4,7 @@
 // TASK instances). Grouped Nhóm → Level → method, so "Kéo leads" (or any niche) reads as a group with its
 // levels inside. Reuses SourceEditor for add/edit; archive via setBacklinkSourceStatus.
 import { useMemo, useState, type CSSProperties } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { SourceEditor } from './source-editor';
 
@@ -25,6 +25,16 @@ const groupLabel = (g: string) => (g === 'leads' ? '🎯 Kéo leads' : g === '(c
 
 export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string; taskCount: number }> }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Selected project lives in the URL (?gen=…) so it survives reload / is shareable, and a soft nav
+  // refreshes the `fanouts` prop → badge updates after Claude fulfills. (feedback_url_state)
+  const genProject = searchParams.get('gen') ?? '';
+  const setGenProject = (id: string) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (id) p.set('gen', id); else p.delete('gen');
+    const qs = p.toString();
+    router.replace(qs ? `/catalog?${qs}` : '/catalog', { scroll: false });
+  };
   const fanoutMap = useMemo(() => { const m: Record<string, { status: string; count: number }> = {}; for (const f of fanouts) m[`${f.sourceId}:${f.projectId}`] = { status: f.status, count: f.taskCount }; return m; }, [fanouts]);
   const [sources, setSources] = useState(initialSources);
   const [q, setQ] = useState('');
@@ -33,7 +43,6 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   const [archived, setArchived] = useState(false);
   const [edit, setEdit] = useState<BacklinkSource | Record<string, never> | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
-  const [genProject, setGenProject] = useState('');
   const [genBusy, setGenBusy] = useState<number | null>(null);
   const [genMsg, setGenMsg] = useState<Record<number, string>>({});
   const queueFanout = async (sourceId: number) => {
@@ -102,7 +111,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
         {gm
           ? <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>
           : fo?.status === 'queued' ? <span style={{ ...badge, color: 'var(--warn,#ffb03c)', borderColor: 'color-mix(in srgb, var(--warn,#ffb03c) 35%, transparent)' }} title="Đã queue — Claude sẽ research & tạo draft ở plays của project">⏳ đã xếp hàng</span>
-          : fo?.status === 'done' ? <a href={`/p/${genProject}/plays`} style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)', textDecoration: 'none' }} title="Đã sinh — mở plays của project để duyệt các task fan-out">✓ {fo.count} task → duyệt</a>
+          : fo?.status === 'done' ? <a href={`/p/${genProject}/plays`} style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)', textDecoration: 'none' }} title="Đã sinh — mở plays của project để duyệt các draft fan-out">✓ {fo.count} draft → duyệt</a>
           : null}
         <button type="button" onClick={() => setEdit(s)} style={{ ...btn, padding: '3px 8px' }} title="Sửa">✎</button>
         {archived

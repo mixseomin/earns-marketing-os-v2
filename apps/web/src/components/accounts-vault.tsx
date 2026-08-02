@@ -991,6 +991,7 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof accountProjectsPanel>> | null>(null);
   const [pending, setPending] = useState<{ kind: 'primary' | 'leave'; pid: string } | null>(null);
   const [showJoinPicker, setShowJoinPicker] = useState(false);
+  const [joinQ, setJoinQ] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, startT] = useTransition();
   const load = () => startT(async () => { try { setData(await accountProjectsPanel(accountId)); } catch { setMsg('⚠ Lỗi tải projects'); } });
@@ -998,9 +999,6 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   const parts = data?.participations ?? [];
   const joined = new Set(parts.map((p) => p.projectId));
   const addable = (data?.allProjects ?? []).filter((p) => !joined.has(p.id));
-  const loadAddable = useCallback(async (): Promise<EntityOption[]> =>
-    addable.map((p) => ({ key: p.id, label: (p.emoji ? p.emoji + ' ' : '') + p.name, fallbackIcon: '📁' })),
-    [addable]);
   const isP = (k: 'primary' | 'leave', pid: string) => pending?.kind === k && pending.pid === pid;
   const doPrimary = (pid: string) => startT(async () => { setMsg(''); const r = await setAccountPrimaryProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã đặt làm chính'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
   const doLeave = (pid: string) => startT(async () => { setMsg(''); const r = await leaveAccountProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã rời'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
@@ -1034,22 +1032,32 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
               </div>
             );
           })}
-          {addable.length > 0 && (
+          {addable.length > 0 && (!showJoinPicker ? (
+            // Collapsed → same YDNI pattern as the FB-Page "vận hành bởi" picker: a compact
+            // trigger; the searchable list expands inline (no drawer).
             <button type="button" onClick={() => setShowJoinPicker(true)} disabled={busy}
               style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 5, border: '1px dashed var(--line)', cursor: 'pointer', background: 'transparent', color: 'var(--accent,#7c3aed)' }}>
               + tham gia project khác…
             </button>
-          )}
-          {showJoinPicker && (
-            <EntityPicker
-              title="Tham gia project — chọn"
-              hint="Account này tham gia thêm (shared). Đặt ★ chính sau nếu cần."
-              load={loadAddable}
-              onPick={(o) => doJoin(o.key)}
-              onClose={() => setShowJoinPicker(false)}
-              searchThreshold={6}
-            />
-          )}
+          ) : (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', padding: 6, display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
+              <input value={joinQ} onChange={(e) => setJoinQ(e.target.value)} placeholder="tìm project…" autoComplete="off"
+                style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
+                {addable.filter((p) => !joinQ || p.name.toLowerCase().includes(joinQ.toLowerCase())).map((p) => (
+                  <button key={p.id} type="button" disabled={busy} onClick={() => doJoin(p.id)}
+                    style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
+                    <span style={{ fontWeight: 700 }}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)' }}>+ tham gia</span>
+                  </button>
+                ))}
+                {addable.filter((p) => !joinQ || p.name.toLowerCase().includes(joinQ.toLowerCase())).length === 0 &&
+                  <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>Không match.</span>}
+              </div>
+              <button type="button" onClick={() => { setShowJoinPicker(false); setJoinQ(''); }}
+                style={{ alignSelf: 'flex-start', fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>đóng</button>
+            </div>
+          ))}
           {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? 'var(--good,#22c55e)' : 'var(--warn,#f59e0b)' }}>{msg}</div>}
         </div>
       )}

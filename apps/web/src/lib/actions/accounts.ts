@@ -13,6 +13,7 @@ import {
   type DirectusAccount, type DirectusAccountWritable,
 } from '../bridge/directus';
 import { encryptValue, decryptValue, cryptoEnabled } from '../crypto';
+import { getCurrentUser } from '@/lib/auth';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -79,7 +80,16 @@ async function findById(projectId: string, id: number) {
       sql`EXISTS (SELECT 1 FROM project_accounts pj WHERE pj.account_id = ${platformAccounts.id} AND pj.project_id = ${projectId})`,
     ))
     .limit(1);
-  return rows[0] ?? null;
+  if (rows[0]) return rows[0];
+  // Tenant-shared account not in THIS project's pivot (backlink / cross-project account opened from a
+  // task drawer): an admin may still edit it — mirrors getAccountRowAny's tenant-level admin access.
+  const me = await getCurrentUser();
+  if (me?.role === 'admin') {
+    const anyRow = await db.select().from(platformAccounts)
+      .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.id, id))).limit(1);
+    return anyRow[0] ?? null;
+  }
+  return null;
 }
 
 // Sanitize a linked-account id list: ints only, drop self-ref + dupes, cap 50 (mirrors /api/ext/accounts/[id]).

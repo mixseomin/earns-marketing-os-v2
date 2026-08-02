@@ -462,7 +462,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('ready', readyFilter);
     set('tier', tierFilter);
     set('proj', allProjects ? projectFilter : '');
-    set('view', view === 'calendar' ? '' : view);   // calendar = default (clean URL); list/kanban explicit
+    set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     set('outreach', outreachPid);

@@ -1045,12 +1045,16 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   const acctObj = task.accountId != null ? accounts.find((a) => a.id === task.accountId) ?? null : null;
   // Open the account editor. Backlink accounts are tenant-shared, so a task's account may
   // not be in this project's `accounts` list — fetch it by id in that case.
-  const openAcct = async () => {
-    if (task.accountId == null) return;
-    if (acctObj) { onEditAccount(acctObj); return; }
-    const row = await getAccountForEditAny(task.accountId);
+  // Open the standardized account editor (AccountFormModal) for ANY account by id — local to this
+  // project or a tenant-shared / cross-project one (fetch by id). Reused by the current-account ✎
+  // and every row in the swap picker, so editing an account is available wherever one is shown.
+  const editAccountById = async (id: number) => {
+    const local = accounts.find((a) => a.id === id) ?? null;
+    if (local) { onEditAccount(local); return; }
+    const row = await getAccountForEditAny(id);
     if (row) onEditAccount(row);
   };
+  const openAcct = async () => { if (task.accountId != null) await editAccountById(task.accountId); };
   // Switch which account this task uses (auto-match may pick another project's shared
   // account). Lazy-load options for the task's platform; pick pins it, "auto" clears.
   const [acctPick, setAcctPick] = useState(false);
@@ -1384,7 +1388,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             {task.authMethod && <Tag>{task.authMethod}</Tag>}
             {task.hasProxy && <Tag color="#9d6cff">🌐 proxy</Tag>}
             {task.hasProfile && <Tag color="#5badff">🧭 profile</Tag>}
-            <button type="button" onClick={togglePicker} title="Đổi sang account khác / tạo account mới cho nguồn này" style={{ ...btn, padding: '2px 8px', marginLeft: 'auto' }}>{acctPick ? 'đóng' : '⇄ đổi acc'}</button>
+            <button type="button" onClick={openAcct} title="Sửa account (mở editor chuẩn)" style={{ ...btn, padding: '2px 8px', marginLeft: 'auto' }}>✎ sửa</button>
+            <button type="button" onClick={togglePicker} title="Đổi sang account khác / tạo account mới cho nguồn này" style={{ ...btn, padding: '2px 8px' }}>{acctPick ? 'đóng' : '⇄ đổi acc'}</button>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
@@ -1406,13 +1411,17 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
                 const foreign = a.homeProjectId && a.homeProjectId !== slug;
                 const cur = a.id === task.accountId;
                 return (
-                  <button key={a.id} type="button" onClick={() => pickAcct(a.id)} disabled={cur}
-                    style={{ ...btn, textAlign: 'left', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', opacity: cur ? 0.55 : 1 }}>
-                    <span style={{ fontWeight: 700 }}>@{a.handle || a.id}</span>
-                    <Tag>{a.status}</Tag>
-                    {foreign && <Tag color="#ffb03c">↗ {a.homeProjectId}</Tag>}
-                    {cur && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>đang dùng</span>}
-                  </button>
+                  <div key={a.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
+                    <button type="button" onClick={() => pickAcct(a.id)} disabled={cur}
+                      style={{ ...btn, flex: 1, textAlign: 'left', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', opacity: cur ? 0.55 : 1 }}>
+                      <span style={{ fontWeight: 700 }}>@{a.handle || a.id}</span>
+                      <Tag>{a.status}</Tag>
+                      {foreign && <Tag color="#ffb03c">↗ {a.homeProjectId}</Tag>}
+                      {cur && <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>đang dùng</span>}
+                    </button>
+                    <button type="button" onClick={() => editAccountById(a.id)} title="Sửa account này (editor chuẩn)"
+                      style={{ ...btn, padding: '2px 8px' }}>✎</button>
+                  </div>
                 );
               })}
             </div>

@@ -4,7 +4,7 @@
 // TASK instances). Grouped Nhóm → Level → method, so "Kéo leads" (or any niche) reads as a group with its
 // levels inside. Reuses SourceEditor for add/edit; archive via setBacklinkSourceStatus.
 import { useMemo, useState, type CSSProperties } from 'react';
-import { listBacklinkSources, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { SourceEditor } from './source-editor';
 
 const CATEGORY = new Set(['community', 'editorial', 'pr', 'guest-post', 'directory', 'tool-dir', 'launch', 'qa', 'forum', 'wiki', 'reference', 'dev', 'listicle', 'social', 'edu-resource', 'haro', 'llms']);
@@ -22,7 +22,7 @@ const groupsOf = (s: BacklinkSource) => s.audienceTags.filter((t) => !NOISE.has(
 const primaryGroup = (s: BacklinkSource) => (s.audienceTags.includes('leads') ? 'leads' : (groupsOf(s)[0] ?? '(chung)'));
 const groupLabel = (g: string) => (g === 'leads' ? '🎯 Kéo leads' : g === '(chung)' ? '📦 Chung / universal' : g);
 
-export function CatalogPage({ initialSources }: { initialSources: BacklinkSource[] }) {
+export function CatalogPage({ initialSources, projects }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }> }) {
   const [sources, setSources] = useState(initialSources);
   const [q, setQ] = useState('');
   const [nhom, setNhom] = useState('');
@@ -30,6 +30,16 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
   const [archived, setArchived] = useState(false);
   const [edit, setEdit] = useState<BacklinkSource | Record<string, never> | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const [genProject, setGenProject] = useState('');
+  const [genBusy, setGenBusy] = useState<number | null>(null);
+  const [genMsg, setGenMsg] = useState<Record<number, string>>({});
+  const queueFanout = async (sourceId: number) => {
+    if (!genProject) return;
+    setGenBusy(sourceId);
+    const r = await queueMethodFanout(sourceId, genProject);
+    setGenBusy(null);
+    setGenMsg((m) => ({ ...m, [sourceId]: r.ok ? (r.already ? '⏳ đã xếp hàng rồi' : '✓ đã xếp hàng → Claude research') : `✗ ${r.error}` }));
+  };
 
   const reload = async (nextArchived = archived) => setSources(await listBacklinkSources({ status: nextArchived ? 'archived' : 'active' }));
   const toggleArchived = async () => { const v = !archived; setArchived(v); await reload(v); };
@@ -61,6 +71,7 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
 
   const row = (s: BacklinkSource) => {
     const lv = levelOf(s);
+    const gm = genMsg[s.id];
     const extraTags = s.audienceTags.filter((t) => !NOISE.has(t) && !LEVEL_RE.test(t) && t !== primaryGroup(s));
     return (
       <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '7px 10px' }}>
@@ -80,6 +91,10 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
             {extraTags.length > 0 && <span>{extraTags.join(' · ')}</span>}
           </div>
         </div>
+        {genProject && s.audienceTags.includes('play') && (
+          <button type="button" disabled={genBusy === s.id} onClick={() => queueFanout(s.id)} style={{ ...btn, padding: '3px 8px', color: 'var(--accent)' }} title={`Sinh fan-out method này cho project đã chọn — Claude research target thật, tạo draft chờ duyệt`}>{genBusy === s.id ? '⏳' : '🎯'}</button>
+        )}
+        {gm && <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>}
         <button type="button" onClick={() => setEdit(s)} style={{ ...btn, padding: '3px 8px' }} title="Sửa">✎</button>
         {archived
           ? <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'active')} style={{ ...btn, padding: '3px 8px' }} title="Khôi phục">♻</button>
@@ -106,6 +121,17 @@ export function CatalogPage({ initialSources }: { initialSources: BacklinkSource
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm tên / URL / tag / template…" autoComplete="off" style={{ ...btn, flex: '1 1 220px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
         <button type="button" onClick={() => setPlayOnly((v) => !v)} style={chip(playOnly)} title="Chỉ phương pháp (tag 'play'). Tắt = xem cả nguồn backlink lẻ.">chỉ phương pháp</button>
         <button type="button" onClick={toggleArchived} style={chip(archived, 'var(--fg-2)')} title="Xem kho lưu (archived)">🗄 kho lưu</button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 600 }}>🎯 Sinh fan-out cho project:</span>
+        <select value={genProject} onChange={(e) => setGenProject(e.target.value)} style={{ ...btn, cursor: 'pointer', padding: '4px 8px', background: 'var(--bg-2)' }}>
+          <option value="">— chọn project —</option>
+          {projects.map((p) => <option key={p.id} value={p.id}>{p.emoji ? p.emoji + ' ' : ''}{p.name}</option>)}
+        </select>
+        {genProject
+          ? <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>→ bấm 🎯 ở method → Claude research target THẬT → draft chờ duyệt ở <code>/p/{genProject}/plays</code></span>
+          : <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>chọn project để bật nút 🎯 sinh trên từng method</span>}
       </div>
 
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>

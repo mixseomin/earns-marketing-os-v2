@@ -25,7 +25,7 @@ export default async function CatalogRoute() {
       isPortfolio
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <CatalogPage initialSources={sources} />
+      <CatalogPage initialSources={sources} projects={projects.map((p) => ({ id: p.id, name: p.name, emoji: p.emoji }))} />
     </AppShell>
   );
 }

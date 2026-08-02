@@ -204,6 +204,44 @@ export async function generatePlaysForProject(projectId: string): Promise<{ ok: 
   }
 }
 
+// Fan-out a catalog METHOD into a specific project: seed the method as an anchor task, then queue a
+// CLAUDE request (engine=claude, not gpt-4o-mini — which would hallucinate target names) to research
+// REAL targets for that project's niche and expand into concrete sibling tasks. Fulfilled by a Claude
+// session servicing the ai_content queue (skill backlink-content-queue). Honest by design: real research,
+// human-approved drafts, no fabricated URLs.
+export async function queueMethodFanout(sourceId: number, projectId: string): Promise<{ ok: boolean; status?: string; already?: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  if (!projectId) return { ok: false, error: 'chưa chọn project' };
+  try {
+    const srcR = (await db.execute(sql`SELECT canonical_url, name, instruction_template, mechanism, category FROM backlink_sources WHERE id = ${sourceId} LIMIT 1`)) as unknown as Row[];
+    const src = srcR[0];
+    if (!src) return { ok: false, error: 'method không tồn tại' };
+    const prR = (await db.execute(sql`SELECT name, website, one_liner FROM projects WHERE id = ${projectId} LIMIT 1`)) as unknown as Row[];
+    const pr = prR[0];
+    if (!pr) return { ok: false, error: 'project không tồn tại' };
+    // Seed the method as an anchor task (idempotent — dedups by source_url), then resolve its id.
+    await seedBacklinksFromCatalog(projectId, [sourceId]);
+    const canonical = String(src.canonical_url);
+    const tR = (await db.execute(sql`SELECT id FROM human_tasks WHERE platform_key = 'backlink' AND project_id = ${projectId} AND prep_payload->>'source_url' = ${canonical} ORDER BY id DESC LIMIT 1`)) as unknown as Array<{ id: number }>;
+    const taskId = Number(tR[0]?.id);
+    if (!taskId) return { ok: false, error: 'không seed được anchor task' };
+    // One open request per (task) — don't re-queue if already pending.
+    const ex = (await db.execute(sql`SELECT id FROM ai_content WHERE task_id = ${taskId} AND kind = 'method-fanout' AND status = 'queued' LIMIT 1`)) as unknown as Row[];
+    if (ex[0]) return { ok: true, status: 'queued', already: true };
+    const product = String(pr.name || projectId);
+    const domain = domainOf(String(pr.website || ''), projectId);
+    const niche = String(pr.one_liner || '').trim();
+    const prompt = `FAN-OUT method "${src.name}" cho project ${product} (${domain}). Niche: ${niche || '(chưa có one-liner)'}.\n\nMethod template (khung):\n${src.instruction_template || '(trống)'}\n\nYÊU CẦU: research target THẬT cho niche này (subreddit / forum / FB group / directory — có TÊN + URL thật, đã verify). KHÔNG bịa. Bung thành NHIỀU task cụ thể, mỗi task = 1 target thật + các bước actionable (như plays militarycalc). Target không verify được → đưa SEARCH RECIPE cụ thể, tuyệt đối không bịa tên/URL. Tạo task ở dạng draft/pending cho ${product} để chờ duyệt.`;
+    const ctx = { source_id: sourceId, source_name: src.name, category: src.category ?? null, method_template: src.instruction_template ?? null, product, domain, niche };
+    const insR = (await db.execute(sql`INSERT INTO ai_content (task_id, project_id, site, kind, engine, status, prompt, context) VALUES (${taskId}, ${projectId}, ${domain}, 'method-fanout', 'claude', 'queued', ${prompt}, ${JSON.stringify(ctx)}::jsonb) RETURNING id`)) as unknown as Array<{ id: number }>;
+    revalidatePath('/catalog');
+    return { ok: true, status: 'queued', id: Number(insR[0]?.id) } as { ok: boolean; status?: string };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export interface BacklinkSourceInput {
   id?: number;
   canonicalUrl: string;

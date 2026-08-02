@@ -965,7 +965,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <div style={{ position: 'relative', zIndex: 300 }}>
           <AccountFormModal account={acctModal.account} project={projectForTask(open)} projectId={projectForTask(open).id}
             platforms={platforms} presetPlatformKey={acctModal.platformKey} presetAccountType={acctModal.recommendedRole}
-            teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} asDrawer
+            teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles}
             onCreated={acctModal.assignToTask != null ? (async (newId: number) => { await setBacklinkAccount(acctModal.assignToTask!, newId); setAcctModal(null); start(() => router.refresh()); }) : undefined}
             onClose={() => { setAcctModal(null); start(() => router.refresh()); }} />
         </div>

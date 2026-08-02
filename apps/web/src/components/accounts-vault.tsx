@@ -582,8 +582,9 @@ function QuickCreateProxyModal({ onClose, onCreated }: {
     });
   };
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={460} zIndex={540}
+            closeOnOutside={false} closeOnEsc={false} padding={0}
+            bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="modal-head">
           <h2>🔌 New proxy</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -631,8 +632,7 @@ function QuickCreateProxyModal({ onClose, onCreated }: {
             <button className="btn primary" onClick={submit} disabled={busy}>{busy ? '…' : 'Create proxy'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -672,8 +672,9 @@ function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
     });
   };
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+    <Drawer onClose={onClose} width={460} zIndex={540}
+            closeOnOutside={false} closeOnEsc={false} padding={0}
+            bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="modal-head">
           <h2>🦊 New browser profile</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -729,8 +730,7 @@ function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
             <button className="btn primary" onClick={submit} disabled={busy}>{busy ? '…' : 'Create profile'}</button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -1152,7 +1152,7 @@ function AccountProjectsSection({ accountId }: { accountId: number }) {
   );
 }
 
-export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, presetAccountType, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief, asDrawer = false }: {
+export function AccountFormModal({ account, project, projectId, platforms, onClose, onSwitchToEdit, presetPlatformKey, presetAccountType, onCreated, pickContextHabitatId, pickContext, teamMembers = [], proxies = [], browserProfiles = [], onOpenHabitat, onOpenBrief }: {
   account: AccountRow | null;
   project: Project;
   projectId: string;
@@ -1183,22 +1183,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   teamMembers?: import('@/lib/actions/team').TeamMemberRow[];
   proxies?: ProxyRow[];
   browserProfiles?: BrowserProfileRow[];
-  // Render as a right-side drawer instead of a centered modal (e.g. opened from the
-  // backlink task drawer, where drawer-in-drawer is the expected pattern).
-  asDrawer?: boolean;
 }) {
   const router = useRouter();
-  // asDrawer: wide enough for the 2-column form (main + platform-fields panel) and
-  // drag-resizable via the left edge. Plain px + maxWidth:96vw caps it on narrow screens.
-  const [drawerW, setDrawerW] = useState(1040);
-  const startResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const onMove = (ev: MouseEvent) => setDrawerW(Math.max(520, Math.min(window.innerWidth * 0.98, window.innerWidth - ev.clientX)));
-    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.userSelect = ''; };
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  };
+  // Initial panel width — wide enough for the 2-column form (main + platform-fields
+  // panel). House <Drawer> owns the drag-resize (left edge) + 96vw cap from here.
+  const [drawerW] = useState(1040);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Track pending toggle: which key + the value we sent. Cleared only after
@@ -1574,27 +1563,22 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const childDrawerOpen = detailProfileId != null;
   return (
     <>
-    <div className="modal-backdrop"
-      // asDrawer = stacked on top of the task drawer. Backdrop is transparent
-      // (the task drawer dims itself) and click-outside CLOSES this top drawer
-      // — returning to the task drawer beneath. Non-drawer form modals keep the
-      // no-backdrop-close rule (stopPropagation) to guard against data loss.
-      style={asDrawer ? { background: 'transparent', backdropFilter: 'none' } : undefined}
-      onMouseDown={(e) => { if (e.target === e.currentTarget) { if (asDrawer) onClose(); else e.stopPropagation(); } }}>
-      {/* asDrawer: a narrower right-side drawer that STACKS on top of the parent task
-          drawer — sits flush-right, narrower so the parent peeks on the left, lifted with
-          an accent left border + heavy shadow so the layering reads clearly. */}
-      <div className="modal" style={{
-        ...(asDrawer
-          ? { position: 'fixed' as const, inset: 'auto', top: 0, right: 0, bottom: 0, margin: 0, width: drawerW, maxWidth: '96vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, borderLeft: '1px solid var(--accent-line)', boxShadow: '-24px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' as const }
-          : { width: 'min(1100px, 100%)', maxWidth: 1100 }),
-        transition: 'transform .2s ease, filter .2s ease',
-        ...(childDrawerOpen ? { transform: asDrawer ? 'translateX(-86%) scale(.94)' : 'scale(.97)', transformOrigin: 'left center', filter: 'brightness(.5)', pointerEvents: 'none' as const } : null),
-      }} onClick={(e) => e.stopPropagation()}>
-        {asDrawer && (
-          <div onMouseDown={startResize} title="Kéo để đổi độ rộng"
-            style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
-        )}
+    <Drawer
+      onClose={onClose}
+      width={drawerW}
+      zIndex={300}
+      // Child house-<Drawer> (browser-profile detail) stacks on top → background this
+      // layer (slide left + dim + inert) instead of a hand-rolled translateX. See
+      // feedback_stacked_drawer.
+      backgrounded={childDrawerOpen}
+      // Form with unsaved data → guard against accidental loss: no click-outside / ESC close.
+      closeOnOutside={false}
+      closeOnEsc={false}
+      // padding:0 + flex column so the inner .modal-body (flex:1) owns the scroll while
+      // header + footer stay pinned — same layout the old hand-rolled .modal provided.
+      padding={0}
+      bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    >
         <ModalHeader
           kind="account"
           action={isCreate ? 'create' : 'edit'}
@@ -2726,10 +2710,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Drawer>
     {/* Browser-profile DETAIL — house Drawer PUSHED as a top layer (sibling, not DOM child of
-        the backgrounded panel above). zIndex 520 > account drawer wrapper (300). */}
+        the backgrounded panel above). zIndex 520 > account drawer (300). */}
     {detailProfileId != null && (() => {
       const cur = browserProfiles.find((b) => b.id === detailProfileId);
       return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setDetailProfileId(null)} /> : null;

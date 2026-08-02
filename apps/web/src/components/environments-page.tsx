@@ -589,7 +589,7 @@ function ToolSuggestions() {
   );
 }
 
-function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { profile: BrowserProfileRow | null; proxies: ProxyRow[]; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
+export function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { profile: BrowserProfileRow | null; proxies: ProxyRow[]; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

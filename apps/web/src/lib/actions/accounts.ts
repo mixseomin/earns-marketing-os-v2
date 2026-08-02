@@ -45,6 +45,7 @@ export interface AccountInput {
   monthlyCost?: number;
   collectStats?: boolean;
   blockReason?: string | null;
+  followUpAt?: string | null;   // 'YYYY-MM-DD' hẹn check lại (verify/duyệt); '' | null xoá hẹn
   notes?: string | null;
   tags?: string[];
   ownerUserId?: number | null;
@@ -376,6 +377,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.monthlyCost !== undefined) set.monthlyCost = patch.monthlyCost | 0;
   if (patch.collectStats !== undefined) set.collectStats = patch.collectStats;
   if (patch.blockReason !== undefined) set.blockReason = patch.blockReason;
+  if (patch.followUpAt !== undefined) set.followUpAt = patch.followUpAt ? new Date(patch.followUpAt) : null;
   if (patch.notes !== undefined) set.notes = patch.notes;
   if (patch.tags !== undefined) set.tags = patch.tags;
   if (patch.platformKey !== undefined) set.platformKey = patch.platformKey;

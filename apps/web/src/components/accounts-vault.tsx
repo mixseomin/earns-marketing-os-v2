@@ -65,6 +65,7 @@ import type { TribeRow } from '@/lib/data';
 import { BriefEditModal } from './brief-edit-modal';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ExternalLink } from './external-link';
+import { ProfileFormModal } from './environments-page';
 import { profileUrlFor } from '@/lib/platform-profile-urls';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
@@ -1126,6 +1127,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     recoveryInfo: account?.recoveryInfo ?? '',
     monthlyCost: account?.monthlyCost ?? 0,
     blockReason: account?.blockReason ?? '',
+    followUpAt: account?.followUpAt ?? '',
     notes: account?.notes ?? '',
     ownerUserId: (account as { ownerUserId?: number | null } | null)?.ownerUserId ?? null as number | null,
     proxyId: account?.proxyId ?? null as number | null,
@@ -1293,7 +1295,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const loadBrowserProfiles = useCallback(async (): Promise<EntityOption[]> => [
     { key: '', label: '— none —', fallbackIcon: '∅' },
     ...browserProfiles.map((b) => ({
-      key: String(b.id), label: b.label, fallbackIcon: '🦊',
+      key: String(b.id), label: b.label, fallbackIcon: '🦊', editable: true,
       sub: `${b.tool}${b.externalId ? ` · ${b.externalId}` : ''}${b.defaultProxyLabel ? ` · proxy ${b.defaultProxyLabel}` : ''}`,
     })),
   ], [browserProfiles]);
@@ -1351,6 +1353,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         recoveryInfo: form.recoveryInfo || null,
         monthlyCost: form.monthlyCost,
         blockReason: form.blockReason || null,
+        followUpAt: form.followUpAt || null,
         notes: form.notes || null,
         ownerUserId: form.ownerUserId,
         persona: form.persona,
@@ -1882,6 +1885,13 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                   </div>
                 )}
               </div>
+              <div>
+                <span style={lbl} title="Ngày hẹn quay lại kiểm tra verify/duyệt (chờ mod/admin). Hiện trên plays calendar 🗓 + ~/bin/account-followups để chat mới tự follow.">
+                  🗓 Follow-up <span style={{ fontSize: 9, color: 'var(--fg-4)', fontWeight: 400 }}>(hẹn check verify/duyệt)</span>
+                </span>
+                <input type="date" style={fld} value={form.followUpAt}
+                       onChange={(e) => setF('followUpAt', e.target.value)} />
+              </div>
               {(() => {
                 const sLk = accountFieldLock('security', form.status, isCreate, form.authMethod);
                 return (
@@ -2354,6 +2364,14 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               onPick={(o) => { setF('browserProfileId', o.key ? Number(o.key) : null); setShowBrowserPicker(false); }}
               onClose={() => setShowBrowserPicker(false)}
               searchThreshold={5}
+              renderEditor={(opt, close) => (
+                <ProfileFormModal
+                  profile={opt && opt.key ? (browserProfiles.find((b) => String(b.id) === opt.key) ?? null) : null}
+                  proxies={proxies}
+                  teamMembers={teamMembers}
+                  onClose={close}
+                />
+              )}
             />
           )}
           {showCreateProfile && (

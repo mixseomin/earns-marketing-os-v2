@@ -377,6 +377,7 @@ export interface AccountRow {
   monthlyCost: number;
   collectStats: boolean;
   blockReason: string | null;
+  followUpAt: string | null;      // 'YYYY-MM-DD' — hẹn check lại (verify/duyệt); null = không hẹn
   notes: string | null;
   tags: string[];
   warmupChecklist: Record<string, { done: boolean; value?: number | string | null; updatedAt?: string }>;
@@ -410,6 +411,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     monthlyCost: r.monthlyCost as number,
     collectStats: r.collectStats as boolean,
     blockReason: r.blockReason as string | null,
+    followUpAt: r.followUpAt ? new Date(r.followUpAt as string | Date).toISOString().slice(0, 10) : null,
     notes: r.notes as string | null,
     tags: (r.tags as string[]) ?? [],
     warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},

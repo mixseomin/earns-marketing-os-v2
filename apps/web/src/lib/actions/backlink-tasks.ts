@@ -229,7 +229,7 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       const [plats, accts] = await Promise.all([
         db.execute(sql`SELECT key, label, category FROM platforms WHERE key IN (${inList})`),
         // SECRET-SAFE: never select password_enc / api_token_enc / bot_token_enc.
-        db.execute(sql`SELECT platform_key, id, handle, status, has_2fa, auth_method,
+        db.execute(sql`SELECT platform_key, project_id, id, handle, status, has_2fa, auth_method,
                        (proxy_id IS NOT NULL) AS has_proxy, (browser_profile_id IS NOT NULL) AS has_profile
                        FROM platform_accounts WHERE tenant_id = 'self' AND platform_key IN (${inList})`),
       ]);
@@ -241,7 +241,11 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
         (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(a);
       }
       for (const [k, list] of byKey) {
-        const best = pickBestAccount(list as Array<{ status: string }>) as Record<string, unknown> | null;
+        // Auto-pick must NEVER borrow another project's account (the militarymarkdown-on-astrolas bug):
+        // prefer THIS project's own account, else a shared (project_id null) seeding account, else none.
+        const own = list.filter((a) => String(a.project_id ?? '') === projectId);
+        const pool = own.length ? own : list.filter((a) => !a.project_id);
+        const best = pool.length ? (pickBestAccount(pool as Array<{ status: string }>) as Record<string, unknown> | null) : null;
         if (best) acctMap.set(k, asAcct(best));
       }
     }

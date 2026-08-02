@@ -1138,6 +1138,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // Operated-by links (FB Page → admin profile ids). Only for kind=page; lazy-load same-platform accounts.
   const [linkCands, setLinkCands] = useState<Array<{ id: number; handle: string | null; status: string; accountKind: string; homeProjectId: string | null }> | null>(null);
   const [linkQ, setLinkQ] = useState('');
+  const [linkOpen, setLinkOpen] = useState(false);   // YDNI: full list only while picking; collapse to chips once chosen
   useEffect(() => {
     if (form.accountKind !== 'page' || !form.platformKey) { setLinkCands(null); return; }
     let cancelled = false;
@@ -1626,6 +1627,22 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </span>
                 {linkCands === null ? (
                   <div style={{ fontSize: 11, color: 'var(--fg-4)' }}>đang tải account {platform?.label ?? form.platformKey}…</div>
+                ) : (!linkOpen && form.linkedAccounts.length > 0) ? (
+                  // YDNI: đã chọn → chỉ hiện chip gọn; danh sách ẩn sau nút ＋ đổi
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {form.linkedAccounts.map((id) => {
+                      const a = linkCands.find((c) => c.id === id);
+                      return (
+                        <span key={id} style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontSize: 11.5, fontWeight: 700, padding: '3px 8px', borderRadius: 999, border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--fg-1)' }}>
+                          @{a?.handle ?? id}
+                          <button type="button" title="Bỏ profile này" onClick={() => setF('linkedAccounts', form.linkedAccounts.filter((x) => x !== id))}
+                            style={{ border: 'none', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
+                        </span>
+                      );
+                    })}
+                    <button type="button" onClick={() => setLinkOpen(true)}
+                      style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>＋ đổi</button>
+                  </div>
                 ) : (
                   <div style={{ border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                     <input value={linkQ} onChange={(e) => setLinkQ(e.target.value)} placeholder="tìm profile…" autoComplete="off"
@@ -1635,7 +1652,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                         const on = form.linkedAccounts.includes(a.id);
                         return (
                           <button key={a.id} type="button"
-                            onClick={() => setF('linkedAccounts', on ? form.linkedAccounts.filter((x) => x !== a.id) : [...form.linkedAccounts, a.id])}
+                            onClick={() => { setF('linkedAccounts', on ? form.linkedAccounts.filter((x) => x !== a.id) : [...form.linkedAccounts, a.id]); setLinkOpen(true); }}
                             style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left',
                                      border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-2)', color: 'var(--fg-1)' }}>
                             <span>{on ? '☑' : '☐'}</span>
@@ -1647,6 +1664,10 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       })}
                       {linkCands.length === 0 && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>Chưa có account {platform?.label ?? form.platformKey} nào để link.</span>}
                     </div>
+                    {form.linkedAccounts.length > 0 && (
+                      <button type="button" onClick={() => setLinkOpen(false)}
+                        style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)', cursor: 'pointer' }}>✓ xong ({form.linkedAccounts.length})</button>
+                    )}
                   </div>
                 )}
               </div>

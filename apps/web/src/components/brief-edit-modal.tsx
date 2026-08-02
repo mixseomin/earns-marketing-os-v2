@@ -33,7 +33,7 @@ import {
 } from '@/lib/phase-plan';
 import { CONTENT_FORMATS, formatMeta, allowedFormats, formatColors, postCompleteness, effectiveMix, computeMixAchievement, isInteractionType } from '@/lib/content-formats';
 import { getContentRules, validateContent } from '@/lib/platform-rules';
-import { FormatIcon, IconSliders, IconChevron, ModalHeader, InfoHint, SiteFavicon } from './ui';
+import { FormatIcon, IconSliders, IconChevron, FormModal, InfoHint, SiteFavicon } from './ui';
 import {
   listPostsForBriefPhase, createPostForBriefPhase, createPlaceholdersForBriefPhase,
   updatePost, deletePost,
@@ -803,9 +803,11 @@ export function BriefEditModal({
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal" style={{ width: 'min(1480px, 97vw)', maxWidth: 1480 }} onClick={(e) => e.stopPropagation()}>
-        <ModalHeader
+    <FormModal
+          width="xl"
+          preventBackdropClose
+          preventEscClose
+          bodyStyle={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
           kind="brief"
           action={existing ? 'edit' : 'create'}
           accentColor={existing ? PHASE_COLOR[currentPhase] : undefined}
@@ -983,7 +985,7 @@ export function BriefEditModal({
           ) : undefined}
           onClose={onClose}
           onRefresh={() => { router.refresh(); }}
-        />
+        >
 
         {/* Membership popover — mở khi click JoinChip ở header. KHÔNG render
             banner inline nữa (thông tin đã có trong JoinChip + alert thừa). */}
@@ -1578,8 +1580,7 @@ export function BriefEditModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </FormModal>
   );
 }
 

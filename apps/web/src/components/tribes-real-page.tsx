@@ -7,7 +7,7 @@ import { useState, useMemo, useEffect, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
-import { Pill, EmptyState, Spinner, Segmented, SiteFavicon } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, SiteFavicon, Drawer } from './ui';
 import { resolveHabitatPlatformKey } from '@/lib/habitat-platform-map';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
@@ -592,9 +592,16 @@ function HabitatBriefsDrawer({
 
   const habitatLabel = `${habitat.name} · ${habitat.kind}`;
 
+  // Nested children stack ON TOP: BriefEditModal (legacy centered modal z100) +
+  // AccountFormModal (house Drawer z300). Parent Drawer stays BELOW both
+  // (zIndex 95 -> panel 96 < 100) and backgrounds when a child opens.
+  const nestedOpen = showAccountModal || editing != null || creatingAccountId != null;
+
   return (
-    <div className="modal-backdrop" onClick={closeDrawer}>
-      <div className="modal" style={{ width: 'min(820px, 100%)', maxWidth: 820 }} onClick={(e) => e.stopPropagation()}>
+    <>
+      <Drawer onClose={closeDrawer} width={820} zIndex={95} padding={0}
+              backgrounded={nestedOpen}
+              bodyStyle={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-head">
           <div style={{ flex: 1 }}>
             <div className="id-line" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -699,7 +706,7 @@ function HabitatBriefsDrawer({
             </div>
           )}
         </div>
-      </div>
+      </Drawer>
 
       {showAccountModal && (
         <AccountFormModal
@@ -743,7 +750,7 @@ function HabitatBriefsDrawer({
           onClose={() => { sub.close(); refresh(); }}
         />
       )}
-    </div>
+    </>
   );
 }
 

@@ -56,6 +56,8 @@ export interface FormModalProps {
   /** Z-index override. Default 1000. */
   zIndex?: number;
   onClose: () => void;
+  /** Optional refresh button cạnh close (ModalHeader lo spin). Cho modal cần reload data. */
+  onRefresh?: () => void | Promise<void>;
   children: ReactNode;
 }
 
@@ -66,7 +68,7 @@ export function FormModal({
   kind, action, title, idText, subtitle, context, accentColor,
   width = 'md', preventBackdropClose, preventEscClose,
   modalStyle, bodyStyle, bodyPadding,
-  zIndex, onClose, children,
+  zIndex, onClose, onRefresh, children,
 }: FormModalProps) {
   const widthPx = typeof width === 'number' ? width : WIDTH_PX[width];
 
@@ -91,6 +93,7 @@ export function FormModal({
         context={context}
         accentColor={accentColor}
         onClose={onClose}
+        onRefresh={onRefresh}
       />
       <div style={{ padding: bodyPadding ?? 0, overflow: 'auto', flex: 1, ...bodyStyle }}>
         {children}

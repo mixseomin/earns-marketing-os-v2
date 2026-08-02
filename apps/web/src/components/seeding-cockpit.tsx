@@ -39,6 +39,7 @@ import {
   IconFilePlus, IconList, IconBan, IconGear, IconUndo,
   IconTrash, IconGlobe, IconClock, IconChevron, IconWarn, IconSwap, IconPencil, IconX, IconDots, InfoHint,
   MultiSelect, StatsStrip,
+  FormModal, FormModalFooter, FormModalSection,
 } from './ui';
 import { ScheduleEditModal } from './schedule-edit-modal';
 import { BriefEditModal } from './brief-edit-modal';
@@ -2254,63 +2255,63 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
         />
       )}
 
-      {/* Confirm "account chết" — in-place dialog (KHÔNG navigate, KHÔNG native confirm) */}
+      {/* Confirm "account chết" — house FormModal (KHÔNG navigate, KHÔNG native confirm) */}
       {retiring && (
-        <div className="modal-backdrop" onClick={() => !busy && setRetiring(null)}>
-          <div className="modal" style={{ width: 'min(520px, 96vw)', maxWidth: 520 }}
-               onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div style={{ flex: 1 }}>
-                <div className="id-line">ACCOUNT KHÔNG CÒN DÙNG ĐƯỢC</div>
-                <h2 style={{ fontSize: 15, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <IconBan size={16} color="var(--bad)" /> @{retiring.handle}
-                  <span style={{ color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{retiring.platformLabel}</span>
-                </h2>
-              </div>
-              <button className="btn ghost" onClick={() => setRetiring(null)} disabled={busy}>✕</button>
+        <FormModal
+          kind="account"
+          action="edit"
+          accentColor="var(--bad)"
+          width={520}
+          title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <IconBan size={16} color="var(--bad)" /> @{retiring.handle}
+          </span>}
+          subtitle={<>Account không còn dùng được · <span style={{ fontFamily: 'var(--font-mono)' }}>{retiring.platformLabel}</span></>}
+          onClose={() => { if (!busy) setRetiring(null); }}
+          preventBackdropClose={busy}
+          preventEscClose={busy}
+        >
+          <FormModalSection style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.55 }}>
+              Sẽ <strong>tạm dừng {retiring.scheduleCount} lịch</strong> của account này (không xoá — khôi phục được).
+              Bài <strong>đã đăng / đã seed</strong> giữ nguyên làm lịch sử. Nháp <strong>chưa đăng</strong> sẽ được
+              liệt kê ở thẻ account để bạn quyết dọn.
             </div>
-            <div className="modal-body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.55 }}>
-                Sẽ <strong>tạm dừng {retiring.scheduleCount} lịch</strong> của account này (không xoá — khôi phục được).
-                Bài <strong>đã đăng / đã seed</strong> giữ nguyên làm lịch sử. Nháp <strong>chưa đăng</strong> sẽ được
-                liệt kê ở thẻ account để bạn quyết dọn.
+            <div>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Lý do</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {RETIRE_REASONS.map((r) => (
+                  <button key={r.key} type="button" onClick={() => setRetireReason(r.key)}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
+                                   border: `1px solid ${retireReason === r.key ? 'var(--bad)' : 'var(--line)'}`,
+                                   background: retireReason === r.key ? 'rgba(248,113,113,.15)' : 'var(--bg-2)',
+                                   color: retireReason === r.key ? 'var(--bad)' : 'var(--fg-2)', fontWeight: retireReason === r.key ? 700 : 400 }}>
+                    {r.label}
+                  </button>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Lý do</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {RETIRE_REASONS.map((r) => (
-                    <button key={r.key} type="button" onClick={() => setRetireReason(r.key)}
-                            style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
-                                     border: `1px solid ${retireReason === r.key ? 'var(--bad)' : 'var(--line)'}`,
-                                     background: retireReason === r.key ? 'rgba(248,113,113,.15)' : 'var(--bg-2)',
-                                     color: retireReason === r.key ? 'var(--bad)' : 'var(--fg-2)', fontWeight: retireReason === r.key ? 700 : 400 }}>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>
-                  → status = <strong>{retireReason === 'banned' ? 'BANNED (mất hẳn)' : 'BLOCKED (tạm, có thể khôi phục)'}</strong>
-                </div>
-              </div>
-              <input type="text" value={retireText} onChange={(e) => setRetireText(e.target.value)}
-                     placeholder="Ghi chú thêm (tuỳ chọn) — vd: Reddit permaban 2026-05-17"
-                     autoComplete="off" data-1p-ignore data-lpignore="true" name="retire-note"
-                     style={{ padding: '7px 9px', background: 'var(--bg-2)', color: 'var(--fg-0)',
-                              border: '1px solid var(--line)', borderRadius: 5, fontSize: 12, outline: 'none' }} />
-            </div>
-            <div className="modal-foot">
-              <div className="meta">Cascade: account → tất cả lịch của nó</div>
-              <div className="modal-foot-actions">
-                <button className="btn ghost" onClick={() => setRetiring(null)} disabled={busy}>Huỷ</button>
-                <button className="btn danger" onClick={doRetire} disabled={busy}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  {busy ? <><Spinner size="xs" /> Đang xử lý</>
-                        : <><IconBan size={13} /> Đánh dấu {retireReason === 'banned' ? 'BANNED' : 'BLOCKED'}</>}
-                </button>
+              <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>
+                → status = <strong>{retireReason === 'banned' ? 'BANNED (mất hẳn)' : 'BLOCKED (tạm, có thể khôi phục)'}</strong>
               </div>
             </div>
-          </div>
-        </div>
+            <input type="text" value={retireText} onChange={(e) => setRetireText(e.target.value)}
+                   placeholder="Ghi chú thêm (tuỳ chọn) — vd: Reddit permaban 2026-05-17"
+                   autoComplete="off" data-1p-ignore data-lpignore="true" name="retire-note"
+                   style={{ padding: '7px 9px', background: 'var(--bg-2)', color: 'var(--fg-0)',
+                            border: '1px solid var(--line)', borderRadius: 5, fontSize: 12, outline: 'none' }} />
+          </FormModalSection>
+          <FormModalFooter>
+            <span style={{ marginRight: 'auto', alignSelf: 'center', fontSize: 10,
+                           fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+              Cascade: account → tất cả lịch của nó
+            </span>
+            <button className="btn ghost" onClick={() => setRetiring(null)} disabled={busy}>Huỷ</button>
+            <button className="btn danger" onClick={doRetire} disabled={busy}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {busy ? <><Spinner size="xs" /> Đang xử lý</>
+                    : <><IconBan size={13} /> Đánh dấu {retireReason === 'banned' ? 'BANNED' : 'BLOCKED'}</>}
+            </button>
+          </FormModalFooter>
+        </FormModal>
       )}
     </div>
   );
@@ -2323,6 +2324,26 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
 // Brief modal cache (TTL 45s + timeout 10s + dedup hover prefetch) đã tách
 // ra @/lib/brief-modal-cache để AllPostsTab dùng chung — import ở top file.
 
+
+// LoaderScrim — overlay tối giản cho trạng thái tạm (loading/error) của các
+// *ModalLoader, thay cho .modal-backdrop hand-roll (lint cấm). KHÔNG dùng
+// FormModal: đây chỉ là placeholder trước khi drawer thật (BriefEditModal /
+// AccountFormModal / HabitatFormModal) render. onClose (nếu có) = click nền để đóng.
+function LoaderScrim({ onClose, children }: { onClose?: () => void; children: React.ReactNode }) {
+  return (
+    <div onClick={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 1000,
+                  background: 'rgba(7,9,13,0.7)', backdropFilter: 'blur(6px)',
+                  display: 'grid', placeItems: 'center', padding: 24 }}>
+      <div onClick={(e) => e.stopPropagation()}
+           style={{ width: 'min(420px, 96vw)', background: 'var(--bg-1)',
+                    border: '1px solid var(--line-2)', borderRadius: 'var(--r-xl)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,.6)', padding: 24, textAlign: 'center' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 // Fetch the full BriefRow for the clicked seeding row, then render
 // BriefEditModal IN PLACE (no navigation). Module-scope (không định nghĩa
@@ -2387,40 +2408,35 @@ function BriefModalLoader({ projectId, briefId, focus, onClose, onSaved, onFocus
 
   if (state === 'loading') {
     return (
-      <div className="modal-backdrop">
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 28, textAlign: 'center' }}
-             onClick={(e) => e.stopPropagation()}>
-          <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải brief…</span>
-          {loadingTooLong && (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
-                Tải lâu hơn bình thường. Có thể server action bị treo.
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                <button className="btn" onClick={() => {
-                  invalidateBriefModal(projectId, briefId);
-                  setReloadKey((n) => n + 1);
-                }} style={{ fontSize: 11 }}>
-                  ⟳ Thử lại
-                </button>
-                <button className="btn ghost" onClick={onClose} style={{ fontSize: 11 }}>
-                  Đóng
-                </button>
-              </div>
+      <LoaderScrim>
+        <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải brief…</span>
+        {loadingTooLong && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+            <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
+              Tải lâu hơn bình thường. Có thể server action bị treo.
             </div>
-          )}
-        </div>
-      </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button className="btn" onClick={() => {
+                invalidateBriefModal(projectId, briefId);
+                setReloadKey((n) => n + 1);
+              }} style={{ fontSize: 11 }}>
+                ⟳ Thử lại
+              </button>
+              <button className="btn ghost" onClick={onClose} style={{ fontSize: 11 }}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
+      </LoaderScrim>
     );
   }
   if (state === 'error' || !row || !ctx) {
     return (
-      <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được brief #{briefId}.</div>
-          <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
-        </div>
-      </div>
+      <LoaderScrim onClose={onClose}>
+        <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được brief #{briefId}.</div>
+        <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
+      </LoaderScrim>
     );
   }
   return (
@@ -2478,22 +2494,17 @@ function AccountModalLoader({ projectId, accountId, project, platforms, onClose,
 
   if (state === 'loading') {
     return (
-      <div className="modal-backdrop">
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 28, textAlign: 'center' }}
-             onClick={(e) => e.stopPropagation()}>
-          <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải account…</span>
-        </div>
-      </div>
+      <LoaderScrim>
+        <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải account…</span>
+      </LoaderScrim>
     );
   }
   if (state === 'error' || !row) {
     return (
-      <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được account #{accountId}.</div>
-          <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
-        </div>
-      </div>
+      <LoaderScrim onClose={onClose}>
+        <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được account #{accountId}.</div>
+        <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
+      </LoaderScrim>
     );
   }
   return (
@@ -2836,22 +2847,17 @@ function HabitatModalLoader({ projectId, habitatId, tribes, platforms, onClose, 
 
   if (state === 'loading') {
     return (
-      <div className="modal-backdrop">
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 28, textAlign: 'center' }}
-             onClick={(e) => e.stopPropagation()}>
-          <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải habitat…</span>
-        </div>
-      </div>
+      <LoaderScrim>
+        <Spinner size="sm" /> <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--fg-3)' }}>Đang tải habitat…</span>
+      </LoaderScrim>
     );
   }
   if (state === 'error' || !row) {
     return (
-      <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal" style={{ width: 'min(420px,100%)', padding: 24 }} onClick={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được habitat #{habitatId}.</div>
-          <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
-        </div>
-      </div>
+      <LoaderScrim onClose={onClose}>
+        <div style={{ fontSize: 12, color: 'var(--bad)' }}>⚠ Không tải được habitat #{habitatId}.</div>
+        <button className="btn ghost" onClick={onClose} style={{ marginTop: 12 }}>Đóng</button>
+      </LoaderScrim>
     );
   }
   return (

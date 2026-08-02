@@ -12,6 +12,7 @@ import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { ExternalLink } from './external-link';
 import { LinkChip, IconCommunity, SiteFavicon } from './ui';
+import { FormModal, FormModalFooter } from './ui/form-modal';
 import { searchHabitatsAcrossProjects } from '@/lib/actions/tribes-crud';
 
 // ISO country code → flag emoji (regional indicator pairs)
@@ -528,16 +529,16 @@ function AddPlatformModal({ initialName, initialUrl = '', onClose, onCreated }: 
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 2000 }} onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">NEW PLATFORM</div>
-            <h2>+ Add platform to catalog</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
+    <FormModal
+      kind="generic"
+      action="create"
+      idText="NEW PLATFORM"
+      title="+ Add platform to catalog"
+      width={540}
+      zIndex={2000}
+      onClose={onClose}
+    >
+      {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
         <AIFormParser
           currentValues={form}
@@ -634,14 +635,13 @@ function AddPlatformModal({ initialName, initialUrl = '', onClose, onCreated }: 
           </div>
         </div>
 
-        <div className="modal-foot">
+        <FormModalFooter style={{ justifyContent: 'space-between' }}>
           <div className="meta">Adds to platforms catalog (shared across projects)</div>
           <div className="modal-foot-actions">
             <button className="btn ghost" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={save}>Create</button>
           </div>
-        </div>
-      </div>
-    </div>
+        </FormModalFooter>
+    </FormModal>
   );
 }

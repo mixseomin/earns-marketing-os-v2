@@ -19,7 +19,7 @@ import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type Sig
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity, FormatIcon, FormModal } from './ui';
+import { IconCommunity, FormatIcon, FormModal, FormModalFooter } from './ui';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
@@ -516,62 +516,59 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         </div>
     </FormModal>
       {confirmRemoval && (
-        <div className="modal-backdrop" onClick={() => !busy && setConfirmRemoval(null)}>
-          <div className="modal" style={{ width: 'min(560px, 96vw)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div style={{ flex: 1 }}>
-                <div className="id-line">PLATFORM FORMAT REMOVAL · CARDS AFFECTED</div>
-                <h2 style={{ fontSize: 15, marginTop: 4 }}>
-                  ⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài ở platform <strong>{platform?.label}</strong>, còn{' '}
-                  {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng
-                </h2>
-              </div>
-              <button type="button" className="btn ghost" onClick={() => !busy && setConfirmRemoval(null)} disabled={busy}>✕</button>
+        <FormModal
+          kind="generic"
+          action="edit"
+          idText="PLATFORM FORMAT REMOVAL · CARDS AFFECTED"
+          title={<>⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài ở platform <strong>{platform?.label}</strong>, còn {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng</>}
+          width={560}
+          zIndex={1100}
+          preventEscClose
+          onClose={() => { if (!busy) setConfirmRemoval(null); }}
+        >
+          <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: 0 }}>
+              Tất cả communities của platform này sẽ không còn hỗ trợ các loại bài sau,
+              nhưng vẫn có cards loại đó (tính trên mọi habitat dùng platform):
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {confirmRemoval.affected.map((a) => {
+                const meta = formatMeta(a.contentType);
+                const col = formatColors(a.contentType);
+                return (
+                  <div key={a.contentType}
+                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                                background: col.bg, border: `1px solid ${col.border}`, borderRadius: 5 }}>
+                    <FormatIcon kind={a.contentType} size={14} />
+                    <span style={{ flex: 1, color: col.fg, fontWeight: 700 }}>{meta.label}</span>
+                    <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>
+                      {a.count} bài
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: 0 }}>
-                Tất cả communities của platform này sẽ không còn hỗ trợ các loại bài sau,
-                nhưng vẫn có cards loại đó (tính trên mọi habitat dùng platform):
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {confirmRemoval.affected.map((a) => {
-                  const meta = formatMeta(a.contentType);
-                  const col = formatColors(a.contentType);
-                  return (
-                    <div key={a.contentType}
-                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                                  background: col.bg, border: `1px solid ${col.border}`, borderRadius: 5 }}>
-                      <FormatIcon kind={a.contentType} size={14} />
-                      <span style={{ flex: 1, color: col.fg, fontWeight: 700 }}>{meta.label}</span>
-                      <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>
-                        {a.count} bài
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)',
-                            borderRadius: 5, border: '1px dashed var(--line)' }}>
-                💡 <strong>Lưu trữ</strong> = ẩn cards khỏi list/count nhưng giữ data. Khi bật lại format ↔ tự khôi phục.
-                <br />
-                💡 <strong>Giữ orphan</strong> = cards vẫn hiện — xử lý thủ công sau.
-              </div>
-            </div>
-            <div className="modal-foot" style={{ display: 'flex', gap: 8, padding: 14, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" disabled={busy} onClick={() => setConfirmRemoval(null)}>
-                Huỷ (không Save)
-              </button>
-              <button className="btn" disabled={busy}
-                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(false); }}>
-                Giữ orphan
-              </button>
-              <button className="btn primary" disabled={busy}
-                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(true, c.removedTypes); }}>
-                {busy ? '… Lưu trữ' : '🗃 Lưu trữ + Save'}
-              </button>
+            <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)',
+                          borderRadius: 5, border: '1px dashed var(--line)' }}>
+              💡 <strong>Lưu trữ</strong> = ẩn cards khỏi list/count nhưng giữ data. Khi bật lại format ↔ tự khôi phục.
+              <br />
+              💡 <strong>Giữ orphan</strong> = cards vẫn hiện — xử lý thủ công sau.
             </div>
           </div>
-        </div>
+          <FormModalFooter>
+            <button className="btn ghost" disabled={busy} onClick={() => setConfirmRemoval(null)}>
+              Huỷ (không Save)
+            </button>
+            <button className="btn" disabled={busy}
+                    onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(false); }}>
+              Giữ orphan
+            </button>
+            <button className="btn primary" disabled={busy}
+                    onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(true, c.removedTypes); }}>
+              {busy ? '… Lưu trữ' : '🗃 Lưu trữ + Save'}
+            </button>
+          </FormModalFooter>
+        </FormModal>
       )}
     </>
   );

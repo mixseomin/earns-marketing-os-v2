@@ -18,6 +18,7 @@
 //   />
 
 import { useState, useMemo, type ReactNode } from 'react';
+import { Drawer } from './drawer';
 
 export interface PickerItem {
   title: ReactNode;
@@ -63,17 +64,17 @@ export function ResourcePicker<T>({
   }, [items, q, renderItem]);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ width: `min(${width}px, 100%)`, maxWidth: width }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: 14, margin: 0 }}>{title}</h2>
-            {hint && <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{hint}</div>}
+    <Drawer onClose={onClose} width={width} closeOnOutside padding={0}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '16px 18px 12px', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--fg-0)' }}>{title}</h2>
+            {hint && <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 3 }}>{hint}</div>}
           </div>
-          <button className="btn ghost" onClick={onClose}>✕</button>
+          <button className="btn ghost" onClick={onClose} style={{ padding: '2px 8px' }}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {showSearch && (
             <input
               type="text"
@@ -137,6 +138,6 @@ export function ResourcePicker<T>({
           )}
         </div>
       </div>
-    </div>
+    </Drawer>
   );
 }

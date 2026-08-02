@@ -12,7 +12,7 @@ import {
 } from '@/lib/actions/habitat-channels';
 import { StatusFlag } from './ui';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter } from './ui';
 import {
   listBriefsForHabitat,
   listAddableAccountsForHabitat,
@@ -176,8 +176,6 @@ export function HabitatFormModal({
   const [channelsLoaded, setChannelsLoaded] = useState(false);
   const [channelsReloadTick, setChannelsReloadTick] = useState(0);
   const [channelsDirty, setChannelsDirty] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   // Wrapper setChannels — mọi UI edit dùng cái này để track dirty.
   // Initial fetch + post-message fetch dùng setChannels trực tiếp (skip dirty).
   const setChannelsWithDirty = (
@@ -198,14 +196,8 @@ export function HabitatFormModal({
       })));
       setChannelsLoaded(true);
       setChannelsDirty(false);  // fresh load = clean
-      // Sau refresh: stop spinner + show timestamp
-      if (channelsReloadTick > 0) {
-        setRefreshing(false);
-        setRefreshedAt(Date.now());
-      }
     }).catch(() => {
       setChannelsLoaded(true);
-      setRefreshing(false);
     });
   }, [habitat, isCreate, channelsReloadTick]);
   // Listen ext post-message khi sync channel rules thành công → refetch.
@@ -534,81 +526,49 @@ export function HabitatFormModal({
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal"
-           style={{ width: 'min(1280px, 96vw)', maxWidth: 1280 }}
-           onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="id-line">
-              {isCreate ? 'NEW HABITAT' : `Habitat #${habitat!.id} · ${(habitat!.kind || '').toUpperCase()}`}
-            </div>
-            <h2 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {!isCreate && habitat && (
-                // Ưu tiên icon_url từ DB (Discord guild icon, etc.); fallback
-                // sang SiteFavicon (Google favicon) nếu chưa extract. Live
-                // update khi user vừa extract — dùng form.iconUrl chứ không
-                // phải habitat.iconUrl (chỉ đổi sau Save).
-                (form.iconUrl || habitat.iconUrl) ? (
-                  <img src={(form.iconUrl ?? habitat.iconUrl)!}
-                       alt={habitat.name} width={24} height={24}
-                       title={`${habitat.name} (community icon)`}
-                       style={{ borderRadius: 4, border: '1px solid var(--line)', objectFit: 'cover' }} />
-                ) : (
-                  <SiteFavicon url={habitat.url} kind={habitat.kind} size={22}
-                               title={`${habitat.url ?? habitat.name} — community icon chưa scrape, fallback platform favicon`} />
-                )
-              )}
-              <span>{isCreate ? '+ New habitat' : (form.name.trim() || habitat!.name)}</span>
-              {!isCreate && habitat?.url && (
-                <a href={wrapExternalUrl(habitat.url)} target="_blank" rel="noopener noreferrer"
-                   title={`Mở ${habitat.url}`}
-                   style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                            color: 'var(--accent)', padding: '2px 7px', borderRadius: 4,
-                            background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
-                            textDecoration: 'none' }}>↗</a>
-              )}
-              {/* Language inline editor — dùng <LangChip> chung cho mọi nơi.
-                  Sửa giao diện chip ở 1 chỗ (components/lang-chip.tsx) → mọi
-                  nơi cập nhật. */}
-              {!isCreate && (
-                <LangChip mode="select" code={form.language} langs={LANGUAGES}
-                          onChange={(v) => setF('language', v)} />
-              )}
-            </h2>
-          </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
-            {refreshedAt && !refreshing && (
-              <span style={{ fontSize: 10, color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}
-                    title={`Refreshed at ${new Date(refreshedAt).toLocaleTimeString()}`}>
-                ✓ {Math.max(1, Math.round((Date.now() - refreshedAt) / 1000))}s
-              </span>
+    <>
+      <FormModal
+        kind="generic"
+        action={isCreate ? 'create' : 'edit'}
+        idText={isCreate ? 'NEW HABITAT' : `HABITAT #${habitat!.id} · ${(habitat!.kind || '').toUpperCase()}`}
+        title={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {!isCreate && habitat && (
+              // Ưu tiên icon_url từ DB (Discord guild icon, etc.); fallback
+              // SiteFavicon nếu chưa extract. Live update khi vừa extract —
+              // dùng form.iconUrl (chỉ đổi habitat.iconUrl sau Save).
+              (form.iconUrl || habitat.iconUrl) ? (
+                <img src={(form.iconUrl ?? habitat.iconUrl)!}
+                     alt={habitat.name} width={24} height={24}
+                     title={`${habitat.name} (community icon)`}
+                     style={{ borderRadius: 4, border: '1px solid var(--line)', objectFit: 'cover' }} />
+              ) : (
+                <SiteFavicon url={habitat.url} kind={habitat.kind} size={22}
+                             title={`${habitat.url ?? habitat.name} — community icon chưa scrape, fallback platform favicon`} />
+              )
             )}
-            <button className="btn ghost"
-                    title="Refresh — fetch lại channels + habitat data từ server"
-                    disabled={refreshing}
-                    onClick={() => {
-                      setRefreshing(true);
-                      setRefreshedAt(null);
-                      setChannelsReloadTick((t) => t + 1);
-                      router.refresh();
-                    }}
-                    style={{
-                      fontSize: 14, padding: '4px 10px',
-                      color: refreshing ? 'var(--accent)' : undefined,
-                      cursor: refreshing ? 'wait' : 'pointer',
-                    }}>
-              <span style={{
-                display: 'inline-block',
-                animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
-              }}>↻</span>
-            </button>
-            <button className="btn ghost" onClick={onClose}>✕</button>
-          </div>
-        </div>
-
-        <div className="modal-body"
-             style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <span>{isCreate ? '+ New habitat' : (form.name.trim() || habitat!.name)}</span>
+            {!isCreate && habitat?.url && (
+              <a href={wrapExternalUrl(habitat.url)} target="_blank" rel="noopener noreferrer"
+                 title={`Mở ${habitat.url}`}
+                 style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                          color: 'var(--accent)', padding: '2px 7px', borderRadius: 4,
+                          background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
+                          textDecoration: 'none' }}>↗</a>
+            )}
+            {/* Language inline editor — dùng <LangChip> chung cho mọi nơi. */}
+            {!isCreate && (
+              <LangChip mode="select" code={form.language} langs={LANGUAGES}
+                        onChange={(v) => setF('language', v)} />
+            )}
+          </span>
+        }
+        width={1280}
+        onRefresh={() => { setChannelsReloadTick((t) => t + 1); router.refresh(); }}
+        onClose={onClose}
+        preventBackdropClose
+        preventEscClose
+      >
           {/* Tab bar — Sticky top trong modal-body (overflow-y: auto).
               Modal-body padding: 0 + gap: 0 để sticky không bị shift bởi
               padding/gap. Padding áp dụng cho NỘI DUNG bên dưới qua wrapper. */}
@@ -1976,88 +1936,84 @@ export function HabitatFormModal({
             </div>
           )}
           </div>{/* /padding wrapper */}
-        </div>
 
-        <div className="modal-foot">
-          <div className="meta" />
-          <div className="modal-foot-actions">
-            {!isCreate && (
-              <button className="btn danger" onClick={handleDelete} disabled={busy}
-                      title={confirmDelete ? 'Click lần nữa để xác nhận xoá' : 'Xoá habitat (briefs liên quan sẽ bị xoá)'}
-                      style={confirmDelete ? { animation: 'pulseDanger 1s ease-in-out infinite' } : undefined}>
-                {confirmDelete ? '⚠ Click again to confirm' : '🗑 Delete'}
-              </button>
-            )}
-            <button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
-            <button className="btn primary" onClick={handleSave} disabled={busy || !form.name.trim()}>
-              {busy ? <><Spinner size="xs" /> Saving</> : (isCreate ? 'Create habitat' : 'Save')}
+        <FormModalFooter>
+          {!isCreate && (
+            <button className="btn danger" onClick={handleDelete} disabled={busy}
+                    title={confirmDelete ? 'Click lần nữa để xác nhận xoá' : 'Xoá habitat (briefs liên quan sẽ bị xoá)'}
+                    style={confirmDelete ? { animation: 'pulseDanger 1s ease-in-out infinite' } : undefined}>
+              {confirmDelete ? '⚠ Click again to confirm' : '🗑 Delete'}
             </button>
-          </div>
-        </div>
-      </div>
+          )}
+          <button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
+          <button className="btn primary" onClick={handleSave} disabled={busy || !form.name.trim()}>
+            {busy ? <><Spinner size="xs" /> Saving</> : (isCreate ? 'Create habitat' : 'Save')}
+          </button>
+        </FormModalFooter>
+      </FormModal>
       {/* Confirm dialog khi bỏ format mà còn cards orphan */}
       {confirmRemoval && (
-        <div className="modal-backdrop" onClick={() => !busy && setConfirmRemoval(null)}>
-          <div className="modal" style={{ width: 'min(560px, 96vw)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div style={{ flex: 1 }}>
-                <div className="id-line">FORMAT REMOVAL · CARDS AFFECTED</div>
-                <h2 style={{ fontSize: 15, marginTop: 4 }}>
-                  ⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài, còn{' '}
-                  {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng
-                </h2>
-              </div>
-              <button type="button" className="btn ghost" onClick={() => !busy && setConfirmRemoval(null)} disabled={busy}>✕</button>
+        <FormModal
+          kind="generic"
+          action="edit"
+          idText="FORMAT REMOVAL · CARDS AFFECTED"
+          title={
+            <>⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài, còn{' '}
+            {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng</>
+          }
+          width={560}
+          zIndex={1100}
+          preventEscClose
+          onClose={() => { if (!busy) setConfirmRemoval(null); }}
+        >
+          <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: 0 }}>
+              Habitat <strong>{habitat?.name}</strong> sẽ không còn hỗ trợ các loại bài sau,
+              nhưng vẫn có cards loại đó:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {confirmRemoval.affected.map((a) => {
+                const meta = formatMeta(a.contentType);
+                const col = formatColors(a.contentType);
+                return (
+                  <div key={a.contentType}
+                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                                background: col.bg, border: `1px solid ${col.border}`, borderRadius: 5 }}>
+                    <FormatIcon kind={a.contentType} size={14} />
+                    <span style={{ flex: 1, color: col.fg, fontWeight: 700 }}>{meta.label}</span>
+                    <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>
+                      {a.count} bài
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: 0 }}>
-                Habitat <strong>{habitat?.name}</strong> sẽ không còn hỗ trợ các loại bài sau,
-                nhưng vẫn có cards loại đó:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {confirmRemoval.affected.map((a) => {
-                  const meta = formatMeta(a.contentType);
-                  const col = formatColors(a.contentType);
-                  return (
-                    <div key={a.contentType}
-                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                                  background: col.bg, border: `1px solid ${col.border}`, borderRadius: 5 }}>
-                      <FormatIcon kind={a.contentType} size={14} />
-                      <span style={{ flex: 1, color: col.fg, fontWeight: 700 }}>{meta.label}</span>
-                      <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>
-                        {a.count} bài
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)',
-                            borderRadius: 5, border: '1px dashed var(--line)' }}>
-                💡 <strong>Lưu trữ</strong> = ẩn cards khỏi list/count nhưng giữ data. Khi bật lại format ↔ tự khôi phục.
-                <br />
-                💡 <strong>Giữ orphan</strong> = cards vẫn hiện (badge cảnh báo) — xử lý thủ công sau.
-              </div>
-            </div>
-            <div className="modal-foot" style={{ display: 'flex', gap: 8, padding: 14, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" disabled={busy} onClick={() => setConfirmRemoval(null)}>
-                Huỷ (không Save)
-              </button>
-              <button className="btn" disabled={busy}
-                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(false); }}
-                      title="Save habitat. Cards loại bị bỏ vẫn hiển thị bình thường (có thể xử lý sau).">
-                Giữ orphan
-              </button>
-              <button className="btn primary" disabled={busy}
-                      onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(true, c.removedTypes); }}
-                      title={`Lưu trữ ${confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài. Khi tick lại loại đó → tự khôi phục.`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                {busy ? <><Spinner size="xs" /> Lưu trữ + Save</> : '🗃 Lưu trữ + Save'}
-              </button>
+            <div style={{ padding: 8, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-2)',
+                          borderRadius: 5, border: '1px dashed var(--line)' }}>
+              💡 <strong>Lưu trữ</strong> = ẩn cards khỏi list/count nhưng giữ data. Khi bật lại format ↔ tự khôi phục.
+              <br />
+              💡 <strong>Giữ orphan</strong> = cards vẫn hiện (badge cảnh báo) — xử lý thủ công sau.
             </div>
           </div>
-        </div>
+          <FormModalFooter>
+            <button className="btn ghost" disabled={busy} onClick={() => setConfirmRemoval(null)}>
+              Huỷ (không Save)
+            </button>
+            <button className="btn" disabled={busy}
+                    onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(false); }}
+                    title="Save habitat. Cards loại bị bỏ vẫn hiển thị bình thường (có thể xử lý sau).">
+              Giữ orphan
+            </button>
+            <button className="btn primary" disabled={busy}
+                    onClick={() => { const c = confirmRemoval; setConfirmRemoval(null); if (c) doSave(true, c.removedTypes); }}
+                    title={`Lưu trữ ${confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài. Khi tick lại loại đó → tự khôi phục.`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {busy ? <><Spinner size="xs" /> Lưu trữ + Save</> : '🗃 Lưu trữ + Save'}
+            </button>
+          </FormModalFooter>
+        </FormModal>
       )}
-    </div>
+    </>
   );
 }
 

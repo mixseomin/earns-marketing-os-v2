@@ -9,7 +9,7 @@ import { listBriefPipeline, markCardSeeded, type BriefPipeline, type PipelineCar
 import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
 import type { Phase } from '@/lib/phase-plan';
 import { formatMeta, formatColors } from '@/lib/content-formats';
-import { Spinner, EmptyState, FormatIcon, IconGlobe, IconCheck, IconGear, ModalHeader } from './ui';
+import { Spinner, EmptyState, FormatIcon, IconGlobe, IconCheck, IconGear, FormModal, FormModalFooter } from './ui';
 
 const COL_LABEL: Record<string, string> = {
   backlog: 'Ý tưởng', needs: 'Chờ duyệt', production: 'Đang làm',
@@ -152,73 +152,70 @@ export function BriefPipelineModal({ projectId, briefId, onClose, onOpenPost }: 
   );
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ width: 'min(820px, 96vw)', maxWidth: 820 }} onClick={(e) => e.stopPropagation()}>
-        <ModalHeader
-          kind="pipeline"
-          action="view"
-          idText={`brief #${briefId}`}
-          title={pl ? `@${pl.accountHandle} · ${pl.habitatName}` : 'Pipeline bài'}
-          subtitle={pl
-            ? `${pl.prep.length} cần chuẩn bị · ${pl.upcoming.length} sẽ đăng · ${pl.posted.length} đã đăng — click 1 bài để mở đúng bài đó`
-            : 'Cần chuẩn bị / Sẽ đăng / Đã đăng'}
-          onClose={onClose}
-          onRefresh={() => setBump((b) => b + 1)}
-        />
-
-        <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {note && (
-            <div style={{ padding: '7px 10px', fontSize: 11.5, borderRadius: 5,
-                          background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
-                          color: 'var(--accent)' }}>{note}</div>
-          )}
-          {state === 'loading' ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>
-              <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Đang tải…</span>
-            </div>
-          ) : state === 'error' || !pl ? (
-            <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)',
-                          color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>⚠ Không tải được pipeline.</div>
-          ) : (pl.prep.length + pl.upcoming.length + pl.posted.length === 0) ? (
-            <EmptyState icon="📋" compact title="Chưa có bài nào"
-              description="Dùng 📝+ nháp ở dòng (hoặc ▶ Sinh bài đến hạn) để tạo bài đầu tiên." />
-          ) : (
-            <>
-              <Section title="Cần chuẩn bị" accent="var(--warn)" count={pl.prep.length}
-                       ready={pl.prep.filter((c) => c.complete).length}>
-                {pl.prep.length === 0
-                  ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— không có nháp chờ chuẩn bị</span>
-                  : pl.prep.map(CardRow)}
-              </Section>
-              <Section title="Sẽ đăng (đã sẵn sàng)" accent="var(--accent)" count={pl.upcoming.length}
-                       ready={pl.upcoming.filter((c) => c.complete).length}>
-                {pl.upcoming.length === 0
-                  ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— chưa có bài nào sẵn sàng</span>
-                  : pl.upcoming.map(CardRow)}
-              </Section>
-              <Section title="Đã đăng / đã seed" accent="var(--ok)" count={pl.posted.length}>
-                {pl.posted.length === 0
-                  ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— chưa seed lần nào</span>
-                  : pl.posted.map(PostedRow)}
-              </Section>
-            </>
-          )}
-        </div>
-
-        <div className="modal-foot">
-          <div className="meta">
-            {pl ? `${pl.prep.length} cần chuẩn bị · ${pl.upcoming.length} sẽ đăng · ${pl.posted.length} đã đăng` : ''}
+    <FormModal
+      kind="pipeline"
+      action="view"
+      idText={`brief #${briefId}`}
+      title={pl ? `@${pl.accountHandle} · ${pl.habitatName}` : 'Pipeline bài'}
+      subtitle={pl
+        ? `${pl.prep.length} cần chuẩn bị · ${pl.upcoming.length} sẽ đăng · ${pl.posted.length} đã đăng — click 1 bài để mở đúng bài đó`
+        : 'Cần chuẩn bị / Sẽ đăng / Đã đăng'}
+      width={820}
+      onClose={onClose}
+      onRefresh={() => setBump((b) => b + 1)}
+    >
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {note && (
+          <div style={{ padding: '7px 10px', fontSize: 11.5, borderRadius: 5,
+                        background: 'var(--accent-soft)', border: '1px solid var(--accent-line)',
+                        color: 'var(--accent)' }}>{note}</div>
+        )}
+        {state === 'loading' ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>
+            <Spinner size="sm" /> <span style={{ marginLeft: 6 }}>Đang tải…</span>
           </div>
-          <div className="modal-foot-actions">
-            <button className="btn ghost" onClick={onClose}>Đóng</button>
-            <button className="btn primary" onClick={() => onOpenPost('', undefined)}
-                    title="Mở cấu hình brief (Overview: approach/cadence/phase) — KHÔNG phải để xem 1 bài"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <IconGear size={13} /> Cấu hình brief
-            </button>
-          </div>
-        </div>
+        ) : state === 'error' || !pl ? (
+          <div style={{ padding: 8, background: 'rgba(255,77,94,.1)', border: '1px solid rgba(255,77,94,.4)',
+                        color: 'var(--bad)', fontSize: 12, borderRadius: 5 }}>⚠ Không tải được pipeline.</div>
+        ) : (pl.prep.length + pl.upcoming.length + pl.posted.length === 0) ? (
+          <EmptyState icon="📋" compact title="Chưa có bài nào"
+            description="Dùng 📝+ nháp ở dòng (hoặc ▶ Sinh bài đến hạn) để tạo bài đầu tiên." />
+        ) : (
+          <>
+            <Section title="Cần chuẩn bị" accent="var(--warn)" count={pl.prep.length}
+                     ready={pl.prep.filter((c) => c.complete).length}>
+              {pl.prep.length === 0
+                ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— không có nháp chờ chuẩn bị</span>
+                : pl.prep.map(CardRow)}
+            </Section>
+            <Section title="Sẽ đăng (đã sẵn sàng)" accent="var(--accent)" count={pl.upcoming.length}
+                     ready={pl.upcoming.filter((c) => c.complete).length}>
+              {pl.upcoming.length === 0
+                ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— chưa có bài nào sẵn sàng</span>
+                : pl.upcoming.map(CardRow)}
+            </Section>
+            <Section title="Đã đăng / đã seed" accent="var(--ok)" count={pl.posted.length}>
+              {pl.posted.length === 0
+                ? <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>— chưa seed lần nào</span>
+                : pl.posted.map(PostedRow)}
+            </Section>
+          </>
+        )}
       </div>
-    </div>
+
+      <FormModalFooter style={{ justifyContent: 'space-between' }}>
+        <div className="meta">
+          {pl ? `${pl.prep.length} cần chuẩn bị · ${pl.upcoming.length} sẽ đăng · ${pl.posted.length} đã đăng` : ''}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn ghost" onClick={onClose}>Đóng</button>
+          <button className="btn primary" onClick={() => onOpenPost('', undefined)}
+                  title="Mở cấu hình brief (Overview: approach/cadence/phase) — KHÔNG phải để xem 1 bài"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <IconGear size={13} /> Cấu hình brief
+          </button>
+        </div>
+      </FormModalFooter>
+    </FormModal>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
+import { FormModal, FormModalFooter } from './ui/form-modal';
 import type { Mode, Squad } from '@/lib/mock/types';
 import { Donut } from './charts';
 import { createSquad, updateSquad, deleteSquad, type SquadInput } from '@/lib/actions/squads';
@@ -119,16 +120,17 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ width: '94vw', maxWidth: 1200, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{squad?.id ?? 'NEW SQUAD'}</div>
-            <h2>{isCreate ? '+ New squad' : `Edit ${squad!.name}`}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
+    <>
+    <FormModal
+      kind="generic"
+      action={isCreate ? 'create' : 'edit'}
+      title={<>{form.icon} {isCreate ? 'New squad' : squad!.name}</>}
+      idText={squad?.id ?? 'NEW SQUAD'}
+      subtitle={form.vi || undefined}
+      width={1100}
+      preventBackdropClose
+      onClose={onClose}
+    >
         {error && (
           <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>
         )}
@@ -176,7 +178,7 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
           }}
         />
 
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 16px' }}>
           <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '60px 1fr', gap: 10 }}>
             <div>
               <span style={lbl}>Icon</span>
@@ -433,15 +435,15 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
           })()}
         </div>
 
-        <div className="modal-foot">
+        <FormModalFooter style={{ justifyContent: 'space-between' }}>
           <div className="meta">{isCreate ? 'New squad' : 'Editing'}</div>
-          <div className="modal-foot-actions">
+          <div style={{ display: 'flex', gap: 8 }}>
             {!isCreate && <button className="btn danger" onClick={handleDelete}>🗑 Delete</button>}
             <button className="btn ghost" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={handleSave}>{isCreate ? 'Create squad' : 'Save'}</button>
           </div>
-        </div>
-      </div>
+        </FormModalFooter>
+    </FormModal>
 
       {skillPickerOpen && (
         <SkillPickerModal
@@ -461,7 +463,7 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
       {toolInfo && (
         <ToolInfoModal tool={toolInfo} active={tools.includes(toolInfo.id)} onToggle={() => toggleTool(toolInfo.id)} onClose={() => setToolInfo(null)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -479,16 +481,17 @@ function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }
     : skills;
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 920, height: '78vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">SKILL LIBRARY</div>
-            <h2>📚 Pick a skill snippet</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--line)' }}>
+    <FormModal
+      kind="generic"
+      action="view"
+      title="📚 Pick a skill snippet"
+      idText="SKILL LIBRARY"
+      width={920}
+      zIndex={1100}
+      onClose={onClose}
+      bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}
+    >
+        <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
           <input
             placeholder="Filter by title, tag, body…"
             value={filter}
@@ -553,9 +556,9 @@ function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }
             )}
           </div>
         </div>
-        <div className="modal-foot">
+        <FormModalFooter style={{ justifyContent: 'space-between' }}>
           <div className="meta">{previewing ? `Preview: ${previewing.slug}` : `${filtered.length} skills`}</div>
-          <div className="modal-foot-actions">
+          <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn ghost" onClick={onClose}>Cancel</button>
             {previewing && (
               <>
@@ -564,9 +567,8 @@ function SkillPickerModal({ skills, onPick, onClose, previewing, setPreviewing }
               </>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </FormModalFooter>
+    </FormModal>
   );
 }
 
@@ -576,16 +578,16 @@ function ToolInfoModal({ tool, active, onToggle, onClose }: {
 }) {
   const sm = TOOL_STATUS_META[tool.status];
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <div>
-            <div className="id-line">{tool.id}</div>
-            <h2>{tool.icon} {tool.name}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <FormModal
+      kind="generic"
+      action="view"
+      title={<>{tool.icon} {tool.name}</>}
+      idText={tool.id}
+      width={480}
+      zIndex={1100}
+      onClose={onClose}
+    >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16 }}>
           <div>
             <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</span>
             <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: 5, background: sm.bg, border: `1px solid ${sm.color}`, color: sm.color, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
@@ -619,17 +621,16 @@ function ToolInfoModal({ tool, active, onToggle, onClose }: {
             </div>
           )}
         </div>
-        <div className="modal-foot">
+        <FormModalFooter style={{ justifyContent: 'space-between' }}>
           <div className="meta">Selected: <b style={{ color: active ? 'var(--ok)' : 'var(--fg-3)' }}>{active ? 'YES' : 'NO'}</b></div>
-          <div className="modal-foot-actions">
+          <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn ghost" onClick={onClose}>Close</button>
             <button className={active ? 'btn danger' : 'btn primary'} onClick={() => { onToggle(); onClose(); }}>
               {active ? 'Remove from squad' : 'Add to squad'}
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </FormModalFooter>
+    </FormModal>
   );
 }
 

@@ -560,6 +560,7 @@ function QuickCreateProxyModal({ onClose, onCreated }: {
     location: '',
     notes: '',
   });
+  const dirty = !!(form.label || form.endpoint || form.location || form.notes) || form.type !== 'datacenter';
   const fld = fieldStyle();
   const lbl = labelStyle;
   const submit = () => {
@@ -583,7 +584,7 @@ function QuickCreateProxyModal({ onClose, onCreated }: {
   };
   return (
     <Drawer onClose={onClose} width={460} zIndex={540}
-            closeOnOutside={false} closeOnEsc={false} padding={0}
+            dirty={dirty} padding={0}
             bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="modal-head">
           <h2>🔌 New proxy</h2>
@@ -652,6 +653,7 @@ function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
     defaultProxyId: null as number | null,
     notes: '',
   });
+  const dirty = !!(form.label || form.externalId || form.notes) || form.tool !== 'multilogin' || form.defaultProxyId !== null;
   const fld = fieldStyle();
   const lbl = labelStyle;
   const submit = () => {
@@ -673,7 +675,7 @@ function QuickCreateBrowserProfileModal({ onClose, onCreated, proxies }: {
   };
   return (
     <Drawer onClose={onClose} width={460} zIndex={540}
-            closeOnOutside={false} closeOnEsc={false} padding={0}
+            dirty={dirty} padding={0}
             bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="modal-head">
           <h2>🦊 New browser profile</h2>
@@ -1222,6 +1224,12 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     linkedAccounts: ((account as { linkedAccounts?: number[] } | null)?.linkedAccounts ?? []) as number[],
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  // Dirty = form drifted from its saved baseline. Drives the Drawer's close-unless-dirty guard:
+  // untouched form closes on outside-click/ESC like any drawer; edited form asks to discard first.
+  // Snapshot compare (not a wrapped setter) → no false-dirty from programmatic setForm. Reset after save.
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   // Inline tech picker — lets user set platform technology without opening Platform modal
   const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
@@ -1461,7 +1469,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
       if (isCreate && accId != null) onCreated?.(accId);
       // keepOpen: lưu xong GIỮ modal (sửa tiếp nhiều field) → chỉ nháy "đã lưu". Create luôn đóng
       // (cần chuyển sang edit-mode với id mới — ko hỗ trợ keepOpen lúc tạo).
-      if (keepOpen && !isCreate) { setError(null); setJustSaved(true); setTimeout(() => setJustSaved(false), 1600); return; }
+      if (keepOpen && !isCreate) { baselineRef.current = JSON.stringify(form); setError(null); setJustSaved(true); setTimeout(() => setJustSaved(false), 1600); return; }
       onClose();
     });
   };
@@ -1571,9 +1579,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
       // layer (slide left + dim + inert) instead of a hand-rolled translateX. See
       // feedback_stacked_drawer.
       backgrounded={childDrawerOpen}
-      // Form with unsaved data → guard against accidental loss: no click-outside / ESC close.
-      closeOnOutside={false}
-      closeOnEsc={false}
+      // Close-unless-dirty: untouched form closes on outside/ESC like any drawer; only an edited
+      // form asks to discard first (Drawer shows the inline confirm). Replaces the old blanket guard.
+      dirty={dirty}
       // padding:0 + flex column so the inner .modal-body (flex:1) owns the scroll while
       // header + footer stay pinned — same layout the old hand-rolled .modal provided.
       padding={0}

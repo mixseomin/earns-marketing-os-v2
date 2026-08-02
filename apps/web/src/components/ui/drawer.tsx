@@ -31,6 +31,8 @@ export function Drawer({
   padding = 20,
   bodyStyle,
   resizable = true,
+  dirty = false,
+  discardLabel = 'Bỏ thay đổi chưa lưu?',
 }: {
   onClose: () => void;
   children: ReactNode;
@@ -50,12 +52,26 @@ export function Drawer({
   bodyStyle?: CSSProperties;
   /** Allow drag-resize via the left edge. */
   resizable?: boolean;
+  /** Form has UNSAVED edits → outside-click/ESC asks an inline confirm instead of closing.
+   * The house standard for form drawers: close freely when clean, guard only when dirty
+   * (replaces the old unconditional closeOnOutside={false} that blocked even empty forms). */
+  dirty?: boolean;
+  /** Text on the inline discard-confirm sheet. */
+  discardLabel?: string;
 }) {
   const [w, setW] = useState(width);
+  const [askClose, setAskClose] = useState(false);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
   const escRef = useRef(closeOnEsc);
   escRef.current = closeOnEsc;
+  // Outside-click / ESC route through requestClose: dirty → inline confirm; clean → close now.
+  // No native window.confirm (house rule: no native dialog).
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const requestClose = () => { if (dirtyRef.current) setAskClose(true); else onClose(); };
+  const requestCloseRef = useRef(requestClose);
+  requestCloseRef.current = requestClose;
   useEffect(() => {
     const id = ++drawerSeq;
     drawerStack.push(id);
@@ -64,7 +80,7 @@ export function Drawer({
       if (drawerStack[drawerStack.length - 1] !== id) return;   // not the top drawer → ignore
       if (!escRef.current) return;                              // ESC-close disabled (form guarding data)
       e.stopPropagation();
-      closeRef.current();
+      requestCloseRef.current();                                // dirty → inline confirm; clean → close
     };
     document.addEventListener('keydown', onKey);
     return () => {
@@ -87,7 +103,7 @@ export function Drawer({
   return (
     <>
       <div
-        onClick={closeOnOutside ? onClose : undefined}
+        onClick={closeOnOutside ? requestClose : undefined}
         style={{ position: 'fixed', inset: 0, zIndex, background: dimBackdrop ? 'rgba(0,0,0,.45)' : 'transparent' }}
       />
       <div
@@ -113,6 +129,20 @@ export function Drawer({
             style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
         )}
         {children}
+        {askClose && (
+          // Inline discard-confirm (no native dialog). Only reachable when dirty.
+          <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)' }}
+               onClick={() => setAskClose(false)}>
+            <div onClick={(e) => e.stopPropagation()}
+                 style={{ background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 12, padding: 18, maxWidth: 320, boxShadow: '0 20px 60px rgba(0,0,0,.5)' }}>
+              <div style={{ fontSize: 14, marginBottom: 14 }}>{discardLabel}</div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn ghost" onClick={() => setAskClose(false)}>Ở lại</button>
+                <button className="btn" onClick={() => { setAskClose(false); onClose(); }}>Bỏ & đóng</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

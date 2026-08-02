@@ -478,10 +478,29 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
-  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(null);
+  // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
+  // deeper than ?task). ?acct=new&aplat=<key> = create; ?acct=<id> = edit (looked up in this page's
+  // accounts; absent → skip, no crash). assignToTask/pickContext are transient, not restored.
+  const [acctModal, setAcctModal] = useState<{ account: AccountRow | null; platformKey?: string; assignToTask?: number; recommendedRole?: AccountRole } | null>(() => {
+    const a = sp.get('acct');
+    if (!a) return null;
+    if (a === 'new') return { account: null, platformKey: sp.get('aplat') || undefined };
+    const found = accounts.find((x) => x.id === Number(a));
+    return found ? { account: found } : null;
+  });
   // assignToTask: pin the newly-created account to this backlink task on create.
   const openCreateAccount = (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => setAcctModal({ account: null, platformKey, assignToTask, recommendedRole });
   const openEditAccount = (account: AccountRow) => setAcctModal({ account });
+  // Mirror acctModal → URL (disjoint keys from the main sync effect; both preserve each other's params).
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (acctModal) {
+      u.searchParams.set('acct', acctModal.account ? String(acctModal.account.id) : 'new');
+      if (!acctModal.account && acctModal.platformKey) u.searchParams.set('aplat', acctModal.platformKey);
+      else u.searchParams.delete('aplat');
+    } else { u.searchParams.delete('acct'); u.searchParams.delete('aplat'); }
+    window.history.replaceState(null, '', u);
+  }, [acctModal]);
   const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
   const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };
   // Bulk link health-check across every placed link — broken links then show as list badges.

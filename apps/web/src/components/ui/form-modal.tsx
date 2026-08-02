@@ -47,6 +47,9 @@ export interface FormModalProps {
   preventBackdropClose?: boolean;
   /** When true, ESC does NOT close. Default false. */
   preventEscClose?: boolean;
+  /** Form has UNSAVED edits → outside/ESC asks an inline discard-confirm instead of closing.
+   * The house standard (close-unless-dirty). Prefer this over blanket preventBackdropClose. */
+  dirty?: boolean;
   /** Extra style on the modal frame (rare — prefer width prop) */
   modalStyle?: CSSProperties;
   /** Extra style on the body wrapper */
@@ -66,7 +69,7 @@ export interface FormModalProps {
 // break rhythm. API unchanged; every FormModal consumer flips to a drawer at once.
 export function FormModal({
   kind, action, title, idText, subtitle, context, accentColor,
-  width = 'md', preventBackdropClose, preventEscClose,
+  width = 'md', preventBackdropClose, preventEscClose, dirty,
   modalStyle, bodyStyle, bodyPadding,
   zIndex, onClose, onRefresh, children,
 }: FormModalProps) {
@@ -79,6 +82,7 @@ export function FormModal({
       zIndex={zIndex ?? 1000}
       closeOnOutside={!preventBackdropClose}
       closeOnEsc={!preventEscClose}
+      dirty={dirty}
       padding={0}
       // Panel is a flex column: sticky header + scrollable body. Own scroll lives on the
       // body div, so the panel itself must not also scroll. modalStyle merges last (rare).

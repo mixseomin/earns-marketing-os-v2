@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useRef, useTransition } from 'react';
 import type { KnowledgeRow } from '@/lib/data';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import { createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem } from '@/lib/actions/knowledge';
@@ -100,6 +100,11 @@ function TemplateEditor({ item, projName, onClose }: { item: KnowledgeRow | null
   const vars = detectTemplateVars(content);
   const refIds = Object.keys(item?.refs ?? {});
 
+  const form = { kind, title, content, tagsStr };
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const save = () => start(async () => {
     const tags = tagsStr.split(',').map((t) => t.trim()).filter(Boolean);
     if (item) await updateKnowledgeItem(item.id, { kind, title, content, tags });
@@ -111,7 +116,7 @@ function TemplateEditor({ item, projName, onClose }: { item: KnowledgeRow | null
   const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '7px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
 
   return (
-    <Drawer onClose={onClose} width={720} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={720} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">shared template{item ? ` · #${item.id}` : ' · new'}</div>

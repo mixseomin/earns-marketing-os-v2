@@ -92,6 +92,9 @@ export function AIHabitatTribesModal({
 
   const selected = rows.filter((r) => r._selected && r._tribeIds.length > 0);
 
+  // dirty = có review đang dở (suggestions đã tạo) hoặc đã gõ chỉ dẫn
+  const dirty = rows.length > 0 || instruction.trim() !== '';
+
   const apply = () => {
     if (selected.length === 0) return;
     startSave(async () => {
@@ -117,8 +120,7 @@ export function AIHabitatTribesModal({
       title="Gán habitat vào tribe (nhiều tribe / 1 primary)"
       subtitle="1 community có thể thuộc nhiều tribe. ★ = tribe trội (primary, đồng bộ vào habitat.tribe_id). Click chip để bật/tắt, click ★ để đổi primary."
       width={1000}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
     >
 

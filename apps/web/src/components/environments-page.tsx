@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
@@ -287,6 +287,10 @@ function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow 
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
@@ -337,7 +341,7 @@ function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow 
   };
 
   return (
-    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{proxy ? `proxy #${proxy.id}` : 'NEW PROXY'}</div>
@@ -604,6 +608,10 @@ function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { pro
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
@@ -636,7 +644,7 @@ function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { pro
   };
 
   return (
-    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{profile ? `profile #${profile.id}` : 'NEW PROFILE'}</div>

@@ -9,7 +9,7 @@
 // context phù hợp. Hiển thị banner thay vì hidden form vì JOIN STATE LÀ
 // GATE — không join = không seed = không warm. User cần thấy rõ trạng thái.
 
-import { memo, useState, useTransition, type CSSProperties } from 'react';
+import { memo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { setBriefJoinStatus } from '@/lib/actions/community-briefs';
 import {
   JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON,
@@ -329,6 +329,12 @@ function JoinStatusEditPopover({
 }) {
   const h = habitatInfo;
   const a = accountInfo;
+  // Dirty = user gõ vào Join URL / Ghi chú (unsaved text). Save luôn auto-close
+  // → không cần reset baseline. Status buttons tự save+close nên không tính vào dirty.
+  const baselineRef = useRef<string>('');
+  const snapshot = JSON.stringify({ url, note });
+  if (baselineRef.current === '') baselineRef.current = snapshot;
+  const dirty = snapshot !== baselineRef.current;
   return (
     <FormModal
       kind="brief"
@@ -339,8 +345,7 @@ function JoinStatusEditPopover({
       width={640}
       zIndex={2100}
       onClose={onClose}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
     >
         {/* Body */}
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>

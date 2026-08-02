@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { KnowledgeRow } from '@/lib/data';
 import { Pill, EmptyState, Drawer } from './ui';
@@ -217,6 +217,10 @@ function OwnEditor({ item, projectId, onClose }: { item: KnowledgeRow | null; pr
   const [confirmDel, setConfirmDel] = useState(false);
   const [pending, start] = useTransition();
   const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '7px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
+  const baselineRef = useRef<string>('');
+  const snap = JSON.stringify({ kind, title, content, tagsStr });
+  if (baselineRef.current === '') baselineRef.current = snap;
+  const dirty = snap !== baselineRef.current;
 
   const save = () => start(async () => {
     const tags = tagsStr.split(',').map((t) => t.trim()).filter(Boolean);
@@ -227,7 +231,7 @@ function OwnEditor({ item, projectId, onClose }: { item: KnowledgeRow | null; pr
   const del = () => start(async () => { if (item) await deleteKnowledgeItem(item.id); onClose(); router.refresh(); });
 
   return (
-    <Drawer onClose={onClose} width={680} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={680} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">riêng · {projectId}{item ? ` · #${item.id}` : ''}</div>

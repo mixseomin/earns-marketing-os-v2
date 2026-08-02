@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { FormModal, FormModalFooter } from './ui/form-modal';
@@ -87,6 +87,10 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
   const [toolFilter, setToolFilter] = useState('');
   const [showOnlyIntegrated, setShowOnlyIntegrated] = useState(true);
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const handleSave = () => {
     if (!form.name.trim()) { setError('Tên squad không được rỗng'); return; }
     startTransition(async () => {
@@ -128,7 +132,7 @@ export function SquadFormModal({ squad, projectId, onClose, availableModels, dbT
       idText={squad?.id ?? 'NEW SQUAD'}
       subtitle={form.vi || undefined}
       width={1100}
-      preventBackdropClose
+      dirty={dirty}
       onClose={onClose}
     >
         {error && (

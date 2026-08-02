@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { InfraRow } from '@/lib/data';
 import { createInfraResource, updateInfraResource, deleteInfraResource, type InfraInput } from '@/lib/actions/vaults';
@@ -119,6 +119,10 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
 
@@ -151,7 +155,7 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
   };
 
   return (
-    <Drawer onClose={onClose} width={560} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div><div className="id-line">{item ? `#${item.id}` : 'NEW'}</div><h2>{isCreate ? '+ New infra resource' : `Edit ${item!.label}`}</h2></div>
           <button className="modal-close" onClick={onClose}>✕</button>

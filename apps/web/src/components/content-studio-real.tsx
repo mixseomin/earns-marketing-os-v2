@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { ContentPieceRow } from '@/lib/data';
 import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, type ContentInput } from '@/lib/actions/content';
@@ -223,6 +223,9 @@ function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose 
     aiNotes: piece?.aiNotes ?? [] as string[],
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -278,8 +281,7 @@ function ContentFormModal({ piece, projectId, skills, tribes, accounts, onClose 
       title={isCreate ? '+ New content piece' : `Edit ${piece!.title}`}
       idText={piece?.slug ?? 'NEW PIECE'}
       width={1500}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
       bodyStyle={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >

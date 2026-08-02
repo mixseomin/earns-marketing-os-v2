@@ -109,7 +109,7 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
 
 function ContactModal({ contact, onClose }: { contact: ContactRow; onClose: () => void }) {
   return (
-    <Drawer onClose={onClose} width={540} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={540} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{contact.role || 'contact'} · {contact.projectId ?? 'portfolio'}</div>

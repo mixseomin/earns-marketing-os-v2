@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
@@ -171,6 +171,10 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
@@ -200,7 +204,7 @@ function ToolFormModal({ tool, onClose }: { tool: ToolRow | null; onClose: () =>
   };
 
   return (
-    <Drawer onClose={onClose} width={540} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={540} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{tool?.id ?? 'NEW TOOL'}</div>
@@ -454,6 +458,10 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
@@ -486,7 +494,7 @@ function SkillFormModal({ skill, onClose }: { skill: SkillRow | null; onClose: (
   };
 
   return (
-    <Drawer onClose={onClose} width={720} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={720} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{skill?.slug ?? 'NEW SKILL'}</div>

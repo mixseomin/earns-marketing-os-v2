@@ -4,7 +4,7 @@
 // Pillar = macro positioning ("Educational depth", "Cultural bridge VN")
 // gắn voice + key_messages + forbidden + languages. Cards inherit.
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createContentPillar, updateContentPillar, deleteContentPillar,
@@ -188,6 +188,10 @@ function PillarFormModal({ projectId, pillar, tribes, onClose, onSaved }: {
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)',
     border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
@@ -236,7 +240,7 @@ function PillarFormModal({ projectId, pillar, tribes, onClose, onSaved }: {
   };
 
   return (
-    <Drawer onClose={onClose} width={900} closeOnOutside={false} closeOnEsc={false} padding={0}>
+    <Drawer onClose={onClose} width={900} dirty={dirty} padding={0}>
         <div className="modal-head" style={{ display: 'flex', alignItems: 'center', padding: 14, gap: 10 }}>
           <div style={{ flex: 1 }}>
             <div className="id-line">{isCreate ? 'TRỤ CỘT MỚI' : `Trụ cột #${pillar!.id}`}</div>

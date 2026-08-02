@@ -73,6 +73,8 @@ export function AddBriefModal({ projectId, habitats, onClose, onCreated }: Props
     return (a.handle ?? '').toLowerCase().includes(accountQ.toLowerCase());
   });
 
+  const dirty = habitatId != null || accountId != null;
+
   const doCreate = () => {
     if (!habitatId || !accountId) { setError('Cần chọn cả habitat + account'); return; }
     setError(null);
@@ -93,8 +95,7 @@ export function AddBriefModal({ projectId, habitats, onClose, onCreated }: Props
       title="Brief mới"
       subtitle="Pick habitat + account → skeleton brief → mở editor."
       width={820}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
     >
         <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,

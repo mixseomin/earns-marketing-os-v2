@@ -4,7 +4,7 @@
 // tạo account trên platform bất kỳ. UI table + create/edit modal.
 // password lưu pgcrypto, reveal just-in-time qua revealIdentityPassword().
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type IdentityRow, type IdentityInput, type IdentityKind,
@@ -232,6 +232,10 @@ function IdentityFormModal({
 }) {
   const isEdit = !!form.id;
   const [showPwd, setShowPwd] = useState(false);
+  // Close-unless-dirty: untouched form closes on outside/ESC; edited form asks first. Save unmounts.
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   // Load existing password just-in-time when user clicks "show" on edit.
   useEffect(() => { setShowPwd(false); }, [form.id]);
@@ -247,7 +251,7 @@ function IdentityFormModal({
       idText={isEdit ? `#${form.id}` : undefined}
       subtitle={form.kind ?? 'seeding'}
       width="md"
-      preventBackdropClose
+      dirty={dirty}
       onClose={onClose}
     >
       <div style={{ padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

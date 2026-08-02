@@ -362,6 +362,7 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
 
   const trimmed = text.trim();
   const willMarkFix = markFix && trimmed.length > 0;
+  const dirty = text !== (useCase.feedback ?? '') || !markFix;
 
   const handleSave = () => {
     setSaving(true);
@@ -375,7 +376,7 @@ function FeedbackModal({ useCase, onClose }: { useCase: UseCaseRow; onClose: () 
   };
 
   return (
-    <Drawer onClose={onClose} width={620} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={620} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{useCase.slug}</div>

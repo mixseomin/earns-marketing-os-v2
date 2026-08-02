@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTribe, updateTribe, deleteTribe, type TribeInput } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
@@ -35,6 +35,10 @@ export function TribeFormModal({
     psychographic: tribe?.psychographic ?? '',
   });
   const setF = <K extends keyof TribeInput>(k: K, v: TribeInput[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   const fld = fieldStyle({ size: 'lg' });
   const lbl = labelStyle;
@@ -71,7 +75,7 @@ export function TribeFormModal({
       title={isCreate ? 'Tribe mới' : tribe!.name}
       subtitle="Nhóm đối tượng (audience cluster) — định danh / lexicon / psychographic"
       width={960}
-      preventBackdropClose
+      dirty={dirty}
       onClose={onClose}
     >
         <div className="modal-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>

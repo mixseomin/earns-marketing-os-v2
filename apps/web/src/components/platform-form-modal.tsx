@@ -4,7 +4,7 @@
 // từ account modal (✏️ edit), từ publication picker, etc.
 // Pattern: feedback_picker_inline_crud.md (edit-anywhere via modal).
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -84,6 +84,12 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     return getSuggestedProfileUrlPattern(form.key);
   }, [form.key]);
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Close-unless-dirty: snapshot baseline of form; edited form guards close via inline
+  // discard-confirm, untouched form closes normally. Save always closes → no reset needed.
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   // Reverse view: list communities (habitats) using THIS platform across
   // every project. Lazy-load when modal opens with an existing platform.
@@ -183,8 +189,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
       idText={platform?.key ?? 'NEW PLATFORM'}
       width={540}
       onClose={onClose}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
     >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 
@@ -523,7 +528,6 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
           title={<>⚠ Bỏ {confirmRemoval.removedTypes.length} loại bài ở platform <strong>{platform?.label}</strong>, còn {confirmRemoval.affected.reduce((s, a) => s + a.count, 0)} bài đang dùng</>}
           width={560}
           zIndex={1100}
-          preventEscClose
           onClose={() => { if (!busy) setConfirmRemoval(null); }}
         >
           <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>

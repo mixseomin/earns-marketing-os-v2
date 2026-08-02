@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BudgetRow } from '@/lib/data';
 import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInput } from '@/lib/actions/vaults';
@@ -128,6 +128,10 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
 
@@ -163,8 +167,7 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
       title={isCreate ? '+ New budget entry' : `Edit ${entry!.label}`}
       idText={entry ? `#${entry.id}` : 'NEW'}
       width={540}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
     >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}

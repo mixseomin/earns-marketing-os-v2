@@ -340,6 +340,7 @@ function NotesModal({ item, onClose }: { item: RoadmapRow; onClose: () => void }
   const [, startTransition] = useTransition();
   const [text, setText] = useState(item.notes ?? '');
   const [saving, setSaving] = useState(false);
+  const dirty = text !== (item.notes ?? '');
 
   const handleSave = () => {
     setSaving(true);
@@ -353,7 +354,7 @@ function NotesModal({ item, onClose }: { item: RoadmapRow; onClose: () => void }
   };
 
   return (
-    <Drawer onClose={onClose} width={620} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={620} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div>
             <div className="id-line">{item.slug}</div>

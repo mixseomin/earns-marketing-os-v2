@@ -4,7 +4,7 @@
 // maps send-as options ⇄ EntityOption + wires create / adopt-from-Directus / rich edit. Both CREATE and EDIT
 // open the SAME stacked detail Drawer (SendAsDetailDrawer) with all fields — never a bare inline handle box.
 // Delete lives in that drawer (confirm), so the picker list shows no inline ✕.
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { EntityPicker, Drawer, ConfirmDeleteButton, type EntityOption } from '@/components/ui';
 import {
   listSendAs, adoptSendAsFromDirectus,
@@ -57,8 +57,12 @@ function SendAsDetailDrawer({ projectId, channel, accountId, onClose }: { projec
   };
   const del = async () => { if (accountId == null) return; setBusy(true); setErr(''); const r = await deleteSendAsAccount(accountId); setBusy(false); if (r.ok) onClose(); else setErr(r.error || 'lỗi xoá'); };
 
+  const baselineRef = useRef<string>('');
+  if (f && baselineRef.current === '') baselineRef.current = JSON.stringify(f);
+  const dirty = f ? JSON.stringify(f) !== baselineRef.current : false;
+
   return (
-    <Drawer onClose={onClose} width={460} zIndex={640} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={460} zIndex={640} dirty={dirty} padding={0}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 12px', borderBottom: '1px solid var(--line)' }}>
           <h2 style={{ flex: 1, fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--fg-0)' }}>{isCreate ? 'Tạo danh tính mới' : 'Sửa danh tính'}</h2>

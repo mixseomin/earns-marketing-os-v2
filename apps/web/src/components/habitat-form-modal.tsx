@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createHabitat, updateHabitat, deleteHabitat, setHabitatTribes,
@@ -525,6 +525,15 @@ export function HabitatFormModal({
     });
   };
 
+  // House close-unless-dirty: snapshot-compare the primary form state (+ M2M
+  // tribe picks); channel edits are tracked separately via channelsDirty (lazy
+  // async load makes them unsafe to include in the snapshot). Save always
+  // closes the drawer, so no baseline reset is needed.
+  const baselineRef = useRef<string>('');
+  const formSnapshot = JSON.stringify({ form, extraTribeIds });
+  if (baselineRef.current === '') baselineRef.current = formSnapshot;
+  const dirty = formSnapshot !== baselineRef.current || channelsDirty;
+
   return (
     <>
       <FormModal
@@ -566,8 +575,7 @@ export function HabitatFormModal({
         width={1280}
         onRefresh={() => { setChannelsReloadTick((t) => t + 1); router.refresh(); }}
         onClose={onClose}
-        preventBackdropClose
-        preventEscClose
+        dirty={dirty}
       >
           {/* Tab bar — Sticky top trong modal-body (overflow-y: auto).
               Modal-body padding: 0 + gap: 0 để sticky không bị shift bởi
@@ -1963,7 +1971,6 @@ export function HabitatFormModal({
           }
           width={560}
           zIndex={1100}
-          preventEscClose
           onClose={() => { if (!busy) setConfirmRemoval(null); }}
         >
           <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { Drawer } from './ui';
 import type { Mode, Card } from '@/lib/mock/types';
 import { createCard, updateCard, deleteCard, approveCard, rejectCard, escalateCard } from '@/lib/actions/cards';
@@ -68,7 +68,7 @@ export function CardModal({
   const [error, setError] = useState<string | null>(null);
 
   const initialSquad = card?.squad ?? mode.squads[0]?.id ?? '';
-  const [form, setForm] = useState<FormState>(() => {
+  const buildForm = (): FormState => {
     if (card) {
       return {
         title: card.title,
@@ -86,33 +86,24 @@ export function CardModal({
       };
     }
     return emptyForm(defaultCol ?? mode.columns[0]?.id ?? 'needs', initialSquad);
-  });
+  };
+  const [form, setForm] = useState<FormState>(buildForm);
+
+  // Snapshot baseline of the pristine form → dirty = user edited a field.
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
 
   // Reset form when card changes (different card opened) or mode toggles to create.
   useEffect(() => {
     if (!open) return;
-    if (card) {
-      setForm({
-        title: card.title,
-        body: card.body ?? '',
-        squadKey: card.squad,
-        col: card.col,
-        level: card.level,
-        money: card.money ?? '',
-        due: card.due ?? '',
-        urgent: !!card.urgent,
-        tagsInput: (card.tags ?? []).join(', '),
-        agentRef: card.agent ?? '',
-        agentKind: card.agentKind ?? '',
-        dispatchReady: card.dispatchReady ?? false,
-      });
-      setEditing('view');
-    } else {
-      setForm(emptyForm(defaultCol ?? mode.columns[0]?.id ?? 'needs', initialSquad));
-      setEditing('create');
-    }
+    const next = buildForm();
+    setForm(next);
+    baselineRef.current = JSON.stringify(next);
+    setEditing(card ? 'view' : 'create');
     setError(null);
   }, [open, card?.id, defaultCol]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirty = JSON.stringify(form) !== baselineRef.current;
 
   if (!open) return null;
 
@@ -185,7 +176,7 @@ export function CardModal({
   };
 
   return (
-    <Drawer onClose={onClose} width={880} closeOnOutside={false} padding={0}>
+    <Drawer onClose={onClose} width={880} dirty={dirty} padding={0}>
         <div className="modal-head">
           <div style={{ flex: 1 }}>
             <div className="id-line">

@@ -318,6 +318,9 @@ function ConfirmPostedModal({
     void e;
   };
 
+  // Create-only form starting empty (postedAt defaults to now) → boolean dirty.
+  const dirty = !!(postUrl.trim() || screenshotUrl.trim() || note.trim());
+
   return (
     <FormModal
       kind="generic"
@@ -325,8 +328,7 @@ function ConfirmPostedModal({
       title="Xác nhận đã đăng bài"
       width={560}
       zIndex={2000}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
       bodyPadding={18}
     >

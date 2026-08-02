@@ -391,6 +391,9 @@ export function BriefEditModal({
   const [dontMd,     setDontMd]     = useState(existing?.dontMd ?? '');
   const [templates,  setTemplates]  = useState<BriefTemplate[]>(existing?.templates ?? []);
   const [narrativeMd, setNarrativeMd] = useState(existing?.narrativeMd ?? '');
+  // close-unless-dirty: baseline snapshot of the 7 saved editable fields.
+  // Set once on first render (empty-string sentinel); reset after a keepOpen save.
+  const dirtyBaselineRef = useRef<string>('');
 
   // ── Persona voice (read-only, surfaced as header chip) ──────────
   const [personaVoice, setPersonaVoice] = useState<PersonaVoice | null>(null);
@@ -765,6 +768,8 @@ export function BriefEditModal({
       if (onPostsChanged) onPostsChanged();
       else router.refresh();
       if (opts?.keepOpen) {
+        // Drawer stays open → reset baseline so a saved form reads as clean.
+        dirtyBaselineRef.current = JSON.stringify({ approachMd, cadence, tone, doMd, dontMd, templates, narrativeMd });
         setSaveToast(`✓ Đã lưu lúc ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
         setTimeout(() => setSaveToast(null), 2500);
         return;
@@ -802,11 +807,14 @@ export function BriefEditModal({
     });
   };
 
+  const editSnapshot = JSON.stringify({ approachMd, cadence, tone, doMd, dontMd, templates, narrativeMd });
+  if (dirtyBaselineRef.current === '') dirtyBaselineRef.current = editSnapshot;
+  const dirty = editSnapshot !== dirtyBaselineRef.current;
+
   return (
     <FormModal
           width="xl"
-          preventBackdropClose
-          preventEscClose
+          dirty={dirty}
           bodyStyle={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
           kind="brief"
           action={existing ? 'edit' : 'create'}

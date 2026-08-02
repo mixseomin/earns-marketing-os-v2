@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type TeamMemberRow, type Specialty, type MemberRole,
@@ -206,6 +206,7 @@ function SetPasswordModal({ member, onClose }: { member: TeamMemberRow; onClose:
   const [error, setError] = useState<string | null>(null);
   const [okMessage, setOkMessage] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const dirty = !!(password || confirm);
 
   const save = () => {
     setError(null); setOkMessage(null);
@@ -236,7 +237,7 @@ function SetPasswordModal({ member, onClose }: { member: TeamMemberRow; onClose:
       idText={member.email}
       width="sm"
       onClose={onClose}
-      preventBackdropClose preventEscClose
+      dirty={dirty}
     >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         {okMessage && <div style={{ padding: '8px 14px', background: 'rgba(16,185,129,.08)', borderBottom: '1px solid rgba(16,185,129,.3)', color: 'var(--ok)', fontSize: 12 }}>✓ {okMessage}</div>}
@@ -304,6 +305,10 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   const fld: React.CSSProperties = {
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
@@ -346,7 +351,7 @@ function MemberFormModal({ member, onClose }: { member: TeamMemberRow | null; on
       idText={member ? `user #${member.userId}` : 'NEW MEMBER'}
       width={540}
       onClose={onClose}
-      preventBackdropClose preventEscClose
+      dirty={dirty}
     >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
 

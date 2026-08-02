@@ -275,6 +275,10 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const baselineRef = useRef<string>('');
+  if (baselineRef.current === '') baselineRef.current = JSON.stringify(form);
+  const dirty = JSON.stringify(form) !== baselineRef.current;
+
   // Auto-detect: when URL changes (debounced), probe metadata.
   // - For images: <img onload> gives natural width/height.
   // - For all kinds: HEAD fetch returns Content-Type + Content-Length (CORS dependent).
@@ -385,8 +389,7 @@ function MediaFormModal({ asset, projectId, onClose }: { asset: MediaRow | null;
       idText={asset ? `#${asset.id}` : 'NEW MEDIA'}
       width={560}
       onClose={onClose}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
     >
         {error && <div style={{ padding: '8px 14px', background: 'rgba(255,77,94,.08)', borderBottom: '1px solid rgba(255,77,94,.3)', color: 'var(--bad)', fontSize: 12 }}>⚠ {error}</div>}
         <AIFormParser

@@ -65,6 +65,7 @@ export function AITribesModal({
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
 
   const selectedCount = items.filter((t) => t._selected).length;
+  const dirty = items.length > 0 || instruction.trim() !== '';
 
   const handleCreate = () => {
     const chosen = items.filter((t) => t._selected && t.name.trim());
@@ -102,8 +103,7 @@ export function AITribesModal({
       title="Gợi ý Tribes theo context dự án"
       subtitle="AI suy nhóm khán giả từ one-liner / bio + community thật của dự án. Sửa thoải mái rồi tick để tạo."
       width={820}
-      preventBackdropClose
-      preventEscClose
+      dirty={dirty}
       onClose={onClose}
     >
 

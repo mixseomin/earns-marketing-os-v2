@@ -139,9 +139,10 @@ export function AgentDetailModal({
   }
 
   const completedRuns = timeline.filter((t) => t.status === 'completed').length;
+  const dirty = baseSkill !== agent.baseSkillMd;
 
   return (
-    <Drawer onClose={onClose} width={960} closeOnOutside={false} padding={0} bodyStyle={{ display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
+    <Drawer onClose={onClose} width={960} dirty={dirty} padding={0} bodyStyle={{ display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
 
         {/* Header */}
         <div className="modal-head" style={{ flexShrink: 0 }}>

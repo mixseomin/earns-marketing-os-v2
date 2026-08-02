@@ -55,6 +55,8 @@ export interface AccountInput {
   // bot_token raw set qua setAccountApiToken / setAccountBotToken (encrypted).
   // 0131: account_type P/B/S — personal|brand|seeding (generation resolution + [P]/[B]/[S] badge).
   accountType?: 'personal' | 'brand' | 'seeding';
+  // operated-by / login-via links (FB Page → admin profile ids). Overwrites the whole array.
+  linkedAccounts?: number[];
 }
 
 export interface ChecklistEntry {
@@ -78,6 +80,12 @@ async function findById(projectId: string, id: number) {
     ))
     .limit(1);
   return rows[0] ?? null;
+}
+
+// Sanitize a linked-account id list: ints only, drop self-ref + dupes, cap 50 (mirrors /api/ext/accounts/[id]).
+function sanitizeLinks(arr: number[] | undefined, selfId?: number): number[] {
+  if (!Array.isArray(arr)) return [];
+  return [...new Set(arr.map(Number).filter((n) => Number.isFinite(n) && n !== selfId))].slice(0, 50);
 }
 
 export async function createAccount(projectId: string, input: AccountInput): Promise<{ ok: boolean; id?: number; error?: string }> {
@@ -110,6 +118,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
       persona: input.persona ?? {},
       accountKind: input.accountKind ?? 'user',
       accountType: input.accountType ?? 'brand',
+      linkedAccounts: sanitizeLinks(input.linkedAccounts),
     })
     .returning({ id: platformAccounts.id });
 
@@ -365,6 +374,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
   if (patch.accountKind !== undefined) set.accountKind = patch.accountKind;
   if (patch.accountType !== undefined) set.accountType = patch.accountType;
   if (patch.clientId !== undefined) set.clientId = patch.clientId;
+  if (patch.linkedAccounts !== undefined) set.linkedAccounts = sanitizeLinks(patch.linkedAccounts, acc.id);
 
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, acc.id));
 

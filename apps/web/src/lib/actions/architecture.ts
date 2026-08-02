@@ -522,12 +522,12 @@ export async function setBacklinkAccount(taskId: number, accountId: number | nul
 // Accounts available to pin to a backlink task on a given platform (for the switch picker).
 // Tenant-wide (backlink accounts are shared); flags the account's home project so the user
 // can avoid reusing another site's account.
-export async function listBacklinkAccountOptions(platformKey: string): Promise<Array<{ id: number; handle: string | null; status: string; homeProjectId: string | null }>> {
+export async function listBacklinkAccountOptions(platformKey: string): Promise<Array<{ id: number; handle: string | null; status: string; accountKind: string; homeProjectId: string | null }>> {
   const db = getDb();
   if (!db || !platformKey) return [];
   try {
-    const r = await db.execute(sql`SELECT id, handle, status, project_id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platformKey} ORDER BY status, handle`);
-    return (r as unknown as Array<Record<string, unknown>>).map((a) => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), homeProjectId: (a.project_id as string | null) || null }));
+    const r = await db.execute(sql`SELECT id, handle, status, account_kind, project_id FROM platform_accounts WHERE tenant_id = 'self' AND platform_key = ${platformKey} ORDER BY status, handle`);
+    return (r as unknown as Array<Record<string, unknown>>).map((a) => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), accountKind: String(a.account_kind ?? 'user'), homeProjectId: (a.project_id as string | null) || null }));
   } catch { return []; }
 }
 

@@ -21,6 +21,7 @@ import {
   accountProjectsPanel, setAccountPrimaryProject, joinAccountProjectShared, leaveAccountProject,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
 } from '@/lib/actions/accounts';
+import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import {
@@ -1122,6 +1123,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
     persona: account?.persona ?? {} as Record<string, string>,
     accountKind: ((account as { accountKind?: string } | null)?.accountKind ?? 'user') as 'user' | 'bot' | 'app' | 'page',
     accountType: ((account as { accountType?: string } | null)?.accountType ?? presetAccountType ?? 'brand') as 'personal' | 'brand' | 'seeding',
+    linkedAccounts: ((account as { linkedAccounts?: number[] } | null)?.linkedAccounts ?? []) as number[],
   });
   const setF = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -1133,6 +1135,15 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const [techDetecting, setTechDetecting] = useState(false);
   const [techDetectMsg, setTechDetectMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [fieldsTrigger, setFieldsTrigger] = useState(0);
+  // Operated-by links (FB Page → admin profile ids). Only for kind=page; lazy-load same-platform accounts.
+  const [linkCands, setLinkCands] = useState<Array<{ id: number; handle: string | null; status: string; accountKind: string; homeProjectId: string | null }> | null>(null);
+  const [linkQ, setLinkQ] = useState('');
+  useEffect(() => {
+    if (form.accountKind !== 'page' || !form.platformKey) { setLinkCands(null); return; }
+    let cancelled = false;
+    listBacklinkAccountOptions(form.platformKey).then((rows) => { if (!cancelled) setLinkCands(rows.filter((r) => r.id !== account?.id)); });
+    return () => { cancelled = true; };
+  }, [form.accountKind, form.platformKey, account?.id]);
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
 
   // 🪪 Identity gốc — account.persona.identityId = identity preset đã tạo account này.
@@ -1326,6 +1337,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         persona: form.persona,
         accountKind: form.accountKind,
         accountType: form.accountType,
+        linkedAccounts: form.linkedAccounts,
       };
       const res = isCreate
         ? await createAccount(projectId, payload)
@@ -1606,6 +1618,39 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 })}
               </div>
             </div>
+
+            {form.accountKind === 'page' && (
+              <div>
+                <span style={lbl} title="FB Page không có login riêng — phải có profile cá nhân (admin) vận hành. Chọn profile giữ creds; task 'post as Page' sẽ dùng profile này để login rồi switch sang Page.">
+                  Vận hành bởi (profile){form.linkedAccounts.length > 0 && <span style={{ color: 'var(--accent)' }}> · {form.linkedAccounts.length}</span>}
+                </span>
+                {linkCands === null ? (
+                  <div style={{ fontSize: 11, color: 'var(--fg-4)' }}>đang tải account {platform?.label ?? form.platformKey}…</div>
+                ) : (
+                  <div style={{ border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <input value={linkQ} onChange={(e) => setLinkQ(e.target.value)} placeholder="tìm profile…" autoComplete="off"
+                      style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
+                      {linkCands.filter((a) => !linkQ || (a.handle || '').toLowerCase().includes(linkQ.toLowerCase())).map((a) => {
+                        const on = form.linkedAccounts.includes(a.id);
+                        return (
+                          <button key={a.id} type="button"
+                            onClick={() => setF('linkedAccounts', on ? form.linkedAccounts.filter((x) => x !== a.id) : [...form.linkedAccounts, a.id])}
+                            style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left',
+                                     border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-2)', color: 'var(--fg-1)' }}>
+                            <span>{on ? '☑' : '☐'}</span>
+                            <span style={{ fontWeight: 700 }}>@{a.handle || a.id}</span>
+                            {a.accountKind !== 'user' && <span style={{ fontSize: 9, padding: '0 4px', border: '1px solid var(--line)', borderRadius: 3, color: 'var(--fg-3)', textTransform: 'uppercase' }}>{a.accountKind}</span>}
+                            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)' }}>{a.status}</span>
+                          </button>
+                        );
+                      })}
+                      {linkCands.length === 0 && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>Chưa có account {platform?.label ?? form.platformKey} nào để link.</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <span style={lbl}>Platform *</span>

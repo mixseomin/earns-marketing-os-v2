@@ -579,6 +579,7 @@ export const platformAccounts = pgTable(
     notes: text('notes'),
     tags: jsonb('tags').notNull().default([]),
     warmupChecklist: jsonb('warmup_checklist').notNull().default({}),
+    linkedAccounts: jsonb('linked_accounts').$type<number[]>().notNull().default([]),   // operated-by / login-via: FB Page → admin profile ids
     // Phase 9 capability flags per-account:
     // cookieSessionNeeded: account chỉ login qua browser cookie, không API token (e.g., FB).
     // lastUsedAt: rotation tracking — agent không reuse account nào vừa dùng < cooldown.

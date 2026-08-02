@@ -388,6 +388,7 @@ export interface AccountRow {
   browserProfileId: number | null;// optional: anti-detect browser fingerprint
   ownerUserId: number | null;     // member đang quản lý account (cho BulkAssign hiển thị "đã giao cho")
   persona: Record<string, string>; // pre-deployment signup data (dob, gender, city, etc.)
+  linkedAccounts: number[];         // operated-by / login-via account ids (FB Page → admin profile ids)
   unreadMessages: number | null;   // account_stats.unread_messages — tin nhắn chưa đọc (ext quét lúc đã login)
   unreadAt: string | null;         // account_stats.fetched_at — lần ext cập nhật stats gần nhất
 }
@@ -418,6 +419,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     browserProfileId: (r.browserProfileId as number | null) ?? null,
     ownerUserId: (r.ownerUserId as number | null) ?? null,
     persona: (r.persona as Record<string, string>) ?? {},
+    linkedAccounts: Array.isArray(r.linkedAccounts) ? (r.linkedAccounts as unknown[]).map(Number).filter((n) => Number.isFinite(n)) : [],
     unreadMessages: ((): number | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.unread_messages; return typeof v === 'number' ? v : null; })(),
     unreadAt: ((): string | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.fetched_at; return typeof v === 'string' ? v : null; })(),
   } as AccountRow;

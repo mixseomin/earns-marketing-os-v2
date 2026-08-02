@@ -79,11 +79,11 @@ const asObj = (v: unknown): Record<string, string> =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, string>) : {};
 const asArr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 
-// List the backlink tasks that apply to a project's site. Returns [] if the project
-// isn't a backlink-tracked site (resolveSiteSlug null).
+// List the backlink/distribution tasks that apply to a project. Registered SEO sites use their slug;
+// ANY other project falls back to its id (the site_status key the seeder / fan-out writes) so marketing
+// projects (astrolas, …) can hold plays too. Empty result if the project simply has no tasks.
 export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[]> {
-  const slug = resolveSiteSlug(projectId);
-  if (!slug) return [];
+  const slug = resolveSiteSlug(projectId) ?? projectId;
   const db = getDb();
   if (!db) return [];
   try {

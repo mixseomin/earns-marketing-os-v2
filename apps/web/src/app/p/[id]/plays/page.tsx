@@ -22,12 +22,12 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect(`/p/${id}/inbox`);
 
-  const slug = resolveSiteSlug(id);
+  const slug = resolveSiteSlug(id) ?? id;   // any project can hold plays; fall back to project id as the site_status key
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
   const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
-    slug ? getBacklinkTasks(id) : Promise.resolve([]),
+    getBacklinkTasks(id),
     listPlatforms(),
     listAccounts(id),
     listTeamMembers(),

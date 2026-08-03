@@ -659,8 +659,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
     if (!cols) {
       // Kanban card — vertical so the title gets full width (2 lines) instead of "Bio-only …".
+      // content-visibility: skip layout/paint for off-screen cards (columns can hold ~300) — 0 deps.
       return (
-        <div key={t.id} onClick={() => openTask(t.id)} style={{ ...cardStyle, flexDirection: 'column', gap: 7 }}>
+        <div key={t.id} onClick={() => openTask(t.id)} style={{ ...cardStyle, flexDirection: 'column', gap: 7, contentVisibility: 'auto', containIntrinsicSize: 'auto 68px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
             {tierBtn}
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -942,13 +943,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
               col.sort((a, b) => recTs(b).localeCompare(recTs(a)));
             }
             return (
-              <div key={st} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div key={st} style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: SITE_STATUS[st]!.color, paddingLeft: 2 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: SITE_STATUS[st]!.color }} />
                   {SITE_STATUS[st]!.label}<span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{col.length}</span>
                 </div>
-                {col.map((t) => rowEl(t))}
-                {!col.length && <div style={{ fontSize: 11, color: 'var(--fg-4)', padding: '6px 2px' }}>—</div>}
+                {/* Column scrolls internally so a 300-card column doesn't stretch the page to infinity. */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto', paddingRight: col.length > 6 ? 4 : 0 }}>
+                  {col.map((t) => rowEl(t))}
+                  {!col.length && <div style={{ fontSize: 11, color: 'var(--fg-4)', padding: '6px 2px' }}>—</div>}
+                </div>
               </div>
             );
           })}

@@ -190,6 +190,47 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
   }));
 }
 
+// ── Projects assigned to a browser profile (many-to-many via project_browser_profiles) ──
+// Mirror accountProjectsPanel/join/leave. A profile can be gán cho nhiều project.
+export async function browserProfileProjects(profileId: number): Promise<{
+  assigned: { id: string; name: string; emoji: string | null }[];
+  all: { id: string; name: string; emoji: string | null }[];
+}> {
+  const db = ensureDb();
+  const assignedRows = await db.execute(sql`
+    SELECT p.id, p.name, p.emoji
+    FROM project_browser_profiles pbp JOIN projects p ON p.id = pbp.project_id
+    WHERE pbp.browser_profile_id = ${profileId}
+    ORDER BY p.name
+  `);
+  const allRows = await db.execute(sql`
+    SELECT id, name, emoji FROM projects WHERE is_demo = false AND archived_at IS NULL ORDER BY name
+  `);
+  const map = (rows: unknown) => (rows as Array<Record<string, unknown>>).map((r) => ({
+    id: String(r['id']), name: String(r['name'] ?? r['id']), emoji: r['emoji'] ? String(r['emoji']) : null,
+  }));
+  return { assigned: map(assignedRows), all: map(allRows) };
+}
+
+export async function assignBrowserProfileProject(profileId: number, projectId: string): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  await db.execute(sql`
+    INSERT INTO project_browser_profiles (project_id, browser_profile_id)
+    VALUES (${projectId}, ${profileId}) ON CONFLICT DO NOTHING
+  `);
+  revalidatePath('/p/[id]/resources', 'page');
+  return { ok: true };
+}
+
+export async function unassignBrowserProfileProject(profileId: number, projectId: string): Promise<{ ok: boolean; error?: string }> {
+  const db = ensureDb();
+  await db.execute(sql`
+    DELETE FROM project_browser_profiles WHERE browser_profile_id = ${profileId} AND project_id = ${projectId}
+  `);
+  revalidatePath('/p/[id]/resources', 'page');
+  return { ok: true };
+}
+
 export interface BrowserProfileInput {
   label: string;
   tool: ProfileTool;

@@ -2,9 +2,11 @@
 
 import { useState, useTransition, useRef, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,
   browserProfileAccounts, touchBrowserProfile,
+  browserProfileProjects, assignBrowserProfileProject, unassignBrowserProfileProject,
   type BrowserProfileRow, type ProfileTool, type ProxyRow, type ProfileAccountRow,
 } from '@/lib/actions/environments';
 import { AIFormParser } from './ai-form-parser';
@@ -131,6 +133,24 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
     browserProfileAccounts(profile.id).then((r) => { if (live) setInside(r); }).catch(() => { if (live) setInside([]); });
     return () => { live = false; };
   }, [profile]);
+
+  // Edit-mode extras: projects this profile is assigned to (many-to-many).
+  type ProjRef = { id: string; name: string; emoji: string | null };
+  const [projAssigned, setProjAssigned] = useState<ProjRef[] | null>(null);
+  const [projAll, setProjAll] = useState<ProjRef[]>([]);
+  const loadProjects = async (id: number) => {
+    try { const r = await browserProfileProjects(id); setProjAssigned(r.assigned); setProjAll(r.all); }
+    catch { setProjAssigned([]); setProjAll([]); }
+  };
+  useEffect(() => {
+    if (!profile) return;
+    let live = true;
+    browserProfileProjects(profile.id).then((r) => { if (live) { setProjAssigned(r.assigned); setProjAll(r.all); } }).catch(() => { if (live) { setProjAssigned([]); setProjAll([]); } });
+    return () => { live = false; };
+  }, [profile]);
+  const assignProj = async (pid: string) => { if (!profile || !pid) return; await assignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
+  const unassignProj = async (pid: string) => { if (!profile) return; await unassignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
+  const projUnassigned = projAll.filter((p) => !(projAssigned ?? []).some((a) => a.id === p.id));
   const idle = opened ? Math.floor((Date.now() - new Date(opened).getTime()) / 86400000) : null;
   const isLocalPath = (form.externalId ?? '').startsWith('/'); // Playwright dir → openable via login.mjs
   const openCmd = `CAPTURE_PROFILE='${form.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
@@ -191,18 +211,50 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
               : inside.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa có account nào gắn profile này —</div>
               : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                  {inside.map((a) => (
-                    <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` }}>
-                      <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
-                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle || a.email || '(no handle)'}</span>
-                      <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
-                      {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
-                      <span style={{ flex: 1 }} />
-                      <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
-                    </div>
-                  ))}
+                  {inside.map((a) => {
+                    const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` };
+                    const content = (
+                      <>
+                        <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
+                        <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle || a.email || '(no handle)'}</span>
+                        <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
+                        {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
+                        <span style={{ flex: 1 }} />
+                        <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
+                      </>
+                    );
+                    return a.projectId ? (
+                      <Link key={a.id} href={`/p/${a.projectId}/resources?m=edit&mId=${a.id}`} title="Mở account này" style={{ ...rowStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+                        {content}
+                      </Link>
+                    ) : (
+                      <div key={a.id} style={rowStyle}>{content}</div>
+                    );
+                  })}
                 </div>
               )}
+          </div>
+          {/* Projects this profile is assigned to — many-to-many, a profile can serve several projects. */}
+          <div>
+            <span style={lbl}>📁 Projects (gán nhiều được) {projAssigned ? `(${projAssigned.length})` : ''}</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 6 }}>
+              {projAssigned == null ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>…</span>
+                : projAssigned.length === 0 ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa gán project nào —</span>
+                : projAssigned.map((p) => (
+                  <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 6px 3px 8px', borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
+                    {p.emoji && <span>{p.emoji}</span>}
+                    <span style={{ fontWeight: 600 }}>{p.name}</span>
+                    <button type="button" onClick={() => unassignProj(p.id)} title="Bỏ gán project này"
+                      style={{ background: 'transparent', border: 'none', color: 'var(--fg-4)', cursor: 'pointer', fontSize: 11, padding: 0, lineHeight: 1 }}>✕</button>
+                  </span>
+                ))}
+            </div>
+            {projUnassigned.length > 0 && (
+              <select style={fld} value="" onChange={(e) => { if (e.target.value) assignProj(e.target.value); }}>
+                <option value="">+ Gán project…</option>
+                {projUnassigned.map((p) => <option key={p.id} value={p.id}>{p.emoji ? `${p.emoji} ` : ''}{p.name}</option>)}
+              </select>
+            )}
           </div>
         </div>
       )}

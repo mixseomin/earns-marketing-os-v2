@@ -781,6 +781,22 @@ export const browserProfiles = pgTable(
   ],
 );
 
+// ── project_browser_profiles (pivot, multi-project) ──────────────
+// 1 browser_profile có thể được gán cho NHIỀU project (vd: 1 anti-detect
+// profile GenLogin dùng chung cho Astrolas + Orit). Mirror project_accounts.
+export const projectBrowserProfiles = pgTable(
+  'project_browser_profiles',
+  {
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    browserProfileId: bigint('browser_profile_id', { mode: 'number' }).notNull().references(() => browserProfiles.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.projectId, t.browserProfileId] }),
+    index('project_browser_profiles_profile_idx').on(t.browserProfileId),
+  ],
+);
+
 // ── tribes (audience identity, layer 2) ──────────────────────────
 // Per-project audience cluster. Mirrors as.on.tc 'communities' collection.
 export const tribes = pgTable(

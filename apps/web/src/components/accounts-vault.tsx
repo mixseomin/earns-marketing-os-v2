@@ -25,8 +25,8 @@ import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import {
-  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile,
-  type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
+  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile, browserProfileAccounts,
+  type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool, type ProfileAccountRow,
 } from '@/lib/actions/environments';
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer } from './ui';
 import {
@@ -993,6 +993,8 @@ function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: Br
   const [form, setForm] = useState({ label: profile.label, externalId: profile.externalId ?? '', defaultProxyId: profile.defaultProxyId ?? (null as number | null), notes: profile.notes ?? '' });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [inside, setInside] = useState<ProfileAccountRow[] | null>(null);
+  useEffect(() => { let live = true; browserProfileAccounts(profile.id).then((r) => { if (live) setInside(r); }).catch(() => { if (live) setInside([]); }); return () => { live = false; }; }, [profile.id]);
   const fld = fieldStyle();
   const lbl = labelStyle;
   const idle = profile.lastOpenedAt ? Math.floor((Date.now() - new Date(profile.lastOpenedAt).getTime()) / 86400000) : null;
@@ -1008,8 +1010,27 @@ function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: Br
       <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 12 }}>{profile.tool} · browser profile #{profile.id} · asset</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11.5, marginBottom: 14, padding: 10, borderRadius: 8, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
         <span style={{ color: 'var(--fg-4)' }}>Mở bằng</span><span style={{ fontWeight: 700 }}>{profile.tool}</span>
-        <span style={{ color: 'var(--fg-4)' }}>Account bên trong</span><span>{profile.accountsCount} account đang login</span>
         <span style={{ color: 'var(--fg-4)' }}>Mở gần nhất</span><span>{profile.lastOpenedAt ? `${profile.lastOpenedAt.slice(0, 10)} (${idle}d trước)` : 'chưa mở'}</span>
+      </div>
+      {/* Accounts logged in INSIDE this profile — the managing Google login (🔑) + every app account. */}
+      <div style={{ marginBottom: 14 }}>
+        <span style={lbl}>🔓 Đang login trong profile này {inside ? `(${inside.length})` : ''}</span>
+        {inside == null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>…</div>
+          : inside.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa có account nào gắn profile này —</div>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+              {inside.map((a) => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` }}>
+                  <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
+                  <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle || a.email || '(no handle)'}</span>
+                  <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
+                  {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
+                  <span style={{ flex: 1 }} />
+                  <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
       </div>
       {msg && <div style={{ fontSize: 11.5, color: 'var(--bad)', marginBottom: 8 }}>⚠ {msg}</div>}
       <div style={{ marginBottom: 10 }}>

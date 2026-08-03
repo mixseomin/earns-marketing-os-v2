@@ -171,6 +171,25 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
   }));
 }
 
+// Accounts logged in INSIDE a profile (the managing Google login + every app account).
+// Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean }
+export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute(sql`
+    SELECT id, platform_key, handle, email, status, project_id,
+           (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') AS is_manager
+    FROM platform_accounts
+    WHERE browser_profile_id = ${profileId} AND tenant_id = ${TENANT}
+    ORDER BY (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') DESC, handle ASC`);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id), platformKey: String(r.platform_key), handle: String(r.handle ?? ''),
+    email: (r.email as string | null) ?? null, status: String(r.status ?? ''),
+    projectId: (r.project_id as string | null) ?? null, isManager: Boolean(r.is_manager),
+  }));
+}
+
 export interface BrowserProfileInput {
   label: string;
   tool: ProfileTool;

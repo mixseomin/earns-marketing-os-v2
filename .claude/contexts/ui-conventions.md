@@ -2,6 +2,30 @@
 
 Áp MẶC ĐỊNH, không đợi user nhắc. Component nhà đã có sẵn — **dùng lại, đừng dựng raw/bespoke.**
 
+## 0. INVENTORY — quét ở đây TRƯỚC khi tự viết bất kỳ UI nào
+
+Import tất cả từ `@/components/ui` (hoặc `./ui`). Cần 1 thứ dưới đây mà đang định tự viết `<div>`/`<span>`/`<select>` tay → **DÙNG CÁI NÀY**. Cần gì không có → mở `components/ui/` xem, rồi mới cân nhắc tạo (và tạo trong `ui/` để lần sau tái dùng).
+
+| Cần | Component |
+|---|---|
+| Overlay / detail / form edit-create | `Drawer` (view/detail, stackable) · `FormModal`+`FormModalFooter`+`FormModalSection` (form) |
+| Chọn 1 entity + tạo/sửa/xoá inline + mở detail | `EntityPicker` |
+| Chọn 1 từ list (tạo ở nơi khác), có search | `ResourcePicker` |
+| Chọn NHIỀU giá trị (filter) | `MultiSelect` |
+| Gán entity → NHIỀU project (many-to-many) | `ProjectAssign` |
+| **Hiển thị 1 entity (account/proxy/task/…) → chip mở drawer** | `EntityRef` |
+| Field form (text/enum-select/textarea/datetime) | `TextField` · `SelectField` (enum) · `TextAreaField` · `DateTimeField` · `FormField` |
+| Nút submit bị gate (thiếu điều kiện) | `GuardedButton` |
+| Xoá có confirm (+undo) | `ConfirmDeleteButton` |
+| Badge/label (status/priority/effort/category) | `Pill` · `StatusPill` · `PriorityPill` · `EffortPill` · `StatusBadge` · `StatusFlag` |
+| Loading | `Spinner` | 
+| Rỗng | `EmptyState` |
+| Toggle 2-3 lựa chọn | `Segmented` · `StatusSegmented` · `ViewToggle` |
+| Disclosure (ẩn/hiện) | `Collapsible` |
+| KPI/stat row · lịch · CTA · section · header modal · tooltip · favicon · link ngoài · icon | `StatsStrip` · `MonthCalendar` · `CTACard` · `Section` · `ModalHeader` · `InfoHint` · `SiteFavicon` · `LinkChip` · `Icon*` |
+
+Enum-select = `SelectField` (KHÔNG `<select>` thô). Chọn entity = picker ở trên (KHÔNG `<select>` thô). Hiển thị entity = `EntityRef` (KHÔNG `<span>{x.handle}</span>`).
+
 ## 1. Detail / edit / create view = DRAWER, KHÔNG Modal
 
 - Mở chi tiết 1 entity, form edit/create, sub-view → `<Drawer>` (`components/ui/drawer.tsx`), **không** dựng Modal mới.

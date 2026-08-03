@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useRef, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,
   browserProfileAccounts, touchBrowserProfile,
@@ -11,7 +10,8 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
-import { Drawer, ProjectAssign } from './ui';
+import { Drawer, ProjectAssign, EntityRef } from './ui';
+import { AccountDrawer } from './account-drawer';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -125,6 +125,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
 
   // Edit-mode extras: accounts logged in inside + open/last-opened.
   const [inside, setInside] = useState<ProfileAccountRow[] | null>(null);
+  const [openAcct, setOpenAcct] = useState<number | null>(null);   // account opened in-place (stacked drawer)
   const [copied, setCopied] = useState(false);
   const [opened, setOpened] = useState<string | null>(profile?.lastOpenedAt ?? null);
   useEffect(() => {
@@ -212,22 +213,18 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                   {inside.map((a) => {
                     const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` };
-                    const content = (
-                      <>
+                    // Account = shared <EntityRef> (opens the standard account drawer IN-PLACE, stacked
+                    // over this profile drawer — no page jump). Manager 🔑 + status stay as row decoration.
+                    return (
+                      <div key={a.id} style={rowStyle}>
                         <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
-                        <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle || a.email || '(no handle)'}</span>
+                        <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
+                          onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
                         {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
                         <span style={{ flex: 1 }} />
                         <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
-                      </>
-                    );
-                    return a.projectId ? (
-                      <Link key={a.id} href={`/p/${a.projectId}/resources?m=edit&mId=${a.id}`} title="Mở account này" style={{ ...rowStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-                        {content}
-                      </Link>
-                    ) : (
-                      <div key={a.id} style={rowStyle}>{content}</div>
+                      </div>
                     );
                   })}
                 </div>
@@ -316,6 +313,9 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
           <button className="btn primary" onClick={save}>{isCreate ? 'Create' : 'Save'}</button>
         </div>
       </div>
+
+      {/* Account opened in-place from the "đang login" list — stacks above this profile drawer. */}
+      {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); if (profile) browserProfileAccounts(profile.id).then(setInside).catch(() => {}); }} />}
     </Drawer>
   );
 }

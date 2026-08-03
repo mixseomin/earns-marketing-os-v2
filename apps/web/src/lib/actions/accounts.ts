@@ -449,6 +449,26 @@ export async function getAccountForEditAny(id: number) {
   return getAccountRowAny(id);
 }
 
+// Everything <AccountFormModal> needs to open ANY account by id, in-place, from any page —
+// even global pages (e.g. /environments) that carry no project/platform context. Self-loads
+// the account's owner project + the platform catalog + the global proxy/profile/team lists.
+// Returns null when the account or its project is gone (caller shows a muted "can't open").
+export async function accountEditBundle(accountId: number) {
+  const { getAccountRowAny, getProject, listPlatforms } = await import('@/lib/data');
+  const account = await getAccountRowAny(accountId);
+  if (!account?.projectId) return null;
+  const env = await import('@/lib/actions/environments');
+  const [project, platforms, proxies, browserProfiles, teamMembers] = await Promise.all([
+    getProject(account.projectId),
+    listPlatforms(),
+    env.listProxies(),
+    env.listBrowserProfiles(),
+    import('@/lib/actions/team').then((m) => m.listTeamMembers()),
+  ]);
+  if (!project) return null;
+  return { account, project, projectId: project.id, platforms, proxies, browserProfiles, teamMembers };
+}
+
 // ── Bridge: Directus as.on.tc (READ-ONLY import) ─────────────
 
 export interface DirectusAccountSummary {

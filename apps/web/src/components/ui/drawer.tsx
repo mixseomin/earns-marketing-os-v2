@@ -5,26 +5,30 @@ import { useEffect, useRef, useState, type ReactNode, type CSSProperties, type M
 // Escape must close only the TOPMOST drawer, not every mounted one. Each drawer registered a document
 // keydown listener that closed ITSELF → a stack (task → outreach → picker → detail) collapsed entirely on
 // one Escape. Track mount order in a module-level stack; a drawer's listener acts only when it's on top.
+// The SAME stack also drives auto-backgrounding: a drawer that isn't on top slides left + dims (below).
 let drawerSeq = 0;
 const drawerStack: number[] = [];
+const stackListeners = new Set<() => void>();
+const notifyStack = () => stackListeners.forEach((fn) => fn());
 
-// Standard right-side slide-over drawer. Handles backdrop, ESC + click-outside
-// close, and STACKING: when another drawer opens on top, pass `backgrounded`
-// to the underlying one — it slides left + dims + goes inert so the stack is
-// visible and the top layer reads as active. See feedback_stacked_drawer.
+// Standard right-side slide-over drawer. Handles backdrop, ESC + click-outside close, and STACKING.
 //
-// Stacking recipe (parent owns both open states):
-//   <Drawer onClose={closeA} backgrounded={bOpen}>…A…</Drawer>
-//   {bOpen && <Drawer onClose={closeB} width={560} zIndex={300}>…B…</Drawer>}
-// The top drawer's higher zIndex paints its backdrop over A; clicking it fires
-// closeB only (separate DOM branch, no bubbling to A's backdrop).
+// AUTO-STACK: when another drawer mounts on top, the underlying one slides left + dims + goes inert
+// AUTOMATICALLY (the module stack knows what's on top) — no call site hand-wires it. Just render the
+// second drawer; the first backgrounds itself:
+//   {aOpen && <Drawer onClose={closeA}>…A…</Drawer>}
+//   {bOpen && <Drawer onClose={closeB} zIndex={300}>…B…</Drawer>}   // A backgrounds itself
+// The `backgrounded` prop still exists as an OVERRIDE (pass a boolean to force it on/off), e.g. when
+// the "on top" thing isn't another <Drawer>. Omit it to get the automatic behaviour.
+// The top drawer's higher zIndex paints its backdrop over A; clicking it fires closeB only
+// (separate DOM branch, no bubbling to A's backdrop). See feedback_stacked_drawer.
 
 export function Drawer({
   onClose,
   children,
   width = 720,
   zIndex = 200,
-  backgrounded = false,
+  backgrounded,
   closeOnOutside = true,
   closeOnEsc = true,
   dimBackdrop = true,
@@ -61,6 +65,9 @@ export function Drawer({
 }) {
   const [w, setW] = useState(width);
   const [askClose, setAskClose] = useState(false);
+  // Auto-background: true when another drawer is mounted ON TOP of this one (this id isn't the
+  // stack top). Recomputed whenever the stack changes. Explicit `backgrounded` prop overrides.
+  const [autoBg, setAutoBg] = useState(false);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
   const escRef = useRef(closeOnEsc);
@@ -75,6 +82,11 @@ export function Drawer({
   useEffect(() => {
     const id = ++drawerSeq;
     drawerStack.push(id);
+    // Recompute my own backgrounded state from the stack, and re-run on every stack change so a
+    // drawer that gets covered (or uncovered) updates without any parent wiring.
+    const recompute = () => setAutoBg(drawerStack.length > 0 && drawerStack[drawerStack.length - 1] !== id);
+    stackListeners.add(recompute);
+    notifyStack();   // I just pushed → the drawer I covered must recompute (and so must I)
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (drawerStack[drawerStack.length - 1] !== id) return;   // not the top drawer → ignore
@@ -85,11 +97,13 @@ export function Drawer({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      stackListeners.delete(recompute);
       const i = drawerStack.lastIndexOf(id);
       if (i >= 0) drawerStack.splice(i, 1);
+      notifyStack();   // I left → whoever I covered is topmost again
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const bg = backgrounded ?? autoBg;
 
   const startResize = (e: ReactMouseEvent) => {
     e.preventDefault();
@@ -118,14 +132,14 @@ export function Drawer({
           // Slid a large fraction of its own width so it still peeks on the LEFT even under
           // a wide/resizable child drawer (a fixed 56px got fully covered). % = own width →
           // deterministic regardless of the child's width. See feedback_stacked_drawer.
-          transform: backgrounded ? 'translateX(-86%) scale(.94)' : 'none',
+          transform: bg ? 'translateX(-86%) scale(.94)' : 'none',
           transformOrigin: 'left center',
-          filter: backgrounded ? 'brightness(.5)' : 'none',
-          pointerEvents: backgrounded ? 'none' : 'auto',
+          filter: bg ? 'brightness(.5)' : 'none',
+          pointerEvents: bg ? 'none' : 'auto',
           ...bodyStyle,
         }}
       >
-        {resizable && !backgrounded && (
+        {resizable && !bg && (
           <div onMouseDown={startResize} title="Kéo để đổi độ rộng"
             style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
         )}

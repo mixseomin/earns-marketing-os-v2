@@ -178,8 +178,8 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
 
   return (
     <>
-    {/* Account drawer stacks on top → this profile drawer slides left + dims + goes inert. */}
-    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0} backgrounded={openAcct != null}>
+    {/* Account drawer stacks on top → this profile drawer auto-backgrounds (Drawer reads the stack). */}
+    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0}>
       <div className="modal-head">
         <div>
           <div className="id-line">{profile ? `profile #${profile.id}` : 'NEW PROFILE'}</div>

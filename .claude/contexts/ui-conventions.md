@@ -36,5 +36,18 @@ Minimal:
 ## 3. Nút action bị gate
 `<GuardedButton reason="...">` — không bare-disabled/silent no-op. Confirm phá hoại: inline "Chắc? [Confirm][Cancel]" hoặc `ConfirmDelete`, KHÔNG `confirm()`/`alert()` native.
 
+## 4. HIỂN THỊ 1 entity = `<EntityRef>`, KHÔNG text/span/Link tự chế
+
+Bất kỳ chỗ nào show ra 1 entity khác (account, proxy, browser-profile, task, brief, habitat, tribe, identity, media, contact, platform, squad, agent) → **`<EntityRef>`** (`components/ui/entity-ref.tsx`). Nó render chip nhất quán (icon theo kind) + **click mở đúng detail drawer** của entity đó. Đây là thứ user đòi mãi: "mọi entity click được mở drawer tương ứng".
+
+- **CẤM** `<span>{acc.handle}</span>`, `@{x.handle}`, `<Link href=...>` tự chế, hay định nghĩa `EntityLink`/`EntityChip` cục bộ (đã có 3 bản lệch nhau — lint chặn định nghĩa mới, buộc import cái chuẩn).
+- Mở drawer: `onOpen` (in-place, khi drawer entity đã mount trên page này: `onOpen={() => modal.open('edit', id)}`) **hoặc** để auto-route (`kind`+`id`, project-scoped kèm `project`) → navigate, drawer tự mở trên page đích nhờ `useModalParam` đọc URL lúc mount.
+```tsx
+<EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} />        // auto-route
+<EntityRef kind="account" id={a.id} project={a.projectId} label={a.handle} />       // project-scoped
+<EntityRef kind="proxy" id={pid} label={lbl} onOpen={() => modal.open('edit', pid)} /> // in-place
+```
+- **Chọn/gán** entity (không phải chỉ hiển thị) → dùng picker chuẩn §2 (`EntityPicker`/`ResourcePicker`/`MultiSelect`); chip đã-chọn trong picker cũng nên là `<EntityRef>`. KHÔNG `<select>` tự chế cho việc chọn entity.
+
 ## Vì sao context này tồn tại
 Trước đây user phải "báo lại từ đầu" mỗi lần (drawer-not-modal, select chuẩn) vì convention nằm ở recall memory (hay rớt). Nay là context auto-load theo path → áp mặc định. Gốc rule: [[feedback pack ui-primitives]] (picker_inline_crud, stacked_drawer, modal_close_outside, guarded_action_button).

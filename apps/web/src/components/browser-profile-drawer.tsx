@@ -11,7 +11,7 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
-import { Drawer } from './ui';
+import { Drawer, ProjectAssign } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 
@@ -150,7 +150,6 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   }, [profile]);
   const assignProj = async (pid: string) => { if (!profile || !pid) return; await assignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
   const unassignProj = async (pid: string) => { if (!profile) return; await unassignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
-  const projUnassigned = projAll.filter((p) => !(projAssigned ?? []).some((a) => a.id === p.id));
   const idle = opened ? Math.floor((Date.now() - new Date(opened).getTime()) / 86400000) : null;
   const isLocalPath = (form.externalId ?? '').startsWith('/'); // Playwright dir → openable via login.mjs
   const openCmd = `CAPTURE_PROFILE='${form.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
@@ -234,27 +233,11 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                 </div>
               )}
           </div>
-          {/* Projects this profile is assigned to — many-to-many, a profile can serve several projects. */}
+          {/* Projects this profile serves — many-to-many. Shared <ProjectAssign> (same as the account
+              drawer, flat mode = no ★ primary). No hand-rolled <select> + chips. */}
           <div>
-            <span style={lbl}>📁 Projects (gán nhiều được) {projAssigned ? `(${projAssigned.length})` : ''}</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 6 }}>
-              {projAssigned == null ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>…</span>
-                : projAssigned.length === 0 ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa gán project nào —</span>
-                : projAssigned.map((p) => (
-                  <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 6px 3px 8px', borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
-                    {p.emoji && <span>{p.emoji}</span>}
-                    <span style={{ fontWeight: 600 }}>{p.name}</span>
-                    <button type="button" onClick={() => unassignProj(p.id)} title="Bỏ gán project này"
-                      style={{ background: 'transparent', border: 'none', color: 'var(--fg-4)', cursor: 'pointer', fontSize: 11, padding: 0, lineHeight: 1 }}>✕</button>
-                  </span>
-                ))}
-            </div>
-            {projUnassigned.length > 0 && (
-              <select style={fld} value="" onChange={(e) => { if (e.target.value) assignProj(e.target.value); }}>
-                <option value="">+ Gán project…</option>
-                {projUnassigned.map((p) => <option key={p.id} value={p.id}>{p.emoji ? `${p.emoji} ` : ''}{p.name}</option>)}
-              </select>
-            )}
+            <span style={lbl}>📁 Projects (gán nhiều được)</span>
+            <ProjectAssign assigned={projAssigned} all={projAll} onJoin={assignProj} onLeave={unassignProj} collapsible={false} label="Projects (gán nhiều được)" />
           </div>
         </div>
       )}

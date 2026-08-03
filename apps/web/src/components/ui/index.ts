@@ -16,6 +16,10 @@ export { EntityPicker, type EntityOption, type EntityPickerProps } from './entit
 // clickable chip that opens its drawer. NEVER hand-roll `<span>{acc.handle}</span>` or a local EntityLink.
 // See ui-conventions §4. Lint bans re-defining a local entity chip/link.
 export { EntityRef, type EntityKind, type EntityRefProps } from './entity-ref';
+// ProjectAssign = THE many-to-many "assign entity → N projects" field (chips + inline add-picker +
+// optional ★ primary). Account drawer AND browser-profile drawer share it. NEVER hand-roll a
+// project <select> + chips again. See ui-conventions §2.
+export { ProjectAssign, type ProjectRef, type ProjectAssignProps } from './project-assign';
 // GuardedButton = the standard for "can't submit until precondition holds" (empty content, missing pick…).
 // Disables + explains on hover instead of a bare disabled / silent no-op. See feedback_guarded_action_button.
 export { GuardedButton } from './guarded-button';

@@ -100,6 +100,10 @@ const TOOL_META: Record<ProfileTool, ToolMeta> = {
   other:       { label: 'Other', icon: '🔧', desc: 'Custom / less common tool — điền chi tiết vào notes.' },
 };
 
+// DB `tool` is free text (raw inserts can hold values outside the union, e.g. 'playwright') → never
+// index TOOL_META blind or the whole tab crashes on `.icon`. Fall back to `other` for unknown tools.
+const toolMetaOf = (tool: string): ToolMeta => (TOOL_META as Record<string, ToolMeta | undefined>)[tool] ?? TOOL_META.other;
+
 // Suggested alternative tools — UI hint user có thể tham khảo (chưa làm enum option, vì cần migration)
 const TOOL_SUGGESTIONS: Array<{ name: string; icon: string; url: string; desc: string; pricing: string; origin: string }> = [
   { name: 'Dolphin{anty}', icon: '🐬', url: 'https://dolphin-anty.com', desc: 'Affiliate marketing favorite, free 10 profiles, có team plan.', pricing: 'Free 10 · từ $89/mo', origin: '🇪🇸' },
@@ -497,7 +501,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
           {profiles.map((p) => {
-            const tm = TOOL_META[p.tool];
+            const tm = toolMetaOf(p.tool);
             return (
               <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => modal.open("edit", p.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -691,7 +695,7 @@ function ProfileFormModal({ profile, proxies, onClose, teamMembers = [] }: { pro
             </select>
           </div>
           <div style={{ gridColumn: '1 / 3' }}>
-            <ToolInfoCard meta={TOOL_META[form.tool]} />
+            <ToolInfoCard meta={toolMetaOf(form.tool)} />
           </div>
           <ToolSuggestions />
           <div>

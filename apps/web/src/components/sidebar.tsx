@@ -257,41 +257,53 @@ function UserPanel({ user }: { user: CurrentUserInfo }) {
 type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean; role?: 'admin' };
 
 function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' }) {
+  // YDNI: 4 nhóm theo Ý ĐỊNH (làm việc → theo dõi → tra cứu → cấu hình), most-used trên cùng,
+  // cân đối thay vì 9/2/10 lệch + trộn chức năng. Ẩn sau hover, bung 1 click. Không xoá item nào.
   const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
     {
+      // OPERATE — việc làm hằng ngày
+      key: 'operate', label: 'Operate',
+      items: [
+        { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',    sub: 'human tasks queue' },
+        { href: '/plays',     icon: '📣', color: 'var(--neon-violet)', label: 'Plays',    sub: 'traffic plays · all sites', role: 'admin' },
+        { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
+        { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
+      ],
+    },
+    {
+      // MONITOR — quan sát người + máy
       key: 'monitor', label: 'Monitor',
       items: [
-        { href: '/department',icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
-        { href: '/agents',    icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
-        { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',        sub: 'human tasks queue' },
-        { href: '/plays',     icon: '📣', color: 'var(--neon-violet)', label: 'Plays',        sub: 'traffic plays · all sites', role: 'admin' },
-        { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
-        { href: '/scheduler', icon: '⏱',  color: 'var(--neon-lime)',   label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },
-        { href: '/ai-log',    icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },
-        { href: '/tests',     icon: '✓',  color: 'var(--neon-lime)',   label: 'Tests',        sub: 'use cases · QA',         role: 'admin' },
-        { href: '/roadmap',   icon: '🗺',  color: 'var(--neon-cyan)',   label: 'Roadmap',      sub: 'phases · deps' },
+        { href: '/department', icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
+        { href: '/agents',     icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
+        { href: '/ai-log',     icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },
+        { href: '/scheduler',  icon: '⏱', color: 'var(--neon-lime)',    label: 'Scheduler',    sub: 'cron · timers · config', role: 'admin' },
+        { href: '/tests',      icon: '✓', color: 'var(--neon-lime)',    label: 'Tests',        sub: 'use cases · QA', role: 'admin' },
       ],
     },
     {
+      // LIBRARY — catalog tra cứu / tái dùng
       key: 'library', label: 'Library',
       items: [
-        { href: '/library',   icon: '🗂', color: 'var(--neon-cyan)',  label: 'Tools & Skills', sub: 'shared catalog' },
-        { href: '/knowledge', icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',    sub: 'shared templates', role: 'admin' },
+        { href: '/catalog',      icon: '📋', color: 'var(--neon-amber)',  label: 'Catalog',        sub: 'phương pháp · method library', role: 'admin' },
+        { href: '/library',      icon: '🗂', color: 'var(--neon-cyan)',   label: 'Tools & Skills', sub: 'shared catalog' },
+        { href: '/knowledge',    icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',      sub: 'shared templates', role: 'admin' },
+        { href: '/platforms',    icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',      sub: 'catalog · 59 entries' },
+        { href: '/technologies', icon: '⚙', color: 'var(--neon-amber)',   label: 'Technologies',   sub: 'selectors · signup fields', role: 'admin' },
       ],
     },
     {
+      // SETUP — cấu hình, ít đụng
       key: 'setup', label: 'Setup',
       items: [
         { href: '/team',          icon: '👥', color: 'var(--neon-lime)',   label: 'Team',             sub: 'members · roles · assignment', role: 'admin' },
         { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers', role: 'admin' },
-        { href: '/platforms',     icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',        sub: 'catalog · 59 entries' },
-        { href: '/unmapped',      icon: '⚠',  color: 'var(--neon-amber)',  label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
-        { href: '/technologies',  icon: '⚙',  color: 'var(--neon-amber)',  label: 'Technologies',     sub: 'selectors · signup fields', role: 'admin' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
+        { href: '/unmapped',      icon: '⚠', color: 'var(--neon-amber)',   label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },
-        { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architect',     sub: 'system map · objects · flows', role: 'admin' },
-        {                         icon: '⚙',  color: 'var(--neon-cyan)',   label: 'Trust thresholds', sub: 'soon', soon: true },
-        { href: '/',              icon: '⊞',  color: 'var(--neon-violet)', label: 'All Projects',     sub: 'portfolio' },
+        { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architect',        sub: 'system map · objects · flows', role: 'admin' },
+        {                         icon: '⚙', color: 'var(--neon-cyan)',    label: 'Trust thresholds', sub: 'soon', soon: true },
+        { href: '/',              icon: '⊞', color: 'var(--neon-violet)',  label: 'All Projects',     sub: 'portfolio' },
       ],
     },
   ];

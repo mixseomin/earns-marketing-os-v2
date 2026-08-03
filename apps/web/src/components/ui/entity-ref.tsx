@@ -39,8 +39,8 @@ interface KindMeta {
 // Only VERIFIED routes are auto-built (no fabricated URLs). Add a kind's route here
 // once its param scheme is confirmed against the page that owns the drawer.
 const META: Record<EntityKind, KindMeta> = {
-  proxy:             { icon: '🔌', color: '#38bdf8', route: (id) => `/environments?proxy=edit&proxyId=${id}` },
-  'browser-profile': { icon: '🦊', color: '#fb923c', route: (id) => `/environments?profile=edit&profileId=${id}` },
+  proxy:             { icon: '🔌', color: '#38bdf8', route: (id) => `/environments?tab=proxies&proxy=edit&proxyId=${id}` },
+  'browser-profile': { icon: '🦊', color: '#fb923c', route: (id) => `/environments?tab=profiles&profile=edit&profileId=${id}` },
   task:              { icon: '📋', color: '#a78bfa', route: (id, p) => (p != null ? `/p/${p}/plays?task=${id}` : null) },
   account:           { icon: '👤', color: '#4ade80', route: (id, p) => (p != null ? `/p/${p}/resources?m=edit&mId=${id}` : null) },
   brief:             { icon: '📝', color: '#f5c518' },

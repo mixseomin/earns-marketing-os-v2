@@ -11,9 +11,6 @@ import type { CurrentUserInfo } from './app-shell';
 
 export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobileNavigate }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo; onMobileNavigate?: () => void }) {
   const t = useT();
-  const pathname = usePathname();
-  // Highlight the nav row for the current route (CSS: .squad[data-active="true"]).
-  const navActive = (seg: string) => (currentProjectId && pathname === `/p/${currentProjectId}/${seg}` ? 'true' : undefined);
   const [activeSquad, setActiveSquad] = useState<string | null>(null);
   const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
   const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
@@ -123,76 +120,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
           </div>
         ))}
         {currentProjectId && (
-          <>
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/tribes`} className="squad" data-active={navActive("tribes")} style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 8, textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>◍</div>
-                <div className="squad-name"><b>{t('nav.tribes', 'Tribes')}</b><span>audience clusters</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/seeding`} className="squad" data-active={navActive("seeding")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>⏱</div>
-                <div className="squad-name"><b>{t('nav.seeding', 'Seeding')}</b><span>cadence · nhận diện</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/scenes`} className="squad" data-active={navActive("scenes")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>◎</div>
-                <div className="squad-name"><b>{t('nav.scenes', 'Scenes')}</b><span>interaction network · WHO-THEM</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/outreach`} className="squad" data-active={navActive("outreach")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }}>✉</div>
-                <div className="squad-name"><b>{t('nav.outreach', 'Outreach')}</b><span>widget embeds · pitch realtors</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/backlinks`} className="squad" data-active={navActive("backlinks")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>🔗</div>
-                <div className="squad-name"><b>{t('nav.backlinks', 'Backlinks')}</b><span>source pipeline · assign · verify</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/plays`} className="squad" data-active={navActive("plays")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-amber)', color: 'var(--neon-amber)' }}>🎯</div>
-                <div className="squad-name"><b>{t('nav.plays', 'Plays')}</b><span>mọi kênh phân phối · 1 màn</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            {currentUser?.role === 'admin' && (
-              <Link href={`/p/${currentProjectId}/identities`} className="squad" data-active={navActive("identities")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="squad-icon" style={{ borderColor: 'var(--neon-pink)', color: 'var(--neon-pink)' }}>👤</div>
-                <div className="squad-name"><b>{t('nav.identities', 'Identities')}</b><span>preset persona · pre-fill</span></div>
-                <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-              </Link>
-            )}
-            <Link href={`/p/${currentProjectId}/resources`} className="squad" data-active={navActive("resources")} style={{ borderTop: currentUser?.role !== 'admin' ? '1px dashed rgba(127,127,127,.15)' : undefined, marginTop: currentUser?.role !== 'admin' ? 4 : undefined, paddingTop: currentUser?.role !== 'admin' ? 8 : undefined, textDecoration: 'none', color: 'inherit' }}>
-              <div className="squad-icon" style={{ borderColor: 'var(--fg-3)', color: 'var(--fg-2)' }}>🗂</div>
-              <div className="squad-name"><b>{t('nav.resources', 'Resources')}</b><span>kho hậu cần</span></div>
-              <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-            </Link>
-            {currentUser?.role === 'admin' && (
-              <>
-                <Link href={`/p/${currentProjectId}/publications`} className="squad" data-active={navActive("publications")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="squad-icon" style={{ borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>📡</div>
-                  <div className="squad-name"><b>Publications</b><span>monitor · engage</span></div>
-                  <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-                </Link>
-                <Link href={`/p/${currentProjectId}/flow`} className="squad" data-active={navActive("flow")} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="squad-icon" style={{ borderColor: 'var(--neon-violet)', color: 'var(--neon-violet)' }}>🗺</div>
-                  <div className="squad-name"><b>Flow</b><span>diagram · architecture</span></div>
-                  <div className="squad-stats"><span className="pulse" data-state="ok"></span></div>
-                </Link>
-              </>
-            )}
-          </>
+          <ProjectNav projectId={currentProjectId} role={currentUser?.role ?? 'admin'} />
         )}
       </div>
 
@@ -255,6 +183,52 @@ function UserPanel({ user }: { user: CurrentUserInfo }) {
 // Compact SYSTEM nav: 3 group rows, hover → float menu sang phải.
 // Filter items by user role — operator sees fewer.
 type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean; role?: 'admin' };
+
+// Project-level nav: same hover-float grouping as SystemNav (Grow / Audience / Assets) instead of a
+// flat 10-row dump. Topbar stays the primary project nav; this sidebar copy is the compact secondary.
+function ProjectNav({ projectId, role }: { projectId: string; role: 'admin' | 'operator' | 'viewer' }) {
+  const p = projectId;
+  const groups: Array<{ key: string; label: string; items: NavItem[] }> = [
+    {
+      key: 'grow', label: 'Grow',
+      items: [
+        { href: `/p/${p}/plays`,        icon: '🎯', color: 'var(--neon-amber)', label: 'Plays',        sub: 'mọi kênh phân phối · 1 màn', role: 'admin' },
+        { href: `/p/${p}/backlinks`,    icon: '🔗', color: 'var(--neon-cyan)',  label: 'Backlinks',    sub: 'source pipeline · assign · verify', role: 'admin' },
+        { href: `/p/${p}/outreach`,     icon: '✉', color: 'var(--neon-amber)',  label: 'Outreach',     sub: 'widget embeds · pitch', role: 'admin' },
+        { href: `/p/${p}/seeding`,      icon: '⏱', color: 'var(--neon-lime)',   label: 'Seeding',      sub: 'cadence · nhận diện', role: 'admin' },
+        { href: `/p/${p}/publications`, icon: '📡', color: 'var(--neon-cyan)',  label: 'Publications', sub: 'monitor · engage', role: 'admin' },
+      ],
+    },
+    {
+      key: 'audience', label: 'Audience',
+      items: [
+        { href: `/p/${p}/tribes`,     icon: '◍', color: 'var(--neon-violet)', label: 'Tribes',     sub: 'audience clusters', role: 'admin' },
+        { href: `/p/${p}/scenes`,     icon: '◎', color: 'var(--neon-cyan)',   label: 'Scenes',     sub: 'interaction network · WHO-THEM', role: 'admin' },
+        { href: `/p/${p}/identities`, icon: '👤', color: 'var(--neon-pink)',  label: 'Identities', sub: 'preset persona · pre-fill', role: 'admin' },
+      ],
+    },
+    {
+      key: 'assets', label: 'Assets',
+      items: [
+        { href: `/p/${p}/resources`, icon: '🗂', color: 'var(--fg-2)',        label: 'Resources', sub: 'kho hậu cần' },
+        { href: `/p/${p}/flow`,      icon: '🗺', color: 'var(--neon-violet)', label: 'Flow',      sub: 'diagram · architecture', role: 'admin' },
+      ],
+    },
+  ];
+  const filtered = groups
+    .map((g) => ({ ...g, items: g.items.filter((it) => !it.role || role === 'admin') }))
+    .filter((g) => g.items.length > 0);
+  if (filtered.length === 0) return null;
+  return (
+    <div style={{ borderTop: '1px dashed rgba(127,127,127,.15)', marginTop: 4, paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="side-title" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 10px 4px' }}>
+        <span>PROJECT</span>
+        <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· hover</span>
+      </div>
+      <SystemGroups groups={filtered} />
+    </div>
+  );
+}
 
 function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' }) {
   // YDNI: 4 nhóm theo Ý ĐỊNH (làm việc → theo dõi → tra cứu → cấu hình), most-used trên cùng,

@@ -25,8 +25,8 @@ import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import {
-  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile, browserProfileAccounts, touchBrowserProfile,
-  type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool, type ProfileAccountRow,
+  updateAccountEnvironment, createProxy, createBrowserProfile,
+  type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer } from './ui';
 import {
@@ -72,6 +72,7 @@ import { NoFillInput } from './no-fill-input';
 import { PlatformPicker } from './platform-picker';
 import { OwnerSelect } from './owner-select';
 import { PlatformFormModal } from './platform-form-modal';
+import { BrowserProfileDrawer } from './browser-profile-drawer';
 import { updatePlatform, type PlatformWithUsage } from '@/lib/actions/platforms';
 import { getEffectiveSignupFields, listTechnologies, upsertTechnology, detectTechnologyFromUrl, type SignupField, type TechnologyRow } from '@/lib/actions/technologies';
 import { TechnologyPicker, SignupFieldsChecklist, SignupFieldsBuilder, type SignupFieldDef } from './technology-picker';
@@ -983,103 +984,6 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
         ))}
       </div>
     </div>
-  );
-}
-
-// Browser profile DETAIL — house <Drawer> (NOT a modal), opened per-item via "chi tiết ↗". Shows the asset (open-from path · tool ·
-// last-opened · #accounts-inside · proxy) + edits label/path/proxy/notes. Stacks over the picker.
-function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: BrowserProfileRow; proxies: ProxyRow[]; onClose: () => void }) {
-  const router = useRouter();
-  const [form, setForm] = useState({ label: profile.label, externalId: profile.externalId ?? '', defaultProxyId: profile.defaultProxyId ?? (null as number | null), notes: profile.notes ?? '' });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [inside, setInside] = useState<ProfileAccountRow[] | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [opened, setOpened] = useState<string | null>(profile.lastOpenedAt);
-  useEffect(() => { let live = true; browserProfileAccounts(profile.id).then((r) => { if (live) setInside(r); }).catch(() => { if (live) setInside([]); }); return () => { live = false; }; }, [profile.id]);
-  const fld = fieldStyle();
-  const lbl = labelStyle;
-  const idle = opened ? Math.floor((Date.now() - new Date(opened).getTime()) / 86400000) : null;
-  // Playwright profiles = a local dir path → openable via login.mjs. Tool-managed (genlogin/adspower…) open in their own app.
-  const isLocalPath = (profile.externalId ?? '').startsWith('/');
-  const openCmd = `CAPTURE_PROFILE='${profile.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
-  const copyOpen = async () => { try { await navigator.clipboard.writeText(openCmd); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ } };
-  const markOpened = async () => { const r = await touchBrowserProfile(profile.id); if (r.ok) { setOpened(r.lastOpenedAt); router.refresh(); } };
-  const btnSm = { fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' } as const;
-  const save = async () => {
-    setBusy(true); setMsg(null);
-    const r = await updateBrowserProfile(profile.id, { label: form.label.trim() || profile.label, externalId: form.externalId || null, defaultProxyId: form.defaultProxyId, notes: form.notes || null });
-    setBusy(false);
-    if (r.ok) { router.refresh(); onClose(); } else setMsg(r.error || 'lỗi lưu');
-  };
-  return (
-    <Drawer onClose={onClose} width={460} zIndex={520}>
-      <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 2px' }}>🦊 {profile.label}</h2>
-      <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 12 }}>{profile.tool} · browser profile #{profile.id} · asset</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11.5, marginBottom: 14, padding: 10, borderRadius: 8, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
-        <span style={{ color: 'var(--fg-4)' }}>Mở bằng</span><span style={{ fontWeight: 700 }}>{profile.tool}</span>
-        <span style={{ color: 'var(--fg-4)' }}>Mở gần nhất</span><span style={{ color: idle != null && idle > 7 ? 'var(--bad)' : undefined }}>{opened ? `${opened.slice(0, 10)} (${idle}d trước)${idle != null && idle > 7 ? ' ⚠ nên mở lại' : ''}` : 'chưa mở'}</span>
-      </div>
-      {/* Open the profile — server can't launch the operator's local Chrome, so hand over the exact command. */}
-      <div style={{ marginBottom: 14 }}>
-        <span style={lbl}>🚀 Mở profile {isLocalPath ? '(chạy ở máy có Playwright)' : ''}</span>
-        {isLocalPath ? (
-          <>
-            <div style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', wordBreak: 'break-all', color: 'var(--fg-2)', marginBottom: 6 }}>{openCmd}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={copyOpen} style={{ ...btnSm, color: copied ? '#10b981' : undefined, borderColor: copied ? 'rgba(16,185,129,.4)' : undefined }}>{copied ? '✓ Đã copy' : '📋 Copy lệnh'}</button>
-              <button type="button" onClick={markOpened} title="Bump last_opened_at sau khi đã mở (giữ session không hết hạn)" style={btnSm}>✓ Vừa mở</button>
-            </div>
-          </>
-        ) : (
-          <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Mở trong app <b>{profile.tool}</b> (profile-id: {profile.externalId || '—'}), rồi bấm ✓ Vừa mở. <button type="button" onClick={markOpened} style={{ ...btnSm, marginLeft: 6 }}>✓ Vừa mở</button></div>
-        )}
-      </div>
-      {/* Accounts logged in INSIDE this profile — the managing Google login (🔑) + every app account. */}
-      <div style={{ marginBottom: 14 }}>
-        <span style={lbl}>🔓 Đang login trong profile này {inside ? `(${inside.length})` : ''}</span>
-        {inside == null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>…</div>
-          : inside.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa có account nào gắn profile này —</div>
-          : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-              {inside.map((a) => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` }}>
-                  <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
-                  <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.handle || a.email || '(no handle)'}</span>
-                  <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
-                  {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
-                  <span style={{ flex: 1 }} />
-                  <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-      </div>
-      {msg && <div style={{ fontSize: 11.5, color: 'var(--bad)', marginBottom: 8 }}>⚠ {msg}</div>}
-      <div style={{ marginBottom: 10 }}>
-        <span style={lbl}>Label</span>
-        <input style={fld} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <span style={lbl} title="Đường dẫn profile dir (Playwright) hoặc profile-id trong tool — nơi mở browser từ đó">Open-from (path / external_id)</span>
-        <input style={fld} value={form.externalId} onChange={(e) => setForm((f) => ({ ...f, externalId: e.target.value }))} placeholder="/path/.capture-profile hoặc profile-id" />
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <span style={lbl}>Proxy mặc định</span>
-        <select style={fld} value={form.defaultProxyId ?? ''} onChange={(e) => setForm((f) => ({ ...f, defaultProxyId: e.target.value ? Number(e.target.value) : null }))}>
-          <option value="">— none —</option>
-          {proxies.map((p) => <option key={p.id} value={p.id}>{p.label} · {p.type}</option>)}
-        </select>
-      </div>
-      <div style={{ marginBottom: 14 }}>
-        <span style={lbl}>Notes (session / login / recipe mở)</span>
-        <textarea style={{ ...fld, minHeight: 90, resize: 'vertical' }} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" className="btn primary" disabled={busy} onClick={save} style={{ padding: '8px 16px' }}>{busy ? '…' : 'Lưu'}</button>
-        <button type="button" className="btn ghost" onClick={onClose} style={{ padding: '8px 14px' }}>Đóng</button>
-      </div>
-    </Drawer>
   );
 }
 
@@ -2767,7 +2671,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
         the backgrounded panel above). zIndex 520 > account drawer (300). */}
     {detailProfileId != null && (() => {
       const cur = browserProfiles.find((b) => b.id === detailProfileId);
-      return cur ? <BrowserProfileDetailDrawer profile={cur} proxies={proxies} onClose={() => setDetailProfileId(null)} /> : null;
+      return cur ? <BrowserProfileDrawer profile={cur} proxies={proxies} teamMembers={teamMembers} onClose={() => setDetailProfileId(null)} /> : null;
     })()}
     </>
   );

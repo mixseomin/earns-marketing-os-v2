@@ -236,6 +236,15 @@ export async function updateBrowserProfile(id: number, patch: Partial<BrowserPro
   return { ok: true };
 }
 
+// Bump last_opened_at — call after re-opening the profile locally (freshness / session-maintenance tracking).
+export async function touchBrowserProfile(id: number): Promise<{ ok: boolean; lastOpenedAt: string }> {
+  const db = ensureDb();
+  const now = new Date();
+  await db.execute(sql`UPDATE browser_profiles SET last_opened_at = ${now}, updated_at = ${now} WHERE id = ${id}`);
+  revalidatePath('/p/[id]/resources', 'page');
+  return { ok: true, lastOpenedAt: now.toISOString() };
+}
+
 export async function archiveBrowserProfile(id: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(browserProfiles).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(browserProfiles.id, id));

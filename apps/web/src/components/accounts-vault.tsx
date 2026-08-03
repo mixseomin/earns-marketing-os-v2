@@ -25,7 +25,7 @@ import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
 import { assignAccountsToMember, enableResourcesForMember } from '@/lib/actions/assignments';
 import { runAccountAutoCheck, type AutoCheckReport } from '@/lib/actions/warmup';
 import {
-  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile, browserProfileAccounts,
+  updateAccountEnvironment, createProxy, createBrowserProfile, updateBrowserProfile, browserProfileAccounts, touchBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool, type ProfileAccountRow,
 } from '@/lib/actions/environments';
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer } from './ui';
@@ -994,10 +994,18 @@ function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: Br
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [inside, setInside] = useState<ProfileAccountRow[] | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [opened, setOpened] = useState<string | null>(profile.lastOpenedAt);
   useEffect(() => { let live = true; browserProfileAccounts(profile.id).then((r) => { if (live) setInside(r); }).catch(() => { if (live) setInside([]); }); return () => { live = false; }; }, [profile.id]);
   const fld = fieldStyle();
   const lbl = labelStyle;
-  const idle = profile.lastOpenedAt ? Math.floor((Date.now() - new Date(profile.lastOpenedAt).getTime()) / 86400000) : null;
+  const idle = opened ? Math.floor((Date.now() - new Date(opened).getTime()) / 86400000) : null;
+  // Playwright profiles = a local dir path → openable via login.mjs. Tool-managed (genlogin/adspower…) open in their own app.
+  const isLocalPath = (profile.externalId ?? '').startsWith('/');
+  const openCmd = `CAPTURE_PROFILE='${profile.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
+  const copyOpen = async () => { try { await navigator.clipboard.writeText(openCmd); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ } };
+  const markOpened = async () => { const r = await touchBrowserProfile(profile.id); if (r.ok) { setOpened(r.lastOpenedAt); router.refresh(); } };
+  const btnSm = { fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' } as const;
   const save = async () => {
     setBusy(true); setMsg(null);
     const r = await updateBrowserProfile(profile.id, { label: form.label.trim() || profile.label, externalId: form.externalId || null, defaultProxyId: form.defaultProxyId, notes: form.notes || null });
@@ -1010,7 +1018,22 @@ function BrowserProfileDetailDrawer({ profile, proxies, onClose }: { profile: Br
       <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 12 }}>{profile.tool} · browser profile #{profile.id} · asset</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11.5, marginBottom: 14, padding: 10, borderRadius: 8, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
         <span style={{ color: 'var(--fg-4)' }}>Mở bằng</span><span style={{ fontWeight: 700 }}>{profile.tool}</span>
-        <span style={{ color: 'var(--fg-4)' }}>Mở gần nhất</span><span>{profile.lastOpenedAt ? `${profile.lastOpenedAt.slice(0, 10)} (${idle}d trước)` : 'chưa mở'}</span>
+        <span style={{ color: 'var(--fg-4)' }}>Mở gần nhất</span><span style={{ color: idle != null && idle > 7 ? 'var(--bad)' : undefined }}>{opened ? `${opened.slice(0, 10)} (${idle}d trước)${idle != null && idle > 7 ? ' ⚠ nên mở lại' : ''}` : 'chưa mở'}</span>
+      </div>
+      {/* Open the profile — server can't launch the operator's local Chrome, so hand over the exact command. */}
+      <div style={{ marginBottom: 14 }}>
+        <span style={lbl}>🚀 Mở profile {isLocalPath ? '(chạy ở máy có Playwright)' : ''}</span>
+        {isLocalPath ? (
+          <>
+            <div style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', wordBreak: 'break-all', color: 'var(--fg-2)', marginBottom: 6 }}>{openCmd}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={copyOpen} style={{ ...btnSm, color: copied ? '#10b981' : undefined, borderColor: copied ? 'rgba(16,185,129,.4)' : undefined }}>{copied ? '✓ Đã copy' : '📋 Copy lệnh'}</button>
+              <button type="button" onClick={markOpened} title="Bump last_opened_at sau khi đã mở (giữ session không hết hạn)" style={btnSm}>✓ Vừa mở</button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Mở trong app <b>{profile.tool}</b> (profile-id: {profile.externalId || '—'}), rồi bấm ✓ Vừa mở. <button type="button" onClick={markOpened} style={{ ...btnSm, marginLeft: 6 }}>✓ Vừa mở</button></div>
+        )}
       </div>
       {/* Accounts logged in INSIDE this profile — the managing Google login (🔑) + every app account. */}
       <div style={{ marginBottom: 14 }}>

@@ -1928,32 +1928,11 @@ button { font-family: inherit; color: inherit; }
 .md-content th, .md-content td { padding: 4px 8px; border: 1px solid var(--line); text-align: left; }
 .md-content th { background: var(--bg-2); }
 
-/* ── Refactor-debug overlay (toggle: key "2", see components/ui/refactor-debug.tsx) ──
-   Outlines every HOUSE component (data-comp) + labels it top-left. Unlabelled UI = hand-roll. */
+/* ── Refactor-debug overlay (toggle: key "2", see components/refactor-debug.tsx) ──
+   Outlines every HOUSE component (data-comp). Labels are real clickable badges drawn by
+   RefactorDebug (JS, positioned per element) — click a badge to copy the comp name.
+   Unlabelled/unoutlined UI = hand-roll. CSS here is only the dashed outline. */
 body.refactor-debug [data-comp] {
   outline: 2px dashed #e0b341 !important;
   outline-offset: -1px;
-}
-/* Give the label a positioning context — but NOT for elements that are already fixed/absolute
-   (e.g. Drawer panels): those are their own context, forcing relative would break the overlay. */
-body.refactor-debug [data-comp]:not([style*="position: fixed"]):not([style*="position: absolute"]) {
-  position: relative;
-}
-body.refactor-debug [data-comp]::before {
-  content: attr(data-comp);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 9998;
-  font: 600 9px/1.35 var(--font-mono, 'JetBrains Mono', monospace);
-  letter-spacing: 0.02em;
-  color: #e0b341;
-  background: rgba(10, 10, 13, 0.92);
-  border: 1px solid #e0b341;
-  border-top: none;
-  border-left: none;
-  border-radius: 0 0 4px 0;
-  padding: 0 4px 1px;
-  pointer-events: none;
-  white-space: nowrap;
 }

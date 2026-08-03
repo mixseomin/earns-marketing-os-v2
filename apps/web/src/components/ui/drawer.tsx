@@ -8,20 +8,22 @@ import { useEffect, useRef, useState, type ReactNode, type CSSProperties, type M
 // The SAME stack also drives auto-backgrounding: a drawer that isn't on top slides left + dims (below).
 let drawerSeq = 0;
 const drawerStack: number[] = [];
+const drawerW = new Map<number, number>();   // id → effective rendered width (px), for the left-cascade
 const stackListeners = new Set<() => void>();
 const notifyStack = () => stackListeners.forEach((fn) => fn());
 
 // Standard right-side slide-over drawer. Handles backdrop, ESC + click-outside close, and STACKING.
 //
-// AUTO-STACK: when another drawer mounts on top, the underlying one slides left + dims + goes inert
-// AUTOMATICALLY (the module stack knows what's on top) — no call site hand-wires it. Just render the
-// second drawer; the first backgrounds itself:
+// AUTO-STACK (no call site wires anything — the module stack knows the layout):
 //   {aOpen && <Drawer onClose={closeA}>…A…</Drawer>}
-//   {bOpen && <Drawer onClose={closeB} zIndex={300}>…B…</Drawer>}   // A backgrounds itself
-// The `backgrounded` prop still exists as an OVERRIDE (pass a boolean to force it on/off), e.g. when
-// the "on top" thing isn't another <Drawer>. Omit it to get the automatic behaviour.
-// The top drawer's higher zIndex paints its backdrop over A; clicking it fires closeB only
-// (separate DOM branch, no bubbling to A's backdrop). See feedback_stacked_drawer.
+//   {bOpen && <Drawer onClose={closeB} zIndex={300}>…B…</Drawer>}
+// When B mounts on top, A CASCADES LEFT by exactly B's width so A sits flush to the LEFT of B,
+// full-size (no scale/resize) and fully visible — a left-tiled stack, not a hidden peek. Only the
+// BOTTOM drawer paints the dim scrim; drawers stacked above use a transparent backdrop so the
+// cascaded drawers underneath show through instead of being buried under a second black scrim.
+// A backgrounded drawer is inert (pointer-events:none); clicking it (through the top's transparent
+// backdrop) closes the top drawer. `backgrounded` / `dimBackdrop` props stay as explicit OVERRIDES;
+// omit them for the automatic behaviour. See feedback_stacked_drawer.
 
 export function Drawer({
   onClose,
@@ -31,7 +33,7 @@ export function Drawer({
   backgrounded,
   closeOnOutside = true,
   closeOnEsc = true,
-  dimBackdrop = true,
+  dimBackdrop,
   padding = 20,
   bodyStyle,
   resizable = true,
@@ -65,9 +67,17 @@ export function Drawer({
 }) {
   const [w, setW] = useState(width);
   const [askClose, setAskClose] = useState(false);
-  // Auto-background: true when another drawer is mounted ON TOP of this one (this id isn't the
-  // stack top). Recomputed whenever the stack changes. Explicit `backgrounded` prop overrides.
-  const [autoBg, setAutoBg] = useState(false);
+  // Stack-derived layout, recomputed on every stack change (no parent wiring):
+  //   shift   = total width of the drawers stacked ABOVE me → I translate left by this (left-cascade).
+  //   isBottom= I'm the bottom-most drawer → I paint the dim scrim (others go transparent).
+  const [shift, setShift] = useState(0);
+  const [isBottom, setIsBottom] = useState(true);
+  const idRef = useRef(0);
+  // Effective rendered width (px), matching the panel's `min(w, 96vw)`. Registered in the stack so
+  // the drawer BELOW me knows how far to cascade.
+  const effW = typeof window !== 'undefined' ? Math.min(w, window.innerWidth * 0.96) : w;
+  const effWRef = useRef(effW);
+  effWRef.current = effW;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
   const escRef = useRef(closeOnEsc);
@@ -81,10 +91,19 @@ export function Drawer({
   requestCloseRef.current = requestClose;
   useEffect(() => {
     const id = ++drawerSeq;
+    idRef.current = id;
     drawerStack.push(id);
-    // Recompute my own backgrounded state from the stack, and re-run on every stack change so a
-    // drawer that gets covered (or uncovered) updates without any parent wiring.
-    const recompute = () => setAutoBg(drawerStack.length > 0 && drawerStack[drawerStack.length - 1] !== id);
+    drawerW.set(id, effWRef.current);
+    // Recompute my layout from the stack on every change (mount/unmount/resize of any drawer):
+    // sum the widths of every drawer ABOVE me → that's my left-cascade shift; bottom-most paints dim.
+    const recompute = () => {
+      const pos = drawerStack.indexOf(id);
+      if (pos < 0) return;
+      let above = 0;
+      for (let k = pos + 1; k < drawerStack.length; k++) above += drawerW.get(drawerStack[k]!) ?? 0;
+      setShift(above);
+      setIsBottom(pos === 0);
+    };
     stackListeners.add(recompute);
     notifyStack();   // I just pushed → the drawer I covered must recompute (and so must I)
     const onKey = (e: KeyboardEvent) => {
@@ -100,10 +119,18 @@ export function Drawer({
       stackListeners.delete(recompute);
       const i = drawerStack.lastIndexOf(id);
       if (i >= 0) drawerStack.splice(i, 1);
-      notifyStack();   // I left → whoever I covered is topmost again
+      drawerW.delete(id);
+      notifyStack();   // I left → whoever I covered re-cascades / becomes topmost again
     };
   }, []);
-  const bg = backgrounded ?? autoBg;
+  // Keep my registered width fresh (resize / viewport change) so the drawer below re-cascades.
+  useEffect(() => {
+    if (!idRef.current) return;
+    drawerW.set(idRef.current, effW);
+    notifyStack();
+  }, [effW]);
+  const bg = backgrounded ?? shift > 0;         // I'm backgrounded if something's stacked above me
+  const dim = dimBackdrop ?? isBottom;          // only the bottom drawer paints the dim scrim
 
   const startResize = (e: ReactMouseEvent) => {
     e.preventDefault();
@@ -118,7 +145,7 @@ export function Drawer({
     <>
       <div
         onClick={closeOnOutside ? requestClose : undefined}
-        style={{ position: 'fixed', inset: 0, zIndex, background: dimBackdrop ? 'rgba(0,0,0,.45)' : 'transparent' }}
+        style={{ position: 'fixed', inset: 0, zIndex, background: dim ? 'rgba(0,0,0,.45)' : 'transparent' }}
       />
       <div
         data-comp="ui.Drawer"
@@ -129,12 +156,12 @@ export function Drawer({
           borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)',
           overflowY: 'auto', padding,
           transition: 'transform .2s ease, filter .2s ease',
-          // Slid a large fraction of its own width so it still peeks on the LEFT even under
-          // a wide/resizable child drawer (a fixed 56px got fully covered). % = own width →
-          // deterministic regardless of the child's width. See feedback_stacked_drawer.
-          transform: bg ? 'translateX(-86%) scale(.94)' : 'none',
+          // LEFT-CASCADE: slide left by the exact total width of the drawers stacked above me, so I
+          // sit flush to their LEFT, full-size (no scale/resize) and fully visible. Only dimmed a
+          // touch so the top layer still reads as the active one. `shift` comes from the stack.
+          transform: shift > 0 ? `translateX(${-shift}px)` : (bg ? 'translateX(-86%)' : 'none'),
           transformOrigin: 'left center',
-          filter: bg ? 'brightness(.5)' : 'none',
+          filter: bg ? 'brightness(.68)' : 'none',
           pointerEvents: bg ? 'none' : 'auto',
           ...bodyStyle,
         }}

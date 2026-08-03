@@ -94,14 +94,22 @@ export function Drawer({
     idRef.current = id;
     drawerStack.push(id);
     drawerW.set(id, effWRef.current);
-    // Recompute my layout from the stack on every change (mount/unmount/resize of any drawer):
-    // sum the widths of every drawer ABOVE me → that's my left-cascade shift; bottom-most paints dim.
+    // Recompute my left-cascade offset from the stack on every change (mount/unmount/resize).
+    // NOT a flat sum of widths above (that flies off-screen at ~3+ drawers). A CONVERGING series:
+    // the drawer just under the top slides ~2/3 of the top's width; each deeper level adds a
+    // diminishing sliver (×STEP_DECAY), and the whole thing is hard-capped at 85% of the viewport.
+    // So 2, 20 or 200 drawers ALL stay on screen — the top always keeps ≥15%, deep ones collapse
+    // into a thin left deck. Bottom-most drawer paints the dim scrim.
     const recompute = () => {
       const pos = drawerStack.indexOf(id);
       if (pos < 0) return;
-      let above = 0;
-      for (let k = pos + 1; k < drawerStack.length; k++) above += drawerW.get(drawerStack[k]!) ?? 0;
-      setShift(above);
+      let s = 0, f = 0.66;                          // top drawer's width counts most; then decays
+      for (let k = drawerStack.length - 1; k > pos; k--) {
+        s += f * (drawerW.get(drawerStack[k]!) ?? 0);
+        f *= 0.6;                                    // STEP_DECAY → Σ converges (≤ ~1.65×maxWidth)
+      }
+      const cap = typeof window !== 'undefined' ? window.innerWidth * 0.85 : s;
+      setShift(Math.min(s, cap));
       setIsBottom(pos === 0);
     };
     stackListeners.add(recompute);
@@ -156,9 +164,10 @@ export function Drawer({
           borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)',
           overflowY: 'auto', padding,
           transition: 'transform .2s ease, filter .2s ease',
-          // LEFT-CASCADE: slide left by the exact total width of the drawers stacked above me, so I
-          // sit flush to their LEFT, full-size (no scale/resize) and fully visible. Only dimmed a
-          // touch so the top layer still reads as the active one. `shift` comes from the stack.
+          // LEFT-CASCADE: slide left by `shift` (a CONVERGING, viewport-capped offset from the
+          // stack — see recompute), full-size (no scale/resize). The drawer under the top peeks a
+          // big chunk; deeper ones peek less, capped so any number stay on screen. Dimmed a touch
+          // so the top still reads as active.
           transform: shift > 0 ? `translateX(${-shift}px)` : (bg ? 'translateX(-86%)' : 'none'),
           transformOrigin: 'left center',
           filter: bg ? 'brightness(.68)' : 'none',

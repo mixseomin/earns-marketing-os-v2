@@ -19,6 +19,17 @@ const isTyping = (t: EventTarget | null) => {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 };
 
+// A drawer that's been backgrounded (covered by a drawer on top) sets pointer-events:none
+// inline on its panel. Skip its whole subtree — only the ACTIVE (top) drawer gets labelled,
+// so a stack doesn't bleed the underneath drawer's badges (2× ui.Drawer, stray ui.Pill…) over
+// the top one.
+const inInertDrawer = (el: HTMLElement) => {
+  for (let p: HTMLElement | null = el; p; p = p.parentElement) {
+    if (p.style && p.style.pointerEvents === 'none') return true;
+  }
+  return false;
+};
+
 export function RefactorDebug() {
   const [on, setOn] = useState(false);
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -29,6 +40,7 @@ export function RefactorDebug() {
     const set = new Set(els);
     const out: Badge[] = [];
     els.forEach((el, i) => {
+      if (inInertDrawer(el)) return;                               // covered/backgrounded drawer → skip its subtree
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;                 // hidden/collapsed → no badge
       if (r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) return; // off-screen

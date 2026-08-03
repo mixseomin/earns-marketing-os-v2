@@ -47,6 +47,9 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = {
   broken:    { label: 'Link lỗi',   color: '#ef4444' },  // was live, a re-check found the link gone — needs re-do (auto-set by the health-check cron)
 };
 const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'] as const;
+// Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
+// should surface at the top of its column, not sink under stale tier order.
+const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken']);
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
@@ -932,6 +935,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
           {STATUS_ORDER.map((st) => {
             const col = shown.filter((t) => t.siteState === st);
+            // Terminal columns: most-recently-touched on top (just-finished shouldn't sink to the
+            // bottom under stale tier order). Actionable columns keep the tier sort (do-next first).
+            if (TERMINAL_STATES.has(st)) {
+              const recTs = (t: BacklinkTask) => t.siteDoneAt || t.siteSubmittedAt || t.siteScheduledAt || '';
+              col.sort((a, b) => recTs(b).localeCompare(recTs(a)));
+            }
             return (
               <div key={st} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: SITE_STATUS[st]!.color, paddingLeft: 2 }}>

@@ -28,7 +28,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -989,115 +989,25 @@ function AccountMediaStrip({ accountId, handle }: { accountId: number; handle?: 
 
 // Projects tham gia của account: ★ chính (profile-target=primary) + tham gia (shared) +
 // đặt-làm-chính (set-primary, non-destructive, inline confirm) + tham gia thêm + rời.
+// Projects tham gia của account — dùng shared <ProjectAssign> (chips + add-picker + ★ primary).
+// Cùng component với browser-profile drawer; account = mode có primary (onSetPrimary).
 function AccountProjectsSection({ accountId }: { accountId: number }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof accountProjectsPanel>> | null>(null);
-  const [pending, setPending] = useState<{ kind: 'primary' | 'leave'; pid: string } | null>(null);
-  const [showJoinPicker, setShowJoinPicker] = useState(false);
-  const [joinQ, setJoinQ] = useState('');
-  const [msg, setMsg] = useState('');
-  const [expanded, setExpanded] = useState(false); // YDNI: 1-dòng chip mặc định; quản lý ẩn sau click
-  const [busy, startT] = useTransition();
-  const load = () => startT(async () => { try { setData(await accountProjectsPanel(accountId)); } catch { setMsg('⚠ Lỗi tải projects'); } });
+  const load = () => { accountProjectsPanel(accountId).then(setData).catch(() => {}); };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [accountId]);
-  const parts = data?.participations ?? [];
-  const joined = new Set(parts.map((p) => p.projectId));
-  const addable = (data?.allProjects ?? []).filter((p) => !joined.has(p.id));
-  const primary = parts.find((p) => p.role === 'primary');
-  const others = parts.filter((p) => p.role !== 'primary');
-  const isP = (k: 'primary' | 'leave', pid: string) => pending?.kind === k && pending.pid === pid;
-  const doPrimary = (pid: string) => startT(async () => { setMsg(''); const r = await setAccountPrimaryProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã đặt làm chính'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
-  const doLeave = (pid: string) => startT(async () => { setMsg(''); const r = await leaveAccountProject(accountId, pid); setPending(null); if (r.ok) { setMsg('✅ Đã rời'); load(); } else setMsg('⚠ ' + (r.error || 'lỗi')); });
-  const doJoin = (pid: string) => { if (!pid) return; startT(async () => { setMsg(''); const r = await joinAccountProjectShared(accountId, pid); if (r.ok) { setMsg(`✅ Đã tham gia (${r.role})`); setShowJoinPicker(false); load(); } else setMsg('⚠ lỗi'); }); };
-
-  // COLLAPSED (default) — 1 dòng: 📁 project chính ★ + "+N khác" + ⋯. Cả management ẩn sau 1 click.
-  if (!expanded) {
-    return (
-      <div style={{ padding: '5px 14px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, minHeight: 30 }}>
-        <span style={{ color: 'var(--fg-4)', flexShrink: 0 }} title="Projects tham gia · ★ = profile target chính">📁</span>
-        {!data ? <span style={{ color: 'var(--fg-4)' }}>…</span> : primary ? (
-          <button type="button" onClick={() => setExpanded(true)} title="Quản lý projects"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--fg-1)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, minWidth: 0 }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(primary.emoji ? primary.emoji + ' ' : '') + primary.name}</span>
-            <span style={{ color: 'var(--neon-lime,#84cc16)', flexShrink: 0 }}>★</span>
-          </button>
-        ) : (
-          <button type="button" onClick={() => { setExpanded(true); setShowJoinPicker(true); }}
-            style={{ fontWeight: 600, color: 'var(--accent,#7c3aed)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>+ gắn project</button>
-        )}
-        {others.length > 0 && (
-          <button type="button" onClick={() => setExpanded(true)}
-            style={{ fontSize: 10.5, color: 'var(--fg-4)', border: '1px solid var(--line)', borderRadius: 8, padding: '0 6px', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}>+{others.length} khác</button>
-        )}
-        <span style={{ flex: 1 }} />
-        <button type="button" onClick={() => setExpanded(true)} title="Quản lý projects (đổi chính · rời · thêm)"
-          style={{ fontSize: 13, color: 'var(--fg-4)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>⋯</button>
-      </div>
-    );
-  }
-  // EXPANDED — full management.
+  const assigned = data
+    ? data.participations.map((p) => ({ id: p.projectId, name: p.name, emoji: p.emoji, role: (p.role === 'primary' ? 'primary' : 'shared') as 'primary' | 'shared' }))
+    : null;
+  const all = (data?.allProjects ?? []).map((p) => ({ id: p.id, name: p.name, emoji: p.emoji }));
   return (
-    <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4 }}>
-          Projects tham gia <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--fg-4)' }}>· ★ = profile target</span>
-        </span>
-        <span style={{ flex: 1 }} />
-        <button type="button" onClick={() => { setExpanded(false); setShowJoinPicker(false); }}
-          style={{ fontSize: 11, color: 'var(--fg-4)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>▴ thu gọn</button>
-      </div>
-      {!data ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>Đang tải…</span> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {parts.map((p) => {
-            const isPrimary = p.role === 'primary';
-            return (
-              <div key={p.projectId} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <span style={{ fontWeight: 600 }}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</span>
-                {isPrimary
-                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#0a0a0a', background: 'var(--neon-lime,#84cc16)', borderRadius: 8, padding: '1px 7px' }}>★ CHÍNH</span>
-                  : <span style={{ fontSize: 10, color: 'var(--fg-4)', border: '1px solid var(--line)', borderRadius: 8, padding: '1px 7px' }}>tham gia</span>}
-                <span style={{ flex: 1 }} />
-                {!isPrimary && (
-                  <>
-                    <button type="button" disabled={busy} onClick={() => isP('primary', p.projectId) ? doPrimary(p.projectId) : setPending({ kind: 'primary', pid: p.projectId })}
-                      style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--line)', background: isP('primary', p.projectId) ? 'var(--neon-lime,#84cc16)' : 'transparent', color: isP('primary', p.projectId) ? '#0a0a0a' : 'var(--fg-2)' }}>
-                      {isP('primary', p.projectId) ? 'Xác nhận?' : 'đặt làm chính'}</button>
-                    <button type="button" disabled={busy} onClick={() => isP('leave', p.projectId) ? doLeave(p.projectId) : setPending({ kind: 'leave', pid: p.projectId })}
-                      style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--line)', background: isP('leave', p.projectId) ? 'var(--bad,#ef4444)' : 'transparent', color: isP('leave', p.projectId) ? '#fff' : 'var(--fg-4)' }}>
-                      {isP('leave', p.projectId) ? 'Xác nhận rời?' : 'rời'}</button>
-                  </>
-                )}
-              </div>
-            );
-          })}
-          {addable.length > 0 && (!showJoinPicker ? (
-            // Collapsed → same YDNI pattern as the FB-Page "vận hành bởi" picker: a compact
-            // trigger; the searchable list expands inline (no drawer).
-            <button type="button" onClick={() => setShowJoinPicker(true)} disabled={busy}
-              style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 5, border: '1px dashed var(--line)', cursor: 'pointer', background: 'transparent', color: 'var(--accent,#7c3aed)' }}>
-              + tham gia project khác…
-            </button>
-          ) : (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', padding: 6, display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
-              <input value={joinQ} onChange={(e) => setJoinQ(e.target.value)} placeholder="tìm project…" autoComplete="off"
-                style={{ fontSize: 12, padding: '4px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
-                {addable.filter((p) => !joinQ || p.name.toLowerCase().includes(joinQ.toLowerCase())).map((p) => (
-                  <button key={p.id} type="button" disabled={busy} onClick={() => doJoin(p.id)}
-                    style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 7px', borderRadius: 5, cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
-                    <span style={{ fontWeight: 700 }}>{(p.emoji ? p.emoji + ' ' : '') + p.name}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)' }}>+ tham gia</span>
-                  </button>
-                ))}
-                {addable.filter((p) => !joinQ || p.name.toLowerCase().includes(joinQ.toLowerCase())).length === 0 &&
-                  <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>Không match.</span>}
-              </div>
-              <button type="button" onClick={() => { setShowJoinPicker(false); setJoinQ(''); }}
-                style={{ alignSelf: 'flex-start', fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>đóng</button>
-            </div>
-          ))}
-          {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? 'var(--good,#22c55e)' : 'var(--warn,#f59e0b)' }}>{msg}</div>}
-        </div>
-      )}
+    <div style={{ padding: '6px 14px', borderBottom: '1px solid var(--line)' }}>
+      <ProjectAssign
+        assigned={assigned}
+        all={all}
+        onJoin={async (id) => { await joinAccountProjectShared(accountId, id); load(); }}
+        onLeave={async (id) => { await leaveAccountProject(accountId, id); load(); }}
+        onSetPrimary={async (id) => { await setAccountPrimaryProject(accountId, id); load(); }}
+      />
     </div>
   );
 }

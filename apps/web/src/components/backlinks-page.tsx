@@ -96,7 +96,9 @@ const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null =
   : !v.reachable ? { c: 'var(--fg-3)', t: `? không truy cập${v.httpStatus ? ' ' + v.httpStatus : ''}` }
   : !v.found ? (v.mentioned ? { c: '#ffb03c', t: '⚠ cần kiểm tra' } : { c: 'var(--bad,#ef4444)', t: '✗ link mất' })
   : v.dofollow ? { c: '#22c55e', t: '✓ dofollow' }
-  : { c: '#ffb03c', t: '⚠ nofollow' };
+  // nofollow = link CONFIRMED present (verify succeeded), just no link-juice. Not an error — most
+  // directory/forum/social backlinks are nofollow. Muted ✓, not an amber ⚠ (which read as "failed").
+  : { c: 'var(--fg-3)', t: '✓ nofollow' };
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });

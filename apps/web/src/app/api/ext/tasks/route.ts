@@ -66,12 +66,18 @@ export async function POST(req: Request) {
   if (targetUrl) pp.target_url = targetUrl;
   if (placement) pp.placement = placement;   // write-only hiện tại (GET chưa đọc) — cho page-first drawer sau
 
+  // The PLACED-LINK url (publish_url / site_url = "Live URL") only exists once the link is actually
+  // placed (done). For a not-yet-done task (pending/plan/awaiting approval) there is NO live link —
+  // stamping postUrl there renders a bogus "link đã đặt". postUrl still lives in source_url (the source
+  // page). So: live url = postUrl only when done, else empty.
+  const liveUrl = done ? postUrl : '';
+
   let id: number;
   try {
     // column list = architecture.ts:498 (splitBacklinkTask) + publish_url (cột có sẵn, GET đọc ht.publish_url).
     const ins = await db.execute(sql`
       INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, account_id, assigned_user_id, status, publish_url)
-      VALUES ('self', ${projectId}, ${title}, ${instructions}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${accountId}, NULL, 'pending', ${postUrl})
+      VALUES ('self', ${projectId}, ${title}, ${instructions}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${accountId}, NULL, 'pending', ${liveUrl})
       RETURNING id`);
     id = Number((ins as unknown as Array<{ id: number }>)[0]?.id);
     if (!id) return errorResponse('insert failed', 500);
@@ -81,7 +87,7 @@ export async function POST(req: Request) {
 
   // Stamp per-site status/url qua ĐÚNG path drawer + /site-status dùng — roll row → completed+completed_at
   // khi done. KHÔNG tự tay set site_done_at/completed_at (tránh drift vs drawer).
-  const r = await setBacklinkSite(id, projectId, done ? 'completed' : 'pending', postUrl);
+  const r = await setBacklinkSite(id, projectId, done ? 'completed' : 'pending', liveUrl);
   if (!r.ok) {
     return NextResponse.json({ ok: true, id, existed: false, status: 'pending', siteKey: projectId, warn: 'stamp failed: ' + r.error });
   }

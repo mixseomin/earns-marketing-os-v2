@@ -177,7 +177,9 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   };
 
   return (
-    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0}>
+    <>
+    {/* Account drawer stacks on top → this profile drawer slides left + dims + goes inert. */}
+    <Drawer onClose={onClose} width={560} dirty={dirty} padding={0} backgrounded={openAcct != null}>
       <div className="modal-head">
         <div>
           <div className="id-line">{profile ? `profile #${profile.id}` : 'NEW PROFILE'}</div>
@@ -314,8 +316,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
         </div>
       </div>
 
-      {/* Account opened in-place from the "đang login" list — stacks above this profile drawer. */}
-      {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); if (profile) browserProfileAccounts(profile.id).then(setInside).catch(() => {}); }} />}
     </Drawer>
+    {/* SIBLING of the profile drawer (not a child) so it isn't caught by the backgrounded
+        pointer-events:none. Opened from the "đang login" list; stacks above at zIndex 300. */}
+    {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); if (profile) browserProfileAccounts(profile.id).then(setInside).catch(() => {}); }} />}
+    </>
   );
 }

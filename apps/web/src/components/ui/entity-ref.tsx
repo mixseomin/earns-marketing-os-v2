@@ -26,7 +26,8 @@ import { Pill, type PillSize } from './pill';
 
 export type EntityKind =
   | 'account' | 'proxy' | 'browser-profile' | 'task' | 'brief' | 'habitat'
-  | 'tribe' | 'identity' | 'media' | 'contact' | 'platform' | 'squad' | 'agent';
+  | 'tribe' | 'identity' | 'media' | 'contact' | 'platform' | 'squad' | 'agent'
+  | 'project' | 'team-member';
 
 interface KindMeta {
   icon: string;
@@ -52,6 +53,9 @@ const META: Record<EntityKind, KindMeta> = {
   platform:          { icon: '🧩', color: '#38bdf8' },
   squad:             { icon: '🛡️', color: '#fbbf24' },
   agent:             { icon: '🤖', color: '#34d399' },
+  // project id IS the route slug (/p/<id>). team-member has no standalone route → needs onOpen.
+  project:           { icon: '📁', color: '#84cc16', route: (id) => `/p/${id}` },
+  'team-member':     { icon: '🧑', color: '#818cf8' },
 };
 
 export interface EntityRefProps {
@@ -93,8 +97,11 @@ export function EntityRef({ kind, id, label, onOpen, href, project, size = 'sm',
     />
   );
 
-  if (onOpen) return chip;                                   // in-place open
-  if (resolvedHref) return <Link href={resolvedHref} style={{ textDecoration: 'none' }}>{chip}</Link>;
+  // stopPropagation: entity chips very often sit inside an already-clickable row/card (whose onClick
+  // opens a DIFFERENT entity). The chip's own click must not bubble up and trigger that row. The
+  // Link still navigates (its default action), and onOpen still fires — we only stop the bubble.
+  if (onOpen) return <span style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>{chip}</span>;
+  if (resolvedHref) return <Link href={resolvedHref} style={{ textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>{chip}</Link>;
 
   // Nothing to open — render the chip muted so it's visibly a non-live reference,
   // and warn in dev so the caller wires onOpen/href instead of shipping a dead chip.

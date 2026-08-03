@@ -12,7 +12,7 @@ import {
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
-import { Drawer } from './ui';
+import { Drawer, EntityRef } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
 type Tab = 'proxies' | 'profiles';
@@ -436,7 +436,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                 </div>
                 {p.externalId && <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>id: {p.externalId}</div>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
-                  {p.defaultProxyLabel && <span>🔌 {p.defaultProxyLabel}</span>}
+                  {p.defaultProxyLabel && <EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} size="sm" />}
                   <span>· {p.accountsCount} accounts</span>
                 </div>
               </div>

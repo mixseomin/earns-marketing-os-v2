@@ -92,7 +92,7 @@ export function FormField({
   gridColumn, style, children,
 }: FormFieldProps) {
   return (
-    <div style={{ ...(gridColumn ? { gridColumn } : {}), ...style }}>
+    <div data-comp="ui.FormField" style={{ ...(gridColumn ? { gridColumn } : {}), ...style }}>
       {label && (
         <label title={labelTooltip} style={{ ...labelStyle, cursor: labelTooltip ? 'help' : undefined }}>
           {label}

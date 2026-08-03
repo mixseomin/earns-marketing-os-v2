@@ -56,7 +56,7 @@ export function Pill({
   };
 
   return (
-    <span style={baseStyle} title={title} onClick={onClick}>
+    <span data-comp="ui.Pill" style={baseStyle} title={title} onClick={onClick}>
       {icon != null && <span style={{ fontSize: SIZE_FONT[size] + 1, lineHeight: 1 }}>{icon}</span>}
       <span>{label}</span>
     </span>

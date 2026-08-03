@@ -107,6 +107,7 @@ export function Drawer({
         style={{ position: 'fixed', inset: 0, zIndex, background: dimBackdrop ? 'rgba(0,0,0,.45)' : 'transparent' }}
       />
       <div
+        data-comp="ui.Drawer"
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: zIndex + 1,

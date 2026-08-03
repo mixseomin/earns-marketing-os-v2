@@ -58,7 +58,7 @@ export function ModalHeader({
     }
   };
   return (
-    <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg-2)' }}>
+    <div data-comp="ui.ModalHeader" style={{ borderBottom: '1px solid var(--line)', background: 'var(--bg-2)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
         {/* Khối icon màu loại modal — nhận diện tức thì */}
         <div style={{

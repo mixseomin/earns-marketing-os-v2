@@ -196,7 +196,7 @@ export function MultiSelect<T extends string | number>({
   // chip variant có label prefix inline TRƯỚC trigger
   if (variant === 'chip') {
     return (
-      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <div data-comp="ui.MultiSelect" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
           {label}:
         </span>
@@ -209,7 +209,7 @@ export function MultiSelect<T extends string | number>({
   }
 
   return (
-    <div ref={triggerWrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+    <div data-comp="ui.MultiSelect" ref={triggerWrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
       {trigger}
       {open && popup}
     </div>

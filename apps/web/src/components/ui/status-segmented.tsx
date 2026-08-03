@@ -19,7 +19,7 @@ export function StatusSegmented({ options, value, onChange, disabled, size = 'sm
   const pad = size === 'md' ? '5px 13px' : '4px 10px';
   const fs = size === 'md' ? 11.5 : 11;
   return (
-    <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-2)', ...style }}>
+    <div data-comp="ui.StatusSegmented" style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-2)', ...style }}>
       {options.map((o, i) => {
         const on = o.value === value;
         return (

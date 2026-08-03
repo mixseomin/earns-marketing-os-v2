@@ -68,11 +68,12 @@ export function SiteFavicon({
   };
 
   if (!src || failed) {
-    return <span style={box} title={title} aria-hidden>{glyph || '🌐'}</span>;
+    return <span data-comp="ui.SiteFavicon" style={box} title={title} aria-hidden>{glyph || '🌐'}</span>;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      data-comp="ui.SiteFavicon"
       src={src}
       alt=""
       width={size}

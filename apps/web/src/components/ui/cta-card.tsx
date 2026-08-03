@@ -33,6 +33,7 @@ export function CTACard({
   const accent = TONE[tone];
   return (
     <ExternalLink
+      data-comp="ui.CTACard"
       href={href}
       onClick={onClick}
       style={{

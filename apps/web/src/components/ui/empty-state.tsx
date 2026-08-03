@@ -14,7 +14,7 @@ export function EmptyState({
   compact?: boolean;
 }) {
   return (
-    <div className="panel">
+    <div className="panel" data-comp="ui.EmptyState">
       <div className="panel-body" style={{
         padding: compact ? 20 : 32,
         textAlign: 'center',

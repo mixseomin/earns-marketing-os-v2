@@ -22,7 +22,7 @@ export function Segmented<T extends string | number>({
   const padding = size === 'xs' ? '1px 6px' : '2px 7px';
   const fontSize = size === 'xs' ? 9 : 10;
   return (
-    <span style={{ display: 'inline-flex', gap: 3, ...style }}>
+    <span data-comp="ui.Segmented" style={{ display: 'inline-flex', gap: 3, ...style }}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (

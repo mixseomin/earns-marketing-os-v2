@@ -61,7 +61,7 @@ export function ProjectAssign({ assigned, all, onJoin, onLeave, onSetPrimary, la
     const lead = supportsPrimary ? primary : parts[0];
     const rest = supportsPrimary ? others : parts.slice(1);
     return (
-      <div style={{ padding: '5px 0', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, minHeight: 30 }}>
+      <div data-comp="ui.ProjectAssign" style={{ padding: '5px 0', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, minHeight: 30 }}>
         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }} title={label}>📁</span>
         {assigned == null ? <span style={{ color: 'var(--fg-4)' }}>…</span> : lead ? (
           <button type="button" onClick={() => setExpanded(true)} title="Quản lý projects"
@@ -86,7 +86,7 @@ export function ProjectAssign({ assigned, all, onJoin, onLeave, onSetPrimary, la
 
   // EXPANDED — full management.
   return (
-    <div style={{ padding: '2px 0' }}>
+    <div data-comp="ui.ProjectAssign" style={{ padding: '2px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: .4 }}>
           {label}{supportsPrimary && <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--fg-4)' }}> · ★ = target chính</span>}

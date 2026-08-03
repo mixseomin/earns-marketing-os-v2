@@ -114,7 +114,7 @@ export function EntityPicker({
   return (
     <>
       <Drawer onClose={onClose} width={440} zIndex={zIndex} backgrounded={editorOpen} closeOnOutside padding={0}>
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div data-comp="ui.EntityPicker" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ flexShrink: 0, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '16px 18px 12px', borderBottom: '1px solid var(--line)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--fg-0)' }}>{title}</h2>

@@ -54,7 +54,7 @@ export function Section({
   };
 
   return (
-    <div style={{
+    <div data-comp="ui.Section" style={{
       borderLeft: accent ? `2px solid ${accent}` : undefined,
       paddingLeft: accent ? 10 : 0,
       ...style,

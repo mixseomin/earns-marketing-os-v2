@@ -27,7 +27,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth }: {
   const monthLabel = cur.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   return (
-    <div>
+    <div data-comp="ui.MonthCalendar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <button type="button" onClick={() => setCur(new Date(y, m - 1, 1))} style={navBtn}>◀</button>
         <div style={{ fontSize: 13, fontWeight: 700, minWidth: 130, textAlign: 'center', textTransform: 'capitalize' }}>{monthLabel}</div>

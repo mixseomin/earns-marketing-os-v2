@@ -24,6 +24,7 @@ export function Spinner({
   const px = SIZE[size];
   return (
     <span
+      data-comp="ui.Spinner"
       role="status"
       aria-label={label}
       style={{

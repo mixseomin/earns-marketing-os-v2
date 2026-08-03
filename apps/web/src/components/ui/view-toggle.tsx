@@ -12,7 +12,7 @@ export function ViewToggle({ options, value, onChange, style }: {
   style?: CSSProperties;
 }) {
   return (
-    <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden', ...style }}>
+    <div data-comp="ui.ViewToggle" style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden', ...style }}>
       {options.map((o, i) => {
         const on = o.value === value;
         return (

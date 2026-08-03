@@ -99,7 +99,7 @@ export function FormModal({
         onClose={onClose}
         onRefresh={onRefresh}
       />
-      <div style={{ padding: bodyPadding ?? 0, overflow: 'auto', flex: 1, ...bodyStyle }}>
+      <div data-comp="ui.FormModal" style={{ padding: bodyPadding ?? 0, overflow: 'auto', flex: 1, ...bodyStyle }}>
         {children}
       </div>
     </Drawer>
@@ -113,7 +113,7 @@ export function FormModal({
  */
 export function FormModalFooter({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
-    <div style={{
+    <div data-comp="ui.FormModalFooter" style={{
       padding: '12px 16px',
       borderTop: '1px solid var(--line)',
       background: 'var(--bg-1)',
@@ -135,6 +135,6 @@ export function FormModalFooter({ children, style }: { children: ReactNode; styl
  */
 export function FormModalSection({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
-    <div style={{ padding: '14px 16px', ...style }}>{children}</div>
+    <div data-comp="ui.FormModalSection" style={{ padding: '14px 16px', ...style }}>{children}</div>
   );
 }

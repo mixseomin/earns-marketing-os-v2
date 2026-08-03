@@ -43,6 +43,7 @@ export function ConfirmDeleteButton({
 
   return (
     <button
+      data-comp="ui.ConfirmDeleteButton"
       type="button"
       className={className ?? 'btn danger'}
       onClick={del.trigger}

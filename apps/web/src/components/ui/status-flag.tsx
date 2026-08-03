@@ -64,7 +64,7 @@ export function StatusFlag({
     ? (e: React.MouseEvent) => { e.stopPropagation(); onClick(); }
     : undefined;
   return (
-    <span title={title} style={baseStyle} onClick={handler}>
+    <span data-comp="ui.StatusFlag" title={title} style={baseStyle} onClick={handler}>
       <span>{icon}</span>
       {!isIcon && label && <span>{label}</span>}
     </span>

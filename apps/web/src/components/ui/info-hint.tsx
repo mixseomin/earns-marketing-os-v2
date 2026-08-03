@@ -16,7 +16,7 @@ export function InfoHint({
   label?: string;            // a11y: mô tả ngắn cho screen-reader/title fallback
 }) {
   return (
-    <span className="info-hint" tabIndex={0} role="note" aria-label={label ?? 'Thông tin'}>
+    <span data-comp="ui.InfoHint" className="info-hint" tabIndex={0} role="note" aria-label={label ?? 'Thông tin'}>
       <IconInfo size={size} />
       <span className={`info-hint__pop${align === 'right' ? ' right' : ''}`}>{children}</span>
     </span>

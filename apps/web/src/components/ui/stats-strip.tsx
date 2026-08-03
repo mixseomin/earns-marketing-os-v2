@@ -16,7 +16,7 @@ export interface StatCard {
 export function StatsStrip({ cards, columns }: { cards: StatCard[]; columns?: number }) {
   const cols = columns ?? cards.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6, marginBottom: 12 }}>
+    <div data-comp="ui.StatsStrip" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6, marginBottom: 12 }}>
       {cards.map((c) => (
         <div
           key={c.key}

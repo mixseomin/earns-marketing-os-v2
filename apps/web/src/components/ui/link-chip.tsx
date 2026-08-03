@@ -41,6 +41,7 @@ export function LinkChip({
   const s = SIZE[size];
   return (
     <ExternalLink
+      data-comp="ui.LinkChip"
       href={href}
       title={title}
       onClick={onClick}

@@ -78,6 +78,7 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
 
   return (
     <div
+      data-comp="ui.ImageAttach"
       tabIndex={0}
       onPaste={(e) => { const imgs = [...(e.clipboardData?.items || [])].filter((i) => i.type.startsWith('image/')).map((i) => i.getAsFile()).filter(Boolean) as File[]; if (imgs.length) { e.preventDefault(); void addFiles(imgs); } }}
       onDragOver={(e) => { e.preventDefault(); setDrag(true); }}

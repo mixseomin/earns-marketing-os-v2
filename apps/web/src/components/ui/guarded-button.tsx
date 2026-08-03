@@ -14,6 +14,7 @@ export function GuardedButton({ reason, disabled, title, onClick, children, styl
   const blocked = !!disabled || !!why;
   return (
     <button
+      data-comp="ui.GuardedButton"
       {...rest}
       type={rest.type || 'button'}
       onClick={blocked ? undefined : onClick}

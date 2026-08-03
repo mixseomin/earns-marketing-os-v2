@@ -18,7 +18,7 @@ export function Collapsible({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ marginTop, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
+    <div data-comp="ui.Collapsible" style={{ marginTop, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)' }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

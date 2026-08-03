@@ -434,10 +434,18 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.label}</span>
                   <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', padding: '1px 5px', border: '1px solid var(--line)', borderRadius: 3 }}>{tm.label}</span>
                 </div>
-                {p.externalId && <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>id: {p.externalId}</div>}
+                {p.manager && <div style={{ fontSize: 10, color: 'var(--fg-2)', marginTop: 1 }}>🔑 {p.manager}</div>}
+                {p.projects.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    {p.projects.map((pid) => (
+                      <span key={pid} style={{ fontSize: 9.5, padding: '1px 6px', borderRadius: 3, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-1)' }}>📁 {pid}</span>
+                    ))}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
                   {p.defaultProxyLabel && <EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} size="sm" />}
                   <span>· {p.accountsCount} accounts</span>
+                  {p.externalId && <span>· {p.externalId.split('/').pop()}</span>}
                 </div>
               </div>
             );

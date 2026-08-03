@@ -65,6 +65,8 @@ export async function listProxies(): Promise<ProxyRow[]> {
     rotatesAt: toIso(r.rotates_at),
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
+    projects: (r.projects as string[] | null) ?? [],
+    manager: (r.manager as string | null) ?? null,
   }));
 }
 
@@ -135,6 +137,8 @@ export interface BrowserProfileRow {
   lastOpenedAt: string | null;
   notes: string | null;
   accountsCount: number;
+  projects: string[];
+  manager: string | null;
 }
 
 export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
@@ -148,7 +152,11 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     SELECT bp.id, bp.label, bp.tool, bp.external_id, bp.user_agent, bp.fingerprint,
            bp.default_proxy_id, p.label AS proxy_label,
            bp.last_opened_at, bp.notes,
-           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id) AS accounts_count
+           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id) AS accounts_count,
+           (SELECT array_agg(project_id ORDER BY project_id) FROM project_browser_profiles WHERE browser_profile_id = bp.id) AS projects,
+           (SELECT handle FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id
+              AND (pa.tags @> '["profile-manager"]'::jsonb OR pa.platform_key = 'google')
+            ORDER BY pa.id LIMIT 1) AS manager
     FROM browser_profiles bp
     LEFT JOIN proxies p ON p.id = bp.default_proxy_id
     WHERE bp.tenant_id = ${TENANT} AND bp.archived_at IS NULL
@@ -168,6 +176,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     lastOpenedAt: toIso(r.last_opened_at),
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
+    projects: (r.projects as string[] | null) ?? [],
+    manager: (r.manager as string | null) ?? null,
   }));
 }
 

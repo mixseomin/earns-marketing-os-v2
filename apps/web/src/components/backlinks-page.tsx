@@ -649,7 +649,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
         {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
         {!cols && t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
-        {(() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
+        {t.siteLiveUrl && (() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
         {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
@@ -1714,7 +1714,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             title="Fetch link → kiểm tra domain mình có được link + dofollow không; đạt sẽ tự lên Verified"
             style={{ ...btn, fontWeight: 700 }}>{vbusy ? '…' : '🔍 Kiểm tra'}</button>
           {!(task.siteLiveUrl || url.trim()) && <span style={{ color: 'var(--fg-4)' }}>Lưu Live URL ở trên trước</span>}
-          {vres && (() => { const m = verifyMeta(vres); return m ? <span style={{ color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</span> : null; })()}
+          {task.siteLiveUrl && vres && (() => { const m = verifyMeta(vres); return m ? <span style={{ color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</span> : null; })()}
         </div>
 
         {/* 9 · Schedule */}

@@ -20,7 +20,7 @@ export function siteTimingMerges(site: string, status: string, nowIso: string, f
     : sql`|| jsonb_build_object('site_submitted_at', (COALESCE(prep_payload->'site_submitted_at', '{}'::jsonb) - ${site}::text))`;
   // follow-up date = submitted date + followDays (YYYY-MM-DD); default only if unset (preserve a manual one).
   // Anchor to UTC so the calendar day is deterministic regardless of the DB session TimeZone (no off-by-one).
-  const followExpr = sql`to_char(((COALESCE(prep_payload->'site_submitted_at'->>${site}, ${nowIso}))::timestamptz AT TIME ZONE 'UTC')::date + ${followDays}, 'YYYY-MM-DD')`;
+  const followExpr = sql`to_char(((COALESCE(prep_payload->'site_submitted_at'->>${site}, ${nowIso}))::timestamptz AT TIME ZONE 'UTC')::date + ${followDays}::int, 'YYYY-MM-DD')`;
   const scheduledMerge = submitted
     ? sql`|| jsonb_build_object('site_scheduled_at', COALESCE(prep_payload->'site_scheduled_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_scheduled_at'->>${site}, ${followExpr}))))`
     : done

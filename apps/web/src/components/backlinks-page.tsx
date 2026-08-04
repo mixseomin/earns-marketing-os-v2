@@ -723,7 +723,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       {/* RED ALERT — tasks whose automation is blocked and need a human to step in (solve captcha, verify, etc.).
           Set by reportSourceOutcome (blocker.needsHuman). Loud + actionable so the operator acts without digging. */}
       {(() => {
-        const needHuman = tasks.filter((t) => t.blocker?.needsHuman);
+        // dedup by task id — the global board expands one task into a row per applies-to project.
+        const needHuman = Array.from(new Map(tasks.filter((t) => t.blocker?.needsHuman).map((t) => [t.id, t])).values());
         if (!needHuman.length) return null;
         return (
           <div style={{ border: '1.5px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 12%, transparent)', borderRadius: 8, padding: '9px 12px', marginBottom: 10 }}>

@@ -6,6 +6,7 @@ import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
 import { getBacklinkTasks } from '@/lib/actions/backlink-tasks';
+import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
 
   const slug = resolveSiteSlug(id) ?? id;   // any project can hold plays; fall back to project id as the site_status key
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
-  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media] = await Promise.all([
+  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     getBacklinkTasks(id),
@@ -34,6 +35,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
     listProxies(),
     listBrowserProfiles(),
     listMedia(id),
+    listSourceIntel(),
   ]);
 
   return (
@@ -46,7 +48,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
     >
       <BacklinksPage projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks}
         project={project} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} initialView="kanban" />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} initialView="kanban" />
     </AppShell>
   );
 }

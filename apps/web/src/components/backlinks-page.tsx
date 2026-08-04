@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
-import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
 import { SourceEditor } from './source-editor';
 import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
@@ -343,10 +343,11 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, initialView, allProjects, projectsById }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, initialView, allProjects, projectsById }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
+  sourceIntel?: Record<string, SourceIntel>;   // canonical_url → learned {automation, obstacles}; drives the per-card 🖐 badge (self-learning propagates to every project's task by source, read-time)
   initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
   // Global /plays (all projects): tasks carry projectId/projectSlug/projectLabel; per-task project resolved
   // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
@@ -356,6 +357,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   // In global mode a task acts on its OWN project/slug, not one page-level value.
   const slugForTask = (t?: BacklinkTask | null) => (allProjects ? (t?.projectSlug ?? '') : slug);
   const projectForTask = (t?: BacklinkTask | null) => (allProjects && t?.projectId ? (projectsById?.[t.projectId] ?? project) : project);
+  // Self-learning surfaced per-task: the source's learned automation (assisted/blocked/dead) shows on EVERY
+  // task that derives from it, any project — so a sibling task visibly warns before you waste an auto attempt.
+  const AUTO_BADGE: Record<string, { icon: string; label: string; color: string }> = {
+    assisted: { icon: '🖐', label: 'assisted', color: '#ffb03c' },
+    manual: { icon: '🖐', label: 'manual', color: '#ffb03c' },
+    blocked: { icon: '🚫', label: 'blocked', color: 'var(--bad,#ef4444)' },
+    dead: { icon: '⛔', label: 'dead', color: 'var(--bad,#ef4444)' },
+  };
+  const intelFor = (t: BacklinkTask) => (t.sourceUrl ? sourceIntel[t.sourceUrl] : undefined);
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
@@ -661,6 +671,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
         {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
+        {(() => { const it = intelFor(t); const b = it && AUTO_BADGE[it.automation]; if (!b) return null; const gate = it!.obstacles?.[0]; return <span title={`Nguồn tự học: ${it!.automation}${it!.obstacles?.length ? ' · ' + it!.obstacles.map((o) => o.type + (o.stage ? '@' + o.stage : '')).join(', ') : ''}`}><Tag color={b.color}>{b.icon} {b.label}{gate ? ' · ' + gate.type : ''}</Tag></span>; })()}
       </div>
     );
     const cardStyle: CSSProperties = { display: 'flex', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) };
@@ -738,6 +749,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
               ))}
               {needHuman.length > 14 && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)', alignSelf: 'center' }}>+{needHuman.length - 14}</span>}
             </div>
+          </div>
+        );
+      })()}
+      {/* Source-level heads-up (amber): sources the catalog LEARNED need a human (assisted/blocked/dead),
+          grouped, counting EVERY project's task on them — so you see the strategy before running siblings. */}
+      {(() => {
+        const bySource = new Map<string, { count: number; automation: string; gate?: string }>();
+        for (const t of tasks) { const it = intelFor(t); if (!it || !AUTO_BADGE[it.automation]) continue; const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
+        if (!bySource.size) return null;
+        return (
+          <div style={{ border: '1px solid #ffb03c', background: 'color-mix(in srgb, #ffb03c 10%, transparent)', borderRadius: 8, padding: '7px 12px', marginBottom: 10, fontSize: 11.5, color: 'var(--fg-1)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <b style={{ color: '#c77f16' }}>🖐 Nguồn tự học cần người:</b>
+            {[...bySource].map(([k, v]) => <span key={k} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{k} · {v.automation}{v.gate ? '/' + v.gate : ''} ×{v.count}</span>)}
           </div>
         );
       })()}

@@ -118,6 +118,19 @@ export async function listBacklinkSources(opts?: {
 // Source detail for a backlink task's drawer: the shared catalog row + the params it fills for THIS
 // project ({product}/{domain}/{pitch}/{link}) + the filled preview. Lets the operator see which standard
 // source a task comes from and how the generic template becomes project-specific.
+// Execution-intel map (canonical_url → automation/obstacles) for sources whose automation is NOT plain
+// 'auto' — i.e. every source that needs a human or is blocked. The plays board joins this onto EVERY task
+// by source_url so a sibling task (any project) visibly shows "🖐 assisted · hcaptcha" on its card, learned
+// once on the run task and inherited board-wide — no per-task edit, no memory.
+export type SourceIntel = { automation: string; obstacles: BacklinkSource['obstacles'] };
+export async function listSourceIntel(): Promise<Record<string, SourceIntel>> {
+  const db = getDb(); if (!db) return {};
+  const rows = (await db.execute(sql`SELECT canonical_url, automation, obstacles FROM backlink_sources WHERE automation IS NOT NULL AND automation <> 'auto'`)) as unknown as Row[];
+  const out: Record<string, SourceIntel> = {};
+  for (const r of rows) out[String(r.canonical_url)] = { automation: String(r.automation), obstacles: Array.isArray(r.obstacles) ? (r.obstacles as BacklinkSource['obstacles']) : [] };
+  return out;
+}
+
 export async function getBacklinkSourceForTask(sourceId: number, projectId: string): Promise<{ ok: boolean; source?: BacklinkSource; params?: { product: string; domain: string; pitch: string; link: string }; filled?: string; error?: string }> {
   const db = getDb(); if (!db) return { ok: false, error: 'no-db' };
   const rows = (await db.execute(sql`SELECT * FROM backlink_sources WHERE id = ${Number(sourceId)} LIMIT 1`)) as unknown as Row[];

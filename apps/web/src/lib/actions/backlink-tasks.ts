@@ -36,7 +36,7 @@ export interface BacklinkTask {
   instructions: string | null;
   notes: string | null;
   workerNote: string | null;                       // staff free-text: result report + opinions
-  blocker: { reason: string; at: string; paused?: boolean; origin?: number; shot?: string } | null;  // active blocker; paused = auto-held (sibling blocked); shot = screenshot URL
+  blocker: { reason: string; at: string; paused?: boolean; origin?: number; shot?: string; needsHuman?: boolean; note?: string } | null;  // active blocker; paused = auto-held (sibling blocked); shot = screenshot URL; needsHuman = drives the RED on-screen alert (assisted/manual/blocked)
   resolved: { at: string; note?: string } | null;  // "vừa gỡ vướng" marker; cleared when staff opens the task
   grounded: { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string } | null;  // instructions rewritten against real captured DOM
   fillFields: { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> } | null;  // ✨ Chuẩn bị điền: prepared per-field values for the source's real form
@@ -165,7 +165,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         notes: (r.notes as string | null) || null,
         workerNote: (r.worker_note as string | null) || null,
         blocker: (r.blocker && typeof r.blocker === 'object' && !Array.isArray(r.blocker))
-          ? (r.blocker as { reason: string; at: string; paused?: boolean; origin?: number; shot?: string }) : null,
+          ? (r.blocker as { reason: string; at: string; paused?: boolean; origin?: number; shot?: string; needsHuman?: boolean; note?: string }) : null,
         resolved: (r.resolved && typeof r.resolved === 'object' && !Array.isArray(r.resolved))
           ? (r.resolved as { at: string; note?: string }) : null,
         grounded: (r.grounded && typeof r.grounded === 'object' && !Array.isArray(r.grounded))

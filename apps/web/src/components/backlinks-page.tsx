@@ -720,6 +720,26 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
   return (
     <div style={{ padding: '12px 16px 40px' }}>
+      {/* RED ALERT — tasks whose automation is blocked and need a human to step in (solve captcha, verify, etc.).
+          Set by reportSourceOutcome (blocker.needsHuman). Loud + actionable so the operator acts without digging. */}
+      {(() => {
+        const needHuman = tasks.filter((t) => t.blocker?.needsHuman);
+        if (!needHuman.length) return null;
+        return (
+          <div style={{ border: '1.5px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 12%, transparent)', borderRadius: 8, padding: '9px 12px', marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, color: 'var(--bad,#ef4444)', fontSize: 12.5, marginBottom: 5 }}>🖐 {needHuman.length} task CẦN NGƯỜI THAO TÁC — tự động bị chặn, làm tay để chạy tiếp</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {needHuman.slice(0, 14).map((t) => (
+                <button key={t.id} type="button" onClick={() => openTask(t.id)} title={t.blocker?.note || t.blocker?.reason}
+                  style={{ ...btn, borderColor: 'var(--bad,#ef4444)', color: 'var(--bad,#ef4444)', fontSize: 11, padding: '2px 8px' }}>
+                  #{t.id} · {t.blocker?.reason} · {t.catalogSourceName || hostOf(t.sourceUrl || '') || (t.title || '').slice(0, 22)}
+                </button>
+              ))}
+              {needHuman.length > 14 && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)', alignSelf: 'center' }}>+{needHuman.length - 14}</span>}
+            </div>
+          </div>
+        );
+      })()}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, margin: 0 }}>
           {allProjects ? 'Plays' : 'Backlinks'} <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {allProjects ? 'All projects' : siteLabel} · {kpi.total} {allProjects ? 'plays' : 'sources'}</small>
@@ -1890,6 +1910,28 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             <Tag color={src.sourceStatus === 'active' ? '#22c55e' : '#ffb03c'}>{src.sourceStatus}</Tag>
             {src.audienceTags.map((t) => <Tag key={t}>{t}</Tag>)}
           </div>
+          {/* Execution intelligence — the self-learning state (set by reportSourceOutcome). */}
+          {(src.automation || src.obstacles.length > 0 || src.lastRunAt) && (() => {
+            const needsHuman = src.automation ? ['assisted', 'manual', 'blocked'].includes(src.automation) : false;
+            const autoColor = !src.automation ? 'var(--fg-3)' : src.automation === 'auto' ? '#22c55e' : src.automation === 'dead' ? 'var(--bad,#ef4444)' : needsHuman ? '#ffb03c' : 'var(--fg-2)';
+            return (
+              <div style={{ marginBottom: 12, border: `1px solid ${needsHuman ? 'var(--bad,#ef4444)' : 'var(--line)'}`, borderRadius: 8, padding: '8px 10px', background: needsHuman ? 'color-mix(in srgb, var(--bad,#ef4444) 8%, transparent)' : 'var(--bg-1)' }}>
+                <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Cách chạy (tự học từ execution)</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: autoColor }}>{needsHuman ? '🖐 ' : src.automation === 'auto' ? '🤖 ' : ''}{src.automation || 'chưa rõ (chưa chạy)'}</span>
+                  {src.lastRunAt && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>· chạy gần nhất {String(src.lastRunAt).slice(0, 10)} → {src.lastRunOutcome}</span>}
+                </div>
+                {src.obstacles.length > 0 && (
+                  <div style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {src.obstacles.map((o, i) => (
+                      <div key={i} style={{ fontSize: 11, color: 'var(--fg-2)' }}>⛔ <b>{o.type}</b>{o.stage ? ` @${o.stage}` : ''}{o.note ? ` — ${o.note}` : ''}{o.at ? <span style={{ color: 'var(--fg-4)' }}> ({o.at})</span> : null}</div>
+                    ))}
+                  </div>
+                )}
+                {src.lastRunNote && <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4 }}>{src.lastRunNote}</div>}
+              </div>
+            );
+          })()}
           {sourceDetail.params && (
             <div style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-1)' }}>
               <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Params điền cho project này</div>

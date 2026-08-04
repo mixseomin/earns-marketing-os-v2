@@ -23,9 +23,18 @@ export interface BacklinkSource {
   platformKey: string | null;
   verifiedAt: string | null;
   sourceStatus: string;
+  // ── Execution intelligence (self-learning; set by reportSourceOutcome) ──
+  automation: string | null;                 // auto | assisted | manual | blocked | dead | null=unknown
+  obstacles: Array<{ type: string; stage?: string; note?: string; at?: string }>;
+  lastRunAt: string | null;
+  lastRunOutcome: string | null;             // success | blocked | rejected | flow-changed
+  lastRunNote: string | null;
   usedByHere?: boolean; // already seeded to the queried project
   usageCount: number;   // distinct projects that have a task from this source
 }
+export type Automation = 'auto' | 'assisted' | 'manual' | 'blocked' | 'dead';
+// Does this automation level require a human to step in? Drives the on-screen red alert.
+export const AUTOMATION_NEEDS_HUMAN = new Set(['assisted', 'manual', 'blocked']);
 
 type Row = Record<string, unknown>;
 function mapRow(r: Row): BacklinkSource {
@@ -44,6 +53,11 @@ function mapRow(r: Row): BacklinkSource {
     platformKey: (r.platform_key as string) ?? null,
     verifiedAt: r.verified_at ? String(r.verified_at) : null,
     sourceStatus: String(r.source_status ?? 'active'),
+    automation: (r.automation as string) ?? null,
+    obstacles: Array.isArray(r.obstacles) ? (r.obstacles as BacklinkSource['obstacles']) : [],
+    lastRunAt: r.last_run_at ? String(r.last_run_at) : null,
+    lastRunOutcome: (r.last_run_outcome as string) ?? null,
+    lastRunNote: (r.last_run_note as string) ?? null,
     usedByHere: r.used_here === true || r.used_here === 't',
     usageCount: 0,
   };
@@ -369,6 +383,80 @@ export async function syncTasksFromSource(sourceId: number): Promise<{ ok: boole
     }
     for (const pid of touched) { revalidatePath(`/p/${pid}/backlinks`, 'page'); revalidatePath(`/p/${pid}/plays`, 'page'); }
     return { ok: true, updated, skipped };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// ── SELF-LEARNING LOOP: report an execution outcome back to the SOURCE (root) ──────────────
+// Read task → execute → assess → reportSourceOutcome. Durable knowledge lives on the source (DB),
+// surfaced to every project's task on read — NOT in chat memory. When a platform adds a captcha or
+// changes flow, the running agent calls this once; the whole catalog + all sites learn.
+export interface OutcomeInput {
+  status: 'success' | 'blocked' | 'rejected' | 'flow-changed' | 'assisted-needed';
+  automation?: Automation;                                   // set/downgrade the source's automation level
+  obstacle?: { type: string; stage?: string; note?: string }; // new gate discovered (captcha, email-verify, manual-approval…)
+  runbookPatch?: string;                                     // corrected instruction_template (goes to the SOURCE, not the task)
+  note?: string;
+}
+export async function reportSourceOutcome(taskId: number, input: OutcomeInput): Promise<{ ok: boolean; sourceId?: number; automationChanged?: { from: string | null; to: string } | null; needsHuman?: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  try {
+    const tr = (await db.execute(sql`SELECT id, project_id, prep_payload->>'source_url' AS src FROM human_tasks WHERE id = ${Number(taskId)} AND platform_key = 'backlink' LIMIT 1`)) as unknown as Array<{ id: number; project_id: string | null; src: string | null }>;
+    const task = tr[0];
+    if (!task) return { ok: false, error: 'task not found (backlink)' };
+    const at = new Date().toISOString().slice(0, 10);
+    const projectId = task.project_id || '';
+
+    // 1) Update the SOURCE (root) if this task derives from a catalog source.
+    let sourceId: number | undefined;
+    let automationChanged: { from: string | null; to: string } | null = null;
+    if (task.src) {
+      const sr = (await db.execute(sql`SELECT id, automation, obstacles, exec_log FROM backlink_sources WHERE canonical_url = ${task.src} LIMIT 1`)) as unknown as Array<{ id: number; automation: string | null; obstacles: unknown; exec_log: unknown }>;
+      const s = sr[0];
+      if (s) {
+        sourceId = Number(s.id);
+        const oldAuto = s.automation ?? null;
+        const newAuto = input.automation ?? oldAuto;
+        if (input.automation && input.automation !== oldAuto) automationChanged = { from: oldAuto, to: input.automation };
+        // merge obstacle (dedup by type+stage)
+        const obstacles = Array.isArray(s.obstacles) ? [...(s.obstacles as Array<{ type: string; stage?: string; note?: string; at?: string }>)] : [];
+        if (input.obstacle) {
+          const key = (o: { type: string; stage?: string }) => `${o.type}|${o.stage || ''}`;
+          const idx = obstacles.findIndex((o) => key(o) === key(input.obstacle!));
+          const entry = { ...input.obstacle, at };
+          if (idx >= 0) obstacles[idx] = entry; else obstacles.push(entry);
+        }
+        // append exec_log, cap last 20
+        const log = Array.isArray(s.exec_log) ? [...(s.exec_log as unknown[])] : [];
+        log.push({ at, project: projectId, taskId: Number(taskId), status: input.status, note: input.note || null });
+        const trimmed = log.slice(-20);
+        // automation downgrade → flag the source for review (strategy changed)
+        const downgraded = automationChanged && AUTOMATION_NEEDS_HUMAN.has(automationChanged.to) && !AUTOMATION_NEEDS_HUMAN.has(automationChanged.from || 'auto');
+        await db.execute(sql`
+          UPDATE backlink_sources SET
+            automation = ${newAuto},
+            obstacles = ${JSON.stringify(obstacles)}::jsonb,
+            exec_log = ${JSON.stringify(trimmed)}::jsonb,
+            last_run_at = now(), last_run_outcome = ${input.status}, last_run_note = ${input.note ?? null},
+            ${input.runbookPatch ? sql`instruction_template = ${input.runbookPatch},` : sql``}
+            source_status = ${downgraded ? 'needs-review' : sql`source_status`},
+            updated_at = now()
+          WHERE id = ${sourceId}`);
+      }
+    }
+
+    // 2) Update the TASK — the blocker is the per-task actionable flag the board's RED ALERT keys off.
+    const needsHuman = input.status === 'assisted-needed' || (input.automation ? AUTOMATION_NEEDS_HUMAN.has(input.automation) : false);
+    if (input.status === 'success') {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = (COALESCE(prep_payload,'{}'::jsonb) - 'blocker'), updated_at = now() WHERE id = ${Number(taskId)}`);
+    } else {
+      const blocker = { reason: input.obstacle?.type || (input.status === 'rejected' ? 'rejected' : 'needs-human'), note: input.note || input.obstacle?.note || '', at, needsHuman };
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload,'{}'::jsonb), '{blocker}', ${JSON.stringify(blocker)}::jsonb), updated_at = now() WHERE id = ${Number(taskId)}`);
+    }
+    if (projectId) { revalidatePath(`/p/${projectId}/plays`, 'page'); revalidatePath(`/p/${projectId}/backlinks`, 'page'); revalidatePath('/plays', 'page'); }
+    return { ok: true, sourceId, automationChanged, needsHuman };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

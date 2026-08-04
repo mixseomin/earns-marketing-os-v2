@@ -273,6 +273,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/team',          icon: '👥', color: 'var(--neon-lime)',   label: 'Team',             sub: 'members · roles · assignment', role: 'admin' },
         { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers', role: 'admin' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
+        { href: '/servers',       icon: '🖥', color: 'var(--neon-cyan)',   label: 'Servers',          sub: 'boxes · specs · cost · sites', role: 'admin' },
         { href: '/unmapped',      icon: '⚠', color: 'var(--neon-amber)',   label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },
         { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architect',        sub: 'system map · objects · flows', role: 'admin' },

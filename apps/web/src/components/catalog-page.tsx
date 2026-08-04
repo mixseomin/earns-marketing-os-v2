@@ -1,8 +1,10 @@
 'use client';
 
 // Manage the shared METHOD/play catalog (backlink_sources) — separate from /plays (which manages seeded
-// TASK instances). Grouped Nhóm → Level → method, so "Kéo leads" (or any niche) reads as a group with its
-// levels inside. Reuses SourceEditor for add/edit; archive via setBacklinkSourceStatus.
+// TASK instances). Grouped Nhóm → Level → method. Reuses SourceEditor for add/edit; archive via
+// setBacklinkSourceStatus. YDNI: each row shows only name + the few glanceable signals (dofollow / ran-
+// through-browser / status); everything else (level, tags, DA, URL, template) lives one click inside the
+// editor. Colour = signal only (green value/ok · amber attention · red broken); the rest is neutral.
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
@@ -17,6 +19,10 @@ const LEVEL_ORDER = ['level-1', 'level-2', 'level-3', 'level-4', ''];
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (on: boolean, c = 'var(--accent)'): CSSProperties => ({ fontSize: 11, fontWeight: 700, padding: '3px 11px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' };
+// Colour = signal only (YDNI colour discipline): green=value/ok, amber=needs-attention, red=broken. Rest neutral.
+const GOOD = 'var(--good,#39c07a)', WARN = 'var(--warn,#ffb03c)', BAD = 'var(--bad,#ef4444)';
+const sig = (color: string): CSSProperties => ({ ...badge, color, borderColor: `color-mix(in srgb, ${color} 32%, transparent)` });
+const iconBtn: CSSProperties = { fontSize: 12, padding: '3px 7px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', cursor: 'pointer', whiteSpace: 'nowrap' };
 
 const levelOf = (s: BacklinkSource) => s.audienceTags.find((t) => LEVEL_RE.test(t)) ?? '';
 const groupsOf = (s: BacklinkSource) => s.audienceTags.filter((t) => !NOISE.has(t) && !CATEGORY.has(t) && !LEVEL_RE.test(t));
@@ -34,8 +40,6 @@ function browserAgo(iso: string | null): string {
 export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string; taskCount: number }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Selected project lives in the URL (?gen=…) so it survives reload / is shareable, and a soft nav
-  // refreshes the `fanouts` prop → badge updates after Claude fulfills. (feedback_url_state)
   const genProject = searchParams.get('gen') ?? '';
   const setGenProject = (id: string) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -49,6 +53,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   const [nhom, setNhom] = useState('');
   const [playOnly, setPlayOnly] = useState(true);
   const [archived, setArchived] = useState(false);
+  const [showFanout, setShowFanout] = useState(!!genProject); // occasional power action → hidden until opened (YDNI)
   const [edit, setEdit] = useState<BacklinkSource | Record<string, never> | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [genBusy, setGenBusy] = useState<number | null>(null);
@@ -59,14 +64,16 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
     const r = await queueMethodFanout(sourceId, genProject);
     setGenBusy(null);
     setGenMsg((m) => ({ ...m, [sourceId]: r.ok ? (r.already ? '⏳ đã xếp hàng rồi' : '✓ đã xếp hàng → Claude research') : `✗ ${r.error}` }));
-    if (r.ok) router.refresh();   // persist: reload DB fanout status so the badge shows on any machine
+    if (r.ok) router.refresh();
   };
 
   const reload = async (nextArchived = archived) => setSources(await listBacklinkSources({ status: nextArchived ? 'archived' : 'active' }));
   const toggleArchived = async () => { const v = !archived; setArchived(v); await reload(v); };
   const setStatus = async (id: number, to: string) => { setBusy(id); await setBacklinkSourceStatus(id, to); await reload(); setBusy(null); };
 
-  const base = useMemo(() => sources.filter((s) => (playOnly ? s.audienceTags.includes('play') : true)), [sources, playOnly]);
+  // When searching, IGNORE the "chỉ phương pháp" toggle so search always surfaces the match (e.g. SaaSHub
+  // isn't 'play'-tagged and would otherwise stay hidden). Search must show what you look for. (H1 fix)
+  const base = useMemo(() => (playOnly && !q.trim() ? sources.filter((s) => s.audienceTags.includes('play')) : sources), [sources, playOnly, q]);
   const searched = useMemo(() => {
     const s = q.trim().toLowerCase();
     return base.filter((src) => !s || `${src.name} ${src.canonicalUrl} ${src.category || ''} ${src.mechanism || ''} ${src.audienceTags.join(' ')} ${src.instructionTemplate || ''}`.toLowerCase().includes(s));
@@ -90,51 +97,45 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
       .map(([g, items]) => ({ key: g, label: groupLabel(g), items: items.sort((a, b) => (LEVEL_ORDER.indexOf(levelOf(a)) - LEVEL_ORDER.indexOf(levelOf(b))) || a.name.localeCompare(b.name)) }));
   }, [list, nhom]);
 
+  // One row = name + only the glanceable signals; the whole row is the edit trigger. Secondary metadata
+  // (what it does / DA / usage) sits on a muted second line; everything else is inside the editor.
   const row = (s: BacklinkSource) => {
-    const lv = levelOf(s);
-    const gm = genMsg[s.id];
     const fo = genProject ? fanoutMap[`${s.id}:${genProject}`] : undefined;
-    const extraTags = s.audienceTags.filter((t) => !NOISE.has(t) && !LEVEL_RE.test(t) && t !== primaryGroup(s));
+    const gm = genMsg[s.id];
+    const st = s.sourceStatus === 'needs-review' ? { t: '⚠ cần review', c: WARN } : s.sourceStatus === 'broken' ? { t: '⚠ hỏng', c: BAD } : null;
+    const meta = [s.mechanism || s.category, s.da ? `DA ${s.da}` : '', s.usageCount > 0 ? `${s.usageCount} dự án` : ''].filter(Boolean).join('  ·  ');
     return (
-      <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '7px 10px' }}>
+      <div key={s.id} onClick={() => setEdit(s)} title="Bấm để sửa" style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 11px', cursor: 'pointer' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => setEdit(s)} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)', cursor: 'pointer', textAlign: 'left' }}>{s.name}</button>
-            {lv && <span style={{ ...badge, color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }} title="Level">{LEVEL_LABEL[lv] ?? lv}</span>}
-            {s.category && <span style={badge}>{s.category}</span>}
-            {s.dofollow && <span style={{ ...badge, color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
-            {s.da && <span style={badge}>DA {s.da}</span>}
-            {s.usageCount > 0 && <span style={{ ...badge, color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }} title="Số dự án đang dùng">{s.usageCount} dự án</span>}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{s.name}</span>
+            {s.dofollow === 'dofollow' && <span style={sig(GOOD)}>dofollow</span>}
+            {st && <span style={sig(st.c)}>{st.t}</span>}
             {s.lastRunAt
-              ? <span style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 30%, transparent)' }} title={`Đã chạy thật qua browser ${String(s.lastRunAt).slice(0, 10)} → ${s.lastRunOutcome || '?'}${s.automation ? ' · ' + s.automation : ''}`}>🔎 {browserAgo(s.lastRunAt)}{s.lastRunOutcome ? ' · ' + s.lastRunOutcome : ''}</span>
-              : <span style={{ ...badge, color: 'var(--fg-4)' }} title="Chưa chạy thực tế qua browser lần nào">○ chưa qua browser</span>}
+              ? <span style={sig(GOOD)} title={`Đã chạy thật qua browser ${String(s.lastRunAt).slice(0, 10)} → ${s.lastRunOutcome || '?'}${s.automation ? ' · ' + s.automation : ''}`}>🔎 {browserAgo(s.lastRunAt)}</span>
+              : <span style={{ ...badge, color: 'var(--fg-4)' }} title="Chưa chạy thực tế qua browser lần nào">○ chưa chạy</span>}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {/^https?:\/\//.test(s.canonicalUrl)
-              ? <a href={s.canonicalUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-3)', textDecoration: 'none' }} title={s.canonicalUrl}>↗ {s.canonicalUrl.replace(/^https?:\/\//, '').slice(0, 52)}</a>
-              : <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }} title={s.canonicalUrl}>· method (không có URL riêng — xem hướng dẫn)</span>}
-            {extraTags.length > 0 && <span>{extraTags.join(' · ')}</span>}
-          </div>
+          {meta && <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</div>}
         </div>
-        {genProject && s.audienceTags.includes('play') && (
-          <button type="button" disabled={genBusy === s.id} onClick={() => queueFanout(s.id)} style={{ ...btn, padding: '3px 8px', color: 'var(--accent)' }} title={`Sinh fan-out method này cho project đã chọn — Claude research target thật, tạo draft chờ duyệt`}>{genBusy === s.id ? '⏳' : '🎯'}</button>
-        )}
-        {gm
-          ? <span style={{ fontSize: 9, color: gm.startsWith('✗') ? 'var(--bad,#ef4444)' : 'var(--good,#39c07a)', maxWidth: 120, lineHeight: 1.2 }}>{gm}</span>
-          : fo?.status === 'queued' ? <span style={{ ...badge, color: 'var(--warn,#ffb03c)', borderColor: 'color-mix(in srgb, var(--warn,#ffb03c) 35%, transparent)' }} title="Đã queue — Claude sẽ research & tạo draft ở plays của project">⏳ đã xếp hàng</span>
-          : fo?.status === 'done' ? <a href={`/p/${genProject}/plays`} style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 35%, transparent)', textDecoration: 'none' }} title="Đã sinh — mở plays của project để duyệt các draft fan-out">✓ {fo.count} draft → duyệt</a>
-          : null}
-        <button type="button" onClick={() => setEdit(s)} style={{ ...btn, padding: '3px 8px' }} title="Sửa">✎</button>
-        {archived
-          ? <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'active')} style={{ ...btn, padding: '3px 8px' }} title="Khôi phục">♻</button>
-          : <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'archived')} style={{ ...btn, padding: '3px 8px' }} title="Lưu kho (archived)">🗄</button>}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+          {genProject && s.audienceTags.includes('play') && !fo && (
+            gm ? <span style={{ fontSize: 9, color: gm.startsWith('✗') ? BAD : GOOD, maxWidth: 110, lineHeight: 1.2 }}>{gm}</span>
+              : <button type="button" disabled={genBusy === s.id} onClick={() => queueFanout(s.id)} style={{ ...iconBtn, color: 'var(--accent)' }} title="Sinh fan-out method này cho project đã chọn — Claude research target thật, tạo draft chờ duyệt">{genBusy === s.id ? '⏳' : '🎯'}</button>
+          )}
+          {fo?.status === 'queued' && <span style={sig(WARN)} title="Đã queue — Claude sẽ research & tạo draft ở plays">⏳ xếp hàng</span>}
+          {fo?.status === 'done' && <a href={`/p/${genProject}/plays`} onClick={(e) => e.stopPropagation()} style={{ ...sig(GOOD), textDecoration: 'none' }} title="Đã sinh — mở plays để duyệt">✓ {fo.count} → duyệt</a>}
+          <button type="button" onClick={() => setEdit(s)} style={iconBtn} title="Sửa">✎</button>
+          {archived
+            ? <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'active')} style={iconBtn} title="Khôi phục">♻</button>
+            : <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'archived')} style={iconBtn} title="Lưu kho (archived)">🗄</button>}
+        </div>
       </div>
     );
   };
 
   return (
     <div style={{ padding: '12px 16px 40px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Phương pháp <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// catalog · {list.length}{archived ? ' (kho lưu)' : ''}</small></h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <a href="/plays" style={{ ...btn, textDecoration: 'none' }} title="Về bảng quản lý task">← Plays (task)</a>
@@ -142,28 +143,18 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
         </div>
       </div>
 
-      <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.5 }}>
-        Kho <b>phương pháp dùng chung</b> (mẫu). Vào 1 project → Plays → “Seed từ catalog” để biến 1 phương pháp thành task. Sửa template ở đây <b>lan xuống mọi task đã seed</b>.
+      <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 10 }}>
+        Kho <b>phương pháp</b> dùng chung — bấm 1 dòng để sửa; sửa 1 method <b>lan xuống mọi task đã seed</b>.{' '}
+        <span title="Vào 1 project → /plays → 'Seed từ catalog' để biến 1 method thành task">ⓘ seed thành task ở /plays</span>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm tên / URL / tag / template…" autoComplete="off" style={{ ...btn, flex: '1 1 220px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
-        <button type="button" onClick={() => setPlayOnly((v) => !v)} style={chip(playOnly)} title="Chỉ phương pháp (tag 'play'). Tắt = xem cả nguồn backlink lẻ.">chỉ phương pháp</button>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm tên / URL / tag / template… (bỏ qua mọi lọc)" autoComplete="off" style={{ ...btn, flex: '1 1 240px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
+        <button type="button" onClick={() => setPlayOnly((v) => !v)} style={chip(playOnly)} title="Chỉ phương pháp (tag 'play'). Tắt = xem cả nguồn backlink lẻ. (Search tự bỏ qua lọc này.)">chỉ phương pháp</button>
         <button type="button" onClick={toggleArchived} style={chip(archived, 'var(--fg-2)')} title="Xem kho lưu (archived)">🗄 kho lưu</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 600 }}>🎯 Sinh fan-out cho project:</span>
-        <select value={genProject} onChange={(e) => setGenProject(e.target.value)} style={{ ...btn, cursor: 'pointer', padding: '4px 8px', background: 'var(--bg-2)' }}>
-          <option value="">— chọn project —</option>
-          {projects.map((p) => <option key={p.id} value={p.id}>{p.emoji ? p.emoji + ' ' : ''}{p.name}</option>)}
-        </select>
-        {genProject
-          ? <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>→ bấm 🎯 ở method → Claude research target THẬT → draft chờ duyệt ở <code>/p/{genProject}/plays</code></span>
-          : <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>chọn project để bật nút 🎯 sinh trên từng method</span>}
-      </div>
-
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginRight: 2 }}>Nhóm</span>
         <button type="button" onClick={() => setNhom('')} style={chip(!nhom)}>tất cả</button>
         {nhomCounts.map(([g, n]) => <button key={g} type="button" onClick={() => setNhom(nhom === g ? '' : g)} style={chip(nhom === g)}>{groupLabel(g)} <span style={{ opacity: 0.6 }}>{n}</span></button>)}
@@ -171,8 +162,24 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
 
       {nhom === 'leads' && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 8 }}>NGAY = harvest tay (ra lead sớm, proof) · NHANH = organic (Pinterest/pSEO) · TRUNG = authority (Digital-PR/email) · TRẢ TIỀN = ads (gated)</div>}
 
+      {/* fan-out = occasional power action → collapsed by default (YDNI) */}
+      <div style={{ marginBottom: 10 }}>
+        <button type="button" onClick={() => setShowFanout((v) => !v)} style={{ ...iconBtn, fontSize: 11, fontWeight: 600, color: genProject ? 'var(--accent)' : 'var(--fg-3)' }} title="Sinh hàng loạt task từ 1 method cho 1 project (Claude research target thật)">
+          {showFanout ? '▾' : '▸'} 🎯 Sinh fan-out cho project{genProject ? `: ${projects.find((p) => p.id === genProject)?.name ?? genProject}` : ''}
+        </button>
+        {showFanout && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center', flexWrap: 'wrap', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
+            <select value={genProject} onChange={(e) => setGenProject(e.target.value)} style={{ ...btn, cursor: 'pointer', padding: '4px 8px', background: 'var(--bg-2)' }}>
+              <option value="">— chọn project —</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.emoji ? p.emoji + ' ' : ''}{p.name}</option>)}
+            </select>
+            <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{genProject ? <>→ bấm 🎯 ở method → draft chờ duyệt ở <code>/p/{genProject}/plays</code></> : 'chọn project để bật nút 🎯 trên từng method'}</span>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 6 }}>
-        {sections.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có phương pháp nào khớp.</div>}
+        {sections.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không có phương pháp nào khớp{q.trim() ? ` "${q.trim()}"` : ''}.</div>}
         {sections.map((sec) => (
           <div key={sec.key}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-2)', marginBottom: 6, display: 'flex', gap: 6, alignItems: 'center' }}>

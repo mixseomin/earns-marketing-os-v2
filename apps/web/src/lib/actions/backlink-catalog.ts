@@ -110,7 +110,8 @@ export async function listBacklinkSources(opts?: {
   }
   if (opts?.audience) list = list.filter((s) => s.audienceTags.includes(opts.audience!));
   if (opts?.category) list = list.filter((s) => s.category === opts.category);
-  if (opts?.status) list = list.filter((s) => s.sourceStatus === opts.status);
+  if (opts?.status === 'archived') list = list.filter((s) => s.sourceStatus === 'archived');
+  else if (opts?.status) list = list.filter((s) => s.sourceStatus !== 'archived'); // "active" view = all non-archived (needs-review/broken stay visible + flagged, never vanish)
   return list;
 }
 
@@ -446,7 +447,7 @@ export async function reportSourceOutcome(taskId: number, input: OutcomeInput): 
         log.push({ at, project: projectId, taskId: Number(taskId), status: input.status, note: input.note || null });
         const trimmed = log.slice(-20);
         // automation downgrade → flag the source for review (strategy changed)
-        const downgraded = automationChanged && automationNeedsHuman(automationChanged.to) && !automationNeedsHuman(automationChanged.from || 'auto');
+        const downgraded = automationChanged && automationChanged.to === 'blocked'; // only a genuine hard-block flags review; assisted/manual/dead are normal steady states → stay active + visible
         await db.execute(sql`
           UPDATE backlink_sources SET
             automation = ${newAuto},

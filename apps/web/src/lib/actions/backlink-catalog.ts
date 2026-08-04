@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
 import { nichesForProject } from '../backlink-sites';
+import { automationNeedsHuman, type Automation } from '../backlink-gates';
 
 export interface BacklinkSource {
   id: number;
@@ -32,10 +33,8 @@ export interface BacklinkSource {
   usedByHere?: boolean; // already seeded to the queried project
   usageCount: number;   // distinct projects that have a task from this source
 }
-export type Automation = 'auto' | 'assisted' | 'manual' | 'blocked' | 'dead';
-// Does this automation level require a human to step in? Drives the on-screen red alert.
-// Module-local (not exported) — a 'use server' file may only export async functions, not objects.
-const AUTOMATION_NEEDS_HUMAN = new Set(['assisted', 'manual', 'blocked']);
+// Automation classification lives in one shared module (backlink-gates) — imported above; used by
+// reportSourceOutcome via automationNeedsHuman(). No local copy of the set.
 
 type Row = Record<string, unknown>;
 function mapRow(r: Row): BacklinkSource {
@@ -447,7 +446,7 @@ export async function reportSourceOutcome(taskId: number, input: OutcomeInput): 
         log.push({ at, project: projectId, taskId: Number(taskId), status: input.status, note: input.note || null });
         const trimmed = log.slice(-20);
         // automation downgrade → flag the source for review (strategy changed)
-        const downgraded = automationChanged && AUTOMATION_NEEDS_HUMAN.has(automationChanged.to) && !AUTOMATION_NEEDS_HUMAN.has(automationChanged.from || 'auto');
+        const downgraded = automationChanged && automationNeedsHuman(automationChanged.to) && !automationNeedsHuman(automationChanged.from || 'auto');
         await db.execute(sql`
           UPDATE backlink_sources SET
             automation = ${newAuto},
@@ -462,7 +461,7 @@ export async function reportSourceOutcome(taskId: number, input: OutcomeInput): 
     }
 
     // 2) Update the TASK — the blocker is the per-task actionable flag the board's RED ALERT keys off.
-    const needsHuman = input.status === 'assisted-needed' || (input.automation ? AUTOMATION_NEEDS_HUMAN.has(input.automation) : false);
+    const needsHuman = input.status === 'assisted-needed' || automationNeedsHuman(input.automation);
     if (input.status === 'success') {
       await db.execute(sql`UPDATE human_tasks SET prep_payload = (COALESCE(prep_payload,'{}'::jsonb) - 'blocker'), updated_at = now() WHERE id = ${Number(taskId)}`);
     } else {

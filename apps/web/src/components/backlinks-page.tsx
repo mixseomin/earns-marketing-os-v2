@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
+import { AUTOMATION_META, automationBadge, automationNeedsHuman } from '@/lib/backlink-gates';
 import { SourceEditor } from './source-editor';
 import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
@@ -358,14 +359,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   // In global mode a task acts on its OWN project/slug, not one page-level value.
   const slugForTask = (t?: BacklinkTask | null) => (allProjects ? (t?.projectSlug ?? '') : slug);
   const projectForTask = (t?: BacklinkTask | null) => (allProjects && t?.projectId ? (projectsById?.[t.projectId] ?? project) : project);
-  // Self-learning surfaced per-task: the source's learned automation (assisted/blocked/dead) shows on EVERY
-  // task that derives from it, any project — so a sibling task visibly warns before you waste an auto attempt.
-  const AUTO_BADGE: Record<string, { icon: string; label: string; color: string }> = {
-    assisted: { icon: '🖐', label: 'assisted', color: '#ffb03c' },
-    manual: { icon: '🖐', label: 'manual', color: '#ffb03c' },
-    blocked: { icon: '🚫', label: 'blocked', color: 'var(--bad,#ef4444)' },
-    dead: { icon: '⛔', label: 'dead', color: 'var(--bad,#ef4444)' },
-  };
+  // Self-learning surfaced per-task: the source's learned automation shows on EVERY task that derives from it
+  // (any project) via the shared AUTOMATION_META — so a sibling visibly warns before you waste an auto attempt.
   const intelFor = (t: BacklinkTask) => (t.sourceUrl ? sourceIntel[t.sourceUrl] : undefined);
   // Step-0 precondition: the task's project must have a browser profile to run at all.
   const browserReadySet = new Set(browserReady);
@@ -675,7 +670,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
         {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
-        {(() => { const it = intelFor(t); const b = it && AUTO_BADGE[it.automation]; if (!b) return null; const gate = it!.obstacles?.[0]; return <span title={`Nguồn tự học: ${it!.automation}${it!.obstacles?.length ? ' · ' + it!.obstacles.map((o) => o.type + (o.stage ? '@' + o.stage : '')).join(', ') : ''}`}><Tag color={b.color}>{b.icon} {b.label}{gate ? ' · ' + gate.type : ''}</Tag></span>; })()}
+        {(() => { const it = intelFor(t); const b = it && automationBadge(it.automation); if (!b) return null; const gate = it!.obstacles?.[0]; return <span title={`Nguồn tự học: ${it!.automation}${it!.obstacles?.length ? ' · ' + it!.obstacles.map((o) => o.type + (o.stage ? '@' + o.stage : '')).join(', ') : ''}`}><Tag color={b.color}>{b.icon} {b.label}{gate ? ' · ' + gate.type : ''}</Tag></span>; })()}
         {needsBrowser(t) && <span title="Project chưa có browser profile → không chạy được task. Tạo: browsers new <label> <slug> <gmail> <project>"><Tag color="#ffb03c">⚠ cần browser</Tag></span>}
       </div>
     );
@@ -771,7 +766,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           const pid = t.projectId || projectId;
           if (pid && needsBrowser(t)) missBrowser.set(pid, (missBrowser.get(pid) || 0) + 1);
           const it = intelFor(t);
-          if (it && AUTO_BADGE[it.automation]) { const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
+          if (it && automationNeedsHuman(it.automation)) { const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
         }
         if (!missBrowser.size && !bySource.size) return null;
         return (
@@ -1965,13 +1960,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           </div>
           {/* Execution intelligence — the self-learning state (set by reportSourceOutcome). */}
           {(src.automation || src.obstacles.length > 0 || src.lastRunAt) && (() => {
-            const needsHuman = src.automation ? ['assisted', 'manual', 'blocked'].includes(src.automation) : false;
-            const autoColor = !src.automation ? 'var(--fg-3)' : src.automation === 'auto' ? '#22c55e' : src.automation === 'dead' ? 'var(--bad,#ef4444)' : needsHuman ? '#ffb03c' : 'var(--fg-2)';
+            const meta = src.automation ? AUTOMATION_META[src.automation] : undefined;
+            const needsHuman = automationNeedsHuman(src.automation);
             return (
               <div style={{ marginBottom: 12, border: `1px solid ${needsHuman ? 'var(--bad,#ef4444)' : 'var(--line)'}`, borderRadius: 8, padding: '8px 10px', background: needsHuman ? 'color-mix(in srgb, var(--bad,#ef4444) 8%, transparent)' : 'var(--bg-1)' }}>
                 <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Cách chạy (tự học từ execution)</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: autoColor }}>{needsHuman ? '🖐 ' : src.automation === 'auto' ? '🤖 ' : ''}{src.automation || 'chưa rõ (chưa chạy)'}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: meta?.color ?? 'var(--fg-3)' }}>{meta ? meta.icon + ' ' : ''}{src.automation || 'chưa rõ (chưa chạy)'}</span>
                   {src.lastRunAt && <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>· chạy gần nhất {String(src.lastRunAt).slice(0, 10)} → {src.lastRunOutcome}</span>}
                 </div>
                 {src.obstacles.length > 0 && (

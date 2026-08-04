@@ -200,6 +200,15 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
   }));
 }
 
+// Projects that HAVE a browser profile bound — the step-0 precondition for running any account/backlink
+// task (you need a logged-in persona to act). A project NOT in this set can't execute; the plays board flags
+// its tasks "⚠ cần browser" and the fix is `browsers new <label> <slug> <gmail> <project>`.
+export async function listProjectsWithBrowser(): Promise<string[]> {
+  const db = getDb(); if (!db) return [];
+  const rows = (await db.execute(sql`SELECT DISTINCT project_id FROM project_browser_profiles`)) as unknown as Array<{ project_id: string }>;
+  return rows.map((r) => String(r.project_id));
+}
+
 // ── Projects assigned to a browser profile (many-to-many via project_browser_profiles) ──
 // Mirror accountProjectsPanel/join/leave. A profile can be gán cho nhiều project.
 export async function browserProfileProjects(profileId: number): Promise<{

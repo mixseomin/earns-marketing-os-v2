@@ -343,11 +343,12 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, initialView, allProjects, projectsById }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
   sourceIntel?: Record<string, SourceIntel>;   // canonical_url → learned {automation, obstacles}; drives the per-card 🖐 badge (self-learning propagates to every project's task by source, read-time)
+  browserReady?: string[];   // project ids that HAVE a browser profile — step-0 precondition to run any task; others get a "⚠ cần browser" badge
   initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
   // Global /plays (all projects): tasks carry projectId/projectSlug/projectLabel; per-task project resolved
   // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
@@ -366,6 +367,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     dead: { icon: '⛔', label: 'dead', color: 'var(--bad,#ef4444)' },
   };
   const intelFor = (t: BacklinkTask) => (t.sourceUrl ? sourceIntel[t.sourceUrl] : undefined);
+  // Step-0 precondition: the task's project must have a browser profile to run at all.
+  const browserReadySet = new Set(browserReady);
+  const needsBrowser = (t: BacklinkTask) => { const pid = t.projectId || projectId; return pid ? !browserReadySet.has(pid) : false; };
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
@@ -672,6 +676,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
         {!t.blocker && t.resolved && <Tag color="#22c55e">🟢 vừa gỡ vướng</Tag>}
         {(() => { const it = intelFor(t); const b = it && AUTO_BADGE[it.automation]; if (!b) return null; const gate = it!.obstacles?.[0]; return <span title={`Nguồn tự học: ${it!.automation}${it!.obstacles?.length ? ' · ' + it!.obstacles.map((o) => o.type + (o.stage ? '@' + o.stage : '')).join(', ') : ''}`}><Tag color={b.color}>{b.icon} {b.label}{gate ? ' · ' + gate.type : ''}</Tag></span>; })()}
+        {needsBrowser(t) && <span title="Project chưa có browser profile → không chạy được task. Tạo: browsers new <label> <slug> <gmail> <project>"><Tag color="#ffb03c">⚠ cần browser</Tag></span>}
       </div>
     );
     const cardStyle: CSSProperties = { display: 'flex', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: t.tier === 'A' ? 'rgba(245,197,24,0.05)' : 'var(--bg-1)', ...(t.tier ? { borderLeft: `3px solid ${TIER_META[t.tier]?.color ?? 'var(--line)'}` } : {}) };
@@ -752,16 +757,39 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           </div>
         );
       })()}
-      {/* Source-level heads-up (amber): sources the catalog LEARNED need a human (assisted/blocked/dead),
-          grouped, counting EVERY project's task on them — so you see the strategy before running siblings. */}
+      {/* PRE-FLIGHT readiness (amber): what must be set up BEFORE these tasks can run — the point of showing
+          it here (not mid-execution) is to plan/prep. (1) projects missing a browser (step-0 precondition,
+          fix = browsers new), (2) sources the catalog LEARNED need a human at runtime (assisted/blocked/dead).
+          Counts are de-duped by task id (the global board expands one task into a row per applies-to project). */}
       {(() => {
+        const seen = new Set<number>();
+        const missBrowser = new Map<string, number>();   // projectId → distinct to-do tasks blocked on browser
         const bySource = new Map<string, { count: number; automation: string; gate?: string }>();
-        for (const t of tasks) { const it = intelFor(t); if (!it || !AUTO_BADGE[it.automation]) continue; const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
-        if (!bySource.size) return null;
+        for (const t of tasks) {
+          if (t.siteState === 'completed' || t.siteState === 'verified') continue;
+          if (seen.has(t.id)) continue; seen.add(t.id);
+          const pid = t.projectId || projectId;
+          if (pid && needsBrowser(t)) missBrowser.set(pid, (missBrowser.get(pid) || 0) + 1);
+          const it = intelFor(t);
+          if (it && AUTO_BADGE[it.automation]) { const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
+        }
+        if (!missBrowser.size && !bySource.size) return null;
         return (
-          <div style={{ border: '1px solid #ffb03c', background: 'color-mix(in srgb, #ffb03c 10%, transparent)', borderRadius: 8, padding: '7px 12px', marginBottom: 10, fontSize: 11.5, color: 'var(--fg-1)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <b style={{ color: '#c77f16' }}>🖐 Nguồn tự học cần người:</b>
-            {[...bySource].map(([k, v]) => <span key={k} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{k} · {v.automation}{v.gate ? '/' + v.gate : ''} ×{v.count}</span>)}
+          <div style={{ border: '1px solid #ffb03c', background: 'color-mix(in srgb, #ffb03c 10%, transparent)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 11.5, color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <b style={{ color: '#c77f16', fontSize: 12 }}>🚦 Chuẩn bị trước khi chạy</b>
+            {missBrowser.size > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span title="Project chưa có browser profile → không chạy được task nào. Tạo: browsers new <label> <slug> <gmail> <project>">⚠ Chưa có browser:</span>
+                {[...missBrowser].map(([pid, n]) => <span key={pid} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{projectsById?.[pid]?.name || pid} ×{n}</span>)}
+                <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>→ browsers new …</span>
+              </div>
+            )}
+            {bySource.size > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span title="Nguồn catalog đã học là cần người (captcha/verify) khi chạy — gom lại để giải 1 lượt">🖐 Cần người khi chạy:</span>
+                {[...bySource].map(([k, v]) => <span key={k} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{k} · {v.automation}{v.gate ? '/' + v.gate : ''} ×{v.count}</span>)}
+              </div>
+            )}
           </div>
         );
       })()}

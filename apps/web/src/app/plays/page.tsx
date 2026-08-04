@@ -3,7 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { BacklinksPage } from '@/components/backlinks-page';
 import { getMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
-import { listProxies, listBrowserProfiles } from '@/lib/actions/environments';
+import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
 import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
@@ -21,7 +21,7 @@ export default async function GlobalPlaysRoute() {
 
   const projects = await listProjects();
   const tracked = projects.filter((p) => resolveSiteSlug(p.id));
-  const [mode, tasks, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, ...acctLists] = await Promise.all([
+  const [mode, tasks, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, ...acctLists] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
     listPlatforms(),
@@ -30,6 +30,7 @@ export default async function GlobalPlaysRoute() {
     listProxies(),
     listBrowserProfiles(),
     listSourceIntel(),
+    listProjectsWithBrowser(),
     ...tracked.map((p) => listAccounts(p.id)),
   ]);
   // Backlink accounts are tenant-shared → union the per-project lists, dedupe by id.
@@ -46,7 +47,7 @@ export default async function GlobalPlaysRoute() {
       <BacklinksPage allProjects projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} initialView="kanban" />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>
   );
 }

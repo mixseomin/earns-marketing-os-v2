@@ -23,6 +23,14 @@ const groupsOf = (s: BacklinkSource) => s.audienceTags.filter((t) => !NOISE.has(
 const primaryGroup = (s: BacklinkSource) => (s.audienceTags.includes('leads') ? 'leads' : (groupsOf(s)[0] ?? '(chung)'));
 const groupLabel = (g: string) => (g === 'leads' ? '🎯 Kéo leads' : g === '(chung)' ? '📦 Chung / universal' : g);
 
+// "how long since this source was last actually run through a browser" (last_run_at, set by reportSourceOutcome)
+function browserAgo(iso: string | null): string {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  return d > 0 ? `${d}d trước` : h > 0 ? `${h}h trước` : m > 0 ? `${m}m trước` : 'vừa xong';
+}
+
 export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string; taskCount: number }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -97,6 +105,9 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
             {s.dofollow && <span style={{ ...badge, color: s.dofollow === 'dofollow' ? 'var(--good,#39c07a)' : 'var(--fg-4)' }}>{s.dofollow}</span>}
             {s.da && <span style={badge}>DA {s.da}</span>}
             {s.usageCount > 0 && <span style={{ ...badge, color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }} title="Số dự án đang dùng">{s.usageCount} dự án</span>}
+            {s.lastRunAt
+              ? <span style={{ ...badge, color: 'var(--good,#39c07a)', borderColor: 'color-mix(in srgb, var(--good,#39c07a) 30%, transparent)' }} title={`Đã chạy thật qua browser ${String(s.lastRunAt).slice(0, 10)} → ${s.lastRunOutcome || '?'}${s.automation ? ' · ' + s.automation : ''}`}>🔎 {browserAgo(s.lastRunAt)}{s.lastRunOutcome ? ' · ' + s.lastRunOutcome : ''}</span>
+              : <span style={{ ...badge, color: 'var(--fg-4)' }} title="Chưa chạy thực tế qua browser lần nào">○ chưa qua browser</span>}
           </div>
           <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             {/^https?:\/\//.test(s.canonicalUrl)

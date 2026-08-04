@@ -11,7 +11,7 @@ export const BACKLINK_SITES: { slug: string; domain: string; label: string; emoj
   { slug: 'paydochub',        domain: 'paydochub.com',        label: 'PayDocHub',        emoji: '🧾', niches: ['payroll', 'hr', 'finance'] },
   { slug: 'maileyes',         domain: 'maileyes.com',         label: 'MailEyes',         emoji: '📧', niches: ['email', 'saas', 'marketing', 'devtools'] },
   { slug: 'chatlt',           domain: 'chatlt.com',           label: 'ChatLT',           emoji: '💬', niches: ['chat', 'saas'] },
-  { slug: 'cities',           domain: 'cities.gg',            label: 'Cities.gg',        emoji: '🏙️', niches: ['games', 'geo-data', 'reference'] },
+  { slug: 'cities-gg',        domain: 'cities.gg',            label: 'Cities.gg',        emoji: '🏙️', niches: ['games', 'geo-data', 'reference'] },
   { slug: 'militarymarkdown', domain: 'militarymarkdown.com', label: 'MilitaryMarkdown', emoji: '🪖', niches: ['military', 'writing-tools', 'devtools'] },
   { slug: 'mint-almanac',     domain: 'mintalmanac.com',      label: 'Mint Almanac',     emoji: '🪙', niches: ['coins', 'collectibles'] },
   { slug: 'steamsolo',        domain: 'steamsolo.com',        label: 'steamsolo.com',    emoji: '🎮', niches: ['games', 'game-guides'] },
@@ -21,7 +21,9 @@ const BY_DOMAIN = new Map(BACKLINK_SITES.map((s) => [s.domain, s.slug]));
 const BY_SLUG = new Set(BACKLINK_SITES.map((s) => s.slug));
 
 // MOS2 project id → backlink site slug when they differ (most are identical).
-const PROJECT_SLUG_OVERRIDE: Record<string, string> = { 'cities-gg': 'cities' };
+// Empty by design: every project id now equals its site slug, so the site_status key the seeder/ext WRITE
+// matches what the board READs. (Was {'cities-gg':'cities'} — that mismatch hid all 12 cities-gg tasks.)
+const PROJECT_SLUG_OVERRIDE: Record<string, string> = {};
 
 // domain (with/without trailing slash, www) → backlink site slug, or null.
 export function siteSlugForDomain(domain: string): string | null {

@@ -6,7 +6,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { revalidatePath } from 'next/cache';
-import { nichesForProject } from '../backlink-sites';
+import { nichesForProject, resolveSiteSlug } from '../backlink-sites';
 import { automationNeedsHuman, type Automation } from '../backlink-gates';
 
 export interface BacklinkSource {
@@ -190,7 +190,7 @@ export async function seedBacklinksFromCatalog(
         da: s.da ?? null,
         dofollow: s.dofollow ?? null,
         traffic: s.traffic ?? null,
-        site_status: { [projectId]: 'pending' },
+        site_status: { [resolveSiteSlug(projectId) ?? projectId]: 'pending' }, // key by SLUG (what the board reads), not raw project id — matters if id≠slug
         seeded_from_catalog: true,
       };
       await db.execute(sql`

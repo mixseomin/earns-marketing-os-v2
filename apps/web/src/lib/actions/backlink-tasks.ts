@@ -83,7 +83,25 @@ const asArr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 // List the backlink/distribution tasks that apply to a project. Registered SEO sites use their slug;
 // ANY other project falls back to its id (the site_status key the seeder / fan-out writes) so marketing
 // projects (astrolas, …) can hold plays too. Empty result if the project simply has no tasks.
-export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[]> {
+// Platform catalog for URL→key detection (signup_url host + bare-hostname keys).
+// Built once; the global /plays view reuses it across all 11 sites instead of
+// re-running the 300-row `SELECT … FROM platforms` (~36ms) per site.
+type PlatformCatalog = { catSlug: Map<string, string>; allKeys: Set<string> };
+async function buildPlatformCatalog(db: NonNullable<ReturnType<typeof getDb>>): Promise<PlatformCatalog> {
+  const catSlug = new Map<string, string>();
+  const allKeys = new Set<string>();
+  try {
+    const cat = await db.execute(sql`SELECT key, signup_url FROM platforms`);
+    for (const row of (cat as unknown as Array<{ key: string; signup_url: string | null }>)) {
+      allKeys.add(row.key);
+      if (!row.signup_url) continue;
+      try { const h = new URL(row.signup_url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); if (h && !catSlug.has(h)) catSlug.set(h, row.key); } catch { /* skip bad url */ }
+    }
+  } catch { /* catalog unavailable → regex-only fallback */ }
+  return { catSlug, allKeys };
+}
+
+export async function getBacklinkTasks(projectId: string, catalog?: PlatformCatalog): Promise<BacklinkTask[]> {
   const slug = resolveSiteSlug(projectId) ?? projectId;
   const db = getDb();
   if (!db) return [];
@@ -105,17 +123,9 @@ export async function getBacklinkTasks(projectId: string): Promise<BacklinkTask[
       ORDER BY created_at DESC NULLS LAST, id DESC`);
     // Nhận diện platform curated qua CATALOG (signup_url host) — không chỉ HOSTNAME_TO_PLATFORM regex.
     // Platform mới thêm vào catalog (chưa có regex) vẫn được nhận → account KHỚP (cùng key reconcile bên
-    // ext). Site LẠ (không regex + không catalog) → null → no-account default (KHÔNG false-block). 1 query.
-    const catSlug = new Map<string, string>();
-    const allKeys = new Set<string>();   // every catalog key — many are just the normalized hostname
-    try {
-      const cat = await db.execute(sql`SELECT key, signup_url FROM platforms`);
-      for (const row of (cat as unknown as Array<{ key: string; signup_url: string | null }>)) {
-        allKeys.add(row.key);
-        if (!row.signup_url) continue;
-        try { const h = new URL(row.signup_url).hostname.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); if (h && !catSlug.has(h)) catSlug.set(h, row.key); } catch { /* skip bad url */ }
-      }
-    } catch { /* catalog unavailable → regex-only fallback */ }
+    // ext). Site LẠ (không regex + không catalog) → null → no-account default (KHÔNG false-block).
+    // Global /plays passes a prebuilt catalog so it's fetched once, not per-site.
+    const { catSlug, allKeys } = catalog ?? await buildPlatformCatalog(db);
     const keyForUrl = (url: string | null): string | null => {
       if (!url) return null;
       const byRegex = canonPlatformKey(detectPlatformKeyFromUrl(url) || '');
@@ -309,11 +319,14 @@ export async function getAllBacklinkTasks(
 ): Promise<BacklinkTask[]> {
   // Iterate every tracked SITE (not just projects that have a row) so live sites with
   // backlink tasks but no projects-table entry (e.g. paydochub, chatlt) still show up.
+  // Build the platform catalog ONCE (was re-fetched 300 rows/~36ms per site = ~400ms wasted).
+  const db = getDb();
+  const catalog = db ? await buildPlatformCatalog(db) : undefined;
   const per = await Promise.all(
     BACKLINK_SITES.map(async (site) => {
       // A project id that resolves to this slug gives the drawer real project context; else use the slug itself.
       const projId = projects.find((p) => resolveSiteSlug(p.id) === site.slug)?.id ?? site.slug;
-      const ts = await getBacklinkTasks(projId);
+      const ts = await getBacklinkTasks(projId, catalog);
       return ts.map((t) => ({ ...t, projectId: projId, projectSlug: site.slug, projectLabel: site.label, projectEmoji: site.emoji }));
     }),
   );

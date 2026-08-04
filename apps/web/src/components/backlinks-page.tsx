@@ -1078,7 +1078,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
   const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
   const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
-  const imgs = media.filter((m) => (m.mimeType || '').startsWith('image') || m.kind === 'image');
+  // Scope to THIS task's project — the global /plays board ships the whole media vault (listMedia() with no
+  // arg); without this filter the drawer rendered every project's images (dozens of <img>) and hung the page.
+  const imgs = media.filter((m) => m.projectId === project.id && ((m.mimeType || '').startsWith('image') || m.kind === 'image'));
   // Already-saved stock origins → dedup: don't re-show a candidate we've already saved.
   const savedOrigins = useMemo(() => new Set(imgs.flatMap((m) => (m.tags || []).filter((t) => t.startsWith('origin:')).map((t) => t.slice(7)))), [imgs]);
   // In-drawer media prep — search stock / AI-gen, save to project media (no page jump).

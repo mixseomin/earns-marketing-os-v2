@@ -34,7 +34,8 @@ export interface BacklinkSource {
 }
 export type Automation = 'auto' | 'assisted' | 'manual' | 'blocked' | 'dead';
 // Does this automation level require a human to step in? Drives the on-screen red alert.
-export const AUTOMATION_NEEDS_HUMAN = new Set(['assisted', 'manual', 'blocked']);
+// Module-local (not exported) — a 'use server' file may only export async functions, not objects.
+const AUTOMATION_NEEDS_HUMAN = new Set(['assisted', 'manual', 'blocked']);
 
 type Row = Record<string, unknown>;
 function mapRow(r: Row): BacklinkSource {

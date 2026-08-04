@@ -65,7 +65,7 @@ export const SERVER_BOXES: ServerBox[] = [
     role: 'MOS2 command center',
     sites: ['mos2.on.tc', 'user.on.tc'],
     status: 'active',
-    notes: 'Newest + most headroom. 170ms to Postgres/Directus on box1 (US) — DB-heavy apps stay on box1.',
+    notes: 'Newest + most headroom. MOS2 runs here with its OWN local Postgres (fast — no cross-box hop). 170ms to box1 as.on.tc only bites the few shared-Directus calls (account registry).',
   },
 ];
 

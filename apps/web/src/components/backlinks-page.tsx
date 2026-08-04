@@ -664,7 +664,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.hasDraft && <Tag>📋 draft</Tag>}
         {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
         {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && (() => { const dd = daysSince(t.siteSubmittedAt); return <Tag color={dd > 30 ? 'var(--bad,#ef4444)' : dd > 14 ? '#ffb03c' : 'var(--fg-3)'}>⏳ chờ duyệt {dd}d</Tag>; })()}
-        {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag>🗓 {t.siteScheduledAt}</Tag>}
+        {!cols && t.siteScheduledAt && !t.siteDoneAt && (() => { const overdue = t.siteScheduledAt.slice(0, 10) <= new Date().toISOString().slice(0, 10); return <span title={overdue ? 'Đến hạn follow — kiểm tra đã duyệt chưa' : 'Ngày follow-up (kiểm tra duyệt)'}><Tag color={overdue ? '#ffb03c' : 'var(--fg-3)'}>🗓 follow {t.siteScheduledAt.slice(0, 10)}</Tag></span>; })()}
         {!cols && t.siteDoneAt && <Tag>✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
         {t.siteLiveUrl && (() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}

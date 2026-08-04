@@ -10,6 +10,7 @@ import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/componen
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
 import { syncTaskToProspect } from './backlink-outreach-sync';
+import { siteTimingMerges } from '../backlink-timing';
 import { uploadToR2 } from '@/lib/r2';
 
 type Row = Record<string, unknown>;
@@ -310,18 +311,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
   if (!['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'].includes(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
-  // Execution time: stamp site_done_at when the site reaches completed/verified (keep the
-  // original stamp on re-save via COALESCE); clear it if the site is re-opened.
-  const done = status === 'completed' || status === 'verified';
   const nowIso = new Date().toISOString();
-  const doneMerge = done
-    ? sql`|| jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_done_at'->>${site}, ${nowIso}))))`
-    : sql`|| jsonb_build_object('site_done_at', (COALESCE(prep_payload->'site_done_at', '{}'::jsonb) - ${site}::text))`;
-  // Stamp when the site enters "submitted" (waiting-since, for the moderation follow-up
-  // badge); clear it once it leaves submitted so aging only shows while still pending.
-  const submittedMerge = status === 'submitted'
-    ? sql`|| jsonb_build_object('site_submitted_at', COALESCE(prep_payload->'site_submitted_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_submitted_at'->>${site}, ${nowIso}))))`
-    : sql`|| jsonb_build_object('site_submitted_at', (COALESCE(prep_payload->'site_submitted_at', '{}'::jsonb) - ${site}::text))`;
   try {
     // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
     const r = await db.execute(sql`
@@ -329,8 +319,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${status}::text)))
         || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${u}::text)))
-        ${doneMerge}
-        ${submittedMerge},
+        ${siteTimingMerges(site, status, nowIso)},
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'
       RETURNING (prep_payload->'site_status') AS ss`);

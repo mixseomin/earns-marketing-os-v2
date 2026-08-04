@@ -4,6 +4,7 @@
 // Not a 'use server' entry point — imported by the mutation actions on both sides.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { siteTimingMerges } from '../backlink-timing';
 
 const SITE_RANK: Record<string, number> = { pending: 0, claimed: 1, submitted: 2, completed: 3, verified: 4 };
 const PROSPECT_RANK: Record<string, number> = { to_send: 0, sent: 1, followup_1: 2, followup_2: 3, replied: 4, interested: 5, embedded: 6 };
@@ -25,15 +26,11 @@ export async function syncProspectToTask(prospectId: number): Promise<void> {
     const tr = (await db.execute(sql`SELECT prep_payload->'site_status'->>${slug} AS cur FROM human_tasks WHERE id = ${p.task_id} LIMIT 1`)) as unknown as Array<{ cur: string | null }>;
     const cur = tr[0]?.cur ?? 'pending';
     if ((SITE_RANK[target] ?? -1) <= (SITE_RANK[cur] ?? -1)) return;   // advance only
-    const submittedFrag = target === 'submitted'
-      ? sql`|| jsonb_build_object('site_submitted_at', COALESCE(prep_payload->'site_submitted_at','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(now()::text)))`
-      : sql``;
-    const doneFrag = (target === 'completed' || target === 'verified')
-      ? sql`|| jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(now()::text)))`
-      : sql``;
+    // Same canonical timing stamps as setBacklinkSite (submitted → waiting-since + auto follow-up date;
+    // done → done-stamp + clear submitted/follow) — via the ONE shared helper, so the two never diverge.
     await db.execute(sql`
       UPDATE human_tasks
-      SET prep_payload = jsonb_set(prep_payload, '{site_status}', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(${target}::text))) ${submittedFrag} ${doneFrag},
+      SET prep_payload = jsonb_set(prep_payload, '{site_status}', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(${target}::text))) ${siteTimingMerges(slug, target, new Date().toISOString())},
           updated_at = now()
       WHERE id = ${p.task_id}`);
   } catch { /* best-effort sync */ }

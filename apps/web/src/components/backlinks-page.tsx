@@ -330,10 +330,14 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   // On "need acct", show which P/B/S type fits the source so it's actionable at a glance.
   const label = showHandle ? task.accountHandle! : task.readiness === 'missing' ? `need acct ${ACCOUNT_ROLE_META[task.recommendedRole].badge}` : task.readiness === 'no-account' ? 'no acct' : m.label;
   const title = `${m.label}${task.platformLabel ? ' · ' + task.platformLabel : ''}${task.readiness === 'missing' ? ` · nên tạo ${ACCOUNT_ROLE_META[task.recommendedRole].label}: ${ACCOUNT_ROLE_META[task.recommendedRole].why}` : ''}${task.accountHandle ? ' · @' + task.accountHandle : ''}${task.accountStatus ? ' (' + task.accountStatus + ')' : ''}`;
+  // YDNI màu: chỉ 'missing' (need acct) là BLOCKER thật để làm task → tô amber. Có account rồi /
+  // email-only = trạng thái bình thường → trung tính, không tô (đừng để mỗi card 1 màu account).
+  const blocked = task.readiness === 'missing';
+  const c = blocked ? '#ffb03c' : 'var(--fg-3)';
   return (
     <span role="button" onClick={onClick} title={title}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', maxWidth: 132,
-        background: `color-mix(in srgb, ${m.color} 15%, transparent)`, color: m.color, border: `1px solid color-mix(in srgb, ${m.color} 45%, transparent)` }}>
+        background: blocked ? 'color-mix(in srgb, #ffb03c 15%, transparent)' : 'transparent', color: c, border: `1px solid ${blocked ? 'color-mix(in srgb, #ffb03c 45%, transparent)' : 'var(--line)'}` }}>
       <span>{m.icon}</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </span>
   );
@@ -641,16 +645,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     );
     const badges = (
       <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-        {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 28%, transparent)', background: 'color-mix(in srgb, var(--accent) 9%, transparent)' }}>{t.projectEmoji} {t.projectLabel}</span>}
-        {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
+        {/* Metadata = trung tính (YDNI màu): project/host/DA/type/traffic/draft chỉ là ngữ cảnh, KHÔNG
+            tô. Màu chỉ dành cho tín hiệu cần chú ý: blocker 🚩, chờ-duyệt quá hạn, cần account. */}
+        {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 600, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--fg-3)', border: '1px solid var(--line)' }}>{t.projectEmoji} {t.projectLabel}</span>}
+        {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--fg-2)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
         {t.da && <Tag>DA {t.da}</Tag>}
-        {t.dofollow && <Tag color="#9d6cff">{t.dofollow}</Tag>}
-        {t.traffic && <Tag color="#22c55e">{t.traffic}</Tag>}
-        {t.hasDraft && <Tag color="#3c9bff">📋 draft</Tag>}
+        {t.dofollow && <Tag>{t.dofollow}</Tag>}
+        {t.traffic && <Tag>{t.traffic}</Tag>}
+        {t.hasDraft && <Tag>📋 draft</Tag>}
         {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
-        {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && <Tag color="#9d6cff">⏳ chờ duyệt {daysSince(t.siteSubmittedAt)}d</Tag>}
-        {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag color="#ffb03c">🗓 {t.siteScheduledAt}</Tag>}
-        {!cols && t.siteDoneAt && <Tag color="#22c55e">✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+        {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && (() => { const dd = daysSince(t.siteSubmittedAt); return <Tag color={dd > 30 ? 'var(--bad,#ef4444)' : dd > 14 ? '#ffb03c' : 'var(--fg-3)'}>⏳ chờ duyệt {dd}d</Tag>; })()}
+        {!cols && t.siteScheduledAt && !t.siteDoneAt && <Tag>🗓 {t.siteScheduledAt}</Tag>}
+        {!cols && t.siteDoneAt && <Tag>✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
         {t.siteLiveUrl && (() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}
@@ -674,8 +680,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingLeft: 32 }}>
             <AcctChip task={t} onClick={(e) => goAccount(e, t)} />
             <div onClick={(e) => e.stopPropagation()}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-            <Pill status={t.siteState} />
-            {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}
+            {/* Status Pill bỏ ở kanban — card đã nằm trong cột trạng thái (header cột báo màu). Redundant. */}
+            {t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--fg-2)' }}>live ↗</a>}
           </div>
         </div>
       );

@@ -32,7 +32,7 @@ export function AssigneeCell({ taskId, name, assignedId, onChange }: {
     <span style={{ display: 'inline-flex', minWidth: 0 }}>
       <span role="button" onClick={open} title={cur.id ? `Giao cho ${cur.name} — click đổi` : 'Giao cho team user'}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', maxWidth: '100%',
-          background: cur.id ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent', color: cur.id ? 'var(--accent)' : 'var(--fg-3)', border: cur.id ? '1px solid var(--accent-line)' : '1px dashed var(--line-2)' }}>
+          background: 'transparent', color: cur.id ? 'var(--fg-2)' : 'var(--fg-3)', border: cur.id ? '1px solid var(--line)' : '1px dashed var(--line-2)' }}>
         {busy ? '…' : cur.id ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {cur.name}</span> : '+ giao'}
       </span>
       {at && createPortal(

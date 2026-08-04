@@ -731,63 +731,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
   return (
     <div style={{ padding: '12px 16px 40px' }}>
-      {/* RED ALERT — tasks whose automation is blocked and need a human to step in (solve captcha, verify, etc.).
-          Set by reportSourceOutcome (blocker.needsHuman). Loud + actionable so the operator acts without digging. */}
-      {(() => {
-        // dedup by task id — the global board expands one task into a row per applies-to project.
-        const needHuman = Array.from(new Map(tasks.filter((t) => t.blocker?.needsHuman).map((t) => [t.id, t])).values());
-        if (!needHuman.length) return null;
-        return (
-          <div style={{ border: '1.5px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 12%, transparent)', borderRadius: 8, padding: '9px 12px', marginBottom: 10 }}>
-            <div style={{ fontWeight: 800, color: 'var(--bad,#ef4444)', fontSize: 12.5, marginBottom: 5 }}>🖐 {needHuman.length} task CẦN NGƯỜI THAO TÁC — tự động bị chặn, làm tay để chạy tiếp</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {needHuman.slice(0, 14).map((t) => (
-                <button key={t.id} type="button" onClick={() => openTask(t.id)} title={t.blocker?.note || t.blocker?.reason}
-                  style={{ ...btn, borderColor: 'var(--bad,#ef4444)', color: 'var(--bad,#ef4444)', fontSize: 11, padding: '2px 8px' }}>
-                  #{t.id} · {t.blocker?.reason} · {t.catalogSourceName || hostOf(t.sourceUrl || '') || (t.title || '').slice(0, 22)}
-                </button>
-              ))}
-              {needHuman.length > 14 && <span style={{ fontSize: 11, color: 'var(--bad,#ef4444)', alignSelf: 'center' }}>+{needHuman.length - 14}</span>}
-            </div>
-          </div>
-        );
-      })()}
-      {/* PRE-FLIGHT readiness (amber): what must be set up BEFORE these tasks can run — the point of showing
-          it here (not mid-execution) is to plan/prep. (1) projects missing a browser (step-0 precondition,
-          fix = browsers new), (2) sources the catalog LEARNED need a human at runtime (assisted/blocked/dead).
-          Counts are de-duped by task id (the global board expands one task into a row per applies-to project). */}
-      {(() => {
-        const seen = new Set<number>();
-        const missBrowser = new Map<string, number>();   // projectId → distinct to-do tasks blocked on browser
-        const bySource = new Map<string, { count: number; automation: string; gate?: string }>();
-        for (const t of tasks) {
-          if (t.siteState === 'completed' || t.siteState === 'verified') continue;
-          if (seen.has(t.id)) continue; seen.add(t.id);
-          const pid = t.projectId || projectId;
-          if (pid && needsBrowser(t)) missBrowser.set(pid, (missBrowser.get(pid) || 0) + 1);
-          const it = intelFor(t);
-          if (it && automationNeedsHuman(it.automation)) { const k = t.catalogSourceName || hostOf(t.sourceUrl || '') || 'nguồn'; const cur = bySource.get(k) || { count: 0, automation: it.automation, gate: it.obstacles?.[0]?.type }; cur.count++; bySource.set(k, cur); }
-        }
-        if (!missBrowser.size && !bySource.size) return null;
-        return (
-          <div style={{ border: '1px solid #ffb03c', background: 'color-mix(in srgb, #ffb03c 10%, transparent)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 11.5, color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <b style={{ color: '#c77f16', fontSize: 12 }}>🚦 Chuẩn bị trước khi chạy</b>
-            {missBrowser.size > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span title="Project chưa có browser profile → không chạy được task nào. Tạo: browsers new <label> <slug> <gmail> <project>">⚠ Chưa có browser:</span>
-                {[...missBrowser].map(([pid, n]) => <span key={pid} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{projectsById?.[pid]?.name || pid} ×{n}</span>)}
-                <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>→ browsers new …</span>
-              </div>
-            )}
-            {bySource.size > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span title="Nguồn catalog đã học là cần người (captcha/verify) khi chạy — gom lại để giải 1 lượt">🖐 Cần người khi chạy:</span>
-                {[...bySource].map(([k, v]) => <span key={k} style={{ border: '1px solid #ffb03c', borderRadius: 4, padding: '1px 7px' }}>{k} · {v.automation}{v.gate ? '/' + v.gate : ''} ×{v.count}</span>)}
-              </div>
-            )}
-          </div>
-        );
-      })()}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, margin: 0 }}>
           {allProjects ? 'Plays' : 'Backlinks'} <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {allProjects ? 'All projects' : siteLabel} · {kpi.total} {allProjects ? 'plays' : 'sources'}</small>

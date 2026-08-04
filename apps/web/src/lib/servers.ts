@@ -30,12 +30,12 @@ export const SERVER_BOXES: ServerBox[] = [
   {
     id: 'box1', name: 'box1', host: 'as.on.tc', provider: 'Hetzner Cloud', type: '',
     region: 'Hillsboro, Oregon', flag: '🇺🇸', ip: '5.78.65.158',
-    vcpu: 3, ramGB: 4, diskGB: 40, ramUsedPct: 69, diskUsedPct: 80,
+    vcpu: 3, ramGB: 4, diskGB: 40, ramUsedPct: 58, diskUsedPct: 75,
     costMonth: 11, costVerified: true,
     role: 'Data anchor + main fleet — Directus, Postgres, dashboard + ~30 sites',
     sites: [
       'as.on.tc', 'cities.gg', 'be.cities.gg', 'routeplanner.cities.gg', 'militarycalc.com',
-      'militarymarkdown.com', 'steamsolo.com', 'course.on.tc', 'orit.app', 'ai.orit.app',
+      'militarymarkdown.com', 'course.on.tc', 'orit.app', 'ai.orit.app',
       'chatlt.com', 'solitaire.on.tc', 'solitairenest.com', 'maileyes.com', 'hljournal.on.tc',
       'go.on.tc', 'sub.on.tc', 'arbscan.on.tc', 'astroinsight.io', 'batmails.com',
       'bestweightlosspills.reviews', 'cee-trust.org', 'mixseo.net', 'sendy.on.tc', 'tips.on.tc',
@@ -60,12 +60,12 @@ export const SERVER_BOXES: ServerBox[] = [
   {
     id: 'box3', name: 'box3', host: 'mos2.on.tc', provider: 'Hetzner Cloud', type: 'CX33',
     region: 'Nuremberg', flag: '🇩🇪', ip: '167.233.241.16',
-    vcpu: 4, ramGB: 8, diskGB: 80, ramUsedPct: 15, diskUsedPct: 7,
+    vcpu: 4, ramGB: 8, diskGB: 80, ramUsedPct: 20, diskUsedPct: 8,
     costMonth: 8.49, costVerified: true,
-    role: 'MOS2 command center',
-    sites: ['mos2.on.tc', 'user.on.tc'],
+    role: 'MOS2 command center + SteamSolo',
+    sites: ['mos2.on.tc', 'user.on.tc', 'steamsolo.com'],
     status: 'active',
-    notes: 'Newest + most headroom. MOS2 runs here with its OWN local Postgres (fast — no cross-box hop). 170ms to box1 as.on.tc only bites the few shared-Directus calls (account registry).',
+    notes: 'Newest + most headroom. MOS2 + SteamSolo run here on box3-local Postgres (fast — no cross-box hop). 170ms to box1 as.on.tc only bites the few shared-Directus calls (account registry).',
   },
 ];
 

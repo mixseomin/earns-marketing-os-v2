@@ -27,6 +27,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            (ht.prep_payload->'site_status') ->> ht.project_id AS site_status,
            (ht.prep_payload->'site_url')    ->> ht.project_id AS site_url,
            (ht.prep_payload->'site_submitted_at') ->> ht.project_id AS site_submitted_at,
+           (ht.prep_payload->'site_scheduled_at') ->> ht.project_id AS site_scheduled_at,
            ht.sla_due_at,
            ht.prep_payload->'blocker'->>'reason' AS blocker,
            ht.prep_payload->'checklist' AS checklist,
@@ -69,6 +70,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       // #5: lịch/deadline (cột sla_due_at) + blocker text + checklist progress (prep_payload).
       slaDueAt: t.sla_due_at ? new Date(t.sla_due_at as string | number | Date).toISOString() : '',
       submittedAt: t.site_submitted_at ? new Date(t.site_submitted_at as string | number | Date).toISOString() : '',   // ngày nộp (stamp khi status→submitted) → ext hiện "đã nộp X · đợi N ngày"
+      scheduledAt: String(t.site_scheduled_at || ''),   // 🗓 follow/check-back date (submitted → +7d) → surface "đến hạn kiểm tra duyệt" cạnh submittedAt
       blocker: String(t.blocker || ''),
       checklist: (t.checklist && typeof t.checklist === 'object') ? (t.checklist as Record<string, unknown>) : {},
       // grounded (prep_payload) = instructions đã Chuẩn hoá dựa trên DOM thật — ext hiện badge để biết bản mới nhất.

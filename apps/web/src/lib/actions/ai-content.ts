@@ -88,6 +88,14 @@ export async function normalizeInstructions(taskId: number, opts?: { sampleId?: 
     const rows = await db.execute(sql`SELECT ht.instructions, ht.prep_payload->>'source_url' src, ht.prep_payload->>'mechanism' mech, ht.title, p.one_liner, p.website FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id WHERE ht.id = ${taskId} AND ht.platform_key = 'backlink' LIMIT 1`);
     const r = (rows as unknown as Array<{ instructions: string | null; src: string | null; mech: string | null; title: string | null; one_liner: string | null; website: string | null }>)[0];
     if (!r) return { ok: false, error: 'task not found' };
+    // MECHANISM — a task derived from the catalog is source-driven. Reshaping it here sets
+    // custom_instructions=true and DETACHES it → silent drift from the shared template (the exact bug
+    // that split WebCatalog #7's 4 tasks). Refuse; edits must go to the source (→ syncTasksFromSource
+    // propagates to every site). Enforced server-side so ext/API can't bypass it either.
+    if (r.src) {
+      const cat = (await db.execute(sql`SELECT id FROM backlink_sources WHERE canonical_url = ${r.src} LIMIT 1`)) as unknown as Array<{ id: number }>;
+      if (cat[0]) return { ok: false, error: `Task theo template nguồn #${cat[0].id} — không chuẩn hoá/sửa lẻ (sẽ detach + lệch catalog). Sửa hướng dẫn ở NGUỒN (📚 #${cat[0].id} → "Sửa nguồn trong catalog") để lan xuống mọi site.` };
+    }
     const cur = (r.instructions || '').trim();
     if (!cur && !r.mech) return { ok: false, error: 'không có nội dung để chuẩn hoá' };
     const g = await getDomGrounding(db, r.src || '', opts?.sampleId);

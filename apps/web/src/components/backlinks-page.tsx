@@ -1042,7 +1042,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   // Catalog-source provenance: view the shared source (+ params) this task derives from.
   const [sourceDetail, setSourceDetail] = useState<Awaited<ReturnType<typeof getBacklinkSourceForTask>> | null>(null);
   const [sourceBusy, setSourceBusy] = useState(false);
-  const openSource = async () => { if (!task.catalogSourceId) return; setSourceBusy(true); const r = await getBacklinkSourceForTask(task.catalogSourceId, project.id); setSourceBusy(false); if (r.ok) setSourceDetail(r); };
+  // GET route (not the Server Action) — a Server Action call refetched the whole /plays RSC = slow.
+  const openSource = async () => {
+    if (!task.catalogSourceId) return;
+    setSourceBusy(true);
+    try {
+      const r = await fetch(`/api/backlink-source/${task.catalogSourceId}?project=${encodeURIComponent(project.id)}`).then((x) => x.json());
+      if (r.ok) setSourceDetail(r);
+    } finally { setSourceBusy(false); }
+  };
   const doNormalize = async () => {
     // Not grounded yet, or a NEWER DOM was captured since last grounding → run immediately.
     // Already grounded on the latest DOM → don't blindly re-run: ask which DOM (with a preview).
@@ -1358,8 +1366,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         {task.instructions && (<>
           <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>🛠 Cách build</span>
-            <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
-              style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
+            {task.catalogSourceId ? (
+              // Catalog-sourced → instructions are template-driven. No per-task reshape (that detaches
+              // & drifts). Funnel edits to the source (opens the 📚 panel → "Sửa nguồn trong catalog").
+              <button type="button" onClick={openSource} title="Hướng dẫn theo TEMPLATE NGUỒN trong catalog. Muốn đổi → sửa ở nguồn (lan xuống MỌI site), KHÔNG sửa lẻ ở task. Bấm để mở nguồn."
+                style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--fg-3)' }}>🔒 theo nguồn #{task.catalogSourceId} — sửa ở nguồn</button>
+            ) : (
+              <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
+                style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
+            )}
             {task.domSampleId && <button type="button" onClick={doPrepFill} disabled={fillBusy} title="AI chuẩn bị GIÁ TRỊ điền cho từng field của form thật (từ DOM đã lưu): tên/email/message/link. Ext sẽ auto-fill (P2)."
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, color: 'var(--accent)' }}>{fillBusy ? '…' : '✨ Chuẩn bị điền'}</button>}
           </div>

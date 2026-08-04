@@ -30,7 +30,7 @@ export async function syncProspectToTask(prospectId: number): Promise<void> {
     // done → done-stamp + clear submitted/follow) — via the ONE shared helper, so the two never diverge.
     await db.execute(sql`
       UPDATE human_tasks
-      SET prep_payload = jsonb_set(prep_payload, '{site_status}', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(${target}::text))) ${siteTimingMerges(slug, target, new Date().toISOString())},
+      SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{site_status}', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(${target}::text))) ${siteTimingMerges(slug, target, new Date().toISOString())},
           updated_at = now()
       WHERE id = ${p.task_id}`);
   } catch { /* best-effort sync */ }

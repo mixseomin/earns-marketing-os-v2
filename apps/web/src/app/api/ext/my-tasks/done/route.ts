@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth, resolveExtUser } from '../../_auth';
+import { siteTimingMerges } from '@/lib/backlink-timing';
 
 export const dynamic = 'force-dynamic';
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
@@ -22,12 +23,13 @@ export async function POST(req: Request) {
   // completed + store its live URL; only finish the whole row when every site is done.
   if (site) {
     if (!/^[a-z0-9_-]+$/.test(site)) return NextResponse.json({ ok: false, error: 'bad site' }, { status: 400 });
+    const nowIso = new Date().toISOString();
     const r = await db.execute(sql`
       UPDATE human_tasks SET prep_payload =
         COALESCE(prep_payload, '{}'::jsonb)
         || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('completed'::text)))
         || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${url}::text)))
-        || jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_done_at'->>${site}, now()::text)))),
+        ${siteTimingMerges(site, 'completed', nowIso)},
         updated_at = now()
       WHERE id = ${taskId} AND assigned_user_id = ${who.userId} AND tenant_id = ${TENANT} AND platform_key = 'backlink'
       RETURNING (prep_payload->'site_status') AS ss`);

@@ -31,7 +31,7 @@ export const SERVER_BOXES: ServerBox[] = [
     id: 'box1', name: 'box1', host: 'as.on.tc', provider: 'Hetzner Cloud', type: '',
     region: 'Hillsboro, Oregon', flag: '🇺🇸', ip: '5.78.65.158',
     vcpu: 3, ramGB: 4, diskGB: 40, ramUsedPct: 69, diskUsedPct: 80,
-    costMonth: 6, costVerified: false,
+    costMonth: 11, costVerified: true,
     role: 'Data anchor + main fleet — Directus, Postgres, dashboard + ~30 sites',
     sites: [
       'as.on.tc', 'cities.gg', 'be.cities.gg', 'routeplanner.cities.gg', 'militarycalc.com',
@@ -49,7 +49,7 @@ export const SERVER_BOXES: ServerBox[] = [
     id: 'box2', name: 'box2', host: 'n8n.on.tc', provider: 'Hetzner Cloud', type: 'CX22',
     region: 'Helsinki', flag: '🇫🇮', ip: '37.27.241.222',
     vcpu: 2, ramGB: 4, diskGB: 40, ramUsedPct: 58, diskUsedPct: 72,
-    costMonth: 4.59, costVerified: false,
+    costMonth: 11, costVerified: true,
     role: 'Automation + email — n8n, MailWizz, Listmonk + 4 calc sites',
     sites: [
       'n8n.on.tc', 'mail.on.tc', 'lists.on.tc', 'govcalcs.com', 'visagps.com',

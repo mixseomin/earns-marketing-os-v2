@@ -91,23 +91,37 @@ else
   echo "↺ Skip seed (no seed file changes)"
 fi
 
-# 5. Build only if web src changed
-WEB_CHANGED=false
-if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
-  WEB_CHANGED=true
-fi
-if [ "$WEB_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f "apps/web/.next/BUILD_ID" ]; then
-  # Guard: unquoted camelCase SQL aliases (Postgres lowercases → row read returns null). Cheap, fail-fast.
-  node scripts/check-sql-aliases.mjs || { echo "✗ SQL alias guard failed — abort deploy"; exit 1; }
-  # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
-  # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
-  node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
-  # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
-  # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
-  NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
-  echo "✓ Web build done"
+# 5. Web build.
+# SKIP_BUILD=1 (set by GitHub Actions) = the runner ALREADY built .next and shipped it to
+# apps/web/.next.new (build-on-runner since the 2026-06-28 box-OOM incident). Swap it in — do NOT
+# rebuild on the box. Rebuilding here was a DOUBLE build: ~40s wasted every deploy AND it re-exposed the
+# OOM risk the runner-move was meant to remove. The SQL-alias + canon guards already ran on the runner
+# before that build, so they are not re-run here. Manual `./deploy.sh` (no SKIP_BUILD) still builds on
+# the server via the fallback below.
+if [ "${SKIP_BUILD:-0}" = "1" ] && [ -f apps/web/.next.new/BUILD_ID ]; then
+  rm -rf apps/web/.next.old
+  [ -e apps/web/.next ] && mv apps/web/.next apps/web/.next.old   # two renames = sub-ms gap; restart follows
+  mv apps/web/.next.new apps/web/.next
+  rm -rf apps/web/.next.old
+  echo "✓ Web build swapped in (prebuilt on runner — no server rebuild)"
 else
-  echo "↺ Skip build (no source changes)"
+  WEB_CHANGED=false
+  if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
+    WEB_CHANGED=true
+  fi
+  if [ "$WEB_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f "apps/web/.next/BUILD_ID" ]; then
+    # Guard: unquoted camelCase SQL aliases (Postgres lowercases → row read returns null). Cheap, fail-fast.
+    node scripts/check-sql-aliases.mjs || { echo "✗ SQL alias guard failed — abort deploy"; exit 1; }
+    # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
+    # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
+    node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
+    # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
+    # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
+    NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
+    echo "✓ Web build done"
+  else
+    echo "↺ Skip build (no source changes)"
+  fi
 fi
 
 # 6. Restart systemd unit

@@ -25,13 +25,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+        with: { node-version: '22', cache: 'npm' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated
+      # Restore Next.js incremental build cache — without it every CI build is COLD and grows with the
+      # app (the "deploy keeps getting slower"). Keyed per-sha, restore-keys falls back to the newest.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: nextcache-${{ github.sha }}
+          restore-keys: nextcache-
       - run: npm ci --prefer-offline --no-audit --no-fund
       - run: node scripts/check-sql-aliases.mjs
       - run: node scripts/check-canon.mjs
       - run: npm run build:web
-      # Tar so rsync transfers one file (faster + atomic on receive)
-      - run: tar -C apps/web -czf next.tar.gz .next
+      # Tar so scp transfers one file (faster + atomic on receive). EXCLUDE .next/cache — it's build-time
+      # only (next start never reads it), it's cached separately above, and shipping it bloats the artifact.
+      - run: tar -C apps/web --exclude='.next/cache' -czf next.tar.gz .next
       - uses: actions/upload-artifact@v4
         with: { name: next-build, path: next.tar.gz, retention-days: 1 }
 

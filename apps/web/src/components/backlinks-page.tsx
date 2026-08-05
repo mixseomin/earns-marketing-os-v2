@@ -368,14 +368,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
-  // Realtime auto-refresh (default ON) — re-fetch the board every 10s so a fresh chat/board reflects
-  // status changes without a manual reload. Skips while the tab is backgrounded; toggle in the header.
+  // Realtime auto-refresh toggle (default ON). The effect is defined after `view` (below) so it can
+  // gate on it — only the live views (calendar + kanban) auto-refresh.
   const [realtime, setRealtime] = useState(true);
-  useEffect(() => {
-    if (!realtime) return;
-    const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
-    return () => clearInterval(id);
-  }, [realtime, router]);
   // A seeded editorial play with no concrete target URL carries a placeholder source_url on the
   // site's OWN domain (e.g. mintalmanac.com#play-N) — showing that host on a card reads as a
   // meaningless self-link. Hide it (return null) so the descriptive title speaks instead. In the
@@ -402,6 +397,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
   const [view, setView] = useState<'list' | 'calendar' | 'kanban'>(() => { const v = sp.get('view'); if (v === 'list' || v === 'kanban') return v; if (v === 'calendar') return 'calendar'; return initialView === 'kanban' ? 'kanban' : 'calendar'; });
+  // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
+  // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
+  useEffect(() => {
+    if (!realtime || view === 'list') return;
+    const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
+    return () => clearInterval(id);
+  }, [realtime, view, router]);
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);

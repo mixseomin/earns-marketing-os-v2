@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { ScenePersonRow, SceneContacts } from '@/lib/actions/scene-people';
+import { ListToolbar, FilterChips, Pager, usePaged } from './ui';
 
 const contactChip: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 6, background: 'var(--bg-2)', color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--bg-3)' };
 
@@ -78,6 +79,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
         : (a: ScenePersonRow, b: ScenePersonRow) => b.familiarityScore - a.familiarityScore;
     return [...list].sort(by);
   }, [people, q, cf, sortBy]);
+  const { pageItems, ...pager } = usePaged(filtered);
   const filteredEmails = useMemo(() => {
     const set = new Set<string>();
     for (const p of filtered) for (const e of personEmails(p)) set.add(e);
@@ -116,46 +118,33 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
         <b>{people.length}</b> người · <b>{warm}</b> warm.
       </p>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-        <input
-          autoFocus={!!focus}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Tìm handle / habitat / scene…"
-          autoComplete="off"
-          style={{ flex: 1, maxWidth: 360, padding: '6px 10px', fontSize: 13, borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)' }}
-        />
-        {q && (
-          <button onClick={() => setQ('')} style={{ fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>
-            Xoá ({filtered.length})
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
-        {(['all', 'contact', 'email'] as const).map((k) => (
-          <button key={k} onClick={() => setCf(k)} style={{ fontSize: 12, padding: '5px 11px', borderRadius: 99, cursor: 'pointer', border: '1px solid var(--bg-3)', background: cf === k ? 'var(--neon-lime)' : 'var(--bg-2)', color: cf === k ? '#04210f' : 'var(--fg-2)', fontWeight: cf === k ? 700 : 500 }}>
-            {k === 'all' ? `Tất cả (${people.length})` : k === 'contact' ? `Có contact (${withContactCount})` : `Có email (${withEmailCount})`}
-          </button>
-        ))}
-        <span style={{ width: 1, height: 18, background: 'var(--bg-3)' }} />
-        <label style={{ fontSize: 12, color: 'var(--fg-2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          Sắp xếp
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer' }}>
-            <option value="familiarity">Familiarity</option>
-            <option value="recent">Mới tương tác</option>
-            <option value="interactions">Số interactions</option>
-          </select>
-        </label>
-        <span style={{ flex: 1 }} />
-        {copied && <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 600 }}>{copied}</span>}
-        <button onClick={copyEmails} disabled={!filteredEmails.length} title="Copy mọi email trong danh sách đã lọc vào clipboard" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 8, cursor: filteredEmails.length ? 'pointer' : 'not-allowed', border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: filteredEmails.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
-          📋 Copy {filteredEmails.length} email
-        </button>
-        <button onClick={exportCsv} disabled={!filtered.length} title="Xuất danh sách đã lọc ra CSV (handle, familiarity, email, channels…)" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 8, cursor: filtered.length ? 'pointer' : 'not-allowed', border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: filtered.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
-          ⬇ Export CSV ({filtered.length})
-        </button>
-      </div>
+      <ListToolbar
+        search={q} onSearch={setQ} searchPlaceholder="Tìm handle / habitat / scene…"
+        right={
+          <>
+            {copied && <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 600 }}>{copied}</span>}
+            <label style={{ fontSize: 12, color: 'var(--fg-3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              Sắp xếp
+              {/* fixed 3-enum → raw <select> is allowed (house rule: ≤5 fixed enum). */}
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' }}>
+                <option value="familiarity">Familiarity</option>
+                <option value="recent">Mới tương tác</option>
+                <option value="interactions">Số interactions</option>
+              </select>
+            </label>
+            <button onClick={copyEmails} disabled={!filteredEmails.length} title="Copy mọi email trong danh sách đã lọc vào clipboard" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 6, cursor: filteredEmails.length ? 'pointer' : 'not-allowed', border: '1px solid var(--line)', background: 'var(--bg-2)', color: filteredEmails.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+              📋 Copy {filteredEmails.length} email
+            </button>
+            <button onClick={exportCsv} disabled={!filtered.length} title="Xuất danh sách đã lọc ra CSV (handle, familiarity, email, channels…)" style={{ fontSize: 12, padding: '5px 11px', borderRadius: 6, cursor: filtered.length ? 'pointer' : 'not-allowed', border: '1px solid var(--line)', background: 'var(--bg-2)', color: filtered.length ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+              ⬇ Export CSV ({filtered.length})
+            </button>
+          </>
+        }
+      >
+        <FilterChips value={cf} onChange={setCf}
+          counts={{ all: people.length, contact: withContactCount, email: withEmailCount }}
+          options={[{ value: 'all', label: 'Tất cả' }, { value: 'contact', label: 'Có contact' }, { value: 'email', label: 'Có email' }]} />
+      </ListToolbar>
 
       {people.length === 0 ? (
         <div style={{ border: '1px dashed var(--fg-3)', borderRadius: 8, padding: 24, color: 'var(--fg-2)', fontSize: 13, lineHeight: 1.6 }}>
@@ -182,7 +171,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p) => {
+            {pageItems.map((p) => {
               const hit = !!focus && p.handle.toLowerCase() === focus;
               return (
                 <tr
@@ -239,6 +228,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
           </tbody>
         </table>
       )}
+      <Pager {...pager} onPage={pager.setPage} />
     </div>
   );
 }

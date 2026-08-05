@@ -11,7 +11,7 @@ import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { setProspectStatus, markFollowupSent, snoozeProspect, markFormSubmitted, updateProspectContact, updateProspectDraft } from '@/lib/actions/outreach-mutations';
 import { sendProspectEmail } from '@/lib/actions/outreach-send';
-import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, type CalItem } from '@/components/ui';
+import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, ListToolbar, FilterChips, MultiSelect, type CalItem } from '@/components/ui';
 import { createCampaign, updateCampaign, importBacklinkTasks, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
 import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
@@ -269,7 +269,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     window.history.replaceState(null, '', u.toString());
   }, [preview]);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
-  const [baseF, setBaseF] = useState('');
+  const [baseF, setBaseF] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [cal, setCal] = useState(sp.get('view') !== 'list');   // default calendar
   const toggleCal = (on: boolean) => {
@@ -318,10 +318,15 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   }, [prospects]);
 
   const bases = useMemo(() => Array.from(new Set(prospects.map((p) => p.base).filter(Boolean) as string[])).sort(), [prospects]);
+  const chanCounts = useMemo(() => ({
+    all: prospects.length,
+    email: prospects.filter((p) => p.email).length,
+    form: prospects.filter((p) => !p.email).length,
+  }), [prospects]);
   const shown = useMemo(() => prospects.filter((p) => {
     if (chan === 'email' && !p.email) return false;
     if (chan === 'form' && p.email) return false;
-    if (baseF && p.base !== baseF) return false;
+    if (baseF.length && !baseF.includes(p.base as string)) return false;
     if (q) {
       const t = q.toLowerCase();
       if (![p.agentName, p.base, p.email, p.company].some((v) => (v || '').toLowerCase().includes(t))) return false;
@@ -635,20 +640,19 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
         <Kpi label="Due now" value={kpi.due} color={kpi.due ? 'var(--bad)' : undefined} />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 10px' }}>
-        <div style={{ display: 'flex', border: '1px solid var(--bg-3)', borderRadius: 7, overflow: 'hidden' }}>
-          {([['all', 'All'], ['email', '✉ Email'], ['form', '📝 Form']] as const).map(([k, label]) => (
-            <button key={k} onClick={() => setChan(k)} style={{ fontSize: 11, padding: '4px 11px', border: 'none', cursor: 'pointer', background: chan === k ? 'color-mix(in srgb, var(--neon-cyan) 16%, transparent)' : 'var(--bg-2)', color: chan === k ? 'var(--neon-cyan)' : 'var(--fg-2)', fontWeight: chan === k ? 700 : 400 }}>{label}</button>
-          ))}
-        </div>
-        <select value={baseF} onChange={(e) => setBaseF(e.target.value)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
-          <option value="">All bases</option>
-          {bases.map((b) => <option key={b} value={b}>{b}</option>)}
-        </select>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search agent / company / email…" autoComplete="off" style={{ fontSize: 12, padding: '4px 9px', borderRadius: 6, border: '1px solid var(--bg-3)', background: 'var(--bg-2)', color: 'var(--fg-1)', minWidth: 200 }} />
-        {(chan !== 'all' || baseF || q) && <button onClick={() => { setChan('all'); setBaseF(''); setQ(''); }} style={{ ...btn, padding: '4px 10px' }}>Clear</button>}
-        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{shown.length}/{prospects.length} shown</span>
-      </div>
+      <ListToolbar
+        search={q} onSearch={setQ} searchPlaceholder="Search agent / company / email…"
+        right={<>
+          {(chan !== 'all' || baseF.length || q) && (
+            <button onClick={() => { setChan('all'); setBaseF([]); setQ(''); }} style={{ ...btn, padding: '4px 10px' }}>Clear</button>
+          )}
+          <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{shown.length}/{prospects.length} shown</span>
+        </>}
+      >
+        <FilterChips value={chan} onChange={setChan} counts={chanCounts}
+          options={[{ value: 'all', label: 'All' }, { value: 'email', label: '✉ Email' }, { value: 'form', label: '📝 Form' }]} />
+        <MultiSelect label="base" options={bases.map((b) => ({ value: b, label: b }))} selected={baseF} onChange={setBaseF} compact />
+      </ListToolbar>
 
       <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', alignItems: 'center' }}>
         <TabBtn k="needs" label="Needs you" n={needsCount} />

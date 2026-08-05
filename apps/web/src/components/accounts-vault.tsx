@@ -28,7 +28,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   isParkedAccount,
@@ -759,6 +759,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
   // filterStatus chấp nhận: 'all', StatusGroup key (setup/warming/ready/locked),
   // hoặc AccountStatus thẳng (legacy URL param). Resolver xử lý cả 3 trường hợp.
   const [filterStatus, setFilterStatus] = useState<AccountStatus | StatusGroup | 'all'>('all');
+  const [q, setQ] = useState('');
   const [, startTransition] = useTransition();
 
   // Derive `editing` from latest accounts list so router.refresh() (e.g. after
@@ -775,10 +776,14 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
   // filterStatus có thể là 'all', tên 1 group (setup/warming/ready/locked) — match
   // theo group nếu tên trùng STATUS_GROUPS.key; ngược lại fall back match status thẳng.
   const filtered = (() => {
-    if (filterStatus === 'all') return accounts;
-    const grp = STATUS_GROUPS.find((g) => g.key === filterStatus);
-    if (grp) return accounts.filter((a) => grp.members.includes(a.status as AccountStatus));
-    return accounts.filter((a) => a.status === filterStatus);
+    let list = accounts;
+    if (filterStatus !== 'all') {
+      const grp = STATUS_GROUPS.find((g) => g.key === filterStatus);
+      list = grp ? list.filter((a) => grp.members.includes(a.status as AccountStatus)) : list.filter((a) => a.status === filterStatus);
+    }
+    const s = q.trim().toLowerCase();
+    if (s) list = list.filter((a) => [a.handle, a.email, a.platformKey, platformMap[a.platformKey]?.label].some((v) => (v || '').toLowerCase().includes(s)));
+    return list;
   })();
 
   const counts = useMemo(() => {
@@ -796,6 +801,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
   const parkInline = filterStatus === 'locked' || filterStatus === 'blocked' || filterStatus === 'banned';
   const liveAccounts = parkInline ? filtered : filtered.filter((a) => !isParkedAccount(a.status));
   const parkedAccounts = parkInline ? [] : filtered.filter((a) => isParkedAccount(a.status));
+  const { pageItems, ...pager } = usePaged(liveAccounts);
 
   const handleQuickAdvance = (acc: AccountRow, dir: 1 | -1) => {
     const idx = LINEAR_FLOW.indexOf(acc.status as AccountStatus);
@@ -836,23 +842,18 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span className="chip" data-active={filterStatus === 'all' || undefined} onClick={() => setFilterStatus('all')}>
-          All <span style={{ marginLeft: 4, opacity: 0.6 }}>{counts.all}</span>
-        </span>
-        {STATUS_GROUPS.map((g) => (
-          <span key={g.key} className="chip" data-active={filterStatus === g.key || undefined}
-                onClick={() => setFilterStatus(g.key)}
-                title={g.tooltip}
-                style={{ color: filterStatus === g.key ? g.color : undefined, cursor: 'pointer' }}>
-            {g.dot} {g.label} <span style={{ marginLeft: 4, opacity: 0.6 }}>{counts[g.key] ?? 0}</span>
+      <ListToolbar
+        search={q} onSearch={setQ} searchPlaceholder="tìm handle / email / platform…"
+        right={
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}
+                title="Account status = trạng thái tổng quan trên platform. Phase trong từng community (warm-up/seed/direct) quản ở Brief modal của habitat.">
+            ℹ︎ phase per-community ở Brief
           </span>
-        ))}
-        <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}
-              title="Account status = trạng thái tổng quan trên platform. Phase trong từng community (warm-up/seed/direct) quản ở Brief modal của habitat.">
-          ℹ︎ phase per-community ở Brief
-        </span>
-      </div>
+        }
+      >
+        <FilterChips value={filterStatus} onChange={setFilterStatus} counts={counts}
+          options={[{ value: 'all', label: 'All' }, ...STATUS_GROUPS.map((g) => ({ value: g.key, label: `${g.dot} ${g.label}` }))]} />
+      </ListToolbar>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -864,7 +865,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
-          {liveAccounts.map((acc) => {
+          {pageItems.map((acc) => {
             const pf = platformMap[acc.platformKey];
             const checklistDone = Object.values(acc.warmupChecklist || {}).filter((c) => c.done).length;
             const checklistTotal = pf?.checklist?.length ?? 0;
@@ -943,6 +944,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
           })}
         </div>
       )}
+      <Pager {...pager} onPage={pager.setPage} />
 
       {parkedAccounts.length > 0 && (
         <div style={{ marginTop: 14 }}>

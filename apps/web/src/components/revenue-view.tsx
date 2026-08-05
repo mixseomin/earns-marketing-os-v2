@@ -8,6 +8,8 @@
 
 import type { AdsenseSummary } from '@/lib/adsense/reports';
 import type { GumroadSummary } from '@/lib/gumroad/products';
+import type { RevenueByDay } from '@/lib/revenue/by-day';
+import { RevenueCalendar } from './revenue-calendar';
 import { Section, StatsStrip, EmptyState, Pill } from './ui';
 import type { StatCard } from './ui/stats-strip';
 
@@ -17,6 +19,8 @@ interface Props {
   projectName?: string;
   /** Doanh thu sản phẩm mình bán (Gumroad/CodeCrate) — khác AdSense, khác /offers. */
   gumroad?: GumroadSummary;
+  /** Mọi nguồn quy về trục ngày, cho lịch doanh thu. */
+  byDay?: RevenueByDay;
 }
 
 function fmtUSD(n: number) {
@@ -27,7 +31,7 @@ function fmtUSD(n: number) {
 function fmtInt(n: number) { return n.toLocaleString('en-US'); }
 function fmtRpm(n: number) { return `$${n.toFixed(2)}`; }
 
-export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Props) {
+export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDay }: Props) {
   const { totalEarnings, totalImpressions, totalClicks, totalPageViews, avgRpm,
           byDate, byDomain, byAccount, rows, windowDays } = summary;
 
@@ -56,6 +60,12 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
           </p>
         </div>
       </div>
+
+      {byDay && (
+        <Section title="Lịch doanh thu · mọi nguồn" subtitle="AdSense · Sản phẩm/Affiliate · Gumroad">
+          <RevenueCalendar rows={byDay.rows} errors={byDay.errors} />
+        </Section>
+      )}
 
       {/* Gumroad = hàng MÌNH bán. Khác AdSense (quảng cáo), khác /offers (affiliate network khác). */}
       {gumroad && <GumroadBlock g={gumroad} />}

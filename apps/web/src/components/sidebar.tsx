@@ -250,6 +250,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
       // MONITOR — quan sát người + máy
       key: 'monitor', label: 'Monitor',
       items: [
+        { href: '/revenue',    icon: '💵', color: 'var(--neon-lime)',   label: 'Revenue',      sub: 'AdSense · Gumroad (hàng mình bán)', role: 'admin' },
         { href: '/department', icon: '🏢', color: 'var(--neon-amber)',  label: 'Department',   sub: 'who is doing what (humans + AI)', role: 'admin' },
         { href: '/agents',     icon: '🧠', color: 'var(--neon-violet)', label: 'Agents Admin', sub: 'runs · breakers · solo', role: 'admin' },
         { href: '/ai-log',     icon: '🤖', color: 'var(--neon-violet)', label: 'AI Activity',  sub: 'OpenAI · cost · oversight', role: 'admin' },

@@ -61,6 +61,7 @@ export interface BacklinkTask {
   platformLabel: string | null;
   accountType: BacklinkAccountType;
   recommendedRole: AccountRole;   // which P/B/S account type fits this source (from platform category)
+  communitySeed: boolean;         // 🌱 community-seed (platform has link_gate_enabled → build standing before a link) vs 🔗 one-shot acquire
   readiness: ReadinessBucket;
   accountId: number | null;
   accountHandle: string | null;
@@ -251,18 +252,19 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
     const lookupKeys = [...new Set(base.filter((t) => t.accountType !== 'no-account' && t.platformKey).map((t) => t.platformKey as string))];
     const labelMap = new Map<string, string>();
     const catMap = new Map<string, string>();   // platform_key → catalog category (drives P/B/S role)
+    const gateMap = new Map<string, boolean>(); // platform_key → link_gate_enabled (community-seed class = gate on)
     const acctMap = new Map<string, Acct>();
     const acctById = new Map<number, Acct>();
     if (lookupKeys.length) {
       const inList = sql.join(lookupKeys.map((k) => sql`${k}`), sql`, `);
       const [plats, accts] = await Promise.all([
-        db.execute(sql`SELECT key, label, category FROM platforms WHERE key IN (${inList})`),
+        db.execute(sql`SELECT key, label, category, link_gate_enabled FROM platforms WHERE key IN (${inList})`),
         // SECRET-SAFE: never select password_enc / api_token_enc / bot_token_enc.
         db.execute(sql`SELECT platform_key, project_id, id, handle, status, has_2fa, auth_method,
                        (proxy_id IS NOT NULL) AS has_proxy, (browser_profile_id IS NOT NULL) AS has_profile
                        FROM platform_accounts WHERE tenant_id = 'self' AND platform_key IN (${inList})`),
       ]);
-      for (const p of plats as unknown as Array<{ key: string; label: string; category: string | null }>) { labelMap.set(p.key, p.label); if (p.category) catMap.set(p.key, p.category); }
+      for (const p of plats as unknown as Array<{ key: string; label: string; category: string | null; link_gate_enabled: boolean }>) { labelMap.set(p.key, p.label); if (p.category) catMap.set(p.key, p.category); gateMap.set(p.key, p.link_gate_enabled === true); }
       const byKey = new Map<string, Array<Record<string, unknown>>>();
       for (const a of accts as unknown as Array<Record<string, unknown>>) {
         acctById.set(Number(a.id), asAcct(a));
@@ -296,6 +298,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         outreach: outreachByTask.get(t.id) ?? null,
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
+        communitySeed: t.platformKey ? (gateMap.get(t.platformKey) ?? false) : false,
         readiness: readinessBucket(t.accountType, acct?.status ?? null),
         accountId: acct?.id ?? null,
         accountHandle: acct?.handle ?? null,

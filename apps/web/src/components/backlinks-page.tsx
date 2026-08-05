@@ -666,6 +666,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {/* Metadata = trung tính (YDNI màu): project/host/DA/type/traffic/draft chỉ là ngữ cảnh, KHÔNG
             tô. Màu chỉ dành cho tín hiệu cần chú ý: blocker 🚩, chờ-duyệt quá hạn, cần account. */}
+        {t.communitySeed && <span title="🌱 Community-seed: nền tảng này bật link-gate — account phải xây standing (join · tenure · karma · seed thành công) trước khi được thả LINK. Trước đó = seeding value link-free." style={{ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, whiteSpace: 'nowrap', color: '#22c55e', border: '1px solid #22c55e55', background: '#22c55e14' }}>🌱 community-seed</span>}
         {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 600, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--fg-3)', border: '1px solid var(--line)' }}>{t.projectEmoji} {t.projectLabel}</span>}
         {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--fg-2)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
         {t.da && <Tag>DA {t.da}</Tag>}

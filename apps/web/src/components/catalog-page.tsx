@@ -8,6 +8,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
+import { ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import { SourceEditor } from './source-editor';
 
 const CATEGORY = new Set(['community', 'editorial', 'pr', 'guest-post', 'directory', 'tool-dir', 'launch', 'qa', 'forum', 'wiki', 'reference', 'dev', 'listicle', 'social', 'edu-resource', 'haro', 'llms']);
@@ -17,7 +18,6 @@ const LEVEL_LABEL: Record<string, string> = { 'level-1': 'NGAY', 'level-2': 'NHA
 const LEVEL_ORDER = ['level-1', 'level-2', 'level-3', 'level-4', ''];
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
-const chip = (on: boolean, c = 'var(--accent)'): CSSProperties => ({ fontSize: 11, fontWeight: 700, padding: '3px 11px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' };
 // Colour = signal only (YDNI colour discipline): green=value/ok, amber=needs-attention, red=broken. Rest neutral.
 const GOOD = 'var(--good,#39c07a)', WARN = 'var(--warn,#ffb03c)', BAD = 'var(--bad,#ef4444)';
@@ -79,6 +79,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
     return base.filter((src) => !s || `${src.name} ${src.canonicalUrl} ${src.category || ''} ${src.mechanism || ''} ${src.audienceTags.join(' ')} ${src.instructionTemplate || ''}`.toLowerCase().includes(s));
   }, [base, q]);
   const list = useMemo(() => searched.filter((s) => !nhom || groupsOf(s).includes(nhom)), [searched, nhom]);
+  const { pageItems, ...pager } = usePaged(list);
 
   const nhomCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -89,13 +90,13 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   const sections = useMemo(() => {
     const m = new Map<string, BacklinkSource[]>();
     if (nhom) {                                    // one Nhóm selected → sections by LEVEL
-      for (const s of list) { const lv = levelOf(s); (m.get(lv) ?? m.set(lv, []).get(lv)!).push(s); }
+      for (const s of pageItems) { const lv = levelOf(s); (m.get(lv) ?? m.set(lv, []).get(lv)!).push(s); }
       return LEVEL_ORDER.filter((lv) => m.has(lv)).map((lv) => ({ key: lv || 'nolevel', label: lv ? LEVEL_LABEL[lv] ?? lv : '(chưa gắn level)', items: m.get(lv)!.sort((a, b) => a.name.localeCompare(b.name)) }));
     }
-    for (const s of list) { const g = primaryGroup(s); (m.get(g) ?? m.set(g, []).get(g)!).push(s); }   // all → sections by Nhóm
+    for (const s of pageItems) { const g = primaryGroup(s); (m.get(g) ?? m.set(g, []).get(g)!).push(s); }   // all → sections by Nhóm
     return [...m.entries()].sort((a, b) => (a[0] === 'leads' ? -1 : b[0] === 'leads' ? 1 : b[1].length - a[1].length))
       .map(([g, items]) => ({ key: g, label: groupLabel(g), items: items.sort((a, b) => (LEVEL_ORDER.indexOf(levelOf(a)) - LEVEL_ORDER.indexOf(levelOf(b))) || a.name.localeCompare(b.name)) }));
-  }, [list, nhom]);
+  }, [pageItems, nhom]);
 
   // One row = name + only the glanceable signals; the whole row is the edit trigger. Secondary metadata
   // (what it does / DA / usage) sits on a muted second line; everything else is inside the editor.
@@ -148,17 +149,15 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
         <span title="Vào 1 project → /plays → 'Seed từ catalog' để biến 1 method thành task">ⓘ seed thành task ở /plays</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm tên / URL / tag / template… (bỏ qua mọi lọc)" autoComplete="off" style={{ ...btn, flex: '1 1 240px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
-        <button type="button" onClick={() => setPlayOnly((v) => !v)} style={chip(playOnly)} title="Chỉ phương pháp (tag 'play'). Tắt = xem cả nguồn backlink lẻ. (Search tự bỏ qua lọc này.)">chỉ phương pháp</button>
-        <button type="button" onClick={toggleArchived} style={chip(archived, 'var(--fg-2)')} title="Xem kho lưu (archived)">🗄 kho lưu</button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginRight: 2 }}>Nhóm</span>
-        <button type="button" onClick={() => setNhom('')} style={chip(!nhom)}>tất cả</button>
-        {nhomCounts.map(([g, n]) => <button key={g} type="button" onClick={() => setNhom(nhom === g ? '' : g)} style={chip(nhom === g)}>{groupLabel(g)} <span style={{ opacity: 0.6 }}>{n}</span></button>)}
-      </div>
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm tên / URL / tag / template… (bỏ qua mọi lọc)">
+        <FilterChips value={playOnly ? 'play' : 'all'} onChange={(v) => setPlayOnly(v === 'play')}
+          options={[{ value: 'play', label: 'chỉ phương pháp' }, { value: 'all', label: 'tất cả nguồn' }]} />
+        <FilterChips value={archived ? 'archived' : 'active'} onChange={(v) => { if ((v === 'archived') !== archived) toggleArchived(); }}
+          options={[{ value: 'active', label: 'đang dùng' }, { value: 'archived', label: '🗄 kho lưu' }]} />
+        <FilterChips value={nhom} onChange={setNhom}
+          counts={{ '': searched.length, ...Object.fromEntries(nhomCounts) }}
+          options={[{ value: '', label: 'tất cả' }, ...nhomCounts.map(([g]) => ({ value: g, label: groupLabel(g) }))]} />
+      </ListToolbar>
 
       {nhom === 'leads' && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 8 }}>NGAY = harvest tay (ra lead sớm, proof) · NHANH = organic (Pinterest/pSEO) · TRUNG = authority (Digital-PR/email) · TRẢ TIỀN = ads (gated)</div>}
 
@@ -189,6 +188,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
           </div>
         ))}
       </div>
+      <Pager {...pager} onPage={pager.setPage} />
 
       {edit && <SourceEditor initial={edit} onClose={() => setEdit(null)} onSaved={async () => { setEdit(null); await reload(); }} />}
     </div>

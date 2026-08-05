@@ -335,47 +335,32 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
     });
   }, [skills, q, cat]);
 
+  const catCounts = useMemo(() => {
+    const c: Record<string, number> = { all: skills.length };
+    for (const g of groups) c[g.key] = g.items.length;
+    return c;
+  }, [skills, groups]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
+
   const filteredByGroup = useMemo(() => {
     const map = new Map<string, SkillRow[]>();
-    for (const s of filtered) {
+    for (const s of pageItems) {
       const key = s.tags[0] ?? 'misc';
       const arr = map.get(key) ?? [];
       arr.push(s);
       map.set(key, arr);
     }
     return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
-  }, [filtered]);
+  }, [pageItems]);
 
   return (
     <>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
-          type="search"
-          placeholder="Filter skills (title, tag, body)…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          style={{
-            flex: 1, minWidth: 220, padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)',
-            borderRadius: 5, fontSize: 12, color: 'var(--fg-0)', outline: 'none',
-          }}
-        />
-        <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{filtered.length} / {skills.length}</span>
-        <button className="btn primary" onClick={() => modal.open("new")}>+ New skill</button>
-      </div>
-
-      {/* Category chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
-        <span className="chip" data-active={cat === 'all' || undefined} onClick={() => setCat('all')}
-              style={{ cursor: 'pointer', fontSize: 10 }}>
-          all <span style={{ opacity: 0.6 }}>{skills.length}</span>
-        </span>
-        {groups.map((g) => (
-          <span key={g.key} className="chip" data-active={cat === g.key || undefined} onClick={() => setCat(g.key)}
-                style={{ cursor: 'pointer', fontSize: 10 }}>
-            {g.key} <span style={{ opacity: 0.6 }}>{g.items.length}</span>
-          </span>
-        ))}
-      </div>
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm title / tag / body…"
+        right={<button className="btn primary" onClick={() => modal.open("new")}>+ New skill</button>}>
+        <FilterChips value={cat} onChange={setCat} counts={catCounts}
+          options={[{ value: 'all', label: 'all' }, ...groups.map((g) => ({ value: g.key, label: g.key }))]} />
+      </ListToolbar>
 
       {skills.length === 0 ? (
         <div className="panel">
@@ -392,11 +377,12 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
           </div>
         </div>
       ) : (
+        <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {filteredByGroup.map(([groupKey, items]) => (
             <div key={groupKey}>
               <div style={{
-                fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--neon-violet)',
+                fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
                 textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4,
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
@@ -409,7 +395,7 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
                   <div key={s.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => modal.open("edit", s.id)}>
                     <div className="panel-head" style={{ padding: '6px 10px' }}>
                       <div className="panel-title" style={{ fontSize: 12 }}>
-                        <span style={{ color: 'var(--neon-violet)' }}>✦</span>
+                        <span style={{ color: 'var(--fg-4)' }}>✦</span>
                         {s.title}
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{s.slug}</span>
@@ -433,6 +419,8 @@ function SkillsTab({ skills }: { skills: SkillRow[] }) {
             </div>
           ))}
         </div>
+        <Pager {...pager} onPage={pager.setPage} />
+        </>
       )}
 
       {(editing || creating) && (

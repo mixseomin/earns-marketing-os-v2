@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, type CSSProperties } from 'react';
-import { Spinner, IconCommunity, SiteFavicon } from './ui';
+import { Spinner, IconCommunity, SiteFavicon, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   syncPlatformsFromDirectus,
@@ -10,8 +10,6 @@ import {
 import { READINESS_DIMS, isReady } from '@/lib/selector-readiness';
 import { searchHabitatsAcrossProjects } from '@/lib/actions/tribes-crud';
 import Link from 'next/link';
-import { TagsFilterChips } from './tags-input';
-import { NoFillInput } from './no-fill-input';
 import { PlatformFormModal } from './platform-form-modal';
 import { LinkChip } from './ui';
 
@@ -239,22 +237,44 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
     });
   }, [platforms, q, priorityFilter, tagsFilter]);
 
+  // Order flat by priority then label so paginated pages stay coherent, then group the page slice.
+  const ordered = useMemo(
+    () => [...filtered].sort((a, b) =>
+      PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority) || a.label.localeCompare(b.label)),
+    [filtered],
+  );
+  const { pageItems, ...pager } = usePaged(ordered);
+
   const grouped = useMemo(() => {
     const map = new Map<PlatformPriority, PlatformWithUsage[]>();
-    for (const p of filtered) {
+    for (const p of pageItems) {
       const arr = map.get(p.priority) ?? [];
       arr.push(p);
       map.set(p.priority, arr);
     }
     return PRIORITY_ORDER.map((k) => ({ priority: k, items: (map.get(k) ?? []).sort((a, b) => a.label.localeCompare(b.label)) }))
       .filter((g) => g.items.length > 0);
-  }, [filtered]);
+  }, [pageItems]);
 
   const counts = {
     total: platforms.length,
     inUse: platforms.filter((p) => p.accountsCount > 0).length,
     unused: platforms.filter((p) => p.accountsCount === 0).length,
   };
+  const priorityCounts = useMemo(() => ({
+    all: platforms.length,
+    critical: platforms.filter((p) => p.priority === 'critical').length,
+    high: platforms.filter((p) => p.priority === 'high').length,
+    medium: platforms.filter((p) => p.priority === 'medium').length,
+    low: platforms.filter((p) => p.priority === 'low').length,
+  }), [platforms]);
+  const priorityOptions: { value: string; label: string }[] = [
+    { value: 'all', label: 'all' },
+    { value: 'critical', label: 'critical' },
+    { value: 'high', label: 'high' },
+    { value: 'medium', label: 'medium' },
+    { value: 'low', label: 'low' },
+  ];
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -278,48 +298,26 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
 
       <AcqBreakdown platforms={platforms} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <NoFillInput
-          style={{
-            padding: '6px 10px', minWidth: 280,
-            background: 'var(--bg-2)', border: '1px solid var(--line)',
-            borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
-          }}
-          placeholder="Search platform..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+      <ListToolbar
+        search={q} onSearch={setQ} searchPlaceholder="Search platform..."
+        right={<span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{filtered.length} match</span>}
+      >
+        <FilterChips
+          value={priorityFilter}
+          onChange={setPriorityFilter}
+          counts={priorityCounts}
+          options={priorityOptions}
         />
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['all', ...PRIORITY_ORDER] as const).map((p) => (
-            <button key={p} className="btn"
-              data-active={priorityFilter === p || undefined}
-              onClick={() => setPriorityFilter(p)}
-              style={{
-                fontSize: 11, padding: '4px 10px',
-                background: priorityFilter === p ? 'var(--accent-soft)' : 'transparent',
-                color: p === 'all' ? 'var(--fg-1)' : (PRIORITY_META[p as PlatformPriority]?.color),
-                border: `1px solid ${priorityFilter === p ? 'var(--accent)' : 'var(--line)'}`,
-                borderRadius: 4, cursor: 'pointer',
-              }}>
-              {p === 'all' ? 'All' : PRIORITY_META[p as PlatformPriority].star + ' ' + PRIORITY_META[p as PlatformPriority].label.toLowerCase()}
-              <span style={{ opacity: 0.6, marginLeft: 4 }}>
-                {p === 'all' ? platforms.length : platforms.filter((x) => x.priority === p).length}
-              </span>
-            </button>
-          ))}
-        </div>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-          {filtered.length} match
-        </span>
-      </div>
-
-      <TagsFilterChips
-        allTags={tagPool.all}
-        counts={tagPool.counts}
-        selected={tagsFilter}
-        onChange={setTagsFilter}
-      />
+        {tagPool.all.length > 0 && (
+          <MultiSelect
+            label="tags"
+            options={tagPool.all.map((t) => ({ value: t, label: t, count: tagPool.counts[t] }))}
+            selected={tagsFilter}
+            onChange={setTagsFilter}
+            compact
+          />
+        )}
+      </ListToolbar>
 
       {grouped.length === 0 && habitatMatches.length === 0 ? (
         <div className="panel" style={{ padding: 32, textAlign: 'center', color: 'var(--fg-3)' }}>
@@ -375,7 +373,7 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
             <div key={g.priority}>
               <div style={{
                 fontSize: 10, fontFamily: 'var(--font-mono)',
-                color: PRIORITY_META[g.priority].color, textTransform: 'uppercase',
+                color: 'var(--fg-3)', textTransform: 'uppercase',
                 letterSpacing: '0.08em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 <span>{PRIORITY_META[g.priority].star} {PRIORITY_META[g.priority].label}</span>
@@ -433,6 +431,8 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
           ))}
         </div>
       )}
+
+      <Pager {...pager} onPage={pager.setPage} />
 
       {(editing || creating) && (
         <PlatformFormModal

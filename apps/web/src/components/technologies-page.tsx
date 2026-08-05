@@ -10,18 +10,23 @@ import { useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
-import { NoFillInput } from './no-fill-input';
+import { ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import { mergeSelectorField, type DupGroup } from '@/lib/actions/habitat-selectors';
 import type { TechnologyWithUsage } from '@/lib/actions/technologies';
 import { READINESS_DIMS, isReady } from '@/lib/selector-readiness';
 
-const PK_META: Record<string, { label: string; color: string }> = {
-  signup: { label: 'signup', color: 'var(--neon-amber)' },
-  composer: { label: 'composer', color: 'var(--neon-cyan)' },
-  'subreddit-about': { label: 'about', color: 'var(--neon-violet)' },
-  'account-profile': { label: 'profile', color: 'var(--neon-green, #22c55e)' },
+// YDNI: page-kind is a label, not a signal — neutral, no per-kind rainbow colour.
+const PK_META: Record<string, { label: string }> = {
+  signup: { label: 'signup' },
+  composer: { label: 'composer' },
+  'subreddit-about': { label: 'about' },
+  'account-profile': { label: 'profile' },
 };
-const pkMeta = (pk: string) => PK_META[pk] ?? { label: pk, color: 'var(--fg-3)' };
+const pkMeta = (pk: string) => PK_META[pk] ?? { label: pk };
+
+const totSel = (e: TechnologyWithUsage) => Object.values(e.selectorCounts).reduce((x, y) => x + y, 0);
+const readinessOf = (e: TechnologyWithUsage): 'ready' | 'partial' | 'empty' =>
+  isReady(e.selectorCounts) ? 'ready' : totSel(e) > 0 ? 'partial' : 'empty';
 
 const APPLIED_CAP = 10;
 
@@ -69,8 +74,8 @@ function TechnologyReadinessMatrix({ technologies, onOpen }: {
                   {READINESS_DIMS.map((d) => {
                     const n = e.selectorCounts[d.pk] ?? 0;
                     return (
-                      <td key={d.pk} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: n > 0 ? 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)' : 'transparent' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: n > 0 ? 'var(--neon-cyan)' : 'var(--fg-3)' }}>{n > 0 ? `✓ ${n}` : '–'}</span>
+                      <td key={d.pk} style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: n > 0 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n > 0 ? `✓ ${n}` : '–'}</span>
                       </td>
                     );
                   })}
@@ -94,6 +99,7 @@ function TechnologyReadinessMatrix({ technologies, onOpen }: {
 export function TechnologiesPage({ technologies, dups }: { technologies: TechnologyWithUsage[]; dups: DupGroup[] }) {
   const pathname = usePathname();
   const [q, setQ] = useState('');
+  const [ready, setReady] = useState('all');
   const [open, setOpen] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return new URLSearchParams(window.location.search).get('e');
@@ -106,16 +112,28 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
     return m;
   }, [dups]);
 
+  const counts = useMemo(() => ({
+    all: technologies.length,
+    ready: technologies.filter((e) => readinessOf(e) === 'ready').length,
+    partial: technologies.filter((e) => readinessOf(e) === 'partial').length,
+    empty: technologies.filter((e) => readinessOf(e) === 'empty').length,
+  }), [technologies]);
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return technologies;
-    return technologies.filter((e) =>
-      e.key.toLowerCase().includes(s) ||
-      e.label.toLowerCase().includes(s) ||
-      e.platforms.some((p) => p.label.toLowerCase().includes(s) || p.key.toLowerCase().includes(s)) ||
-      e.habitats.some((h) => h.name.toLowerCase().includes(s)),
-    );
-  }, [technologies, q]);
+    return technologies.filter((e) => {
+      if (ready !== 'all' && readinessOf(e) !== ready) return false;
+      if (!s) return true;
+      return (
+        e.key.toLowerCase().includes(s) ||
+        e.label.toLowerCase().includes(s) ||
+        e.platforms.some((p) => p.label.toLowerCase().includes(s) || p.key.toLowerCase().includes(s)) ||
+        e.habitats.some((h) => h.name.toLowerCase().includes(s))
+      );
+    });
+  }, [technologies, q, ready]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
 
   const toggle = (key: string) => {
     const next = open === key ? null : key;
@@ -157,19 +175,13 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
         }
       }} />
 
-      <div style={{ marginBottom: 10 }}>
-        <NoFillInput
-          type="search"
-          placeholder="Search technology · platform · habitat…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          style={{ width: '100%', maxWidth: 360, fontSize: 13, padding: '6px 10px',
-                   border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}
-        />
-      </div>
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="Search technology · platform · habitat…">
+        <FilterChips value={ready} onChange={setReady} counts={counts}
+          options={[{ value: 'all', label: 'all' }, { value: 'ready', label: 'ready' }, { value: 'partial', label: 'partial' }, { value: 'empty', label: 'empty' }]} />
+      </ListToolbar>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.map((e) => (
+        {pageItems.map((e) => (
           <TechnologyCard
             key={e.key} technology={e} isOpen={open === e.key}
             onToggle={() => toggle(e.key)} dups={dupsByTechnology.get(e.key) ?? []}
@@ -181,6 +193,7 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
           </div>
         )}
       </div>
+      <Pager {...pager} onPage={pager.setPage} />
     </div>
   );
 }
@@ -215,7 +228,7 @@ function TechnologyCard({ technology: e, isOpen, onToggle, dups }: {
             <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>no selectors</span>
           ) : selPks.map(([pk, n]) => {
             const m = pkMeta(pk);
-            return <span key={pk} title={`${n} ${m.label} selectors`} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 5, border: `1px solid ${m.color}`, color: m.color }}>{m.label} {n}</span>;
+            return <span key={pk} title={`${n} ${m.label} selectors`} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-2)' }}>{m.label} {n}</span>;
           })}
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, fontSize: 11, color: 'var(--fg-2)' }}>
@@ -265,12 +278,12 @@ function AppliedBy({ technology: e }: { technology: TechnologyWithUsage }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {shown.map((it) => (
-        <Link key={it.id} href={it.href} title={it.title} style={chip(it.kind === 'platform' ? 'var(--neon-violet)' : 'var(--neon-cyan)')}>
+        <Link key={it.id} href={it.href} title={it.title} style={chip()}>
           {it.kind === 'platform' ? '🌐' : '◍'} {it.label}
         </Link>
       ))}
       {all.length > APPLIED_CAP && (
-        <button type="button" onClick={() => setExpanded((v) => !v)} style={{ ...chip('var(--fg-3)'), cursor: 'pointer', background: 'transparent' }}>
+        <button type="button" onClick={() => setExpanded((v) => !v)} style={{ ...chip(), cursor: 'pointer', background: 'transparent' }}>
           {expanded ? 'show less' : `+${all.length - APPLIED_CAP} more`}
         </button>
       )}
@@ -302,7 +315,7 @@ function DupPanel({ technologyKey, dups }: { technologyKey: string; dups: DupGro
         {dups.map((g) => (
           <div key={`${g.pageKind}:${g.on}`} style={{ fontSize: 11 }}>
             <div style={{ color: 'var(--fg-3)', marginBottom: 3 }}>
-              <span style={{ ...pkBadge(g.pageKind) }}>{pkMeta(g.pageKind).label}</span>{' '}
+              <span style={{ ...pkBadge() }}>{pkMeta(g.pageKind).label}</span>{' '}
               {g.reason === 'same-css' ? <>same selector <code style={codeSty}>{g.on}</code></> : <>names fold to <code style={codeSty}>{g.on}</code></>}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -333,9 +346,8 @@ function DupPanel({ technologyKey, dups }: { technologyKey: string; dups: DupGro
 }
 
 const codeSty: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10, background: 'var(--bg-2)', padding: '0 4px', borderRadius: 3 };
-function pkBadge(pk: string): React.CSSProperties {
-  const m = pkMeta(pk);
-  return { fontSize: 9, padding: '1px 5px', borderRadius: 4, border: `1px solid ${m.color}`, color: m.color, fontFamily: 'var(--font-mono)' };
+function pkBadge(): React.CSSProperties {
+  return { fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)' };
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -347,6 +359,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function chip(color: string): React.CSSProperties {
-  return { fontSize: 11, padding: '3px 8px', borderRadius: 6, border: `1px solid ${color}`, color, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 };
+// YDNI: platform/habitat is distinguished by its icon + name, not colour — neutral chip.
+function chip(): React.CSSProperties {
+  return { fontSize: 11, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--line)', color: 'var(--fg-2)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 };
 }

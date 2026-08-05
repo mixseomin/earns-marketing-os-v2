@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { InfraRow } from '@/lib/data';
 import { createInfraResource, updateInfraResource, deleteInfraResource, type InfraInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, Pill, StatsStrip, Drawer, type StatCard } from './ui';
+import { EmptyState, Pill, StatsStrip, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = {
@@ -36,18 +36,40 @@ export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId:
     { key: 'active', label: 'Active', value: items.filter((i) => i.status === 'active').length, color: 'var(--ok)' },
     { key: 'expiring', label: 'Expiring 30d', value: items.filter((i) => { const d = daysUntil(i.expiresAt); return d !== null && d >= 0 && d <= 30; }).length, color: 'var(--warn)' },
     { key: 'expired', label: 'Expired/Broken', value: items.filter((i) => i.status === 'expired' || i.status === 'broken').length, color: 'var(--bad)' },
-    { key: 'cost', label: 'Cost/mo', value: fmtCost(items.reduce((s, i) => s + i.costMonthly, 0), 'VND'), color: 'var(--neon-amber)' },
+    { key: 'cost', label: 'Cost/mo', value: fmtCost(items.reduce((s, i) => s + i.costMonthly, 0), 'VND'), color: 'var(--fg-0)' },
   ], [items]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, InfraRow[]>();
-    for (const r of items) {
-      const arr = map.get(r.kind) ?? [];
-      arr.push(r);
-      map.set(r.kind, arr);
-    }
-    return Array.from(map.entries()).sort();
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('all');
+  const [kinds, setKinds] = useState<string[]>([]);
+
+  const statusCounts = useMemo(() => ({
+    all: items.length,
+    active: items.filter((i) => i.status === 'active').length,
+    paused: items.filter((i) => i.status === 'paused').length,
+    expired: items.filter((i) => i.status === 'expired').length,
+    broken: items.filter((i) => i.status === 'broken').length,
+  }), [items]);
+
+  const kindOpts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of items) m.set(r.kind, (m.get(r.kind) ?? 0) + 1);
+    return Array.from(m.entries()).sort().map(([k, n]) => ({ value: k, label: `${KIND_ICON[k] ?? '🗂'} ${k}`, count: n }));
   }, [items]);
+
+  const filtered = useMemo(() => items.filter((r) => {
+    if (status !== 'all' && r.status !== status) return false;
+    if (kinds.length && !kinds.includes(r.kind)) return false;
+    if (q) {
+      const t = q.toLowerCase();
+      if (!r.label.toLowerCase().includes(t)
+        && !(r.provider ?? '').toLowerCase().includes(t)
+        && !r.tags.some((x) => x.toLowerCase().includes(t))) return false;
+    }
+    return true;
+  }).sort((a, b) => a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label)), [items, status, kinds, q]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
 
   return (
     <>
@@ -58,40 +80,41 @@ export function InfraVault({ items, projectId }: { items: InfraRow[]; projectId:
       {items.length === 0 ? (
         <EmptyState icon="🌐" title="No infra resources" description="Thêm proxy / SIM / API key / domain..." compact />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {grouped.map(([kind, rows]) => (
-            <div key={kind}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{KIND_ICON[kind] ?? '🗂'} {kind}</span>
-                <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-                <span style={{ opacity: 0.6 }}>{rows.length}</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
-                {rows.map((r) => {
-                  const days = daysUntil(r.expiresAt);
-                  return (
-                    <div key={r.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => modal.open("edit", r.id)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14 }}>{KIND_ICON[r.kind] ?? '🗂'}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
-                        <Pill color={STATUS_COLOR[r.status] ?? 'var(--fg-3)'} label={r.status} size="xs" />
-                      </div>
-                      <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {r.provider && <span>{r.provider}</span>}
-                        <span>{fmtCost(r.costMonthly, r.currency)}/mo</span>
-                        {days !== null && (
-                          <span style={{ color: days < 0 ? 'var(--bad)' : days < 30 ? 'var(--warn)' : 'var(--fg-3)' }}>
-                            {days < 0 ? `expired ${-days}d ago` : `expires ${days}d`}
-                          </span>
-                        )}
-                      </div>
+        <>
+          <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm label / provider / tag…"
+            right={<MultiSelect label="kind" options={kindOpts} selected={kinds} onChange={setKinds} compact />}>
+            <FilterChips value={status} onChange={setStatus} counts={statusCounts}
+              options={[{ value: 'all', label: 'all' }, { value: 'active', label: 'active' }, { value: 'paused', label: 'paused' }, { value: 'expired', label: 'expired' }, { value: 'broken', label: 'broken' }]} />
+          </ListToolbar>
+          {filtered.length === 0 ? (
+            <EmptyState icon="🔍" title="Không có resource khớp" description="Đổi filter hoặc tìm khác." compact />
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
+              {pageItems.map((r) => {
+                const days = daysUntil(r.expiresAt);
+                return (
+                  <div key={r.id} className="panel" style={{ cursor: 'pointer', padding: '8px 10px' }} onClick={() => modal.open("edit", r.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14 }}>{KIND_ICON[r.kind] ?? '🗂'}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
+                      <Pill color={STATUS_COLOR[r.status] ?? 'var(--fg-3)'} label={r.status} size="xs" />
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {r.provider && <span>{r.provider}</span>}
+                      <span>{fmtCost(r.costMonthly, r.currency)}/mo</span>
+                      {days !== null && (
+                        <span style={{ color: days < 0 ? 'var(--bad)' : days < 30 ? 'var(--warn)' : 'var(--fg-3)' }}>
+                          {days < 0 ? `expired ${-days}d ago` : `expires ${days}d`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          )}
+          <Pager {...pager} onPage={pager.setPage} />
+        </>
       )}
       {(editing || creating) && (
         <InfraFormModal item={editing} projectId={projectId} onClose={() => modal.close()} />

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { BudgetRow } from '@/lib/data';
 import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, StatsStrip, FormModal, type StatCard } from './ui';
+import { EmptyState, StatsStrip, FormModal, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { income: '⬆', expense: '⬇', recurring: '🔁' };
@@ -57,11 +57,41 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
       cards.push(
         { key: `inc-${ccy}`, label: `Income 30d ${ccy}`, value: fmtAmount(b.income, ccy), color: 'var(--ok)' },
         { key: `exp-${ccy}`, label: `Expense 30d ${ccy}`, value: fmtAmount(b.expense, ccy), color: 'var(--bad)' },
-        { key: `rec-${ccy}`, label: `Recurring/mo ${ccy}`, value: fmtAmount(Math.round(b.recurring), ccy), color: 'var(--neon-amber)' },
+        { key: `rec-${ccy}`, label: `Recurring/mo ${ccy}`, value: fmtAmount(Math.round(b.recurring), ccy), color: 'var(--fg-2)' },
       );
     }
     return cards;
   }, [items]);
+
+  // ── List filters (toolbar) — mirror offers-page. Stats above stay on the FULL set; filters only
+  // scope the table. Kind = fixed enum → chips (the screen's one accent). Category = dynamic → MultiSelect.
+  const [kind, setKind] = useState('all');
+  const [cats, setCats] = useState<string[]>([]);
+  const [q, setQ] = useState('');
+
+  const kindCounts = useMemo(() => ({
+    all: items.length,
+    income: items.filter((i) => i.kind === 'income').length,
+    expense: items.filter((i) => i.kind === 'expense').length,
+    recurring: items.filter((i) => i.kind === 'recurring').length,
+  }), [items]);
+  const catOpts = useMemo(
+    () => Array.from(new Set(items.map((i) => i.category))).sort().map((c) => ({ value: c, label: c })),
+    [items],
+  );
+
+  const filtered = useMemo(() => items.filter((b) => {
+    if (kind !== 'all' && b.kind !== kind) return false;
+    if (cats.length && !cats.includes(b.category)) return false;
+    if (q) {
+      const t = q.toLowerCase();
+      if (!b.label.toLowerCase().includes(t) && !b.category.toLowerCase().includes(t)
+        && !b.tags.some((x) => x.toLowerCase().includes(t))) return false;
+    }
+    return true;
+  }), [items, kind, cats, q]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
 
   return (
     <>
@@ -69,8 +99,17 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0' }}>
         <button className="btn primary" onClick={() => modal.open("new")}>+ New entry</button>
       </div>
+      {items.length > 0 && (
+        <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm label / category / tag…"
+          right={<MultiSelect label="category" options={catOpts} selected={cats} onChange={setCats} compact />}>
+          <FilterChips value={kind} onChange={setKind} counts={kindCounts}
+            options={[{ value: 'all', label: 'Tất cả' }, { value: 'income', label: '⬆ income' }, { value: 'expense', label: '⬇ expense' }, { value: 'recurring', label: '🔁 recurring' }]} />
+        </ListToolbar>
+      )}
       {items.length === 0 ? (
         <EmptyState icon="💳" title="No budget entries" description="Track ad spend, tool subs, income..." compact />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon="🔍" title="Không có entry khớp" description="Đổi filter hoặc xoá tìm kiếm." compact />
       ) : (
         <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
           <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -85,7 +124,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
               </tr>
             </thead>
             <tbody>
-              {items.map((b) => (
+              {pageItems.map((b) => (
                 <tr key={b.id} onClick={() => modal.open("edit", b.id)} style={{ borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                   <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{fmtDate(b.occurredAt)}</td>
                   <td style={{ padding: '6px 10px' }}>{KIND_ICON[b.kind] ?? '—'} {b.kind}</td>
@@ -103,6 +142,7 @@ export function BudgetVault({ items, projectId }: { items: BudgetRow[]; projectI
           </table>
         </div>
       )}
+      {filtered.length > 0 && <Pager {...pager} onPage={pager.setPage} />}
       {(editing || creating) && (
         <BudgetFormModal entry={editing} projectId={projectId} onClose={() => modal.close()} />
       )}

@@ -23,6 +23,7 @@ Import tất cả từ `@/components/ui` (hoặc `./ui`). Cần 1 thứ dưới 
 | Toggle 2-3 lựa chọn | `Segmented` · `StatusSegmented` · `ViewToggle` |
 | Disclosure (ẩn/hiện) | `Collapsible` |
 | KPI/stat row · lịch · CTA · section · header modal · tooltip · favicon · link ngoài · icon | `StatsStrip` · `MonthCalendar` · `CTACard` · `Section` · `ModalHeader` · `InfoHint` · `SiteFavicon` · `LinkChip` · `Icon*` |
+| **Page dạng list/vault: search + filter + phân trang** | `ListToolbar` + `FilterChips` + `SearchInput` + `usePaged`/`Pager` (§5) |
 
 Enum-select = `SelectField` (KHÔNG `<select>` thô). Chọn entity = picker ở trên (KHÔNG `<select>` thô). Hiển thị entity = `EntityRef` (KHÔNG `<span>{x.handle}</span>`).
 
@@ -73,6 +74,15 @@ Bất kỳ chỗ nào show ra 1 entity khác (account, proxy, browser-profile, t
 <EntityRef kind="task" id={t.id} project={slug} />        // chưa host → auto-route sang page task
 ```
 - **Chọn/gán** entity (không phải chỉ hiển thị) → dùng picker chuẩn §2 (`EntityPicker`/`ResourcePicker`/`MultiSelect`); chip đã-chọn trong picker cũng nên là `<EntityRef>`. KHÔNG `<select>` tự chế cho việc chọn entity.
+
+## 5. Page dạng LIST/VAULT = `ui/list-view` (KHÔNG hand-roll filter/search/render-cả-mảng)
+
+Mọi page liệt kê record (offers, communities, contacts, budget, media, knowledge, infra, catalog, library, technologies, platforms, servers…) dùng CHUNG primitive `components/ui/list-view.tsx`. Trước đây mỗi page tự chế `chip()` + `inputStyle` + render nguyên mảng (không phân trang) → chắp vá, lệch nhau, kẹt khi list to. Bản mẫu chuẩn = `offers-page.tsx`.
+
+- **Phân trang (BẮT BUỘC nếu list có thể dài):** `const { pageItems, ...pager } = usePaged(filtered)` (mặc định 50/trang, tự clamp page khi filter thu nhỏ list) → render `pageItems`, thêm `<Pager {...pager} onPage={pager.setPage} />` sau list. `Pager` tự ẩn khi ≤1 trang (YDNI — không chrome thừa). Stats/KPI vẫn tính từ mảng đầy đủ, chỉ VIEW phân trang.
+- **Filter bar:** `<ListToolbar search={q} onSearch={setQ} searchPlaceholder=… right={…}>` bọc các nhóm `<FilterChips value onChange counts options />`. FilterChips = wrapper của `Segmented` → chip active là accent DUY NHẤT của màn (YDNI), còn lại trung tính, mỗi chip kèm count. Search box chuẩn = `SearchInput` (ListToolbar tự render qua `search`/`onSearch`). CTA "+ New"/action phụ nhét slot `right`.
+- **Filter `<select>` options ĐỘNG (từ data) → `MultiSelect`** (searchable, multi; đổi state filter thành `string[]`, predicate `.some()`/`.includes()`). Chỉ để `<select>`/`SelectField` cho enum CỐ ĐỊNH ngắn (≤5). `<select>` trong form-drawer CRUD (single-value) KHÔNG đụng — ngoài phạm vi list filter.
+- **Màu theo YDNI (§ skill ydni "Kỷ luật màu"):** default trung tính. Bỏ rainbow trang trí (per-category/type/priority mỗi thứ 1 màu) → xám (`--fg-1/2/3`, `--line`). Giữ màu CHỈ ở tín hiệu thật: status (ok/pending/error), tiền +/−, severity, deadline trễ, 1 CTA chính. 1 màn = 1 (vài) điểm nhấn.
 
 ## Vì sao context này tồn tại
 Trước đây user phải "báo lại từ đầu" mỗi lần (drawer-not-modal, select chuẩn) vì convention nằm ở recall memory (hay rớt). Nay là context auto-load theo path → áp mặc định. Gốc rule: [[feedback pack ui-primitives]] (picker_inline_crud, stacked_drawer, modal_close_outside, guarded_action_button).

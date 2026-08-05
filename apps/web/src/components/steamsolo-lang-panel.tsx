@@ -2,6 +2,7 @@
 // Data: https://steamsolo.com/api/lang-stats/ (guides.language, guide_translations, translation_demand).
 // The demand meter tells us which language versions to actually publish (indexed) vs leave on-demand.
 import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
+import { internalUrl } from '../lib/internal-origin';
 
 interface LangStats {
   ok: boolean;
@@ -18,7 +19,7 @@ interface LangStats {
 
 async function load(): Promise<LangStats | null> {
   try {
-    const r = await fetch('https://steamsolo.com/api/lang-stats/', { next: { revalidate: 60, tags: ['steamsolo-stats'] } });
+    const r = await fetch(internalUrl('https://steamsolo.com/api/lang-stats/'), { next: { revalidate: 60, tags: ['steamsolo-stats'] } });
     if (!r.ok) return null;
     return (await r.json()) as LangStats;
   } catch {

@@ -3,6 +3,8 @@
 // clicks30, ctr30 }] } — the on-site open/click funnel that precedes Awin conversions/commission.
 // Add a site by dropping a config entry here once its endpoint is live; the panel picks it up.
 
+import { internalUrl } from '../lib/internal-origin';
+
 type OfferMeta = { label: string; merchant: string; url?: string };
 type SiteCfg = { key: string; title: string; statsUrl: string; offerMeta: Record<string, OfferMeta>; note?: string };
 
@@ -42,7 +44,7 @@ interface OfferRow {
 
 async function load(url: string): Promise<{ offers: OfferRow[] } | null> {
   try {
-    const r = await fetch(url, { next: { revalidate: 300, tags: ['gsc-json'] } });
+    const r = await fetch(internalUrl(url), { next: { revalidate: 300, tags: ['gsc-json'] } });
     if (!r.ok) return null;
     return await r.json();
   } catch {

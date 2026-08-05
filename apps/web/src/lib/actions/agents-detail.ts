@@ -70,6 +70,20 @@ export async function listSquadAgents(projectId: string, squadKey: string): Prom
   return (rows as unknown as Array<Record<string, unknown>>).map(toAgentRow);
 }
 
+// By-id bundle for <EntityDrawerHost> — open an agent's detail modal in-place from any page.
+export async function agentDrawerBundle(agentId: number): Promise<{ agent: AgentRow; squadName: string } | null> {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute(sql`
+    SELECT a.id, a.project_id, a.squad_id, a.agent_ref, a.label,
+           a.status, a.trust_level, a.base_skill_md, a.updated_at, s.name AS squad_name
+    FROM agents a LEFT JOIN squads s ON s.id = a.squad_id
+    WHERE a.id = ${agentId} LIMIT 1
+  `);
+  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  return r ? { agent: toAgentRow(r), squadName: r.squad_name ? String(r.squad_name) : '—' } : null;
+}
+
 // Auto-create missing agent rows khi squad chưa có agents trong DB.
 // Prefix = 3 ký tự đầu tên squad (VD: Research → RES).
 export async function syncSquadAgents(

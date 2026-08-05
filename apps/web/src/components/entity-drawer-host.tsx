@@ -16,6 +16,10 @@ const IdentityDrawer = dynamic(() => import('./identity-drawer').then((m) => m.I
 const BriefDrawer = dynamic(() => import('./entity-project-drawers').then((m) => m.BriefDrawer), { ssr: false });
 const HabitatDrawer = dynamic(() => import('./entity-project-drawers').then((m) => m.HabitatDrawer), { ssr: false });
 const TribeDrawer = dynamic(() => import('./entity-project-drawers').then((m) => m.TribeDrawer), { ssr: false });
+const AgentDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.AgentDrawer), { ssr: false });
+const TeamMemberDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.TeamMemberDrawer), { ssr: false });
+const MediaDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.MediaDrawer), { ssr: false });
+const ContactDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.ContactDrawer), { ssr: false });
 
 // HOST_KINDS lives in @/lib/entity-drawer (single source, shared with EntityRef). The switch
 // below MUST cover exactly those kinds — re-exported here for existing importers.
@@ -36,6 +40,10 @@ export function EntityDrawerHost() {
     case 'brief': return <BriefDrawer briefId={id} onClose={onClose} />;
     case 'habitat': return <HabitatDrawer habitatId={id} onClose={onClose} />;
     case 'tribe': return <TribeDrawer tribeId={id} onClose={onClose} />;
+    case 'agent': return <AgentDrawer agentId={id} onClose={onClose} />;
+    case 'team-member': return <TeamMemberDrawer userId={id} onClose={onClose} />;
+    case 'media': return <MediaDrawer mediaId={id} onClose={onClose} />;
+    case 'contact': return <ContactDrawer contactId={id} onClose={onClose} />;
     default: return null;   // unregistered kind → nothing (EntityRef falls back to deep-link route)
   }
 }

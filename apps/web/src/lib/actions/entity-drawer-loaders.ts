@@ -6,7 +6,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { getHabitatById, listTribes, listPlatforms } from '@/lib/data';
+import { getHabitatById, listTribes, listPlatforms, listMedia, listContacts, type MediaRow, type ContactRow } from '@/lib/data';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -35,4 +35,13 @@ export async function tribeDrawerBundle(tribeId: number) {
   if (!pid) return null;
   const tribe = (await listTribes(pid)).find((t) => t.id === tribeId) ?? null;
   return tribe ? { projectId: pid, tribe } : null;
+}
+
+// media / contact are tenant-wide addressable by id alone (no project needed to render).
+export async function mediaById(id: number): Promise<MediaRow | null> {
+  return (await listMedia()).find((m) => m.id === id) ?? null;
+}
+
+export async function contactById(id: number): Promise<ContactRow | null> {
+  return (await listContacts()).find((c) => c.id === id) ?? null;
 }

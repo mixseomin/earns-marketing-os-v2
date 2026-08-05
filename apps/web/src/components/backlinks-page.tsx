@@ -368,6 +368,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const router = useRouter();
   const sp = useSearchParams();
   const [, start] = useTransition();
+  // Realtime auto-refresh (default ON) — re-fetch the board every 10s so a fresh chat/board reflects
+  // status changes without a manual reload. Skips while the tab is backgrounded; toggle in the header.
+  const [realtime, setRealtime] = useState(true);
+  useEffect(() => {
+    if (!realtime) return;
+    const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
+    return () => clearInterval(id);
+  }, [realtime, router]);
   // A seeded editorial play with no concrete target URL carries a placeholder source_url on the
   // site's OWN domain (e.g. mintalmanac.com#play-N) — showing that host on a card reads as a
   // meaningless self-link. Hide it (return null) so the descriptive title speaks instead. In the
@@ -736,6 +744,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {allProjects ? 'Plays' : 'Backlinks'} <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// {allProjects ? 'All projects' : siteLabel} · {kpi.total} {allProjects ? 'plays' : 'sources'}</small>
         </h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+            title="Tự động refresh dữ liệu board mỗi 10s (bỏ tick để tắt)">
+            <input type="checkbox" checked={realtime} onChange={(e) => setRealtime(e.target.checked)} style={{ cursor: 'pointer' }} />
+            <span style={{ color: realtime ? 'var(--neon-lime, #22c55e)' : 'var(--fg-3)', fontWeight: 600 }}>{realtime ? '🟢 Realtime' : '⚪ Realtime'}</span>
+          </label>
           <a href="/catalog" style={{ ...btn, textDecoration: 'none', color: 'var(--accent)' }} title="Quản lý phương pháp (catalog mẫu play dùng chung) — theo Nhóm · Level">📋 Phương pháp</a>
           {!allProjects && (
             <button type="button" onClick={doAutoMedia} disabled={autoMedia === 'busy'} style={{ ...btn, color: 'var(--accent)' }}

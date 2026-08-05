@@ -168,6 +168,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
   const totalBing4xx = rows.reduce((s, r) => s + (r.bing_errors_4xx_30d ?? 0), 0);
   const totalBlTotal = rows.reduce((s, r) => s + (r.bl_total ?? 0), 0);
   const totalBlDone = rows.reduce((s, r) => s + (r.bl_done ?? 0), 0);
+  const totalBlInflight = rows.reduce((s, r) => s + (r.bl_inflight ?? 0), 0);
   const totalAi7 = rows.reduce((s, r) => s + (r.ai_sessions_7d ?? 0), 0);
   const totalAi28 = rows.reduce((s, r) => s + (r.ai_sessions_28d ?? 0), 0);
   const totalLive5 = rows.reduce((s, r) => s + (r.ga4_active_5min ?? 0), 0);
@@ -376,7 +377,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
                         + Object.entries(r.bl_by_status || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ')
                         + (r.project ? ' · click → backlink board' : '')
                       : 'No backlink task targets this site yet'}>
-                    {!r.bl_total ? '—' : `${r.bl_done ?? 0}/${r.bl_total}`}
+                    {!r.bl_total ? '—' : <>{r.bl_done ?? 0}/{r.bl_total}{(r.bl_inflight ?? 0) > 0 && <span style={{ color: GROUP_COLOR.bl.fg, opacity: 0.75, fontSize: '0.85em', marginLeft: 3 }} title="submitted / claimed — worked, not yet confirmed live">+{r.bl_inflight}</span>}</>}
                   </td>
                 </>}
                 {cols.gsc && <>
@@ -489,7 +490,7 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
             </>}
             {cols.bl && <>
               <td style={cellOf('bl', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.bl.fg })}
-                title={`Portfolio backlink campaign — ${totalBlDone} live of ${totalBlTotal} tasks`}>{totalBlDone}/{totalBlTotal}</td>
+                title={`Portfolio backlink campaign — ${totalBlDone} live · ${totalBlInflight} in-flight (submitted/claimed) of ${totalBlTotal} tasks`}>{totalBlDone}/{totalBlTotal}{totalBlInflight > 0 && <span style={{ opacity: 0.75, fontSize: '0.85em', marginLeft: 3, fontWeight: 600 }}>+{totalBlInflight}</span>}</td>
             </>}
             {cols.gsc && <>
               <td data-tool="gsc" style={cellOf('gsc', true, { textAlign: 'right', fontWeight: 700, color: GROUP_COLOR.gsc.fg })}>{totals.imps.toLocaleString()}</td>

@@ -79,6 +79,14 @@ export function accountStatusGroupOf(s: AccountStatus | string): AccountStatusGr
   return 'locked';
 }
 
+// "Parked" = account is DEAD/unusable and should be tucked into a separate collapsed
+// section in every account list, not mixed with live ones. `limited` stays live
+// (temporary rate-limit, recoverable); blocked/banned/dormant/defunct are parked.
+// Single source of truth so every surface (vault, browsers CLI, pickers) agrees.
+export function isParkedAccount(s: AccountStatus | string): boolean {
+  return s === 'blocked' || s === 'banned' || s === 'dormant' || s === 'defunct';
+}
+
 // ── Seeding queue status (computed per brief in seeding cockpit) ─────
 export type SeedingQueueStatus = 'overdue' | 'due' | 'upcoming' | 'paused' | 'off-phase' | 'not-joined';
 

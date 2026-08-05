@@ -9,7 +9,12 @@ SELECT bp.id, bp.label, bp.tool,
        COALESCE((SELECT string_agg(project_id, ',' ORDER BY project_id) FROM project_browser_profiles j WHERE j.browser_profile_id=bp.id), '(none)') AS projects,
        bp.external_id AS open_from,
        (CURRENT_DATE - bp.last_opened_at::date) AS idle_d,
-       COALESCE(string_agg(pa.handle || '@' || pa.platform_key || ' (' || pa.status || ')', ', '), '(no app-account linked)') AS accounts_inside
+       COALESCE(
+         string_agg(pa.handle || '@' || pa.platform_key || ' (' || pa.status || ')', ', ')
+           FILTER (WHERE pa.status NOT IN ('blocked','banned','dormant','defunct')),
+         '(no live app-account)')
+       || COALESCE(' · 🚫' || NULLIF(count(*) FILTER (WHERE pa.status IN ('blocked','banned','dormant','defunct')), 0)::text || ' banned/blocked (parked)', '')
+       AS accounts_inside
 FROM browser_profiles bp
 LEFT JOIN platform_accounts pa ON pa.browser_profile_id = bp.id
 WHERE bp.archived_at IS NULL

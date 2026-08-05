@@ -31,6 +31,7 @@ import {
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef } from './ui';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
+  isParkedAccount,
   type AccountStatusGroup,
 } from '@/lib/status-meta';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
@@ -789,6 +790,13 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
     return c;
   }, [accounts]);
 
+  // Dead accounts (banned/blocked/dormant/defunct) → separate collapsed section so
+  // the live grid stays clean. Show them inline only when the user explicitly filters
+  // to the locked group (or a dead status) — then they clearly want to see them.
+  const parkInline = filterStatus === 'locked' || filterStatus === 'blocked' || filterStatus === 'banned';
+  const liveAccounts = parkInline ? filtered : filtered.filter((a) => !isParkedAccount(a.status));
+  const parkedAccounts = parkInline ? [] : filtered.filter((a) => isParkedAccount(a.status));
+
   const handleQuickAdvance = (acc: AccountRow, dir: 1 | -1) => {
     const idx = LINEAR_FLOW.indexOf(acc.status as AccountStatus);
     if (idx < 0) return;
@@ -856,7 +864,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
-          {filtered.map((acc) => {
+          {liveAccounts.map((acc) => {
             const pf = platformMap[acc.platformKey];
             const checklistDone = Object.values(acc.warmupChecklist || {}).filter((c) => c.done).length;
             const checklistTotal = pf?.checklist?.length ?? 0;
@@ -933,6 +941,39 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
               </div>
             );
           })}
+        </div>
+      )}
+
+      {parkedAccounts.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <Collapsible
+            title={<span style={{ color: 'var(--fg-2)' }}>🚫 Banned / blocked</span>}
+            badge={<span style={{ fontSize: 10, padding: '0 6px', borderRadius: 8, background: 'var(--bg-3)', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{parkedAccounts.length}</span>}
+            hint="Account chết — không dùng được nữa. Mở để xem / ghi chú / revive."
+          >
+            <div style={{ display: 'grid', gap: 6 }}>
+              {parkedAccounts.map((acc) => {
+                const pf = platformMap[acc.platformKey];
+                return (
+                  <div key={acc.id} className="panel"
+                       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', opacity: 0.7 }}
+                       onClick={() => setEditing(acc)}
+                       title={acc.blockReason || undefined}>
+                    <PlatformIcon slug={pf?.iconSlug ?? ''} size={13} />
+                    <span style={{ fontSize: 11, color: 'var(--fg-2)', minWidth: 64 }}>{pf?.label ?? acc.platformKey}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)' }}>@{acc.handle || <em style={{ color: 'var(--fg-3)' }}>no-handle</em>}</span>
+                    <span style={{ flex: 1 }} />
+                    {acc.blockReason && (
+                      <span style={{ fontSize: 10, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
+                        {acc.blockReason}
+                      </span>
+                    )}
+                    <StatusPill status={acc.status} />
+                  </div>
+                );
+              })}
+            </div>
+          </Collapsible>
         </div>
       )}
 

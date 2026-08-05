@@ -9,6 +9,7 @@
 import { useState, useMemo, useTransition, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
+import { ListToolbar, Pager, usePaged, MultiSelect } from './ui';
 import { getHabitatRowAction } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
@@ -16,6 +17,9 @@ import type { CommunityRow } from '@/lib/actions/communities';
 const cell: CSSProperties = { padding: '7px 10px', borderBottom: '1px solid var(--line)', fontSize: 12, verticalAlign: 'top' };
 const th: CSSProperties = { padding: '8px 10px', background: 'var(--bg-2)', color: 'var(--fg-3)', fontWeight: 500, textTransform: 'uppercase', fontSize: 9.5, letterSpacing: '.06em', borderBottom: '1px solid var(--line)', textAlign: 'left', whiteSpace: 'nowrap' };
 const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12 };
+// Neutral badge (YDNI): type/attribute markers carry meaning in their LABEL, not a unique colour.
+const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
+// Coloured pill reserved for the ONE glanceable signal here: links policy severity (banned=red, caveat=amber).
 const pill = (c: string): CSSProperties => ({ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: c, border: `1px solid ${c}55`, background: `${c}14` });
 
 // Does this community BAN links outright? (mirror of link-readiness regex, for display only.)
@@ -35,8 +39,8 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const router = useRouter();
   const [pending, start] = useTransition();
   const [q, setQ] = useState('');
-  const [plat, setPlat] = useState('');
-  const [proj, setProj] = useState(projectId ?? '');
+  const [plat, setPlat] = useState<string[]>([]);
+  const [proj, setProj] = useState<string[]>(projectId ? [projectId] : []);
   const [edit, setEdit] = useState<{ row: HabitatRow | null; projectId: string } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -46,10 +50,11 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const platKeys = useMemo(() => [...new Set(rows.map((r) => r.platformKey).filter(Boolean))] as string[], [rows]);
 
   const shown = useMemo(() => rows.filter((r) =>
-    (!proj || r.projectId === proj)
-    && (!plat || r.platformKey === plat)
+    (!proj.length || (r.projectId != null && proj.includes(r.projectId)))
+    && (!plat.length || (r.platformKey != null && plat.includes(r.platformKey)))
     && (!q || `${r.name} ${r.url || ''} ${r.description || ''}`.toLowerCase().includes(q.toLowerCase())),
   ), [rows, proj, plat, q]);
+  const { pageItems, ...pager } = usePaged(shown);
 
   const kpis = useMemo(() => ({
     total: shown.length,
@@ -65,7 +70,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
     setBusyId(null);
     if (full) setEdit({ row: full, projectId: r.projectId });
   };
-  const createPid = proj || projectId || '';
+  const createPid = (proj.length === 1 ? proj[0] : '') || projectId || '';
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 
   return (
@@ -86,22 +91,19 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tên / url / mô tả…" autoComplete="off" style={{ ...inp, flex: 1, minWidth: 180 }} />
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / url / mô tả…"
+        right={
+          <button type="button" onClick={() => createPid && setEdit({ row: null, projectId: createPid })} disabled={!createPid}
+            title={createPid ? 'Thêm community mới' : 'Chọn 1 project để thêm'}
+            style={{ ...inp, cursor: createPid ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: createPid ? 1 : 0.5 }}>+ Community</button>
+        }>
         {!projectId && (
-          <select value={proj} onChange={(e) => setProj(e.target.value)} style={inp}>
-            <option value="">— tất cả project —</option>
-            {projects.map((p) => <option key={p.id} value={p.id}>{p.emoji ? `${p.emoji} ` : ''}{p.name}</option>)}
-          </select>
+          <MultiSelect label="project" compact selected={proj} onChange={setProj}
+            options={projects.map((p) => ({ value: p.id, label: `${p.emoji ? `${p.emoji} ` : ''}${p.name}` }))} />
         )}
-        <select value={plat} onChange={(e) => setPlat(e.target.value)} style={inp}>
-          <option value="">— platform —</option>
-          {platKeys.map((k) => <option key={k} value={k}>{platLabel.get(k) || k}{gateOn.has(k) ? ' 🌱' : ''}</option>)}
-        </select>
-        <button type="button" onClick={() => createPid && setEdit({ row: null, projectId: createPid })} disabled={!createPid}
-          title={createPid ? 'Thêm community mới' : 'Chọn 1 project để thêm'}
-          style={{ ...inp, cursor: createPid ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: createPid ? 1 : 0.5 }}>+ Community</button>
-      </div>
+        <MultiSelect label="platform" compact selected={plat} onChange={setPlat}
+          options={platKeys.map((k) => ({ value: k, label: `${platLabel.get(k) || k}${gateOn.has(k) ? ' 🌱' : ''}` }))} />
+      </ListToolbar>
 
       {/* Table */}
       <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
@@ -118,17 +120,17 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
             </tr>
           </thead>
           <tbody>
-            {shown.map((r) => {
+            {pageItems.map((r) => {
               const banned = linksBanned(r.linksAllowedAfter);
               const isGated = !!(r.platformKey && gateOn.has(r.platformKey));
               return (
                 <tr key={r.id} onClick={() => openEdit(r)} style={{ cursor: 'pointer', opacity: busyId === r.id ? 0.5 : 1 }}
                   title="Mở editor (rules · gate · standing)">
                   <td style={cell}>
-                    <div style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{r.name}{r.privacy === 'private' && <span style={{ marginLeft: 6, ...pill('#ffb03c') }}>private</span>}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{r.name}{r.privacy === 'private' && <span style={{ marginLeft: 6, ...badge }}>private</span>}</div>
                     {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: 10.5, color: 'var(--fg-3)', textDecoration: 'underline dotted' }}>↗ {r.url.replace(/^https?:\/\/(www\.)?/, '')}</a>}
                   </td>
-                  <td style={cell}>{r.platformKey ? <span style={pill(isGated ? '#22c55e' : 'var(--fg-3)')}>{isGated ? '🌱 ' : ''}{platLabel.get(r.platformKey) || r.platformKey}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}</td>
+                  <td style={cell}>{r.platformKey ? <span style={badge}>{isGated ? '🌱 ' : ''}{platLabel.get(r.platformKey) || r.platformKey}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}</td>
                   <td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.members ? fmt(r.members) : '—'}</td>
                   <td style={cell}>
                     {isGated
@@ -151,6 +153,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           </tbody>
         </table>
       </div>
+      <Pager {...pager} onPage={pager.setPage} />
 
       {edit && (
         <HabitatFormModal

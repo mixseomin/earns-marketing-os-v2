@@ -2,11 +2,14 @@
 // uses CSS bars + tables for zero client JS cost.
 
 import type { AdsenseSummary } from '@/lib/adsense/reports';
+import type { GumroadSummary } from '@/lib/gumroad/products';
 
 interface Props {
   summary: AdsenseSummary;
   scope?: 'project' | 'all';
   projectName?: string;
+  /** Doanh thu sản phẩm mình bán (Gumroad/CodeCrate) — khác AdSense, khác /offers. */
+  gumroad?: GumroadSummary;
 }
 
 function fmtUSD(n: number) {
@@ -17,7 +20,7 @@ function fmtUSD(n: number) {
 function fmtInt(n: number) { return n.toLocaleString('en-US'); }
 function fmtRpm(n: number) { return `$${n.toFixed(2)}`; }
 
-export function RevenueView({ summary, scope = 'all', projectName }: Props) {
+export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Props) {
   const { totalEarnings, totalImpressions, totalClicks, totalPageViews, avgRpm,
           byDate, byDomain, byAccount, rows, windowDays } = summary;
 
@@ -28,10 +31,11 @@ export function RevenueView({ summary, scope = 'all', projectName }: Props) {
     <div style={{ padding: '24px 28px', maxWidth: 1280 }}>
       <header style={{ marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-          AdSense revenue {scope === 'project' && projectName ? `· ${projectName}` : ''}
+          Revenue {scope === 'project' && projectName ? `· ${projectName}` : ''}
         </h1>
         <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
-          Last {windowDays} days. Data pulls daily 09:00 UTC; AdSense back-adjusts up to 48h.
+          AdSense: {windowDays} ngày gần nhất, pull 09:00 UTC (AdSense chỉnh lùi tới 48h).
+          Gumroad: số cộng dồn trọn đời, đọc thẳng API, cache 5 phút.
         </p>
       </header>
 
@@ -47,8 +51,11 @@ export function RevenueView({ summary, scope = 'all', projectName }: Props) {
         <Kpi label="RPM (impressions)" value={fmtRpm(avgRpm)} />
       </div>
 
+      {/* Gumroad — sản phẩm MÌNH bán. Khác AdSense (quảng cáo) và khác /offers (affiliate của network). */}
+      {gumroad && <GumroadBlock g={gumroad} />}
+
       {/* By date bar chart (CSS only) */}
-      <Section title="Earnings by day">
+      <Section title="AdSense · earnings by day">
         {byDate.length === 0 ? (
           <Empty>No revenue rows in window. Run <code>node /opt/cgg-report/adsense_check.mjs</code> to backfill.</Empty>
         ) : (
@@ -120,6 +127,48 @@ export function RevenueView({ summary, scope = 'all', projectName }: Props) {
         </Table>
       </Section>
     </div>
+  );
+}
+
+// ── Gumroad ──────────────────────────────────────────────────────
+function GumroadBlock({ g }: { g: GumroadSummary }) {
+  if (!g.ok) {
+    return (
+      <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)">
+        <Empty>Không đọc được Gumroad: {g.error ?? 'lỗi không rõ'}</Empty>
+      </Section>
+    );
+  }
+  return (
+    <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
+        <Kpi label="Doanh thu (trọn đời)" value={fmtUSD(g.totalUsd)} />
+        <Kpi label="Đơn hàng" value={fmtInt(g.totalSales)} />
+        <Kpi label="Đang bán" value={`${g.livePaid} trả phí`} sub={`+ ${g.liveFree} miễn phí (lead magnet)`} />
+        <Kpi label="Thiếu Category/Tags" value={fmtInt(g.missingDiscover)} sub="không lên được Gumroad Discover" />
+      </div>
+      {g.products.length === 0 ? (
+        <Empty>Chưa có sản phẩm nào trên store.</Empty>
+      ) : (
+        <Table head={['Sản phẩm', 'Giá', 'Đơn', 'Doanh thu', 'Discover']}>
+          {g.products.map((p) => {
+            const discoverReady = p.tags.length > 0 && !!p.category && p.category !== 'other';
+            return (
+              <tr key={p.id}>
+                <td style={{ fontWeight: 500 }}>
+                  {p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'none' }}>{p.name}</a> : p.name}
+                  {!p.published && <span style={{ marginLeft: 6, fontSize: 11, color: '#94a3b8' }}>(draft)</span>}
+                </td>
+                <td>{p.priceCents === 0 ? 'Free' : fmtUSD(p.priceCents / 100)}</td>
+                <td>{fmtInt(p.salesCount)}</td>
+                <td>{fmtUSD(p.salesUsdCents / 100)}</td>
+                <td style={{ color: discoverReady ? '#16a34a' : '#d97706' }}>{discoverReady ? '✓' : '⚠ thiếu tag/category'}</td>
+              </tr>
+            );
+          })}
+        </Table>
+      )}
+    </Section>
   );
 }
 

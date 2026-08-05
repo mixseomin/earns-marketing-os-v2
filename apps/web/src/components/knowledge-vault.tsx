@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { KnowledgeRow } from '@/lib/data';
-import { Pill, EmptyState, Drawer } from './ui';
+import { Pill, EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import {
   createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem,
@@ -43,6 +43,17 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
     return true;
   }), [items, filterKind, search]);
 
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: items.length };
+    for (const i of items) c[i.kind] = (c[i.kind] ?? 0) + 1;
+    return c;
+  }, [items]);
+  const chipOptions = useMemo(
+    () => [{ value: 'all', label: 'All' }, ...kinds.map((k) => ({ value: k, label: k }))],
+    [kinds],
+  );
+  const { pageItems, ...pager } = usePaged(filtered);
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
@@ -60,17 +71,9 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        <span className="chip" data-active={filterKind === 'all' || undefined} onClick={() => setFilterKind('all')}>All</span>
-        {kinds.map((k) => (
-          <span key={k} className="chip" data-active={filterKind === k || undefined} onClick={() => setFilterKind(k)} style={{ color: KIND_COLOR[k] }}>
-            {k} <span style={{ opacity: 0.6, marginLeft: 4 }}>{items.filter((i) => i.kind === k).length}</span>
-          </span>
-        ))}
-        <span style={{ flex: 1 }} />
-        <input placeholder="Search title/content/tag…" value={search} onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12, outline: 'none', minWidth: 220 }} />
-      </div>
+      <ListToolbar search={search} onSearch={setSearch} searchPlaceholder="Search title/content/tag…">
+        <FilterChips value={filterKind} onChange={setFilterKind} counts={counts} options={chipOptions} />
+      </ListToolbar>
 
       {items.length === 0 ? (
         <EmptyState icon="📚" title={`Chưa có knowledge cho ${projectName}`}
@@ -79,18 +82,18 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
         <EmptyState icon="🔍" title="Không có knowledge match filter" compact />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {filtered.map((k) => {
+          {pageItems.map((k) => {
             const isFresh = (Date.now() - new Date(k.updatedAt).getTime()) < 5 * 60_000;
             return (
               <div key={`${k.isRef ? 'ref' : 'own'}-${k.id}`} className="panel" style={{
                 cursor: 'pointer',
-                borderLeft: isFresh ? '3px solid var(--ok)' : k.isRef ? '3px solid var(--neon-violet)' : undefined,
+                borderLeft: isFresh ? '3px solid var(--ok)' : undefined,
               }} onClick={() => setOpenItem(k)}>
                 <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Pill color={KIND_COLOR[k.kind] ?? 'var(--fg-3)'} label={k.kind} size="xs" />
+                  <Pill color="var(--fg-3)" label={k.kind} size="xs" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {k.isRef && <span style={{ color: 'var(--neon-violet)', marginRight: 5 }} title="Tham khảo từ Knowledge chung">📎</span>}
+                      {k.isRef && <span style={{ color: 'var(--fg-3)', marginRight: 5 }} title="Tham khảo từ Knowledge chung">📎</span>}
                       {k.title}
                       {isFresh && <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--ok)', fontFamily: 'var(--font-mono)' }}>● NEW</span>}
                     </div>
@@ -108,6 +111,7 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
           })}
         </div>
       )}
+      <Pager {...pager} onPage={pager.setPage} />
 
       {openItem && <KnowledgeModal item={openItem} projectId={projectId}
         onClose={() => setOpenItem(null)}

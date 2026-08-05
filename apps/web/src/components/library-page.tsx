@@ -10,7 +10,7 @@ import {
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import { AIFormParser } from './ai-form-parser';
-import { Drawer } from './ui';
+import { Drawer, ListToolbar, FilterChips, Pager, usePaged } from './ui';
 
 // Read+write a single URL search param. Replace navigation (no scroll, no history bloat).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -115,7 +115,7 @@ function ToolsTab({ tools }: { tools: ToolRow[] }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {byCat.map(({ cat, items }) => (
           <div key={cat.id}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: cat.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
               {cat.label} <span style={{ opacity: 0.5 }}>· {items.length}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>

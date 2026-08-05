@@ -1,5 +1,9 @@
+'use client';
+
+import { useMemo, useState } from 'react';
 import type { ServerBox } from '@/lib/servers';
 import { fleetTotals, SERVERS_SNAPSHOT_AT } from '@/lib/servers';
+import { EmptyState, ListToolbar, Pager, usePaged } from './ui';
 
 // Usage color = signal only (YDNI): lime ok, amber attention, red near-full.
 function usageColor(pct: number | null): string {
@@ -45,6 +49,23 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
   const t = fleetTotals(boxes);
+  const [q, setQ] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!q.trim()) return boxes;
+    const s = q.toLowerCase();
+    return boxes.filter((b) =>
+      b.name.toLowerCase().includes(s)
+      || b.host.toLowerCase().includes(s)
+      || b.provider.toLowerCase().includes(s)
+      || b.ip.toLowerCase().includes(s)
+      || b.region.toLowerCase().includes(s)
+      || b.sites.some((site) => site.toLowerCase().includes(s)),
+    );
+  }, [boxes, q]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
+
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1400 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -67,6 +88,11 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
         <Stat label="cost / mo" value={`€${t.costMonth.toFixed(2)}`} />
       </div>
 
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm box / host / ip / region / site…" />
+
+      {filtered.length === 0 ? (
+        <EmptyState icon="🔍" title="Không có box khớp" description="Đổi từ khoá tìm kiếm." />
+      ) : (
       <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
           <thead>
@@ -81,7 +107,7 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
             </tr>
           </thead>
           <tbody>
-            {boxes.map((b) => (
+            {pageItems.map((b) => (
               <tr key={b.id}>
                 <td style={td}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--fg-0)' }}>
@@ -128,6 +154,8 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
           </tbody>
         </table>
       </div>
+      )}
+      <Pager {...pager} onPage={pager.setPage} />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MediaRow } from '@/lib/data';
 import { createMediaAsset, updateMediaAsset, deleteMediaAsset, suggestMediaMeta, uploadMediaAsset, type MediaInput } from '@/lib/actions/vaults';
 import { useModalParam } from '@/lib/use-modal-param';
-import { EmptyState, StatsStrip, FormModal, type StatCard } from './ui';
+import { EmptyState, StatsStrip, FormModal, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const KIND_ICON: Record<string, string> = { image: '🖼', video: '🎬', audio: '🎵', doc: '📄', other: '🗂' };
@@ -24,12 +24,43 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
   const creating = modal.is("new");
   const [zoom, setZoom] = useState<MediaRow | null>(null);
 
+  // Filter/search state (YDNI: colour stays neutral; hot 🔥 is the one real signal).
+  const [kind, setKind] = useState('all');
+  const [hot, setHot] = useState('all');
+  const [tagSel, setTagSel] = useState<string[]>([]);
+  const [q, setQ] = useState('');
+
+  const allTags = useMemo(() => Array.from(new Set(items.flatMap((i) => i.tags))).sort(), [items]);
+  const kindCounts = useMemo(() => ({
+    all: items.length,
+    image: items.filter((i) => i.kind === 'image').length,
+    video: items.filter((i) => i.kind === 'video').length,
+    audio: items.filter((i) => i.kind === 'audio').length,
+    doc: items.filter((i) => i.kind === 'doc').length,
+    other: items.filter((i) => i.kind === 'other').length,
+  }), [items]);
+  const hotCounts = useMemo(() => ({ all: items.length, hot: items.filter((i) => i.hot).length }), [items]);
+
+  const filtered = useMemo(() => items.filter((m) => {
+    if (kind !== 'all' && m.kind !== kind) return false;
+    if (hot === 'hot' && !m.hot) return false;
+    if (tagSel.length && !tagSel.some((t) => m.tags.includes(t))) return false;
+    if (q) {
+      const t = q.toLowerCase();
+      if (!m.filename.toLowerCase().includes(t) && !(m.notes ?? '').toLowerCase().includes(t)
+        && !m.tags.some((x) => x.toLowerCase().includes(t))) return false;
+    }
+    return true;
+  }), [items, kind, hot, tagSel, q]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
+
   const stats: StatCard[] = [
     { key: 'total', label: 'Total', value: items.length, color: 'var(--fg-0)' },
-    { key: 'hot', label: 'Hot reuse', value: items.filter((i) => i.hot).length, color: 'var(--neon-amber)' },
-    { key: 'image', label: 'Image', value: items.filter((i) => i.kind === 'image').length, color: 'var(--neon-cyan)' },
-    { key: 'video', label: 'Video', value: items.filter((i) => i.kind === 'video').length, color: 'var(--neon-violet)' },
-    { key: 'size', label: 'Total size', value: fmtSize(items.reduce((s, i) => s + i.sizeBytes, 0)), color: 'var(--ok)' },
+    { key: 'hot', label: 'Hot reuse', value: hotCounts.hot, color: 'var(--neon-amber)' },
+    { key: 'image', label: 'Image', value: kindCounts.image, color: 'var(--fg-0)' },
+    { key: 'video', label: 'Video', value: kindCounts.video, color: 'var(--fg-0)' },
+    { key: 'size', label: 'Total size', value: fmtSize(items.reduce((s, i) => s + i.sizeBytes, 0)), color: 'var(--fg-0)' },
   ];
 
   return (
@@ -42,8 +73,19 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
       {items.length === 0 ? (
         <EmptyState icon="🎬" title="No media" description="Upload hoặc external link asset đầu tiên." compact />
       ) : (
+        <>
+        <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm filename / notes / tag…"
+          right={allTags.length > 0 ? <MultiSelect label="tag" options={allTags.map((t) => ({ value: t, label: t }))} selected={tagSel} onChange={setTagSel} compact /> : undefined}>
+          <FilterChips value={kind} onChange={setKind} counts={kindCounts}
+            options={[{ value: 'all', label: 'Tất cả' }, { value: 'image', label: '🖼 Image' }, { value: 'video', label: '🎬 Video' }, { value: 'audio', label: '🎵 Audio' }, { value: 'doc', label: '📄 Doc' }, { value: 'other', label: '🗂 Other' }]} />
+          <FilterChips value={hot} onChange={setHot} counts={hotCounts}
+            options={[{ value: 'all', label: 'all' }, { value: 'hot', label: '🔥 hot' }]} />
+        </ListToolbar>
+        {filtered.length === 0 ? (
+          <EmptyState icon="🔍" title="Không có asset khớp" description="Đổi filter hoặc từ khoá tìm kiếm." compact />
+        ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-          {items.map((m) => (
+          {pageItems.map((m) => (
             <div key={m.id} className="panel" style={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => modal.open("edit", m.id)}>
               {m.kind === 'image' && (
                 <div
@@ -74,6 +116,9 @@ export function MediaVault({ items, projectId }: { items: MediaRow[]; projectId:
             </div>
           ))}
         </div>
+        )}
+        <Pager {...pager} onPage={pager.setPage} />
+        </>
       )}
       {(editing || creating) && (
         <MediaFormModal asset={editing} projectId={projectId} onClose={() => modal.close()} />

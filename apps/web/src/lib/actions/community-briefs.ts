@@ -315,6 +315,17 @@ export async function getBriefRow(projectId: string, briefId: number): Promise<B
 // CẢ row (form fields) lẫn ctx (label header + habitat url). 1 SELECT JOIN
 // = 1 round-trip thay vì 2 Promise.all → modal mở nhanh gấp đôi (server
 // action serialization + RSC framing là phần đắt, không phải SQL).
+// Open a brief by id ALONE (global EntityDrawerHost) — resolve its project first, then reuse
+// getBriefForModal. Lets a brief chip open its editor in-place from any page, no projectId needed.
+export async function briefDrawerBundle(briefId: number) {
+  const db = ensureDb();
+  const rows = await db.execute(sql`SELECT project_id FROM community_briefs WHERE id = ${briefId} AND tenant_id = ${TENANT} LIMIT 1`);
+  const pid = (rows as unknown as Array<{ project_id?: string }>)[0]?.project_id;
+  if (!pid) return null;
+  const bundle = await getBriefForModal(pid, briefId);
+  return bundle ? { projectId: pid, ...bundle } : null;
+}
+
 export async function getBriefForModal(
   projectId: string, briefId: number,
 ): Promise<{

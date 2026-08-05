@@ -16,7 +16,7 @@ export interface EntityDrawerReq { kind: string; id: string | number; project?: 
 // Both the host (switch) and <EntityRef> (open-in-place vs deep-link) read THIS — no more
 // two hand-synced copies. Lives here (a light module both already import) to avoid the
 // ui → host → accounts-vault import cycle a shared constant would otherwise create.
-export const HOST_KINDS = new Set(['account', 'browser-profile', 'proxy', 'identity']);
+export const HOST_KINDS = new Set(['account', 'browser-profile', 'proxy', 'identity', 'brief', 'habitat', 'tribe']);
 
 let current: EntityDrawerReq | null = null;
 const subs = new Set<() => void>();

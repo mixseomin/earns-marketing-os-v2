@@ -55,7 +55,8 @@ const META: Record<EntityKind, KindMeta> = {
   media:             { icon: '🖼️', color: '#94a3b8' },
   contact:           { icon: '📇', color: '#60a5fa' },
   platform:          { icon: '🧩', color: '#38bdf8' },
-  squad:             { icon: '🛡️', color: '#fbbf24' },
+  // squad = a board VIEW keyed by squad_key (not a numeric-id detail drawer) → open on its board.
+  squad:             { icon: '🛡️', color: '#fbbf24', route: (id) => `/squads?m=drawer&mId=${id}` },
   agent:             { icon: '🤖', color: '#34d399' },
   // project id IS the route slug (/p/<id>). team-member has no standalone route → needs onOpen.
   project:           { icon: '📁', color: '#84cc16', route: (id) => `/p/${id}` },

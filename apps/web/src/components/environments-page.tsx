@@ -5,17 +5,19 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
   type ProxyRow, type ProxyType, type ProxyHealth,
-  type BrowserProfileRow, type ProfileTool,
+  type BrowserProfileRow, type ProfileTool, type GlobalAccountRow,
   createProxy, updateProxy, archiveProxy,
   testProxyEndpoint, testAndSaveProxy, type ProxyTestResult,
 } from '@/lib/actions/environments';
+import { accountStatusMeta } from '@/lib/status-meta';
+import { StatusBadge } from './ui/status-badge';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
 import { Drawer, EntityRef } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
-type Tab = 'proxies' | 'profiles';
+type Tab = 'proxies' | 'profiles' | 'accounts';
 
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
   const router = useRouter();
@@ -46,9 +48,9 @@ const PROXY_TYPE_META: Record<ProxyType, { label: string; color: string }> = {
   isp:         { label: 'isp',         color: 'var(--neon-amber)' },
 };
 
-export function EnvironmentsPage({ proxies, profiles, teamMembers = [] }: { proxies: ProxyRow[]; profiles: BrowserProfileRow[]; teamMembers?: TeamMemberRow[] }) {
+export function EnvironmentsPage({ proxies, profiles, accounts = [], teamMembers = [] }: { proxies: ProxyRow[]; profiles: BrowserProfileRow[]; accounts?: GlobalAccountRow[]; teamMembers?: TeamMemberRow[] }) {
   const [tabRaw, setTabRaw] = useUrlParam('tab', 'proxies');
-  const tab: Tab = tabRaw === 'profiles' ? 'profiles' : 'proxies';
+  const tab: Tab = tabRaw === 'profiles' ? 'profiles' : tabRaw === 'accounts' ? 'accounts' : 'proxies';
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -56,7 +58,7 @@ export function EnvironmentsPage({ proxies, profiles, teamMembers = [] }: { prox
         <div>
           <h1 className="page-title">
             🛰 Environments
-            <small>// {proxies.length} proxies · {profiles.length} browser profiles</small>
+            <small>// {proxies.length} proxies · {profiles.length} browser profiles · {accounts.length} accounts</small>
           </h1>
           <p className="page-sub">
             Tenant-level pool. Share cross-project. Account vault link tới proxy/profile để mỗi tài khoản có anti-detect setup riêng.
@@ -75,9 +77,16 @@ export function EnvironmentsPage({ proxies, profiles, teamMembers = [] }: { prox
           style={{ background: tab === 'profiles' ? 'var(--accent-soft)' : 'transparent', borderRadius: '5px 5px 0 0', borderBottom: tab === 'profiles' ? '2px solid var(--accent)' : 'none' }}>
           🧬 Browser Profiles <span style={{ opacity: 0.6 }}>({profiles.length})</span>
         </button>
+        <button className="btn"
+          onClick={() => setTabRaw('accounts')}
+          style={{ background: tab === 'accounts' ? 'var(--accent-soft)' : 'transparent', borderRadius: '5px 5px 0 0', borderBottom: tab === 'accounts' ? '2px solid var(--accent)' : 'none' }}>
+          🔐 Accounts <span style={{ opacity: 0.6 }}>({accounts.length})</span>
+        </button>
       </div>
 
-      {tab === 'proxies' ? <ProxiesTab proxies={proxies} teamMembers={teamMembers} /> : <ProfilesTab profiles={profiles} proxies={proxies} teamMembers={teamMembers} />}
+      {tab === 'proxies' ? <ProxiesTab proxies={proxies} teamMembers={teamMembers} />
+        : tab === 'profiles' ? <ProfilesTab profiles={profiles} proxies={proxies} teamMembers={teamMembers} />
+        : <AccountsTab accounts={accounts} />}
     </div>
   );
 }
@@ -455,6 +464,118 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 
       {(editing || creating) && (
         <BrowserProfileDrawer profile={editing} proxies={proxies} teamMembers={teamMembers} onClose={() => modal.close()} />
+      )}
+    </>
+  );
+}
+
+// ── Accounts tab (global) ─────────────────────────────────────────
+// Mọi account cross-project trong 1 bảng. Đọc + tìm + nhảy tới chỗ sửa
+// (accounts vault của project). Không clone form vault — 1 nguồn edit duy nhất.
+function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
+  const router = useRouter();
+  const [q, setQ] = useUrlParam('q', '');
+  const [project, setProject] = useUrlParam('proj', 'all');
+  const [platform, setPlatform] = useUrlParam('plat', 'all');
+  const [status, setStatus] = useUrlParam('st', 'all');
+
+  const projectOpts = Array.from(new Set(accounts.map((a) => a.projectId ?? '(unmapped)'))).sort();
+  const platformOpts = Array.from(new Set(accounts.map((a) => a.platformKey))).sort();
+  const statusOpts = Array.from(new Set(accounts.map((a) => a.status))).sort();
+
+  const needle = q.trim().toLowerCase();
+  const rows = accounts.filter((a) => {
+    if (project !== 'all' && (a.projectId ?? '(unmapped)') !== project) return false;
+    if (platform !== 'all' && a.platformKey !== platform) return false;
+    if (status !== 'all' && a.status !== status) return false;
+    if (!needle) return true;
+    return [a.handle, a.email, a.platformKey, a.projectId, a.browserLabel, a.proxyLabel, a.ownerName, String(a.id)]
+      .some((v) => v && v.toLowerCase().includes(needle));
+  });
+
+  const sel: React.CSSProperties = {
+    padding: '5px 7px', background: 'var(--bg-2)', border: '1px solid var(--line)',
+    borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none',
+  };
+  const td: React.CSSProperties = { padding: '5px 8px', borderBottom: '1px solid var(--line)', fontSize: 11.5, verticalAlign: 'middle' };
+  const th: React.CSSProperties = { ...td, fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: 'left', whiteSpace: 'nowrap' };
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm handle / email / platform / project…"
+          style={{ ...sel, flex: 1, minWidth: 220 }} />
+        <select value={project} onChange={(e) => setProject(e.target.value)} style={sel}>
+          <option value="all">📁 Mọi project</option>
+          {projectOpts.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)} style={sel}>
+          <option value="all">🌐 Mọi platform</option>
+          {platformOpts.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} style={sel}>
+          <option value="all">● Mọi status</option>
+          {statusOpts.map((s) => <option key={s} value={s}>{accountStatusMeta(s).label}</option>)}
+        </select>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{rows.length}/{accounts.length}</span>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>🔐</div>
+          <p style={{ margin: 0, fontSize: 12 }}>Không có account khớp bộ lọc.</p>
+        </div>
+      ) : (
+        <div className="panel" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>#</th>
+                <th style={th}>Platform</th>
+                <th style={th}>Account</th>
+                <th style={th}>Project</th>
+                <th style={th}>Status</th>
+                <th style={th}>Browser</th>
+                <th style={th}>Proxy</th>
+                <th style={th}>Owner</th>
+                <th style={th}>Last used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((a) => {
+                const href = a.projectId
+                  ? `/p/${a.projectId}/resources?vault=accounts&m=edit&mId=${a.id}`
+                  : '/unmapped';
+                return (
+                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => router.push(href)}>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{a.id}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{a.platformKey}</td>
+                    <td style={td}>
+                      <b style={{ color: 'var(--fg-0)' }}>{a.handle || '(no handle)'}</b>
+                      {a.email && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}> · {a.email}</span>}
+                      {a.hasPassword && <span title="Có password lưu (encrypted)" style={{ marginLeft: 4 }}>🔑</span>}
+                      {a.has2fa && <span title="2FA bật" style={{ marginLeft: 3 }}>🛡</span>}
+                    </td>
+                    <td style={td}>
+                      {a.projectId
+                        ? <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>📁 {a.projectId}</span>
+                        : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span>}
+                    </td>
+                    <td style={td}><StatusBadge meta={accountStatusMeta(a.status)} /></td>
+                    <td style={{ ...td, fontSize: 10.5, color: a.browserLabel ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+                      {a.browserLabel ? <>🧬 {a.browserLabel}</> : '—'}
+                    </td>
+                    <td style={{ ...td, fontSize: 10.5, color: a.proxyLabel ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+                      {a.proxyLabel ? <>🔌 {a.proxyLabel}</> : '—'}
+                    </td>
+                    <td style={{ ...td, fontSize: 10.5, color: 'var(--fg-2)' }}>{a.ownerName ?? '—'}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{relativeTime(a.lastUsedAt)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

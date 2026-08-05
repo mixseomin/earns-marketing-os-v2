@@ -438,3 +438,48 @@ export async function accountsInfraMatrix(): Promise<{ accounts: AccountInfraRow
   }));
   return { accounts, browserProfiles: bp, proxies: px };
 }
+
+// ── Accounts (global) ─────────────────────────────────────────────
+// Mọi account cross-project trong 1 bảng — "Browsers tab nhưng cho account".
+// Chỉ ĐỌC + điều hướng: sửa vẫn ở accounts vault của project (không clone form).
+export interface GlobalAccountRow {
+  id: number; projectId: string | null; platformKey: string; handle: string; email: string | null;
+  status: string; has2fa: boolean; hasPassword: boolean;
+  browserProfileId: number | null; browserLabel: string | null;
+  proxyId: number | null; proxyLabel: string | null;
+  ownerName: string | null; lastUsedAt: string | null;
+}
+export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const me = await getCurrentUser();
+  const operatorFilter = (me && me.role !== 'admin') ? sql`AND a.owner_user_id = ${me.id}` : sql``;
+  const rows = await db.execute(sql`
+    SELECT a.id, a.project_id, a.platform_key, a.handle, a.email, a.status, a.has_2fa,
+           (a.password_enc IS NOT NULL) AS has_password,
+           a.browser_profile_id, b.label AS bp_label,
+           a.proxy_id, p.label AS px_label,
+           u.name AS owner_name, a.last_used_at
+    FROM platform_accounts a
+    LEFT JOIN browser_profiles b ON b.id = a.browser_profile_id
+    LEFT JOIN proxies p ON p.id = a.proxy_id
+    LEFT JOIN users u ON u.id = a.owner_user_id
+    WHERE a.tenant_id = ${TENANT} ${operatorFilter}
+    ORDER BY a.id DESC`);
+  return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+    id: Number(r.id),
+    projectId: (r.project_id as string | null) ?? null,
+    platformKey: String(r.platform_key ?? ''),
+    handle: String(r.handle ?? ''),
+    email: (r.email as string | null) ?? null,
+    status: String(r.status ?? 'todo'),
+    has2fa: Boolean(r.has_2fa),
+    hasPassword: Boolean(r.has_password),
+    browserProfileId: r.browser_profile_id != null ? Number(r.browser_profile_id) : null,
+    browserLabel: (r.bp_label as string | null) ?? null,
+    proxyId: r.proxy_id != null ? Number(r.proxy_id) : null,
+    proxyLabel: (r.px_label as string | null) ?? null,
+    ownerName: (r.owner_name as string | null) ?? null,
+    lastUsedAt: r.last_used_at instanceof Date ? r.last_used_at.toISOString() : (r.last_used_at ? String(r.last_used_at) : null),
+  }));
+}

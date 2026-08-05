@@ -274,6 +274,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/settings/api',  icon: '🔑', color: 'var(--neon-amber)',  label: 'API Keys',         sub: 'LLM providers', role: 'admin' },
         { href: '/environments',  icon: '🛰', color: 'var(--neon-cyan)',   label: 'Environments',     sub: 'proxies · profiles', role: 'admin' },
         { href: '/environments?tab=profiles', icon: '🧬', color: 'var(--neon-cyan)', label: 'Browsers',   sub: 'profiles · accounts · idle', role: 'admin' },
+        { href: '/environments?tab=accounts', icon: '🔐', color: 'var(--neon-cyan)', label: 'Accounts',   sub: 'mọi account · project · profile', role: 'admin' },
         { href: '/servers',       icon: '🖥', color: 'var(--neon-cyan)',   label: 'Servers',          sub: 'boxes · specs · cost · sites', role: 'admin' },
         { href: '/unmapped',      icon: '⚠', color: 'var(--neon-amber)',   label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },

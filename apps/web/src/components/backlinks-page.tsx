@@ -4,7 +4,7 @@
 // sources that apply to THIS project's site (membership = site_status[slug]) and lets the
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
-import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
@@ -16,7 +16,7 @@ import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
-import { StatusSegmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
@@ -147,6 +147,79 @@ function SeedStrip({ g }: { g: BacklinkTask['seedGate'] }) {
     + (g.blockers.length ? '\n' + g.blockers.map((b) => '• ' + b).join('\n') : '')
     + (g.ok ? '' : '\n\n→ Seeding link-free tới khi đạt (quản lý sâu ở /seeding).');
   return <span title={tip} style={seedPill(m.c)}>🌱 {sub} {m.icon} {body}</span>;
+}
+
+// Neutral filter chip — YDNI colour discipline: neutral by default, accent when active;
+// `sig` (e.g. red for a blocker) only when the filter itself carries a signal meaning.
+const fchip = (on: boolean, sig?: string): CSSProperties => ({
+  fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap',
+  border: `1px solid ${on ? (sig || 'var(--accent)') : 'var(--line)'}`,
+  color: on ? (sig || 'var(--accent)') : 'var(--fg-2)',
+  background: on ? `color-mix(in srgb, ${sig || 'var(--accent)'} 14%, transparent)` : 'transparent',
+});
+const flbl: CSSProperties = { fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 };
+const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
+
+// Lightweight popover (no house primitive existed) — trigger + floating panel + click-outside.
+// Reused for the ⚙ Lọc advanced filters and the project select. children is a render-prop
+// given close() so an in-panel action can dismiss it.
+function Popover({ label, active, badge, align = 'left', minWidth = 220, children }: {
+  label: React.ReactNode; active?: boolean; badge?: number; align?: 'left' | 'right'; minWidth?: number;
+  children: (close: () => void) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', h);
+    return () => document.removeEventListener('pointerdown', h);
+  }, [open]);
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        style={{ ...btn, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, borderColor: active || open ? 'var(--accent)' : 'var(--line)', color: active ? 'var(--accent)' : 'var(--fg-1)' }}>
+        {label}{badge ? <span style={{ fontSize: 9, fontWeight: 700, background: 'var(--accent)', color: '#000', borderRadius: 999, padding: '0 5px', minWidth: 14, textAlign: 'center' }}>{badge}</span> : null}
+        <span style={{ fontSize: 8, opacity: 0.5 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', [align]: 0, marginTop: 4, zIndex: 500, minWidth, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, boxShadow: '0 8px 30px rgba(0,0,0,.4)' }}>
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Searchable single-select for the project filter (>5 items → searchable per YDNI). Collapsed
+// trigger shows the picked project; open shows a search box + per-project counts.
+function ProjectFilterSelect({ projects, value, onChange }: {
+  projects: { slug: string; label: string; emoji: string; count: number }[];
+  value: string; onChange: (slug: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const sel = projects.find((p) => p.slug === value);
+  const shown = projects.filter((p) => !q || p.label.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <Popover minWidth={240} active={!!value}
+      label={sel ? <span>{sel.emoji} {sel.label}</span> : <span style={{ color: 'var(--fg-3)' }}>Tất cả project</span>}>
+      {(close) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 project…" style={{ ...btn, cursor: 'text', background: 'var(--bg-1)' }} />
+          <div style={{ overflowY: 'auto', maxHeight: 280, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <button type="button" onClick={() => { onChange(''); close(); }} style={{ ...btn, cursor: 'pointer', textAlign: 'left', borderColor: !value ? 'var(--accent)' : 'transparent', color: 'var(--fg-3)' }}>Tất cả project</button>
+            {shown.map((p) => (
+              <button key={p.slug} type="button" onClick={() => { onChange(p.slug); close(); }}
+                style={{ ...btn, cursor: 'pointer', textAlign: 'left', borderColor: value === p.slug ? 'var(--accent)' : 'transparent', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <span>{p.emoji} {p.label}</span><span style={{ color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{p.count}</span>
+              </button>
+            ))}
+            {!shown.length && <div style={{ fontSize: 11, color: 'var(--fg-4)', padding: 6 }}>không khớp</div>}
+          </div>
+        </div>
+      )}
+    </Popover>
+  );
 }
 
 // Value tier of a backlink target: A = high-value focus (niche community seeding
@@ -417,6 +490,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
+  // Work-type axis (the YDNI spine that scales to email later): '' = all, acquire = 🔗
+  // one-shot backlink, seed = 🌱 community-seed (link-gated). Filters by communitySeed.
+  const [workType, setWorkType] = useState<'' | 'acquire' | 'seed'>((sp.get('wt') as '' | 'acquire' | 'seed') || '');
   const [view, setView] = useState<'list' | 'calendar' | 'kanban'>(() => { const v = sp.get('view'); if (v === 'list' || v === 'kanban') return v; if (v === 'calendar') return 'calendar'; return initialView === 'kanban' ? 'kanban' : 'calendar'; });
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
@@ -511,6 +587,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('ready', readyFilter);
     set('tier', tierFilter);
     set('proj', allProjects ? projectFilter : '');
+    set('wt', workType);
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
@@ -524,7 +601,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, workType, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -582,6 +659,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
       if (tab !== 'all' && t.siteState !== tab) return false;
+      if (workType === 'seed' && !t.communitySeed) return false;
+      if (workType === 'acquire' && t.communitySeed) return false;
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -592,7 +671,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       if (s && !(`${t.title} ${t.sourceUrl || ''} ${t.catalogSourceName || ''} ${t.mechanism || ''} ${t.platformLabel || ''} ${t.projectLabel || ''} ${t.instructions || ''} ${t.notes || ''}`.toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
+  }, [tasks, tab, workType, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
 
   const shown = useMemo(() => {
     const base = tab === 'pending'
@@ -948,51 +1027,59 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         )}
       </div>)}
 
-      {/* tabs + filters */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {STATUS_ORDER.map((s) => <TabBtn key={s} k={s} label={SITE_STATUS[s]!.label} n={kpi[s]} />)}
-        <TabBtn k="all" label="All" n={kpi.total} />
+      {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm task (tên/URL/method/niche)…" autoComplete="off"
+          style={{ ...btn, flex: '1 1 200px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
+        <Segmented options={[{ value: '', label: 'All' }, { value: 'acquire', label: '🔗 Acquire' }, { value: 'seed', label: '🌱 Seed' }]} value={workType} onChange={(v) => setWorkType(v as '' | 'acquire' | 'seed')} />
+        {(() => {
+          const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
+          return (
+            <Popover label="⚙ Lọc" active={advN > 0} badge={advN || undefined} minWidth={230}>
+              {() => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {workType !== 'seed' && (<>
+                    <div><div style={flbl}>Link</div><div style={frow}>{['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={fchip(follow === f)}>{f}</button>)}</div></div>
+                    <div><div style={flbl}>Traffic</div><div style={frow}>{['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={fchip(traf === f)}>{f}</button>)}</div></div>
+                  </>)}
+                  <div><div style={flbl}>Tier giá trị</div><div style={frow}>{(['A', 'B', 'C'] as const).map((tv) => <button key={tv} type="button" onClick={() => setTierFilter(tierFilter === tv ? '' : tv)} title={tv === 'A' ? 'high-value seeding' : tv === 'B' ? 'outreach' : 'directory'} style={fchip(tierFilter === tv)}>★{tv}</button>)}<button type="button" onClick={() => setTierFilter(tierFilter === 'any' ? '' : 'any')} title="Chỉ task đã gắn tier" style={fchip(tierFilter === 'any')}>★ tiered</button></div></div>
+                  <div><div style={flbl}>Cờ</div><div style={frow}><button type="button" onClick={() => setDraftOnly((v) => !v)} style={fchip(draftOnly)}>📋 ready</button><button type="button" onClick={() => setBlockedOnly((v) => !v)} title="Chỉ task nhân sự báo vướng" style={fchip(blockedOnly, '#ef4444')}>🚩 vướng</button></div></div>
+                  {advN > 0 && <button type="button" onClick={() => { setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); setTierFilter(''); }} style={{ ...btn, alignSelf: 'flex-start' }}>Xoá lọc</button>}
+                </div>
+              )}
+            </Popover>
+          );
+        })()}
         <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban')} />
-      </div>
-
-      {/* global /plays: filter by project */}
-      {allProjects && (() => {
-        const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: t.projectSlug, label: t.projectLabel, emoji: t.projectEmoji }])).values())
-          .filter((p) => p.slug).sort((a, b) => (a.label ?? '').localeCompare(b.label ?? ''));
-        return (
-          <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Project</span>
-            {projs.map((p) => <button key={p.slug} type="button" onClick={() => setProjectFilter((v) => v === p.slug ? '' : (p.slug ?? ''))} style={chip('var(--accent)', projectFilter === p.slug)}>{p.emoji} {p.label} <span style={{ opacity: 0.6 }}>{tasks.filter((t) => t.projectSlug === p.slug).length}</span></button>)}
-            {projectFilter && <button type="button" onClick={() => setProjectFilter('')} style={{ ...btn, padding: '1px 8px' }}>✕</button>}
-          </div>
-        );
-      })()}
-
-      {/* filters — apply to BOTH list & calendar */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm task (tên/URL/method/niche)…" autoComplete="off"
-          style={{ ...btn, flex: '1 1 160px', minWidth: 140, cursor: 'text', background: 'var(--bg-1)' }} />
-        {['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={chip('#9d6cff', follow === f)}>{f}</button>)}
-        <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
-        {['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={chip('#22c55e', traf === f)}>{f}</button>)}
-        <button type="button" onClick={() => setDraftOnly((v) => !v)} style={chip('#3c9bff', draftOnly)}>📋 ready</button>
-        <button type="button" onClick={() => setBlockedOnly((v) => !v)} title="Chỉ hiện task nhân sự báo vướng" style={chip('#ef4444', blockedOnly)}>🚩 vướng</button>
-        <span style={{ width: 1, height: 16, background: 'var(--line)' }} />
-        {(['A', 'B', 'C'] as const).map((tv) => <button key={tv} type="button" onClick={() => setTierFilter(tierFilter === tv ? '' : tv)} title={`Chỉ hiện tier ${tv} (${tv === 'A' ? 'high-value seeding' : tv === 'B' ? 'outreach' : 'directory'})`} style={chip(TIER_META[tv]!.color, tierFilter === tv)}>★{tv}</button>)}
-        <button type="button" onClick={() => setTierFilter(tierFilter === 'any' ? '' : 'any')} title="Chỉ hiện task ĐÃ gắn tier (A/B/C) — tập trung vào target giá trị" style={chip('#f5c518', tierFilter === 'any')}>★ tiered</button>
-        {(q || follow || traf || draftOnly || blockedOnly || tierFilter) && <button type="button" onClick={() => { setQ(''); setFollow(''); setTraf(''); setDraftOnly(false); setBlockedOnly(false); setTierFilter(''); }} style={btn}>Clear</button>}
         {view === 'list' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)', marginLeft: 'auto' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
             <span>nhóm</span>
             <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as 'none' | 'platform' | 'status' | 'readiness')} style={{ ...btn, cursor: 'pointer', padding: '3px 6px' }}>
-              <option value="none">— không —</option>
-              <option value="platform">platform</option>
-              <option value="status">trạng thái</option>
-              <option value="readiness">độ sẵn sàng</option>
+              <option value="none">— không —</option><option value="platform">platform</option><option value="status">trạng thái</option><option value="readiness">độ sẵn sàng</option>
             </select>
           </label>
         )}
       </div>
+
+      {/* Row 2 — status (universal, glanceable state — neutral colour except the error/broken signal) */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {STATUS_ORDER.map((s) => <TabBtn key={s} k={s} label={SITE_STATUS[s]!.label} n={kpi[s]} />)}
+        <TabBtn k="all" label="All" n={kpi.total} />
+      </div>
+
+      {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
+      {allProjects && (() => {
+        const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: (t.projectSlug || '') as string, label: t.projectLabel || t.projectSlug || '', emoji: t.projectEmoji || '' }])).values())
+          .filter((p) => p.slug)
+          .map((p) => ({ ...p, count: tasks.filter((t) => t.projectSlug === p.slug).length }))
+          .sort((a, b) => b.count - a.count);
+        return (
+          <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Project</span>
+            <ProjectFilterSelect projects={projs} value={projectFilter} onChange={setProjectFilter} />
+          </div>
+        );
+      })()}
 
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

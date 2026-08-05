@@ -852,14 +852,14 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
         }
       >
         <FilterChips value={filterStatus} onChange={setFilterStatus} counts={counts}
-          options={[{ value: 'all', label: 'All' }, ...STATUS_GROUPS.map((g) => ({ value: g.key, label: `${g.dot} ${g.label}` }))]} />
+          options={[{ value: 'all', label: 'All' }, ...STATUS_GROUPS.map((g) => ({ value: g.key, label: `${g.dot} ${g.label}`, title: g.tooltip }))]} />
       </ListToolbar>
 
       {filtered.length === 0 ? (
         <EmptyState
           icon="🔐"
-          title={accounts.length === 0 ? 'Chưa có account nào' : `Không có account nào ở status "${filterStatus}"`}
-          description={accounts.length === 0 ? 'Tạo account đầu tiên để bắt đầu đăng ký các platform.' : undefined}
+          title={accounts.length === 0 ? 'Chưa có account nào' : q.trim() ? `Không có account khớp "${q.trim()}"` : `Không có account nào ở status "${filterStatus}"`}
+          description={accounts.length === 0 ? 'Tạo account đầu tiên để bắt đầu đăng ký các platform.' : q.trim() ? 'Đổi từ khoá tìm hoặc bỏ filter status.' : undefined}
           action={accounts.length === 0 && isAdmin ? <button className="btn primary" onClick={() => modal.open("new")}>+ New account</button> : undefined}
           compact
         />

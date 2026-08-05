@@ -79,7 +79,10 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
         : (a: ScenePersonRow, b: ScenePersonRow) => b.familiarityScore - a.familiarityScore;
     return [...list].sort(by);
   }, [people, q, cf, sortBy]);
-  const { pageItems, ...pager } = usePaged(filtered);
+  // Deep-link ?focus=<handle>: land on the PAGE holding that person so pagination doesn't hide the
+  // scrolled/highlighted row (it can sort past page 1 when many rows substring-match the handle).
+  const focusIdx = focus ? filtered.findIndex((p) => p.handle.toLowerCase() === focus) : -1;
+  const { pageItems, ...pager } = usePaged(filtered, 50, focusIdx >= 0 ? Math.floor(focusIdx / 50) : 0);
   const filteredEmails = useMemo(() => {
     const set = new Set<string>();
     for (const p of filtered) for (const e of personEmails(p)) set.add(e);
@@ -119,7 +122,7 @@ function ScenesInner({ projectId, people }: { projectId: string; people: ScenePe
       </p>
 
       <ListToolbar
-        search={q} onSearch={setQ} searchPlaceholder="Tìm handle / habitat / scene…"
+        search={q} onSearch={setQ} searchPlaceholder="Tìm handle / habitat / scene…" searchAutoFocus={!!focus}
         right={
           <>
             {copied && <span style={{ fontSize: 12, color: 'var(--neon-lime)', fontWeight: 600 }}>{copied}</span>}

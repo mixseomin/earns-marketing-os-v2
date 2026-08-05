@@ -16,7 +16,7 @@ import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
-import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, type CalItem } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
@@ -681,6 +681,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     return base.sort((a, b) => (TIER_RANK[a.tier ?? ''] ?? 9) - (TIER_RANK[b.tier ?? ''] ?? 9));
   }, [filtered, tab]);
 
+  // The flat list view renders the whole array → paginate it with the shared vault-list primitive.
+  // Stats/KPI and the kanban/calendar/grouped views keep using the full `shown`; only the flat slice.
+  const { pageItems, ...pager } = usePaged(shown);
+
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
   const grouped = useMemo(() => {
     if (groupBy === 'none') return null;
@@ -740,12 +744,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       </div>
     );
   }
-
-  const TabBtn = ({ k, label, n }: { k: TabKey; label: string; n?: number }) => (
-    <button type="button" onClick={() => setTab(k)} style={{ ...btn, fontWeight: tab === k ? 700 : 500, borderColor: tab === k ? 'var(--neon-cyan)' : 'var(--line)', background: tab === k ? 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)' : 'var(--bg-2)', color: tab === k ? 'var(--neon-cyan)' : 'var(--fg-2)' }}>
-      {label}{n != null ? <span style={{ marginLeft: 6, opacity: 0.75 }}>{n}</span> : null}
-    </button>
-  );
 
   // One list row — shared by the flat list and each group section.
   // Fixed column widths so list rows line up as real columns (not free-flowing badges).
@@ -1029,8 +1027,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
 
       {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 tìm task (tên/URL/method/niche)…" autoComplete="off"
-          style={{ ...btn, flex: '1 1 200px', minWidth: 160, cursor: 'text', background: 'var(--bg-1)' }} />
+        <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
         <Segmented options={[{ value: '', label: 'All' }, { value: 'acquire', label: '🔗 Acquire' }, { value: 'seed', label: '🌱 Seed' }]} value={workType} onChange={(v) => setWorkType(v as '' | 'acquire' | 'seed')} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
@@ -1061,10 +1058,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         )}
       </div>
 
-      {/* Row 2 — status (universal, glanceable state — neutral colour except the error/broken signal) */}
+      {/* Row 2 — status. Shared vault-list FilterChips: single-select chip group + counts, one YDNI accent. */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {STATUS_ORDER.map((s) => <TabBtn key={s} k={s} label={SITE_STATUS[s]!.label} n={kpi[s]} />)}
-        <TabBtn k="all" label="All" n={kpi.total} />
+        <FilterChips<TabKey>
+          value={tab} onChange={setTab}
+          options={[...STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
+          counts={STATUS_ORDER.reduce<Partial<Record<TabKey, number>>>((a, s) => { a[s] = kpi[s] ?? 0; return a; }, { all: kpi.total })}
+        />
       </div>
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
@@ -1123,11 +1123,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
         </div>
       ) : (
+      <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {shown.length > 0 && listHead}
-        {shown.map((t) => rowEl(t, true))}
+        {pageItems.map((t) => rowEl(t, true))}
         {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
       </div>
+      <Pager {...pager} onPage={pager.setPage} />
+      </>
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}

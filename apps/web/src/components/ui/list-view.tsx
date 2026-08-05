@@ -19,8 +19,10 @@ import { Segmented } from './segmented';
 // Slice `items` into pages. `page` is auto-clamped into range, so when a filter shrinks the list
 // below the current page you fall back to the last valid page instead of an empty screen — no
 // per-caller "reset to page 1" boilerplate. Returns the current page's slice + nav state.
-export function usePaged<T>(items: T[], pageSize = 50) {
-  const [page, setPage] = useState(0);
+export function usePaged<T>(items: T[], pageSize = 50, initialPage = 0) {
+  // initialPage seeds the FIRST render only (useState) — used for deep-links that must land on the
+  // page holding a specific row (e.g. ?focus=<handle>), so the target isn't paginated off page 1.
+  const [page, setPage] = useState(initialPage);
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const pageItems = useMemo(
@@ -54,14 +56,15 @@ export function Pager({ page, pageCount, total, pageSize, onPage }: {
 }
 
 // ── SearchInput ──────────────────────────────────────────────────────────────────────────────
-export function SearchInput({ value, onChange, placeholder = 'Tìm…', width = 200 }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; width?: number;
+export function SearchInput({ value, onChange, placeholder = 'Tìm…', width = 200, autoFocus = false }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; width?: number; autoFocus?: boolean;
 }) {
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <span style={{ position: 'absolute', left: 8, fontSize: 12, color: 'var(--fg-4)', pointerEvents: 'none' }}>🔍</span>
       <input
         value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} autoComplete="off"
+        autoFocus={autoFocus}
         style={{ padding: '5px 9px 5px 26px', fontSize: 12, borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-1)', width, outline: 'none' }}
       />
       {value && (
@@ -75,9 +78,11 @@ export function SearchInput({ value, onChange, placeholder = 'Tìm…', width = 
 // ── ListToolbar ──────────────────────────────────────────────────────────────────────────────
 // One row: filter controls (chips/selects) on the left, search pushed to the right. Pass the
 // search props to render the standard box; omit them for a filter-only bar.
-export function ListToolbar({ children, search, onSearch, searchPlaceholder, right }: {
+export function ListToolbar({ children, search, onSearch, searchPlaceholder, searchAutoFocus, right }: {
   children?: ReactNode;
   search?: string; onSearch?: (v: string) => void; searchPlaceholder?: string;
+  /** Focus the search box on mount — for deep-links that arrive with a query pre-filled. */
+  searchAutoFocus?: boolean;
   right?: ReactNode;
 }) {
   return (
@@ -85,7 +90,7 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, rig
       {children}
       <span style={{ flex: 1, minWidth: 12 }} />
       {right}
-      {onSearch && <SearchInput value={search ?? ''} onChange={onSearch} placeholder={searchPlaceholder} />}
+      {onSearch && <SearchInput value={search ?? ''} onChange={onSearch} placeholder={searchPlaceholder} autoFocus={searchAutoFocus} />}
     </div>
   );
 }
@@ -94,7 +99,7 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, rig
 // Single-select chip group with a count on each option — the standard "all / awin / cj / …" filter.
 // Wraps Segmented so the active chip is the screen's ONE accent and the rest stay neutral (YDNI).
 // `counts` is optional; when given, each chip shows `label n`.
-export interface ChipOption<T extends string> { value: T; label: string }
+export interface ChipOption<T extends string> { value: T; label: string; title?: string }
 export function FilterChips<T extends string>({ options, value, onChange, counts }: {
   options: ChipOption<T>[]; value: T; onChange: (v: T) => void; counts?: Partial<Record<T, number>>;
 }) {
@@ -104,6 +109,7 @@ export function FilterChips<T extends string>({ options, value, onChange, counts
       onChange={onChange}
       options={options.map((o) => ({
         value: o.value,
+        title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate
         label: counts && counts[o.value] != null ? `${o.label} ${counts[o.value]}` : o.label,
       }))}
     />

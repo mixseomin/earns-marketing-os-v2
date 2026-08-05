@@ -392,6 +392,24 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
   }));
 }
 
+// Link-post readiness gate on/off for a platform. When on, advancePhase enforces
+// earned community standing (lib/link-readiness.ts) before a link phase (seed/direct).
+// Isolated getter/setter so the toggle doesn't thread through the whole PlatformRow.
+export async function getPlatformLinkGate(key: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db.select({ v: platforms.linkGateEnabled }).from(platforms).where(eq(platforms.key, key)).limit(1);
+  return !!row?.v;
+}
+
+export async function setPlatformLinkGate(key: string, enabled: boolean): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DATABASE_URL not configured.' };
+  await db.update(platforms).set({ linkGateEnabled: enabled, updatedAt: new Date() }).where(eq(platforms.key, key));
+  revalidatePath('/p/[id]/resources', 'page');
+  return { ok: true };
+}
+
 // Template Adoption: bind a platform to a technology so it inherits the
 // technology-scope selector pack (1 template → N forums). Upserts a stub platform
 // row when the key doesn't exist yet (brand-new forum discovered by the ext),

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import {
   type PlatformWithUsage, type PlatformPriority, type PlatformCategory,
   createPlatform, updatePlatform, deletePlatform,
+  getPlatformLinkGate, setPlatformLinkGate,
 } from '@/lib/actions/platforms';
 import {
   listCommunitiesByPlatform, countCardsByContentTypeForPlatform, archiveCardsByTypesForPlatform,
@@ -63,6 +64,13 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     // cho format nào (rare). Array các key = list custom.
     allowedFormats: platform?.allowedFormats ?? null,
   });
+  // Link-gate on/off for THIS platform (isolated from the main form save).
+  const [linkGate, setLinkGate] = useState(false);
+  const [linkGateBusy, setLinkGateBusy] = useState(false);
+  useEffect(() => {
+    if (!platform?.key) return;
+    getPlatformLinkGate(platform.key).then(setLinkGate).catch(() => {});
+  }, [platform?.key]);
   const [technologies, setTechnologies] = useState<TechnologyRow[]>([]);
   useEffect(() => { listTechnologies().then(setTechnologies); }, []);
   const [detecting, setDetecting] = useState(false);
@@ -326,6 +334,21 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
                          value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
           </div>
+          {platform?.key && (
+            <div style={{ gridColumn: '1 / 3' }}>
+              <span style={lbl}>🔒 Link-gate {linkGate ? <b style={{ color: 'var(--ok)' }}>ON</b> : <span style={{ color: 'var(--fg-4)' }}>OFF</span>}</span>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4 }}>
+                <input type="checkbox" checked={linkGate} disabled={linkGateBusy} style={{ marginTop: 2 }}
+                       onChange={async (e) => {
+                         const v = e.target.checked; setLinkGate(v); setLinkGateBusy(true);
+                         const res = await setPlatformLinkGate(platform!.key, v);
+                         if (!res.ok) setLinkGate(!v);
+                         setLinkGateBusy(false);
+                       }} />
+                <span>Bắt account đủ <b>standing trong community</b> (đã join + tenure + karma + số seed thành công) trước khi được nâng lên phase có LINK (seed/direct). Chưa đủ → giữ ở seeding link-free. Tắt = platform này không gate.</span>
+              </label>
+            </div>
+          )}
           <div style={{ gridColumn: '1 / 3' }}>
             <span style={lbl}>Tags</span>
             <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />

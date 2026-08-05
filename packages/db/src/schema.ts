@@ -473,6 +473,9 @@ export const platforms = pgTable(
     // FB/IG/TikTok DM block bots → autoPostSupported=false → publisher toolkit
     // auto-fallback queue human_tasks. Default true (most platforms have API).
     autoPostSupported: boolean('auto_post_supported').notNull().default(true),
+    // migration 0157: link-post readiness gate on/off per platform (Reddit on first).
+    // When on, advancePhase requires earned community standing before seed/direct (link phases).
+    linkGateEnabled: boolean('link_gate_enabled').notNull().default(false),
     // Phase 14 metadata (migration 0029) — richer info card in PlatformPicker
     description: text('description').notNull().default(''),
     pricing: text('pricing'),

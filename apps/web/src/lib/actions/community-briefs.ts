@@ -1228,7 +1228,7 @@ export async function advancePhase(
   const me = await getCurrentUser();
   const rows = await db.execute(sql`
     SELECT b.current_phase, b.phase_history, b.join_status, b.joined_at, b.habitat_id,
-           pa.status AS account_status, pa.account_stats,
+           pa.status AS account_status, pa.account_stats, h.platform_key, plt.link_gate_enabled,
            h.min_karma, h.min_account_age_days, h.min_posts, h.links_allowed_after, h.privacy,
            (SELECT count(*) FROM cards c
               WHERE c.brief_id = b.id AND c.post_url IS NOT NULL AND (c.content_type IS NULL OR c.content_type <> 'link')
@@ -1240,6 +1240,7 @@ export async function advancePhase(
       FROM community_briefs b
       LEFT JOIN platform_accounts pa ON pa.id = b.account_id
       LEFT JOIN habitats h ON h.id = b.habitat_id
+      LEFT JOIN platforms plt ON plt.key = h.platform_key
      WHERE b.id = ${briefId} LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
@@ -1266,7 +1267,9 @@ export async function advancePhase(
   // this community, not just membership: tenure + value (karma, non-negative here) +
   // a track record of successful link-free seeds + no shadowban. Below the bar the
   // brief stays in a seeding phase (link-free). The advance itself = the review.
-  if (LINK_PHASES.includes(nextPhase)) {
+  // Per-platform toggle (platforms.link_gate_enabled) — on for Reddit first; the
+  // operator flips it per platform in the platform modal. Off → no link gate.
+  if (LINK_PHASES.includes(nextPhase) && r.link_gate_enabled === true) {
     const stats = (() => {
       try { return typeof r.account_stats === 'string' ? JSON.parse(r.account_stats) : (r.account_stats || {}); } catch { return {}; }
     })() as Record<string, unknown>;

@@ -54,9 +54,14 @@ export function computeLinkGate(x: LinkGateInputs): LinkGateResult {
   if (x.shadowbanned) blockers.push({ key: 'safety', msg: 'account shadowbanned — link vô hình + rủi ro, tuyệt đối không thả link' });
   if (x.suspended) blockers.push({ key: 'safety', msg: 'account suspended' });
 
-  // 2. Community explicitly bans links.
+  // 2. Community explicitly bans links / self-promo (e.g. r/MilitaryFinance
+  // "est. contributor only, no self-links" — exactly the rule Mortondelia36 broke).
+  // NOTE: threshold-style values ("after 30 days", "100 messages") must NOT match —
+  // those mean links ARE allowed once a bar is met, which the numeric gates handle.
   const links = (x.habitat.linksAllowedAfter || '').trim().toLowerCase();
-  if (links === 'never' || links === 'no' || links.includes('banned')) blockers.push({ key: 'links-banned', msg: `community cấm link (links_allowed_after="${x.habitat.linksAllowedAfter}")` });
+  if (links === 'never' || links === 'no' || /banned|no self|self.?promo|no link|not allow/.test(links)) {
+    blockers.push({ key: 'links-banned', msg: `community cấm self-link (rule: "${x.habitat.linksAllowedAfter}")` });
+  }
   if ((x.habitat.privacy || '').toLowerCase() === 'private') blockers.push({ key: 'privacy', msg: 'community private' });
 
   // 3. Membership.
@@ -98,6 +103,8 @@ export function demo() {
   console.assert(!computeLinkGate({ ...base, joinedAt: new Date().toISOString() }).ok, 'no tenure must block');
   console.assert(!computeLinkGate({ ...base, communityValue: -5 }).ok, 'negative community value must block');
   console.assert(!computeLinkGate({ ...base, habitat: { ...base.habitat, linksAllowedAfter: 'never' } }).ok, 'links-banned community must block');
+  console.assert(!computeLinkGate({ ...base, habitat: { ...base.habitat, linksAllowedAfter: 'est. contributor only, no self-links' } }).ok, 'no-self-links rule must block');
+  console.assert(computeLinkGate({ ...base, habitat: { ...base.habitat, linksAllowedAfter: 'after 30 days' } }).ok, 'threshold-style links_allowed_after must NOT hard-block');
   console.log('link-readiness demo: all assertions passed');
 }
 

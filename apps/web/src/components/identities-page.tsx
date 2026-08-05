@@ -15,7 +15,8 @@ import { TextField, TextAreaField, SelectField } from './ui/form-field';
 import { StatusFlag } from './ui/status-flag';
 import { EmptyState } from './ui/empty-state';
 
-type FormState = IdentityInput & { id?: number };
+export type IdentityFormState = IdentityInput & { id?: number };
+type FormState = IdentityFormState;
 
 const EMPTY_FORM: FormState = {
   name: '', kind: 'seeding', handleBase: '', email: '', password: '',
@@ -221,7 +222,7 @@ function PasswordCell({ id }: { id: number }) {
 }
 
 // Form modal — create/edit. password field empty = leave alone (on edit).
-function IdentityFormModal({
+export function IdentityFormModal({
   form, setForm, onClose, onSave, busy,
 }: {
   form: FormState;

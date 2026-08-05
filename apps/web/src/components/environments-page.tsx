@@ -14,6 +14,7 @@ import { StatusBadge } from './ui/status-badge';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
+import { AccountDrawer } from './account-drawer';
 import { Drawer, EntityRef } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
@@ -474,6 +475,9 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 // (accounts vault của project). Không clone form vault — 1 nguồn edit duy nhất.
 function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
   const router = useRouter();
+  // Drawer IN-PLACE (house rule ui-conventions §4) — AccountDrawer tự load bundle
+  // theo id, không cần project context, nên KHÔNG navigate sang /p/<proj>/resources.
+  const modal = useModalParam('acct');
   const [q, setQ] = useUrlParam('q', '');
   const [project, setProject] = useUrlParam('proj', 'all');
   const [platform, setPlatform] = useUrlParam('plat', 'all');
@@ -542,40 +546,44 @@ function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((a) => {
-                const href = a.projectId
-                  ? `/p/${a.projectId}/resources?vault=accounts&m=edit&mId=${a.id}`
-                  : '/unmapped';
-                return (
-                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => router.push(href)}>
-                    <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{a.id}</td>
-                    <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{a.platformKey}</td>
-                    <td style={td}>
-                      <b style={{ color: 'var(--fg-0)' }}>{a.handle || '(no handle)'}</b>
-                      {a.email && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}> · {a.email}</span>}
-                      {a.hasPassword && <span title="Có password lưu (encrypted)" style={{ marginLeft: 4 }}>🔑</span>}
-                      {a.has2fa && <span title="2FA bật" style={{ marginLeft: 3 }}>🛡</span>}
-                    </td>
-                    <td style={td}>
-                      {a.projectId
-                        ? <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>📁 {a.projectId}</span>
-                        : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span>}
-                    </td>
-                    <td style={td}><StatusBadge meta={accountStatusMeta(a.status)} /></td>
-                    <td style={{ ...td, fontSize: 10.5, color: a.browserLabel ? 'var(--fg-1)' : 'var(--fg-3)' }}>
-                      {a.browserLabel ? <>🧬 {a.browserLabel}</> : '—'}
-                    </td>
-                    <td style={{ ...td, fontSize: 10.5, color: a.proxyLabel ? 'var(--fg-1)' : 'var(--fg-3)' }}>
-                      {a.proxyLabel ? <>🔌 {a.proxyLabel}</> : '—'}
-                    </td>
-                    <td style={{ ...td, fontSize: 10.5, color: 'var(--fg-2)' }}>{a.ownerName ?? '—'}</td>
-                    <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{relativeTime(a.lastUsedAt)}</td>
-                  </tr>
-                );
-              })}
+              {rows.map((a) => (
+                <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => modal.open('edit', a.id)}>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{a.id}</td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{a.platformKey}</td>
+                  <td style={td}>
+                    <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
+                      onOpen={() => modal.open('edit', a.id)} />
+                    {a.email && a.handle && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}> · {a.email}</span>}
+                    {a.hasPassword && <span title="Có password lưu (encrypted)" style={{ marginLeft: 4 }}>🔑</span>}
+                    {a.has2fa && <span title="2FA bật" style={{ marginLeft: 3 }}>🛡</span>}
+                  </td>
+                  <td style={td}>
+                    {a.projectId
+                      ? <EntityRef kind="project" id={a.projectId} label={a.projectId} size="sm" />
+                      : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span>}
+                  </td>
+                  <td style={td}><StatusBadge meta={accountStatusMeta(a.status)} /></td>
+                  <td style={td}>
+                    {a.browserLabel
+                      ? <EntityRef kind="browser-profile" id={a.browserProfileId} label={a.browserLabel} size="sm" />
+                      : <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>—</span>}
+                  </td>
+                  <td style={td}>
+                    {a.proxyLabel
+                      ? <EntityRef kind="proxy" id={a.proxyId} label={a.proxyLabel} size="sm" />
+                      : <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>—</span>}
+                  </td>
+                  <td style={{ ...td, fontSize: 10.5, color: 'var(--fg-2)' }}>{a.ownerName ?? '—'}</td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{relativeTime(a.lastUsedAt)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {modal.is('edit') && modal.numId != null && (
+        <AccountDrawer accountId={modal.numId} onClose={() => { modal.close(); router.refresh(); }} />
       )}
     </>
   );

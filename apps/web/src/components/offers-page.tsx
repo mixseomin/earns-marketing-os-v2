@@ -2,36 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import type { AffiliateOffer } from '@/lib/actions/offers';
-import { EmptyState, Drawer } from './ui';
+import { EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
 
-const OTHER = { label: 'Other', color: '#64748b' };
-const NET: Record<string, { label: string; color: string }> = {
-  awin: { label: 'Awin', color: '#f97316' },
-  cj: { label: 'CJ', color: '#22c55e' },
-  other: OTHER,
-};
-const netMeta = (n: string) => NET[n] ?? OTHER;
+// Network label only (YDNI: no per-network colour — the name carries it; colour is reserved for status).
+const NET: Record<string, string> = { awin: 'Awin', cj: 'CJ', other: 'Other' };
+const netLabel = (n: string) => NET[n] ?? 'Other';
 
 const APPROVED = new Set(['active', 'joined', 'approved']);
 const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
+// Status = the ONE meaningful signal → the screen's colour: lime ok, amber pending, neutral otherwise.
 const statusColor = (s: string) =>
   isApproved(s) ? 'var(--neon-lime)' : s.toLowerCase() === 'pending' ? 'var(--neon-amber)' : 'var(--fg-3)';
-
-const chip = (active: boolean): React.CSSProperties => ({
-  padding: '3px 10px', fontSize: 12, borderRadius: 6, cursor: 'pointer',
-  border: '1px solid rgba(127,127,127,.25)', fontFamily: 'var(--font-mono)',
-  background: active ? 'var(--neon-cyan)' : 'transparent',
-  color: active ? '#0b0f14' : 'var(--fg-2)', fontWeight: active ? 700 : 400,
-});
-const inputStyle: React.CSSProperties = {
-  padding: '5px 9px', fontSize: 12, borderRadius: 6, background: 'var(--bg-2)',
-  border: '1px solid rgba(127,127,127,.25)', color: 'var(--fg-1)', minWidth: 180,
-};
 
 export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
   const [net, setNet] = useState('all');
   const [status, setStatus] = useState('all');
-  const [geo, setGeo] = useState('all');
+  const [geo, setGeo] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<AffiliateOffer | null>(null);
 
@@ -50,7 +36,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     if (status === 'approved' && !isApproved(s)) return false;
     if (status === 'pending' && s !== 'pending') return false;
     if (status === 'paused' && s !== 'paused') return false;
-    if (geo !== 'all' && !o.geos.includes(geo)) return false;
+    if (geo.length && !geo.some((g) => o.geos.includes(g))) return false;
     if (q) {
       const t = q.toLowerCase();
       if (!o.name.toLowerCase().includes(t) && !(o.vertical ?? '').toLowerCase().includes(t)
@@ -59,6 +45,8 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     return true;
   }).sort((a, b) => (isApproved(a.status) ? 0 : 1) - (isApproved(b.status) ? 0 : 1) || a.name.localeCompare(b.name)),
   [offers, net, status, geo, q]);
+
+  const { pageItems, ...pager } = usePaged(filtered);
 
   return (
     <div style={{ padding: '16px 20px 60px' }}>
@@ -71,24 +59,13 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
         </p>
       </div>
 
-      {/* filters */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-        {(['all', 'awin', 'cj', 'other'] as const).map((n) => (
-          <button key={n} style={chip(net === n)} onClick={() => setNet(n)}>
-            {n === 'all' ? `Tất cả ${counts.all}` : `${netMeta(n).label} ${counts[n] ?? 0}`}
-          </button>
-        ))}
-        <span style={{ width: 1, height: 18, background: 'rgba(127,127,127,.25)', margin: '0 4px' }} />
-        {(['all', 'approved', 'pending', 'paused'] as const).map((s) => (
-          <button key={s} style={chip(status === s)} onClick={() => setStatus(s)}>{s}</button>
-        ))}
-        <span style={{ flex: 1 }} />
-        <select value={geo} onChange={(e) => setGeo(e.target.value)} style={{ ...inputStyle, minWidth: 90 }}>
-          <option value="all">geo: all</option>
-          {geos.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm tên / vertical / tag…" style={inputStyle} />
-      </div>
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm tên / vertical / tag…"
+        right={<MultiSelect label="geo" options={geos.map((g) => ({ value: g, label: g }))} selected={geo} onChange={setGeo} compact />}>
+        <FilterChips value={net} onChange={setNet} counts={counts}
+          options={[{ value: 'all', label: 'Tất cả' }, { value: 'awin', label: 'Awin' }, { value: 'cj', label: 'CJ' }, { value: 'other', label: 'Other' }]} />
+        <FilterChips value={status} onChange={setStatus}
+          options={[{ value: 'all', label: 'all' }, { value: 'approved', label: 'approved' }, { value: 'pending', label: 'pending' }, { value: 'paused', label: 'paused' }]} />
+      </ListToolbar>
 
       {filtered.length === 0 ? (
         <EmptyState icon="🔍" title="Không có offer khớp" description="Đổi filter hoặc chờ sync CJ/Awin." />
@@ -105,13 +82,11 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((o) => (
+            {pageItems.map((o) => (
               <tr key={o.id} onClick={() => setSel(o)}
                 style={{ borderTop: '1px solid rgba(127,127,127,.12)', cursor: 'pointer' }}>
                 <td style={{ padding: '7px 8px', fontWeight: 600, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</td>
-                <td style={{ padding: '7px 8px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: netMeta(o.network).color }}>{netMeta(o.network).label}</span>
-                </td>
+                <td style={{ padding: '7px 8px', color: 'var(--fg-2)', fontSize: 12 }}>{netLabel(o.network)}</td>
                 <td style={{ padding: '7px 8px' }}>
                   <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: statusColor(o.status) }}>● {o.status}</span>
                 </td>
@@ -123,12 +98,13 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
           </tbody>
         </table>
       )}
+      <Pager {...pager} onPage={pager.setPage} />
 
       {sel && (
         <Drawer onClose={() => setSel(null)} width={520}>
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: netMeta(sel.network).color, marginBottom: 4 }}>{netMeta(sel.network).label.toUpperCase()}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{netLabel(sel.network).toUpperCase()}</div>
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
               <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(sel.status) }}>● {sel.status}</div>
             </div>
@@ -147,8 +123,8 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
               <div>
                 <div style={labelStyle}>Tracking link</div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                  <input readOnly value={sel.affiliateUrl} style={{ ...inputStyle, flex: 1, minWidth: 0 }} onFocus={(e) => e.currentTarget.select()} />
-                  <button style={{ ...chip(false), background: 'var(--neon-cyan)', color: '#0b0f14', fontWeight: 700 }}
+                  <input readOnly value={sel.affiliateUrl} style={{ flex: 1, minWidth: 0, padding: '5px 9px', fontSize: 12, borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-1)', outline: 'none' }} onFocus={(e) => e.currentTarget.select()} />
+                  <button style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--neon-cyan)', color: '#0b0f14', fontWeight: 700 }}
                     onClick={() => navigator.clipboard?.writeText(sel.affiliateUrl ?? '')}>Copy</button>
                 </div>
               </div>

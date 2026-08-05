@@ -47,6 +47,11 @@ export { Section, type SectionProps } from './section';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';
+// list-view = shared toolbar + pagination for vault list pages (offers, communities, contacts, …).
+// usePaged (client pagination), Pager, ListToolbar (filter row shell), FilterChips (Segmented +
+// counts, YDNI single-accent), SearchInput. NEVER hand-roll `chip()`/search `<input>`/full-array
+// render again — see ui-conventions §5.
+export { usePaged, Pager, ListToolbar, FilterChips, SearchInput, type ChipOption } from './list-view';
 export { StatusFlag, type StatusFlagProps, type StatusFlagTone, type StatusFlagSize } from './status-flag';
 // Right-side slide-over with built-in ESC/click-outside close + stacking
 // (backgrounded = slide left + dim). See feedback_stacked_drawer.

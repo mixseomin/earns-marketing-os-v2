@@ -483,3 +483,4 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
     lastUsedAt: r.last_used_at instanceof Date ? r.last_used_at.toISOString() : (r.last_used_at ? String(r.last_used_at) : null),
   }));
 }
+

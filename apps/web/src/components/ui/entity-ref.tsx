@@ -23,6 +23,12 @@
 import Link from 'next/link';
 import { type ReactNode } from 'react';
 import { Pill, type PillSize } from './pill';
+import { openEntityDrawer } from '@/lib/entity-drawer';
+
+// Kinds the global EntityDrawerHost can open in-place from any page (keep in sync with
+// entity-drawer-host.tsx). For these, a bare <EntityRef kind id/> opens the drawer where you
+// are — no deep-link navigation, no page pre-mounting the drawer.
+const HOST_KINDS = new Set<EntityKind>(['account', 'browser-profile', 'proxy', 'identity']);
 
 export type EntityKind =
   | 'account' | 'proxy' | 'browser-profile' | 'task' | 'brief' | 'habitat'
@@ -81,7 +87,11 @@ export interface EntityRefProps {
 export function EntityRef({ kind, id, label, onOpen, href, project, size = 'sm', noIcon, title }: EntityRefProps) {
   const meta = META[kind];
   const text = label ?? (id != null ? `#${id}` : kind);
-  const resolvedHref = href ?? (!onOpen && id != null ? meta.route?.(id, project) ?? null : null);
+  // Open priority: explicit onOpen (page-local) → global in-place host (any page, no nav) →
+  // deep-link route (navigate to a page that mounts the drawer). Only fall to a route when
+  // nothing can open it in place.
+  const openInPlace = onOpen ?? (!href && id != null && HOST_KINDS.has(kind) ? () => openEntityDrawer(kind, id, project) : undefined);
+  const resolvedHref = href ?? (!openInPlace && id != null ? meta.route?.(id, project) ?? null : null);
 
   const chip = (
     <Pill
@@ -93,14 +103,14 @@ export function EntityRef({ kind, id, label, onOpen, href, project, size = 'sm',
       uppercase={false}
       mono={false}
       title={title ?? `Mở ${kind} ${id != null ? '#' + id : ''}`.trim()}
-      onClick={onOpen}
+      onClick={openInPlace}
     />
   );
 
   // stopPropagation: entity chips very often sit inside an already-clickable row/card (whose onClick
   // opens a DIFFERENT entity). The chip's own click must not bubble up and trigger that row. The
   // Link still navigates (its default action), and onOpen still fires — we only stop the bubble.
-  if (onOpen) return <span data-comp="ui.EntityRef" style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>{chip}</span>;
+  if (openInPlace) return <span data-comp="ui.EntityRef" style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>{chip}</span>;
   if (resolvedHref) return <Link data-comp="ui.EntityRef" href={resolvedHref} style={{ textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>{chip}</Link>;
 
   // Nothing to open — render the chip muted so it's visibly a non-live reference,

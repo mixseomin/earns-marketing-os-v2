@@ -10,11 +10,11 @@ import {
   testProxyEndpoint, testAndSaveProxy, type ProxyTestResult,
 } from '@/lib/actions/environments';
 import { accountStatusMeta } from '@/lib/status-meta';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import { StatusBadge } from './ui/status-badge';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
-import { AccountDrawer } from './account-drawer';
 import { Drawer, EntityRef } from './ui';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
@@ -209,7 +209,7 @@ function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMe
   );
 }
 
-function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow | null; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
+export function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: ProxyRow | null; onClose: () => void; teamMembers?: TeamMemberRow[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -474,10 +474,8 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 // Mọi account cross-project trong 1 bảng. Đọc + tìm + nhảy tới chỗ sửa
 // (accounts vault của project). Không clone form vault — 1 nguồn edit duy nhất.
 function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
-  const router = useRouter();
-  // Drawer IN-PLACE (house rule ui-conventions §4) — AccountDrawer tự load bundle
-  // theo id, không cần project context, nên KHÔNG navigate sang /p/<proj>/resources.
-  const modal = useModalParam('acct');
+  // Mọi entity chip ở đây mở drawer IN-PLACE qua <EntityDrawerHost> toàn cục
+  // (lib/entity-drawer) — page này KHÔNG tự mount drawer, KHÔNG điều hướng.
   const [q, setQ] = useUrlParam('q', '');
   const [project, setProject] = useUrlParam('proj', 'all');
   const [platform, setPlatform] = useUrlParam('plat', 'all');
@@ -547,19 +545,20 @@ function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
             </thead>
             <tbody>
               {rows.map((a) => (
-                <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => modal.open('edit', a.id)}>
+                <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => openEntityDrawer('account', a.id)}>
                   <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{a.id}</td>
                   <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{a.platformKey}</td>
                   <td style={td}>
-                    <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
-                      onOpen={() => modal.open('edit', a.id)} />
+                    <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon />
                     {a.email && a.handle && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}> · {a.email}</span>}
                     {a.hasPassword && <span title="Có password lưu (encrypted)" style={{ marginLeft: 4 }}>🔑</span>}
                     {a.has2fa && <span title="2FA bật" style={{ marginLeft: 3 }}>🛡</span>}
                   </td>
                   <td style={td}>
                     {a.projectId
-                      ? <EntityRef kind="project" id={a.projectId} label={a.projectId} size="sm" />
+                      ? <EntityRef kind="project" id={a.projectId} label={a.projectId} size="sm"
+                          title={`Lọc bảng theo project ${a.projectId}`}
+                          onOpen={() => setProject(a.projectId!)} />
                       : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span>}
                   </td>
                   <td style={td}><StatusBadge meta={accountStatusMeta(a.status)} /></td>
@@ -582,9 +581,6 @@ function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
         </div>
       )}
 
-      {modal.is('edit') && modal.numId != null && (
-        <AccountDrawer accountId={modal.numId} onClose={() => { modal.close(); router.refresh(); }} />
-      )}
     </>
   );
 }

@@ -29,7 +29,6 @@ import {
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef } from './ui';
-import { IdentityDrawer } from './identity-drawer';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   type AccountStatusGroup,
@@ -1245,7 +1244,6 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   const [showBrowserPick, setShowBrowserPick] = useState(false); // inline chooser list
   const [browserQ, setBrowserQ] = useState('');
   const [detailProfileId, setDetailProfileId] = useState<number | null>(null); // per-item detail drawer
-  const [openIdentity, setOpenIdentity] = useState<number | null>(null);       // identity drawer (in-place, không nhảy trang)
   // Inline platform edit — mở PlatformFormModal stack lên trên account modal
   // (feedback_picker_inline_crud: edit-anywhere, không bắt vào /platforms)
   const [showEditPlatform, setShowEditPlatform] = useState(false);
@@ -1428,7 +1426,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
   // background per stacked_drawer rule (slide left + dim + inert), else the child covers it
   // flat/out-of-order. Rendered as a fragment SIBLING (not a DOM child) so the transform/filter
   // here doesn't drag the fixed-position child drawer along.
-  const childDrawerOpen = detailProfileId != null || openIdentity != null;
+  const childDrawerOpen = detailProfileId != null;
   return (
     <>
     <Drawer
@@ -2202,8 +2200,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                     ↑ Persona của identity (nguồn của gender/country…). Giá trị THẬT trên site nằm ở &quot;Profile fields&quot; trên.
                   </div>
                   <div style={{ marginTop: 2 }}>
-                    <EntityRef kind="identity" id={srcIdentity.id} label={`Mở identity #${srcIdentity.id}`}
-                      onOpen={() => setOpenIdentity(srcIdentity.id)} />
+                    <EntityRef kind="identity" id={srcIdentity.id} label={`Mở identity #${srcIdentity.id}`} />
                   </div>
                 </div>
               </Collapsible>
@@ -2585,7 +2582,6 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
       const cur = browserProfiles.find((b) => b.id === detailProfileId);
       return cur ? <BrowserProfileDrawer profile={cur} proxies={proxies} teamMembers={teamMembers} onClose={() => setDetailProfileId(null)} /> : null;
     })()}
-    {openIdentity != null && <IdentityDrawer identityId={openIdentity} onClose={() => setOpenIdentity(null)} />}
     </>
   );
 }

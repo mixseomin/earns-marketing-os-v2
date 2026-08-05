@@ -56,10 +56,12 @@ export async function resolveSeedGates(
 
   // 1+2 (independent) — habitats by subreddit, account stats.
   const subList = sql.join(subs.map((s) => sql`${s}`), sql`, `);
+  // Habitat URLs carry a trailing slash / extra path (…/r/army/) → strip everything
+  // after the sub name so it matches the bare sub parsed from the task URL (army).
   const [habRaw, statRaw] = await Promise.all([
-    db.execute(sql`SELECT id, lower(split_part(url, '/r/', 2)) AS sub,
+    db.execute(sql`SELECT id, lower(split_part(split_part(url, '/r/', 2), '/', 1)) AS sub,
                           min_karma, min_account_age_days, min_posts, links_allowed_after, privacy
-                   FROM habitats WHERE platform_key = 'reddit' AND lower(split_part(url, '/r/', 2)) IN (${subList})`),
+                   FROM habitats WHERE platform_key = 'reddit' AND lower(split_part(split_part(url, '/r/', 2), '/', 1)) IN (${subList})`),
     acctIds.length
       ? db.execute(sql`SELECT id, status, account_stats FROM platform_accounts WHERE id IN (${sql.join(acctIds.map((i) => sql`${i}`), sql`, `)})`)
       : Promise.resolve([] as unknown),

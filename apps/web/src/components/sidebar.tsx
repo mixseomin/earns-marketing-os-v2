@@ -196,6 +196,7 @@ function ProjectNav({ projectId, role }: { projectId: string; role: 'admin' | 'o
         { href: `/p/${p}/backlinks`,    icon: '🔗', color: 'var(--neon-cyan)',  label: 'Backlinks',    sub: 'source pipeline · assign · verify', role: 'admin' },
         { href: `/p/${p}/outreach`,     icon: '✉', color: 'var(--neon-amber)',  label: 'Outreach',     sub: 'widget embeds · pitch', role: 'admin' },
         { href: `/p/${p}/seeding`,      icon: '⏱', color: 'var(--neon-lime)',   label: 'Seeding',      sub: 'cadence · nhận diện', role: 'admin' },
+        { href: `/communities?project=${p}`, icon: '🏘', color: 'var(--neon-lime)', label: 'Communities', sub: 'rules · gate · standing của site', role: 'admin' },
         { href: `/p/${p}/publications`, icon: '📡', color: 'var(--neon-cyan)',  label: 'Publications', sub: 'monitor · engage', role: 'admin' },
       ],
     },
@@ -240,6 +241,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
       items: [
         { href: '/inbox',     icon: '📥', color: 'var(--neon-amber)',  label: 'Inbox',    sub: 'human tasks queue' },
         { href: '/plays',     icon: '📣', color: 'var(--neon-violet)', label: 'Plays',    sub: 'traffic plays · all sites', role: 'admin' },
+        { href: '/communities', icon: '🏘', color: 'var(--neon-lime)', label: 'Communities', sub: 'subreddit/forum · rules · gate · standing', role: 'admin' },
         { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
         { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
       ],

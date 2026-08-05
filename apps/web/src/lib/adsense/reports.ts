@@ -30,7 +30,7 @@ export type AdsenseSummary = {
   totalPageViews: number;
   avgRpm: number;
   byDate: { date: string; earnings: number; impressions: number; clicks: number }[];
-  byDomain: { domain: string; earnings: number; impressions: number; rpm: number }[];
+  byDomain: { domain: string; earnings: number; impressions: number; clicks: number; pageViews: number; rpm: number; ctr: number }[];
   byAccount: { pubId: string; displayName: string; earnings: number; impressions: number }[];
   windowDays: number;
 };
@@ -45,8 +45,10 @@ export async function getAdsenseSummary(opts: {
   if (!db) return emptySummary(windowDays);
 
   // Date filter — adsense_daily.date is a DATE column; use ISO string compare.
-  const since = new Date(Date.now() - (windowDays - 1) * 24 * 3600 * 1000)
-    .toISOString().slice(0, 10);
+  // windowDays <= 0 = toàn bộ lịch sử (chip "All" trên /revenue).
+  const since = windowDays > 0
+    ? new Date(Date.now() - (windowDays - 1) * 24 * 3600 * 1000).toISOString().slice(0, 10)
+    : '1970-01-01';
 
   const conds = [gte(adsenseDaily.date, since)];
   if (opts.projectId) conds.push(eq(adsenseDaily.projectId, opts.projectId));
@@ -92,7 +94,7 @@ export async function getAdsenseSummary(opts: {
   // Totals + breakdowns
   let totalEarnings = 0, totalImpressions = 0, totalClicks = 0, totalPageViews = 0;
   const byDateMap = new Map<string, { date: string; earnings: number; impressions: number; clicks: number }>();
-  const byDomainMap = new Map<string, { domain: string; earnings: number; impressions: number; rpm: number }>();
+  const byDomainMap = new Map<string, { domain: string; earnings: number; impressions: number; clicks: number; pageViews: number; rpm: number; ctr: number }>();
   const byAccountMap = new Map<string, { pubId: string; displayName: string; earnings: number; impressions: number }>();
   for (const r of rows) {
     totalEarnings += r.earningsUsd;
@@ -103,16 +105,20 @@ export async function getAdsenseSummary(opts: {
     d.earnings += r.earningsUsd; d.impressions += r.impressions; d.clicks += r.clicks;
     byDateMap.set(r.date, d);
     if (r.siteDomain) {
-      const dm = byDomainMap.get(r.siteDomain) ?? { domain: r.siteDomain, earnings: 0, impressions: 0, rpm: 0 };
+      const dm = byDomainMap.get(r.siteDomain) ?? { domain: r.siteDomain, earnings: 0, impressions: 0, clicks: 0, pageViews: 0, rpm: 0, ctr: 0 };
       dm.earnings += r.earningsUsd; dm.impressions += r.impressions;
+      dm.clicks += r.clicks; dm.pageViews += r.pageViews;
       byDomainMap.set(r.siteDomain, dm);
     }
     const ac = byAccountMap.get(r.pubId) ?? { pubId: r.pubId, displayName: r.displayName, earnings: 0, impressions: 0 };
     ac.earnings += r.earningsUsd; ac.impressions += r.impressions;
     byAccountMap.set(r.pubId, ac);
   }
-  // Compute RPM per domain from totals (more accurate than averaging row RPMs)
-  for (const dm of byDomainMap.values()) dm.rpm = dm.impressions ? (dm.earnings / dm.impressions) * 1000 : 0;
+  // Compute RPM/CTR per domain from totals (more accurate than averaging row RPMs)
+  for (const dm of byDomainMap.values()) {
+    dm.rpm = dm.impressions ? (dm.earnings / dm.impressions) * 1000 : 0;
+    dm.ctr = dm.impressions ? (dm.clicks / dm.impressions) * 100 : 0;
+  }
   const avgRpm = totalImpressions ? (totalEarnings / totalImpressions) * 1000 : 0;
 
   return {

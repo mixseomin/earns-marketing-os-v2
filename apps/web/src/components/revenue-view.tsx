@@ -10,6 +10,7 @@ import type { AdsenseSummary } from '@/lib/adsense/reports';
 import type { GumroadSummary } from '@/lib/gumroad/products';
 import type { RevenueByDay } from '@/lib/revenue/by-day';
 import { RevenueCalendar } from './revenue-calendar';
+import { RevenueRange } from './revenue-range';
 import { Section, StatsStrip, EmptyState, Pill } from './ui';
 import type { StatCard } from './ui/stats-strip';
 
@@ -21,6 +22,8 @@ interface Props {
   gumroad?: GumroadSummary;
   /** Mọi nguồn quy về trục ngày, cho lịch doanh thu. */
   byDay?: RevenueByDay;
+  /** Khung thời gian đang chọn; 0 = toàn bộ. Cùng giá trị với ?days=. */
+  days?: number;
 }
 
 function fmtUSD(n: number) {
@@ -31,19 +34,21 @@ function fmtUSD(n: number) {
 function fmtInt(n: number) { return n.toLocaleString('en-US'); }
 function fmtRpm(n: number) { return `$${n.toFixed(2)}`; }
 
-export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDay }: Props) {
+export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDay, days = 30 }: Props) {
   const { totalEarnings, totalImpressions, totalClicks, totalPageViews, avgRpm,
-          byDate, byDomain, byAccount, rows, windowDays } = summary;
+          byDate, byDomain, byAccount, rows } = summary;
 
   const maxDayEarnings = Math.max(1, ...byDate.map(d => d.earnings));
   const ctr = totalImpressions ? (totalClicks / totalImpressions) * 100 : 0;
+  const rangeLabel = days > 0 ? `${days} ngày gần nhất` : 'toàn bộ lịch sử';
 
   const adsenseCards: StatCard[] = [
     { key: 'earn', label: 'Earnings', value: fmtUSD(totalEarnings), color: 'var(--ok)' },
-    { key: 'impr', label: 'Impressions', value: fmtInt(totalImpressions), color: 'var(--fg-0)' },
-    { key: 'clk', label: 'Clicks', value: fmtInt(totalClicks), color: 'var(--fg-0)', title: `CTR ${ctr.toFixed(2)}%` },
-    { key: 'pv', label: 'Page views', value: fmtInt(totalPageViews), color: 'var(--fg-0)' },
-    { key: 'rpm', label: 'RPM', value: fmtRpm(avgRpm), color: 'var(--neon-cyan)' },
+    { key: 'pv', label: 'Page views', value: fmtInt(totalPageViews), color: 'var(--fg-0)', title: 'Lượt xem trang có quảng cáo' },
+    { key: 'impr', label: 'Impressions', value: fmtInt(totalImpressions), color: 'var(--fg-0)', title: 'Số lần quảng cáo được hiển thị' },
+    { key: 'clk', label: 'Clicks', value: fmtInt(totalClicks), color: 'var(--fg-0)' },
+    { key: 'ctr', label: 'CTR', value: `${ctr.toFixed(2)}%`, color: 'var(--neon-violet)', title: 'Clicks / Impressions — thấp = vị trí quảng cáo kém' },
+    { key: 'rpm', label: 'RPM', value: fmtRpm(avgRpm), color: 'var(--neon-cyan)', title: 'Doanh thu / 1000 impressions — thấp = niche/địa lý giá rẻ' },
   ];
 
   return (
@@ -55,10 +60,11 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
             <small>// AdSense + Gumroad</small>
           </h1>
           <p className="page-sub">
-            AdSense: {windowDays} ngày gần nhất, pull 09:00 UTC (AdSense chỉnh lùi tới 48h).
-            Gumroad: số cộng dồn trọn đời, đọc thẳng API, cache 5 phút.
+            Khung thời gian áp cho cả trang: {rangeLabel}. AdSense pull 09:00 UTC (AdSense chỉnh lùi tới 48h).
+            Gumroad: thẻ tổng là số trọn đời; lịch bên dưới theo đúng khung đang chọn.
           </p>
         </div>
+        <RevenueRange value={days} />
       </div>
 
       {byDay && (
@@ -70,7 +76,7 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
       {/* Gumroad = hàng MÌNH bán. Khác AdSense (quảng cáo), khác /offers (affiliate network khác). */}
       {gumroad && <GumroadBlock g={gumroad} />}
 
-      <Section title="AdSense" subtitle={`${windowDays} ngày gần nhất`}>
+      <Section title="AdSense" subtitle={rangeLabel}>
         <StatsStrip cards={adsenseCards} />
 
         {byDate.length === 0 ? (
@@ -96,15 +102,20 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
         )}
       </Section>
 
+      {/* Funnel theo site: PV → Impr → Click → tiền. Cột nào tụt thì biết sửa gì:
+          PV thấp = thiếu traffic (SEO) · CTR thấp = vị trí quảng cáo · RPM thấp = niche/địa lý. */}
       {byDomain.length > 0 && (
-        <Section title="Theo site" defaultOpen>
-          <Table head={['Domain', 'Earnings', 'Impressions', 'RPM']}>
+        <Section title="Theo site" subtitle="funnel: page views → impressions → clicks → tiền" defaultOpen>
+          <Table head={['Domain', 'Page views', 'Impressions', 'Clicks', 'CTR', 'RPM', 'Earnings']}>
             {byDomain.map(d => (
               <tr key={d.domain}>
                 <td style={{ fontWeight: 500, color: 'var(--fg-0)' }}>{d.domain}</td>
-                <td>{fmtUSD(d.earnings)}</td>
+                <td>{fmtInt(d.pageViews)}</td>
                 <td>{fmtInt(d.impressions)}</td>
+                <td>{fmtInt(d.clicks)}</td>
+                <td style={{ color: d.ctr > 0 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{d.ctr.toFixed(2)}%</td>
                 <td>{fmtRpm(d.rpm)}</td>
+                <td style={{ color: 'var(--ok)' }}>{fmtUSD(d.earnings)}</td>
               </tr>
             ))}
           </Table>

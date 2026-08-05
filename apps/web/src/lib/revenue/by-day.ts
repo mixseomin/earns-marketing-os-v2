@@ -25,6 +25,15 @@ export interface RevenueByDay {
   errors: string[];        // nguồn nào lỗi thì nói ra, KHÔNG im lặng trả 0
 }
 
+/** "Toàn bộ" = 10 năm; đủ xa để không cắt mất dữ liệu nào mà vẫn là một con số. */
+export const ALL_DAYS = 3650;
+
+/** ?days= → khung thời gian hợp lệ. 0 = toàn bộ. Chỉ nhận đúng bộ chip của RevenueRange. */
+export function parseRange(raw?: string): number {
+  const n = parseInt(raw ?? '', 10);
+  return [7, 30, 90, 365, 0].includes(n) ? n : 30;
+}
+
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
 

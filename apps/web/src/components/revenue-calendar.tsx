@@ -43,33 +43,46 @@ export function RevenueCalendar({ rows, errors }: { rows: RevenueDayRow[]; error
   // Một pill mỗi (ngày × nguồn) — nhiều kênh cùng nguồn trong một ngày thì cộng lại,
   // ô lịch chỉ cao ~78px nên đừng nhồi từng kênh một.
   const items: CalItem[] = useMemo(() => {
-    const agg = new Map<string, { date: string; source: RevenueSource; amount: number; channels: Set<string> }>();
+    const agg = new Map<string, { date: string; source: RevenueSource; amount: number; gross: number; channels: Set<string> }>();
     for (const r of filtered) {
       const k = `${r.date}|${r.source}`;
-      const cur = agg.get(k) ?? { date: r.date, source: r.source, amount: 0, channels: new Set<string>() };
-      cur.amount += r.amount; cur.channels.add(r.channel);
+      const cur = agg.get(k) ?? { date: r.date, source: r.source, amount: 0, gross: 0, channels: new Set<string>() };
+      cur.amount += r.amount; cur.gross += r.gross ?? r.amount; cur.channels.add(r.channel);
       agg.set(k, cur);
     }
     return [...agg.entries()]
       .sort((a, b) => b[1].amount - a[1].amount)
       .map(([k, v]) => ({
         id: k, date: v.date, label: usd(v.amount), color: SRC_META[v.source].color,
-        title: `${v.date} · ${SRC_META[v.source].label} · ${usd(v.amount)}\n${[...v.channels].join(', ')}`,
+        // Con số trên ô = THỰC NHẬN. Doanh số gốc chỉ vào tooltip, để không ai
+        // nhìn nhầm $421 khách tiêu thành $421 tiền mình.
+        title: `${v.date} · ${SRC_META[v.source].label} · thực nhận ${usd(v.amount)}`
+          + (v.gross > v.amount ? `\ndoanh số gốc ${usd(v.gross)} → ${Math.round((v.amount / v.gross) * 100)}%` : '')
+          + `\n${[...v.channels].join(', ')}`,
       }));
   }, [filtered]);
 
   const totals = useMemo(() => {
-    const t: Record<RevenueSource | 'all', number> = { all: 0, adsense: 0, product: 0, gumroad: 0 };
-    for (const r of filtered) { t.all += r.amount; t[r.source] += r.amount; }
+    const z = () => ({ net: 0, gross: 0 });
+    const t: Record<RevenueSource | 'all', { net: number; gross: number }> =
+      { all: z(), adsense: z(), product: z(), gumroad: z() };
+    for (const r of filtered) {
+      const g = r.gross ?? r.amount;
+      t.all.net += r.amount; t.all.gross += g;
+      t[r.source].net += r.amount; t[r.source].gross += g;
+    }
     return t;
   }, [filtered]);
 
   const cards: StatCard[] = [
-    { key: 'all', label: 'Tổng (đã lọc)', value: usd(totals.all), color: 'var(--ok)' },
+    { key: 'all', label: 'Thực nhận (đã lọc)', value: usd(totals.all.net), color: 'var(--ok)',
+      title: `Tiền vào túi. Doanh số gốc qua tay: ${usd(totals.all.gross)}` },
     ...(Object.keys(SRC_META) as RevenueSource[]).map((s) => ({
-      key: s, label: SRC_META[s].label, value: usd(totals[s]), color: SRC_META[s].color,
+      key: s, label: SRC_META[s].label, value: usd(totals[s].net), color: SRC_META[s].color,
       active: src === s, onClick: () => setParam('src', src === s ? 'all' : s),
-      title: `Chỉ xem ${SRC_META[s].label}`,
+      title: totals[s].gross > totals[s].net
+        ? `Doanh số gốc ${usd(totals[s].gross)} → thực nhận ${usd(totals[s].net)} (${Math.round((totals[s].net / totals[s].gross) * 100)}%). Bấm để chỉ xem nguồn này.`
+        : `Chỉ xem ${SRC_META[s].label}`,
     })),
   ];
 

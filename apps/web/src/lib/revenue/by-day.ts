@@ -17,7 +17,9 @@ export interface RevenueDayRow {
   date: string;            // YYYY-MM-DD
   source: RevenueSource;
   channel: string;         // adsense: domain · product: platform · gumroad: tên sản phẩm
-  amount: number;          // USD
+  amount: number;          // USD THỰC NHẬN (hoa hồng/net) — đây mới là tiền vào túi
+  /** Doanh số gốc: khách tiêu / giá bán trước khi chia. Affiliate 20% thì gross = 5× amount. */
+  gross?: number;
 }
 
 export interface RevenueByDay {
@@ -77,7 +79,9 @@ async function productRows(since: string): Promise<Part> {
   if (!DIRECTUS_TOKEN) return { rows: [], error: 'product_stats: DIRECTUS_TOKEN chưa cấu hình' };
   const qs = new URLSearchParams({
     limit: '-1',
-    fields: 'date,platform,revenue',
+    // revenue = thực nhận · gross_revenue = doanh số gốc. Hai con số này KHÁC NHAU
+    // (affiliate chaturbate ăn 20%) — trộn chúng làm một là cách báo lố 5 lần.
+    fields: 'date,platform,revenue,gross_revenue',
     'filter[date][_gte]': since,
     'filter[revenue][_gt]': '0',
   });
@@ -86,11 +90,12 @@ async function productRows(since: string): Promise<Part> {
     next: { revalidate: 600 },
   });
   if (!res.ok) return { rows: [], error: `product_stats: Directus ${res.status}` };
-  const j = (await res.json()) as { data?: Array<{ date: string; platform: string | null; revenue: string | number | null }> };
+  const j = (await res.json()) as { data?: Array<{ date: string; platform: string | null; revenue: string | number | null; gross_revenue: string | number | null }> };
   return {
     rows: (j.data ?? []).map((x) => ({
       date: String(x.date).slice(0, 10), source: 'product' as const,
       channel: x.platform || 'unknown', amount: Number(x.revenue) || 0,
+      gross: Number(x.gross_revenue) || 0,
     })).filter((x) => x.amount > 0),
   };
 }

@@ -166,7 +166,8 @@ function GumroadBlock({ g }: { g: GumroadSummary }) {
     );
   }
   const cards: StatCard[] = [
-    { key: 'rev', label: 'Doanh thu (trọn đời)', value: fmtUSD(g.totalUsd), color: 'var(--ok)' },
+    { key: 'rev', label: 'Doanh số (trọn đời)', value: fmtUSD(g.totalUsd), color: 'var(--ok)',
+      title: 'Giá bán cộng lại, TRƯỚC phí Gumroad (~10%) và phí thanh toán. Thực nhận thấp hơn.' },
     { key: 'ord', label: 'Đơn hàng', value: fmtInt(g.totalSales), color: 'var(--fg-0)' },
     { key: 'live', label: 'Đang bán', value: `${g.livePaid} + ${g.liveFree}`, color: 'var(--neon-cyan)', title: `${g.livePaid} trả phí + ${g.liveFree} miễn phí (lead magnet)` },
     { key: 'disc', label: 'Thiếu tag/category', value: fmtInt(g.missingDiscover), color: g.missingDiscover ? 'var(--warn)' : 'var(--ok)', title: 'Thiếu = không lên được Gumroad Discover' },

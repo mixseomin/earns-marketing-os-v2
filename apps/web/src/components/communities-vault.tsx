@@ -6,7 +6,7 @@
 // /communities?project=<id> (projectId fixed). Row → the canonical HabitatFormModal
 // (full editor, reused) so gate/rules edits live in one place; the gate (link-readiness)
 // reads the same habitats.min_* the operator tunes here.
-import { useState, useMemo, useTransition, type CSSProperties } from 'react';
+import { useState, useMemo, useTransition, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ListToolbar, Pager, usePaged, MultiSelect } from './ui';
@@ -21,6 +21,17 @@ const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', bord
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
 // Coloured pill reserved for the ONE glanceable signal here: links policy severity (banned=red, caveat=amber).
 const pill = (c: string): CSSProperties => ({ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: c, border: `1px solid ${c}55`, background: `${c}14` });
+
+// Deep-link the open habitat drawer to the URL (?h=<id> to edit, ?h=new&pid=<projectId> to create)
+// so F5 / a shared link reopens the same editor — the house convention for a page's own drawer
+// (ui-conventions §1, like backlinks ?task=). No router push, just replaceState (no history spam).
+function syncHabitatUrl(h: string | number | null, pid?: string) {
+  if (typeof window === 'undefined') return;
+  const u = new URL(window.location.href);
+  if (h == null) { u.searchParams.delete('h'); u.searchParams.delete('pid'); }
+  else { u.searchParams.set('h', String(h)); if (pid) u.searchParams.set('pid', pid); else u.searchParams.delete('pid'); }
+  window.history.replaceState(window.history.state, '', u.toString());
+}
 
 // Does this community BAN links outright? (mirror of link-readiness regex, for display only.)
 function linksBanned(s: string): boolean {
@@ -63,14 +74,27 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
     seeds: shown.reduce((s, r) => s + r.seeds, 0),
   }), [shown, gateOn]);
 
+  // All open/close routes through these so the ?h= URL always mirrors the drawer state.
+  const openHabitat = (row: HabitatRow | null, pid: string) => { setEdit({ row, projectId: pid }); syncHabitatUrl(row ? row.id : 'new', pid); };
+  const closeHabitat = () => { setEdit(null); syncHabitatUrl(null); };
   const openEdit = async (r: CommunityRow) => {
     if (!r.projectId) return;
     setBusyId(r.id);
     const full = await getHabitatRowAction(r.projectId, r.id);
     setBusyId(null);
-    if (full) setEdit({ row: full, projectId: r.projectId });
+    if (full) openHabitat(full, r.projectId);
   };
   const createPid = (proj.length === 1 ? proj[0] : '') || projectId || '';
+
+  // Deep-link restore on mount: ?h=<id> reopens that habitat's editor, ?h=new opens create.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const h = p.get('h');
+    if (!h) return;
+    if (h === 'new') { const pid = p.get('pid') || createPid; if (pid) setEdit({ row: null, projectId: pid }); return; }
+    const row = rows.find((r) => String(r.id) === h);
+    if (row) openEdit(row);
+  }, []);   // mount only — restore the drawer the URL points at
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 
   return (
@@ -93,7 +117,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
       {/* Filters */}
       <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / url / mô tả…"
         right={
-          <button type="button" onClick={() => createPid && setEdit({ row: null, projectId: createPid })} disabled={!createPid}
+          <button type="button" onClick={() => createPid && openHabitat(null, createPid)} disabled={!createPid}
             title={createPid ? 'Thêm community mới' : 'Chọn 1 project để thêm'}
             style={{ ...inp, cursor: createPid ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: createPid ? 1 : 0.5 }}>+ Community</button>
         }>
@@ -158,8 +182,8 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
       {edit && (
         <HabitatFormModal
           projectId={edit.projectId} habitat={edit.row} tribes={tribes} platforms={platforms}
-          onClose={() => { setEdit(null); start(() => router.refresh()); }}
-          onCreated={() => { setEdit(null); start(() => router.refresh()); }}
+          onClose={() => { closeHabitat(); start(() => router.refresh()); }}
+          onCreated={() => { closeHabitat(); start(() => router.refresh()); }}
         />
       )}
     </div>

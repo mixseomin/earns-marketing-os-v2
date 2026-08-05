@@ -599,14 +599,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       // Global /plays: prefix the project emoji so a calendar cell says which site it's for.
       const pfx = allProjects && t.projectEmoji ? `${t.projectEmoji} ` : '';
       const plbl = allProjects && t.projectLabel ? `[${t.projectLabel}] ` : '';
-      const label = pfx + (showHost(t.sourceUrl, t.projectSlug) ?? t.title);
-      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${plbl}${t.title}` });
+      // 🌱 community-seed marker: this platform link-gates, so a dated item here is a seeding/
+      // standing-building move, NOT a free link drop — flag it on the pill + tooltip so the
+      // calendar doesn't read it the same as a one-shot acquire. (Readiness strip stays on the
+      // list/kanban card — a calendar pill is one line.)
+      const seed = t.communitySeed ? '🌱 ' : '';
+      const seedT = t.communitySeed ? ' · 🌱 community-seed (link-gated)' : '';
+      const label = pfx + seed + (showHost(t.sourceUrl, t.projectSlug) ?? t.title);
+      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${seedT}` });
       else {
         // A task can carry BOTH a "waiting since" date and a "check/follow-up on" date —
         // show both so the calendar surfaces the follow date (site_scheduled_at) even while
         // the task is still submitted/awaiting approval.
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${seedT}` });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${seedT}` });
       }
     }
     return out;

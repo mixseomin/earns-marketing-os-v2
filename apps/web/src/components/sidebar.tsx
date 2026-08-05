@@ -260,6 +260,8 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
       key: 'library', label: 'Library',
       items: [
         { href: '/catalog',      icon: '📋', color: 'var(--neon-amber)',  label: 'Catalog',        sub: 'phương pháp · method library', role: 'admin' },
+        { href: '/offers',       icon: '💸', color: 'var(--neon-lime)',   label: 'Offers',         sub: 'affiliate CJ · Awin · duyệt', role: 'admin' },
+        { href: '/knowledge?kind=source', icon: '📰', color: 'var(--neon-cyan)', label: 'Content Sources', sub: 'nguồn tham khảo viết', role: 'admin' },
         { href: '/library',      icon: '🗂', color: 'var(--neon-cyan)',   label: 'Tools & Skills', sub: 'shared catalog' },
         { href: '/knowledge',    icon: '📚', color: 'var(--neon-violet)', label: 'Knowledge',      sub: 'shared templates', role: 'admin' },
         { href: '/platforms',    icon: '🌐', color: 'var(--neon-violet)', label: 'Platforms',      sub: 'catalog · 59 entries' },

@@ -1,20 +1,22 @@
 'use client';
 
 import { useState, useMemo, useRef, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { KnowledgeRow } from '@/lib/data';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import { createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem } from '@/lib/actions/knowledge';
 import { EmptyState, Drawer } from './ui';
 
 const KIND_COLOR: Record<string, string> = {
-  playbook: '#fbbf24', prompt: '#a78bfa', template: '#10b981', lesson: '#38bdf8', gotcha: '#f87171',
+  playbook: '#fbbf24', prompt: '#a78bfa', template: '#10b981', lesson: '#38bdf8', gotcha: '#f87171', source: '#22d3ee',
 };
-const KINDS = ['playbook', 'prompt', 'template', 'lesson', 'gotcha'];
+const KINDS = ['playbook', 'prompt', 'template', 'lesson', 'gotcha', 'source'];
 
 type Proj = { id: string; name: string; emoji: string };
 
 export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[]; projects: Proj[] }) {
-  const [filterKind, setFilterKind] = useState('all');
+  const sp = useSearchParams();
+  const [filterKind, setFilterKind] = useState(sp.get('kind') || 'all');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<KnowledgeRow | 'new' | null>(null);
   const projName = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);

@@ -12,6 +12,16 @@ const drawerW = new Map<number, number>();   // id → effective rendered width 
 const stackListeners = new Set<() => void>();
 const notifyStack = () => stackListeners.forEach((fn) => fn());
 
+// Z-ORDER FOLLOWS THE STACK, not a hand-typed number. Every drawer's z is derived from its
+// position in drawerStack (BASE + pos*STEP), so the most-recently-opened drawer is ALWAYS on top —
+// mount order == paint order, guaranteed. Before this, each call site hand-picked a zIndex
+// (300 here, 200 there, 540/640 elsewhere); whenever mount order disagreed with those numbers a
+// child stacked on top would paint BEHIND its parent (e.g. browser-profile drawer 200 opened from
+// account drawer 300). The `zIndex` prop is now only a FLOOR (max'd with BASE) for the rare drawer
+// that must clear a non-drawer overlay — it can no longer break inter-drawer ordering.
+const DRAWER_BASE = 1000;
+const DRAWER_STEP = 10;
+
 // Standard right-side slide-over drawer. Handles backdrop, ESC + click-outside close, and STACKING.
 //
 // AUTO-STACK (no call site wires anything — the module stack knows the layout):
@@ -44,7 +54,9 @@ export function Drawer({
   children: ReactNode;
   /** Initial panel width in px (caps at 96vw). Drag the left edge to resize. */
   width?: number;
-  /** Backdrop z-index; panel sits at zIndex+1. Bump for stacked drawers. */
+  /** FLOOR for the backdrop z only (panel = z+1). Inter-drawer order is stack-derived (mount order
+   * always wins) — you do NOT set this to stack drawers. Pass it only to clear a non-drawer overlay;
+   * anything ≤ DRAWER_BASE is ignored. Legacy call-site values are harmless (floored + positional). */
   zIndex?: number;
   /** This drawer has another drawer stacked on top: slide left + dim + inert. */
   backgrounded?: boolean;
@@ -72,6 +84,11 @@ export function Drawer({
   //   isBottom= I'm the bottom-most drawer → I paint the dim scrim (others go transparent).
   const [shift, setShift] = useState(0);
   const [isBottom, setIsBottom] = useState(true);
+  // Stack-derived backdrop z (panel = z+1). Recomputed from drawerStack position on every change,
+  // so a drawer opened later always outranks one opened earlier — regardless of the zIndex prop.
+  const [z, setZ] = useState(Math.max(zIndex ?? 0, DRAWER_BASE));
+  const zFloorRef = useRef(Math.max(zIndex ?? 0, DRAWER_BASE));
+  zFloorRef.current = Math.max(zIndex ?? 0, DRAWER_BASE);
   const idRef = useRef(0);
   // Effective rendered width (px), matching the panel's `min(w, 96vw)`. Registered in the stack so
   // the drawer BELOW me knows how far to cascade.
@@ -111,6 +128,7 @@ export function Drawer({
       const cap = typeof window !== 'undefined' ? window.innerWidth * 0.85 : s;
       setShift(Math.min(s, cap));
       setIsBottom(pos === 0);
+      setZ(zFloorRef.current + pos * DRAWER_STEP);   // later in the stack ⇒ higher z ⇒ paints on top
     };
     stackListeners.add(recompute);
     notifyStack();   // I just pushed → the drawer I covered must recompute (and so must I)
@@ -153,13 +171,13 @@ export function Drawer({
     <>
       <div
         onClick={closeOnOutside ? requestClose : undefined}
-        style={{ position: 'fixed', inset: 0, zIndex, background: dim ? 'rgba(0,0,0,.45)' : 'transparent' }}
+        style={{ position: 'fixed', inset: 0, zIndex: z, background: dim ? 'rgba(0,0,0,.45)' : 'transparent' }}
       />
       <div
         data-comp="ui.Drawer"
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: zIndex + 1,
+          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: z + 1,
           width: `min(${w}px, 96vw)`, background: 'var(--bg-1)',
           borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)',
           overflowY: 'auto', padding,

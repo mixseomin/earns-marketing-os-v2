@@ -1,8 +1,15 @@
-// AdSense revenue dashboard view. Pure server-rendered (no charts library);
-// uses CSS bars + tables for zero client JS cost.
+// Revenue dashboard: AdSense (quảng cáo) + Gumroad (sản phẩm MÌNH bán).
+// Server-rendered, không chart lib — bar CSS + bảng.
+//
+// 2026-08-06: viết lại theo ui-conventions §0. Bản trước hardcode 17 mã màu light-theme
+// (#f8fafc/#64748b/#4f46e5…) trong app dark → nhìn như trang lạ ghép vào. Giờ dùng token
+// (--bg-*/--fg-*/--line/--ok/--warn/--accent) + primitive nhà (Section, StatsStrip,
+// EmptyState, Pill, EntityRef). KHÔNG tự định nghĩa Kpi/Section/Empty cục bộ nữa.
 
 import type { AdsenseSummary } from '@/lib/adsense/reports';
 import type { GumroadSummary } from '@/lib/gumroad/products';
+import { Section, StatsStrip, EmptyState, Pill } from './ui';
+import type { StatCard } from './ui/stats-strip';
 
 interface Props {
   summary: AdsenseSummary;
@@ -27,37 +34,38 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
   const maxDayEarnings = Math.max(1, ...byDate.map(d => d.earnings));
   const ctr = totalImpressions ? (totalClicks / totalImpressions) * 100 : 0;
 
-  return (
-    <div style={{ padding: '24px 28px', maxWidth: 1280 }}>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-          Revenue {scope === 'project' && projectName ? `· ${projectName}` : ''}
-        </h1>
-        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
-          AdSense: {windowDays} ngày gần nhất, pull 09:00 UTC (AdSense chỉnh lùi tới 48h).
-          Gumroad: số cộng dồn trọn đời, đọc thẳng API, cache 5 phút.
-        </p>
-      </header>
+  const adsenseCards: StatCard[] = [
+    { key: 'earn', label: 'Earnings', value: fmtUSD(totalEarnings), color: 'var(--ok)' },
+    { key: 'impr', label: 'Impressions', value: fmtInt(totalImpressions), color: 'var(--fg-0)' },
+    { key: 'clk', label: 'Clicks', value: fmtInt(totalClicks), color: 'var(--fg-0)', title: `CTR ${ctr.toFixed(2)}%` },
+    { key: 'pv', label: 'Page views', value: fmtInt(totalPageViews), color: 'var(--fg-0)' },
+    { key: 'rpm', label: 'RPM', value: fmtRpm(avgRpm), color: 'var(--neon-cyan)' },
+  ];
 
-      {/* KPI strip */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
-        gap: 10, marginBottom: 24,
-      }}>
-        <Kpi label="Earnings" value={fmtUSD(totalEarnings)} />
-        <Kpi label="Impressions" value={fmtInt(totalImpressions)} />
-        <Kpi label="Clicks" value={fmtInt(totalClicks)} sub={`CTR ${ctr.toFixed(2)}%`} />
-        <Kpi label="Page views" value={fmtInt(totalPageViews)} />
-        <Kpi label="RPM (impressions)" value={fmtRpm(avgRpm)} />
+  return (
+    <div className="page" style={{ padding: 16 }}>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">
+            💵 Revenue{scope === 'project' && projectName ? ` · ${projectName}` : ''}
+            <small>// AdSense + Gumroad</small>
+          </h1>
+          <p className="page-sub">
+            AdSense: {windowDays} ngày gần nhất, pull 09:00 UTC (AdSense chỉnh lùi tới 48h).
+            Gumroad: số cộng dồn trọn đời, đọc thẳng API, cache 5 phút.
+          </p>
+        </div>
       </div>
 
-      {/* Gumroad — sản phẩm MÌNH bán. Khác AdSense (quảng cáo) và khác /offers (affiliate của network). */}
+      {/* Gumroad = hàng MÌNH bán. Khác AdSense (quảng cáo), khác /offers (affiliate network khác). */}
       {gumroad && <GumroadBlock g={gumroad} />}
 
-      {/* By date bar chart (CSS only) */}
-      <Section title="AdSense · earnings by day">
+      <Section title="AdSense" subtitle={`${windowDays} ngày gần nhất`}>
+        <StatsStrip cards={adsenseCards} />
+
         {byDate.length === 0 ? (
-          <Empty>No revenue rows in window. Run <code>node /opt/cgg-report/adsense_check.mjs</code> to backfill.</Empty>
+          <EmptyState icon="📉" compact title="Chưa có dòng doanh thu nào trong khoảng này"
+            description={<>Backfill bằng <code>node /opt/cgg-report/adsense_check.mjs</code></>} />
         ) : (
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120, padding: '8px 0' }}>
             {byDate.map(d => {
@@ -67,10 +75,10 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
                   style={{ flex: 1, minWidth: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   <div style={{
                     width: '100%', height: `${h}%`,
-                    background: d.earnings > 0 ? 'linear-gradient(180deg,#6366f1,#4f46e5)' : '#e2e8f0',
+                    background: d.earnings > 0 ? 'var(--accent)' : 'var(--bg-3)',
                     borderRadius: '3px 3px 0 0',
                   }} />
-                  <span style={{ fontSize: 9, color: '#94a3b8', whiteSpace: 'nowrap' }}>{d.date.slice(5)}</span>
+                  <span style={{ fontSize: 9, color: 'var(--fg-3)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{d.date.slice(5)}</span>
                 </div>
               );
             })}
@@ -78,13 +86,12 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
         )}
       </Section>
 
-      {/* By domain table */}
       {byDomain.length > 0 && (
-        <Section title="By site">
+        <Section title="Theo site" defaultOpen>
           <Table head={['Domain', 'Earnings', 'Impressions', 'RPM']}>
             {byDomain.map(d => (
               <tr key={d.domain}>
-                <td style={{ fontWeight: 500 }}>{d.domain}</td>
+                <td style={{ fontWeight: 500, color: 'var(--fg-0)' }}>{d.domain}</td>
                 <td>{fmtUSD(d.earnings)}</td>
                 <td>{fmtInt(d.impressions)}</td>
                 <td>{fmtRpm(d.rpm)}</td>
@@ -94,13 +101,12 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
         </Section>
       )}
 
-      {/* By account */}
       {scope === 'all' && byAccount.length > 0 && (
-        <Section title="By AdSense account">
+        <Section title="Theo AdSense account" defaultOpen={false}>
           <Table head={['Publisher ID', 'Earnings', 'Impressions']}>
             {byAccount.map(a => (
               <tr key={a.pubId}>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{a.pubId}</td>
+                <td style={mono}>{a.pubId}</td>
                 <td>{fmtUSD(a.earnings)}</td>
                 <td>{fmtInt(a.impressions)}</td>
               </tr>
@@ -109,14 +115,13 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
         </Section>
       )}
 
-      {/* Recent raw rows */}
-      <Section title="Recent rows (top 30)">
+      <Section title="Dòng gần nhất (30)" defaultOpen={false}>
         <Table head={['Date', 'Site', 'Pub', 'Earn', 'Impr', 'Clk', 'PV', 'RPM']}>
           {rows.slice(0, 30).map((r, i) => (
             <tr key={i}>
-              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.date}</td>
-              <td>{r.siteDomain || <em style={{ color: '#94a3b8' }}>(account total)</em>}</td>
-              <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#64748b' }}>{r.pubId.replace('pub-', '')}</td>
+              <td style={mono}>{r.date}</td>
+              <td>{r.siteDomain || <em style={{ color: 'var(--fg-3)' }}>(account total)</em>}</td>
+              <td style={{ ...mono, color: 'var(--fg-3)' }}>{r.pubId.replace('pub-', '')}</td>
               <td>{fmtUSD(r.earningsUsd)}</td>
               <td>{fmtInt(r.impressions)}</td>
               <td>{fmtInt(r.clicks)}</td>
@@ -134,35 +139,41 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad }: Pr
 function GumroadBlock({ g }: { g: GumroadSummary }) {
   if (!g.ok) {
     return (
-      <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)">
-        <Empty>Không đọc được Gumroad: {g.error ?? 'lỗi không rõ'}</Empty>
+      <Section title="Sản phẩm bán ra · Gumroad">
+        <EmptyState icon="⚠" compact title="Không đọc được Gumroad" description={g.error ?? 'lỗi không rõ'} />
       </Section>
     );
   }
+  const cards: StatCard[] = [
+    { key: 'rev', label: 'Doanh thu (trọn đời)', value: fmtUSD(g.totalUsd), color: 'var(--ok)' },
+    { key: 'ord', label: 'Đơn hàng', value: fmtInt(g.totalSales), color: 'var(--fg-0)' },
+    { key: 'live', label: 'Đang bán', value: `${g.livePaid} + ${g.liveFree}`, color: 'var(--neon-cyan)', title: `${g.livePaid} trả phí + ${g.liveFree} miễn phí (lead magnet)` },
+    { key: 'disc', label: 'Thiếu tag/category', value: fmtInt(g.missingDiscover), color: g.missingDiscover ? 'var(--warn)' : 'var(--ok)', title: 'Thiếu = không lên được Gumroad Discover' },
+  ];
   return (
-    <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
-        <Kpi label="Doanh thu (trọn đời)" value={fmtUSD(g.totalUsd)} />
-        <Kpi label="Đơn hàng" value={fmtInt(g.totalSales)} />
-        <Kpi label="Đang bán" value={`${g.livePaid} trả phí`} sub={`+ ${g.liveFree} miễn phí (lead magnet)`} />
-        <Kpi label="Thiếu Category/Tags" value={fmtInt(g.missingDiscover)} sub="không lên được Gumroad Discover" />
-      </div>
+    <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)" subtitle="hàng mình bán, không phải affiliate">
+      <StatsStrip cards={cards} />
       {g.products.length === 0 ? (
-        <Empty>Chưa có sản phẩm nào trên store.</Empty>
+        <EmptyState icon="📦" compact title="Store chưa có sản phẩm nào" />
       ) : (
         <Table head={['Sản phẩm', 'Giá', 'Đơn', 'Doanh thu', 'Discover']}>
           {g.products.map((p) => {
-            const discoverReady = p.tags.length > 0 && !!p.category && p.category !== 'other';
+            const ready = p.tags.length > 0 && !!p.category && p.category !== 'other';
             return (
               <tr key={p.id}>
                 <td style={{ fontWeight: 500 }}>
-                  {p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'none' }}>{p.name}</a> : p.name}
-                  {!p.published && <span style={{ marginLeft: 6, fontSize: 11, color: '#94a3b8' }}>(draft)</span>}
+                  {p.url
+                    ? <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{p.name}</a>
+                    : <span style={{ color: 'var(--fg-0)' }}>{p.name}</span>}
+                  {!p.published && <Pill label="draft" color="var(--fg-3)" size="xs" tone="soft" />}
                 </td>
-                <td>{p.priceCents === 0 ? 'Free' : fmtUSD(p.priceCents / 100)}</td>
+                <td>{p.priceCents === 0 ? <Pill label="free" color="var(--neon-cyan)" size="xs" tone="soft" /> : fmtUSD(p.priceCents / 100)}</td>
                 <td>{fmtInt(p.salesCount)}</td>
                 <td>{fmtUSD(p.salesUsdCents / 100)}</td>
-                <td style={{ color: discoverReady ? '#16a34a' : '#d97706' }}>{discoverReady ? '✓' : '⚠ thiếu tag/category'}</td>
+                <td>
+                  <Pill label={ready ? 'sẵn sàng' : 'thiếu tag/category'} color={ready ? 'var(--ok)' : 'var(--warn)'} size="xs" tone="soft"
+                    title={ready ? 'Có category + tags → lên được Gumroad Discover' : 'Bỏ trống = không vào Gumroad Discover, mất kênh traffic free'} />
+                </td>
               </tr>
             );
           })}
@@ -172,51 +183,30 @@ function GumroadBlock({ g }: { g: GumroadSummary }) {
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div style={{
-      padding: '12px 14px', borderRadius: 8,
-      background: '#f8fafc', border: '1px solid #e2e8f0',
-    }}>
-      <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-}
+const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 10px', color: '#475569', letterSpacing: 0.2 }}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
+// Bảng gọn dùng token nhà. (ui-conventions §5 `list-view` là cho page LIST có
+// search/filter/phân trang — đây là bảng số read-only của dashboard.)
 function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
   return (
-    <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-      <thead>
-        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-          {head.map(h => (
-            <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.3, borderBottom: '1px solid #e2e8f0' }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody style={{}}>
-        {children}
-        <style>{`tbody td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }`}</style>
-      </tbody>
-    </table>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      padding: '16px 18px', background: '#f8fafc', border: '1px dashed #e2e8f0',
-      borderRadius: 8, color: '#64748b', fontSize: 13,
-    }}>{children}</div>
+    <div className="panel" style={{ padding: 0, overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr>
+            {head.map(h => (
+              <th key={h} style={{
+                padding: '6px 10px', fontSize: 9.5, fontWeight: 600, color: 'var(--fg-3)',
+                fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em',
+                textAlign: 'left', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap',
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {children}
+          <style>{`tbody td { padding: 6px 10px; border-bottom: 1px solid var(--line); color: var(--fg-1); vertical-align: middle; }`}</style>
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { AffiliateOffer } from '@/lib/actions/offers';
+import { useEffect, useMemo, useState } from 'react';
+import { getOfferNote, type AffiliateOffer } from '@/lib/actions/offers';
 import { EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
 
 // Network label only (YDNI: no per-network colour — the name carries it; colour is reserved for status).
@@ -20,6 +20,16 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
   const [geo, setGeo] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<AffiliateOffer | null>(null);
+  // User note is kept out of the bulk list (Awin blob bloats every load) → fetch it lazily when
+  // a specific offer's drawer opens. See offers.ts getOfferNote.
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    setNote(null);
+    if (!sel) return;
+    let live = true;
+    getOfferNote(sel.id).then((n) => { if (live) setNote(n); }).catch(() => {});
+    return () => { live = false; };
+  }, [sel]);
 
   const geos = useMemo(() => Array.from(new Set(offers.flatMap((o) => o.geos))).sort(), [offers]);
   const counts = useMemo(() => ({
@@ -118,7 +128,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
                 </div>
               </div>
             )}
-            {sel.note && <Field label="Notes" value={sel.note} />}
+            {note && <Field label="Notes" value={note} />}
             {sel.affiliateUrl && (
               <div>
                 <div style={labelStyle}>Tracking link</div>

@@ -10,6 +10,7 @@ import { getHabitatById, type HabitatRow } from '@/lib/data';
 import { getCurrentUser } from '@/lib/auth';
 import type { Phase, PhaseEntry, PhaseHistoryEntry } from '@/lib/phase-plan';
 import { defaultPhasePlanFor, PLANNED_PHASES } from '@/lib/phase-plan';
+import { LINK_PHASES, computeLinkGate } from '@/lib/link-readiness';
 import {
   dbList, numField, nullNumField, dateField, reqDateField,
   textField, nullTextField, jsonArrayField,
@@ -1226,9 +1227,19 @@ export async function advancePhase(
   const db = ensureDb();
   const me = await getCurrentUser();
   const rows = await db.execute(sql`
-    SELECT b.current_phase, b.phase_history, b.join_status, pa.status AS account_status
+    SELECT b.current_phase, b.phase_history, b.join_status, b.joined_at, b.habitat_id,
+           pa.status AS account_status, pa.account_stats,
+           h.min_karma, h.min_account_age_days, h.min_posts, h.links_allowed_after, h.privacy,
+           (SELECT count(*) FROM cards c
+              WHERE c.brief_id = b.id AND c.post_url IS NOT NULL AND (c.content_type IS NULL OR c.content_type <> 'link')
+                AND (c.post_lifecycle IS NULL OR c.post_lifecycle NOT IN ('removed-by-mod','self-deleted','ghosted'))
+           ) AS successful_seeds,
+           (SELECT COALESCE(sum(COALESCE(c.insights_score,0) + COALESCE(c.insights_reply_count,0)),0) FROM cards c
+              WHERE c.brief_id = b.id AND c.post_url IS NOT NULL
+           ) AS community_value
       FROM community_briefs b
       LEFT JOIN platform_accounts pa ON pa.id = b.account_id
+      LEFT JOIN habitats h ON h.id = b.habitat_id
      WHERE b.id = ${briefId} LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
@@ -1250,6 +1261,40 @@ export async function advancePhase(
       ok: false,
       error: `❌ Không thể chuyển sang phase "${nextPhase}" khi join_status="${joinStatus}". Phase này yêu cầu account đã joined community.`,
     };
+  }
+  // LINK GATE — advancing INTO a link phase (seed/direct) needs EARNED standing in
+  // this community, not just membership: tenure + value (karma, non-negative here) +
+  // a track record of successful link-free seeds + no shadowban. Below the bar the
+  // brief stays in a seeding phase (link-free). The advance itself = the review.
+  if (LINK_PHASES.includes(nextPhase)) {
+    const stats = (() => {
+      try { return typeof r.account_stats === 'string' ? JSON.parse(r.account_stats) : (r.account_stats || {}); } catch { return {}; }
+    })() as Record<string, unknown>;
+    const gate = computeLinkGate({
+      nextPhase,
+      joinStatus,
+      joinedAt: (r.joined_at as string) ?? null,
+      karma: stats.karma != null ? Number(stats.karma) : null,
+      communityValue: Number(r.community_value ?? 0),
+      successfulSeeds: Number(r.successful_seeds ?? 0),
+      shadowbanned: stats.shadowbanned === true || stats.shadowbanned === 'true',
+      suspended: stats.suspended === true || stats.suspended === 'true',
+      habitat: {
+        minKarma: r.min_karma != null ? Number(r.min_karma) : 0,
+        minAccountAgeDays: r.min_account_age_days != null ? Number(r.min_account_age_days) : 0,
+        minPosts: r.min_posts != null ? Number(r.min_posts) : 0,
+        linksAllowedAfter: (r.links_allowed_after as string) ?? '',
+        privacy: (r.privacy as string) ?? '',
+      },
+    });
+    if (!gate.ok) {
+      return {
+        ok: false,
+        error: `🔒 Chưa đủ điều kiện mở LINK cho community này (phase "${nextPhase}"):\n`
+          + gate.blockers.map((b) => `  • ${b.msg}`).join('\n')
+          + `\n\nGiữ ở phase seeding (warm-up/value/bridge) — đóng góp value link-free tới khi đạt, rồi mới mở link.`,
+      };
+    }
   }
   const history = parsePhaseHistory(r.phase_history);
   history.push({

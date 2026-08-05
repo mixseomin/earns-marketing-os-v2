@@ -65,11 +65,12 @@ Minimal:
 Bất kỳ chỗ nào show ra 1 entity khác (account, proxy, browser-profile, task, brief, habitat, tribe, identity, media, contact, platform, squad, agent) → **`<EntityRef>`** (`components/ui/entity-ref.tsx`). Nó render chip nhất quán (icon theo kind) + **click mở đúng detail drawer** của entity đó. Đây là thứ user đòi mãi: "mọi entity click được mở drawer tương ứng".
 
 - **CẤM** `<span>{acc.handle}</span>`, `@{x.handle}`, `<Link href=...>` tự chế, hay định nghĩa `EntityLink`/`EntityChip` cục bộ (đã có 3 bản lệch nhau — lint chặn định nghĩa mới, buộc import cái chuẩn).
-- Mở drawer: `onOpen` (in-place, khi drawer entity đã mount trên page này: `onOpen={() => modal.open('edit', id)}`) **hoặc** để auto-route (`kind`+`id`, project-scoped kèm `project`) → navigate, drawer tự mở trên page đích nhờ `useModalParam` đọc URL lúc mount.
+- **GLOBAL HOST (mặc định, dùng cái này):** `<EntityDrawerHost/>` mount 1 lần ở RootProviders. Với các kind trong `HOST_KINDS` (`lib/entity-drawer.ts` — hiện: account · browser-profile · proxy · identity · brief · habitat · tribe), chỉ cần `<EntityRef kind id/>` (KHÔNG cần `project`, KHÔNG cần `onOpen`) → click **mở drawer IN-PLACE ngay tại page hiện tại** (self-load theo id, xếp chồng, URL `?ed=` cho F5). KHÔNG nhảy trang. Đây là mặc định — đừng deep-link, đừng bắt page phải mount sẵn drawer.
+- **Thêm 1 kind vào host** (khi kind đó có drawer thật + loader by-id): (1) `<kind>DrawerBundle(id)` server action resolve project + context từ id (mẫu `accountEditBundle`/`briefDrawerBundle`/`entity-drawer-loaders.ts`); (2) self-loader wrapper trong `entity-self-drawers.tsx`/`entity-project-drawers.tsx`, callbacks con → `openEntityDrawer(...)`; (3) thêm vào `HOST_KINDS` + switch trong `entity-drawer-host.tsx`. Chưa host-wire (agent/squad/media/contact/team-member: thiếu drawer thật hoặc không id-addressable) → fallback `onOpen` in-place / auto-route.
 ```tsx
-<EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} />        // auto-route
-<EntityRef kind="account" id={a.id} project={a.projectId} label={a.handle} />       // project-scoped
-<EntityRef kind="proxy" id={pid} label={lbl} onOpen={() => modal.open('edit', pid)} /> // in-place
+<EntityRef kind="account" id={a.id} label={a.handle} />   // host: mở in-place mọi page, KHÔNG cần project
+<EntityRef kind="brief" id={b.id} label={b.title} />      // host: brief editor bật tại chỗ
+<EntityRef kind="task" id={t.id} project={slug} />        // chưa host → auto-route sang page task
 ```
 - **Chọn/gán** entity (không phải chỉ hiển thị) → dùng picker chuẩn §2 (`EntityPicker`/`ResourcePicker`/`MultiSelect`); chip đã-chọn trong picker cũng nên là `<EntityRef>`. KHÔNG `<select>` tự chế cho việc chọn entity.
 

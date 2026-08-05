@@ -23,12 +23,10 @@
 import Link from 'next/link';
 import { type ReactNode } from 'react';
 import { Pill, type PillSize } from './pill';
-import { openEntityDrawer } from '@/lib/entity-drawer';
-
-// Kinds the global EntityDrawerHost can open in-place from any page (keep in sync with
-// entity-drawer-host.tsx). For these, a bare <EntityRef kind id/> opens the drawer where you
+import { openEntityDrawer, HOST_KINDS } from '@/lib/entity-drawer';
+// HOST_KINDS (single source in @/lib/entity-drawer): the kinds the global EntityDrawerHost can
+// open in-place from any page. For these, a bare <EntityRef kind id/> opens the drawer where you
 // are — no deep-link navigation, no page pre-mounting the drawer.
-const HOST_KINDS = new Set<EntityKind>(['account', 'browser-profile', 'proxy', 'identity']);
 
 export type EntityKind =
   | 'account' | 'proxy' | 'browser-profile' | 'task' | 'brief' | 'habitat'

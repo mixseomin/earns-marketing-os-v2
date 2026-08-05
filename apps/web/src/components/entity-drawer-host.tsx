@@ -7,16 +7,16 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
-import { useEntityDrawerReq, openEntityDrawer, closeEntityDrawer, readEntityDrawerFromUrl } from '@/lib/entity-drawer';
+import { useEntityDrawerReq, openEntityDrawer, closeEntityDrawer, readEntityDrawerFromUrl, HOST_KINDS } from '@/lib/entity-drawer';
 
 const AccountDrawer = dynamic(() => import('./account-drawer').then((m) => m.AccountDrawer), { ssr: false });
 const BrowserProfileDrawerById = dynamic(() => import('./entity-self-drawers').then((m) => m.BrowserProfileDrawerById), { ssr: false });
 const ProxyDrawerById = dynamic(() => import('./entity-self-drawers').then((m) => m.ProxyDrawerById), { ssr: false });
 const IdentityDrawer = dynamic(() => import('./identity-drawer').then((m) => m.IdentityDrawer), { ssr: false });
 
-// Kinds this host can open in-place. <EntityRef> checks the SAME set to decide open-in-place
-// vs deep-link. Keep in sync with the switch below + HOST_KINDS in entity-ref.tsx.
-export const HOST_KINDS = new Set(['account', 'browser-profile', 'proxy', 'identity']);
+// HOST_KINDS lives in @/lib/entity-drawer (single source, shared with EntityRef). The switch
+// below MUST cover exactly those kinds — re-exported here for existing importers.
+export { HOST_KINDS };
 
 export function EntityDrawerHost() {
   const req = useEntityDrawerReq();

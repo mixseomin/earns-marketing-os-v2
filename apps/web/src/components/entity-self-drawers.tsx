@@ -1,15 +1,15 @@
 'use client';
 
 // Self-loading drawers: open a browser-profile / proxy by id from ANYWHERE (no page context).
-// Each fetches the tenant pool + finds its row, then renders the SAME drawer the environments
-// page uses. Registered in <EntityDrawerHost/>. (Account has its own self-loader: AccountDrawer.)
+// Each calls a SERVER by-id bundle (only the matched row + its deps, not the whole pool — same
+// pattern as AccountDrawer/accountEditBundle), then renders the SAME drawer the environments page
+// uses. Registered in <EntityDrawerHost/>. (Account has its own self-loader: AccountDrawer.)
 
 import { useState, useEffect } from 'react';
 import { Drawer } from './ui';
 import { BrowserProfileDrawer } from './browser-profile-drawer';
 import { ProxyFormModal } from './environments-page';
-import { listBrowserProfiles, listProxies, type ProxyRow, type BrowserProfileRow } from '@/lib/actions/environments';
-import { listTeamMembers, type TeamMemberRow } from '@/lib/actions/team';
+import { proxyBundle, browserProfileBundle } from '@/lib/actions/environments';
 
 function Placeholder({ onClose, label, bad }: { onClose: () => void; label: string; bad?: boolean }) {
   return (
@@ -20,12 +20,10 @@ function Placeholder({ onClose, label, bad }: { onClose: () => void; label: stri
 }
 
 export function BrowserProfileDrawerById({ id, onClose }: { id: number; onClose: () => void }) {
-  const [d, setD] = useState<{ profile: BrowserProfileRow; proxies: ProxyRow[]; teamMembers: TeamMemberRow[] } | null | 'loading'>('loading');
+  const [d, setD] = useState<Awaited<ReturnType<typeof browserProfileBundle>> | 'loading'>('loading');
   useEffect(() => {
     let live = true;
-    Promise.all([listBrowserProfiles(), listProxies(), listTeamMembers()])
-      .then(([profs, proxies, tm]) => { if (!live) return; const p = profs.find((x) => x.id === id) ?? null; setD(p ? { profile: p, proxies, teamMembers: tm } : null); })
-      .catch(() => { if (live) setD(null); });
+    browserProfileBundle(id).then((r) => { if (live) setD(r); }).catch(() => { if (live) setD(null); });
     return () => { live = false; };
   }, [id]);
   if (d === 'loading') return <Placeholder onClose={onClose} label={`Đang tải profile #${id}…`} />;
@@ -34,12 +32,10 @@ export function BrowserProfileDrawerById({ id, onClose }: { id: number; onClose:
 }
 
 export function ProxyDrawerById({ id, onClose }: { id: number; onClose: () => void }) {
-  const [d, setD] = useState<{ proxy: ProxyRow; teamMembers: TeamMemberRow[] } | null | 'loading'>('loading');
+  const [d, setD] = useState<Awaited<ReturnType<typeof proxyBundle>> | 'loading'>('loading');
   useEffect(() => {
     let live = true;
-    Promise.all([listProxies(), listTeamMembers()])
-      .then(([proxies, tm]) => { if (!live) return; const p = proxies.find((x) => x.id === id) ?? null; setD(p ? { proxy: p, teamMembers: tm } : null); })
-      .catch(() => { if (live) setD(null); });
+    proxyBundle(id).then((r) => { if (live) setD(r); }).catch(() => { if (live) setD(null); });
     return () => { live = false; };
   }, [id]);
   if (d === 'loading') return <Placeholder onClose={onClose} label={`Đang tải proxy #${id}…`} />;

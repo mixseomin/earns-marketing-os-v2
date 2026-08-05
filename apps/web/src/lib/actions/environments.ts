@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
+import type { TeamMemberRow } from '@/lib/actions/team';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -482,5 +483,23 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
     ownerName: (r.owner_name as string | null) ?? null,
     lastUsedAt: r.last_used_at instanceof Date ? r.last_used_at.toISOString() : (r.last_used_at ? String(r.last_used_at) : null),
   }));
+}
+
+// ── By-id bundles for <EntityDrawerHost> — open a proxy / browser-profile IN-PLACE from any page
+// with only an id in hand. Server-side find (same pattern as accountEditBundle) so the client
+// gets the ONE matched row + only the deps the drawer needs, not the whole tenant pool. Return
+// null when the id is gone (host renders a "not found" placeholder).
+export async function proxyBundle(id: number): Promise<{ proxy: ProxyRow; teamMembers: TeamMemberRow[] } | null> {
+  const { listTeamMembers } = await import('@/lib/actions/team');
+  const [pool, teamMembers] = await Promise.all([listProxies(), listTeamMembers()]);
+  const proxy = pool.find((p) => p.id === id);
+  return proxy ? { proxy, teamMembers } : null;
+}
+
+export async function browserProfileBundle(id: number): Promise<{ profile: BrowserProfileRow; proxies: ProxyRow[]; teamMembers: TeamMemberRow[] } | null> {
+  const { listTeamMembers } = await import('@/lib/actions/team');
+  const [profiles, proxyPool, teamMembers] = await Promise.all([listBrowserProfiles(), listProxies(), listTeamMembers()]);
+  const profile = profiles.find((p) => p.id === id);
+  return profile ? { profile, proxies: proxyPool, teamMembers } : null;
 }
 

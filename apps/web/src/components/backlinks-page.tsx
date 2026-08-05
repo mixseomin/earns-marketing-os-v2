@@ -128,6 +128,27 @@ function Tag({ children, color = 'var(--fg-3)' }: { children: React.ReactNode; c
   return <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-3)', color, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 
+const seedPill = (c: string): CSSProperties => ({ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, whiteSpace: 'nowrap', color: c, border: `1px solid ${c}55`, background: `${c}14` });
+// 🌱 community-seed readiness readout — replaces the flat badge. Shows the live link gate
+// for this account × subreddit (🟢 sanctioned / 🔒 building / ⛔ unsafe / ⚠ no account),
+// with the sub-metrics that gate a link (join · tenure · karma · seed). Full blockers in
+// the tooltip; the drawer expands them. null gate (unresolved) → the plain class badge.
+function SeedStrip({ g }: { g: BacklinkTask['seedGate'] }) {
+  if (!g) return <span title="🌱 Community-seed: nền tảng bật link-gate — account phải xây standing (join · tenure · karma · seed) trước khi thả LINK. Trước đó = seeding value link-free." style={seedPill('#22c55e')}>🌱 community-seed</span>;
+  const m = g.ok ? { c: '#22c55e', icon: '🟢' }
+    : g.safetyFail ? { c: '#ef4444', icon: '⛔' }
+    : g.state === 'no-account' ? { c: '#ef4444', icon: '⚠' }
+    : { c: '#ffb03c', icon: '🔒' };
+  const sub = g.sub ? `r/${g.sub}` : 'community';
+  const body = g.state === 'no-account' ? 'chưa gán account'
+    : g.ok ? 'link OK'
+    : [g.joined ? null : 'join✗', `⏳${g.tenureDays ?? '–'}/${g.tenureNeed}d`, `⭐${g.karma ?? '?'}/${g.karmaNeed}`, `🌱${g.seeds ?? 0}/${g.seedsNeed}`].filter(Boolean).join(' ');
+  const tip = `🌱 ${sub} — ${g.ok ? 'ĐỦ điều kiện thả LINK' : 'CHƯA đủ điều kiện thả link'}`
+    + (g.blockers.length ? '\n' + g.blockers.map((b) => '• ' + b).join('\n') : '')
+    + (g.ok ? '' : '\n\n→ Seeding link-free tới khi đạt (quản lý sâu ở /seeding).');
+  return <span title={tip} style={seedPill(m.c)}>🌱 {sub} {m.icon} {body}</span>;
+}
+
 // Value tier of a backlink target: A = high-value focus (niche community seeding
 // where our tool genuinely helps), B = editorial outreach, C = self-serve directory.
 // Drives the ★ badge, the gold row highlight, and the focus sort — same on every project.
@@ -672,7 +693,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {/* Metadata = trung tính (YDNI màu): project/host/DA/type/traffic/draft chỉ là ngữ cảnh, KHÔNG
             tô. Màu chỉ dành cho tín hiệu cần chú ý: blocker 🚩, chờ-duyệt quá hạn, cần account. */}
-        {t.communitySeed && <span title="🌱 Community-seed: nền tảng này bật link-gate — account phải xây standing (join · tenure · karma · seed thành công) trước khi được thả LINK. Trước đó = seeding value link-free." style={{ fontSize: 9.5, fontWeight: 700, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, whiteSpace: 'nowrap', color: '#22c55e', border: '1px solid #22c55e55', background: '#22c55e14' }}>🌱 community-seed</span>}
+        {t.communitySeed && <SeedStrip g={t.seedGate} />}
         {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 600, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--fg-3)', border: '1px solid var(--line)' }}>{t.projectEmoji} {t.projectLabel}</span>}
         {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--fg-2)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
         {t.da && <Tag>DA {t.da}</Tag>}
@@ -1052,8 +1073,15 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  // 🌱 link gate: recording a live URL on a community-seed task = a link went out. If the
+  // community isn't ready (🔒), arm an inline confirm first (no native dialog) — one more
+  // click to override. This is the operator-surface gate; ~/bin/task-run gets its own.
+  const seedBlocked = !!(task.communitySeed && task.seedGate && !task.seedGate.ok);
+  const [linkArmed, setLinkArmed] = useState(false);
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
   const saveUrl = async () => {
+    if (seedBlocked && url.trim() && !linkArmed) { setLinkArmed(true); return; }   // arm, don't save yet
+    setLinkArmed(false);
     setSaveState('saving');
     const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted' || task.siteState === 'broken')) ? 'completed' : task.siteState;
     await setSite(task.id, next, url);
@@ -1760,14 +1788,28 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
         <Disclosure title="🔗 Link · kiểm tra · lịch" defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
+        {task.communitySeed && task.seedGate && (
+          <div style={{ marginBottom: 8, padding: '7px 9px', borderRadius: 6, border: `1px solid ${task.seedGate.ok ? '#22c55e55' : '#ffb03c55'}`, background: task.seedGate.ok ? '#22c55e10' : '#ffb03c10' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <SeedStrip g={task.seedGate} />
+              <a href={`/p/${project.id}/seeding`} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--fg-3)', textDecoration: 'underline dotted' }}>quản lý ở /seeding ↗</a>
+            </div>
+            {!task.seedGate.ok && (
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.5 }}>
+                {task.seedGate.blockers.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
         <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
             style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
           <button type="button" onClick={saveUrl} disabled={saveState === 'saving'}
-            style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
-            {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : 'Lưu'}</button>
+            style={{ ...btn, fontWeight: 700, minWidth: 78, borderColor: linkArmed ? '#ffb03c' : saveState === 'saved' ? 'var(--ok)' : 'var(--line)', color: linkArmed ? '#ffb03c' : saveState === 'saved' ? 'var(--ok)' : 'var(--fg-1)' }}>
+            {saveState === 'saving' ? '…' : saveState === 'saved' ? '✓ Đã lưu' : linkArmed ? '⚠ Vẫn lưu' : 'Lưu'}</button>
         </div>
+        {linkArmed && <div style={{ fontSize: 11, color: '#ffb03c', marginTop: 4 }}>🔒 Community chưa đủ điều kiện thả link — nhấn “⚠ Vẫn lưu” lần nữa để ghi đè, hoặc seeding thêm trước.</div>}
 
         {/* 8 · Verify — own action row (auto-advances Completed → Verified on a dofollow hit). */}
         <div style={lbl}>🔍 Kiểm tra link @ {slug}</div>

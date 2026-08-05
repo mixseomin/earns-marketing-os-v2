@@ -9,6 +9,7 @@ import { getDb } from '@mos2/db';
 import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
+import { resolveSeedGates, type SeedGate } from '@/lib/link-gate-resolve';
 
 export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 
@@ -62,6 +63,7 @@ export interface BacklinkTask {
   accountType: BacklinkAccountType;
   recommendedRole: AccountRole;   // which P/B/S account type fits this source (from platform category)
   communitySeed: boolean;         // 🌱 community-seed (platform has link_gate_enabled → build standing before a link) vs 🔗 one-shot acquire
+  seedGate: SeedGate | null;      // 🌱 only: per-community link readiness (resolved account×subreddit brief). null = not community-seed / unresolved.
   readiness: ReadinessBucket;
   accountId: number | null;
   accountHandle: string | null;
@@ -281,7 +283,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
       }
     }
 
-    return base.map((t): BacklinkTask => {
+    const tasks = base.map((t): BacklinkTask => {
       const overrideId = overrideByTask.get(t.id);
       const acct = (overrideId != null && acctById.get(overrideId)) || (t.platformKey ? acctMap.get(t.platformKey) ?? null : null);
       // Catalog provenance: source_url khớp catalog trực tiếp thắng; nếu không, fallback method gốc (fanout_from).
@@ -299,6 +301,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         platformLabel: t.platformKey ? (labelMap.get(t.platformKey) ?? t.platformKey) : null,
         recommendedRole: recommendedAccountRole(t.platformKey, t.platformKey ? catMap.get(t.platformKey) ?? null : null),
         communitySeed: t.platformKey ? (gateMap.get(t.platformKey) ?? false) : false,
+        seedGate: null,   // filled below (batched) for 🌱 community-seed tasks only
         readiness: readinessBucket(t.accountType, acct?.status ?? null),
         accountId: acct?.id ?? null,
         accountHandle: acct?.handle ?? null,
@@ -309,6 +312,15 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         hasProfile: acct?.hasProfile ?? false,
       };
     });
+
+    // 🌱 community-seed readiness — resolve each gate-on task's (account × subreddit) brief
+    // and attach the link gate (batched; only when there are community-seed tasks).
+    const seedTasks = tasks.filter((t) => t.communitySeed && t.sourceUrl);
+    if (seedTasks.length) {
+      const gates = await resolveSeedGates(db, seedTasks.map((t) => ({ id: t.id, sourceUrl: t.sourceUrl, accountId: t.accountId })));
+      for (const t of tasks) { const g = gates.get(t.id); if (g) t.seedGate = g; }
+    }
+    return tasks;
   } catch {
     return [];
   }

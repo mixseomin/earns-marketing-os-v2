@@ -96,30 +96,11 @@ export async function AwarenessFunnelPanel() {
             { key: 'pwa_install_dismiss',label: 'PWA dismiss' },
           ];
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
-              {groups.map(g => {
-                const n = eng[g.key] ?? 0;
-                const isNew = g.key.startsWith('endcard') || g.key.startsWith('pwa');
-                return (
-                  <div key={g.key} style={{
-                    background: n > 0 ? 'var(--bg-2)' : 'rgba(255,255,255,0.02)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 6, padding: '8px 10px',
-                    opacity: n > 0 ? 1 : 0.55,
-                  }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
-                      {g.label}{isNew && <span style={{ marginLeft: 4, color: 'var(--neon-amber)' }}>•new</span>}
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>
-                      {n.toLocaleString()}
-                      <span style={{ fontSize: 10, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6 }}>
-                        {rate(n)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <StatsStrip minColWidth={150} cards={groups.map(g => {
+              const n = eng[g.key] ?? 0;
+              const isNew = g.key.startsWith('endcard') || g.key.startsWith('pwa');
+              return { key: g.key, label: <>{g.label}{isNew && <span style={{ marginLeft: 4, color: 'var(--neon-amber)' }}>•new</span>}</>, value: n.toLocaleString(), sub: rate(n) };
+            })} />
           );
         })()}
       </div>

@@ -130,7 +130,9 @@ export const listAffiliateOffers = unstable_cache(
   async (): Promise<AffiliateOffer[]> => {
     if (!DIRECTUS_TOKEN) return [];
     const [first, own] = await Promise.all([fetchPage(1), ownProductTitles()]);
-    const pageCount = Math.min(20, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));   // 20-page hard cap = 4000 rows
+    // 30-page cap = 6000 rows. Was 20 (=4000) while Directus holds 4897 → the list silently
+    // dropped ~900 offers. Keep a ceiling (runaway guard), just above the real row count.
+    const pageCount = Math.min(30, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));
     const rest = pageCount > 1
       ? await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)))
       : [];

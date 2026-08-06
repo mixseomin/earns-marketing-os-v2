@@ -152,7 +152,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   };
 
   return (
-    <div style={{ padding: '12px 16px 40px' }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Phương pháp <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// catalog · {list.length}{archived ? ' (kho lưu)' : ''}</small></h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

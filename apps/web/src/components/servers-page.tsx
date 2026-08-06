@@ -67,7 +67,7 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
   const { pageItems, ...pager } = usePaged(filtered);
 
   return (
-    <div style={{ padding: '20px 24px', maxWidth: 1400 }}>
+    <div style={{ maxWidth: 1400 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-0)', margin: 0 }}>🖥 Servers</h1>
         <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>

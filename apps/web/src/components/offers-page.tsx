@@ -59,7 +59,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
   const { pageItems, ...pager } = usePaged(filtered);
 
   return (
-    <div style={{ padding: '16px 20px 60px' }}>
+    <div>
       <div style={{ marginBottom: 12 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
           💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>// {counts.approved} approved · {counts.all} total</small>

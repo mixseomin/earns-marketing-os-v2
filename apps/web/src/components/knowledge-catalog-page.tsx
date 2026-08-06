@@ -39,7 +39,7 @@ export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[
   }), [items, filterKind, search]);
 
   return (
-    <div style={{ padding: '16px 20px 60px' }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>📚 Knowledge chung <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>// {items.length} shared templates</small></h1>

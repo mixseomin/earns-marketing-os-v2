@@ -150,7 +150,7 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
   const totalDups = dups.length;
 
   return (
-    <div style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 14 }}>
         <h1 style={{ fontSize: 20, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           ⚙ Technologies

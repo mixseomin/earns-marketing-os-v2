@@ -656,6 +656,11 @@ button { font-family: inherit; color: inherit; }
   overflow: auto;
   background: var(--bg-0);
   position: relative;
+  /* Single source of page padding — every page is inset by default so none can render
+     flush to the shell edges (the whole class of "forgot the wrapper" bugs). Pages MUST
+     NOT set their own outer padding (it double-pads). A rare edge-to-edge page
+     (canvas/kanban) opts out locally with a negative-margin wrapper. */
+  padding: var(--s-4) var(--s-5) 56px;
 }
 
 /* Subtle grid background on main */
@@ -866,7 +871,8 @@ button { font-family: inherit; color: inherit; }
 /* ────────────────────────────────────────────────────────────
    DASHBOARD / MORNING BRIEF
    ──────────────────────────────────────────────────────────── */
-.page { padding: var(--s-4); }
+/* .page = page-root marker + header system (.page-head/.page-title/.page-sub).
+   Outer padding now comes from .main (single source) — do NOT re-add it here. */
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 0 var(--s-4); gap: var(--s-4);

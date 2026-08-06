@@ -56,7 +56,7 @@ export function OpportunitiesPage({ benchmarks, ideas }: { benchmarks: MarketBen
   ];
 
   return (
-    <div style={{ padding: '16px 20px 60px' }}>
+    <div>
       <div style={{ marginBottom: 12 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
           🎯 Opportunities{' '}

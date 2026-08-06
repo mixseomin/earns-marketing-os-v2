@@ -459,7 +459,7 @@ export function SchedulerPage({ jobs: initialJobs, nodes: initialNodes }: { jobs
   }, [refresh]);
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100 }}>
+    <div style={{ maxWidth: 1100 }}>
       {/* pulse animation for running dots */}
       <style>{`
         @keyframes scheduler-pulse {

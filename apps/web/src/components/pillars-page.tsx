@@ -46,7 +46,7 @@ export function PillarsPage({ projectId, pillars, tribes }: Props) {
   }, []);   // mount only — restore the drawer the URL points at
 
   return (
-    <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1400, margin: '0 auto' }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>📚 Trụ cột nội dung</h1>
         <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>

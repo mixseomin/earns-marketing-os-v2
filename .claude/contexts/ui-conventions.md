@@ -87,5 +87,14 @@ Mọi page liệt kê record (offers, communities, contacts, budget, media, know
 - **Nguồn REMOTE (dù nhỏ) vẫn phải tối ưu fetch — nếu không, "phân trang" vô nghĩa:** (1) fetch các trang **SONG SONG** (page 1 lấy `filter_count` → fan-out phần còn lại, đừng nối đuôi); (2) **BỎ field nặng khỏi bulk list** (vd Awin nhồi blob JSON vào `notes`) — lazy-load khi mở drawer, kẻo payload phình + vượt cap fetch-cache của Next → cache tắt ngầm → mỗi load fetch lại; (3) `unstable_cache(..., {revalidate})` bọc kết quả để lần sau khỏi gọi Directus. Mẫu: `lib/actions/offers.ts`.
 - **GOTCHA khi migrate toolbar tay → primitive (đừng nuốt mất, đã dính 2026-08-06):** (1) input cũ có `autoFocus` (deep-link `?focus=`/`?q=`) → truyền `searchAutoFocus` cho `ListToolbar`, đừng để SearchInput mất focus. (2) chip tay có `title=` tooltip → dùng `ChipOption.title` (FilterChips forward xuống Segmento), đừng để rớt. (3) thêm search vào list vốn chỉ filter-status → sửa luôn **empty-state** nêu từ khoá tìm (`q`), đừng để message chỉ nói status (gây hiểu nhầm "không có gì"). (4) list có deep-link tới 1 dòng cụ thể → dùng `usePaged(items, size, initialPage)` để nhảy đúng trang chứa dòng đó, kẻo pagination giấu mất. (5) view kanban/calendar/grouped → **KHÔNG** phân trang (chỉ flat list), Pager đặt trong nhánh flat.
 
+## 6. Padding NGOÀI của page = TỰ ĐỘNG từ `.main` — page KHÔNG tự set outer padding
+
+Shell (`.main` trong `globals.css`) đã mang `padding: var(--s-4) var(--s-5) 56px` (16/20/56) → **mọi page tự được inset, không page nào dán sát mép được nữa.** `.main` = single source of truth cho khoảng đệm ngoài.
+
+- **CẤM** bọc content page trong `<div style={{ padding: … }}>` (hay dựa vào padding của `.page`). Làm thế = **double-pad** (main + page) → lệch nhau. Trước 2026-08-06 mỗi page tự chế outer padding (16/20/60, 20/24, 12/16/40…) hoặc quên hẳn (→ dán mép, vd `/communities`) = 3 convention lệch. Đã gỡ hết 9 chỗ hand-roll + padding của `.page`, dồn về `.main`.
+- Page mới: render thẳng `<div>…`/`<>…`, KHÔNG thêm outer padding. `.page` giờ chỉ là marker cho header-system (`.page-head`/`.page-title`/`.page-sub`), KHÔNG mang padding.
+- Cần **edge-to-edge** (canvas/kanban full-bleed — hiếm): opt-out cục bộ bằng wrapper negative-margin, đừng đụng `.main`.
+- Đây là root fix "sửa 1 chỗ → cả LỚP bug 'quên wrapper → dán mép' biến mất", không vá từng page.
+
 ## Vì sao context này tồn tại
 Trước đây user phải "báo lại từ đầu" mỗi lần (drawer-not-modal, select chuẩn) vì convention nằm ở recall memory (hay rớt). Nay là context auto-load theo path → áp mặc định. Gốc rule: [[feedback pack ui-primitives]] (picker_inline_crud, stacked_drawer, modal_close_outside, guarded_action_button).

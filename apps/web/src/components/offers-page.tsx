@@ -1,10 +1,14 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
+import { Suspense, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getOfferNote, saveOfferTerms, type AffiliateOffer, type OfferAccount, type OfferKind } from '@/lib/actions/offers';
 import {
-  EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect,
+  getOfferNote, saveOfferTerms,
+  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView,
+} from '@/lib/actions/offers';
+import { useModalParam } from '@/lib/use-modal-param';
+import {
+  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 
@@ -37,24 +41,44 @@ const GROUPS: DataGroup[] = [
 const dim = { color: 'var(--fg-3)' };
 const clip = (max: number): React.CSSProperties => ({ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' });
 
-export function OffersPage(props: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
-  // useSearchParams (drawer deep-link) needs a Suspense boundary at build. See scenes-page.
+export function OffersPage(props: { view: OffersView; filters: OfferFilters; accounts: OfferAccount[] }) {
+  // useSearchParams (filter + drawer url-state) needs a Suspense boundary at build. See scenes-page.
   return <Suspense fallback={null}><OffersInner {...props} /></Suspense>;
 }
-function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
+function OffersInner({ view, filters, accounts }: { view: OffersView; filters: OfferFilters; accounts: OfferAccount[] }) {
+  const router = useRouter();
   const sp = useSearchParams();
-  const [kind, setKind] = useState('all');
-  const [status, setStatus] = useState('all');
-  const [geo, setGeo] = useState<string[]>([]);
-  const [q, setQ] = useState('');
-  // Drawer selection lives in the URL (?o=<id>) so a specific offer's drawer is shareable and
-  // survives F5. Init from the URL on mount, mirror on change (house url-state pattern).
-  const [sel, setSel] = useState<AffiliateOffer | null>(() => offers.find((o) => o.id === sp.get('o')) ?? null);
+  const [nav, startNav] = useTransition();
+  const { rows, counts, facets } = view;
+
+  // Filters = URL params, applied SERVER-side (the list is ~5k remote rows — ui-conventions §5).
+  // Every control writes the URL; the route re-renders with one page of rows.
+  const go = (mut: (p: URLSearchParams) => void, keepPage = false) => {
+    const p = new URLSearchParams(sp.toString());
+    mut(p);
+    if (!keepPage) p.delete('page');   // any filter change → back to page 1
+    const qs = p.toString();
+    startNav(() => router.push(qs ? `/offers?${qs}` : '/offers', { scroll: false }));
+  };
+  const setOne = (k: string) => (v: string) => go((p) => { if (v && v !== 'all') p.set(k, v); else p.delete(k); });
+  const setMulti = (k: string) => (v: string[]) => go((p) => { if (v.length) p.set(k, v.join(',')); else p.delete(k); });
+  const active = Boolean(filters.q || filters.accounts.length || filters.verticals.length || filters.geos.length
+    || [filters.kind, filters.status, filters.gap, filters.recurring].some((v) => v && v !== 'all'));
+
+  // Search: type locally (instant), push to the URL after a pause — otherwise every keystroke
+  // is a server roundtrip.
+  const [q, setQ] = useState(filters.q);
+  useEffect(() => { setQ(filters.q); }, [filters.q]);
   useEffect(() => {
-    const u = new URL(window.location.href);
-    if (sel) u.searchParams.set('o', sel.id); else u.searchParams.delete('o');
-    window.history.replaceState(null, '', u);
-  }, [sel]);
+    if (q === filters.q) return;
+    const t = setTimeout(() => setOne('q')(q), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  // Drawer = house url-state hook (?m=offer&mId=<id>) → shareable + survives F5.
+  const modal = useModalParam();
+  const sel = modal.is('offer') ? rows.find((o) => o.id === modal.id) ?? null : null;
   // User note is kept out of the bulk list (Awin blob bloats every load) → fetch it lazily when
   // a specific offer's drawer opens. See offers.ts getOfferNote.
   const [note, setNote] = useState<string | null>(null);
@@ -65,37 +89,6 @@ function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts:
     getOfferNote(sel.id).then((n) => { if (live) setNote(n); }).catch(() => {});
     return () => { live = false; };
   }, [sel]);
-
-  const geos = useMemo(() => Array.from(new Set(offers.flatMap((o) => o.geos))).sort(), [offers]);
-  const counts = useMemo(() => ({
-    all: offers.length,
-    awin: offers.filter((o) => o.kind === 'awin').length,
-    cj: offers.filter((o) => o.kind === 'cj').length,
-    direct: offers.filter((o) => o.kind === 'direct').length,
-    own: offers.filter((o) => o.kind === 'own').length,
-    approved: offers.filter((o) => isApproved(o.status)).length,
-    terms: offers.filter((o) => o.commission).length,
-    noAccount: offers.filter((o) => !o.accountId).length,
-  }), [offers]);
-
-  const filtered = useMemo(() => offers.filter((o) => {
-    if (kind !== 'all' && o.kind !== kind) return false;
-    const s = o.status.toLowerCase();
-    if (status === 'approved' && !isApproved(s)) return false;
-    if (status === 'pending' && s !== 'pending') return false;
-    if (status === 'paused' && s !== 'paused') return false;
-    if (geo.length && !geo.some((g) => o.geos.includes(g))) return false;
-    if (q) {
-      const t = q.toLowerCase();
-      if (!o.name.toLowerCase().includes(t) && !(o.vertical ?? '').toLowerCase().includes(t)
-        && !(o.account ?? '').toLowerCase().includes(t)
-        && !o.tags.some((x) => x.toLowerCase().includes(t))) return false;
-    }
-    return true;
-  }).sort((a, b) => (isApproved(a.status) ? 0 : 1) - (isApproved(b.status) ? 0 : 1) || a.name.localeCompare(b.name)),
-  [offers, kind, status, geo, q]);
-
-  const { pageItems, ...pager } = usePaged(filtered);
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
@@ -158,7 +151,8 @@ function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts:
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
           💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>
             // {counts.approved} approved · {counts.terms} có deal terms
-            {counts.noAccount > 0 && <span style={{ color: 'var(--neon-amber)' }}> · {counts.noAccount} chưa gán account</span>} · {counts.all} total
+            {(counts['no-account'] ?? 0) > 0 && <span style={{ color: 'var(--neon-amber)' }}> · {counts['no-account']} chưa gán account</span>} · {counts.all} total
+            {active && <span style={{ color: 'var(--neon-cyan)' }}> · đang lọc: {view.matched}</span>}
           </small>
         </h1>
         <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--fg-3)' }}>
@@ -168,9 +162,8 @@ function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts:
         </p>
       </div>
 
-      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm tên / vertical / tag…"
-        right={<MultiSelect label="geo" options={geos.map((g) => ({ value: g, label: g }))} selected={geo} onChange={setGeo} compact />}>
-        <FilterChips value={kind} onChange={setKind} counts={counts}
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / account / rule / tag…">
+        <FilterChips value={filters.kind} onChange={setOne('kind')} counts={counts}
           options={[
             { value: 'all', label: 'Tất cả' },
             { value: 'awin', label: 'Awin' },
@@ -178,20 +171,52 @@ function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts:
             { value: 'direct', label: 'Direct', title: 'Program tự thêm tay, không qua network' },
             { value: 'own', label: 'Own', title: 'Sản phẩm mình tự bán — nên nằm ở /products' },
           ]} />
-        <FilterChips value={status} onChange={setStatus}
+        <FilterChips value={filters.status} onChange={setOne('status')} counts={counts}
           options={[{ value: 'all', label: 'all' }, { value: 'approved', label: 'approved' }, { value: 'pending', label: 'pending' }, { value: 'paused', label: 'paused' }]} />
       </ListToolbar>
 
-      {filtered.length === 0 ? (
-        <EmptyState icon="🔍" title="Không có offer khớp" description="Đổi filter hoặc chờ sync CJ/Awin." />
-      ) : (
-        <DataTable rows={pageItems} columns={columns} groups={GROUPS} persistKey="offer_cols"
-          getRowKey={(o) => o.id} onRowClick={(o) => setSel(o)} minWidth={900} />
-      )}
-      <Pager {...pager} onPage={pager.setPage} />
+      {/* Hàng 2 = filter chi tiết: chọn nhiều giá trị (account/vertical/geo) + lọc theo cái CÒN THIẾU. */}
+      <ListToolbar right={active
+        ? <button type="button" onClick={() => go((p) => { for (const k of ['q', 'kind', 'status', 'account', 'vertical', 'geo', 'gap', 'recurring']) p.delete(k); })}
+            style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>
+            ✕ bỏ lọc
+          </button>
+        : undefined}>
+        <MultiSelect label="account" compact selected={filters.accounts} onChange={setMulti('account')}
+          options={facets.accounts.map((f) => ({ value: f.value, label: f.label, count: f.count }))} />
+        <MultiSelect label="vertical" compact selected={filters.verticals} onChange={setMulti('vertical')}
+          options={facets.verticals.map((f) => ({ value: f.value, label: f.label, count: f.count }))} />
+        <MultiSelect label="geo" compact selected={filters.geos} onChange={setMulti('geo')}
+          options={facets.geos.map((f) => ({ value: f.value, label: f.label, count: f.count }))} />
+        <FilterChips value={filters.recurring} onChange={setOne('recurring')}
+          options={[
+            { value: 'all', label: 'mọi payout' },
+            { value: 'yes', label: `recurring ${counts.recurring ?? 0}`, title: 'Hoa hồng lặp lại (commission_time hoặc model ghi recurring)' },
+            { value: 'no', label: 'one-time' },
+          ]} />
+        <FilterChips value={filters.gap} onChange={setOne('gap')} counts={counts}
+          options={[
+            { value: 'all', label: 'đủ/thiếu' },
+            { value: 'no-terms', label: 'thiếu terms', title: 'Chưa có % / recurring / cookie / rule nào' },
+            { value: 'no-account', label: 'chưa gán account' },
+            { value: 'no-link', label: 'thiếu link', title: 'Chưa có tracking link' },
+          ]} />
+      </ListToolbar>
+
+      <div style={{ opacity: nav ? 0.55 : 1, transition: 'opacity .12s' }}>
+        {rows.length === 0 ? (
+          <EmptyState icon="🔍" title="Không có offer khớp"
+            description={filters.q ? `Không thấy gì cho "${filters.q}" với bộ lọc hiện tại.` : 'Đổi filter hoặc chờ sync CJ/Awin.'} />
+        ) : (
+          <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols"
+            getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900} />
+        )}
+      </div>
+      <Pager page={view.page} pageCount={view.pageCount} total={view.matched} pageSize={view.pageSize}
+        onPage={(p) => go((x) => { if (p > 0) x.set('page', String(p + 1)); else x.delete('page'); }, true)} />
 
       {sel && (
-        <Drawer onClose={() => setSel(null)} width={560}>
+        <Drawer onClose={() => modal.close()} width={560}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>

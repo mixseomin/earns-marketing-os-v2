@@ -172,6 +172,118 @@ export const listAffiliateOffers = unstable_cache(
   { revalidate: 300, tags: ['affiliate-offers'] },
 );
 
+// ── Filtering + paging: SERVER-side (ui-conventions §5) ──────────────────────────────────────
+// The source is remote (Directus, cross-box) and ~5k rows — shipping the whole array to the
+// client so it could slice 50 of them cost 2.9 MB / 1.2 s per load. The full list already sits
+// in unstable_cache here, so filtering in memory is ~free and the client only ever receives one
+// page. Filter state lives in the URL → shareable + survives F5.
+
+export interface OfferFilters {
+  q: string;
+  kind: string;        // all | awin | cj | direct | own
+  status: string;      // all | approved | pending | paused
+  accounts: string[];  // account ids
+  verticals: string[];
+  geos: string[];
+  gap: string;         // all | no-terms | no-account | no-link  (what still needs filling in)
+  recurring: string;   // all | yes | no
+  page: number;        // 0-based
+}
+
+export interface OfferFacet { value: string; label: string; count: number }
+
+export interface OffersView {
+  rows: AffiliateOffer[];
+  matched: number;                  // rows after filters
+  total: number;                    // rows before filters
+  page: number; pageCount: number; pageSize: number;
+  counts: Record<string, number>;   // chip counts (whole set, so you can see what a filter would open up)
+  facets: { accounts: OfferFacet[]; verticals: OfferFacet[]; geos: OfferFacet[] };
+}
+
+// NB: this module is 'use server' → only async functions may be EXPORTED (types are erased,
+// consts are not). Page size travels back inside OffersView instead.
+const OFFERS_PAGE_SIZE = 50;
+const APPROVED = new Set(['active', 'joined', 'approved']);
+
+const hasTerms =(o: AffiliateOffer) => Boolean(o.commission || o.recurring || o.cookie || o.policy || o.reward);
+const isRecurring = (o: AffiliateOffer) => Boolean(o.recurring || /recurring/i.test(o.model ?? ''));
+
+function matches(o: AffiliateOffer, f: OfferFilters): boolean {
+  if (f.kind !== 'all' && o.kind !== f.kind) return false;
+  const s = o.status.toLowerCase();
+  if (f.status === 'approved' && !APPROVED.has(s)) return false;
+  if (f.status === 'pending' && s !== 'pending') return false;
+  if (f.status === 'paused' && s !== 'paused') return false;
+  if (f.accounts.length && !(o.accountId && f.accounts.includes(o.accountId))) return false;
+  if (f.verticals.length && !(o.vertical && f.verticals.includes(o.vertical))) return false;
+  if (f.geos.length && !f.geos.some((g) => o.geos.includes(g))) return false;
+  if (f.gap === 'no-terms' && hasTerms(o)) return false;
+  if (f.gap === 'no-account' && o.accountId) return false;
+  if (f.gap === 'no-link' && o.affiliateUrl) return false;
+  if (f.recurring === 'yes' && !isRecurring(o)) return false;
+  if (f.recurring === 'no' && isRecurring(o)) return false;
+  if (f.q) {
+    const t = f.q.toLowerCase();
+    const hay = [o.name, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
+    if (!hay.some((v) => v?.toLowerCase().includes(t))) return false;
+  }
+  return true;
+}
+
+// Facet options come from the WHOLE set (not the current result), so a filter never hides the
+// value you were about to pick. Counts are whole-set for the same reason.
+function facetsOf(offers: AffiliateOffer[]): OffersView['facets'] {
+  const bump = (m: Map<string, OfferFacet>, value: string, label: string) => {
+    const cur = m.get(value);
+    if (cur) cur.count++;
+    else m.set(value, { value, label, count: 1 });
+  };
+  const accounts = new Map<string, OfferFacet>(), verticals = new Map<string, OfferFacet>(), geos = new Map<string, OfferFacet>();
+  for (const o of offers) {
+    if (o.accountId) bump(accounts, o.accountId, o.account ?? o.accountId);
+    if (o.vertical) bump(verticals, o.vertical, o.vertical);
+    for (const g of o.geos) bump(geos, g, g);
+  }
+  const byCount = (a: OfferFacet, b: OfferFacet) => b.count - a.count || a.label.localeCompare(b.label);
+  return {
+    accounts: [...accounts.values()].sort(byCount),
+    verticals: [...verticals.values()].sort(byCount),
+    geos: [...geos.values()].sort(byCount),
+  };
+}
+
+export async function getOffersView(f: OfferFilters): Promise<OffersView> {
+  const all = await listAffiliateOffers();
+  const hit = all.filter((o) => matches(o, f))
+    .sort((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
+      || a.name.localeCompare(b.name));
+  const pageCount = Math.max(1, Math.ceil(hit.length / OFFERS_PAGE_SIZE));
+  const page = Math.min(Math.max(0, f.page), pageCount - 1);
+  return {
+    rows: hit.slice(page * OFFERS_PAGE_SIZE, page * OFFERS_PAGE_SIZE + OFFERS_PAGE_SIZE),
+    matched: hit.length,
+    total: all.length,
+    page, pageCount, pageSize: OFFERS_PAGE_SIZE,
+    counts: {
+      all: all.length,
+      awin: all.filter((o) => o.kind === 'awin').length,
+      cj: all.filter((o) => o.kind === 'cj').length,
+      direct: all.filter((o) => o.kind === 'direct').length,
+      own: all.filter((o) => o.kind === 'own').length,
+      approved: all.filter((o) => APPROVED.has(o.status.toLowerCase())).length,
+      pending: all.filter((o) => o.status.toLowerCase() === 'pending').length,
+      paused: all.filter((o) => o.status.toLowerCase() === 'paused').length,
+      terms: all.filter(hasTerms).length,
+      recurring: all.filter(isRecurring).length,
+      'no-terms': all.filter((o) => !hasTerms(o)).length,
+      'no-account': all.filter((o) => !o.accountId).length,
+      'no-link': all.filter((o) => !o.affiliateUrl).length,
+    },
+    facets: facetsOf(all),
+  };
+}
+
 // Awin rows store a sync blob behind `[awin-sync]` in notes — not a user note.
 function cleanNote(notes: string | null): string | null {
   if (!notes) return null;

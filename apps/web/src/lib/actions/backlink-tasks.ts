@@ -336,15 +336,33 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
 // project (id/slug/label) so the shared BacklinksPage can render + act per-task. Reuses getBacklinkTasks
 // per project (same resolved siteState), so a shared source shows once per site it applies to.
 export async function getAllBacklinkTasks(
-  projects: { id: string; name: string }[],
+  projects: { id: string; name: string; emoji?: string | null }[],
 ): Promise<BacklinkTask[]> {
   // Iterate every tracked SITE (not just projects that have a row) so live sites with
   // backlink tasks but no projects-table entry (e.g. paydochub, chatlt) still show up.
   // Build the platform catalog ONCE (was re-fetched 300 rows/~36ms per site = ~400ms wasted).
   const db = getDb();
   const catalog = db ? await buildPlatformCatalog(db) : undefined;
+  const sites = BACKLINK_SITES.map((s) => ({ slug: s.slug, label: s.label, emoji: s.emoji }));
+  // …VÀ mọi site_status key thật sự có trong DB. Trước đây hàm này chỉ lặp BACKLINK_SITES
+  // (10 site cứng trong lib/backlink-sites.ts), nên project có task thật nhưng không phải
+  // site backlink — vd `yt-aff` với 15 card roadmap — biến mất khỏi bảng chung, dù
+  // /p/<id>/plays vẫn hiện đủ. Bộ lọc ghi "Tất cả project" mà không phải tất cả thì nó
+  // đang nói dối về phạm vi của chính mình; sửa ở nguồn để mọi project mới sau này tự hiện.
+  if (db) {
+    try {
+      const seen = new Set(sites.map((s) => s.slug));
+      const rows = await db.execute(sql`SELECT DISTINCT k FROM backlinks, LATERAL jsonb_object_keys(site_status) k`);
+      for (const r of rows as unknown as Array<{ k: string }>) {
+        if (!r.k || seen.has(r.k)) continue;
+        seen.add(r.k);
+        const p = projects.find((x) => x.id === r.k);
+        sites.push({ slug: r.k, label: p?.name ?? r.k, emoji: p?.emoji || '📌' });
+      }
+    } catch { /* liệt kê thêm hỏng thì vẫn trả về 10 site cứng, đừng làm trắng bảng */ }
+  }
   const per = await Promise.all(
-    BACKLINK_SITES.map(async (site) => {
+    sites.map(async (site) => {
       // A project id that resolves to this slug gives the drawer real project context; else use the slug itself.
       const projId = projects.find((p) => resolveSiteSlug(p.id) === site.slug)?.id ?? site.slug;
       const ts = await getBacklinkTasks(projId, catalog);

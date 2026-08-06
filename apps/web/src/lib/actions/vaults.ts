@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { eq } from 'drizzle-orm';
 import { getDb, mediaAssets, infraResources, budgetEntries } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
@@ -48,7 +48,7 @@ export async function createMediaAsset(input: MediaInput, projectIdScope?: strin
     notes: input.notes ?? null,
     source: input.source ?? 'upload',
   });
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -105,7 +105,7 @@ export async function updateMediaAsset(id: number, patch: Partial<MediaInput>, p
     (set as Record<string, unknown>)[key] = v;
   }
   await db.update(mediaAssets).set(set).where(eq(mediaAssets.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -149,7 +149,7 @@ Tags phải lowercase, hyphen-separated nếu nhiều từ. Ưu tiên use-case (
 export async function deleteMediaAsset(id: number, projectIdScope?: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   await db.delete(mediaAssets).where(eq(mediaAssets.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -184,7 +184,7 @@ export async function createInfraResource(input: InfraInput, projectIdScope?: st
     notes: input.notes ?? null,
     tags: input.tags ?? [],
   });
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -197,14 +197,14 @@ export async function updateInfraResource(id: number, patch: Partial<InfraInput>
     (set as Record<string, unknown>)[key] = v;
   }
   await db.update(infraResources).set(set).where(eq(infraResources.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
 export async function deleteInfraResource(id: number, projectIdScope?: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   await db.delete(infraResources).where(eq(infraResources.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -236,7 +236,7 @@ export async function createBudgetEntry(input: BudgetInput, projectIdScope?: str
     notes: input.notes ?? null,
     tags: input.tags ?? [],
   });
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
@@ -249,13 +249,13 @@ export async function updateBudgetEntry(id: number, patch: Partial<BudgetInput>,
     (set as Record<string, unknown>)[key] = v;
   }
   await db.update(budgetEntries).set(set).where(eq(budgetEntries.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }
 
 export async function deleteBudgetEntry(id: number, projectIdScope?: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   await db.delete(budgetEntries).where(eq(budgetEntries.id, id));
-  if (projectIdScope) revalidatePath(`/p/${projectIdScope}/resources`);
+  if (projectIdScope) await touchEntity('resource', { projectId: projectIdScope });
   return { ok: true };
 }

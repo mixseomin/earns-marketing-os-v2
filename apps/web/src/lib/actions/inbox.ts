@@ -2,7 +2,7 @@
 
 // Phase 11 Human Inbox actions: list / claim / complete / cancel human_tasks.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 
@@ -229,7 +229,7 @@ export async function claimTask(taskId: number, userId: string = 'self'): Promis
     UPDATE human_tasks SET status='claimed', claimed_by=${userId}, claimed_at=NOW(), updated_at=NOW()
     WHERE tenant_id = ${TENANT} AND id = ${taskId} AND status = 'pending'
   `);
-  revalidatePath('/inbox');
+  await touchEntity('inbox');
   return { ok: true };
 }
 
@@ -422,7 +422,7 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
     }
   }
 
-  revalidatePath('/inbox');
+  await touchEntity('inbox');
   return { ok: true, spawnedCardId, spawnedSquad, workflowRunId };
 }
 
@@ -433,7 +433,7 @@ export async function cancelTask(taskId: number, reason?: string): Promise<{ ok:
     UPDATE human_tasks SET status='cancelled', notes=${reason ?? null}, updated_at=NOW()
     WHERE tenant_id = ${TENANT} AND id = ${taskId}
   `);
-  revalidatePath('/inbox');
+  await touchEntity('inbox');
   return { ok: true };
 }
 
@@ -716,7 +716,7 @@ Revise Reddit post dựa trên feedback. Output title + body markdown. BẮT BU�
     }
   }
 
-  revalidatePath('/inbox');
+  await touchEntity('inbox');
   return { ok: true, spawnedCardId, spawnedSquad: 'wf-writer', workflowRunId: t.workflow_run_id ?? undefined };
 }
 
@@ -727,6 +727,6 @@ export async function unclaimTask(taskId: number): Promise<{ ok: boolean }> {
     UPDATE human_tasks SET status='pending', claimed_by=NULL, claimed_at=NULL, updated_at=NOW()
     WHERE tenant_id = ${TENANT} AND id = ${taskId}
   `);
-  revalidatePath('/inbox');
+  await touchEntity('inbox');
   return { ok: true };
 }

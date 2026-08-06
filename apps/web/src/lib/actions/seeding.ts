@@ -6,7 +6,7 @@
 // draft card into backlog for each due schedule the user can then
 // review/post and mark seeded.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import type { Phase } from '@/lib/phase-plan';
@@ -309,8 +309,7 @@ export async function upsertSchedule(
     `);
     const id = Number((res as unknown as Array<{ id: number }>)[0]?.id);
     if (!id) return { ok: false, error: 'lane not found' };
-    revalidatePath(`/p/${projectId}/seeding`);
-    revalidatePath(`/p/${projectId}/tribes`);
+    await touchEntity('seeding', { projectId });
     return { ok: true, id };
   }
 
@@ -327,8 +326,7 @@ export async function upsertSchedule(
     RETURNING id
   `);
   const id = Number((res as unknown as Array<{ id: number }>)[0]?.id);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('seeding', { projectId });
   return { ok: true, id };
 }
 
@@ -611,8 +609,7 @@ export async function deleteSchedule(
   await db.execute(sql`
     DELETE FROM seeding_schedules WHERE id = ${scheduleId} AND project_id = ${projectId}
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('seeding', { projectId });
   return { ok: true };
 }
 
@@ -710,8 +707,7 @@ export async function markSeeded(
     RETURNING id
   `);
   if ((res as unknown as Array<unknown>).length === 0) return { ok: false, error: 'schedule not found' };
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('seeding', { projectId });
   return { ok: true, warnings: g.warnings };
 }
 
@@ -738,8 +734,7 @@ export async function undoLastSeed(
         updated_at = now()
     WHERE id = ${scheduleId} AND project_id = ${projectId}
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('seeding', { projectId });
   return { ok: true };
 }
 
@@ -785,8 +780,7 @@ export async function markCardSeeded(
         updated_at = now()
     WHERE id = ${pick.id} AND project_id = ${projectId}
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/board`);
+  await touchEntity('seeding', { projectId });
   return { ok: true, laneType: pick.content_type, warnings: g.warnings };
 }
 
@@ -1047,8 +1041,7 @@ export async function generateDueDrafts(projectId: string): Promise<GenerateDueR
     if (res.ok) created++;
   }
   if (created > 0) {
-    revalidatePath(`/p/${projectId}/seeding`);
-    revalidatePath(`/p/${projectId}/board`);
+    await touchEntity('seeding', { projectId });
   }
   return {
     ok: true, created,
@@ -1076,8 +1069,7 @@ export async function generateOneDraft(
   const res = await createPostForBriefPhase(
     projectId, briefId, phase, ct, ctx?.laneLang || undefined);
   if (res.ok) {
-    revalidatePath(`/p/${projectId}/seeding`);
-    revalidatePath(`/p/${projectId}/board`);
+    await touchEntity('seeding', { projectId });
   }
   return { ok: res.ok, cardRef: res.cardRef, contentType: formatMeta(ct).key, error: res.error };
 }
@@ -1141,9 +1133,7 @@ export async function retireAccount(
       AND tags @> '["community-seed"]'::jsonb
       AND brief_id IN (${accountBriefIdsSql(projectId, accountId)})
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('seeding', { projectId });
   return {
     ok: true, accountId,
     schedulesPaused: (paused as unknown as Array<unknown>).length,
@@ -1179,9 +1169,7 @@ export async function reviveAccount(
       AND paused = true
     RETURNING id
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('seeding', { projectId });
   return { ok: true, schedulesResumed: (resumed as unknown as Array<unknown>).length };
 }
 
@@ -1198,7 +1186,6 @@ export async function cleanupUnpostedDrafts(
       AND brief_id IN (${accountBriefIdsSql(projectId, accountId)})
     RETURNING id
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/board`);
+  await touchEntity('seeding', { projectId });
   return { ok: true, deleted: (del as unknown as Array<unknown>).length };
 }

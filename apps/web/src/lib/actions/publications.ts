@@ -1,6 +1,6 @@
 'use server';
 import { sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { getDb } from '@mos2/db';
 import { detectPlatform, PLATFORM_CONFIGS } from '@/lib/publications/types';
 import type { Publication, PublicationActivity } from '@/lib/publications/types';
@@ -72,7 +72,7 @@ export async function addPublication(data: {
       RETURNING id
     `);
     const id = (rows as unknown as Array<{ id: number }>)[0]?.id;
-    revalidatePath(`/p/${data.projectId}/publications`);
+    await touchEntity('publication', { projectId: data.projectId });
     return { ok: true, id };
   } catch (err) {
     return { ok: false, error: String(err) };
@@ -83,7 +83,7 @@ export async function updatePublicationStatus(id: number, status: string): Promi
   const db = getDb();
   if (!db) return { ok: false };
   await db.execute(sql`UPDATE publications SET status = ${status}, updated_at = NOW() WHERE tenant_id = ${TENANT} AND id = ${id}`);
-  revalidatePath('/p');
+  await touchEntity('publication');
   return { ok: true };
 }
 

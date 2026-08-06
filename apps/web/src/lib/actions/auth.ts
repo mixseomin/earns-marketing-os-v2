@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import {
   loginWithPassword as _login,
   setUserPassword as _setPassword,
@@ -28,6 +28,6 @@ export async function bootstrapAdminAction(token: string, password: string): Pro
 
 export async function logoutAction(): Promise<void> {
   await _logout();
-  revalidatePath('/');
+  await touchEntity('session');
   redirect('/login');
 }

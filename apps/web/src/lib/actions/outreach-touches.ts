@@ -5,7 +5,7 @@
 // marked 'sent' advances the prospect (→ backlink task sync). See 2026-07-20-outreach-multichannel-plan.
 import { sql, type SQL } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { getCurrentUser } from '@/lib/auth';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { genChannelContent } from '@/lib/outreach/touch-content';
@@ -250,7 +250,7 @@ export async function addTouch(projectId: string, prospectId: number, channel: s
       INSERT INTO outreach_touches (tenant_id, prospect_id, project_id, channel, target_ref)
       VALUES ('self', ${prospectId}, ${projectId}, ${channel}, ${targetRef || null})
       RETURNING id, channel, target_ref, content, status, sent_at, sent_as, meta`);
-    revalidatePath(`/p/${projectId}/outreach`);
+    await touchEntity('outreach', { projectId });
     return { ok: true, touch: mapTouch((ins as unknown as Array<Record<string, unknown>>)[0]!) };
   } catch (e) { return { ok: false, error: `add touch lỗi: ${(e as Error).message}` }; }
 }
@@ -304,7 +304,7 @@ export async function markTouchSent(projectId: string, prospectId: number, touch
     // Advance prospect to 'sent' if still queued → reflect onto the backlink task.
     await db.execute(sql`UPDATE outreach_prospects SET status = 'sent', sent_at = COALESCE(sent_at, now()), next_followup_at = COALESCE(next_followup_at, now() + interval '5 days'), updated_at = now() WHERE id = ${prospectId} AND status = 'to_send'`);
     await syncProspectToTask(prospectId);
-    revalidatePath(`/p/${projectId}/outreach`);
+    await touchEntity('outreach', { projectId });
     return { ok: true };
   } catch (e) { return { ok: false, error: `mark lỗi: ${(e as Error).message}` }; }
 }
@@ -313,6 +313,6 @@ export async function deleteTouch(projectId: string, touchId: number): Promise<{
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   await db.execute(sql`DELETE FROM outreach_touches WHERE id = ${touchId} AND project_id = ${projectId}`);
-  revalidatePath(`/p/${projectId}/outreach`);
+  await touchEntity('outreach', { projectId });
   return { ok: true };
 }

@@ -4,7 +4,7 @@
 // UI: /p/[id]/resources?vault=proxies / ?vault=profiles
 // Used by: accounts-vault.tsx (linking) + new ProxiesVault / ProfilesVault.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -92,7 +92,7 @@ export async function createProxy(input: ProxyInput): Promise<{ ok: boolean; id?
             ${input.costPerGbCents ?? 0}, ${input.notes ?? null}, ${input.ownerUserId ?? null})
     RETURNING id
   `).then((r) => (r as unknown as Array<{ id: number | string }>));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true, id: Number(rows[0]?.id) };
 }
 
@@ -112,14 +112,14 @@ export async function updateProxy(id: number, patch: Partial<ProxyInput>): Promi
   if (Object.keys(set).length > 1) {
     await db.update(proxies).set(set as Partial<typeof proxies.$inferInsert>).where(eq(proxies.id, id));
   }
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
 export async function archiveProxy(id: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(proxies).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(proxies.id, id));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
@@ -238,7 +238,7 @@ export async function assignBrowserProfileProject(profileId: number, projectId: 
     INSERT INTO project_browser_profiles (project_id, browser_profile_id)
     VALUES (${projectId}, ${profileId}) ON CONFLICT DO NOTHING
   `);
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
@@ -247,7 +247,7 @@ export async function unassignBrowserProfileProject(profileId: number, projectId
   await db.execute(sql`
     DELETE FROM project_browser_profiles WHERE browser_profile_id = ${profileId} AND project_id = ${projectId}
   `);
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
@@ -273,7 +273,7 @@ export async function createBrowserProfile(input: BrowserProfileInput): Promise<
             ${input.defaultProxyId ?? null}, ${input.notes ?? null}, ${input.ownerUserId ?? null})
     RETURNING id
   `).then((r) => (r as unknown as Array<{ id: number | string }>));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true, id: Number(rows[0]?.id) };
 }
 
@@ -293,7 +293,7 @@ export async function updateBrowserProfile(id: number, patch: Partial<BrowserPro
   if (Object.keys(set).length > 1) {
     await db.update(browserProfiles).set(set as Partial<typeof browserProfiles.$inferInsert>).where(eq(browserProfiles.id, id));
   }
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
@@ -302,14 +302,14 @@ export async function touchBrowserProfile(id: number): Promise<{ ok: boolean; la
   const db = ensureDb();
   const now = new Date();
   await db.execute(sql`UPDATE browser_profiles SET last_opened_at = ${now}, updated_at = ${now} WHERE id = ${id}`);
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true, lastOpenedAt: now.toISOString() };
 }
 
 export async function archiveBrowserProfile(id: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(browserProfiles).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(browserProfiles.id, id));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('environment');
   return { ok: true };
 }
 
@@ -387,7 +387,7 @@ export async function testAndSaveProxy(proxyId: number): Promise<ProxyTestResult
       updated_at = NOW()
     WHERE id = ${proxyId}
   `);
-  revalidatePath('/environments');
+  await touchEntity('environment');
   return result;
 }
 
@@ -402,8 +402,7 @@ export async function updateAccountEnvironment(
   if (patch.browserProfileId !== undefined) set.browserProfileId = patch.browserProfileId;
   if (patch.environment !== undefined) set.environment = patch.environment;
   await db.update(platformAccounts).set(set).where(eq(platformAccounts.id, accountId));
-  revalidatePath('/p/[id]/resources', 'page');
-  revalidatePath('/architecture');
+  await touchEntity('environment');
   return { ok: true };
 }
 

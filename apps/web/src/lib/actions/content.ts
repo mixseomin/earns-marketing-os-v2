@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, contentPieces } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
@@ -60,7 +60,7 @@ export async function createContentPiece(projectId: string, input: ContentInput)
     tags: input.tags ?? [],
     metrics: input.metrics ?? {},
   });
-  revalidatePath(`/p/${projectId}/studio`);
+  await touchEntity('content', { projectId });
   return { ok: true, slug };
 }
 
@@ -73,14 +73,14 @@ export async function updateContentPiece(id: number, projectId: string, patch: P
     (set as Record<string, unknown>)[key] = v;
   }
   await db.update(contentPieces).set(set).where(eq(contentPieces.id, id));
-  revalidatePath(`/p/${projectId}/studio`);
+  await touchEntity('content', { projectId });
   return { ok: true };
 }
 
 export async function archiveContentPiece(id: number, projectId: string): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(contentPieces).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(contentPieces.id, id));
-  revalidatePath(`/p/${projectId}/studio`);
+  await touchEntity('content', { projectId });
   return { ok: true };
 }
 

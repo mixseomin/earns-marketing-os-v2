@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, roadmapItems } from '@mos2/db';
 
@@ -45,7 +45,7 @@ export async function markRoadmapItem(
   }
 
   await db.update(roadmapItems).set(set).where(eq(roadmapItems.slug, slug));
-  revalidatePath('/roadmap');
+  await touchEntity('roadmap');
   return { ok: true };
 }
 
@@ -55,7 +55,7 @@ export async function addRoadmapNote(slug: string, notes: string): Promise<{ ok:
     .update(roadmapItems)
     .set({ notes: notes || null, updatedAt: new Date() })
     .where(eq(roadmapItems.slug, slug));
-  revalidatePath('/roadmap');
+  await touchEntity('roadmap');
   return { ok: true };
 }
 
@@ -65,7 +65,7 @@ export async function setBlocker(slug: string, blockerRef: string): Promise<{ ok
     .update(roadmapItems)
     .set({ blockerRef: blockerRef || null, updatedAt: new Date() })
     .where(eq(roadmapItems.slug, slug));
-  revalidatePath('/roadmap');
+  await touchEntity('roadmap');
   return { ok: true };
 }
 
@@ -76,6 +76,6 @@ export async function markRoadmapShipped(slug: string, commitSha: string): Promi
     .update(roadmapItems)
     .set({ status: 'done', doneAt: new Date(), shippedIn: commitSha, updatedAt: new Date() })
     .where(eq(roadmapItems.slug, slug));
-  revalidatePath('/roadmap');
+  await touchEntity('roadmap');
   return { ok: true };
 }

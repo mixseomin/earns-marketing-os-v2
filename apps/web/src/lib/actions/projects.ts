@@ -2,7 +2,7 @@
 
 // Server Actions for Project CRUD.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { getDb, projects, modes, squads, cards, alerts, feedEvents } from '@mos2/db';
@@ -86,8 +86,7 @@ export async function createProject(input: ProjectInput): Promise<{ ok: boolean;
     color: input.color || '#00e5ff',
   });
 
-  revalidatePath('/');
-  revalidatePath(`/p/${id}`);
+  await touchEntity('project', { projectId: id });
   return { ok: true, id };
 }
 
@@ -126,11 +125,7 @@ export async function updateProject(id: string, input: Partial<ProjectInput>): P
 
   await db.update(projects).set(patch).where(eq(projects.id, id));
 
-  revalidatePath('/');
-  revalidatePath(`/p/${id}`);
-  revalidatePath(`/p/${id}/board`);
-  revalidatePath(`/p/${id}/squads`);
-  revalidatePath(`/p/${id}/settings`);
+  await touchEntity('project', { projectId: id });
   return { ok: true };
 }
 
@@ -169,8 +164,7 @@ export async function suggestProjectStack(projectId: string): Promise<{ ok: bool
     const stack = (Array.isArray(parsed.stack) ? parsed.stack.map((x) => String(x ?? '')).filter(Boolean).join(', ') : String(parsed.stack ?? '')).trim();
     if (!stack) return { ok: false, error: 'AI trả rỗng' };
     await db.update(projects).set({ stack, updatedAt: new Date() }).where(eq(projects.id, projectId));
-    revalidatePath(`/p/${projectId}`);
-    revalidatePath(`/p/${projectId}/settings`);
+    await touchEntity('project', { projectId });
     return { ok: true, stack };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -178,7 +172,7 @@ export async function suggestProjectStack(projectId: string): Promise<{ ok: bool
 export async function archiveProject(id: string): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
   await db.update(projects).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(projects.id, id));
-  revalidatePath('/');
+  await touchEntity('project', { projectId: id });
   return { ok: true };
 }
 
@@ -190,7 +184,7 @@ export async function deleteProjectHard(id: string): Promise<{ ok: boolean; erro
   await db.delete(alerts).where(eq(alerts.projectId, id));
   await db.delete(feedEvents).where(eq(feedEvents.projectId, id));
   await db.delete(projects).where(eq(projects.id, id));
-  revalidatePath('/');
+  await touchEntity('project', { projectId: id });
   return { ok: true };
 }
 

@@ -2,7 +2,7 @@
 
 // Server Actions for Alerts mutations.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, alerts } from '@mos2/db';
 
@@ -29,11 +29,6 @@ export async function dismissAlert(projectId: string, alertRef: string): Promise
     .set({ resolvedAt: new Date() })
     .where(eq(alerts.id, a.id));
 
-  revalidatePath(`/p/${projectId}`);
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}/squads`);
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/studio`);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('alert', { projectId });
   return { ok: true };
 }

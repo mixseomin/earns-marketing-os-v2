@@ -4,7 +4,7 @@
 // All actions assume DB present — callers should not invoke from mock-only mode.
 // Tenant filter is implicit via DEFAULT_TENANT_ID.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, cards } from '@mos2/db';
 
@@ -36,8 +36,7 @@ export async function moveCard(projectId: string, cardRef: string, newCol: strin
     .set({ col: newCol, updatedAt: new Date() })
     .where(eq(cards.id, card.id));
 
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true };
 }
 
@@ -56,8 +55,7 @@ export async function rejectCard(projectId: string, cardRef: string): Promise<{ 
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(cards.id, card.id));
 
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true };
 }
 
@@ -71,8 +69,7 @@ export async function escalateCard(projectId: string, cardRef: string): Promise<
     .set({ col: 'escalated', level: 4, urgent: true, updatedAt: new Date() })
     .where(eq(cards.id, card.id));
 
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true };
 }
 
@@ -135,8 +132,7 @@ export async function createCard(projectId: string, input: CardInput): Promise<{
     body: input.body ?? null,
   });
 
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true, cardRef: ref };
 }
 
@@ -162,8 +158,7 @@ export async function updateCard(projectId: string, cardRef: string, patch: Part
 
   await db.update(cards).set(set).where(eq(cards.id, card.id));
 
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true };
 }
 
@@ -173,7 +168,6 @@ export async function deleteCard(projectId: string, cardRef: string): Promise<{ 
   if (!card) return { ok: false, error: 'card not found' };
 
   await db.delete(cards).where(eq(cards.id, card.id));
-  revalidatePath(`/p/${projectId}/board`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('card', { projectId });
   return { ok: true };
 }

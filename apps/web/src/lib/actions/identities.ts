@@ -4,7 +4,7 @@
 // API ext (`/api/ext/identities*`) đã có cho chrome ext; file này cho UI dashboard.
 // password lưu pgcrypto qua encryptValue() — chỉ reveal khi user chủ động bấm.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { desc, eq, or, inArray, sql } from 'drizzle-orm';
 import { getDb, identities, identityProjects } from '@mos2/db';
 import { encryptValue, decryptValue } from '../crypto';
@@ -111,7 +111,7 @@ export async function createIdentity(projectId: string | null, input: IdentityIn
   // pivot 'primary' cho home project (multi-project add từ studio/drawer).
   if (projectId) {
     await db.insert(identityProjects).values({ projectId, identityId: row.id, role: 'primary' }).onConflictDoNothing();
-    revalidatePath(`/p/${projectId}/identities`);
+    await touchEntity('identity', { projectId });
   }
   return row.id;
 }
@@ -179,13 +179,13 @@ export async function updateIdentity(id: number, input: IdentityInput): Promise<
     patch.passwordEnc = pw ? await encryptValue(pw) : null;
   }
   const [updated] = await db.update(identities).set(patch).where(eq(identities.id, id)).returning({ projectId: identities.projectId });
-  if (updated?.projectId) revalidatePath(`/p/${updated.projectId}/identities`);
+  if (updated?.projectId) await touchEntity('identity', { projectId: updated.projectId });
 }
 
 export async function deleteIdentity(id: number): Promise<void> {
   const db = ensureDb();
   const [deleted] = await db.delete(identities).where(eq(identities.id, id)).returning({ projectId: identities.projectId });
-  if (deleted?.projectId) revalidatePath(`/p/${deleted.projectId}/identities`);
+  if (deleted?.projectId) await touchEntity('identity', { projectId: deleted.projectId });
 }
 
 // Reveal password — decrypt just-in-time. UI hits this only when user clicks "show".

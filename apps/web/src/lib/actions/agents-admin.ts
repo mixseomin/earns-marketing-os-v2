@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { resetBreaker, listPausedKinds } from '@/lib/circuit-breaker';
@@ -297,14 +297,14 @@ export async function toggleSquadReasoning(projectId: string, squadKey: string, 
         updated_at = NOW()
     WHERE tenant_id = ${TENANT} AND project_id = ${projectId} AND squad_key = ${squadKey}
   `);
-  revalidatePath('/agents');
+  await touchEntity('agent', {});
   return { ok: true };
 }
 
 // Reset breaker for an agent_kind (clears in-memory pause).
 export async function resetAgentBreaker(agentKind: string): Promise<{ ok: boolean }> {
   resetBreaker(agentKind);
-  revalidatePath('/agents');
+  await touchEntity('agent', {});
   return { ok: true };
 }
 
@@ -351,7 +351,7 @@ export async function setSoloReasoningSquad(projectId: string, squadKey: string)
     activated = (actRows as unknown as Array<{ id: number }>).length;
   }
 
-  revalidatePath('/agents');
+  await touchEntity('agent', {});
   // Also revalidate squads pages of affected projects.
   return { ok: true, activated, paused };
 }
@@ -375,7 +375,7 @@ export async function deleteAgentRun(
     deletedKnowledge = (kRows as unknown as Array<{ id: number | string }>).length;
   }
   await db.execute(sql`DELETE FROM agent_runs WHERE id = ${runId} AND tenant_id = ${TENANT}`);
-  revalidatePath('/agents');
+  await touchEntity('agent', {});
   return { ok: true, deletedKnowledge };
 }
 
@@ -435,7 +435,7 @@ export async function triggerWorkerNow(maxCards: number = 5): Promise<{
   const t0 = Date.now();
   const { runWorkerCycle } = await import('@/lib/worker');
   const report = await runWorkerCycle(maxCards);
-  revalidatePath('/agents');
+  await touchEntity('agent', {});
   return {
     ok: true, ...report,
     startedAt: new Date(t0).toISOString(),

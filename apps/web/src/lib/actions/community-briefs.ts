@@ -3,7 +3,7 @@
 // Server actions for community_briefs — per (account × habitat) approach plan.
 // See migration 0039_community_briefs.sql for shape + intent.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq, sql } from 'drizzle-orm';
 import { getDb, communityBriefs, platformAccounts, habitats, tribes } from '@mos2/db';
 import { getHabitatById, type HabitatRow } from '@/lib/data';
@@ -878,9 +878,7 @@ export async function setBriefJoinStatus(
     }
   }
   // Revalidate paths
-  const { revalidatePath } = await import('next/cache');
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/community`);
+  await touchEntity('brief', { projectId });
   return { ok: true, warnings: warnings.length > 0 ? warnings : undefined };
 }
 
@@ -1062,8 +1060,7 @@ export async function reassignBriefAccount(
     UPDATE community_briefs SET account_id = ${newAccountId}, updated_at = now()
     WHERE id = ${briefId} AND project_id = ${projectId}
   `);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('brief', { projectId });
   return { ok: true };
 }
 
@@ -1101,8 +1098,7 @@ export async function upsertBrief(
         updatedAt: new Date(),
       })
       .where(eq(communityBriefs.id, existing[0]!.id));
-    revalidatePath(`/p/${projectId}/resources`);
-    revalidatePath(`/p/${projectId}/tribes`);
+    await touchEntity('brief', { projectId });
     return { ok: true, id: existing[0]!.id };
   }
 
@@ -1120,8 +1116,7 @@ export async function upsertBrief(
     narrativeMd: patch.narrativeMd ?? '',
   }).returning({ id: communityBriefs.id });
 
-  revalidatePath(`/p/${projectId}/resources`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('brief', { projectId });
   return { ok: true, id: inserted[0]?.id };
 }
 
@@ -1166,8 +1161,7 @@ export async function saveBriefSuggestion(
 export async function deleteBrief(projectId: string, briefId: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.delete(communityBriefs).where(eq(communityBriefs.id, briefId));
-  revalidatePath(`/p/${projectId}/resources`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('brief', { projectId });
   return { ok: true };
 }
 
@@ -1183,8 +1177,7 @@ export async function savePhasePlan(
   await db.update(communityBriefs)
     .set({ phasePlan: plan, updatedAt: new Date() })
     .where(eq(communityBriefs.id, briefId));
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('brief', { projectId });
   return { ok: true };
 }
 
@@ -1215,7 +1208,7 @@ export async function initPhasePlanFromDefaults(
   await db.update(communityBriefs)
     .set({ phasePlan: plan, updatedAt: new Date() })
     .where(eq(communityBriefs.id, briefId));
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('brief', { projectId });
   return { ok: true, plan };
 }
 
@@ -1310,7 +1303,6 @@ export async function advancePhase(
   await db.update(communityBriefs)
     .set({ currentPhase: nextPhase, phaseHistory: history, updatedAt: new Date() })
     .where(eq(communityBriefs.id, briefId));
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('brief', { projectId });
   return { ok: true };
 }

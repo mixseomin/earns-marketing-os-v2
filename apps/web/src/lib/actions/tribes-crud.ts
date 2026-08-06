@@ -4,7 +4,7 @@
 // Read paths live in lib/data.ts (listTribes, listHabitats); this file
 // owns mutations + revalidation.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { eq, ne, and, asc, inArray, sql, isNull } from 'drizzle-orm';
 import { getDb, tribes, habitats, habitatTribes, platforms, cards, communityBriefs, platformAccounts } from '@mos2/db';
 import { fetchDirectusCommunitiesByIds, directusEnabled } from '../bridge/directus';
@@ -192,7 +192,7 @@ export async function syncHabitatPlatformsFromDirectus(): Promise<{
     await db.update(habitats).set({ platformKey, updatedAt: new Date() }).where(eq(habitats.id, h.id));
     linked += 1;
   }
-  revalidatePath('/p/[id]/tribes', 'page');
+  await touchEntity('tribe', {});
   return { ok: true, linked, skipped, missing };
 }
 
@@ -239,7 +239,7 @@ export async function createTribe(
       avoid: input.avoid ?? [],
       psychographic: input.psychographic ?? '',
     }).returning({ id: tribes.id });
-    revalidatePath(`/p/${projectId}/tribes`);
+    await touchEntity('tribe', { projectId });
     return { ok: true, id: inserted[0]?.id };
   } catch (e: unknown) {
     const msg = (e instanceof Error) ? e.message : String(e);
@@ -266,7 +266,7 @@ export async function updateTribe(
   if (patch.psychographic != null) set.psychographic = patch.psychographic;
   try {
     await db.update(tribes).set(set).where(and(eq(tribes.id, id), eq(tribes.projectId, projectId)));
-    revalidatePath(`/p/${projectId}/tribes`);
+    await touchEntity('tribe', { projectId });
     return { ok: true };
   } catch (e: unknown) {
     const msg = (e instanceof Error) ? e.message : String(e);
@@ -301,7 +301,7 @@ export async function deleteTribe(
     }
   }
   await db.delete(tribes).where(and(eq(tribes.id, id), eq(tribes.projectId, projectId)));
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true };
 }
 
@@ -410,7 +410,7 @@ export async function createHabitat(
       .values({ tenantId: TENANT, habitatId: newId, tribeId: input.tribeId, isPrimary: true })
       .onConflictDoNothing();
   }
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true, id: newId };
 }
 
@@ -510,7 +510,7 @@ export async function updateHabitat(
         .where(eq(habitatTribes.habitatId, id));
     }
   }
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true };
 }
 
@@ -541,7 +541,7 @@ export async function setHabitatTribes(
   }
   await db.update(habitats).set({ tribeId: primary, updatedAt: new Date() })
     .where(and(eq(habitats.id, habitatId), eq(habitats.projectId, projectId)));
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true };
 }
 
@@ -560,7 +560,7 @@ export async function deleteHabitat(
   // community_briefs FK has ON DELETE CASCADE — briefs for this habitat
   // are dropped automatically.
   await db.delete(habitats).where(and(eq(habitats.id, id), eq(habitats.projectId, projectId)));
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true };
 }
 
@@ -596,7 +596,7 @@ export async function bulkAssignHabitatTribe(
       .where(and(eq(habitats.id, a.habitatId), eq(habitats.projectId, projectId)));
     updated++;
   }
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('tribe', { projectId });
   return { ok: true, updated };
 }
 
@@ -649,8 +649,7 @@ export async function archiveCardsByTypesForHabitat(
   `);
   // rowCount k m_pkg-specific; pg trả 'rowCount' top-level
   const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/seeding`);
+  await touchEntity('tribe', { projectId });
   return { ok: true, archived: rc };
 }
 
@@ -673,8 +672,7 @@ export async function restoreArchivedCardsByTypesForHabitat(
       )
   `);
   const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
-  revalidatePath(`/p/${projectId}/tribes`);
-  revalidatePath(`/p/${projectId}/seeding`);
+  await touchEntity('tribe', { projectId });
   return { ok: true, restored: rc };
 }
 
@@ -715,7 +713,7 @@ export async function archiveCardsByTypesForPlatform(
       )
   `);
   const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
-  revalidatePath('/platforms');
+  await touchEntity('tribe', {});
   return { ok: true, archived: rc };
 }
 
@@ -736,6 +734,6 @@ export async function restoreArchivedCardsByTypesForPlatform(
       )
   `);
   const rc = (result as unknown as { rowCount?: number }).rowCount ?? 0;
-  revalidatePath('/platforms');
+  await touchEntity('tribe', {});
   return { ok: true, restored: rc };
 }

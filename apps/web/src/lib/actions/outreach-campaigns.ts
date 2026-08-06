@@ -6,7 +6,7 @@
 // Decision: earns-strategy 2026-07-04-outreach-multi-campaign-platform.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { getCurrentUser } from '@/lib/auth';
 import { aiEnabled } from '@/lib/ai/openai';
 import { EMAIL_RE, genPitch, ensureBacklinkCampaign, linkTaskToOutreachCore } from '@/lib/outreach/link-task';
@@ -88,7 +88,7 @@ export async function createCampaign(input: {
               ${input.fromEmail ?? null}, ${input.fromName ?? null},
               ${input.dailyCap ?? 15}, ${input.followupGapDays ?? 3}, ${input.maxFollowups ?? 2}, ${autoSend})
       RETURNING id`);
-    revalidatePath(`/p/${input.projectId}/outreach`);
+    await touchEntity('outreach', { projectId: input.projectId });
     return { ok: true, id: Number((ins as unknown as Array<{ id: number }>)[0]?.id) };
   } catch (e) {
     return { ok: false, error: `create lỗi: ${(e as Error).message}` };
@@ -117,7 +117,7 @@ export async function updateCampaign(id: number, projectId: string, patch: {
   sets.push(sql`updated_at = now()`);
   try {
     await db.execute(sql`UPDATE outreach_campaigns SET ${sql.join(sets, sql`, `)} WHERE id = ${id}`);
-    revalidatePath(`/p/${projectId}/outreach`);
+    await touchEntity('outreach', { projectId });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: `update lỗi: ${(e as Error).message}` };
@@ -178,7 +178,7 @@ export async function importBacklinkTasks(projectId: string): Promise<{ ok: bool
       filled++;
     }
 
-    revalidatePath(`/p/${projectId}/outreach`);
+    await touchEntity('outreach', { projectId });
     return { ok: true, created, filled, skippedForm };
   } catch (e) {
     return { ok: false, created: 0, filled: 0, skippedForm: 0, error: `import lỗi: ${(e as Error).message}` };
@@ -192,6 +192,6 @@ export async function linkTaskToOutreach(taskId: number) {
   if (!(await isAdmin())) return { ok: false, error: 'forbidden' };
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   const r = await linkTaskToOutreachCore(db, taskId);
-  if (r.ok && r.projectId) revalidatePath(`/p/${r.projectId}/outreach`);
+  if (r.ok && r.projectId) await touchEntity('outreach', { projectId: r.projectId });
   return r;
 }

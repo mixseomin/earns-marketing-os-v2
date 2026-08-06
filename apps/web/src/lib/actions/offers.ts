@@ -18,7 +18,8 @@
 //      not one-after-another.
 //   3. the assembled list is wrapped in unstable_cache (5 min) so repeat loads skip Directus.
 
-import { revalidateTag, unstable_cache } from 'next/cache';
+import { unstable_cache } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
@@ -335,6 +336,6 @@ export async function saveOfferTerms(id: string, t: OfferTerms): Promise<{ ok: b
     }),
   });
   if (!r.ok) return { ok: false, error: `directus ${r.status}` };
-  revalidateTag('affiliate-offers');
+  await touchEntity('offer');
   return { ok: true };
 }

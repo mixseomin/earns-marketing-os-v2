@@ -12,7 +12,7 @@
 
 import { getDb, platformAccounts, selectorOverrides } from '@mos2/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { canonField } from '../selector-field-canon';
 import { setOverride, resolveSelectors, type ScopeKind, type SelectorSpec } from './habitat-selectors';
 import { scopeKindMatch } from '@/lib/scope-kind';
@@ -89,8 +89,7 @@ export async function renameProfileField(opts: {
   `);
   const accountsTouched = (upd as { rowCount?: number }).rowCount ?? 0;
 
-  revalidatePath('/platforms');
-  revalidatePath('/accounts');
+  await touchEntity('account');
   return { ok: true, savedName, accountsTouched, folded };
 }
 

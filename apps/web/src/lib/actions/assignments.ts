@@ -3,7 +3,7 @@
 // Per-member assignments: project membership + entity ownership
 // (platform_accounts, proxies, browser_profiles, tribes).
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -64,8 +64,7 @@ export async function setProjectMembership(userId: number, projectId: string, is
       DELETE FROM members WHERE user_id = ${userId} AND project_id = ${projectId} AND tenant_id = ${TENANT}
     `);
   }
-  revalidatePath('/team');
-  revalidatePath('/');
+  await touchEntity('team-member', { projectId });
   return { ok: true };
 }
 
@@ -392,8 +391,7 @@ export async function assignAccountsToMember(
       UPDATE members SET config_version = config_version + 1
       WHERE user_id = ${userId} AND project_id IS NULL
     `);
-    revalidatePath(`/p/${projectId}/resources`);
-    revalidatePath('/team');
+    await touchEntity('team-member', { projectId });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -474,7 +472,7 @@ export async function setEntityOwner(type: OwnableEntity, entityId: number, owne
   if (!table) return { ok: false, error: `Invalid type ${type}` };
   // Use raw query (table name must be safe — we control the constant)
   await db.execute(sql.raw(`UPDATE ${table} SET owner_user_id = ${ownerUserId === null ? 'NULL' : Number(ownerUserId)}, updated_at = NOW() WHERE id = ${Number(entityId)}`));
-  revalidatePath('/team');
+  await touchEntity('team-member');
   return { ok: true };
 }
 

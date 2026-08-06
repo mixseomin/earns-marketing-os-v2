@@ -3,7 +3,7 @@
 // Platform catalog CRUD — used by accounts-vault PlatformPicker.
 // Existing schema: platforms { key (PK), label, signup_url, post_url, priority, fallback_keys, icon_slug, image_specs }
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { eq, sql } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
 import type { SignupField } from './technologies';
@@ -166,7 +166,7 @@ export async function syncPlatformsFromDirectus(): Promise<{
       created += chunk.length;
     }
   }
-  revalidatePath('/platforms');
+  await touchEntity('platform');
   return { ok: true, created, alreadyExisted };
 }
 
@@ -209,8 +209,7 @@ export async function createPlatform(input: PlatformInput): Promise<{ ok: boolea
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  revalidatePath('/p/[id]/resources', 'page');
-  revalidatePath('/platforms');
+  await touchEntity('platform');
   return {
     ok: true, key,
     directusWarning: push.error ? `Saved to MOS2 but Directus push failed: ${push.error}` : undefined,
@@ -304,8 +303,7 @@ export async function updatePlatform(key: string, patch: Partial<PlatformInput>)
     }
   }
 
-  revalidatePath('/p/[id]/resources', 'page');
-  revalidatePath('/platforms');
+  await touchEntity('platform');
   return { ok: true, directusWarning };
 }
 
@@ -406,7 +404,7 @@ export async function setPlatformLinkGate(key: string, enabled: boolean): Promis
   const db = getDb();
   if (!db) return { ok: false, error: 'DATABASE_URL not configured.' };
   await db.update(platforms).set({ linkGateEnabled: enabled, updatedAt: new Date() }).where(eq(platforms.key, key));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('platform');
   return { ok: true };
 }
 
@@ -432,8 +430,7 @@ export async function adoptTemplate(input: {
       // drop the detection(s) for this platform that match the adopted tech
       await db.execute(sql`DELETE FROM platform_tech_detections WHERE platform_key = ${key} AND technology_key = ${input.technologyKey}`);
     }
-    revalidatePath('/architecture');
-    revalidatePath('/platforms');
+    await touchEntity('platform');
     return { ok: true, created };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -449,8 +446,7 @@ export async function archivePlatform(key: string, archive: boolean): Promise<{ 
   const tags = ((row.tags as string[]) ?? []).filter((t) => t !== 'archived');
   if (archive) tags.push('archived');
   await db.update(platforms).set({ tags, updatedAt: new Date() }).where(eq(platforms.key, key));
-  revalidatePath('/p/[id]/resources', 'page');
-  revalidatePath('/platforms', 'page');
+  await touchEntity('platform');
   return { ok: true };
 }
 
@@ -461,6 +457,6 @@ export async function deletePlatform(key: string): Promise<{ ok: boolean; error?
   const n = (ref as unknown as Array<{ n: number }>)[0]?.n ?? 0;
   if (n > 0) return { ok: false, error: `Có ${n} accounts đang dùng platform này — xóa account trước.` };
   await db.delete(platforms).where(eq(platforms.key, key));
-  revalidatePath('/p/[id]/resources', 'page');
+  await touchEntity('platform');
   return { ok: true };
 }

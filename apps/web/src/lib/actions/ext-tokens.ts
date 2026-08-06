@@ -6,7 +6,7 @@ import { createHash, randomBytes } from 'crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -25,7 +25,7 @@ export async function issueExtToken(userId: number): Promise<{ ok: boolean; toke
   const hash = createHash('sha256').update(token).digest('hex');
   await db.execute(sql`UPDATE ext_tokens SET revoked_at = now() WHERE user_id = ${userId} AND revoked_at IS NULL`);
   await db.execute(sql`INSERT INTO ext_tokens (tenant_id, user_id, token_hash) VALUES (${TENANT}, ${userId}, ${hash})`);
-  revalidatePath('/architecture');
+  await touchEntity('ext-token');
   return { ok: true, token };
 }
 
@@ -33,6 +33,6 @@ export async function revokeExtToken(userId: number): Promise<{ ok: boolean; err
   const g = await adminGuard(); if (!g.ok) return g;
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   await db.execute(sql`UPDATE ext_tokens SET revoked_at = now() WHERE user_id = ${userId} AND revoked_at IS NULL`);
-  revalidatePath('/architecture');
+  await touchEntity('ext-token');
   return { ok: true };
 }

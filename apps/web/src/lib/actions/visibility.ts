@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -64,7 +64,7 @@ export async function saveVisibilityConfig(
         WHERE role = ${role} AND project_id IS NULL AND tenant_id = ${TENANT}
       `);
     }
-    revalidatePath('/team');
+    await touchEntity('team-member');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

@@ -2,7 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -20,8 +20,7 @@ export async function createKnowledgeItem(data: {
     INSERT INTO knowledge_items (tenant_id, project_id, kind, title, content, tags)
     VALUES (${TENANT}, ${data.projectId}, ${data.kind}, ${data.title}, ${data.content}, ${JSON.stringify(data.tags)}::jsonb)
   `);
-  if (data.projectId) revalidatePath(`/p/${data.projectId}/resources`);
-  revalidatePath('/knowledge');
+  await touchEntity('knowledge', { projectId: data.projectId });
 }
 
 export async function updateKnowledgeItem(id: number, data: {
@@ -35,14 +34,14 @@ export async function updateKnowledgeItem(id: number, data: {
         tags = ${JSON.stringify(data.tags)}::jsonb, updated_at = now()
     WHERE id = ${id} AND tenant_id = ${TENANT}
   `);
-  revalidatePath('/knowledge');
+  await touchEntity('knowledge');
 }
 
 export async function deleteKnowledgeItem(id: number) {
   const db = getDb();
   if (!db) throw new Error('DB unavailable');
   await db.execute(sql`DELETE FROM knowledge_items WHERE id = ${id} AND tenant_id = ${TENANT}`);
-  revalidatePath('/knowledge');
+  await touchEntity('knowledge');
 }
 
 // Reference a shared template into a project (pointer, not copy). overrides = per-project {{var}} values.
@@ -56,8 +55,7 @@ export async function referenceKnowledge(projectId: string, itemId: number, over
         updated_at = now()
     WHERE id = ${itemId} AND tenant_id = ${TENANT} AND project_id IS NULL
   `);
-  revalidatePath(`/p/${projectId}/resources`);
-  revalidatePath('/knowledge');
+  await touchEntity('knowledge', { projectId });
 }
 
 export async function unreferenceKnowledge(projectId: string, itemId: number) {
@@ -67,6 +65,5 @@ export async function unreferenceKnowledge(projectId: string, itemId: number) {
     UPDATE knowledge_items SET refs = refs - ${projectId}::text, updated_at = now()
     WHERE id = ${itemId} AND tenant_id = ${TENANT} AND project_id IS NULL
   `);
-  revalidatePath(`/p/${projectId}/resources`);
-  revalidatePath('/knowledge');
+  await touchEntity('knowledge', { projectId });
 }

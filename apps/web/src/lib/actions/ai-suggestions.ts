@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq, desc, gte, sql } from 'drizzle-orm';
 import { getDb, aiSuggestions, projects, cards } from '@mos2/db';
 import { generateSuggestions as runOpenAI, hashContext, type SuggestionContext, type AISuggestion } from '@/lib/ai/suggestions';
@@ -75,9 +75,7 @@ async function buildContext(projectId: string): Promise<SuggestionContext | null
 export async function setProjectAIEnabled(projectId: string, enabled: boolean): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(projects).set({ aiEnabled: enabled, updatedAt: new Date() }).where(eq(projects.id, projectId));
-  revalidatePath(`/p/${projectId}`);
-  revalidatePath(`/p/${projectId}/settings`);
-  revalidatePath('/ai-log');
+  await touchEntity('ai', { projectId });
   return { ok: true };
 }
 
@@ -260,7 +258,7 @@ export async function getOrGenerateSuggestions(
       tokensUsed: result.tokensUsed,
     }).returning({ id: aiSuggestions.id, generatedAt: aiSuggestions.generatedAt });
 
-    revalidatePath(`/p/${projectId}`);
+    await touchEntity('ai', { projectId });
 
     return {
       ok: true,
@@ -306,7 +304,6 @@ export async function setSuggestionFeedback(
   }
   // Revalidate the project page so SSR fetches fresh feedback.
   const [row] = await db.select({ projectId: aiSuggestions.projectId }).from(aiSuggestions).where(eq(aiSuggestions.id, rowId)).limit(1);
-  if (row) revalidatePath(`/p/${row.projectId}`);
-  revalidatePath('/ai-log');
+  await touchEntity('ai', { projectId: row?.projectId });
   return { ok: true };
 }

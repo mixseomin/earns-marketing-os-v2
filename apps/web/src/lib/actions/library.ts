@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq, isNull, asc, desc } from 'drizzle-orm';
 import { getDb, libraryTools, skillSnippets } from '@mos2/db';
 
@@ -70,7 +70,7 @@ export async function createTool(input: ToolInput): Promise<{ ok: boolean; error
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true };
 }
 
@@ -86,14 +86,14 @@ export async function updateTool(id: string, patch: Partial<ToolInput>): Promise
   if (patch.sourceUrl !== undefined) set.sourceUrl = patch.sourceUrl;
   if (patch.sortOrder !== undefined) set.sortOrder = patch.sortOrder;
   await db.update(libraryTools).set(set).where(eq(libraryTools.id, id));
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true };
 }
 
 export async function archiveTool(id: string): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(libraryTools).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(libraryTools.id, id));
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true };
 }
 
@@ -153,7 +153,7 @@ export async function createSkill(input: SkillInput): Promise<{ ok: boolean; slu
     tenantId: TENANT, slug, title: input.title, body: input.body, tags: input.tags ?? [],
     source: input.source ?? null, sourceUrl: input.sourceUrl ?? null, license: input.license ?? null,
   });
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true, slug };
 }
 
@@ -168,13 +168,13 @@ export async function updateSkill(id: number, patch: Partial<SkillInput>): Promi
   if (patch.sourceUrl !== undefined) set.sourceUrl = patch.sourceUrl;
   if (patch.license !== undefined) set.license = patch.license;
   await db.update(skillSnippets).set(set).where(eq(skillSnippets.id, id));
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true };
 }
 
 export async function archiveSkill(id: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
   await db.update(skillSnippets).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(skillSnippets.id, id));
-  revalidatePath('/library');
+  await touchEntity('library');
   return { ok: true };
 }

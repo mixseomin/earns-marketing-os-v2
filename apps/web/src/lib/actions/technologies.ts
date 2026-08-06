@@ -2,7 +2,7 @@
 
 import { getDb, platformTechnologies, platforms, habitats, selectorOverrides } from '@mos2/db';
 import { eq, and, inArray, isNotNull, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -136,7 +136,7 @@ export async function upsertTechnology(input: {
           updatedAt: new Date(),
         },
       });
-    revalidatePath('/platforms');
+    await touchEntity('technology');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

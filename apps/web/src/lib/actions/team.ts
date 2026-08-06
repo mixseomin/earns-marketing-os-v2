@@ -2,7 +2,7 @@
 
 // Team management — users + members CRUD + current-user cookie + assignment helpers.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, users, members } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -157,7 +157,7 @@ export async function createTeamMember(input: MemberInput): Promise<{ ok: boolea
         active: input.active ?? true,
       });
     }
-    revalidatePath('/team');
+    await touchEntity('team-member');
     return { ok: true, userId };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -190,7 +190,7 @@ export async function updateTeamMember(userId: number, patch: Partial<MemberInpu
           sql`${members.projectId} IS NULL`
         ));
     }
-    revalidatePath('/team');
+    await touchEntity('team-member');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -207,7 +207,7 @@ export async function archiveTeamMember(userId: number): Promise<{ ok: boolean; 
       eq(members.userId, userId),
       sql`${members.projectId} IS NULL`
     ));
-  revalidatePath('/team');
+  await touchEntity('team-member');
   return { ok: true };
 }
 
@@ -223,9 +223,7 @@ export async function assignTaskToUser(taskId: number, userId: number | null): P
   const db = ensureDb();
   try {
     await db.execute(sql`UPDATE human_tasks SET assigned_user_id = ${userId}, updated_at = NOW() WHERE id = ${taskId}`);
-    revalidatePath('/inbox');
-    revalidatePath('/p/[id]/inbox', 'page');
-    revalidatePath('/p/[id]/backlinks', 'page');
+    await touchEntity('team-member');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

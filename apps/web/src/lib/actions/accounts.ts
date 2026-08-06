@@ -2,7 +2,7 @@
 
 // Server Actions for platform account CRUD + warmup checklist updates.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import {
@@ -152,7 +152,7 @@ export async function createAccount(projectId: string, input: AccountInput): Pro
     }
   }
 
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true, id: row?.id };
 }
 
@@ -173,7 +173,7 @@ export async function linkAccountToProject(
     ON CONFLICT (project_id, account_id) DO UPDATE
       SET role = EXCLUDED.role, content_ratio = EXCLUDED.content_ratio
   `);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -186,7 +186,7 @@ export async function unlinkAccountFromProject(
     DELETE FROM project_accounts
     WHERE account_id = ${accountId} AND project_id = ${projectId}
   `);
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -336,7 +336,7 @@ export async function setAccountPrimaryProject(accountId: number, newProjectId: 
     await tx.execute(sql`INSERT INTO project_accounts (project_id, account_id, role, content_ratio) VALUES (${newProjectId}, ${accountId}, 'primary', 100) ON CONFLICT (project_id, account_id) DO UPDATE SET role = 'primary'`);
     await tx.execute(sql`UPDATE platform_accounts SET project_id = ${newProjectId} WHERE id = ${accountId}`);
   });
-  for (const p of [oldPrimary, newProjectId]) { if (p) { revalidatePath(`/p/${p}/resources`); revalidatePath(`/p/${p}/seeding`); } }
+  await touchEntity('account', { projectIds: [oldPrimary, newProjectId] });
   return { ok: true, oldPrimary };
 }
 
@@ -347,7 +347,7 @@ export async function joinAccountProjectShared(accountId: number, projectId: str
   const role = (cur as unknown as Array<unknown>).length > 0 ? 'shared' : 'primary';
   await db.execute(sql`INSERT INTO project_accounts (project_id, account_id, role, content_ratio) VALUES (${projectId}, ${accountId}, ${role}, ${role === 'primary' ? 100 : 0}) ON CONFLICT (project_id, account_id) DO NOTHING`);
   if (role === 'primary') await db.execute(sql`UPDATE platform_accounts SET project_id = ${projectId} WHERE id = ${accountId}`);
-  revalidatePath(`/p/${projectId}/resources`); revalidatePath(`/p/${projectId}/seeding`);
+  await touchEntity('account', { projectId });
   return { ok: true, role };
 }
 
@@ -358,7 +358,7 @@ export async function leaveAccountProject(accountId: number, projectId: string):
   const role = (cur as unknown as Array<{ role: string }>)[0]?.role;
   if (role === 'primary') return { ok: false, error: 'Không thể rời project chính — đặt project khác làm chính trước.' };
   await db.execute(sql`DELETE FROM project_accounts WHERE account_id = ${accountId} AND project_id = ${projectId}`);
-  revalidatePath(`/p/${projectId}/resources`); revalidatePath(`/p/${projectId}/seeding`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -414,9 +414,7 @@ export async function updateAccount(projectId: string, id: number, patch: Partia
     }
   }
 
-  revalidatePath(`/p/${projectId}/resources`);
-  revalidatePath(`/p/${projectId}/seeding`);
-  revalidatePath(`/p/${projectId}/tribes`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -430,7 +428,7 @@ export async function deleteAccount(projectId: string, id: number): Promise<{ ok
   if (!acc) return { ok: false, error: 'account not found' };
 
   await db.delete(platformAccounts).where(eq(platformAccounts.id, acc.id));
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -654,7 +652,7 @@ export async function importDirectusAccount(projectId: string, directusId: strin
         VALUES (${projectId}, ${accId}, 'shared', 0)
         ON CONFLICT DO NOTHING
       `);
-      revalidatePath(`/p/${projectId}/resources`);
+      await touchEntity('account', { projectId });
       return { ok: true, id: accId, alreadyExists: true };
     }
   }
@@ -691,7 +689,7 @@ export async function importDirectusAccount(projectId: string, directusId: strin
     `);
   }
 
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true, id: row?.id };
 }
 
@@ -747,7 +745,7 @@ export async function pushAccountToDirectus(
     await db.update(platformAccounts)
       .set({ tags: newTags, updatedAt: new Date() })
       .where(eq(platformAccounts.id, accountId));
-    revalidatePath(`/p/${projectId}/resources`);
+    await touchEntity('account', { projectId });
     return { ok: true, directusId: created.id, created: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -772,7 +770,7 @@ export async function toggleChecklistItem(projectId: string, id: number, itemKey
     .set({ warmupChecklist: checklist, updatedAt: new Date() })
     .where(eq(platformAccounts.id, acc.id));
 
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -792,7 +790,7 @@ export async function setAccountApiToken(
     await db.update(platformAccounts)
       .set({ apiTokenEnc: enc, updatedAt: new Date() })
       .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)));
-    revalidatePath(`/p/${projectId}/resources`);
+    await touchEntity('account', { projectId });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -825,7 +823,7 @@ export async function clearAccountApiToken(
   await db.update(platformAccounts)
     .set({ apiTokenEnc: null, updatedAt: new Date() })
     .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.projectId, projectId), eq(platformAccounts.id, id)));
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true };
 }
 
@@ -926,6 +924,6 @@ export async function syncAccountFromPlatform(
     catch (e) { console.warn('[sync] push to Directus failed', e); }
   }
 
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('account', { projectId });
   return { ok: true, updated, profile: p as unknown as Record<string, unknown> };
 }

@@ -6,7 +6,7 @@
 // manual "Mark embedded" button is a fallback for un-attributable embeds ('(direct)' referrer).
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { getOutreachProspect } from './outreach';
 import type { OutreachProspect } from './outreach';
@@ -22,7 +22,7 @@ export async function loadProspect(projectId: string, prospectId: number): Promi
 }
 
 async function rerender(projectId: string) {
-  revalidatePath(`/p/${projectId}/outreach`);
+  await touchEntity('outreach', { projectId });
 }
 
 export async function setProspectStatus(projectId: string, id: number, status: string) {

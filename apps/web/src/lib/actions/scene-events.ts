@@ -2,7 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { requireRole } from '@/lib/auth';
 import { DEFAULT_SCENE_EVENTS, type SceneEvent } from '@/lib/scene-events';
 
@@ -44,7 +44,7 @@ export async function saveSceneEvents(events: SceneEvent[]): Promise<{ ok: boole
       INSERT INTO app_settings (key, value, updated_at)
       VALUES ('scene_events', ${JSON.stringify(clean)}::jsonb, now())
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`);
-    revalidatePath('/architecture');
+    await touchEntity('scene');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error)?.message?.slice(0, 120) || 'save failed' };

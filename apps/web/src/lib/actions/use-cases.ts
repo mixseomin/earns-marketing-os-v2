@@ -3,7 +3,7 @@
 // Server Actions for use case state management.
 // State columns ONLY — never touches spec (managed by seed file).
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, useCases } from '@mos2/db';
 
@@ -43,7 +43,7 @@ export async function markUseCase(slug: string, status: UseCaseStatus, statusNot
     })
     .where(eq(useCases.slug, slug));
 
-  revalidatePath('/tests');
+  await touchEntity('use-case');
   return { ok: true };
 }
 
@@ -73,7 +73,7 @@ export async function addFeedback(
     set.fixNote = null;
   }
   await db.update(useCases).set(set).where(eq(useCases.slug, slug));
-  revalidatePath('/tests');
+  await touchEntity('use-case');
   return { ok: true };
 }
 
@@ -100,7 +100,7 @@ export async function markCaseFixed(slug: string, commitSha: string, fixNote?: s
     })
     .where(eq(useCases.slug, slug));
 
-  revalidatePath('/tests');
+  await touchEntity('use-case');
   return { ok: true };
 }
 
@@ -114,6 +114,6 @@ export async function setBlocker(slug: string, blockerRef: string): Promise<{ ok
     .update(useCases)
     .set({ blockerRef: blockerRef || null, updatedAt: new Date() })
     .where(eq(useCases.slug, slug));
-  revalidatePath('/tests');
+  await touchEntity('use-case');
   return { ok: true };
 }

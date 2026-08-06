@@ -5,7 +5,7 @@
 // (fills {product}/{domain} from the project). See decision 2026-07-19-backlink-source-catalog-standardization.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { nichesForProject, resolveSiteSlug } from '../backlink-sites';
 import { automationNeedsHuman, type Automation } from '../backlink-gates';
 
@@ -199,7 +199,7 @@ export async function seedBacklinksFromCatalog(
       `);
       created++;
     }
-    revalidatePath(`/p/${projectId}/backlinks`);
+    await touchEntity('backlink', { projectId });
     return { ok: true, created, skipped };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -267,7 +267,7 @@ export async function queueMethodFanout(sourceId: number, projectId: string): Pr
     const prompt = `FAN-OUT method "${src.name}" cho project ${product} (${domain}). Niche: ${niche || '(chưa có one-liner)'}.\n\nMethod template (khung):\n${src.instruction_template || '(trống)'}\n\nYÊU CẦU: research target THẬT cho niche này (subreddit / forum / FB group / directory — có TÊN + URL thật, đã verify). KHÔNG bịa. Bung thành NHIỀU task cụ thể, mỗi task = 1 target thật + các bước actionable (như plays militarycalc). Target không verify được → đưa SEARCH RECIPE cụ thể, tuyệt đối không bịa tên/URL. Tạo task ở dạng draft/pending cho ${product} để chờ duyệt.`;
     const ctx = { source_id: sourceId, source_name: src.name, category: src.category ?? null, method_template: src.instruction_template ?? null, product, domain, niche };
     const insR = (await db.execute(sql`INSERT INTO ai_content (task_id, project_id, site, kind, engine, status, prompt, context) VALUES (${taskId}, ${projectId}, ${domain}, 'method-fanout', 'claude', 'queued', ${prompt}, ${JSON.stringify(ctx)}::jsonb) RETURNING id`)) as unknown as Array<{ id: number }>;
-    revalidatePath('/catalog');
+    await touchEntity('backlink');
     return { ok: true, status: 'queued', id: Number(insR[0]?.id) } as { ok: boolean; status?: string };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -331,7 +331,7 @@ export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<
           traffic = ${input.traffic ?? null}, audience_tags = ${tagsSql}, instruction_template = ${input.instructionTemplate ?? null},
           gates = ${input.gates ?? null}, platform_key = ${input.platformKey ?? null}, source_status = ${status}, updated_at = now()
         WHERE id = ${input.id}`);
-      revalidatePath('/p/[id]/backlinks', 'page');
+      await touchEntity('backlink');
       // Propagate this template edit to every task already seeded from the source (living template).
       const sync = await syncTasksFromSource(input.id);
       return { ok: true, id: input.id, synced: sync.updated ?? 0 };
@@ -344,7 +344,7 @@ export async function upsertBacklinkSource(input: BacklinkSourceInput): Promise<
         instruction_template = EXCLUDED.instruction_template, gates = EXCLUDED.gates, platform_key = EXCLUDED.platform_key,
         source_status = EXCLUDED.source_status, updated_at = now()
       RETURNING id`)) as unknown as Array<{ id: number }>;
-    revalidatePath('/p/[id]/backlinks', 'page');
+    await touchEntity('backlink');
     return { ok: true, id: Number(ins[0]?.id) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -395,7 +395,7 @@ export async function syncTasksFromSource(sourceId: number): Promise<{ ok: boole
       updated++;
       touched.add(pid);
     }
-    for (const pid of touched) { revalidatePath(`/p/${pid}/backlinks`, 'page'); revalidatePath(`/p/${pid}/plays`, 'page'); }
+    await touchEntity('backlink', { projectIds: [...touched] });
     return { ok: true, updated, skipped };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -469,7 +469,7 @@ export async function reportSourceOutcome(taskId: number, input: OutcomeInput): 
       const blocker = { reason: input.obstacle?.type || (input.status === 'rejected' ? 'rejected' : 'needs-human'), note: input.note || input.obstacle?.note || '', at, needsHuman };
       await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload,'{}'::jsonb), '{blocker}', ${JSON.stringify(blocker)}::jsonb), updated_at = now() WHERE id = ${Number(taskId)}`);
     }
-    if (projectId) { revalidatePath(`/p/${projectId}/plays`, 'page'); revalidatePath(`/p/${projectId}/backlinks`, 'page'); revalidatePath('/plays', 'page'); }
+    if (projectId) await touchEntity('backlink', { projectId });
     return { ok: true, sourceId, automationChanged, needsHuman };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -482,7 +482,7 @@ export async function setBacklinkSourceStatus(id: number, status: string): Promi
   if (!['active', 'broken', 'needs-review', 'archived'].includes(status)) return { ok: false, error: 'status không hợp lệ' };
   try {
     await db.execute(sql`UPDATE backlink_sources SET source_status = ${status}, updated_at = now() WHERE id = ${id}`);
-    revalidatePath('/p/[id]/backlinks', 'page');
+    await touchEntity('backlink');
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

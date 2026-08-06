@@ -3,7 +3,7 @@
 // Gán account "mồ côi" (chưa có junction project_accounts) vào 1 project — từ
 // inbox /unmapped. Ensure junction + set project_id nếu đang trống.
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { eq } from 'drizzle-orm';
 import { getDb, platformAccounts, projectAccounts } from '@mos2/db';
 import { getCurrentUser } from '../auth';
@@ -30,7 +30,6 @@ export async function assignAccountProject(accountId: number, projectId: string)
     .values({ projectId, accountId, role: 'primary' })
     .onConflictDoNothing();
 
-  revalidatePath('/unmapped');
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('unmapped', { projectId });
   return { ok: true };
 }

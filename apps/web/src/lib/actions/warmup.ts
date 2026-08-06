@@ -3,7 +3,7 @@
 // Run auto-fetch for warmup checklist items having `auto:` flag.
 // 1 account at a time (UI button) hoặc batch (cron route).
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import { runAutoFetch } from '@/lib/warmup-checks';
@@ -85,7 +85,7 @@ export async function runAccountAutoCheck(
     .set({ warmupChecklist: next, updatedAt: new Date() })
     .where(eq(platformAccounts.id, accountId));
 
-  revalidatePath(`/p/${projectId}/resources`);
+  await touchEntity('resource', { projectId });
   return { ok: true, report };
 }
 

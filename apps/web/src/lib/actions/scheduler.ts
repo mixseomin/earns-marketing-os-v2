@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import {
@@ -63,12 +63,12 @@ export async function updateCronJobAction(
   patch: { intervalMinutes?: number; enabled?: boolean },
 ): Promise<{ ok: boolean }> {
   const result = await _updateCronJob(jobId, patch);
-  revalidatePath('/scheduler');
+  await touchEntity('scheduler');
   return result;
 }
 
 export async function triggerJobNowAction(jobId: string): Promise<{ ok: boolean }> {
   const result = await _triggerJobNow(jobId);
-  revalidatePath('/scheduler');
+  await touchEntity('scheduler');
   return result;
 }

@@ -5,7 +5,7 @@
 // real Anthropic call wired in Phase 3 (post-MVP).
 
 import { sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -48,10 +48,10 @@ function actorOf(meId: number | null | undefined): string {
   return meId == null ? 'user' : String(meId);
 }
 
-function revalidatePlanPaths(ctx: PlanCtx | null, planSlug?: string) {
+async function revalidatePlanPaths(ctx: PlanCtx | null, planSlug?: string) {
   const slug = ctx?.slug || planSlug;
   if (!slug) return;
-  if (ctx?.projectId) revalidatePath(`/p/${ctx.projectId}/plans/${slug}`);
+  if (ctx?.projectId) await touchEntity('plan', { projectId: ctx.projectId, sections: ['plans/' + slug] });
 }
 
 export async function updateStepStatus(stepId: number, status: string, planSlug: string) {
@@ -61,7 +61,7 @@ export async function updateStepStatus(stepId: number, status: string, planSlug:
   await db.execute(sql`UPDATE plan_steps SET status = ${status}, updated_at = NOW() WHERE id = ${stepId}`);
   const ctx = await planCtxForStep(stepId);
   if (ctx) await logActivity(ctx.planId, 'step', stepId, 'status_changed', { to: status }, actorOf(me?.id));
-  revalidatePlanPaths(ctx, planSlug);
+  await revalidatePlanPaths(ctx, planSlug);
   return { ok: true };
 }
 
@@ -86,7 +86,7 @@ export async function updateStepField(
   await db.execute(sql.raw(`UPDATE plan_steps SET ${col} = ${value === null ? 'NULL' : `'${value.replace(/'/g, "''")}'`}, updated_at = NOW() WHERE id = ${stepId}`));
   const ctx = await planCtxForStep(stepId);
   if (ctx) await logActivity(ctx.planId, 'step', stepId, 'updated', { field, value }, actorOf(me?.id));
-  revalidatePlanPaths(ctx, planSlug);
+  await revalidatePlanPaths(ctx, planSlug);
   return { ok: true };
 }
 
@@ -97,7 +97,7 @@ export async function updateGoalStatus(goalId: number, status: string, planSlug:
   await db.execute(sql`UPDATE plan_goals SET status = ${status}, updated_at = NOW() WHERE id = ${goalId}`);
   const ctx = await planCtxForGoal(goalId);
   if (ctx) await logActivity(ctx.planId, 'goal', goalId, 'status_changed', { to: status }, actorOf(me?.id));
-  revalidatePlanPaths(ctx, planSlug);
+  await revalidatePlanPaths(ctx, planSlug);
   return { ok: true };
 }
 
@@ -107,7 +107,7 @@ export async function updateGoalProgress(goalId: number, currentValue: number, p
   await db.execute(sql`UPDATE plan_goals SET current_value = ${currentValue}, updated_at = NOW() WHERE id = ${goalId}`);
   const ctx = await planCtxForGoal(goalId);
   if (ctx) await logActivity(ctx.planId, 'goal', goalId, 'updated', { current_value: currentValue });
-  revalidatePlanPaths(ctx, planSlug);
+  await revalidatePlanPaths(ctx, planSlug);
   return { ok: true };
 }
 
@@ -124,7 +124,7 @@ export async function aiGenerateStepDraft(stepId: number, planSlug: string): Pro
   await db.execute(sql`UPDATE plan_steps SET draft_content = ${draft}, ai_generated = true, updated_at = NOW() WHERE id = ${stepId}`);
   const ctx = await planCtxForStep(stepId);
   if (ctx) await logActivity(ctx.planId, 'step', stepId, 'ai_suggested', { kind: 'draft' }, 'ai');
-  revalidatePlanPaths(ctx, planSlug);
+  await revalidatePlanPaths(ctx, planSlug);
   return { ok: true, draft };
 }
 

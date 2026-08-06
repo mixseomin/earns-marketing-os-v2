@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import { and, eq } from 'drizzle-orm';
 import { getDb, squads } from '@mos2/db';
 
@@ -79,9 +79,7 @@ export async function createSquad(projectId: string, input: SquadInput): Promise
     config: input.config ?? {},
   });
 
-  revalidatePath(`/p/${projectId}/squads`);
-  revalidatePath(`/p/${projectId}`);
-  revalidatePath(`/p/${projectId}/board`);
+  await touchEntity('squad', { projectId });
   return { ok: true, squadKey: key };
 }
 
@@ -103,8 +101,7 @@ export async function updateSquad(projectId: string, squadKey: string, patch: Pa
 
   await db.update(squads).set(set).where(eq(squads.id, sq.id));
 
-  revalidatePath(`/p/${projectId}/squads`);
-  revalidatePath(`/p/${projectId}`);
+  await touchEntity('squad', { projectId });
   return { ok: true };
 }
 
@@ -114,8 +111,6 @@ export async function deleteSquad(projectId: string, squadKey: string): Promise<
   if (!sq) return { ok: false, error: 'squad not found' };
 
   await db.delete(squads).where(eq(squads.id, sq.id));
-  revalidatePath(`/p/${projectId}/squads`);
-  revalidatePath(`/p/${projectId}`);
-  revalidatePath(`/p/${projectId}/board`);
+  await touchEntity('squad', { projectId });
   return { ok: true };
 }

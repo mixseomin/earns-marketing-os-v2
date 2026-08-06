@@ -2,7 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { revalidatePath } from 'next/cache';
+import { touchEntity } from '@/lib/entity-cascade';
 import OpenAI from 'openai';
 
 export interface AgentRow {
@@ -167,7 +167,7 @@ export async function saveAgentBaseSkill(agentId: number, baseSkillMd: string, p
     UPDATE agents SET base_skill_md = ${baseSkillMd}, updated_at = NOW()
     WHERE id = ${agentId}
   `);
-  revalidatePath(`/p/${projectId}/squads`);
+  await touchEntity('agent', { projectId });
 }
 
 // ── Chat ─────────────────────────────────────────────────────────
@@ -250,5 +250,5 @@ export async function saveMessageAsLearning(
     VALUES ('self', ${projectId}, 'lesson', ${title}, ${content},
             ${JSON.stringify([agentRef, 'chat-learning'])}::jsonb, 'agent-chat')
   `);
-  revalidatePath(`/p/${projectId}/squads`);
+  await touchEntity('agent', { projectId });
 }

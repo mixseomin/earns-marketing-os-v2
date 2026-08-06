@@ -5,6 +5,7 @@
 // is to surface "did you run today's batch?" + the remaining backlog.
 
 import { wrapExternalUrl } from '@/lib/external-url';
+import { Panel } from './ui/panel';
 
 const AWIN_JSON_URL =
   'https://militarymarkdown.com/wp-content/uploads/phase7/awin-daily-latest.json';
@@ -42,24 +43,13 @@ export async function AwinDailyPanel() {
     /* fall through */
   }
 
-  const wrap: React.CSSProperties = {
-    background: 'var(--bg-1)',
-    border: '1px solid var(--line)',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  };
-
   if (!d) {
     return (
-      <div style={wrap}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: '0 0 8px' }}>
-          Awin Daily Route
-        </h2>
+      <Panel title="Awin Daily Route">
         <p style={{ color: 'var(--fg-3)', fontSize: 12, margin: 0 }}>
           Tracker data unavailable — daily cron at 08:00 +07.
         </p>
-      </div>
+      </Panel>
     );
   }
 
@@ -93,47 +83,26 @@ export async function AwinDailyPanel() {
   );
 
   return (
-    <div style={wrap}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>
-          Awin Daily Route
-          <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>
-            // pub {d.pub} · last sync {updated}
-          </small>
-        </h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a
-            href="/p/militarymarkdown/affiliates"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--fg-1)',
-              textDecoration: 'none',
-              border: '1px solid var(--line)',
-              borderRadius: 6,
-              padding: '5px 10px',
-            }}
-          >
-            Programmes →
-          </a>
-          <a
-            href={wrapExternalUrl("https://ui.awin.com/awin/publisher/410323/partnerships/explore")}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--neon-violet, #a78bfa)',
-              textDecoration: 'none',
-              border: '1px solid var(--line)',
-              borderRadius: 6,
-              padding: '5px 10px',
-            }}
-          >
-            Open Awin → run extension
-          </a>
-        </div>
-      </div>
+    <Panel
+      title="Awin Daily Route"
+      subtitle={`pub ${d.pub} · last sync ${updated}`}
+      actions={<>
+        <a
+          href="/p/militarymarkdown/affiliates"
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-1)', textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px' }}
+        >
+          Programmes →
+        </a>
+        <a
+          href={wrapExternalUrl("https://ui.awin.com/awin/publisher/410323/partnerships/explore")}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--neon-violet, #a78bfa)', textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px' }}
+        >
+          Open Awin → run extension
+        </a>
+      </>}
+    >
 
       <div
         style={
@@ -201,6 +170,6 @@ export async function AwinDailyPanel() {
           <b style={{ color: missed > 0 ? 'var(--warn)' : 'var(--ok)' }}>{missed}</b>
         </span>
       </div>
-    </div>
+    </Panel>
   );
 }

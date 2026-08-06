@@ -44,6 +44,10 @@ export {
   type FormModalProps, type ModalWidth,
 } from './form-modal';
 export { Section, type SectionProps } from './section';
+// Panel = THE dashboard card (dark card + hairline border + `// mono` subtitle + right actions).
+// ~50 places hand-rolled this shell; use <Panel> instead. Extracted from the SEO Sites Overview
+// panel (the reference — that file stays untouched). Server-compatible. See ui-conventions §7.
+export { Panel } from './panel';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';

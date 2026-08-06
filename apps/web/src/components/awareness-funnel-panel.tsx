@@ -1,4 +1,5 @@
 import { loadAwarenessFunnel } from '@/lib/projects/awareness-funnel';
+import { Panel } from './ui/panel';
 
 function fmtUsd(n: number): string {
   if (n === 0) return '$0';
@@ -34,10 +35,9 @@ export async function AwarenessFunnelPanel() {
   const s = await loadAwarenessFunnel('cities.gg');
   if (!s) {
     return (
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: '0 0 8px' }}>Awareness Funnel — cities.gg</h2>
+      <Panel title="Awareness Funnel — cities.gg">
         <p style={{ color: 'var(--fg-3)', fontSize: 12, margin: 0 }}>Bidvertiser pull pending — cron runs daily 06:00 UTC.</p>
-      </div>
+      </Panel>
     );
   }
 
@@ -48,15 +48,10 @@ export async function AwarenessFunnelPanel() {
   const cell: React.CSSProperties = { padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', textAlign: 'right' };
 
   return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>
-          Awareness Funnel — cities.gg
-          <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>
-            // Bidvertiser daily · last data {s.last_day_date || '—'}
-          </small>
-        </h2>
-      </div>
+    <Panel
+      title="Awareness Funnel — cities.gg"
+      subtitle={`Bidvertiser daily · last data ${s.last_day_date || '—'}`}
+    >
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 14 }}>
         <KpiCard label="Spend 7d" value={fmtUsd(s.spend_7d_usd)} sub={`${fmtNum(s.paid_visits_7d)} visits`} />
@@ -153,7 +148,7 @@ export async function AwarenessFunnelPanel() {
           </tbody>
         </table>
       </details>
-    </div>
+    </Panel>
   );
 }
 

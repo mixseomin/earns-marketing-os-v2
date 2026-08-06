@@ -96,5 +96,14 @@ Shell (`.main` trong `globals.css`) đã mang `padding: var(--s-4) var(--s-5) 56
 - Cần **edge-to-edge** (canvas/kanban full-bleed — hiếm): opt-out cục bộ bằng wrapper negative-margin, đừng đụng `.main`.
 - Đây là root fix "sửa 1 chỗ → cả LỚP bug 'quên wrapper → dán mép' biến mất", không vá từng page.
 
+## 7. Card dashboard = `<Panel>` (KHÔNG hand-roll `<div bg-1 + border + radius>`)
+
+Card chuẩn của nhà (nền tối + viền mảnh + tiêu đề kèm `// mono` subtitle + actions bên phải) đang bị **hand-roll ~50 chỗ** (`background: var(--bg-1)`, `border: 1px solid var(--line)`, `borderRadius: 8`, `padding: 16`, `marginBottom: 16`) → lệch nhau (radius 6/8, `--border` vs `--line`, title sans vs mono). Primitive: **`components/ui/panel.tsx`** — `<Panel title subtitle actions pad style>`. Server-compatible (dùng được trong async server component). Mang `data-comp="ui.Panel"` → hiện trong overlay debug "phím 2".
+
+- Panel được trích **nguyên xi** từ card "SEO Sites Overview" (`seo-sites-panel.tsx`) — đó là **reference chuẩn, KHÔNG sửa** (`seo-sites-table.tsx` cũng để nguyên). Dùng Panel cho các card KHÁC, không đụng bản gốc.
+- Đã adopt: `awin-daily-panel`, `awareness-funnel-panel`. Còn ~49 chỗ hand-roll (steamsolo/affiliate/deliverability + panel khác) → sweep dần, chỉ đổi khi shell khớp (đừng ép biến thể cố ý lệch như steamsolo mono-title).
+- **Bảng dữ liệu compact** (mono cell + cột nhóm màu + toggle nhóm cột + totals) = mẫu ở `seo-sites-table.tsx`. CHƯA trích thành `ui.DataTable` (YAGNI tới khi có bảng thứ 2 thật cần grouped-toggle; mật độ cell dense-SEO vs thoáng cần chốt trước). Muốn bảng mới giống → copy cell/head style từ đó rồi trích primitive khi có 2 consumer.
+- **"Phím 2" = RefactorDebug** (`ui/refactor-debug.tsx`, mount ở RootProviders): outline mọi element có `data-comp` (= house primitive) + badge tên (click = copy). Không outline = hand-roll. Trang nào bấm 2 thấy trống = nội dung chưa build trên primitive.
+
 ## Vì sao context này tồn tại
 Trước đây user phải "báo lại từ đầu" mỗi lần (drawer-not-modal, select chuẩn) vì convention nằm ở recall memory (hay rớt). Nay là context auto-load theo path → áp mặc định. Gốc rule: [[feedback pack ui-primitives]] (picker_inline_crud, stacked_drawer, modal_close_outside, guarded_action_button).

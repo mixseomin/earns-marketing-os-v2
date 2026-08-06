@@ -97,7 +97,14 @@ Shell (`.main` trong `globals.css`) đã mang `padding: var(--s-4) var(--s-5) 56
 - Đây là root fix "sửa 1 chỗ → cả LỚP bug 'quên wrapper → dán mép' biến mất", không vá từng page.
 - **Gotcha (2026-08): `padding: 16` dạng SỐ (không quote) CŨNG là outer padding.** Sweep §6 lần đầu chỉ regex string `'…px'` → sót `portfolio-view` (`padding:16`) + `ai-usage-card`/`deliverability-card` (`margin:'0 16px'`) → homepage **double-pad** (36px thay vì 20) + card lệch mép. Page tự set padding (SỐ hay STRING) đều gỡ; card con tự `margin:0 16px` bên trong page cũng gây thụt lề so với `.main` → bỏ, để mọi card chung 1 mép.
 
-## 7. Card dashboard = `<Panel>` (KHÔNG hand-roll `<div bg-1 + border + radius>`)
+## 7. Ruột panel cũng dùng primitive — KHÔNG hand-roll stat-tile / bảng trong từng panel
+
+Chuẩn cái vỏ (Panel) chưa đủ — **thành phần BÊN TRONG** cũng phải primitive, nếu không mỗi panel một kiểu tile/bảng (padding 3/8 vs 6/10, bg-1 vs bg-2, value-top vs label-top).
+- **Cụm ô số (label + value lớn + sub) = `<StatsStrip>`** (`ui/stats-strip.tsx`, `data-comp="ui.StatsStrip"`, server-compatible). `cards: StatCard[]` (`{key,label,value,color?,sub?,onClick?}`) + `columns?`/`minColWidth?` (auto-fit responsive). Đã thay tile hand-roll ở `awin-daily` (Joined/Pending/…), `awareness-funnel` (KPI + spend/visits), `steamsolo` (engagement + feature). KHÔNG tự chế `<div><big-num><label>` nữa.
+- **Bảng dày trong panel = `<DataTable>`** (dưới). Bảng của server-component → client wrapper (xem boundary note).
+- Viz một-lần (calendar warm-up, ramp strip, language-coverage bar, engagement-tier bar) = bespoke, KHÔNG ép primitive.
+
+## 7b. Card dashboard = `<Panel>` (KHÔNG hand-roll `<div bg-1 + border + radius>`)
 
 Card chuẩn của nhà (nền tối + viền mảnh + tiêu đề kèm `// mono` subtitle + actions bên phải) đang bị **hand-roll ~50 chỗ** (`background: var(--bg-1)`, `border: 1px solid var(--line)`, `borderRadius: 8`, `padding: 16`, `marginBottom: 16`) → lệch nhau (radius 6/8, `--border` vs `--line`, title sans vs mono). Primitive: **`components/ui/panel.tsx`** — `<Panel title subtitle actions pad style>`. Server-compatible (dùng được trong async server component). Mang `data-comp="ui.Panel"` → hiện trong overlay debug "phím 2".
 

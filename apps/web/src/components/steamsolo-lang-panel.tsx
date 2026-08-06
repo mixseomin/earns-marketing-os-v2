@@ -4,6 +4,7 @@
 import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 import { internalUrl } from '../lib/internal-origin';
 import { Panel } from './ui/panel';
+import { StatsStrip } from './ui/stats-strip';
 
 interface LangStats {
   ok: boolean;
@@ -62,14 +63,7 @@ export async function SteamsoloLangPanel() {
     >
 
       {/* Reader engagement on our own site (likes/shares/views/comments we log per guide) */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        {tiles.map(([label, n]) => (
-          <div key={label} style={{ flex: '1 1 90px', background: 'var(--bg-2)', borderRadius: 6, padding: '8px 10px' }}>
-            <div style={{ ...mono, fontSize: 18, fontWeight: 700, color: 'var(--fg-0)' }}>{n.toLocaleString()}</div>
-            <div style={{ ...mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-3)' }}>{label}</div>
-          </div>
-        ))}
-      </div>
+      <StatsStrip minColWidth={90} cards={tiles.map(([label, n]) => ({ key: label as string, label, value: (n as number).toLocaleString(), color: 'var(--fg-0)' }))} />
 
       {d.top_guides.length > 0 && (
         <div style={{ marginBottom: 14 }}>
@@ -101,14 +95,7 @@ export async function SteamsoloLangPanel() {
       {d.features?.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={th}>Feature usage (selection popup)</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {d.features.map((f) => (
-              <div key={f.feature} style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '7px 11px', minWidth: 92 }}>
-                <div style={{ ...mono, fontSize: 17, fontWeight: 700, color: 'var(--accent)' }}>{f.hits.toLocaleString()}</div>
-                <div style={{ ...mono, fontSize: 11, color: 'var(--fg-2)' }}>{FEATURE_LABEL[f.feature] || f.feature}</div>
-              </div>
-            ))}
-          </div>
+          <StatsStrip minColWidth={110} cards={d.features.map((f) => ({ key: f.feature, label: FEATURE_LABEL[f.feature] || f.feature, value: f.hits.toLocaleString(), color: 'var(--accent)' }))} />
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { loadAwarenessFunnel } from '@/lib/projects/awareness-funnel';
 import { Panel } from './ui/panel';
+import { StatsStrip } from './ui/stats-strip';
 
 function fmtUsd(n: number): string {
   if (n === 0) return '$0';
@@ -53,14 +54,14 @@ export async function AwarenessFunnelPanel() {
       subtitle={`Bidvertiser daily · last data ${s.last_day_date || '—'}`}
     >
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 14 }}>
-        <KpiCard label="Spend 7d" value={fmtUsd(s.spend_7d_usd)} sub={`${fmtNum(s.paid_visits_7d)} visits`} />
-        <KpiCard label="Spend 30d" value={fmtUsd(s.spend_30d_usd)} sub={`${fmtNum(s.paid_visits_30d)} visits`} />
-        <KpiCard label="GA4 Paid (7d)" value={fmtNum(s.ga4_paid_7d)} sub={s.paid_visits_7d > 0 && s.ga4_paid_7d ? `${((s.ga4_paid_7d / s.paid_visits_7d) * 100).toFixed(0)}% tracked` : '—'} />
-        <KpiCard label="GA4 Direct (7d)" value={fmtNum(s.ga4_direct_7d)} sub="organic spillover" />
-        <KpiCard label="Viral ratio" value={s.viral_ratio_7d !== null ? s.viral_ratio_7d.toFixed(2) : '—'} sub="Direct ÷ Paid" highlight />
-        <KpiCard label="Live now" value={s.realtime_30min !== null ? `${s.realtime_30min}` : '—'} sub={`${s.realtime_5min ?? '—'} in last 5m`} />
-      </div>
+      <StatsStrip minColWidth={160} cards={[
+        { key: 'spend7', label: 'Spend 7d', value: fmtUsd(s.spend_7d_usd), sub: `${fmtNum(s.paid_visits_7d)} visits` },
+        { key: 'spend30', label: 'Spend 30d', value: fmtUsd(s.spend_30d_usd), sub: `${fmtNum(s.paid_visits_30d)} visits` },
+        { key: 'ga4paid', label: 'GA4 Paid (7d)', value: fmtNum(s.ga4_paid_7d), sub: s.paid_visits_7d > 0 && s.ga4_paid_7d ? `${((s.ga4_paid_7d / s.paid_visits_7d) * 100).toFixed(0)}% tracked` : '—' },
+        { key: 'ga4direct', label: 'GA4 Direct (7d)', value: fmtNum(s.ga4_direct_7d), sub: 'organic spillover' },
+        { key: 'viral', label: 'Viral ratio', value: s.viral_ratio_7d !== null ? s.viral_ratio_7d.toFixed(2) : '—', sub: 'Direct ÷ Paid', color: 'var(--accent)' },
+        { key: 'live', label: 'Live now', value: s.realtime_30min !== null ? `${s.realtime_30min}` : '—', sub: `${s.realtime_5min ?? '—'} in last 5m` },
+      ]} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: 10 }}>
@@ -152,16 +153,3 @@ export async function AwarenessFunnelPanel() {
   );
 }
 
-function KpiCard({ label, value, sub, highlight }: { label: string; value: string; sub: string; highlight?: boolean }) {
-  return (
-    <div style={{
-      background: highlight ? 'rgba(59,130,246,0.08)' : 'var(--bg-2)',
-      border: `1px solid ${highlight ? 'rgba(59,130,246,0.3)' : 'var(--line)'}`,
-      borderRadius: 6, padding: '10px 12px',
-    }}>
-      <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: highlight ? 'var(--accent)' : 'var(--fg-1)', fontFamily: 'var(--font-mono)' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{sub}</div>
-    </div>
-  );
-}

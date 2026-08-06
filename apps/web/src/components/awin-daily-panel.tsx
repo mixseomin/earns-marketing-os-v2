@@ -6,6 +6,7 @@
 
 import { wrapExternalUrl } from '@/lib/external-url';
 import { Panel } from './ui/panel';
+import { StatsStrip } from './ui/stats-strip';
 
 const AWIN_JSON_URL =
   'https://militarymarkdown.com/wp-content/uploads/phase7/awin-daily-latest.json';
@@ -71,17 +72,6 @@ export async function AwinDailyPanel() {
     timeStyle: 'short',
   });
 
-  const stat = (label: string, val: number | null, tone?: string): React.ReactNode => (
-    <div style={{ flex: 1, minWidth: 90 }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: tone ?? 'var(--fg-1)' }}>
-        {val === null ? '—' : val.toLocaleString()}
-      </div>
-      <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
-        {label}
-      </div>
-    </div>
-  );
-
   return (
     <Panel
       title="Awin Daily Route"
@@ -140,12 +130,12 @@ export async function AwinDailyPanel() {
         {statusText}
       </div>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {stat('Joined', d.joined, 'var(--ok)')}
-        {stat('Pending', d.pending, 'var(--neon-violet, #a78bfa)')}
-        {stat('Rejected', d.rejected, 'var(--fg-2)')}
-        {stat('Backlog (notjoined)', d.notjoined, 'var(--fg-1)')}
-      </div>
+      <StatsStrip minColWidth={90} cards={[
+        { key: 'joined', label: 'Joined', value: d.joined == null ? '—' : d.joined.toLocaleString(), color: 'var(--ok)' },
+        { key: 'pending', label: 'Pending', value: d.pending == null ? '—' : d.pending.toLocaleString(), color: 'var(--neon-violet, #a78bfa)' },
+        { key: 'rejected', label: 'Rejected', value: d.rejected == null ? '—' : d.rejected.toLocaleString(), color: 'var(--fg-2)' },
+        { key: 'backlog', label: 'Backlog (notjoined)', value: d.notjoined == null ? '—' : d.notjoined.toLocaleString(), color: 'var(--fg-1)' },
+      ]} />
 
       <div
         style={{

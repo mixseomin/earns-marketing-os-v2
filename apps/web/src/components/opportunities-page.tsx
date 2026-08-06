@@ -190,6 +190,11 @@ function IdeasSection({ ideas }: { ideas: IdeaAnalysis[] }) {
   // Drawer con dùng slot riêng ('sub') để không giẫm lên slot của drawer ngành.
   const sub = useModalParam('sub');
   const sel = sub.is('idea') ? ideas.find((i) => i.id === sub.numId) ?? null : null;
+  // Section GẬP không render children (`{open && …}` trong ui/section.tsx) → link
+  // ?sub=idea&subId=… gửi cho người khác sẽ mở ra trắng. Nên khi URL đang trỏ vào
+  // một ý tưởng thì section phải tự bung; đóng section = đóng luôn drawer.
+  const [openSelf, setOpenSelf] = useState(false);
+  const open = openSelf || !!sel;
 
   const counts = useMemo(() => ({
     all: ideas.length,
@@ -218,7 +223,8 @@ function IdeasSection({ ideas }: { ideas: IdeaAnalysis[] }) {
     <Section
       title="Ý tưởng cũ · chưa kiểm chứng"
       subtitle={`${ideas.length} bản phân tích từ trước — tham khảo, không dùng để quyết định`}
-      defaultOpen={false}
+      open={open}
+      onToggle={(next) => { setOpenSelf(next); if (!next) sub.close(); }}
     >
       <p style={{ margin: '0 0 10px', fontSize: 11.5, color: 'var(--fg-3)' }}>
         Số liệu trong đây chưa đối chiếu nguồn nào và phần lớn đã cũ. Muốn dùng cái nào thì đo lại thị trường

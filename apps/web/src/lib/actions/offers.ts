@@ -34,9 +34,18 @@ const NETWORK_BY_ACCOUNT: Record<string, OfferKind | undefined> = {
 // own = OUR product that leaked into this collection (it belongs on /products).
 export type OfferKind = 'awin' | 'cj' | 'direct' | 'own';
 
+export interface OfferAccount {
+  id: string;
+  platform: string;
+  handle: string;
+  label: string;               // "travelpayouts · htuan82"
+}
+
 export interface AffiliateOffer {
   id: string;
   kind: OfferKind;
+  accountId: string | null;    // which of OUR accounts this offer is signed up under
+  account: string | null;      // OfferAccount.label, resolved
   name: string;
   status: string;              // active | joined | pending | paused | ...
   vertical: string | null;
@@ -102,11 +111,31 @@ async function ownProductTitles(): Promise<Set<string>> {
   return new Set((j.data ?? []).map((p) => (p.title ?? '').trim().toLowerCase()).filter(Boolean));
 }
 
-function toOffer(x: Row, own: Set<string>): AffiliateOffer {
+// Every offer is earned through one of OUR accounts (the login that got approved) — that account
+// is what you need to check stats / raise a ticket, so it's resolved into the list, not hidden
+// behind account_id. Cheap: one 500-row fetch, cached with the list.
+export const listOfferAccounts = unstable_cache(
+  async (): Promise<OfferAccount[]> => {
+    if (!DIRECTUS_TOKEN) return [];
+    const r = await fetch(`${DIRECTUS_URL}/items/accounts?fields=id,platform,handle&limit=500&sort=platform`, {
+      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+      next: { revalidate: 300, tags: ['affiliate-offers'] },
+    });
+    if (!r.ok) return [];
+    const j = (await r.json()) as { data?: { id: string; platform: string; handle: string }[] };
+    return (j.data ?? []).map((a) => ({ ...a, label: `${a.platform} · ${a.handle}` }));
+  },
+  ['offer-accounts'],
+  { revalidate: 300, tags: ['affiliate-offers'] },
+);
+
+function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): AffiliateOffer {
   const network = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
   return {
     id: x.id,
     kind: own.has(x.name.trim().toLowerCase()) ? 'own' : network ?? 'direct',
+    accountId: x.account_id,
+    account: x.account_id ? accounts.get(x.account_id) ?? null : null,
     name: x.name,
     status: x.status || 'unknown',
     vertical: x.vertical,
@@ -129,14 +158,15 @@ function toOffer(x: Row, own: Set<string>): AffiliateOffer {
 export const listAffiliateOffers = unstable_cache(
   async (): Promise<AffiliateOffer[]> => {
     if (!DIRECTUS_TOKEN) return [];
-    const [first, own] = await Promise.all([fetchPage(1), ownProductTitles()]);
+    const [first, own, accList] = await Promise.all([fetchPage(1), ownProductTitles(), listOfferAccounts()]);
+    const accounts = new Map(accList.map((a) => [a.id, a.label]));
     // 30-page cap = 6000 rows. Was 20 (=4000) while Directus holds 4897 → the list silently
     // dropped ~900 offers. Keep a ceiling (runaway guard), just above the real row count.
     const pageCount = Math.min(30, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));
     const rest = pageCount > 1
       ? await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)))
       : [];
-    return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own));
+    return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own, accounts));
   },
   ['affiliate-offers-list'],
   { revalidate: 300, tags: ['affiliate-offers'] },
@@ -167,6 +197,7 @@ export interface OfferTerms {
   cookie: string;       // "60 days"
   policy: string;       // special rules (allowed traffic, brand bidding, coupon policy…)
   reward: string;       // extra payout detail
+  accountId: string;    // '' = unassigned. Awin/CJ rows get theirs from the sync.
 }
 
 // Write the deal terms a network never gives us (Awin/CJ syncs leave these columns alone —
@@ -183,6 +214,7 @@ export async function saveOfferTerms(id: string, t: OfferTerms): Promise<{ ok: b
       cookie_lifetime: nn(t.cookie),
       promotion_policy: nn(t.policy),
       reward_details: nn(t.reward),
+      account_id: nn(t.accountId),
     }),
   });
   if (!r.ok) return { ok: false, error: `directus ${r.status}` };

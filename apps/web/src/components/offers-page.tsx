@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { getOfferNote, saveOfferTerms, type AffiliateOffer, type OfferKind } from '@/lib/actions/offers';
+import { getOfferNote, saveOfferTerms, type AffiliateOffer, type OfferAccount, type OfferKind } from '@/lib/actions/offers';
 import {
   EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
@@ -37,7 +37,7 @@ const GROUPS: DataGroup[] = [
 const dim = { color: 'var(--fg-3)' };
 const clip = (max: number): React.CSSProperties => ({ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' });
 
-export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
+export function OffersPage({ offers, accounts }: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
   const [kind, setKind] = useState('all');
   const [status, setStatus] = useState('all');
   const [geo, setGeo] = useState<string[]>([]);
@@ -63,6 +63,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     own: offers.filter((o) => o.kind === 'own').length,
     approved: offers.filter((o) => isApproved(o.status)).length,
     terms: offers.filter((o) => o.commission).length,
+    noAccount: offers.filter((o) => !o.accountId).length,
   }), [offers]);
 
   const filtered = useMemo(() => offers.filter((o) => {
@@ -75,6 +76,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     if (q) {
       const t = q.toLowerCase();
       if (!o.name.toLowerCase().includes(t) && !(o.vertical ?? '').toLowerCase().includes(t)
+        && !(o.account ?? '').toLowerCase().includes(t)
         && !o.tags.some((x) => x.toLowerCase().includes(t))) return false;
     }
     return true;
@@ -90,6 +92,13 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
       cell: (o) => <span style={{ fontWeight: 600, ...clip(300), display: 'inline-block', verticalAlign: 'bottom' }}>{o.name}</span>,
     },
     { key: 'kind', align: 'left', header: 'Source', cell: (o) => <span style={dim}>{KIND[o.kind]}</span> },
+    {
+      key: 'account', align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này',
+      cellTitle: (o) => o.account ?? undefined,
+      cell: (o) => (o.account
+        ? <span style={{ ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }}>{o.account}</span>
+        : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
+    },
     {
       key: 'status', align: 'left', header: 'Status',
       cell: (o) => <span style={{ color: statusColor(o.status) }}>● {o.status}</span>,
@@ -135,7 +144,10 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     <div>
       <div style={{ marginBottom: 12 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-          💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>// {counts.approved} approved · {counts.terms} có deal terms · {counts.all} total</small>
+          💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>
+            // {counts.approved} approved · {counts.terms} có deal terms
+            {counts.noAccount > 0 && <span style={{ color: 'var(--neon-amber)' }}> · {counts.noAccount} chưa gán account</span>} · {counts.all} total
+          </small>
         </h1>
         <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--fg-3)' }}>
           Offer affiliate <b>của người khác</b> (Directus <code>affiliate_programs</code>): CJ + Awin sync tự động, Direct = tự thêm tay.
@@ -180,7 +192,7 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
               )}
             </div>
 
-            <TermsForm key={sel.id} offer={sel} />
+            <TermsForm key={sel.id} offer={sel} accounts={accounts} />
 
             <Field label="Vertical" value={sel.vertical ?? '—'} />
             <Field label="Geo" value={sel.geos.join(', ') || '—'} />
@@ -216,11 +228,14 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
 }
 
 // Deal terms the network never sends (Awin/CJ sync writes other columns only → safe to edit here).
-function TermsForm({ offer }: { offer: AffiliateOffer }) {
+// account_id IS written by the Awin sync, but only for its own rows — editing a direct offer's
+// account is safe; re-picking an Awin row's account just gets reset on the next nightly sync.
+function TermsForm({ offer, accounts }: { offer: AffiliateOffer; accounts: OfferAccount[] }) {
   const router = useRouter();
   const [t, setT] = useState({
     commission: offer.commission ?? '', recurring: offer.recurring ?? '',
     cookie: offer.cookie ?? '', policy: offer.policy ?? '', reward: offer.reward ?? '',
+    accountId: offer.accountId ?? '',
   });
   const [msg, setMsg] = useState('');
   const [pending, start] = useTransition();
@@ -234,6 +249,11 @@ function TermsForm({ offer }: { offer: AffiliateOffer }) {
 
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <SelectField label="Account" size="sm" mono value={t.accountId} onChange={set('accountId')}
+        hint={t.accountId ? undefined : 'Offer nào cũng phải gắn account đã đăng ký'}>
+        <option value="">— chưa gán —</option>
+        {accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+      </SelectField>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <TextField label="Commission" size="sm" mono value={t.commission} onChange={set('commission')} placeholder="30% / $1" />
         <SelectField label="Recurring" size="sm" mono value={t.recurring} onChange={set('recurring')}>

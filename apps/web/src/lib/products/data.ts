@@ -1,11 +1,16 @@
-// Danh mục SẢN PHẨM (32 cái, 8 nền tảng) + số liệu thật của từng cái.
+// Danh mục SẢN PHẨM + số liệu thật của từng cái.
 //
 // Trước đây không có chỗ nào nhìn được toàn bộ hàng mình bán: /revenue chỉ có Gumroad
 // và AdSense, còn Udemy/MQL5/RapidAPI thì nằm im trong Directus. Trang này gộp:
-//   products          — danh mục (Directus)
-//   product_stats     — số liệu theo ngày (doanh thu THỰC NHẬN, rating, review…)
-//   market_benchmarks — người mới vào ngành đó kiếm bao nhiêu → để nói sản phẩm này
-//                       đang nằm ở chỗ đáng hay không, chứ không chỉ liệt kê.
+//   products      — danh mục (Directus)
+//   product_stats — số liệu theo ngày (doanh thu thực nhận, rating, review…)
+//
+// LUẬT SỐ MỘT: CHƯA ĐO ĐƯỢC ≠ BẰNG 0.
+// Chỉ chaturbate có nguồn doanh thu chạy được. Udemy không mở endpoint doanh thu cho
+// instructor; Gumroad thì chưa có api_token nên collector bỏ qua từ 2026-04-25; MQL5 /
+// RapidAPI / Stripe chưa có collector nào. Nếu quy hết về 0 thì bảng đọc ra "36 sản
+// phẩm chỉ 1 cái ra tiền" — một kết luận bịa. Nên `net === null` mang nghĩa CHƯA ĐO,
+// và mọi phép chia đều bỏ qua phần chưa đo thay vì coi nó là 0.
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
@@ -18,10 +23,10 @@ export interface ProductRow {
   status: string | null;
   price: number | null;
   url: string | null;
-  /** Thực nhận trong cửa sổ đang xem (product_stats.revenue = net). */
-  net: number;
-  /** Doanh số gốc khách tiêu, khi platform có chia hoa hồng. */
-  gross: number;
+  /** Thực nhận trong cửa sổ đang xem. null = chưa có nguồn đo, KHÔNG phải 0. */
+  net: number | null;
+  /** Doanh số gốc khách tiêu, khi nền tảng có chia hoa hồng. null = chưa đo. */
+  gross: number | null;
   rating: number | null;
   reviews: number | null;
   lastSeen: string | null;
@@ -31,10 +36,14 @@ export interface PlatformRoll {
   platform: string;
   products: number;
   live: number;
-  net: number;
-  gross: number;
-  /** Thực nhận trung bình mỗi sản phẩm — con số xếp hạng nền tảng. */
-  perProduct: number;
+  /** null = nền tảng này chưa có nguồn doanh thu nào chạy. */
+  net: number | null;
+  gross: number | null;
+  /** Số sản phẩm thực sự đo được doanh thu (mẫu số của $/sản phẩm). */
+  measured: number;
+  perProduct: number | null;
+  /** Ngày gần nhất có BẤT KỲ số liệu nào (kể cả chỉ rating) — để thấy dữ liệu ôi. */
+  lastStat: string | null;
 }
 
 export interface ProductsView {
@@ -66,15 +75,19 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
   ]);
   if (!products.length) errors.push('products: Directus không trả dữ liệu');
 
-  // Gộp theo product: cộng tiền, còn rating/review lấy bản MỚI NHẤT (đó là ảnh chụp
-  // trạng thái, cộng dồn lại thành số vô nghĩa).
-  const agg = new Map<string, { net: number; gross: number; rating: number | null; reviews: number | null; last: string }>();
+  // Gộp theo product. Tiền chỉ cộng từ dòng CÓ SỐ (revenue != null); rating/review lấy
+  // bản mới nhất vì đó là ảnh chụp trạng thái, cộng dồn lại thành số vô nghĩa.
+  interface Agg { net: number; gross: number; hasRevenue: boolean; rating: number | null; reviews: number | null; last: string }
+  const agg = new Map<string, Agg>();
   for (const s of stats) {
     const pid = String(s.product_id ?? '');
     if (!pid) continue;
-    const cur = agg.get(pid) ?? { net: 0, gross: 0, rating: null, reviews: null, last: '' };
-    cur.net += num(s.revenue);
-    cur.gross += num(s.gross_revenue) || num(s.revenue);
+    const cur = agg.get(pid) ?? { net: 0, gross: 0, hasRevenue: false, rating: null, reviews: null, last: '' };
+    if (s.revenue != null) {
+      cur.hasRevenue = true;
+      cur.net += num(s.revenue);
+      cur.gross += s.gross_revenue != null ? num(s.gross_revenue) : num(s.revenue);
+    }
     const d = String(s.date ?? '');
     if (d >= cur.last) {
       cur.last = d;
@@ -92,22 +105,35 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       status: (p.status as string) ?? null,
       price: p.price == null ? null : num(p.price),
       url: (p.url as string) || null,
-      net: a?.net ?? 0, gross: a?.gross ?? 0,
+      net: a?.hasRevenue ? a.net : null,
+      gross: a?.hasRevenue ? a.gross : null,
       rating: a?.rating ?? null, reviews: a?.reviews ?? null,
       lastSeen: a?.last || null,
     };
-  }).sort((x, y) => y.net - x.net || x.platform.localeCompare(y.platform) || x.title.localeCompare(y.title));
+  }).sort((x, y) => (y.net ?? -1) - (x.net ?? -1)
+    || x.platform.localeCompare(y.platform) || x.title.localeCompare(y.title));
 
   const pm = new Map<string, PlatformRoll>();
   for (const r of rows) {
-    const cur = pm.get(r.platform) ?? { platform: r.platform, products: 0, live: 0, net: 0, gross: 0, perProduct: 0 };
+    const cur = pm.get(r.platform) ?? {
+      platform: r.platform, products: 0, live: 0, net: null, gross: null,
+      measured: 0, perProduct: null, lastStat: null,
+    };
     cur.products += 1;
     if (r.status === 'published') cur.live += 1;
-    cur.net += r.net; cur.gross += r.gross;
+    if (r.net != null) {
+      cur.measured += 1;
+      cur.net = (cur.net ?? 0) + r.net;
+      cur.gross = (cur.gross ?? 0) + (r.gross ?? 0);
+    }
+    if (r.lastSeen && r.lastSeen > (cur.lastStat ?? '')) cur.lastStat = r.lastSeen;
     pm.set(r.platform, cur);
   }
-  const platforms = [...pm.values()].map((p) => ({ ...p, perProduct: p.products ? p.net / p.products : 0 }))
-    .sort((a, b) => b.net - a.net);
+  // Chia cho SỐ ĐO ĐƯỢC, không chia cho tổng danh mục — nếu không thì thêm một sản
+  // phẩm chưa có collector cũng làm "$/sản phẩm" tụt xuống.
+  const platforms = [...pm.values()]
+    .map((p) => ({ ...p, perProduct: p.measured ? (p.net ?? 0) / p.measured : null }))
+    .sort((a, b) => (b.net ?? -1) - (a.net ?? -1) || b.products - a.products);
 
   return { rows, platforms, windowDays, errors };
 }

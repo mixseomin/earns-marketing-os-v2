@@ -3,9 +3,12 @@
 // /products — toàn bộ hàng mình bán, và nền tảng nào thực sự ra tiền.
 //
 // YDNI: bề mặt mặc định trả lời đúng một câu — "công sức nên đổ vào đâu". Nên phần
-// đầu là bảng NỀN TẢNG (ít dòng, quyết định được), danh sách 32 sản phẩm nằm dưới và
-// gập lại. Màu chỉ ở cột thực nhận; nền tảng $0 để xám, không tô đỏ — không bán được
-// không phải lỗi, chỉ là dữ kiện.
+// đầu là bảng NỀN TẢNG (ít dòng, quyết định được), danh sách sản phẩm nằm dưới và gập
+// lại. Màu chỉ ở cột thực nhận.
+//
+// Ô "chưa đo" KHÔNG được hiển thị giống $0. Bản trước quy hết về 0 nên bảng đọc ra
+// "36 sản phẩm chỉ 1 cái ra tiền", trong khi sự thật là 6/7 nền tảng chưa có collector
+// nào chạy. Xem lib/products/data.ts.
 
 import { useMemo, useState } from 'react';
 import type { ProductsView, ProductRow } from '@/lib/products/data';
@@ -13,7 +16,18 @@ import { Section, StatsStrip, ListToolbar, FilterChips, EmptyState, Pill } from 
 import type { StatCard } from './ui/stats-strip';
 
 const usd = (n: number) => n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
-  : n >= 1 ? `$${n.toFixed(0)}` : n > 0 ? `$${n.toFixed(2)}` : '—';
+  : n >= 1 ? `$${n.toFixed(0)}` : n > 0 ? `$${n.toFixed(2)}` : '$0';
+
+/** Ba trạng thái khác nhau, ba cách hiện: có tiền · đo được và bằng 0 · chưa đo. */
+function Money({ n, bold }: { n: number | null; bold?: boolean }) {
+  if (n == null) return <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>chưa đo</span>;
+  return <span style={{ color: n > 0 ? 'var(--ok)' : 'var(--fg-3)', fontWeight: bold && n > 0 ? 600 : 400 }}>{usd(n)}</span>;
+}
+
+const daysAgo = (d: string | null) => {
+  if (!d) return null;
+  return Math.round((Date.now() - new Date(`${d}T00:00:00Z`).getTime()) / 86400_000);
+};
 
 export function ProductsPage({ view }: { view: ProductsView }) {
   const { rows, platforms, windowDays } = view;
@@ -21,18 +35,22 @@ export function ProductsPage({ view }: { view: ProductsView }) {
   const [plat, setPlat] = useState('all');
 
   const live = rows.filter((r) => r.status === 'published').length;
-  const earning = rows.filter((r) => r.net > 0).length;
-  const totalNet = rows.reduce((a, r) => a + r.net, 0);
+  const measured = platforms.filter((p) => p.measured > 0);
+  const blind = platforms.filter((p) => p.measured === 0);
+  const totalNet = measured.reduce((a, p) => a + (p.net ?? 0), 0);
+  const blindProducts = blind.reduce((a, p) => a + p.products, 0);
   const best = platforms[0];
 
   const cards: StatCard[] = [
     { key: 'n', label: 'Sản phẩm', value: String(rows.length), color: 'var(--fg-0)',
       title: `${live} đang bán trên ${platforms.length} nền tảng` },
-    { key: 'earn', label: `Có ra tiền (${windowDays}n)`, value: `${earning}/${rows.length}`,
-      color: earning ? 'var(--ok)' : 'var(--warn)', title: 'Số sản phẩm thực sự phát sinh doanh thu trong cửa sổ' },
-    { key: 'net', label: `Thực nhận (${windowDays}n)`, value: usd(totalNet), color: 'var(--ok)' },
-    { key: 'top', label: 'Nền tảng ra tiền nhất', value: best ? best.platform : '—',
-      color: 'var(--neon-cyan)', title: best ? `${usd(best.net)} từ ${best.products} sản phẩm` : '' },
+    { key: 'cov', label: 'Nền tảng đo được', value: `${measured.length}/${platforms.length}`,
+      color: blind.length ? 'var(--warn)' : 'var(--ok)',
+      title: blind.length ? `Chưa có nguồn doanh thu: ${blind.map((p) => p.platform).join(', ')}` : 'Đủ nguồn' },
+    { key: 'net', label: `Thực nhận (${windowDays}n)`, value: usd(totalNet), color: 'var(--ok)',
+      title: `Chỉ cộng từ ${measured.length} nền tảng có số thật` },
+    { key: 'top', label: 'Nền tảng ra tiền nhất', value: best?.net ? best.platform : '—',
+      color: 'var(--neon-cyan)', title: best?.net ? `${usd(best.net)} từ ${best.measured} sản phẩm đo được` : '' },
   ];
 
   const filtered = useMemo(() => rows.filter((r) => {
@@ -56,26 +74,42 @@ export function ProductsPage({ view }: { view: ProductsView }) {
 
       <StatsStrip cards={cards} />
 
+      {blind.length > 0 && (
+        <div style={{ margin: '10px 0 0', padding: '7px 10px', fontSize: 11.5, lineHeight: 1.5,
+          border: '1px solid var(--warn)', borderRadius: 6, color: 'var(--fg-2)', background: 'transparent' }}>
+          <strong style={{ color: 'var(--warn)' }}>{blindProducts} sản phẩm chưa đo được doanh thu</strong>{' '}
+          ({blind.map((p) => p.platform).join(', ')}) — ô ghi <em>chưa đo</em> nghĩa là chưa có nguồn số,
+          không phải bán được $0.
+        </div>
+      )}
+
       {/* Bề mặt quyết định: nền tảng nào đáng đổ công. */}
-      <Section title="Theo nền tảng" subtitle="thực nhận trên MỖI sản phẩm — số để so nền tảng với nhau">
+      <Section title="Theo nền tảng" subtitle="thực nhận trên MỖI sản phẩm ĐO ĐƯỢC — số để so nền tảng với nhau">
         <div className="panel" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead><tr>
-              {['Nền tảng', 'Sản phẩm', 'Đang bán', `Thực nhận ${windowDays}n`, '$/sản phẩm'].map((h, i) => (
+              {['Nền tảng', 'Sản phẩm', 'Đang bán', 'Đo được', `Thực nhận ${windowDays}n`, '$/sản phẩm', 'Số liệu mới nhất'].map((h, i) => (
                 <th key={h} style={{ padding: '6px 10px', fontSize: 9.5, fontWeight: 600, color: 'var(--fg-3)',
                   fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em',
                   textAlign: i ? 'right' : 'left', borderBottom: '1px solid var(--line)' }}>{h}</th>))}
             </tr></thead>
             <tbody>
-              {platforms.map((p) => (
-                <tr key={p.platform}>
-                  <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', color: 'var(--fg-0)' }}>{p.platform}</td>
-                  <Td>{p.products}</Td>
-                  <Td>{p.live}</Td>
-                  <Td style={{ color: p.net > 0 ? 'var(--ok)' : 'var(--fg-3)', fontWeight: p.net > 0 ? 600 : 400 }}>{usd(p.net)}</Td>
-                  <Td style={{ color: 'var(--fg-2)' }}>{usd(p.perProduct)}</Td>
-                </tr>
-              ))}
+              {platforms.map((p) => {
+                const age = daysAgo(p.lastStat);
+                return (
+                  <tr key={p.platform}>
+                    <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', color: 'var(--fg-0)' }}>{p.platform}</td>
+                    <Td>{p.products}</Td>
+                    <Td>{p.live}</Td>
+                    <Td style={{ color: p.measured ? 'var(--fg-1)' : 'var(--fg-3)' }}>{p.measured}/{p.products}</Td>
+                    <Td><Money n={p.net} bold /></Td>
+                    <Td style={{ color: 'var(--fg-2)' }}>{p.perProduct == null ? '—' : usd(p.perProduct)}</Td>
+                    <Td style={{ color: age != null && age > 7 ? 'var(--warn)' : 'var(--fg-3)', fontSize: 11 }}>
+                      {p.lastStat ? (age === 0 ? 'hôm nay' : `${age}n trước`) : 'chưa từng'}
+                    </Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -110,8 +144,8 @@ function Row({ r }: { r: ProductRow }) {
         {r.rating.toFixed(2)}★{r.reviews ? ` ${r.reviews}` : ''}</span>}
       <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', minWidth: 44, textAlign: 'right' }}>
         {r.price ? `$${r.price}` : ''}</span>
-      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', minWidth: 62, textAlign: 'right',
-        color: r.net > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{usd(r.net)}</span>
+      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', minWidth: 62, textAlign: 'right' }}>
+        <Money n={r.net} /></span>
     </div>
   );
 }

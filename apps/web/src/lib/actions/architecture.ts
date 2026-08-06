@@ -12,6 +12,7 @@ import { setOverride } from './habitat-selectors';
 import { syncTaskToProspect } from './backlink-outreach-sync';
 import { siteTimingMerges } from '../backlink-timing';
 import { uploadToR2 } from '@/lib/r2';
+import { getCurrentUser } from '@/lib/auth';
 
 type Row = Record<string, unknown>;
 
@@ -445,6 +446,30 @@ export async function seenBacklinkResolved(taskId: number): Promise<{ ok: boolea
       WHERE id = ${taskId} AND platform_key = 'backlink' AND (prep_payload ? 'resolved')`);
     return { ok: true };
   } catch { return { ok: false }; }
+}
+
+// Draft review loop — AI fills prep_payload.draft + draft_review{status:'pending'}; staff reviews inline on
+// the plays task drawer. approve → sẵn sàng đăng · changes → AI viết lại · comment → chỉ ghi chú. Mirrors the
+// /api/review thread-append; 'changes'/'comment' bắt buộc note (nêu rõ chỗ cần sửa).
+export async function submitDraftReview(taskId: number, action: 'approve' | 'changes' | 'comment', note?: string): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const n = (note || '').trim();
+  if ((action === 'changes' || action === 'comment') && !n) return { ok: false, error: 'note-required' };
+  const me = await getCurrentUser();
+  const who = (me && (me.displayName || me.name || me.email)) || 'operator';
+  const status = action === 'approve' ? 'approved' : action === 'changes' ? 'changes' : null; // comment giữ nguyên status
+  const entry = JSON.stringify({ by: who, kind: 'human', action, note: n, at: new Date().toISOString() });
+  try {
+    // Build off the OLD row value: ensure the object exists, append to its thread, then (approve/changes) set status.
+    const base = sql`COALESCE(prep_payload -> 'draft_review', jsonb_build_object('status', 'pending', 'thread', '[]'::jsonb))`;
+    const withThread = sql`jsonb_set(${base}, '{thread}', COALESCE(${base} -> 'thread', '[]'::jsonb) || ${entry}::jsonb)`;
+    const next = status ? sql`jsonb_set(${withThread}, '{status}', to_jsonb(${status}::text))` : withThread;
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
+      || jsonb_build_object('draft_review', ${next}), updated_at = now()
+      WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    return { ok: true, status: status ?? undefined };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
 // Backlink shared entity: remove a site from membership (drop the key from both

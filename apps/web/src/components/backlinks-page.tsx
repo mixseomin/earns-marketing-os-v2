@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved, submitDraftReview } from '@/lib/actions/architecture';
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
 import { AUTOMATION_META, automationBadge, automationNeedsHuman } from '@/lib/backlink-gates';
 import { SourceEditor } from './source-editor';
@@ -777,6 +777,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.dofollow && <Tag>{t.dofollow}</Tag>}
         {t.traffic && <Tag>{t.traffic}</Tag>}
         {t.hasDraft && <Tag>📋 draft</Tag>}
+        {t.draftReview?.status === 'pending' && <Tag color="var(--bad,#ef4444)">🔴 chờ duyệt</Tag>}
+        {t.draftReview?.status === 'changes' && <Tag color="#ffb03c">✏️ cần sửa</Tag>}
+        {t.draftReview?.status === 'approved' && <Tag color="#22c55e">✅ đã duyệt</Tag>}
         {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
         {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && (() => { const dd = daysSince(t.siteSubmittedAt); return <Tag color={dd > 30 ? 'var(--bad,#ef4444)' : dd > 14 ? '#ffb03c' : 'var(--fg-3)'}>⏳ chờ duyệt {dd}d</Tag>; })()}
         {!cols && t.siteScheduledAt && !t.siteDoneAt && (() => { const overdue = t.siteScheduledAt.slice(0, 10) <= new Date().toISOString().slice(0, 10); return <span title={overdue ? 'Đến hạn follow — kiểm tra đã duyệt chưa' : 'Ngày follow-up (kiểm tra duyệt)'}><Tag color={overdue ? '#ffb03c' : 'var(--fg-3)'}>🗓 follow {t.siteScheduledAt.slice(0, 10)}</Tag></span>; })()}
@@ -1191,6 +1194,13 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   const [blkBusy, setBlkBusy] = useState(false);
   const flagBlocker = async () => { if (!blkReason.trim()) return; setBlkBusy(true); await setBacklinkBlocker(task.id, blkReason, blkShots[0]); setBlkBusy(false); setBlkOpen(false); setBlkReason(''); setBlkShots([]); onChange(); };
   const clearBlocker = async () => { setBlkBusy(true); await setBacklinkBlocker(task.id, ''); setBlkBusy(false); onChange(); };
+  // Draft review — AI drafted, staff approves/requests-changes inline (banner below the blocker banner).
+  const [revNote, setRevNote] = useState('');
+  const [revBusy, setRevBusy] = useState(false);
+  const doReview = async (action: 'approve' | 'changes' | 'comment') => {
+    if ((action === 'changes' || action === 'comment') && !revNote.trim()) return;
+    setRevBusy(true); await submitDraftReview(task.id, action, revNote.trim()); setRevBusy(false); setRevNote(''); onChange();
+  };
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template, grounded on real DOM.
   const [normBusy, setNormBusy] = useState(false);
   type DomSample = NonNullable<Awaited<ReturnType<typeof listTaskDomSamples>>['samples']>[number];
@@ -1509,6 +1519,44 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Hướng dẫn đã cập nhật — đọc lại rồi làm tiếp. (Nhãn này tự mất sau khi mở.)</div>
           </div>
         )}
+
+        {/* Draft review — AI soạn draft (mục 📋 dưới), nhân sự duyệt/yêu-cầu-sửa NGAY tại đây trước khi đăng.
+            Banner đỏ = chờ duyệt · vàng = cần sửa · xanh = đã duyệt. Thread = luồng tương tác người↔AI. */}
+        {task.draftReview && (() => {
+          const st = task.draftReview.status;
+          const m = st === 'approved' ? { c: '#22c55e', icon: '✅', label: 'Đã duyệt — sẵn sàng đăng' }
+                  : st === 'changes' ? { c: '#ffb03c', icon: '✏️', label: 'Nhân sự yêu cầu sửa — AI viết lại' }
+                  : { c: 'var(--bad,#ef4444)', icon: '🔴', label: 'Draft chờ nhân sự duyệt' };
+          const thread = task.draftReview.thread || [];
+          const aLabel = (a: string) => a === 'submit' ? 'nộp draft' : a === 'approve' ? 'duyệt ✅' : a === 'changes' ? 'yêu cầu sửa ✏️' : 'ghi chú 💬';
+          return (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${m.c}`, background: `color-mix(in srgb, ${m.c} 10%, transparent)` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: m.c }}>{m.icon} {m.label}{task.draftReview.at ? ` · ${fmtWhen(task.draftReview.at)}` : ''}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 3 }}>Bài do AI soạn nằm ở mục 📋 Draft bên dưới. Đọc rồi Duyệt cho đăng, hoặc Yêu cầu sửa (ghi rõ chỗ cần đổi) — AI sẽ viết lại.</div>
+              {thread.length > 0 && (
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {thread.map((it, i) => (
+                    <div key={i} style={{ fontSize: 12, borderLeft: `2px solid ${it.kind === 'ai' ? 'var(--accent)' : 'var(--line)'}`, paddingLeft: 8 }}>
+                      <div style={{ color: 'var(--fg-4)', fontSize: 10.5 }}>{it.kind === 'ai' ? '🤖 ' : '🧑 '}{it.by} · {aLabel(it.action)} · {fmtWhen(it.at)}</div>
+                      {it.note && <div style={{ color: 'var(--fg-1)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{it.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {st !== 'approved' && (
+                <div style={{ marginTop: 8 }}>
+                  <textarea value={revNote} onChange={(e) => setRevNote(e.target.value)} placeholder="Ghi chú / yêu cầu sửa (nêu rõ chỗ nào, đổi thế nào)…" rows={2}
+                    style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical', fontFamily: 'inherit' }} />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => doReview('approve')} disabled={revBusy} style={{ ...btn, borderColor: '#22c55e', color: '#22c55e', fontWeight: 700 }}>{revBusy ? '…' : '✅ Duyệt cho đăng'}</button>
+                    <button type="button" onClick={() => doReview('changes')} disabled={revBusy || !revNote.trim()} style={{ ...btn, borderColor: '#ffb03c', color: '#ffb03c' }}>✏️ Yêu cầu sửa</button>
+                    <button type="button" onClick={() => doReview('comment')} disabled={revBusy || !revNote.trim()} style={{ ...btn }}>💬 Ghi chú</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -10,6 +10,7 @@ import { useState, useMemo, useTransition, useEffect, type CSSProperties } from 
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ListToolbar, Pager, usePaged, MultiSelect } from './ui';
+import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
@@ -21,17 +22,6 @@ const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', bord
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
 // Coloured pill reserved for the ONE glanceable signal here: links policy severity (banned=red, caveat=amber).
 const pill = (c: string): CSSProperties => ({ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: c, border: `1px solid ${c}55`, background: `${c}14` });
-
-// Deep-link the open habitat drawer to the URL (?h=<id> to edit, ?h=new&pid=<projectId> to create)
-// so F5 / a shared link reopens the same editor — the house convention for a page's own drawer
-// (ui-conventions §1, like backlinks ?task=). No router push, just replaceState (no history spam).
-function syncHabitatUrl(h: string | number | null, pid?: string) {
-  if (typeof window === 'undefined') return;
-  const u = new URL(window.location.href);
-  if (h == null) { u.searchParams.delete('h'); u.searchParams.delete('pid'); }
-  else { u.searchParams.set('h', String(h)); if (pid) u.searchParams.set('pid', pid); else u.searchParams.delete('pid'); }
-  window.history.replaceState(window.history.state, '', u.toString());
-}
 
 // Does this community BAN links outright? (mirror of link-readiness regex, for display only.)
 function linksBanned(s: string): boolean {
@@ -48,6 +38,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   gatedKeys: string[];   // platform keys with link_gate_enabled → 🌱 community-seed class
 }) {
   const router = useRouter();
+  const modal = useModalParam();   // ?m=habitat-edit&mId=<id> | ?m=habitat-new&mId=<projectId> (house standard)
   const [pending, start] = useTransition();
   const [q, setQ] = useState('');
   const [plat, setPlat] = useState<string[]>([]);
@@ -74,9 +65,10 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
     seeds: shown.reduce((s, r) => s + r.seeds, 0),
   }), [shown, gateOn]);
 
-  // All open/close routes through these so the ?h= URL always mirrors the drawer state.
-  const openHabitat = (row: HabitatRow | null, pid: string) => { setEdit({ row, projectId: pid }); syncHabitatUrl(row ? row.id : 'new', pid); };
-  const closeHabitat = () => { setEdit(null); syncHabitatUrl(null); };
+  // All open/close routes through these so the URL (useModalParam) always mirrors the drawer state.
+  // edit → mId=<habitatId>; create → mId=<projectId> (habitat has no id yet).
+  const openHabitat = (row: HabitatRow | null, pid: string) => { setEdit({ row, projectId: pid }); modal.open(row ? 'habitat-edit' : 'habitat-new', row ? row.id : pid); };
+  const closeHabitat = () => { setEdit(null); modal.close(); };
   const openEdit = async (r: CommunityRow) => {
     if (!r.projectId) return;
     setBusyId(r.id);
@@ -86,14 +78,10 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   };
   const createPid = (proj.length === 1 ? proj[0] : '') || projectId || '';
 
-  // Deep-link restore on mount: ?h=<id> reopens that habitat's editor, ?h=new opens create.
+  // Deep-link restore on mount: ?m=habitat-edit&mId=<id> reopens that editor, habitat-new opens create.
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    const h = p.get('h');
-    if (!h) return;
-    if (h === 'new') { const pid = p.get('pid') || createPid; if (pid) setEdit({ row: null, projectId: pid }); return; }
-    const row = rows.find((r) => String(r.id) === h);
-    if (row) openEdit(row);
+    if (modal.is('habitat-new')) { const pid = modal.id || createPid; if (pid) setEdit({ row: null, projectId: pid }); return; }
+    if (modal.is('habitat-edit') && modal.id) { const row = rows.find((r) => String(r.id) === modal.id); if (row) openEdit(row); }
   }, []);   // mount only — restore the drawer the URL points at
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 

@@ -59,6 +59,11 @@ export function ProductsPage({ view }: { view: ProductsView }) {
     return true;
   }), [rows, plat, q]);
 
+  // Giữ đúng thứ tự nền tảng của bảng trên (nhiều tiền trước) để hai phần khớp nhau.
+  const groups = useMemo(() => platforms
+    .map((p) => ({ platform: p.platform, net: p.net, rows: filtered.filter((r) => r.platform === p.platform) }))
+    .filter((g) => g.rows.length), [platforms, filtered]);
+
   return (
     <div style={{ padding: '16px 20px 60px' }}>
       <div style={{ marginBottom: 12 }}>
@@ -123,7 +128,7 @@ export function ProductsPage({ view }: { view: ProductsView }) {
         </ListToolbar>
         {filtered.length === 0 ? <EmptyState icon="📦" compact title="Không có sản phẩm khớp bộ lọc" /> : (
           <div className="panel" style={{ padding: 0 }}>
-            {filtered.map((r) => <Row key={r.id} r={r} />)}
+            {groups.map((g) => <Group key={g.platform} g={g} />)}
           </div>
         )}
       </Section>
@@ -131,21 +136,44 @@ export function ProductsPage({ view }: { view: ProductsView }) {
   );
 }
 
-function Row({ r }: { r: ProductRow }) {
+/**
+ * Gộp theo nền tảng thay vì liệt kê phẳng. Hai lý do, đều là YDNI:
+ *  - Cột thẳng hàng: mỗi dòng là grid CHUNG một template, không phải flex tự co.
+ *  - Hết lặp: nền tảng chưa đo được thì nói MỘT lần ở đầu nhóm, không phải in
+ *    "chưa đo" 35 dòng liên tiếp. Nhóm nào chưa đo thì bỏ hẳn cột tiền.
+ */
+const COLS = (money: boolean) => `1fr 60px 74px 46px${money ? ' 62px' : ''}`;
+
+function Group({ g }: { g: { platform: string; rows: ProductRow[]; net: number | null } }) {
+  const money = g.net != null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderBottom: '1px solid var(--line)' }}>
-      <span style={{ flex: 1, fontSize: 12.5, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer"
-          style={{ color: 'inherit', textDecoration: 'none' }}>{r.title}</a> : r.title}
-      </span>
-      <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', minWidth: 84 }}>{r.platform}</span>
-      {r.status !== 'published' && <Pill label={r.status ?? 'draft'} color="var(--fg-3)" size="xs" tone="soft" />}
-      {r.rating != null && <span style={{ fontSize: 11, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)' }}>
-        {r.rating.toFixed(2)}★{r.reviews ? ` ${r.reviews}` : ''}</span>}
-      <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', minWidth: 44, textAlign: 'right' }}>
-        {r.price ? `$${r.price}` : ''}</span>
-      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', minWidth: 62, textAlign: 'right' }}>
-        <Money n={r.net} /></span>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '8px 10px 5px',
+        borderBottom: '1px solid var(--line)', background: 'var(--bg-1)' }}>
+        <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)',
+          textTransform: 'uppercase', letterSpacing: '.06em' }}>{g.platform}</span>
+        <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{g.rows.length} sản phẩm</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+          {money ? <Money n={g.net} bold />
+            : <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontStyle: 'italic' }}>chưa đo được doanh thu</span>}
+        </span>
+      </div>
+      {g.rows.map((r) => (
+        <div key={r.id} style={{ display: 'grid', gridTemplateColumns: COLS(money), alignItems: 'center',
+          gap: 10, padding: '6px 10px', borderBottom: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'none' }}>{r.title}</a> : r.title}
+          </span>
+          <span>{r.status !== 'published' && <Pill label={r.status ?? 'draft'} color="var(--fg-3)" size="xs" tone="soft" />}</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+            {r.rating != null ? `${r.rating.toFixed(2)}★${r.reviews ? ` ${r.reviews}` : ''}` : ''}</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+            {r.price ? `$${r.price}` : ''}</span>
+          {money && <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+            <Money n={r.net} /></span>}
+        </div>
+      ))}
     </div>
   );
 }

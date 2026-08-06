@@ -286,6 +286,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/unmapped',      icon: '⚠', color: 'var(--neon-amber)',   label: 'Unmapped accounts', sub: 'account chưa map project', role: 'admin' },
         { href: '/design-system', icon: '🎨', color: 'var(--neon-pink)',   label: 'Design System',    sub: 'tokens · primitives', role: 'admin' },
         { href: '/architecture',  icon: '🧩', color: 'var(--neon-blue)',   label: 'Architect',        sub: 'system map · objects · flows', role: 'admin' },
+        { href: '/cascade',       icon: '🔗', color: 'var(--neon-blue)',   label: 'Cascade',          sub: 'entity triggers · refresh graph', role: 'admin' },
         {                         icon: '⚙', color: 'var(--neon-cyan)',    label: 'Trust thresholds', sub: 'soon', soon: true },
         { href: '/',              icon: '⊞', color: 'var(--neon-violet)',  label: 'All Projects',     sub: 'portfolio' },
       ],

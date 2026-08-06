@@ -4,8 +4,10 @@
 // Add a site by dropping a config entry here once its endpoint is live; the panel picks it up.
 
 import { internalUrl } from '../lib/internal-origin';
+import { Panel } from './ui/panel';
+import { OfferTable } from './affiliate-offer-table';
 
-type OfferMeta = { label: string; merchant: string; url?: string };
+export type OfferMeta = { label: string; merchant: string; url?: string };
 type SiteCfg = { key: string; title: string; statsUrl: string; offerMeta: Record<string, OfferMeta>; note?: string };
 
 const SITES: SiteCfg[] = [
@@ -34,7 +36,7 @@ const SITES: SiteCfg[] = [
   },
 ];
 
-interface OfferRow {
+export interface OfferRow {
   key: string;
   views7: number; clicks7: number; ctr7: number;
   views30: number; clicks30: number; ctr30: number;
@@ -52,65 +54,21 @@ async function load(url: string): Promise<{ offers: OfferRow[] } | null> {
   }
 }
 
-const th: React.CSSProperties = { textAlign: 'right', padding: '4px 8px', fontWeight: 600, color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' };
-const td: React.CSSProperties = { textAlign: 'right', padding: '4px 8px', fontVariantNumeric: 'tabular-nums' };
-
-function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<string, OfferMeta> }) {
-  return (
-    <div className="table-scroll">
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--line)' }}>
-            <th style={{ ...th, textAlign: 'left' }}>Offer</th>
-            <th style={th}>Views 7d</th><th style={th}>Clicks 7d</th><th style={th}>CTR 7d</th>
-            <th style={th}>Views 30d</th><th style={th}>Clicks 30d</th><th style={th}>CTR 30d</th>
-          </tr>
-        </thead>
-        <tbody>
-          {offers.map((o) => {
-            const m = meta[o.key] ?? { label: o.key, merchant: '' };
-            const link = o.sample_url || m.url; // prefer a live on-site page showing the offer
-            return (
-              <tr key={o.key} style={{ borderBottom: '1px solid var(--line)' }}>
-                <td style={{ padding: '6px 8px' }}>
-                  {link
-                    ? <a href={link} target="_blank" rel="noopener" title={o.sample_url ? 'See how it looks on-site' : 'Offer page'} style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{m.label} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>↗</span></a>
-                    : <span style={{ fontWeight: 600 }}>{m.label}</span>}
-                  {m.merchant && <span style={{ display: 'block', color: 'var(--fg-3)', fontSize: 11 }}>{m.merchant}</span>}
-                  {(o.recent_clicks ?? []).map((c, i) => (
-                    <a key={i} href={c.url} target="_blank" rel="noopener" title={`Clicked ${c.ts}`} style={{ display: 'block', color: 'var(--ok)', fontSize: 11, marginTop: 2 }}>✓ clicked: {c.title} ↗</a>
-                  ))}
-                </td>
-                <td style={td}>{o.views7}</td>
-                <td style={td}>{o.clicks7}</td>
-                <td style={{ ...td, color: o.ctr7 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr7}%</td>
-                <td style={td}>{o.views30}</td>
-                <td style={td}>{o.clicks30}</td>
-                <td style={{ ...td, color: o.ctr30 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr30}%</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export async function AffiliateOffersPanel() {
   const results = await Promise.all(SITES.map(async (s) => ({ cfg: s, data: await load(s.statsUrl) })));
   const live = results.filter((r) => r.data); // only sites whose endpoint responded
   if (live.length === 0) return null;
 
   return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>💸 Affiliate offers</h2>
+    <Panel
+      title="💸 Affiliate offers"
+      actions={
         <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>
           conversions → <a href="https://ui.awin.com/" target="_blank" rel="noopener" style={{ color: 'var(--ok)' }}>Awin</a>
           {' · '}<a href="https://affiliate-program.amazon.com/home/reports" target="_blank" rel="noopener" style={{ color: 'var(--ok)' }}>Amazon</a>
         </span>
-      </div>
-
+      }
+    >
       {live.map(({ cfg, data }) => (
         <div key={cfg.key} style={{ marginBottom: 14 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{cfg.title}</div>
@@ -119,6 +77,6 @@ export async function AffiliateOffersPanel() {
             : <OfferTable offers={data!.offers} meta={cfg.offerMeta} />}
         </div>
       ))}
-    </div>
+    </Panel>
   );
 }

@@ -48,6 +48,10 @@ export { Section, type SectionProps } from './section';
 // ~50 places hand-rolled this shell; use <Panel> instead. Extracted from the SEO Sites Overview
 // panel (the reference — that file stays untouched). Server-compatible. See ui-conventions §7.
 export { Panel } from './panel';
+// DataTable = data-DENSE table (many columns w/o overflow): dense mono cells + show/hide column
+// GROUPS + horizontal-scroll containment. Lifted from the SEO Sites Overview table (the reference,
+// untouched). Use for any wide/data-heavy table. See ui-conventions §7.
+export { DataTable, type DataColumn, type DataGroup } from './data-table';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';

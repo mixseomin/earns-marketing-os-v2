@@ -873,6 +873,9 @@ button { font-family: inherit; color: inherit; }
    ──────────────────────────────────────────────────────────── */
 /* .page = page-root marker + header system (.page-head/.page-title/.page-sub).
    Outer padding now comes from .main (single source) — do NOT re-add it here. */
+
+/* ui.DataTable — row hover brighten (matches the SEO table's .seo-row:hover). */
+.dt-row:hover td { filter: brightness(1.4); }
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 0 var(--s-4); gap: var(--s-4);

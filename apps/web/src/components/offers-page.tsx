@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { getOfferNote, type AffiliateOffer } from '@/lib/actions/offers';
-import { EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { getOfferNote, saveOfferTerms, type AffiliateOffer, type OfferKind } from '@/lib/actions/offers';
+import {
+  EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect,
+  DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
+} from './ui';
 
-// Network label only (YDNI: no per-network colour — the name carries it; colour is reserved for status).
-const NET: Record<string, string> = { awin: 'Awin', cj: 'CJ', other: 'Other' };
-const netLabel = (n: string) => NET[n] ?? 'Other';
+// Source label only (YDNI: no per-source colour — the name carries it; colour is reserved for status).
+const KIND: Record<OfferKind, string> = { awin: 'Awin', cj: 'CJ', direct: 'Direct', own: 'Own product' };
 
 const APPROVED = new Set(['active', 'joined', 'approved']);
 const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
@@ -14,8 +17,28 @@ const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
 const statusColor = (s: string) =>
   isApproved(s) ? 'var(--neon-lime)' : s.toLowerCase() === 'pending' ? 'var(--neon-amber)' : 'var(--fg-3)';
 
+// commission_time is the authoritative "does it keep paying" column; older rows only encoded it
+// inside commission_model text ("recurring (lifetime)") → fall back to that.
+const RECUR: Record<string, string> = { forever: '♾ forever', '2_years': '2 years', '1_year': '1 year', '6_months': '6 months' };
+function recurringOf(o: AffiliateOffer): string | null {
+  if (o.recurring) return RECUR[o.recurring] ?? o.recurring.replace(/_/g, ' ');
+  const m = o.model?.match(/recurring\s*\(([^)]+)\)/i);
+  if (m?.[1]) return m[1];
+  return /recurring/i.test(o.model ?? '') ? 'recurring' : null;
+}
+const rulesOf = (o: AffiliateOffer) => [o.policy, o.reward].filter(Boolean).join(' · ') || null;
+
+const GROUPS: DataGroup[] = [
+  { key: 'terms', label: 'terms', color: '#3c9bff' },
+  { key: 'rules', label: 'rules', color: '#9d6cff' },
+  { key: 'meta', label: 'meta', color: '#7d8899' },
+];
+
+const dim = { color: 'var(--fg-3)' };
+const clip = (max: number): React.CSSProperties => ({ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' });
+
 export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
-  const [net, setNet] = useState('all');
+  const [kind, setKind] = useState('all');
   const [status, setStatus] = useState('all');
   const [geo, setGeo] = useState<string[]>([]);
   const [q, setQ] = useState('');
@@ -34,14 +57,16 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
   const geos = useMemo(() => Array.from(new Set(offers.flatMap((o) => o.geos))).sort(), [offers]);
   const counts = useMemo(() => ({
     all: offers.length,
-    awin: offers.filter((o) => o.network === 'awin').length,
-    cj: offers.filter((o) => o.network === 'cj').length,
-    other: offers.filter((o) => o.network === 'other').length,
+    awin: offers.filter((o) => o.kind === 'awin').length,
+    cj: offers.filter((o) => o.kind === 'cj').length,
+    direct: offers.filter((o) => o.kind === 'direct').length,
+    own: offers.filter((o) => o.kind === 'own').length,
     approved: offers.filter((o) => isApproved(o.status)).length,
+    terms: offers.filter((o) => o.commission).length,
   }), [offers]);
 
   const filtered = useMemo(() => offers.filter((o) => {
-    if (net !== 'all' && o.network !== net) return false;
+    if (kind !== 'all' && o.kind !== kind) return false;
     const s = o.status.toLowerCase();
     if (status === 'approved' && !isApproved(s)) return false;
     if (status === 'pending' && s !== 'pending') return false;
@@ -54,25 +79,81 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
     }
     return true;
   }).sort((a, b) => (isApproved(a.status) ? 0 : 1) - (isApproved(b.status) ? 0 : 1) || a.name.localeCompare(b.name)),
-  [offers, net, status, geo, q]);
+  [offers, kind, status, geo, q]);
 
   const { pageItems, ...pager } = usePaged(filtered);
+
+  const columns: DataColumn<AffiliateOffer>[] = [
+    {
+      key: 'name', align: 'left', width: '100%', header: 'Offer',
+      cellTitle: (o) => o.name,
+      cell: (o) => <span style={{ fontWeight: 600, ...clip(300), display: 'inline-block', verticalAlign: 'bottom' }}>{o.name}</span>,
+    },
+    { key: 'kind', align: 'left', header: 'Source', cell: (o) => <span style={dim}>{KIND[o.kind]}</span> },
+    {
+      key: 'status', align: 'left', header: 'Status',
+      cell: (o) => <span style={{ color: statusColor(o.status) }}>● {o.status}</span>,
+    },
+    {
+      key: 'commission', group: 'terms', align: 'right', header: '%', title: 'Commission rate',
+      cell: (o) => o.commission ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'recurring', group: 'terms', align: 'left', header: 'Recurring', title: 'Does the commission repeat, and for how long',
+      cell: (o) => recurringOf(o) ?? <span style={dim}>one-time</span>,
+    },
+    {
+      key: 'cookie', group: 'terms', align: 'right', header: 'Cookie', title: 'Cookie lifetime',
+      cell: (o) => o.cookie ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'rules', group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
+      cellTitle: (o) => rulesOf(o) ?? undefined,
+      cell: (o) => {
+        const r = rulesOf(o);
+        return r
+          ? <span style={{ ...clip(280), display: 'inline-block', verticalAlign: 'bottom' }}>{r}</span>
+          : <span style={dim}>—</span>;
+      },
+    },
+    { key: 'type', group: 'meta', align: 'left', header: 'Type', cell: (o) => o.productType ?? <span style={dim}>—</span> },
+    {
+      key: 'vertical', group: 'meta', align: 'left', header: 'Vertical',
+      cellTitle: (o) => o.vertical ?? undefined,
+      cell: (o) => <span style={{ ...clip(150), display: 'inline-block', verticalAlign: 'bottom' }}>{o.vertical ?? '—'}</span>,
+    },
+    { key: 'geo', group: 'meta', align: 'left', header: 'Geo', cell: (o) => o.geos.join(' ') || <span style={dim}>—</span> },
+    {
+      key: 'link', align: 'center', header: '↗', title: 'Tracking link',
+      cell: (o) => (o.affiliateUrl
+        ? <a href={o.affiliateUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={o.affiliateUrl}>🔗</a>
+        : <span style={dim}>—</span>),
+    },
+  ];
 
   return (
     <div>
       <div style={{ marginBottom: 12 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-          💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>// {counts.approved} approved · {counts.all} total</small>
+          💸 Offers <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>// {counts.approved} approved · {counts.terms} có deal terms · {counts.all} total</small>
         </h1>
         <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--fg-3)' }}>
-          Offer affiliate đã duyệt từ CJ + Awin (Directus <code>affiliate_programs</code>). Đọc-tra để chọn cho content/newsletter — copy tracking link. Đồng bộ tự động từ network, không sửa tay ở đây.
+          Offer affiliate <b>của người khác</b> (Directus <code>affiliate_programs</code>): CJ + Awin sync tự động, Direct = tự thêm tay.
+          Chọn cho content/newsletter — copy tracking link. Deal terms (% · recurring · cookie · rule riêng) sửa được ngay trong drawer;
+          network sync không đụng mấy cột đó. Sản phẩm <b>tự bán</b> thuộc về <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a> — lọc <code>own</code> để thấy row nào đang lọt vào đây.
         </p>
       </div>
 
       <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm tên / vertical / tag…"
         right={<MultiSelect label="geo" options={geos.map((g) => ({ value: g, label: g }))} selected={geo} onChange={setGeo} compact />}>
-        <FilterChips value={net} onChange={setNet} counts={counts}
-          options={[{ value: 'all', label: 'Tất cả' }, { value: 'awin', label: 'Awin' }, { value: 'cj', label: 'CJ' }, { value: 'other', label: 'Other' }]} />
+        <FilterChips value={kind} onChange={setKind} counts={counts}
+          options={[
+            { value: 'all', label: 'Tất cả' },
+            { value: 'awin', label: 'Awin' },
+            { value: 'cj', label: 'CJ' },
+            { value: 'direct', label: 'Direct', title: 'Program tự thêm tay, không qua network' },
+            { value: 'own', label: 'Own', title: 'Sản phẩm mình tự bán — nên nằm ở /products' },
+          ]} />
         <FilterChips value={status} onChange={setStatus}
           options={[{ value: 'all', label: 'all' }, { value: 'approved', label: 'approved' }, { value: 'pending', label: 'pending' }, { value: 'paused', label: 'paused' }]} />
       </ListToolbar>
@@ -80,46 +161,30 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
       {filtered.length === 0 ? (
         <EmptyState icon="🔍" title="Không có offer khớp" description="Đổi filter hoặc chờ sync CJ/Awin." />
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-              <th style={{ padding: '6px 8px' }}>Offer</th>
-              <th style={{ padding: '6px 8px' }}>Network</th>
-              <th style={{ padding: '6px 8px' }}>Status</th>
-              <th style={{ padding: '6px 8px' }}>Vertical</th>
-              <th style={{ padding: '6px 8px' }}>Geo</th>
-              <th style={{ padding: '6px 8px' }}>Link</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map((o) => (
-              <tr key={o.id} onClick={() => setSel(o)}
-                style={{ borderTop: '1px solid rgba(127,127,127,.12)', cursor: 'pointer' }}>
-                <td style={{ padding: '7px 8px', fontWeight: 600, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</td>
-                <td style={{ padding: '7px 8px', color: 'var(--fg-2)', fontSize: 12 }}>{netLabel(o.network)}</td>
-                <td style={{ padding: '7px 8px' }}>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: statusColor(o.status) }}>● {o.status}</span>
-                </td>
-                <td style={{ padding: '7px 8px', color: 'var(--fg-2)', fontSize: 12 }}>{o.vertical ?? '—'}</td>
-                <td style={{ padding: '7px 8px', color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>{o.geos.join(' ') || '—'}</td>
-                <td style={{ padding: '7px 8px' }}>{o.affiliateUrl ? '🔗' : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable rows={pageItems} columns={columns} groups={GROUPS} persistKey="offer_cols"
+          getRowKey={(o) => o.id} onRowClick={(o) => setSel(o)} minWidth={900} />
       )}
       <Pager {...pager} onPage={pager.setPage} />
 
       {sel && (
-        <Drawer onClose={() => setSel(null)} width={520}>
+        <Drawer onClose={() => setSel(null)} width={560}>
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{netLabel(sel.network).toUpperCase()}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{KIND[sel.kind].toUpperCase()}</div>
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
               <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(sel.status) }}>● {sel.status}</div>
+              {sel.kind === 'own' && (
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-amber)' }}>
+                  ⚠ Trùng tên với 1 sản phẩm tự bán → chỗ của nó là <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a>, không phải offer affiliate.
+                </div>
+              )}
             </div>
+
+            <TermsForm key={sel.id} offer={sel} />
+
             <Field label="Vertical" value={sel.vertical ?? '—'} />
             <Field label="Geo" value={sel.geos.join(', ') || '—'} />
+            {sel.model && <Field label="Commission model" value={sel.model} />}
             {sel.tags.length > 0 && (
               <div>
                 <div style={labelStyle}>Tags</div>
@@ -146,6 +211,51 @@ export function OffersPage({ offers }: { offers: AffiliateOffer[] }) {
           </div>
         </Drawer>
       )}
+    </div>
+  );
+}
+
+// Deal terms the network never sends (Awin/CJ sync writes other columns only → safe to edit here).
+function TermsForm({ offer }: { offer: AffiliateOffer }) {
+  const router = useRouter();
+  const [t, setT] = useState({
+    commission: offer.commission ?? '', recurring: offer.recurring ?? '',
+    cookie: offer.cookie ?? '', policy: offer.policy ?? '', reward: offer.reward ?? '',
+  });
+  const [msg, setMsg] = useState('');
+  const [pending, start] = useTransition();
+  const set = (k: keyof typeof t) => (e: { target: { value: string } }) => setT((p) => ({ ...p, [k]: e.target.value }));
+
+  const save = () => start(async () => {
+    const r = await saveOfferTerms(offer.id, t);
+    setMsg(r.ok ? '✓ đã lưu' : `⚠ ${r.error}`);
+    if (r.ok) router.refresh();
+  });
+
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <TextField label="Commission" size="sm" mono value={t.commission} onChange={set('commission')} placeholder="30% / $1" />
+        <SelectField label="Recurring" size="sm" mono value={t.recurring} onChange={set('recurring')}>
+          <option value="">one-time</option>
+          <option value="6_months">6 months</option>
+          <option value="1_year">1 year</option>
+          <option value="2_years">2 years</option>
+          <option value="forever">forever</option>
+        </SelectField>
+        <TextField label="Cookie" size="sm" mono value={t.cookie} onChange={set('cookie')} placeholder="60 days" />
+      </div>
+      <TextAreaField label="Special rules" size="sm" rows={2} value={t.policy} onChange={set('policy')}
+        placeholder="traffic được phép, cấm brand bidding, coupon policy…" style={{ minHeight: 44 }} />
+      <TextAreaField label="Reward details" size="sm" rows={2} value={t.reward} onChange={set('reward')}
+        placeholder="bonus tier, payout đặc biệt…" style={{ minHeight: 44 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button type="button" onClick={save} disabled={pending}
+          style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: 'none', cursor: pending ? 'default' : 'pointer', background: 'var(--neon-cyan)', color: '#0b0f14', fontWeight: 700, opacity: pending ? 0.6 : 1 }}>
+          {pending ? 'Đang lưu…' : 'Lưu terms'}
+        </button>
+        {msg && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: msg.startsWith('✓') ? 'var(--neon-lime)' : 'var(--bad)' }}>{msg}</span>}
+      </div>
     </div>
   );
 }

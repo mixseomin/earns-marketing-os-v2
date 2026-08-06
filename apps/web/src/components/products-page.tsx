@@ -106,7 +106,12 @@ export function ProductsPage({ view }: { view: ProductsView }) {
                     <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', color: 'var(--fg-0)' }}>{p.platform}</td>
                     <Td>{p.products}</Td>
                     <Td>{p.live}</Td>
-                    <Td style={{ color: p.measured ? 'var(--fg-1)' : 'var(--fg-3)' }}>{p.measured}/{p.products}</Td>
+                    {/* Nền tảng chỉ chia tiền ở mức tài khoản thì nói thẳng, đừng ghi 0/20
+                        cạnh một con số tiền có thật — đọc ra thành mâu thuẫn. */}
+                    <Td style={{ color: p.measured || p.platformOnly ? 'var(--fg-1)' : 'var(--fg-3)', fontSize: p.platformOnly ? 10.5 : undefined }}
+                      title={p.platformOnly ? 'Nền tảng chỉ trả doanh thu cho cả tài khoản, không tách theo từng sản phẩm' : undefined}>
+                      {p.platformOnly ? 'mức tài khoản' : `${p.measured}/${p.products}`}
+                    </Td>
                     <Td><Money n={p.net} bold /></Td>
                     <Td style={{ color: 'var(--fg-2)' }}>{p.perProduct == null ? '—' : usd(p.perProduct)}</Td>
                     <Td style={{ color: age != null && age > 7 ? 'var(--warn)' : 'var(--fg-3)', fontSize: 11 }}>
@@ -142,7 +147,7 @@ export function ProductsPage({ view }: { view: ProductsView }) {
  *  - Hết lặp: nền tảng chưa đo được thì nói MỘT lần ở đầu nhóm, không phải in
  *    "chưa đo" 35 dòng liên tiếp. Nhóm nào chưa đo thì bỏ hẳn cột tiền.
  */
-const COLS = (money: boolean) => `1fr 60px 74px 46px${money ? ' 62px' : ''}`;
+const COLS = (money: boolean) => `1fr 60px 56px 74px 46px${money ? ' 62px' : ''}`;
 
 function Group({ g }: { g: { platform: string; rows: ProductRow[]; net: number | null } }) {
   const money = g.net != null;
@@ -166,6 +171,9 @@ function Group({ g }: { g: { platform: string; rows: ProductRow[]; net: number |
               style={{ color: 'inherit', textDecoration: 'none' }}>{r.title}</a> : r.title}
           </span>
           <span>{r.status !== 'published' && <Pill label={r.status ?? 'draft'} color="var(--fg-3)" size="xs" tone="soft" />}</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}
+            title={r.students != null ? 'người đã ghi danh' : undefined}>
+            {r.students ? r.students.toLocaleString('en-US') : ''}</span>
           <span style={{ fontSize: 11, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
             {r.rating != null ? `${r.rating.toFixed(2)}★${r.reviews ? ` ${r.reviews}` : ''}` : ''}</span>
           <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
@@ -178,7 +186,7 @@ function Group({ g }: { g: { platform: string; rows: ProductRow[]; net: number |
   );
 }
 
-function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', textAlign: 'right',
+function Td({ children, style, title }: { children: React.ReactNode; style?: React.CSSProperties; title?: string }) {
+  return <td title={title} style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', textAlign: 'right',
     fontFamily: 'var(--font-mono)', color: 'var(--fg-1)', ...style }}>{children}</td>;
 }

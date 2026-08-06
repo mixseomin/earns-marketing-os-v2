@@ -180,7 +180,7 @@ export function OffersPage({ offers, accounts }: { offers: AffiliateOffer[]; acc
 
       {sel && (
         <Drawer onClose={() => setSel(null)} width={560}>
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{KIND[sel.kind].toUpperCase()}</div>
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
@@ -194,32 +194,40 @@ export function OffersPage({ offers, accounts }: { offers: AffiliateOffer[]; acc
 
             <TermsForm key={sel.id} offer={sel} accounts={accounts} />
 
-            <Field label="Vertical" value={sel.vertical ?? '—'} />
-            <Field label="Geo" value={sel.geos.join(', ') || '—'} />
-            {sel.model && <Field label="Commission model" value={sel.model} />}
-            {sel.tags.length > 0 && (
-              <div>
-                <div style={labelStyle}>Tags</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                  {sel.tags.map((t) => <span key={t} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{t}</span>)}
-                </div>
+            <div>
+              <div style={sectionLabel}>Details</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                <Field label="Vertical" value={sel.vertical ?? '—'} />
+                <Field label="Geo" value={sel.geos.join(', ') || '—'} />
+                {sel.model && <Field label="Commission model" value={sel.model} />}
               </div>
-            )}
-            {note && <Field label="Notes" value={note} />}
-            {sel.affiliateUrl && (
+              {sel.tags.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={labelStyle}>Tags</div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                    {sel.tags.map((t) => <span key={t} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{t}</span>)}
+                  </div>
+                </div>
+              )}
+              {note && <div style={{ marginTop: 12 }}><Field label="Notes" value={note} /></div>}
+            </div>
+
+            {sel.affiliateUrl ? (
               <div>
-                <div style={labelStyle}>Tracking link</div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                <div style={sectionLabel}>Tracking link</div>
+                <div style={{ display: 'flex', gap: 6 }}>
                   <input readOnly value={sel.affiliateUrl} style={{ flex: 1, minWidth: 0, padding: '5px 9px', fontSize: 12, borderRadius: 6, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-1)', outline: 'none' }} onFocus={(e) => e.currentTarget.select()} />
                   <button style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--neon-cyan)', color: '#0b0f14', fontWeight: 700 }}
                     onClick={() => navigator.clipboard?.writeText(sel.affiliateUrl ?? '')}>Copy</button>
                 </div>
+                <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
+                  <a href={sel.affiliateUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--neon-cyan)' }}>↗ Mở link</a>
+                  {sel.previewUrl && <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>}
+                </div>
               </div>
+            ) : sel.previewUrl && (
+              <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>
             )}
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              {sel.affiliateUrl && <a href={sel.affiliateUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--neon-cyan)' }}>↗ Mở link</a>}
-              {sel.previewUrl && <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>}
-            </div>
           </div>
         </Drawer>
       )}
@@ -249,6 +257,7 @@ function TermsForm({ offer, accounts }: { offer: AffiliateOffer; accounts: Offer
 
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Deal terms</div>
       <SelectField label="Account" size="sm" mono value={t.accountId} onChange={set('accountId')}
         hint={t.accountId ? undefined : 'Offer nào cũng phải gắn account đã đăng ký'}>
         <option value="">— chưa gán —</option>
@@ -281,6 +290,9 @@ function TermsForm({ offer, accounts }: { offer: AffiliateOffer; accounts: Offer
 }
 
 const labelStyle: React.CSSProperties = { fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.04em' };
+// Section heading inside the detail drawer: same mono micro-label, but with a divider so
+// read-only groups (Details / Tracking) read as deliberate sections, not a loose stack.
+const sectionLabel: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, paddingBottom: 6, marginBottom: 10, borderBottom: '1px solid var(--line)' };
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>

@@ -52,6 +52,9 @@ export { Panel } from './panel';
 // GROUPS + horizontal-scroll containment. Lifted from the SEO Sites Overview table (the reference,
 // untouched). Use for any wide/data-heavy table. See ui-conventions §7.
 export { DataTable, type DataColumn, type DataGroup } from './data-table';
+// SimpleTable = small/narrow display table (top-N lists, breakdowns) — consistent compact cells,
+// no toggle/scroll-box. Server-compatible. Use over a hand-rolled <table>+th/td. See §7.
+export { SimpleTable, type SimpleColumn } from './simple-table';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';

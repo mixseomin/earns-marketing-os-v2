@@ -1,6 +1,7 @@
 import { loadAwarenessFunnel } from '@/lib/projects/awareness-funnel';
 import { Panel } from './ui/panel';
 import { StatsStrip } from './ui/stats-strip';
+import { SimpleTable } from './ui/simple-table';
 
 function fmtUsd(n: number): string {
   if (n === 0) return '$0';
@@ -44,9 +45,6 @@ export async function AwarenessFunnelPanel() {
 
   const sparkSpend = s.daily.map(d => d.paid_spend_usd);
   const sparkVisits = s.daily.map(d => d.paid_visits);
-
-  const cellHead: React.CSSProperties = { padding: '6px 10px', fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)', textAlign: 'right', fontWeight: 500 };
-  const cell: React.CSSProperties = { padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', textAlign: 'right' };
 
   return (
     <Panel
@@ -109,26 +107,13 @@ export async function AwarenessFunnelPanel() {
         <summary style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', marginBottom: 6 }}>
           Top countries (7d) — {s.top_countries_7d.length}
         </summary>
-        <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
-          <thead>
-            <tr>
-              <th style={{ ...cellHead, textAlign: 'left' }}>Country</th>
-              <th style={cellHead}>Visits</th>
-              <th style={cellHead}>Spend</th>
-              <th style={cellHead}>CPC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {s.top_countries_7d.map(c => (
-              <tr key={c.country}>
-                <td style={{ ...cell, textAlign: 'left', fontFamily: 'var(--font-sans)' }}>{c.country}</td>
-                <td style={cell}>{fmtNum(c.visits)}</td>
-                <td style={cell}>{fmtUsd(c.spend_usd)}</td>
-                <td style={cell}>${c.cpc_usd.toFixed(4)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <SimpleTable rows={s.top_countries_7d} getRowKey={(c) => c.country}
+          columns={[
+            { key: 'country', header: 'Country', cell: (c) => <span style={{ fontFamily: 'var(--font-sans)' }}>{c.country}</span> },
+            { key: 'visits', header: 'Visits', align: 'right', cell: (c) => fmtNum(c.visits) },
+            { key: 'spend', header: 'Spend', align: 'right', cell: (c) => fmtUsd(c.spend_usd) },
+            { key: 'cpc', header: 'CPC', align: 'right', cell: (c) => `$${c.cpc_usd.toFixed(4)}` },
+          ]} />
       </details>
     </Panel>
   );

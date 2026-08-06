@@ -5,6 +5,7 @@ import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 import { internalUrl } from '../lib/internal-origin';
 import { Panel } from './ui/panel';
 import { StatsStrip } from './ui/stats-strip';
+import { SimpleTable } from './ui/simple-table';
 
 interface LangStats {
   ok: boolean;
@@ -68,27 +69,13 @@ export async function SteamsoloLangPanel() {
       {d.top_guides.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={th}>Top guides by views</div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              <th style={th}>Guide</th>
-              <th style={{ ...th, textAlign: 'right' }}>Views</th>
-              <th style={{ ...th, textAlign: 'right' }}>Likes</th>
-              <th style={{ ...th, textAlign: 'right' }}>Shares</th>
-            </tr></thead>
-            <tbody>
-              {d.top_guides.slice(0, 8).map((x, i) => (
-                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={td}>
-                    <a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a>
-                    <span style={{ color: 'var(--fg-3)' }}> · {x.game}</span>
-                  </td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>{x.views}</td>
-                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{x.likes}</td>
-                  <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{x.shares}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <SimpleTable rows={d.top_guides.slice(0, 8)} getRowKey={(x, i) => x.slug + i}
+            columns={[
+              { key: 'guide', header: 'Guide', cell: (x) => <><a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a><span style={{ color: 'var(--fg-3)' }}> · {x.game}</span></> },
+              { key: 'views', header: 'Views', align: 'right', cell: (x) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{x.views}</span> },
+              { key: 'likes', header: 'Likes', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.likes}</span> },
+              { key: 'shares', header: 'Shares', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.shares}</span> },
+            ]} />
         </div>
       )}
 
@@ -142,18 +129,12 @@ export async function SteamsoloLangPanel() {
         <div>
           <div style={th}>Most-requested translations {demandTotal === 0 && <span style={{ textTransform: 'none', color: 'var(--fg-3)' }}>— collecting, none yet</span>}</div>
           {d.demand.length > 0 && (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Lang</th><th style={{ ...th, textAlign: 'right' }}>Requests</th><th style={{ ...th, textAlign: 'right' }}>Guides</th></tr></thead>
-              <tbody>
-                {d.demand.slice(0, 8).map((x) => (
-                  <tr key={x.lang} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={td}>{x.lang}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>{x.hits}</td>
-                    <td style={{ ...td, textAlign: 'right', color: 'var(--fg-2)' }}>{x.guides}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SimpleTable rows={d.demand.slice(0, 8)} getRowKey={(x) => x.lang}
+              columns={[
+                { key: 'lang', header: 'Lang', cell: (x) => x.lang },
+                { key: 'hits', header: 'Requests', align: 'right', cell: (x) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{x.hits}</span> },
+                { key: 'guides', header: 'Guides', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.guides}</span> },
+              ]} />
           )}
         </div>
       </div>
@@ -162,22 +143,12 @@ export async function SteamsoloLangPanel() {
       {d.top_demand.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div style={th}>Top guide × language to publish first</div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {d.top_demand.slice(0, 8).map((x, i) => (
-                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ ...td, textAlign: 'right', width: 40, color: 'var(--accent)', fontWeight: 600 }}>{x.hits}×</td>
-                  <td style={{ ...td, width: 44 }}>{x.lang}</td>
-                  <td style={td}>
-                    <a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>
-                      {x.title}
-                    </a>
-                    <span style={{ color: 'var(--fg-3)' }}> · {x.game}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <SimpleTable rows={d.top_demand.slice(0, 8)} getRowKey={(x, i) => x.slug + i} hideHeader
+            columns={[
+              { key: 'hits', header: '×', align: 'right', width: 40, cell: (x) => <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{x.hits}×</span> },
+              { key: 'lang', header: 'Lang', width: 44, cell: (x) => x.lang },
+              { key: 'title', header: 'Guide', cell: (x) => <><a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a><span style={{ color: 'var(--fg-3)' }}> · {x.game}</span></> },
+            ]} />
         </div>
       )}
     </Panel>

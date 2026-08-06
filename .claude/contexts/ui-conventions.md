@@ -101,7 +101,7 @@ Shell (`.main` trong `globals.css`) đã mang `padding: var(--s-4) var(--s-5) 56
 
 Chuẩn cái vỏ (Panel) chưa đủ — **thành phần BÊN TRONG** cũng phải primitive, nếu không mỗi panel một kiểu tile/bảng (padding 3/8 vs 6/10, bg-1 vs bg-2, value-top vs label-top).
 - **Cụm ô số (label + value lớn + sub) = `<StatsStrip>`** (`ui/stats-strip.tsx`, `data-comp="ui.StatsStrip"`, server-compatible). `cards: StatCard[]` (`{key,label,value,color?,sub?,onClick?}`) + `columns?`/`minColWidth?` (auto-fit responsive). Đã thay tile hand-roll ở `awin-daily` (Joined/Pending/…), `awareness-funnel` (KPI + spend/visits), `steamsolo` (engagement + feature). KHÔNG tự chế `<div><big-num><label>` nữa.
-- **Bảng dày trong panel = `<DataTable>`** (dưới). Bảng của server-component → client wrapper (xem boundary note).
+- **Bảng trong panel** — chọn theo bề rộng: RỘNG/nhiều cột/cần nhóm cột → `<DataTable>` (client, server-comp cần wrapper). HẸP/list ngắn (top-N, breakdown, 3-4 cột) → `<SimpleTable>` (`ui/simple-table.tsx`, `data-comp="ui.SimpleTable"`, **server-compatible → dùng THẲNG trong server-comp, khỏi wrapper**; không scroll-box/minWidth phá layout khi nhúng trong grid). Cả hai thay cho hand-roll `<table>`+th/td rời (đang lệch pad 3/8 vs 6/10). Adopted SimpleTable: `steamsolo` (top-guides/demand/top-demand), `awareness-funnel` (countries).
 - Viz một-lần (calendar warm-up, ramp strip, language-coverage bar, engagement-tier bar) = bespoke, KHÔNG ép primitive.
 
 ## 7b. Card dashboard = `<Panel>` (KHÔNG hand-roll `<div bg-1 + border + radius>`)

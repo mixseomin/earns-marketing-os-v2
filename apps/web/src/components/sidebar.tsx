@@ -245,6 +245,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
         { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
         { href: '/opportunities', icon: '🎯', color: 'var(--neon-lime)', label: 'Opportunities', sub: 'đặt sản phẩm tiếp theo ở đâu', role: 'admin' },
+        { href: '/products', icon: '📦', color: 'var(--neon-cyan)', label: 'Products', sub: 'hàng mình bán · nền tảng nào ra tiền', role: 'admin' },
       ],
     },
     {

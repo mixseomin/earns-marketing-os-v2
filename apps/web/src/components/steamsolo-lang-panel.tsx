@@ -3,6 +3,7 @@
 // The demand meter tells us which language versions to actually publish (indexed) vs leave on-demand.
 import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 import { internalUrl } from '../lib/internal-origin';
+import { Panel } from './ui/panel';
 
 interface LangStats {
   ok: boolean;
@@ -27,7 +28,6 @@ async function load(): Promise<LangStats | null> {
   }
 }
 
-const card: React.CSSProperties = { background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, marginBottom: 16 };
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
 const th: React.CSSProperties = { ...mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-3)', textAlign: 'left', padding: '3px 8px', fontWeight: 500 };
 const td: React.CSSProperties = { ...mono, fontSize: 12, padding: '3px 8px', color: 'var(--fg-1)' };
@@ -51,16 +51,15 @@ export async function SteamsoloLangPanel() {
   const tiles: [string, number][] = [['Views', e.views], ['Likes', e.likes], ['Shares', e.shares], ['Comments', e.comments], ['Followers', e.followers ?? 0]];
 
   return (
-    <div style={card} className="steamsolo-lang-panel">
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <h2 style={{ ...mono, fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--fg-0)' }}>🎮 SteamSolo — Engagement &amp; languages</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>
-            {done} translated · {queued} queued · {demandTotal} on-demand requests
-          </span>
-          <RefreshSteamsoloBtn />
-        </div>
-      </div>
+    <Panel
+      title="🎮 SteamSolo — Engagement & languages"
+      actions={<>
+        <span style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>
+          {done} translated · {queued} queued · {demandTotal} on-demand requests
+        </span>
+        <RefreshSteamsoloBtn />
+      </>}
+    >
 
       {/* Reader engagement on our own site (likes/shares/views/comments we log per guide) */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -194,6 +193,6 @@ export async function SteamsoloLangPanel() {
           </table>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { RefreshGscBtn } from './refresh-gsc-btn';
 import { SeoSitesTable } from './seo-sites-table';
+import { Panel } from './ui/panel';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
@@ -130,10 +131,9 @@ export async function SeoSitesPanel() {
 
   if (!payload) {
     return (
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: '0 0 8px' }}>SEO Sites Overview</h2>
+      <Panel title="SEO Sites Overview">
         <p style={{ color: 'var(--fg-3)', fontSize: 12, margin: 0 }}>GSC data unavailable — daily cron at 02:30 UTC.</p>
-      </div>
+      </Panel>
     );
   }
 
@@ -151,19 +151,16 @@ export async function SeoSitesPanel() {
   const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
 
   return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-      <div className="seo-sites-overview-head" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, margin: 0 }}>
-          SEO Sites Overview
-          <small style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginLeft: 10, letterSpacing: '0.06em' }}>// GSC live · {rows.length} sites · last sync {updated}</small>
-        </h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <a href="/seo/keyword-research" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-2)', textDecoration: 'none', background: 'var(--bg-2)' }}>
-            🔍 Keyword Research
-          </a>
-          <RefreshGscBtn />
-        </div>
-      </div>
+    <Panel
+      title="SEO Sites Overview"
+      subtitle={`GSC live · ${rows.length} sites · last sync ${updated}`}
+      actions={<>
+        <a href="/seo/keyword-research" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-2)', textDecoration: 'none', background: 'var(--bg-2)' }}>
+          🔍 Keyword Research
+        </a>
+        <RefreshGscBtn />
+      </>}
+    >
 
       <SeoSitesTable
         initialCols={initialCols}
@@ -228,6 +225,6 @@ export async function SeoSitesPanel() {
         )}
         totals={{ imps: totalImps, clicks: totalClicks, pages: totalPages, sitemap: totalSitemap, avgPos }}
       />
-    </div>
+    </Panel>
   );
 }

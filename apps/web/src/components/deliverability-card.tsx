@@ -612,7 +612,7 @@ export function DeliverabilityCard() {
   if (err || !d) return null;
 
   return (
-    <div style={{ margin: '0 16px 14px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)' }}>
+    <div style={{ margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>✉️ Email deliverability</span>

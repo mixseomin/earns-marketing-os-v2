@@ -95,6 +95,7 @@ Shell (`.main` trong `globals.css`) đã mang `padding: var(--s-4) var(--s-5) 56
 - Page mới: render thẳng `<div>…`/`<>…`, KHÔNG thêm outer padding. `.page` giờ chỉ là marker cho header-system (`.page-head`/`.page-title`/`.page-sub`), KHÔNG mang padding.
 - Cần **edge-to-edge** (canvas/kanban full-bleed — hiếm): opt-out cục bộ bằng wrapper negative-margin, đừng đụng `.main`.
 - Đây là root fix "sửa 1 chỗ → cả LỚP bug 'quên wrapper → dán mép' biến mất", không vá từng page.
+- **Gotcha (2026-08): `padding: 16` dạng SỐ (không quote) CŨNG là outer padding.** Sweep §6 lần đầu chỉ regex string `'…px'` → sót `portfolio-view` (`padding:16`) + `ai-usage-card`/`deliverability-card` (`margin:'0 16px'`) → homepage **double-pad** (36px thay vì 20) + card lệch mép. Page tự set padding (SỐ hay STRING) đều gỡ; card con tự `margin:0 16px` bên trong page cũng gây thụt lề so với `.main` → bỏ, để mọi card chung 1 mép.
 
 ## 7. Card dashboard = `<Panel>` (KHÔNG hand-roll `<div bg-1 + border + radius>`)
 

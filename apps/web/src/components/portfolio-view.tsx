@@ -12,7 +12,7 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
   const totalBudget = PROJECTS.reduce((s, p) => s + p.budget, 0);
 
   return (
-    <div style={{ padding: 16 }} className="portfolio-view">
+    <div className="portfolio-view">
       <div className="portfolio-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>

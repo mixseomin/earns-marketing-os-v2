@@ -12,7 +12,7 @@ export function AiUsageCard({ usage }: { usage: AiUsageSummary | null }) {
     </div>
   );
   return (
-    <div style={{ margin: '0 16px 14px', padding: '11px 14px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
+    <div style={{ margin: '0 0 14px', padding: '11px 14px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 116 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>🤖 AI usage</span>
         <span style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{usage.models.join(', ') || '—'}</span>

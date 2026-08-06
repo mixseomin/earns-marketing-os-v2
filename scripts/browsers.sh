@@ -10,7 +10,11 @@ SELECT bp.id, bp.label, bp.tool,
        bp.external_id AS open_from,
        (CURRENT_DATE - bp.last_opened_at::date) AS idle_d,
        COALESCE(
-         string_agg(pa.handle || '@' || pa.platform_key || ' (' || pa.status || ')', ', ')
+         -- In luôn EMAIL khi nó khác handle: muốn đăng nhập lại thì cần email, mà bản
+         -- cũ chỉ in handle nên phải vào DB mới tra ra (2026-08-06).
+         string_agg(pa.handle
+                    || COALESCE(' <' || NULLIF(pa.email, pa.handle) || '>', '')
+                    || '@' || pa.platform_key || ' (' || pa.status || ')', ', ')
            FILTER (WHERE pa.status NOT IN ('blocked','banned','dormant','defunct')),
          '(no live app-account)')
        || COALESCE(' · 🚫' || NULLIF(count(*) FILTER (WHERE pa.status IN ('blocked','banned','dormant','defunct')), 0)::text || ' banned/blocked (parked)', '')

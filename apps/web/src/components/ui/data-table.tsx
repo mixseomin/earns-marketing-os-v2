@@ -21,8 +21,11 @@ export interface DataColumn<T> {
   header: ReactNode;
   title?: string;                       // th tooltip
   align?: 'left' | 'right' | 'center';  // default right (numbers); use 'left' for the label column
+  headerAlign?: 'left' | 'right' | 'center'; // th alignment if it differs from the cell (e.g. a centred status dot)
   width?: number | string;
   cell: (row: T, index: number) => ReactNode;
+  cellTitle?: (row: T, index: number) => string | undefined; // per-cell tooltip
+  onCellClick?: (row: T, index: number) => void;             // click THIS cell (stops row propagation)
   total?: (rows: T[]) => ReactNode;     // if ANY column sets this, a totals row renders
 }
 
@@ -39,7 +42,7 @@ interface DataTableProps<T> {
   getRowKey: (row: T, index: number) => string;
   groups?: DataGroup[];
   persistKey?: string;                  // localStorage + cookie key for which groups are shown
-  initialShown?: Record<string, boolean>; // server-seeded (read the `persistKey` cookie) → no FOUC
+  initialShown?: Partial<Record<string, boolean>>; // server-seeded (read the `persistKey` cookie) → no FOUC
   onRowClick?: (row: T, index: number) => void;
   minWidth?: number;                    // table min width before it starts scrolling (default 640)
   rowTitle?: (row: T) => string | undefined;
@@ -57,7 +60,11 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
-  const [shown, setShown] = useState<Record<string, boolean>>(() => ({ ...defaults(), ...(initialShown ?? {}) }));
+  const [shown, setShown] = useState<Record<string, boolean>>(() => {
+    const base = defaults();
+    if (initialShown) for (const k in initialShown) { if (typeof initialShown[k] === 'boolean') base[k] = initialShown[k] as boolean; }
+    return base;
+  });
 
   // If the cookie wasn't seeded server-side, reconcile from localStorage after paint (server +
   // first client paint = defaults → no hydration mismatch; a hidden group may flash one frame).
@@ -91,7 +98,7 @@ export function DataTable<T>({
   };
   const headStyle = (c: DataColumn<T>): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseHead, textAlign: c.align ?? 'right', width: c.width, color: g?.color ?? 'var(--fg-3)', background: band(g?.color) };
+    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width, color: g?.color ?? 'var(--fg-3)', background: band(g?.color) };
   };
 
   return (
@@ -139,7 +146,14 @@ export function DataTable<T>({
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                   onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                   title={rowTitle?.(row)}>
-                {visible.map((c) => <td key={c.key} style={cellStyle(c)}>{c.cell(row, i)}</td>)}
+                {visible.map((c) => (
+                  <td key={c.key}
+                      style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined)}
+                      title={c.cellTitle?.(row, i)}
+                      onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
+                    {c.cell(row, i)}
+                  </td>
+                ))}
               </tr>
             ))}
             {hasTotals && (

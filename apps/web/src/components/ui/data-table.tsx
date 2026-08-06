@@ -8,11 +8,12 @@ import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
 // whole thing scrolls horizontally INSIDE its own container (never blows out page width).
 //
 // Generic over the row type. You describe columns (+ which group each belongs to); the
-// primitive renders the toggle chips, the scroll box, the header/body, and an optional
+// primitive renders the ⚙ column-toggle popover, the scroll box, header/body, optional
 // totals row. NOT a data-fetching or sorting engine — just the containment + grouping skin.
 //
-// ponytail: group prefs persist to localStorage (per storageKey). The SEO table mirrors
-// them to a cookie for zero-FOUC SSR; add that only if a server-rendered table needs it.
+// Persistence: pass `persistKey` → toggles save to localStorage AND a same-named cookie.
+// Server components read that cookie and pass `initialShown` so the first paint already
+// matches the saved view (no FOUC / no columns flashing then collapsing).
 
 export interface DataColumn<T> {
   key: string;
@@ -37,7 +38,8 @@ interface DataTableProps<T> {
   columns: DataColumn<T>[];
   getRowKey: (row: T, index: number) => string;
   groups?: DataGroup[];
-  storageKey?: string;                  // persist which groups are shown
+  persistKey?: string;                  // localStorage + cookie key for which groups are shown
+  initialShown?: Record<string, boolean>; // server-seeded (read the `persistKey` cookie) → no FOUC
   onRowClick?: (row: T, index: number) => void;
   minWidth?: number;                    // table min width before it starts scrolling (default 640)
   rowTitle?: (row: T) => string | undefined;
@@ -46,36 +48,42 @@ interface DataTableProps<T> {
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
 const baseHead: CSSProperties = { ...baseCell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 500 };
 
-// hex + alpha (8-digit) — matches the SEO table's per-group band shades.
-const band = (hex: string | undefined) => (hex ? `${hex}22` : undefined);
-const bandSoft = (hex: string | undefined) => (hex ? `${hex}14` : undefined);
+// hex + alpha (8-digit) — matches the SEO table's per-group band shades (header ~0.22, body ~0.06).
+const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
+const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, storageKey, onRowClick, minWidth = 640, rowTitle,
+  rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
 }: DataTableProps<T>) {
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
-  const [shown, setShown] = useState<Record<string, boolean>>(defaults);
+  const [shown, setShown] = useState<Record<string, boolean>>(() => ({ ...defaults(), ...(initialShown ?? {}) }));
 
-  // Restore saved prefs after mount (server + first client paint = defaults → no hydration
-  // mismatch; a hidden group may flash for one frame — acceptable, see header note).
+  // If the cookie wasn't seeded server-side, reconcile from localStorage after paint (server +
+  // first client paint = defaults → no hydration mismatch; a hidden group may flash one frame).
   useEffect(() => {
-    if (!storageKey) return;
+    if (!persistKey || (initialShown && Object.keys(initialShown).length > 0)) return;
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) setShown((prev) => ({ ...prev, ...JSON.parse(raw) }));  // merge saved onto defaults
+      const raw = localStorage.getItem(persistKey);
+      if (raw) setShown((prev) => ({ ...prev, ...JSON.parse(raw) }));
     } catch { /* ignore */ }
-  }, [storageKey]);
+  }, [persistKey, initialShown]);
 
   const toggle = (k: string) =>
     setShown((prev) => {
       const next = { ...prev, [k]: !prev[k] };
-      if (storageKey) { try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ } }
+      if (persistKey) {
+        try {
+          localStorage.setItem(persistKey, JSON.stringify(next));
+          document.cookie = `${persistKey}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+        } catch { /* ignore */ }
+      }
       return next;
     });
 
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
   const hasTotals = visible.some((c) => c.total);
+  const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
 
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -89,24 +97,32 @@ export function DataTable<T>({
   return (
     <div data-comp="ui.DataTable">
       {groups && groups.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 4, marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-          <span style={{ color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Show:</span>
-          {groups.map((g) => {
-            const on = shown[g.key] !== false;
-            return (
-              <button key={g.key} type="button" onClick={() => toggle(g.key)}
-                style={{
-                  padding: '3px 9px', borderRadius: 4,
-                  background: on ? band(g.color) ?? 'var(--bg-2)' : 'transparent',
-                  border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
-                  color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
-                  cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
-                  textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400,
-                }}>
-                {on ? '✓ ' : '+ '}{g.label}
-              </button>
-            );
-          })}
+        // ⚙ Columns — collapsed by default (YDNI). Native <details> = zero-JS popover; closes on
+        // re-click of the summary. Right-aligned so it sits where controls conventionally live.
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+          <details className="dt-cols" style={{ position: 'relative' }}>
+            <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
+              ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
+            </summary>
+            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 20, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150, boxShadow: '0 6px 20px rgba(0,0,0,.35)' }}>
+              {groups.map((g) => {
+                const on = shown[g.key] !== false;
+                return (
+                  <button key={g.key} type="button" onClick={() => toggle(g.key)}
+                    style={{
+                      padding: '4px 9px', borderRadius: 4, textAlign: 'left',
+                      background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
+                      border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
+                      color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
+                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400,
+                    }}>
+                    {on ? '✓ ' : '  '}{g.label}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
         </div>
       )}
 

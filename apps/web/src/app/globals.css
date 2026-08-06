@@ -876,6 +876,10 @@ button { font-family: inherit; color: inherit; }
 
 /* ui.DataTable — row hover brighten (matches the SEO table's .seo-row:hover). */
 .dt-row:hover td { filter: brightness(1.4); }
+/* ⚙ Columns popover: hide the native <details> disclosure triangle. */
+.dt-cols summary { list-style: none; }
+.dt-cols summary::-webkit-details-marker { display: none; }
+.dt-cols summary::marker { content: ''; }
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 0 var(--s-4); gap: var(--s-4);

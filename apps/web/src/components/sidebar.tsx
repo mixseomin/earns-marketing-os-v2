@@ -244,6 +244,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/communities', icon: '🏘', color: 'var(--neon-lime)', label: 'Communities', sub: 'subreddit/forum · rules · gate · standing', role: 'admin' },
         { href: '/p/creator-econ-news/plans', icon: '🎯', color: 'var(--neon-violet)', label: 'Kế hoạch', sub: 'mục tiêu · bước · cockpit' },
         { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
+        { href: '/opportunities', icon: '🎯', color: 'var(--neon-lime)', label: 'Opportunities', sub: 'đặt sản phẩm tiếp theo ở đâu', role: 'admin' },
       ],
     },
     {

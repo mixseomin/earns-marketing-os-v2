@@ -172,7 +172,13 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
             { value: 'own', label: 'Own', title: 'Sản phẩm mình tự bán — nên nằm ở /products' },
           ]} />
         <FilterChips value={filters.status} onChange={setOne('status')} counts={counts}
-          options={[{ value: 'all', label: 'all' }, { value: 'approved', label: 'approved' }, { value: 'pending', label: 'pending' }, { value: 'paused', label: 'paused' }]} />
+          options={[
+            { value: 'all', label: 'all' },
+            { value: 'approved', label: 'approved', title: 'Đã duyệt — dùng được ngay' },
+            { value: 'pending', label: 'pending', title: 'Đã apply, chờ merchant duyệt' },
+            { value: 'rejected', label: 'rejected', title: 'Awin báo bị từ chối (CJ không có API cho trạng thái này)' },
+            { value: 'inactive', label: 'inactive', title: 'paused / suspended / đã rời programme' },
+          ]} />
       </ListToolbar>
 
       {/* Hàng 2 = filter chi tiết: chọn nhiều giá trị (account/vertical/geo) + lọc theo cái CÒN THIẾU. */}

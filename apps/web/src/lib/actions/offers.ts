@@ -205,6 +205,9 @@ export interface OffersView {
 // consts are not). Page size travels back inside OffersView instead.
 const OFFERS_PAGE_SIZE = 50;
 const APPROVED = new Set(['active', 'joined', 'approved']);
+// Statuses the networks report for "we're not earning from this" — paused/suspended by the
+// merchant, or dropped out of the relationship entirely (see the sync reconcile on the box).
+const INACTIVE = new Set(['paused', 'suspended', 'notjoined']);
 
 const hasTerms =(o: AffiliateOffer) => Boolean(o.commission || o.recurring || o.cookie || o.policy || o.reward);
 const isRecurring = (o: AffiliateOffer) => Boolean(o.recurring || /recurring/i.test(o.model ?? ''));
@@ -214,7 +217,8 @@ function matches(o: AffiliateOffer, f: OfferFilters): boolean {
   const s = o.status.toLowerCase();
   if (f.status === 'approved' && !APPROVED.has(s)) return false;
   if (f.status === 'pending' && s !== 'pending') return false;
-  if (f.status === 'paused' && s !== 'paused') return false;
+  if (f.status === 'rejected' && s !== 'rejected') return false;
+  if (f.status === 'inactive' && !INACTIVE.has(s)) return false;
   if (f.accounts.length && !(o.accountId && f.accounts.includes(o.accountId))) return false;
   if (f.verticals.length && !(o.vertical && f.verticals.includes(o.vertical))) return false;
   if (f.geos.length && !f.geos.some((g) => o.geos.includes(g))) return false;
@@ -273,7 +277,8 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       own: all.filter((o) => o.kind === 'own').length,
       approved: all.filter((o) => APPROVED.has(o.status.toLowerCase())).length,
       pending: all.filter((o) => o.status.toLowerCase() === 'pending').length,
-      paused: all.filter((o) => o.status.toLowerCase() === 'paused').length,
+      rejected: all.filter((o) => o.status.toLowerCase() === 'rejected').length,
+      inactive: all.filter((o) => INACTIVE.has(o.status.toLowerCase())).length,
       terms: all.filter(hasTerms).length,
       recurring: all.filter(isRecurring).length,
       'no-terms': all.filter((o) => !hasTerms(o)).length,

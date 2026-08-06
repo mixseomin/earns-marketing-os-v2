@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import type { KnowledgeRow } from '@/lib/data';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import { createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem } from '@/lib/actions/knowledge';
@@ -18,7 +19,13 @@ export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[
   const sp = useSearchParams();
   const [filterKind, setFilterKind] = useState(sp.get('kind') || 'all');
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState<KnowledgeRow | 'new' | null>(null);
+  // URL is source-of-truth for the editor drawer → F5 / share reopens it.
+  // ?m=template-edit&mId=<id> (full row lives in `items`, no fetch) | ?m=template-new.
+  const modal = useModalParam();
+  const editing: KnowledgeRow | 'new' | null =
+    modal.is('template-new') ? 'new'
+      : modal.is('template-edit') ? (items.find((i) => i.id === modal.numId) ?? null)
+        : null;
   const projName = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
 
   const kinds = useMemo(() => Array.from(new Set(items.map((i) => i.kind))), [items]);
@@ -40,7 +47,7 @@ export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[
             Template dùng chung cho mọi project. Hỗ trợ biến <code>{'{{product}}'}</code> <code>{'{{domain}}'}</code> <code>{'{{website}}'}</code> <code>{'{{one-liner}}'}</code>… — điền tự động khi 1 project tham khảo. Project chỉ thấy template nó tham khảo, không tràn mặc định.
           </p>
         </div>
-        <button className="btn" onClick={() => setEditing('new')}>➕ Template mới</button>
+        <button className="btn" onClick={() => modal.open('template-new')}>➕ Template mới</button>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -63,7 +70,7 @@ export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[
             const refIds = Object.keys(k.refs ?? {});
             const vars = detectTemplateVars(k.content);
             return (
-              <div key={k.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setEditing(k)}>
+              <div key={k.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => modal.open('template-edit', k.id)}>
                 <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className="tag" style={{ color: KIND_COLOR[k.kind] ?? 'var(--fg-3)', borderColor: 'currentColor' }}>{k.kind}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -86,7 +93,7 @@ export function KnowledgeCatalogPage({ items, projects }: { items: KnowledgeRow[
       )}
 
       {editing && (
-        <TemplateEditor item={editing === 'new' ? null : editing} projName={projName} onClose={() => setEditing(null)} />
+        <TemplateEditor item={editing === 'new' ? null : editing} projName={projName} onClose={() => modal.close()} />
       )}
     </div>
   );

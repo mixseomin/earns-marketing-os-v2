@@ -4,8 +4,9 @@
 // Pillar = macro positioning ("Educational depth", "Cultural bridge VN")
 // gắn voice + key_messages + forbidden + languages. Cards inherit.
 
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import {
   createContentPillar, updateContentPillar, deleteContentPillar,
   type ContentPillarRow,
@@ -26,7 +27,23 @@ interface Props {
 
 export function PillarsPage({ projectId, pillars, tribes }: Props) {
   const router = useRouter();
+  const modal = useModalParam();   // ?m=pillar-edit&mId=<id> | ?m=pillar-new (house standard)
   const [editing, setEditing] = useState<ContentPillarRow | null | 'new'>(null);
+
+  // All open/close routes through these so the URL (useModalParam) always mirrors the drawer state.
+  // edit → mId=<pillarId>; create → pillar-new (no id yet).
+  const openEdit = (p: ContentPillarRow) => { setEditing(p); modal.open('pillar-edit', p.id); };
+  const openNew = () => { setEditing('new'); modal.open('pillar-new'); };
+  const closeEditor = () => { setEditing(null); modal.close(); };
+
+  // Deep-link restore on mount: ?m=pillar-edit&mId=<id> reopens that editor, pillar-new opens create.
+  useEffect(() => {
+    if (modal.is('pillar-new')) { setEditing('new'); return; }
+    if (modal.is('pillar-edit') && modal.numId != null) {
+      const p = pillars.find((x) => x.id === modal.numId);
+      if (p) setEditing(p);
+    }
+  }, []);   // mount only — restore the drawer the URL points at
 
   return (
     <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1400, margin: '0 auto' }}>
@@ -36,7 +53,7 @@ export function PillarsPage({ projectId, pillars, tribes }: Props) {
           {pillars.length} trụ cột · định vị nội dung cho toàn dự án
         </span>
         <span style={{ flex: 1 }} />
-        <button className="btn primary" onClick={() => setEditing('new')}>
+        <button className="btn primary" onClick={openNew}>
           + Tạo trụ cột mới
         </button>
       </header>
@@ -49,12 +66,12 @@ export function PillarsPage({ projectId, pillars, tribes }: Props) {
             Trụ cột = chiến lược nội dung lớn (3-5 cái / dự án). Mỗi trụ cột có giọng điệu + thông điệp chính + audience + ngôn ngữ.<br />
             Bài viết (blog / seeding / email / thread) kế thừa vị thế từ trụ cột.
           </div>
-          <button className="btn primary" onClick={() => setEditing('new')}>+ Tạo trụ cột đầu tiên</button>
+          <button className="btn primary" onClick={openNew}>+ Tạo trụ cột đầu tiên</button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {pillars.map((p) => (
-            <PillarRow key={p.id} pillar={p} tribes={tribes} onEdit={() => setEditing(p)} />
+            <PillarRow key={p.id} pillar={p} tribes={tribes} onEdit={() => openEdit(p)} />
           ))}
         </div>
       )}
@@ -64,8 +81,8 @@ export function PillarsPage({ projectId, pillars, tribes }: Props) {
           projectId={projectId}
           pillar={editing === 'new' ? null : editing}
           tribes={tribes}
-          onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); router.refresh(); }}
+          onClose={closeEditor}
+          onSaved={() => { closeEditor(); router.refresh(); }}
         />
       )}
     </div>

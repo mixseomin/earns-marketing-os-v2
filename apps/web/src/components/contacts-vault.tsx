@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { ContactRow } from '@/lib/data';
+import { useModalParam } from '@/lib/use-modal-param';
 import { Pill, EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
 
 function fmtDate(d: Date | null): string {
@@ -18,6 +19,19 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
   const [filterScope, setFilterScope] = useState<'all' | 'project' | 'portfolio'>('all');
   const [search, setSearch] = useState('');
   const [openContact, setOpenContact] = useState<ContactRow | null>(null);
+  const modal = useModalParam();   // ?m=contact-edit&mId=<id> (house standard)
+
+  // Open/close route through modal so the URL mirrors the drawer (F5 / share reopens it).
+  const openDetail = (c: ContactRow) => { setOpenContact(c); modal.open('contact-edit', c.id); };
+  const closeDetail = () => { setOpenContact(null); modal.close(); };
+
+  // Deep-link restore on mount: ?m=contact-edit&mId=<id> reopens that contact's drawer.
+  useEffect(() => {
+    if (modal.is('contact-edit') && modal.numId != null) {
+      const c = contacts.find((c) => c.id === modal.numId);
+      if (c) setOpenContact(c);
+    }
+  }, []);   // mount only — restore the drawer the URL points at
 
   // Role = a category (data-driven), not a signal → data-driven multi-select, no per-role colour (YDNI).
   const roleOptions = useMemo(() => {
@@ -85,7 +99,7 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
           {pageItems.map((c) => (
-            <div key={c.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => setOpenContact(c)}>
+            <div key={c.id} className="panel" style={{ cursor: 'pointer' }} onClick={() => openDetail(c)}>
               <div style={{ padding: '8px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
@@ -104,7 +118,7 @@ export function ContactsVault({ contacts, projectName }: { contacts: ContactRow[
       )}
       <Pager {...pager} onPage={pager.setPage} />
 
-      {openContact && <ContactModal contact={openContact} onClose={() => setOpenContact(null)} />}
+      {openContact && <ContactModal contact={openContact} onClose={closeDetail} />}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, useTransition, useRef } from 'react';
+import { useState, useMemo, useTransition, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { KnowledgeRow } from '@/lib/data';
 import { Pill, EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged } from './ui';
+import { useModalParam } from '@/lib/use-modal-param';
 import { detectTemplateVars } from '@/lib/knowledge-vars';
 import {
   createKnowledgeItem, updateKnowledgeItem, deleteKnowledgeItem,
@@ -31,6 +32,7 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
   const [openItem, setOpenItem] = useState<KnowledgeRow | null>(null);
   const [editItem, setEditItem] = useState<KnowledgeRow | 'new' | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const modal = useModalParam();   // ?m=knowledge-view|knowledge-edit&mId=<id> | ?m=knowledge-new — house URL-sync standard
 
   const kinds = useMemo(() => Array.from(new Set(items.map((i) => i.kind))), [items]);
   const filtered = useMemo(() => items.filter((i) => {
@@ -54,6 +56,21 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
   );
   const { pageItems, ...pager } = usePaged(filtered);
 
+  // All open/close for the item drawers routes through these so the URL (useModalParam)
+  // always mirrors which drawer is open; F5 / share-link reopens it (restore effect below).
+  const openView = (k: KnowledgeRow) => { setOpenItem(k); modal.open('knowledge-view', k.id); };
+  const openNew = () => { setEditItem('new'); modal.open('knowledge-new'); };
+  const openEdit = (k: KnowledgeRow) => { setOpenItem(null); setEditItem(k); modal.open('knowledge-edit', k.id); };
+  const closeView = () => { setOpenItem(null); modal.close(); };
+  const closeEdit = () => { setEditItem(null); modal.close(); };
+
+  // Deep-link restore on mount: ?m=knowledge-view|knowledge-edit&mId=<id> reopens that drawer, knowledge-new opens create.
+  useEffect(() => {
+    if (modal.is('knowledge-new')) { setEditItem('new'); return; }
+    if (modal.is('knowledge-edit') && modal.id) { const k = items.find((i) => String(i.id) === modal.id && !i.isRef); if (k) setEditItem(k); return; }
+    if (modal.is('knowledge-view') && modal.id) { const k = items.find((i) => String(i.id) === modal.id); if (k) setOpenItem(k); }
+  }, []);   // mount only — restore the drawer the URL points at
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
@@ -67,7 +84,7 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn ghost" onClick={() => setShowPicker(true)} title="Tham khảo template từ Knowledge chung">📎 Tham khảo từ chung</button>
-          <button className="btn ghost" onClick={() => setEditItem('new')} title="Tạo knowledge riêng cho project này">➕ Riêng</button>
+          <button className="btn ghost" onClick={openNew} title="Tạo knowledge riêng cho project này">➕ Riêng</button>
         </div>
       </div>
 
@@ -88,7 +105,7 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
               <div key={`${k.isRef ? 'ref' : 'own'}-${k.id}`} className="panel" style={{
                 cursor: 'pointer',
                 borderLeft: isFresh ? '3px solid var(--ok)' : undefined,
-              }} onClick={() => setOpenItem(k)}>
+              }} onClick={() => openView(k)}>
                 <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Pill color="var(--fg-3)" label={k.kind} size="xs" />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -114,9 +131,9 @@ export function KnowledgeVault({ items, sharedCatalog, projectName, projectId }:
       <Pager {...pager} onPage={pager.setPage} />
 
       {openItem && <KnowledgeModal item={openItem} projectId={projectId}
-        onClose={() => setOpenItem(null)}
-        onEdit={openItem.isRef ? undefined : () => { setEditItem(openItem); setOpenItem(null); }} />}
-      {editItem && <OwnEditor item={editItem === 'new' ? null : editItem} projectId={projectId} onClose={() => setEditItem(null)} />}
+        onClose={closeView}
+        onEdit={openItem.isRef ? undefined : () => openEdit(openItem)} />}
+      {editItem && <OwnEditor item={editItem === 'new' ? null : editItem} projectId={projectId} onClose={closeEdit} />}
       {showPicker && <SharedPicker catalog={sharedCatalog} projectId={projectId} onClose={() => setShowPicker(false)} />}
     </div>
   );

@@ -6,6 +6,7 @@
 
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import {
   type IdentityRow, type IdentityInput, type IdentityKind,
   createIdentity, updateIdentity, deleteIdentity, revealIdentityPassword,
@@ -27,6 +28,7 @@ export function IdentitiesPage({
   projectId, initial,
 }: { projectId: string; initial: IdentityRow[] }) {
   const router = useRouter();
+  const modal = useModalParam();   // ?m=identity-edit&mId=<id> | ?m=identity-new (house standard)
   const [, startTransition] = useTransition();
   const [editing, setEditing] = useState<FormState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,15 +36,29 @@ export function IdentitiesPage({
 
   const rows = initial.filter((r) => kindFilter === 'all' || r.kind === kindFilter);
 
-  const openCreate = () => setEditing({ ...EMPTY_FORM });
-  const openEdit = (r: IdentityRow) => setEditing({
-    id: r.id,
-    name: r.name, kind: r.kind, handleBase: r.handleBase, email: r.email,
-    password: undefined,                       // undefined = leave alone
-    displayName: r.displayName, bio: r.bio, avatarUrl: r.avatarUrl,
-    persona: r.persona, customFields: r.customFields,
-  });
-  const closeModal = () => setEditing(null);
+  // All open/close routes through these so the URL (useModalParam) always mirrors the drawer.
+  // edit → mId=<identityId>; create → no id (identity has no id yet). editing keeps the built FormState.
+  const openCreate = () => { setEditing({ ...EMPTY_FORM }); modal.open('identity-new'); };
+  const openEdit = (r: IdentityRow) => {
+    setEditing({
+      id: r.id,
+      name: r.name, kind: r.kind, handleBase: r.handleBase, email: r.email,
+      password: undefined,                       // undefined = leave alone
+      displayName: r.displayName, bio: r.bio, avatarUrl: r.avatarUrl,
+      persona: r.persona, customFields: r.customFields,
+    });
+    modal.open('identity-edit', r.id);
+  };
+  const closeModal = () => { setEditing(null); modal.close(); };
+
+  // Deep-link restore on mount: ?m=identity-edit&mId=<id> reopens that editor, identity-new opens create.
+  useEffect(() => {
+    if (modal.is('identity-new')) { openCreate(); return; }
+    if (modal.is('identity-edit') && modal.numId != null) {
+      const row = initial.find((r) => r.id === modal.numId);
+      if (row) openEdit(row);
+    }
+  }, []);   // mount only — restore the drawer the URL points at
 
   const save = async () => {
     if (!editing) return;

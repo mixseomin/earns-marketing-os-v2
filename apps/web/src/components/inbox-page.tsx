@@ -8,6 +8,7 @@ import { assignTaskToUser, type TeamMemberRow } from '@/lib/actions/team';
 import { ExternalLink } from './external-link';
 import { Pill, EmptyState, StatsStrip, Drawer, type StatCard } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { useModalParam } from '@/lib/use-modal-param';
 
 const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--fg-3)',
@@ -52,6 +53,12 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
   const [, startTransition] = useTransition();
   const [filterStatus, setFilterStatus] = useState<string>('open');
   const [openTask, setOpenTask] = useState<HumanTaskRow | null>(null);
+  // URL mirrors the open detail drawer (house standard): ?m=task-view&mId=<taskId>.
+  // openTask stays the render source of truth (holds the full row, incl. swapped tasks
+  // not yet in the list); these helpers keep the URL in sync so F5/share reopens it.
+  const modal = useModalParam();
+  const openDetail = (t: HumanTaskRow) => { setOpenTask(t); modal.open('task-view', t.id); };
+  const closeDetail = () => { setOpenTask(null); modal.close(); };
   const assignFilter: 'all' | 'mine' | 'unassigned' | number =
     sp.get('assign') === 'mine' ? 'mine' :
     sp.get('assign') === 'unassigned' ? 'unassigned' :
@@ -74,6 +81,13 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
   // Tránh tình trạng list stale khi worker spawn task mới ở background.
   const [tasks, setTasks] = useState<HumanTaskRow[]>(initial);
   useEffect(() => { setTasks(initial); }, [initial]);
+  // Deep-link restore on mount: ?m=task-view&mId=<id> reopens that task's detail drawer.
+  useEffect(() => {
+    if (modal.is('task-view') && modal.numId != null) {
+      const t = initial.find((x) => x.id === modal.numId);
+      if (t) setOpenTask(t);
+    }
+  }, []);   // mount only — restore the drawer the URL points at
   useEffect(() => {
     let cancelled = false;
     const isOperator = currentUserRole === 'operator' || currentUserRole === 'viewer';
@@ -205,7 +219,7 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {recentDone.map((t) => (
-                  <div key={t.id} className="panel" style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setOpenTask(t)}>
+                  <div key={t.id} className="panel" style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => openDetail(t)}>
                     <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Pill color={STATUS_COLOR[t.status] ?? 'var(--fg-3)'} label={t.status} size="xs" />
                       <span style={{ fontSize: 12, color: 'var(--fg-1)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</span>
@@ -227,9 +241,9 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
             const onClick = () => {
               if (hasDescendant) {
                 const child = tasks.find((x) => x.id === t.descendantTaskId);
-                setOpenTask(child ?? t);
+                openDetail(child ?? t);
               } else {
-                setOpenTask(t);
+                openDetail(t);
               }
             };
             const stateConfig: Record<typeof state, { label: string; color: string; border: string }> = {
@@ -310,9 +324,9 @@ export function InboxPage({ tasks: initial, teamMembers = [], currentUserId = nu
           teamMembers={teamMembers}
           currentUserId={currentUserId}
           currentUserRole={currentUserRole}
-          onClose={() => setOpenTask(null)}
-          onAction={() => { setOpenTask(null); router.refresh(); }}
-          onSwapTask={(newTask) => { setOpenTask(newTask); router.refresh(); }}
+          onClose={() => closeDetail()}
+          onAction={() => { closeDetail(); router.refresh(); }}
+          onSwapTask={(newTask) => { openDetail(newTask); router.refresh(); }}
         />
       )}
     </div>

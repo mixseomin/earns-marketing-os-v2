@@ -5,8 +5,9 @@
 // setBacklinkSourceStatus. YDNI: each row shows only name + the few glanceable signals (dofollow / ran-
 // through-browser / status); everything else (level, tags, DA, URL, template) lives one click inside the
 // editor. Colour = signal only (green value/ok · amber attention · red broken); the rest is neutral.
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import { listBacklinkSources, setBacklinkSourceStatus, queueMethodFanout, type BacklinkSource } from '@/lib/actions/backlink-catalog';
 import { ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import { SourceEditor } from './source-editor';
@@ -40,6 +41,7 @@ function browserAgo(iso: string | null): string {
 export function CatalogPage({ initialSources, projects, fanouts }: { initialSources: BacklinkSource[]; projects: Array<{ id: string; name: string; emoji?: string }>; fanouts: Array<{ sourceId: number; projectId: string; status: string; taskCount: number }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const modal = useModalParam();   // ?m=source-edit&mId=<id> | ?m=source-new (house standard)
   const genProject = searchParams.get('gen') ?? '';
   const setGenProject = (id: string) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -70,6 +72,21 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
   const reload = async (nextArchived = archived) => setSources(await listBacklinkSources({ status: nextArchived ? 'archived' : 'active' }));
   const toggleArchived = async () => { const v = !archived; setArchived(v); await reload(v); };
   const setStatus = async (id: number, to: string) => { setBusy(id); await setBacklinkSourceStatus(id, to); await reload(); setBusy(null); };
+
+  // All open/close of the editor routes through these so the URL (useModalParam) always mirrors the drawer state.
+  // existing source → ?m=source-edit&mId=<id>; new → ?m=source-new (no id yet).
+  const openEditor = (s: BacklinkSource | Record<string, never>) => {
+    setEdit(s);
+    if ('id' in s && typeof s.id === 'number') modal.open('source-edit', s.id);
+    else modal.open('source-new');
+  };
+  const closeEditor = () => { setEdit(null); modal.close(); };
+
+  // Deep-link restore on mount: ?m=source-edit&mId=<id> reopens that editor; source-new opens the add form.
+  useEffect(() => {
+    if (modal.is('source-new')) { setEdit({}); return; }
+    if (modal.is('source-edit') && modal.numId != null) { const s = sources.find((x) => x.id === modal.numId); if (s) setEdit(s); }
+  }, []);   // mount only — restore the drawer the URL points at
 
   // When searching, IGNORE the "chỉ phương pháp" toggle so search always surfaces the match (e.g. SaaSHub
   // isn't 'play'-tagged and would otherwise stay hidden). Search must show what you look for. (H1 fix)
@@ -106,7 +123,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
     const st = s.sourceStatus === 'needs-review' ? { t: '⚠ cần review', c: WARN } : s.sourceStatus === 'broken' ? { t: '⚠ hỏng', c: BAD } : null;
     const meta = [s.mechanism || s.category, s.da ? `DA ${s.da}` : '', s.usageCount > 0 ? `${s.usageCount} dự án` : ''].filter(Boolean).join('  ·  ');
     return (
-      <div key={s.id} onClick={() => setEdit(s)} title="Bấm để sửa" style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 11px', cursor: 'pointer' }}>
+      <div key={s.id} onClick={() => openEditor(s)} title="Bấm để sửa" style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 11px', cursor: 'pointer' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-1)' }}>{s.name}</span>
@@ -125,7 +142,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
           )}
           {fo?.status === 'queued' && <span style={sig(WARN)} title="Đã queue — Claude sẽ research & tạo draft ở plays">⏳ xếp hàng</span>}
           {fo?.status === 'done' && <a href={`/p/${genProject}/plays`} onClick={(e) => e.stopPropagation()} style={{ ...sig(GOOD), textDecoration: 'none' }} title="Đã sinh — mở plays để duyệt">✓ {fo.count} → duyệt</a>}
-          <button type="button" onClick={() => setEdit(s)} style={iconBtn} title="Sửa">✎</button>
+          <button type="button" onClick={() => openEditor(s)} style={iconBtn} title="Sửa">✎</button>
           {archived
             ? <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'active')} style={iconBtn} title="Khôi phục">♻</button>
             : <button type="button" disabled={busy === s.id} onClick={() => setStatus(s.id, 'archived')} style={iconBtn} title="Lưu kho (archived)">🗄</button>}
@@ -140,7 +157,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
         <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Phương pháp <small style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', marginLeft: 8 }}>// catalog · {list.length}{archived ? ' (kho lưu)' : ''}</small></h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <a href="/plays" style={{ ...btn, textDecoration: 'none' }} title="Về bảng quản lý task">← Plays (task)</a>
-          <button type="button" onClick={() => setEdit({})} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>➕ Thêm phương pháp</button>
+          <button type="button" onClick={() => openEditor({})} style={{ ...btn, color: 'var(--accent)', fontWeight: 700 }}>➕ Thêm phương pháp</button>
         </div>
       </div>
 
@@ -190,7 +207,7 @@ export function CatalogPage({ initialSources, projects, fanouts }: { initialSour
       </div>
       <Pager {...pager} onPage={pager.setPage} />
 
-      {edit && <SourceEditor initial={edit} onClose={() => setEdit(null)} onSaved={async () => { setEdit(null); await reload(); }} />}
+      {edit && <SourceEditor initial={edit} onClose={closeEditor} onSaved={async () => { closeEditor(); await reload(); }} />}
     </div>
   );
 }

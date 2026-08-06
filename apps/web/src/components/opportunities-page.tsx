@@ -12,6 +12,7 @@
 
 import { useMemo, useState } from 'react';
 import type { MarketBenchmark, IdeaAnalysis } from '@/lib/opportunities/data';
+import { useModalParam } from '@/lib/use-modal-param';
 import {
   Section, StatsStrip, ListToolbar, FilterChips, Drawer, Pill, EmptyState, Pager, usePaged,
 } from './ui';
@@ -31,7 +32,9 @@ const catLabel = (c: string) => CAT_LABEL[c] ?? c;
 const CURRENT_CATEGORY = 'software-development';
 
 export function OpportunitiesPage({ benchmarks, ideas }: { benchmarks: MarketBenchmark[]; ideas: IdeaAnalysis[] }) {
-  const [bench, setBench] = useState<MarketBenchmark | null>(null);
+  // ui-conventions §1: drawer mở qua useModalParam → F5 / gửi link mở lại đúng chỗ.
+  const modal = useModalParam();
+  const bench = modal.is('benchmark') ? benchmarks.find((b) => b.id === modal.numId) ?? null : null;
 
   const best = benchmarks[0];
   const worst = benchmarks[benchmarks.length - 1];
@@ -69,11 +72,11 @@ export function OpportunitiesPage({ benchmarks, ideas }: { benchmarks: MarketBen
 
       <StatsStrip cards={cards} />
 
-      <BenchmarkTable rows={benchmarks} best={best} worst={worst} onOpen={setBench} />
+      <BenchmarkTable rows={benchmarks} best={best} worst={worst} onOpen={(r) => modal.open('benchmark', r.id)} />
 
       <IdeasSection ideas={ideas} />
 
-      {bench && <BenchmarkDrawer row={bench} onClose={() => setBench(null)} />}
+      {bench && <BenchmarkDrawer row={bench} onClose={modal.close} />}
     </div>
   );
 }
@@ -184,7 +187,9 @@ function Facts({ rows }: { rows: Array<[string, string]> }) {
 function IdeasSection({ ideas }: { ideas: IdeaAnalysis[] }) {
   const [q, setQ] = useState('');
   const [verdict, setVerdict] = useState('all');
-  const [sel, setSel] = useState<IdeaAnalysis | null>(null);
+  // Drawer con dùng slot riêng ('sub') để không giẫm lên slot của drawer ngành.
+  const sub = useModalParam('sub');
+  const sel = sub.is('idea') ? ideas.find((i) => i.id === sub.numId) ?? null : null;
 
   const counts = useMemo(() => ({
     all: ideas.length,
@@ -240,7 +245,7 @@ function IdeasSection({ ideas }: { ideas: IdeaAnalysis[] }) {
       ) : (
         <div className="panel" style={{ padding: 0 }}>
           {pageItems.map((i) => (
-            <div key={i.id} onClick={() => setSel(i)}
+            <div key={i.id} onClick={() => sub.open('idea', i.id)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px',
                 borderBottom: '1px solid var(--line)', cursor: 'pointer' }}
               title="Bấm để xem toàn bộ phân tích">
@@ -258,7 +263,7 @@ function IdeasSection({ ideas }: { ideas: IdeaAnalysis[] }) {
       )}
       <Pager {...pager} onPage={pager.setPage} />
 
-      {sel && <IdeaDrawer idea={sel} onClose={() => setSel(null)} />}
+      {sel && <IdeaDrawer idea={sel} onClose={sub.close} />}
     </Section>
   );
 }

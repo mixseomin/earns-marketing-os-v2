@@ -624,7 +624,7 @@ export function HabitatFormModal({
             <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)',
                               fontFamily: 'var(--font-mono)', padding: '4px 0',
                               userSelect: 'none' }}>
-              <span style={{ color: 'var(--accent)' }}>✨ AI fill</span> — paste text / URL / screenshot → AI extract 18 fields
+              <span style={{ color: 'var(--fg-2)' }}>✨ AI fill</span> — paste text / URL / screenshot → AI extract 18 fields
             </summary>
             <div style={{ marginTop: 6 }}>
           <AIFormParser
@@ -767,12 +767,12 @@ export function HabitatFormModal({
             return (
               <div style={{
                 padding: '8px 10px',
-                background: 'rgba(88,101,242,0.06)',                   // Discord blurple tint
-                border: '1px solid rgba(88,101,242,0.35)',
+                background: 'var(--bg-1)',
+                border: '1px solid var(--line)',
                 borderRadius: 6,
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#7289da' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--fg-2)' }}>
                   <span>🎮</span> Discord — tự điền
                   <span style={{ fontWeight: 400, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
                     dán invite → điền tên + members + icon
@@ -795,8 +795,8 @@ export function HabitatFormModal({
                           title="Gọi Discord public Invite API → trả name/members/icon/description. Không cần bot, không cần OAuth."
                           style={{
                             flexShrink: 0, padding: '6px 12px', fontSize: 11, fontWeight: 700,
-                            background: '#5865F2', color: '#fff',
-                            border: 'none', borderRadius: 5,
+                            background: 'var(--bg-2)', color: 'var(--fg-1)',
+                            border: '1px solid var(--line)', borderRadius: 5,
                             cursor: discordBusy ? 'wait' : 'pointer',
                             opacity: discordBusy ? 0.6 : 1,
                             whiteSpace: 'nowrap',
@@ -875,18 +875,32 @@ export function HabitatFormModal({
             );
           })()}
 
-          <div>
-            <label style={lbl}>
-              <span title="Technology / CMS / framework của site (WordPress, Discourse, vBulletin, XenForo, phpBB, Shopify, Webflow, custom…). Chỉ cần điền nếu khác mặc định của platform — để scraper biết cách parse rules + post."
-                    style={{ cursor: 'help' }}>Technology</span>
-            </label>
-            <TechnologyPicker
-              technologies={technologies}
-              value={form.technologyKey ?? null}
-              onChange={(k) => setF('technologyKey', k)}
-              fld={fld}
-            />
-          </div>
+          {/* Technology (CMS/framework) — rarely set (only non-default platforms);
+              collapsed by default (YDNI). Badge surfaces current key when set. */}
+          <Collapsible
+            title="🧩 Technology"
+            defaultOpen={false}
+            marginTop={0}
+            badge={form.technologyKey ? (
+              <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                {form.technologyKey}
+              </span>
+            ) : undefined}
+            hint="CMS / framework — chỉ khi khác default"
+          >
+            <div>
+              <label style={lbl}>
+                <span title="Technology / CMS / framework của site (WordPress, Discourse, vBulletin, XenForo, phpBB, Shopify, Webflow, custom…). Chỉ cần điền nếu khác mặc định của platform — để scraper biết cách parse rules + post."
+                      style={{ cursor: 'help' }}>Technology</span>
+              </label>
+              <TechnologyPicker
+                technologies={technologies}
+                value={form.technologyKey ?? null}
+                onChange={(k) => setF('technologyKey', k)}
+                fld={fld}
+              />
+            </div>
+          </Collapsible>
 
           {/* Health + Activity vẫn editable (user pet rating + free-text) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1075,7 +1089,7 @@ export function HabitatFormModal({
               />
             )}
             <div title="AI brief generator đọc các field này để sinh chiến lược tiếp cận. Điền càng đầy → brief càng chuẩn."
-                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
+                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
               🎯 Outreach meta
             </div>
 
@@ -1105,70 +1119,96 @@ export function HabitatFormModal({
               </div>
             </div>
 
-            {/* 👑 Own habitat — flag habitat brand mình quản lý (Discord
-                server own, FB group, subreddit user mod). UI hiển thị icon
-                trên row + filter Own/External. AI prompt có thể đổi tone. */}
-            <div style={{ padding: 8,
-                          background: form.isOwn ? 'rgba(251,191,36,.08)' : 'var(--bg-2)',
-                          border: `1px solid ${form.isOwn ? 'rgba(251,191,36,.4)' : 'var(--line)'}`,
-                          borderRadius: 4, marginBottom: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
-                <input type="checkbox"
-                       checked={form.isOwn ?? false}
-                       onChange={(e) => setF('isOwn', e.target.checked)} />
-                <span style={{ fontWeight: 700, color: form.isOwn ? '#fbbf24' : 'var(--fg-1)' }}>
-                  👑 Own habitat (brand mình)
+            {/* Advanced flags (own habitat + AI-content detection) — rarely
+                toggled → collapsed by default (YDNI). Neutral theme: the 👑/🚨
+                emoji + checkbox convey state without decorative amber/red tint. */}
+            <Collapsible
+              title="🚩 Flags"
+              defaultOpen={false}
+              marginTop={0}
+              badge={(form.isOwn || form.aiContentDetection) ? (
+                <span style={{ fontSize: 10 }}>
+                  {form.isOwn ? '👑' : ''}{form.aiContentDetection ? '🚨' : ''}
                 </span>
-              </label>
-              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
-                Check nếu habitat thuộc brand mình quản lý (Discord server own, FB group, subreddit user mod).
-                Khác với external community ta engage. Hiển thị icon 👑 + filter Own/External.
+              ) : undefined}
+              hint="own habitat · AI-detection"
+            >
+              {/* 👑 Own habitat — flag habitat brand mình quản lý (Discord
+                  server own, FB group, subreddit user mod). */}
+              <div style={{ padding: 8, background: 'var(--bg-2)', border: '1px solid var(--line)',
+                            borderRadius: 4, marginBottom: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input type="checkbox"
+                         checked={form.isOwn ?? false}
+                         onChange={(e) => setF('isOwn', e.target.checked)} />
+                  <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
+                    👑 Own habitat (brand mình)
+                  </span>
+                </label>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
+                  Check nếu habitat thuộc brand mình quản lý (Discord server own, FB group, subreddit user mod).
+                  Khác với external community ta engage. Hiển thị icon 👑 + filter Own/External.
+                </div>
               </div>
-            </div>
 
-            {/* 🚨 AI content detection flag — habitat có cơ chế detect AI
-                (auto-mod rule / quality filter). Khi check → AI prompt sẽ
-                enforce anti-AI patterns (né em dash, markdown, AI cliché). */}
-            <div style={{ padding: 8, background: form.aiContentDetection ? 'rgba(248,113,113,.08)' : 'var(--bg-2)', border: `1px solid ${form.aiContentDetection ? 'rgba(248,113,113,.4)' : 'var(--line)'}`, borderRadius: 4 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
-                <input type="checkbox"
-                       checked={form.aiContentDetection ?? false}
-                       onChange={(e) => setF('aiContentDetection', e.target.checked)} />
-                <span style={{ fontWeight: 700, color: form.aiContentDetection ? 'var(--bad)' : 'var(--fg-1)' }}>
-                  🚨 Habitat có cơ chế detect AI content
+              {/* 🚨 AI content detection flag — habitat có cơ chế detect AI
+                  (auto-mod rule / quality filter). Khi check → AI prompt sẽ
+                  enforce anti-AI patterns (né em dash, markdown, AI cliché). */}
+              <div style={{ padding: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input type="checkbox"
+                         checked={form.aiContentDetection ?? false}
+                         onChange={(e) => setF('aiContentDetection', e.target.checked)} />
+                  <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
+                    🚨 Habitat có cơ chế detect AI content
+                  </span>
+                </label>
+                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
+                  Check khi community có auto-mod rule / quality filter remove comment AI.
+                  AI gen sẽ enforce: né em dash, markdown bullets, AI clichés ("Hope this helps!", "Great question!"), 3+ uniform sentences.
+                </div>
+                {form.aiContentDetection && (
+                  <textarea
+                    value={form.aiDetectionNote ?? ''}
+                    onChange={(e) => setF('aiDetectionNote', e.target.value)}
+                    placeholder='Optional: thêm rule cụ thể, vd "tránh từ delve/leverage", "max 200 words"...'
+                    rows={2}
+                    style={{ ...fld, marginTop: 6, fontSize: 11, resize: 'vertical' }} />
+                )}
+              </div>
+            </Collapsible>
+
+            {/* Link-gate thresholds — advanced numeric gates (usually AI-filled
+                from rules fetch, rarely hand-edited) → collapsed by default. */}
+            <Collapsible
+              title="🔑 Link-gate thresholds"
+              defaultOpen={false}
+              marginTop={0}
+              badge={(form.minAccountAgeDays || form.minKarma || form.minPosts) ? (
+                <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                  {form.minAccountAgeDays ?? 0}d · {form.minKarma ?? 0}k · {form.minPosts ?? 0}p
                 </span>
-              </label>
-              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
-                Check khi community có auto-mod rule / quality filter remove comment AI.
-                AI gen sẽ enforce: né em dash, markdown bullets, AI clichés ("Hope this helps!", "Great question!"), 3+ uniform sentences.
+              ) : undefined}
+              hint="min age · karma · posts"
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div>
+                  <label style={lbl}>Min age (days)</label>
+                  <input type="number" min={0} value={form.minAccountAgeDays ?? 0} onChange={(e) => setF('minAccountAgeDays', Number(e.target.value))}
+                         style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
+                </div>
+                <div>
+                  <label style={lbl}>Min karma</label>
+                  <input type="number" min={0} value={form.minKarma ?? 0} onChange={(e) => setF('minKarma', Number(e.target.value))}
+                         style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
+                </div>
+                <div>
+                  <label style={lbl}>Min posts</label>
+                  <input type="number" min={0} value={form.minPosts ?? 0} onChange={(e) => setF('minPosts', Number(e.target.value))}
+                         style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
+                </div>
               </div>
-              {form.aiContentDetection && (
-                <textarea
-                  value={form.aiDetectionNote ?? ''}
-                  onChange={(e) => setF('aiDetectionNote', e.target.value)}
-                  placeholder='Optional: thêm rule cụ thể, vd "tránh từ delve/leverage", "max 200 words"...'
-                  rows={2}
-                  style={{ ...fld, marginTop: 6, fontSize: 11, resize: 'vertical' }} />
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              <div>
-                <label style={lbl}>Min age (days)</label>
-                <input type="number" min={0} value={form.minAccountAgeDays ?? 0} onChange={(e) => setF('minAccountAgeDays', Number(e.target.value))}
-                       style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
-              </div>
-              <div>
-                <label style={lbl}>Min karma</label>
-                <input type="number" min={0} value={form.minKarma ?? 0} onChange={(e) => setF('minKarma', Number(e.target.value))}
-                       style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
-              </div>
-              <div>
-                <label style={lbl}>Min posts</label>
-                <input type="number" min={0} value={form.minPosts ?? 0} onChange={(e) => setF('minPosts', Number(e.target.value))}
-                       style={{ ...fld, fontFamily: 'var(--font-mono)' }} />
-              </div>
-            </div>
+            </Collapsible>
 
             <div>
               <label style={lbl}>Links allowed after</label>
@@ -1176,11 +1216,25 @@ export function HabitatFormModal({
                      style={fld} placeholder='"5 posts" / "never" / "profile only"' />
             </div>
 
-            <div>
-              <label style={lbl}>Best post times <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// e.g. "8-10am UTC weekdays"</span></label>
-              <input type="text" value={form.bestPostTimes ?? ''} onChange={(e) => setF('bestPostTimes', e.target.value)}
-                     style={fld} placeholder="" />
-            </div>
+            {/* Best post times — single rarely-edited free-text field →
+                collapsed by default (YDNI). Badge surfaces value when set. */}
+            <Collapsible
+              title="🕒 Best post times"
+              defaultOpen={false}
+              marginTop={0}
+              badge={form.bestPostTimes?.trim() ? (
+                <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
+                               maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {form.bestPostTimes}
+                </span>
+              ) : undefined}
+            >
+              <div>
+                <label style={lbl}>Best post times <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// e.g. "8-10am UTC weekdays"</span></label>
+                <input type="text" value={form.bestPostTimes ?? ''} onChange={(e) => setF('bestPostTimes', e.target.value)}
+                       style={fld} placeholder="" />
+              </div>
+            </Collapsible>
 
             {/* Loại bài community này hỗ trợ — override platform default.
                 Null/empty checkboxes = kế thừa platform. Bỏ tick 1 loại = community
@@ -1222,17 +1276,18 @@ export function HabitatFormModal({
                     {CONTENT_FORMATS.map((f) => {
                       const on = selected.has(f.key);
                       const inheritedFromPlatform = platformDefault.has(f.key);
-                      const col = formatColors(f.key);
+                      // Neutral theme (YDNI): selected = subtle "pressed" fill, not
+                      // per-format rainbow. On/off distinguished by weight, not hue.
                       return (
                         <label key={f.key} title={`${f.label} — ${f.hint}${inheritedFromPlatform ? '\n(platform default: có)' : '\n(platform default: không — tick để community thêm exception)'}`}
                                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
                                         padding: '4px 7px', borderRadius: 5, cursor: 'pointer',
-                                        background: on ? col.bg : 'var(--bg-2)',
-                                        border: `1px solid ${on ? col.border : 'var(--line)'}`,
-                                        color: on ? col.fg : (inheritedFromPlatform ? 'var(--fg-2)' : 'var(--fg-4)'),
+                                        background: on ? 'var(--bg-3)' : 'var(--bg-2)',
+                                        border: `1px solid ${on ? 'var(--line-2)' : 'var(--line)'}`,
+                                        color: on ? 'var(--fg-0)' : (inheritedFromPlatform ? 'var(--fg-2)' : 'var(--fg-4)'),
                                         opacity: on ? 1 : (inheritedFromPlatform ? 0.7 : 0.45) }}>
                           <input type="checkbox" checked={on} onChange={() => toggle(f.key)}
-                                 style={{ accentColor: col.fg, cursor: 'pointer' }} />
+                                 style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
                           <FormatIcon kind={f.key} size={12} />
                           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {f.label}
@@ -1255,7 +1310,7 @@ export function HabitatFormModal({
           {/* ── COL 3: Voice + Rules + Channels + Topics ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
             <div title="Voice profile + posting rules + channels + topics"
-                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
+                 style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'help' }}>
               🎙 Voice · Rules · Channels
             </div>
             {/* Voice & few-shot — điều khiển độ "bựa" của AI gen. Đây là
@@ -1497,7 +1552,8 @@ export function HabitatFormModal({
             {/* Auto-detect selectors (LLM-discovered) — read-only inspect.
                 Edit full ở Platform modal (/platforms → click platform card). */}
             {form.platformKey && !isCreate && habitat && (
-              <>
+              <Collapsible title="🛰 Auto-detect selectors" defaultOpen={false} marginTop={0}
+                           hint="resolved cascade — read-only">
                 <HabitatSelectorsSection
                   habitatId={habitat.id}
                   platformKey={form.platformKey}
@@ -1523,7 +1579,7 @@ export function HabitatFormModal({
                     else router.refresh();
                   }}
                 />
-              </>
+              </Collapsible>
             )}
           </div>{/* /col3 — voice + rules + channels + topics */}
           </div>{/* /3-col wrapper */}
@@ -1569,12 +1625,12 @@ export function HabitatFormModal({
               {/* Flags */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer',
-                                padding: 8, background: form.isOwn ? 'rgba(251,191,36,.08)' : 'var(--bg-2)',
-                                border: `1px solid ${form.isOwn ? 'rgba(251,191,36,.4)' : 'var(--line)'}`,
+                                padding: 8, background: 'var(--bg-2)',
+                                border: '1px solid var(--line)',
                                 borderRadius: 4 }}>
                   <input type="checkbox" checked={form.isOwn ?? false}
                          onChange={(e) => setF('isOwn', e.target.checked)} />
-                  <span style={{ fontWeight: 700, color: form.isOwn ? '#fbbf24' : 'var(--fg-1)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
                     👑 Own habitat (brand mình)
                   </span>
                   <span style={{ fontSize: 10.5, color: 'var(--fg-4)', marginLeft: 'auto' }}>
@@ -1582,12 +1638,12 @@ export function HabitatFormModal({
                   </span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer',
-                                padding: 8, background: form.aiContentDetection ? 'rgba(248,113,113,.08)' : 'var(--bg-2)',
-                                border: `1px solid ${form.aiContentDetection ? 'rgba(248,113,113,.4)' : 'var(--line)'}`,
+                                padding: 8, background: 'var(--bg-2)',
+                                border: '1px solid var(--line)',
                                 borderRadius: 4 }}>
                   <input type="checkbox" checked={form.aiContentDetection ?? false}
                          onChange={(e) => setF('aiContentDetection', e.target.checked)} />
-                  <span style={{ fontWeight: 700, color: form.aiContentDetection ? 'var(--bad)' : 'var(--fg-1)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
                     🚨 Habitat có cơ chế detect AI content
                   </span>
                 </label>
@@ -2075,8 +2131,8 @@ function VoiceSection({
   return (
     <div style={{
       padding: '6px 8px',
-      background: 'rgba(157,108,255,0.05)',
-      border: '1px solid rgba(157,108,255,0.3)',
+      background: 'var(--bg-1)',
+      border: '1px solid var(--line)',
       borderRadius: 6,
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
@@ -2339,9 +2395,9 @@ function ChannelRow({
                 display: 'inline-flex', alignItems: 'center', gap: 3,
                 padding: '1px 6px', fontSize: 9.5, fontFamily: 'var(--font-mono)',
                 fontWeight: 700, borderRadius: 3,
-                background: isOv ? 'rgba(157,108,255,0.12)' : 'var(--bg-1)',
-                color: isOv ? 'var(--neon-violet)' : 'var(--fg-3)',
-                border: `1px solid ${isOv ? 'rgba(157,108,255,0.4)' : 'var(--line)'}`,
+                background: isOv ? 'var(--accent-soft)' : 'var(--bg-1)',
+                color: isOv ? 'var(--accent)' : 'var(--fg-3)',
+                border: `1px solid ${isOv ? 'var(--accent-line)' : 'var(--line)'}`,
               }}>
           {Array.from(selected).slice(0, 3).map((k) => (
             <FormatIcon key={k} kind={k} size={10} />
@@ -2460,7 +2516,7 @@ function ChannelRow({
               })}
             </select>
             {ch.voiceProfileOverride && (
-              <span style={{ fontSize: 10, color: 'var(--neon-violet)',
+              <span style={{ fontSize: 10, color: 'var(--accent)',
                              fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                 ghi đè
               </span>
@@ -2570,15 +2626,15 @@ function ChannelBulkParser({
     return (
       <div style={{
         padding: '5px 10px',
-        background: 'rgba(157,108,255,0.06)',
-        border: '1px dashed rgba(157,108,255,0.4)',
+        background: 'var(--bg-2)',
+        border: '1px dashed var(--line)',
         borderRadius: 5,
         display: 'flex', alignItems: 'center', gap: 8, fontSize: 11,
       }}>
         <span style={{ fontSize: 13 }}>✨</span>
         <button type="button" onClick={() => setExpanded(true)}
                 style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                         color: 'var(--neon-violet)', fontWeight: 600, fontSize: 11 }}>
+                         color: 'var(--fg-2)', fontWeight: 600, fontSize: 11 }}>
           AI thêm hàng loạt
         </button>
         <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
@@ -2590,13 +2646,13 @@ function ChannelBulkParser({
   }
   return (
     <div style={{
-      padding: 8, background: 'rgba(157,108,255,0.06)',
-      border: '1px solid rgba(157,108,255,0.4)', borderRadius: 6,
+      padding: 8, background: 'var(--bg-2)',
+      border: '1px solid var(--line)', borderRadius: 6,
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 13 }}>✨</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--neon-violet)' }}>AI thêm channel hàng loạt</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-2)' }}>AI thêm channel hàng loạt</span>
         <span style={{ flex: 1, fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
           dán text · Ctrl+V ảnh · upload
         </span>
@@ -2629,9 +2685,9 @@ function ChannelBulkParser({
         <span style={{ flex: 1 }} />
         <button type="button" onClick={submit} disabled={busy || (!text.trim() && !image)}
                 style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600,
-                         background: busy ? 'var(--bg-3)' : 'var(--neon-violet)',
+                         background: busy ? 'var(--bg-3)' : 'var(--accent)',
                          border: 'none', borderRadius: 4,
-                         color: busy ? 'var(--fg-3)' : 'var(--bg-0)',
+                         color: busy ? 'var(--fg-3)' : '#0d1117',
                          cursor: busy ? 'wait' : 'pointer' }}>
           {busy ? '✦ đang tách…' : '✦ Tách channel'}
         </button>

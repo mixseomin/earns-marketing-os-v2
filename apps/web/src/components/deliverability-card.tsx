@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
+import { StatsStrip } from './ui/stats-strip';
+import { SimpleTable, type SimpleColumn } from './ui/simple-table';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -23,8 +25,6 @@ const repShort = (r: string | null) => (r ? r.replace('REPUTATION_', '').replace
 const pct = (n: number | null | undefined) => (n == null ? '—' : (n * 100).toFixed(n && n < 0.01 ? 2 : 0) + '%');
 const scoreColor = (s?: number) => (s == null ? 'var(--fg-3)' : s >= 8 ? '#5ac47e' : s >= 6 ? '#e0a94a' : '#d16b6b');
 
-const th: CSSProperties = { textAlign: 'left', padding: '6px 10px', color: 'var(--fg-3)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
-const td: CSSProperties = { padding: '8px 10px', borderBottom: '1px solid var(--line)', fontSize: 12, verticalAlign: 'top' };
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)' };
 
 function Tick({ ok, label, warn }: { ok: boolean; label: string; warn?: boolean }) {
@@ -439,13 +439,6 @@ function EngagementPanel() {
       </div>
     </div>
   );
-  const Stat = ({ label, val, sub, color }: { label: string; val: string | number; sub?: string; color?: string }) => (
-    <div style={{ flex: '1 1 78px', minWidth: 76, background: 'var(--bg-1)', borderRadius: 6, padding: '7px 9px' }}>
-      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)' }}>{label}</div>
-      <div style={{ ...mono, fontSize: 16, fontWeight: 700, color: color || 'var(--fg-0)' }}>{val}</div>
-      {sub && <div style={{ fontSize: 9, color: 'var(--fg-3)' }}>{sub}</div>}
-    </div>
-  );
   const SrcBadge = ({ s }: { s: string }) => (
     <span style={{ ...mono, fontSize: 8.5, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: s === 'beehiiv' ? 'rgba(224,169,74,.16)' : 'rgba(55,212,194,.16)', color: s === 'beehiiv' ? '#c99633' : '#2ba898' }}>{s === 'beehiiv' ? 'BH' : 'MJ'}</span>
   );
@@ -482,11 +475,11 @@ function EngagementPanel() {
           const t = sel.tiers!; const dr = sel.drip!; const sentN = dr.sent || 0; const base = dr.processed || sentN; const engaged = sel.engaged || 0;
           return (
             <>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub={`${sel.sendable.toLocaleString()} sendable`} />
-                <Stat label="Engaged" val={`${sel.engagedPct}%`} sub={`${engaged.toLocaleString()} opened/clicked`} color="#5ac47e" />
-                <Stat label="Suppressed" val={(sel.suppressed || 0).toLocaleString()} sub="bounce/unsub/spam" color="#d16b6b" />
-              </div>
+              <StatsStrip minColWidth={78} cards={[
+                { key: 'list', label: `List · ${sel.list}`, value: sel.total.toLocaleString(), sub: `${sel.sendable.toLocaleString()} sendable` },
+                { key: 'engaged', label: 'Engaged', value: `${sel.engagedPct}%`, sub: `${engaged.toLocaleString()} opened/clicked`, color: '#5ac47e' },
+                { key: 'suppressed', label: 'Suppressed', value: (sel.suppressed || 0).toLocaleString(), sub: 'bounce/unsub/spam', color: '#d16b6b' },
+              ]} />
               <div>
                 <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--fg-3)', marginBottom: 6 }}>Engagement tiers</div>
                 <Bar label="🔥 Hot · opened ≥2×" n={t.hot} of={sel.total} color="#5ac47e" />
@@ -501,13 +494,13 @@ function EngagementPanel() {
                 <div style={{ height: 6, background: 'var(--bg-1)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
                   <div style={{ width: `${pct(sentN, engaged)}%`, height: '100%', background: 'var(--accent, #37d4c2)' }} />
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Stat label="Opened" val={(dr.opened || 0).toLocaleString()} sub={`${pct(dr.opened || 0, base)}% of sent`} color="#5ac47e" />
-                  <Stat label="Clicked" val={(dr.clicked || 0).toLocaleString()} sub={`${pct(dr.clicked || 0, base)}%`} />
-                  <Stat label="Bounced" val={(dr.bounced || 0).toLocaleString()} color={dr.bounced ? '#e0a94a' : undefined} />
-                  <Stat label="Spam" val={(dr.spam || 0).toLocaleString()} color={dr.spam ? '#d16b6b' : undefined} />
-                  <Stat label="Unsub" val={(dr.unsub || 0).toLocaleString()} />
-                </div>
+                <StatsStrip minColWidth={78} cards={[
+                  { key: 'opened', label: 'Opened', value: (dr.opened || 0).toLocaleString(), sub: `${pct(dr.opened || 0, base)}% of sent`, color: '#5ac47e' },
+                  { key: 'clicked', label: 'Clicked', value: (dr.clicked || 0).toLocaleString(), sub: `${pct(dr.clicked || 0, base)}%` },
+                  { key: 'bounced', label: 'Bounced', value: (dr.bounced || 0).toLocaleString(), color: dr.bounced ? '#e0a94a' : undefined },
+                  { key: 'spam', label: 'Spam', value: (dr.spam || 0).toLocaleString(), color: dr.spam ? '#d16b6b' : undefined },
+                  { key: 'unsub', label: 'Unsub', value: (dr.unsub || 0).toLocaleString() },
+                ]} />
               </div>
               <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>
                 Sending <b>engaged-first</b> (hot → warm) via Mailjet from <span style={mono}>noreply@militarycalc.com</span>, ~180/day. Clicks are scanner-inflated on B2B lists — trust <b>opens</b> + <b>spam</b> rate. Cold {t.cold.toLocaleString()} sent after engaged.
@@ -516,19 +509,19 @@ function EngagementPanel() {
           );
         })() : sel.source === 'beehiiv' ? (
           <>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub="active subscribers" />
-              <Stat label="Open rate" val={sel.openRate != null ? `${sel.openRate}%` : '—'} color="#5ac47e" />
-              <Stat label="Click rate" val={sel.clickRate != null ? `${sel.clickRate}%` : '—'} />
-              <Stat label="Sent" val={(sel.sent || 0).toLocaleString()} sub="issues" />
-            </div>
+            <StatsStrip minColWidth={78} cards={[
+              { key: 'list', label: `List · ${sel.list}`, value: sel.total.toLocaleString(), sub: 'active subscribers' },
+              { key: 'open', label: 'Open rate', value: sel.openRate != null ? `${sel.openRate}%` : '—', color: '#5ac47e' },
+              { key: 'click', label: 'Click rate', value: sel.clickRate != null ? `${sel.clickRate}%` : '—' },
+              { key: 'sent', label: 'Sent', value: (sel.sent || 0).toLocaleString(), sub: 'issues' },
+            ]} />
             <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>beehiiv publication. Open/click are averaged across all issues sent. Grow subscribers from the site signup form.</div>
           </>
         ) : (
           <>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Stat label={`List · ${sel.list}`} val={sel.total.toLocaleString()} sub={`${sel.sendable.toLocaleString()} sendable`} />
-            </div>
+            <StatsStrip minColWidth={78} cards={[
+              { key: 'list', label: `List · ${sel.list}`, value: sel.total.toLocaleString(), sub: `${sel.sendable.toLocaleString()} sendable` },
+            ]} />
             <div style={{ fontSize: 10, color: 'var(--fg-3)', lineHeight: 1.5 }}>Mailjet contact list · subscriber count only. Engagement tiers + open/click appear once a tracked send campaign runs for this list.</div>
           </>
         )}
@@ -611,6 +604,69 @@ export function DeliverabilityCard() {
 
   if (err || !d) return null;
 
+  const lastPm = (r: Row) => (r.postmaster && r.postmaster.length ? r.postmaster[r.postmaster.length - 1] : null);
+  const lastSt = (r: Row) => (r.spamTest && r.spamTest.length ? r.spamTest[r.spamTest.length - 1] : null);
+  // Keep a root and its subdomains adjacent, but every row shows its FULL name.
+  const domainRows = d.rows.slice().sort((a, b) => {
+    const ra = a.domain.split('.').slice(-2).join('.'), rb = b.domain.split('.').slice(-2).join('.');
+    return ra.localeCompare(rb) || a.domain.length - b.domain.length || a.domain.localeCompare(b.domain);
+  });
+  const domainCols: SimpleColumn<Row>[] = [
+    { key: 'domain', header: 'Domain', cell: (row) => (
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <span style={{ ...mono, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{row.domain}</span>
+        {row.send
+          ? <span style={{ ...mono, fontSize: 9, color: '#5ac47e', marginLeft: 6 }}>sending</span>
+          : <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
+      </span>
+    ) },
+    { key: 'auth', header: 'Auth', cell: (row) => (
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <Tick ok={row.auth.spf} label="SPF" />
+        <Tick ok={row.auth.dkim} label="DKIM" />
+        <Tick ok={!!row.auth.dmarc} label={`DMARC${row.auth.dmarc ? ':' + row.auth.dmarc : ''}`} warn={row.auth.dmarc === 'none'} />
+      </span>
+    ) },
+    { key: 'inbox', header: 'Inbox (seed)', title: 'Seed-measured inbox placement (inbox / #seeds); saved, re-measure on demand', cell: (row) => <PlacementBadge p={row.placement} /> },
+    { key: 'rep', header: 'Postmaster rep', cell: (row) => {
+      const pm = lastPm(row);
+      return !d.postmasterConfigured ? <span style={{ color: 'var(--fg-3)' }}>off</span>
+        : pm ? <b style={{ ...mono, color: repColor[pm.reputation || ''] || 'var(--fg-2)' }}>{repShort(pm.reputation)}</b>
+          : <span style={{ ...mono, color: 'var(--fg-3)' }} title="registered, awaiting volume">no data</span>;
+    } },
+    { key: 'spam', header: 'Spam rate', cell: (row) => {
+      const pm = lastPm(row);
+      return <span style={{ ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</span>;
+    } },
+    { key: 'test', header: 'Spam-test', cell: (row) => {
+      const st = lastSt(row);
+      if (!row.send) return <span title="No send path — set up sending (DNS + DKIM + MailWizz list) to spam-test this domain" style={{ ...mono, fontSize: 10, color: '#e0a94a', border: '1px solid #e0a94a66', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>⚠ no send path</span>;
+      if (testing === row.domain) return <span style={{ ...mono, fontSize: 10, color: 'var(--accent,#37d4c2)' }}>testing… ~90s</span>;
+      return (
+        <span style={{ ...mono, whiteSpace: 'nowrap' }}>
+          {st?.score != null && <b style={{ color: scoreColor(st.score) }}>{st.score.toFixed(1)}<span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>/10</span></b>}
+          <button onClick={() => runTest(row.domain)} title="Run mail-tester now" style={{ ...mono, fontSize: 10, marginLeft: st?.score != null ? 6 : 0, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>{st?.score != null ? '↻' : 'test now'}</button>
+          {st?.date && <span style={{ color: 'var(--fg-3)', fontSize: 9.5, marginLeft: 6 }}>{st.date}</span>}
+        </span>
+      );
+    } },
+    { key: 'trend', header: 'Trend', cell: (row) => <Spark pts={(row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null).slice(-10)} /> },
+    { key: 'drags', header: 'Top drags (to fix)', width: '30%', cell: (row) => {
+      const st = lastSt(row);
+      return (
+        <>
+          {st?.blacklisted && <span style={{ ...mono, fontSize: 10, color: '#d16b6b' }}>⚠ blacklisted </span>}
+          {st?.issues?.length
+            ? st.issues.map((is) => (
+              <span key={is.rule} title={`+${is.pts} spam points`} style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 5px', marginRight: 4, display: 'inline-block' }}>
+                {is.rule} <span style={{ color: '#e0a94a' }}>+{is.pts}</span>
+              </span>))
+            : st ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>none</span> : <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>—</span>}
+        </>
+      );
+    } },
+  ];
+
   return (
     <div style={{ margin: '0 0 16px', padding: '11px 14px 6px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
@@ -666,83 +722,7 @@ export function DeliverabilityCard() {
       ) : view === 'calendar' ? (
         <CalendarView rows={d.rows} />
       ) : (
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={th}>Domain</th>
-              <th style={th}>Auth</th>
-              <th style={th} title="Seed-measured inbox placement (inbox / #seeds); saved, re-measure on demand">Inbox (seed)</th>
-              <th style={th}>Postmaster rep</th>
-              <th style={th}>Spam rate</th>
-              <th style={th}>Spam-test</th>
-              <th style={th}>Trend</th>
-              <th style={{ ...th, width: '30%' }}>Top drags (to fix)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.rows.slice().sort((a, b) => {
-              // Keep a root and its subdomains adjacent, but every row shows its FULL name.
-              const ra = a.domain.split('.').slice(-2).join('.'), rb = b.domain.split('.').slice(-2).join('.');
-              return ra.localeCompare(rb) || a.domain.length - b.domain.length || a.domain.localeCompare(b.domain);
-            }).map((row) => {
-              const pm = row.postmaster && row.postmaster.length ? row.postmaster[row.postmaster.length - 1] : null;
-              const st = row.spamTest && row.spamTest.length ? row.spamTest[row.spamTest.length - 1] : null;
-              const scores = (row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null);
-              const tdc: CSSProperties = { ...td, padding: '3px 10px' }; // compact rows
-              return (
-                <tr key={row.domain}>
-                  <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
-                    <span style={{ ...mono, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{row.domain}</span>
-                    {row.send
-                      ? <span style={{ ...mono, fontSize: 9, color: '#5ac47e', marginLeft: 6 }}>sending</span>
-                      : <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
-                  </td>
-                  <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
-                    <Tick ok={row.auth.spf} label="SPF" />
-                    <Tick ok={row.auth.dkim} label="DKIM" />
-                    <Tick ok={!!row.auth.dmarc} label={`DMARC${row.auth.dmarc ? ':' + row.auth.dmarc : ''}`} warn={row.auth.dmarc === 'none'} />
-                  </td>
-                  <td style={tdc}><PlacementBadge p={row.placement} /></td>
-                  <td style={{ ...tdc, ...mono }}>
-                    {!d.postmasterConfigured ? <span style={{ color: 'var(--fg-3)' }}>off</span>
-                      : pm ? <b style={{ color: repColor[pm.reputation || ''] || 'var(--fg-2)' }}>{repShort(pm.reputation)}</b>
-                        : <span style={{ color: 'var(--fg-3)' }} title="registered, awaiting volume">no data</span>}
-                  </td>
-                  <td style={{ ...tdc, ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</td>
-                  <td style={{ ...tdc, ...mono }}>
-                    {!row.send ? (
-                      <span title="No send path — set up sending (DNS + DKIM + MailWizz list) to spam-test this domain"
-                        style={{ fontSize: 10, color: '#e0a94a', border: '1px solid #e0a94a66', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>⚠ no send path</span>
-                    ) : testing === row.domain ? (
-                      <span style={{ fontSize: 10, color: 'var(--accent,#37d4c2)' }}>testing… ~90s</span>
-                    ) : (
-                      <>
-                        {st?.score != null && <b style={{ color: scoreColor(st.score) }}>{st.score.toFixed(1)}<span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>/10</span></b>}
-                        <button onClick={() => runTest(row.domain)} title="Run mail-tester now"
-                          style={{ ...mono, fontSize: 10, marginLeft: st?.score != null ? 6 : 0, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--accent,#37d4c2)', cursor: 'pointer' }}>
-                          {st?.score != null ? '↻' : 'test now'}
-                        </button>
-                        {st?.date && <span style={{ color: 'var(--fg-3)', fontSize: 9.5, marginLeft: 6 }}>{st.date}</span>}
-                      </>
-                    )}
-                  </td>
-                  <td style={tdc}><Spark pts={scores.slice(-10)} /></td>
-                  <td style={tdc}>
-                    {st?.blacklisted && <span style={{ ...mono, fontSize: 10, color: '#d16b6b' }}>⚠ blacklisted </span>}
-                    {st?.issues?.length
-                      ? st.issues.map((is) => (
-                        <span key={is.rule} title={`+${is.pts} spam points`} style={{ ...mono, fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, padding: '1px 5px', marginRight: 4, display: 'inline-block' }}>
-                          {is.rule} <span style={{ color: '#e0a94a' }}>+{is.pts}</span>
-                        </span>))
-                      : st ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>none</span> : <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>—</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <SimpleTable rows={domainRows} columns={domainCols} getRowKey={(r) => r.domain} />
       )}
       {viewDomain && (
         <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} onChanged={() => { setMwNonce((n) => n + 1); load(); }} />

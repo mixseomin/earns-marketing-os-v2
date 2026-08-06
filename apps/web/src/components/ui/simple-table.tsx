@@ -9,6 +9,7 @@ import type { ReactNode, CSSProperties } from 'react';
 export interface SimpleColumn<T> {
   key: string;
   header: ReactNode;
+  title?: string;                        // th tooltip
   align?: 'left' | 'right' | 'center';   // default left
   width?: number | string;
   cell: (row: T, index: number) => ReactNode;
@@ -28,7 +29,7 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader }: {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         {!hideHeader && (
           <thead>
-            <tr>{columns.map((c) => <th key={c.key} style={{ ...thBase, textAlign: c.align ?? 'left', width: c.width }}>{c.header}</th>)}</tr>
+            <tr>{columns.map((c) => <th key={c.key} title={c.title} style={{ ...thBase, textAlign: c.align ?? 'left', width: c.width }}>{c.header}</th>)}</tr>
           </thead>
         )}
         <tbody>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getOfferNote, saveOfferTerms, type AffiliateOffer, type OfferAccount, type OfferKind } from '@/lib/actions/offers';
 import {
   EmptyState, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect,
@@ -37,12 +37,24 @@ const GROUPS: DataGroup[] = [
 const dim = { color: 'var(--fg-3)' };
 const clip = (max: number): React.CSSProperties => ({ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' });
 
-export function OffersPage({ offers, accounts }: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
+export function OffersPage(props: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
+  // useSearchParams (drawer deep-link) needs a Suspense boundary at build. See scenes-page.
+  return <Suspense fallback={null}><OffersInner {...props} /></Suspense>;
+}
+function OffersInner({ offers, accounts }: { offers: AffiliateOffer[]; accounts: OfferAccount[] }) {
+  const sp = useSearchParams();
   const [kind, setKind] = useState('all');
   const [status, setStatus] = useState('all');
   const [geo, setGeo] = useState<string[]>([]);
   const [q, setQ] = useState('');
-  const [sel, setSel] = useState<AffiliateOffer | null>(null);
+  // Drawer selection lives in the URL (?o=<id>) so a specific offer's drawer is shareable and
+  // survives F5. Init from the URL on mount, mirror on change (house url-state pattern).
+  const [sel, setSel] = useState<AffiliateOffer | null>(() => offers.find((o) => o.id === sp.get('o')) ?? null);
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (sel) u.searchParams.set('o', sel.id); else u.searchParams.delete('o');
+    window.history.replaceState(null, '', u);
+  }, [sel]);
   // User note is kept out of the bulk list (Awin blob bloats every load) → fetch it lazily when
   // a specific offer's drawer opens. See offers.ts getOfferNote.
   const [note, setNote] = useState<string | null>(null);
@@ -180,16 +192,19 @@ export function OffersPage({ offers, accounts }: { offers: AffiliateOffer[]; acc
 
       {sel && (
         <Drawer onClose={() => setSel(null)} width={560}>
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{KIND[sel.kind].toUpperCase()}</div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
-              <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(sel.status) }}>● {sel.status}</div>
-              {sel.kind === 'own' && (
-                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-amber)' }}>
-                  ⚠ Trùng tên với 1 sản phẩm tự bán → chỗ của nó là <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a>, không phải offer affiliate.
-                </div>
-              )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{KIND[sel.kind].toUpperCase()}</div>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
+                <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(sel.status) }}>● {sel.status}</div>
+                {sel.kind === 'own' && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-amber)' }}>
+                    ⚠ Trùng tên với 1 sản phẩm tự bán → chỗ của nó là <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a>, không phải offer affiliate.
+                  </div>
+                )}
+              </div>
+              <CopyLinkBtn />
             </div>
 
             <TermsForm key={sel.id} offer={sel} accounts={accounts} />
@@ -286,6 +301,17 @@ function TermsForm({ offer, accounts }: { offer: AffiliateOffer; accounts: Offer
         {msg && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: msg.startsWith('✓') ? 'var(--neon-lime)' : 'var(--bad)' }}>{msg}</span>}
       </div>
     </div>
+  );
+}
+
+function CopyLinkBtn() {
+  const [ok, setOk] = useState(false);
+  return (
+    <button type="button" title="Copy link tới offer này"
+      onClick={() => { navigator.clipboard?.writeText(window.location.href); setOk(true); setTimeout(() => setOk(false), 1200); }}
+      style={{ flexShrink: 0, padding: '3px 8px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: ok ? 'var(--neon-lime)' : 'var(--fg-2)', cursor: 'pointer' }}>
+      {ok ? '✓ copied' : '🔗 link'}
+    </button>
   );
 }
 

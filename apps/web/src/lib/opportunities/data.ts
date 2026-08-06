@@ -52,7 +52,12 @@ export interface IdeaAnalysis {
   buildTime: string | null;
   monthlyCost: number | null;
   legalRisk: string | null;
+  marketDependency: string | null;
   marketingEffort: string | null;
+  /** 0-10: dùng lại được bao nhiêu tài sản đã có. Càng cao càng nhanh ra sản phẩm. */
+  infraReuse: number | null;
+  /** Nguồn đã đối chiếu. Có nguồn = phân tích kiểm được, khác hẳn ý tưởng chép tay. */
+  dataSources: string[];
   pros: string[];
   cons: string[];
   notes: string | null;
@@ -105,7 +110,8 @@ export async function listIdeaAnalyses(): Promise<IdeaAnalysis[]> {
     'id', 'title', 'category', 'status', 'verdict', 'score', 'summary', 'pain_point', 'market_size',
     'target_audience', 'audience_size', 'saturation', 'competitors_count', 'competitive_gap',
     'top_competitors', 'price_point', 'revenue_model', 'revenue_potential', 'time_to_revenue',
-    'build_difficulty', 'build_time', 'monthly_cost', 'legal_risk', 'marketing_effort',
+    'build_difficulty', 'build_time', 'monthly_cost', 'legal_risk', 'market_dependency',
+    'marketing_effort', 'infra_reuse', 'data_sources',
     'pros', 'cons', 'notes', 'user_rating', 'user_note', 'dashboard_url', 'created_at', 'last_reviewed_at',
   ].join(',');
   const rows = await directus<Record<string, unknown>>(`/items/idea_analysis?limit=-1&fields=${fields}&sort=-score,-id`, 600);
@@ -125,7 +131,11 @@ export async function listIdeaAnalyses(): Promise<IdeaAnalysis[]> {
       revenuePotential: (r.revenue_potential as string) ?? null, timeToRevenue: (r.time_to_revenue as string) ?? null,
       buildDifficulty: (r.build_difficulty as string) ?? null, buildTime: (r.build_time as string) ?? null,
       monthlyCost: r.monthly_cost == null ? null : num(r.monthly_cost),
-      legalRisk: (r.legal_risk as string) ?? null, marketingEffort: (r.marketing_effort as string) ?? null,
+      legalRisk: (r.legal_risk as string) ?? null,
+      marketDependency: (r.market_dependency as string) ?? null,
+      marketingEffort: (r.marketing_effort as string) ?? null,
+      infraReuse: r.infra_reuse == null ? null : num(r.infra_reuse),
+      dataSources: arr(r.data_sources),
       pros: arr(r.pros), cons: arr(r.cons), notes: (r.notes as string) ?? null,
       userRating: r.user_rating == null ? null : num(r.user_rating), userNote: (r.user_note as string) ?? null,
       dashboardUrl: (r.dashboard_url as string) ?? null,

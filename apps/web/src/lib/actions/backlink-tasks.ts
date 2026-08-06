@@ -40,6 +40,7 @@ export interface BacklinkTask {
   blocker: { reason: string; at: string; paused?: boolean; origin?: number; shot?: string; needsHuman?: boolean; note?: string } | null;  // active blocker; paused = auto-held (sibling blocked); shot = screenshot URL; needsHuman = drives the RED on-screen alert (assisted/manual/blocked)
   resolved: { at: string; note?: string } | null;  // "vừa gỡ vướng" marker; cleared when staff opens the task
   draftReview: { status: 'pending' | 'changes' | 'approved'; at?: string; thread: Array<{ by: string; kind: string; action: string; note?: string; at: string }> } | null;  // AI draft chờ nhân sự duyệt (🔴) + luồng tương tác (approve / request-changes)
+  draftPlan: { week?: string; goal?: string; items: Array<{ thread_url: string; thread_title: string; thread_tag?: string | null; comment: string; why?: string }>; voice_note?: string; ops_note?: string; ops_warn?: string } | null;  // structured seeding draft (N comment cards, EN content) — supersedes the markdown `draft` wall for community-seed weeks
   grounded: { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string } | null;  // instructions rewritten against real captured DOM
   fillFields: { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> } | null;  // ✨ Chuẩn bị điền: prepared per-field values for the source's real form
   domSampleId: number | null;   // latest dom_samples row for this task's source host (for the drawer "🔎 DOM" check link)
@@ -120,7 +121,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
              (site_scheduled_at->>${slug}) AS site_scheduled_at,
              (site_submitted_at->>${slug}) AS site_submitted_at,
              (site_verify->${slug})        AS site_verify,
-             worker_note, blocker, resolved, grounded, fill_fields, draft_review,
+             worker_note, blocker, resolved, grounded, fill_fields, draft_review, draft_plan,
              created_at
       FROM backlinks
       WHERE jsonb_exists(site_status, ${slug})
@@ -174,6 +175,8 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
           ? (r.resolved as { at: string; note?: string }) : null,
         draftReview: (r.draft_review && typeof r.draft_review === 'object' && !Array.isArray(r.draft_review))
           ? (r.draft_review as { status: 'pending' | 'changes' | 'approved'; at?: string; thread: Array<{ by: string; kind: string; action: string; note?: string; at: string }> }) : null,
+        draftPlan: (r.draft_plan && typeof r.draft_plan === 'object' && !Array.isArray(r.draft_plan) && Array.isArray((r.draft_plan as { items?: unknown }).items))
+          ? (r.draft_plan as { week?: string; goal?: string; items: Array<{ thread_url: string; thread_title: string; thread_tag?: string | null; comment: string; why?: string }>; voice_note?: string; ops_note?: string; ops_warn?: string }) : null,
         grounded: (r.grounded && typeof r.grounded === 'object' && !Array.isArray(r.grounded))
           ? (r.grounded as { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string }) : null,
         fillFields: (r.fill_fields && typeof r.fill_fields === 'object' && !Array.isArray(r.fill_fields) && Array.isArray((r.fill_fields as Record<string, unknown>).items))

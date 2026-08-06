@@ -776,7 +776,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.da && <Tag>DA {t.da}</Tag>}
         {t.dofollow && <Tag>{t.dofollow}</Tag>}
         {t.traffic && <Tag>{t.traffic}</Tag>}
-        {t.hasDraft && <Tag>📋 draft</Tag>}
+        {t.draftPlan?.items?.length ? <Tag>📋 {t.draftPlan.items.length} comment</Tag> : (t.hasDraft && <Tag>📋 draft</Tag>)}
         {t.draftReview?.status === 'pending' && <Tag color="var(--bad,#ef4444)">🔴 chờ duyệt</Tag>}
         {t.draftReview?.status === 'changes' && <Tag color="#ffb03c">✏️ cần sửa</Tag>}
         {t.draftReview?.status === 'approved' && <Tag color="#22c55e">✅ đã duyệt</Tag>}
@@ -1737,7 +1737,40 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         )}
 
         {/* Post draft — ONE block: empty → generate; generated → show + regen + format/link toggles. */}
-        {(needsPost || task.draft) && (
+        {/* Structured seeding draft — one CARD per candidate comment: thread link + the exact EN text to
+            post (its own Copy button) + a muted why. All Vietnamese meta sealed in a collapsed sub-disclosure.
+            Replaces the markdown "wall" for community-seed weeks; generalizes to N comments. */}
+        {task.draftPlan && task.draftPlan.items?.length > 0 && (
+        <Disclosure title={`📋 Bài đăng — ${task.draftPlan.items.length} comment (chờ duyệt)`} defaultOpen>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>POST · {task.draftPlan.items.length} comment</span>
+            {task.draftPlan.goal && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>{task.draftPlan.goal}</span>}
+            {task.draftPlan.week && <Tag color="var(--accent)">{task.draftPlan.week}</Tag>}
+          </div>
+          {task.draftPlan.items.map((it, i) => (
+            <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', padding: 10, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                <a href={wrapExternalUrl(it.thread_url)} {...EXT} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, minWidth: 0 }}>{i + 1} ↗ {it.thread_title}</a>
+                {it.thread_tag && <Tag color="#ffb03c">{it.thread_tag}</Tag>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0, color: 'var(--fg-1)', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{it.comment}</div>
+                <button type="button" onClick={() => copy(it.comment, `c${i}`)} title="Copy đúng nội dung comment (không kèm link/ghi chú)" style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{copiedKey === `c${i}` ? '✓ copied' : 'Copy'}</button>
+              </div>
+              {it.why && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 5 }}>{it.why}</div>}
+            </div>
+          ))}
+          {(task.draftPlan.voice_note || task.draftPlan.ops_note || task.draftPlan.ops_warn) && (
+            <Disclosure title="Văn phong + ghi chú vận hành" defaultOpen={false}>
+              {task.draftPlan.voice_note && <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}><span style={{ color: 'var(--fg-4)' }}>Văn phong: </span>{task.draftPlan.voice_note}</div>}
+              {task.draftPlan.ops_note && <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}><span style={{ color: 'var(--fg-4)' }}>Vận hành: </span>{task.draftPlan.ops_note}</div>}
+              {task.draftPlan.ops_warn && <div style={{ fontSize: 11.5, color: 'var(--bad,#ef4444)', marginTop: 5, fontWeight: 600 }}>⚠ {task.draftPlan.ops_warn}</div>}
+            </Disclosure>
+          )}
+        </Disclosure>
+        )}
+
+        {!task.draftPlan && (needsPost || task.draft) && (
         <Disclosure title="📋 Draft (bài đăng)" defaultOpen={!!task.draft}>
         {draftFmts ? (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

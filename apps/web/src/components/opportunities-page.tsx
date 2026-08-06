@@ -12,6 +12,7 @@
 
 import { useMemo, useState } from 'react';
 import type { MarketBenchmark, IdeaAnalysis } from '@/lib/opportunities/data';
+import { isVerified, VERIFIED_MAX_AGE_DAYS } from '@/lib/opportunities/data';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
   Section, StatsStrip, ListToolbar, FilterChips, Drawer, Pill, EmptyState, Pager, usePaged,
@@ -41,12 +42,13 @@ export function OpportunitiesPage({ benchmarks, ideas }: { benchmarks: MarketBen
   const bench = modal.is('benchmark') ? benchmarks.find((b) => b.id === modal.numId) ?? null : null;
   const selIdea = sub.is('idea') ? ideas.find((i) => i.id === sub.numId) ?? null : null;
 
-  // Ý tưởng nào gắn vào một ngành ĐÃ ĐO thì là việc sản xuất cụ thể; còn lại là kho cũ.
-  // Không cần cờ mới: 104 dòng cũ không dòng nào dùng slug ngành Gumroad.
+  // Bản phân tích ĐÃ KIỂM CHỨNG (có nguồn + rà trong 90 ngày) là thứ ra quyết định được;
+  // còn lại là kho cũ. Xem isVerified() — mốc này tự bảo trì theo thời gian, và chứa được
+  // cả phân tích không thuộc ngành Gumroad nào.
   const benchSlugs = useMemo(() => new Set(benchmarks.map((b) => b.category)), [benchmarks]);
-  const buildable = useMemo(() => ideas.filter((i) => i.category && benchSlugs.has(i.category))
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)), [ideas, benchSlugs]);
-  const legacy = useMemo(() => ideas.filter((i) => !(i.category && benchSlugs.has(i.category))), [ideas, benchSlugs]);
+  const buildable = useMemo(() => ideas.filter(isVerified)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)), [ideas]);
+  const legacy = useMemo(() => ideas.filter((i) => !isVerified(i)), [ideas]);
   const ready = buildable.filter((i) => i.verdict === 'go' || i.verdict === 'pursue');
 
   const best = benchmarks[0];
@@ -105,18 +107,19 @@ export function OpportunitiesPage({ benchmarks, ideas }: { benchmarks: MarketBen
   );
 }
 
-// ── Việc sản xuất: ý tưởng đã gắn vào ngành đo được ──────────────
+// ── Phân tích đã kiểm chứng ──────────────────────────────────────
 // Đây là thứ bảng benchmark còn thiếu — nó nói "vào ngành này đi" rồi im, không nói
 // làm cái gì. Section này trả lời đúng câu đó nên nó mở sẵn, nằm ngay dưới bảng.
+// Không chỉ chứa ý tưởng sản phẩm: mọi bản phân tích/kết luận có nguồn đều vào đây.
 function BuildableSection({ ideas, onOpen }: { ideas: IdeaAnalysis[]; onOpen: (id: number) => void }) {
   if (ideas.length === 0) return null;
   return (
-    <Section title="Việc sản xuất · ngành đã đo"
-      subtitle="ý tưởng cụ thể cho từng ngành trong bảng trên — bấm để xem tài sản dùng lại và rào cản">
+    <Section title="Phân tích đã kiểm chứng"
+      subtitle={`có nguồn đối chiếu và rà trong ${VERIFIED_MAX_AGE_DAYS} ngày — quá hạn thì tự rớt xuống kho cũ`}>
       <div className="panel" style={{ padding: 0 }}>
         {ideas.map((i) => (
           <div key={i.id} onClick={() => onOpen(i.id)} title="Bấm để xem phân tích đầy đủ"
-            style={{ display: 'grid', gridTemplateColumns: '1fr 150px 92px 96px 74px', gap: 10,
+            style={{ display: 'grid', gridTemplateColumns: '1fr 150px 92px 96px 56px 74px', gap: 10,
               alignItems: 'center', padding: '7px 10px', borderBottom: '1px solid var(--line)', cursor: 'pointer' }}>
             <span style={{ fontSize: 12.5, color: 'var(--fg-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {i.title}
@@ -129,6 +132,11 @@ function BuildableSection({ ideas, onOpen }: { ideas: IdeaAnalysis[]; onOpen: (i
             </span>
             <span style={{ fontSize: 11, color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
               {i.buildTime ?? ''}
+            </span>
+            {/* Độ tươi đi kèm mọi kết luận — cùng kỷ luật với cột "số liệu mới nhất" ở /products. */}
+            <span style={{ fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' }}
+              title="rà lại lần cuối cách đây bao lâu">
+              {i.reviewedDaysAgo == null ? '' : i.reviewedDaysAgo === 0 ? 'hôm nay' : `${i.reviewedDaysAgo}n`}
             </span>
             {/* Verdict là tín hiệu duy nhất được nhấn ở đây — màu mạnh vẫn thuộc về cột
                 $/1 SP mới của bảng trên, không giành hai tiêu điểm trên một màn hình. */}

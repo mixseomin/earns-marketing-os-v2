@@ -68,6 +68,26 @@ export interface IdeaAnalysis {
   lastReviewedAt: string | null;
   /** Bao nhiêu ngày kể từ lần đánh giá cuối (hoặc lúc tạo) — dùng để nói thẳng là số đã cũ. */
   ageDays: number | null;
+  /**
+   * Riêng theo `last_reviewed_at`, KHÔNG lấy created_at thay thế. Đây là nửa thứ hai của
+   * mốc "đã kiểm chứng": có nguồn thôi chưa đủ, nguồn phải còn mới.
+   */
+  reviewedDaysAgo: number | null;
+}
+
+/** Ngưỡng coi một bản phân tích là còn dùng được để ra quyết định. */
+export const VERIFIED_MAX_AGE_DAYS = 90;
+
+/**
+ * "Đã kiểm chứng" = có nguồn đối chiếu VÀ mới rà trong 90 ngày.
+ *
+ * Trước đây mốc là "category khớp slug ngành Gumroad", nhưng thế thì mọi phân tích không
+ * thuộc ngành Gumroad nào (vd kế hoạch YouTube/affiliate) rơi xuống kho cũ dù vừa kiểm
+ * xong. Mốc này tự bảo trì: bản phân tích để mốc quá 90 ngày tự rớt khỏi khu ưu tiên,
+ * đúng kỷ luật mà trang này sinh ra để giữ.
+ */
+export function isVerified(i: IdeaAnalysis): boolean {
+  return i.dataSources.length > 0 && i.reviewedDaysAgo != null && i.reviewedDaysAgo <= VERIFIED_MAX_AGE_DAYS;
 }
 
 async function directus<T>(path: string, revalidate = 300): Promise<T[]> {
@@ -141,6 +161,8 @@ export async function listIdeaAnalyses(): Promise<IdeaAnalysis[]> {
       dashboardUrl: (r.dashboard_url as string) ?? null,
       createdAt: (r.created_at as string) ?? null, lastReviewedAt: (r.last_reviewed_at as string) ?? null,
       ageDays: stamp ? Math.floor((now - Date.parse(stamp)) / 86400_000) : null,
+      reviewedDaysAgo: r.last_reviewed_at
+        ? Math.floor((now - Date.parse(r.last_reviewed_at as string)) / 86400_000) : null,
     };
   });
 }

@@ -57,6 +57,17 @@ const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const domainForSlug = (s: string | null | undefined) => (s ? BACKLINK_SITES.find((x) => x.slug === s)?.domain ?? null : null);
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
+// Ngày LỊCH theo giờ người xem. `site_done_at` là timestamp UTC đầy đủ, `slice(0,10)` cắt ra
+// ngày UTC → với người ở GMT+7, mọi việc làm từ 17h trở đi rơi xuống ô NGÀY HÔM TRƯỚC trên
+// lịch (đóng 9 card lúc rạng sáng 07/08 giờ VN, lịch hiện hết ở ô 06/08).
+// `site_scheduled_at` đã là chuỗi 'YYYY-MM-DD' không có múi giờ → giữ nguyên, đừng ép qua Date.
+const localDay = (iso: string) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  } catch { return iso.slice(0, 10); }
+};
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
 // Image actions on a thumbnail: fetch the bytes so both download and copy-as-image work even
 // cross-origin (when the host allows CORS). Fallbacks: open-in-tab / copy-URL when it doesn't.
@@ -710,12 +721,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       const seed = t.communitySeed ? '🌱 ' : '';
       const seedT = t.communitySeed ? ' · 🌱 community-seed (link-gated)' : '';
       const label = pfx + seed + (showHost(t.sourceUrl, t.projectSlug) ?? t.title);
-      if (t.siteDoneAt) out.push({ id: t.id, date: t.siteDoneAt.slice(0, 10), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${seedT}` });
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${seedT}` });
       else {
         // A task can carry BOTH a "waiting since" date and a "check/follow-up on" date —
         // show both so the calendar surfaces the follow date (site_scheduled_at) even while
         // the task is still submitted/awaiting approval.
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: t.siteSubmittedAt.slice(0, 10), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${seedT}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${seedT}` });
         if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${seedT}` });
       }
     }
@@ -750,7 +761,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const COL = { date: 104, acct: 96, asgn: 108, status: 84, live: 40 };
   // One canonical date per task for the Ngày column: done > awaiting-approval > scheduled.
   const taskDate = (t: BacklinkTask): { icon: string; text: string; color: string; title: string } | null => {
-    if (t.siteDoneAt) return { icon: '✓', text: t.siteDoneAt.slice(0, 10), color: '#22c55e', title: 'Ngày đặt link xong' };
+    if (t.siteDoneAt) return { icon: '✓', text: localDay(t.siteDoneAt), color: '#22c55e', title: 'Ngày đặt link xong' };
     if (t.siteState === 'submitted' && t.siteSubmittedAt) return { icon: '⏳', text: `chờ ${daysSince(t.siteSubmittedAt)}d`, color: '#9d6cff', title: `Gửi chờ duyệt từ ${t.siteSubmittedAt.slice(0, 10)}` };
     if (t.siteScheduledAt && !t.siteDoneAt) return { icon: '🗓', text: t.siteScheduledAt.slice(0, 10), color: '#ffb03c', title: 'Ngày hẹn làm' };
     return null;
@@ -783,7 +794,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
         {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && (() => { const dd = daysSince(t.siteSubmittedAt); return <Tag color={dd > 30 ? 'var(--bad,#ef4444)' : dd > 14 ? '#ffb03c' : 'var(--fg-3)'}>⏳ chờ duyệt {dd}d</Tag>; })()}
         {!cols && t.siteScheduledAt && !t.siteDoneAt && (() => { const overdue = t.siteScheduledAt.slice(0, 10) <= new Date().toISOString().slice(0, 10); return <span title={overdue ? 'Đến hạn follow — kiểm tra đã duyệt chưa' : 'Ngày follow-up (kiểm tra duyệt)'}><Tag color={overdue ? '#ffb03c' : 'var(--fg-3)'}>🗓 follow {t.siteScheduledAt.slice(0, 10)}</Tag></span>; })()}
-        {!cols && t.siteDoneAt && <Tag>✓ {t.siteDoneAt.slice(0, 10)}</Tag>}
+        {!cols && t.siteDoneAt && <Tag>✓ {localDay(t.siteDoneAt)}</Tag>}
         {t.siteLiveUrl && (() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}
         {t.blocker && (t.blocker.paused ? <Tag color="#ffb03c">⏸ tạm dừng</Tag> : <Tag color="var(--bad,#ef4444)">🚩 vướng</Tag>)}

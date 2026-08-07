@@ -8,7 +8,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, t
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved, submitDraftReview } from '@/lib/actions/architecture';
+import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved, submitDraftReview, setTaskResume } from '@/lib/actions/architecture';
+import { hasResume, type TaskInput, type TaskResume } from '@/lib/task-resume';
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
 import { AUTOMATION_META, automationBadge, automationNeedsHuman } from '@/lib/backlink-gates';
 import { SourceEditor } from './source-editor';
@@ -810,6 +811,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     await setBacklinkSchedule(taskId, s, date);
     start(() => router.refresh());
   };
+  const setResume = async (taskId: number, r: TaskResume) => { await setTaskResume(taskId, r); start(() => router.refresh()); };
 
   if (!slug && !allProjects) {   // global /plays has no single slug — each task carries its own
     return (
@@ -1230,7 +1232,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </>
       )}
 
-      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
@@ -1256,8 +1258,51 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; onChange: () => void;
+// Bàn giao card: inputs (link) + done-when (tiêu chí) + depends-on (id card trước). Điền vào đây =
+// 1 chat khác đọc `play show <id>` là nối được, không đoán. Lưu 1 phát qua setTaskResume (merge prep_payload).
+function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave: (r: TaskResume) => Promise<void>; onOpenTask: (id: number) => void }) {
+  const [inputs, setInputs] = useState<TaskInput[]>(task.inputs);
+  const [doneWhen, setDoneWhen] = useState(task.doneWhen);
+  const [deps, setDeps] = useState(task.dependsOn.join(', '));
+  const [saving, setSaving] = useState(false);
+  const lbl: CSSProperties = { display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-3)', marginBottom: 5 };
+  const inp: CSSProperties = { padding: '5px 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', fontSize: 12.5, fontFamily: 'inherit' };
+  const mini: CSSProperties = { padding: '4px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' };
+  const setRow = (i: number, k: 'label' | 'url', v: string) => setInputs((arr) => arr.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const save = async () => { setSaving(true); await onSave({ inputs, doneWhen, dependsOn: deps.split(/[,\s]+/).map(Number).filter((n) => Number.isFinite(n) && n > 0) }); setSaving(false); };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+      <div>
+        <label style={lbl}>🔗 Inputs — link cụ thể (sản phẩm · asset/vault · doc đang viết)</label>
+        {inputs.map((row, i) => (
+          <div key={i} style={{ display: 'flex', gap: 5, marginBottom: 4 }}>
+            <input value={row.label} onChange={(e) => setRow(i, 'label', e.target.value)} placeholder="nhãn" style={{ ...inp, width: 110, flexShrink: 0 }} />
+            <input value={row.url} onChange={(e) => setRow(i, 'url', e.target.value)} placeholder="https://…" style={{ ...inp, flex: 1, minWidth: 0 }} />
+            <button type="button" onClick={() => setInputs((a) => a.filter((_, j) => j !== i))} style={{ ...mini, color: '#ef4444' }}>✕</button>
+          </div>
+        ))}
+        <button type="button" onClick={() => setInputs((a) => [...a, { label: '', url: '' }])} style={mini}>+ thêm link</button>
+      </div>
+      <div>
+        <label style={lbl}>✅ Done-when — làm ĐÚNG là khi nào (tiêu chí nghiệm thu)</label>
+        <textarea value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} rows={2} placeholder="vd: PDF+zip xuất ra · cover duyệt ở 48px thật · mô tả English human-voice" style={{ ...inp, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+      </div>
+      <div>
+        <label style={lbl}>🧩 Depends-on — id card cần OUTPUT trước (chuỗi phụ thuộc)</label>
+        <input value={deps} onChange={(e) => setDeps(e.target.value)} placeholder="vd: 399, 400" style={{ ...inp, width: '100%', boxSizing: 'border-box' }} />
+        {task.dependsOn.length > 0 && (
+          <div style={{ marginTop: 5, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {task.dependsOn.map((d) => <button key={d} type="button" onClick={() => onOpenTask(d)} style={{ ...mini, color: 'var(--neon-blue)' }}>#{d} ↗ mở</button>)}
+          </div>
+        )}
+      </div>
+      <button type="button" onClick={save} disabled={saving} style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid var(--neon-blue)', background: 'color-mix(in srgb, var(--neon-blue) 15%, transparent)', color: 'var(--neon-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>{saving ? 'Đang lưu…' : '💾 Lưu bàn giao'}</button>
+    </div>
+  );
+}
+
+function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -2059,6 +2104,10 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           onChange={(s) => { void setSite(task.id, s, url); }} />
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
+        <Disclosure title="📋 Bàn giao — để chat khác nối tiếp" badge={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn }) ? '✓ có brief' : 'trống — nên điền'} defaultOpen={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn })}>
+          <ResumeEditor task={task} onSave={(r) => setResume(task.id, r)} onOpenTask={onOpenTask} />
+        </Disclosure>
+
         <Disclosure title={isEmailSend ? '🗓 Lịch gửi' : '🔗 Link · kiểm tra · lịch'} defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
         {task.communitySeed && task.seedGate && (
           <div style={{ marginBottom: 8, padding: '7px 9px', borderRadius: 6, border: `1px solid ${task.seedGate.ok ? '#22c55e55' : '#ffb03c55'}`, background: task.seedGate.ok ? '#22c55e10' : '#ffb03c10' }}>

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../../_auth';
-import { setBacklinkBlocker } from '@/lib/actions/architecture';
+import { setBacklinkBlocker, setTaskResume } from '@/lib/actions/architecture';
+import { toResume } from '@/lib/task-resume';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            ht.prep_payload->'checklist' AS checklist,
            ht.prep_payload->'grounded' AS grounded,
            ht.prep_payload->'fill_fields' AS fill_fields,
+           ht.prep_payload->'inputs' AS inputs,
+           ht.prep_payload->>'done_when' AS done_when,
+           ht.prep_payload->'depends_on' AS depends_on,
            p.name AS project_name, p.website AS project_website
     FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id
     WHERE ht.id = ${taskId} LIMIT 1`);
@@ -79,6 +83,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       // Password source='account-password' value='' → ext điền từ creds an toàn, KHÔNG có plaintext ở đây.
       fillFields: (t.fill_fields && typeof t.fill_fields === 'object' && Array.isArray((t.fill_fields as { items?: unknown }).items))
         ? (t.fill_fields as { at?: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> }) : null,
+      // BÀN GIAO — inputs (link) · done_when (tiêu chí xong) · depends_on (card cần trước). Đây là thứ 1 chat
+      // KHÁC đọc để nối task pending mà không đoán. `play show <id>` in ra đúng object này.
+      resume: toResume(t.inputs, t.done_when, t.depends_on),
       content: (ac as unknown as Array<Record<string, unknown>>).map((x) => ({
         id: Number(x.id), kind: String(x.kind || 'nội dung (AI)'), result: String(x.result || ''),
       })),
@@ -96,7 +103,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const taskId = Number(id);
   if (!Number.isFinite(taskId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
-  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean> };
+  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean>; resume?: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown } };
 
   if (body.slaDueAt !== undefined) {
     const iso = body.slaDueAt ? new Date(body.slaDueAt).toISOString() : null;
@@ -112,5 +119,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     for (const [k, v] of Object.entries(body.checklist)) clean[String(k).slice(0, 60)] = !!v;
     await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{checklist}', COALESCE(prep_payload->'checklist', '{}'::jsonb) || ${JSON.stringify(clean)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
   }
+  // Bàn giao: inputs/done_when/depends_on (merge qua setTaskResume — dùng chung drawer MOS2).
+  if (body.resume !== undefined) await setTaskResume(taskId, body.resume || {});
   return NextResponse.json({ ok: true });
 }

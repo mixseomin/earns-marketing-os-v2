@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { touchEntity, type EntityKind } from '@/lib/touch-entity';
+import { toResume } from '@/lib/task-resume';
 import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
@@ -418,6 +419,24 @@ export async function setBacklinkDraftImages(taskId: number, urls: string[]): Pr
 }
 
 // Staff feedback loop. worker_note = free-text result/opinions. Empty note removes the key.
+// "Bàn giao" 1 card: inputs (link) + done_when (tiêu chí xong) + depends_on (card cần trước) vào
+// prep_payload → chat khác đọc là nối được. Có giá trị → merge; rỗng → xoá key (giữ payload gọn).
+// Nested paren để precedence jsonb ||/-  không lệch.
+export async function setTaskResume(taskId: number, resume: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown }): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no-db' };
+  const r = toResume(resume.inputs, resume.doneWhen, resume.dependsOn);
+  let expr = sql`COALESCE(prep_payload, '{}'::jsonb)`;
+  expr = r.inputs.length ? sql`(${expr} || jsonb_build_object('inputs', ${JSON.stringify(r.inputs)}::jsonb))` : sql`(${expr} - 'inputs')`;
+  expr = r.doneWhen ? sql`(${expr} || jsonb_build_object('done_when', to_jsonb(${r.doneWhen}::text)))` : sql`(${expr} - 'done_when')`;
+  expr = r.dependsOn.length ? sql`(${expr} || jsonb_build_object('depends_on', ${JSON.stringify(r.dependsOn)}::jsonb))` : sql`(${expr} - 'depends_on')`;
+  try {
+    await db.execute(sql`UPDATE human_tasks SET prep_payload = ${expr}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function setBacklinkNote(taskId: number, note: string): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };

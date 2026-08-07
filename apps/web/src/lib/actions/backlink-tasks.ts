@@ -11,6 +11,7 @@ import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platfo
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import { resolveSeedGates, type SeedGate } from '@/lib/link-gate-resolve';
 import { touchEntity } from '@/lib/touch-entity';
+import { toResume, type TaskResume } from '@/lib/task-resume';
 
 export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 
@@ -45,6 +46,10 @@ export interface BacklinkTask {
   grounded: { at: string; host?: string; source?: string; sampleId?: number; sampleAt?: string } | null;  // instructions rewritten against real captured DOM
   fillFields: { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> } | null;  // ✨ Chuẩn bị điền: prepared per-field values for the source's real form
   domSampleId: number | null;   // latest dom_samples row for this task's source host (for the drawer "🔎 DOM" check link)
+  // Bàn giao — để 1 chat khác nối tiếp mà không đoán (prep_payload.inputs/done_when/depends_on).
+  inputs: { label: string; url: string }[];   // link input cụ thể (sản phẩm, asset/vault, doc)
+  doneWhen: string;                            // tiêu chí "xong" — làm ĐÚNG chưa
+  dependsOn: number[];                         // id card cần output TRƯỚC (chuỗi phụ thuộc)
   // Catalog provenance: the shared backlink_sources row this task's source_url comes from (null = ad-hoc, not in catalog).
   catalogSourceId: number | null;
   catalogSourceName: string | null;
@@ -255,6 +260,16 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
       for (const r of ov as unknown as Array<{ id: number; account_id: number }>) overrideByTask.set(Number(r.id), Number(r.account_id));
     }
 
+    // Bàn giao (prep_payload): inputs/done_when/depends_on — để chat khác nối tiếp. 1 query batched,
+    // chỉ lấy card CÓ ít nhất 1 mảnh (?| ) cho nhẹ.
+    const resumeById = new Map<number, TaskResume>();
+    if (ids.length) {
+      const idList = sql.join(ids.map((i) => sql`${i}`), sql`, `);
+      const rs = await db.execute(sql`SELECT id, prep_payload->'inputs' AS inputs, prep_payload->>'done_when' AS done_when, prep_payload->'depends_on' AS depends_on
+        FROM human_tasks WHERE id IN (${idList}) AND platform_key = 'backlink' AND (prep_payload ?| array['inputs','done_when','depends_on'])`);
+      for (const r of rs as unknown as Array<{ id: number; inputs: unknown; done_when: unknown; depends_on: unknown }>) resumeById.set(Number(r.id), toResume(r.inputs, r.done_when, r.depends_on));
+    }
+
     // Batched account + label lookup (no N+1): only platforms that can have an account.
     type Acct = { id: number; handle: string | null; status: string; has2fa: boolean; authMethod: string | null; hasProxy: boolean; hasProfile: boolean };
     const asAcct = (a: Record<string, unknown>): Acct => ({ id: Number(a.id), handle: (a.handle as string | null) || null, status: String(a.status), has2fa: a.has_2fa === true, authMethod: (a.auth_method as string | null) || null, hasProxy: a.has_proxy === true, hasProfile: a.has_profile === true });
@@ -297,8 +312,12 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
       const urlSrc = t.sourceUrl ? srcByUrl.get(t.sourceUrl) ?? null : null;
       const methodSrc = urlSrc ? null : (srcById.get(fanoutByTask.get(t.id) ?? -1) ?? null);
       const catSrc = urlSrc ?? methodSrc;
+      const rz = resumeById.get(t.id);
       return {
         ...t,
+        inputs: rz?.inputs ?? [],
+        doneWhen: rz?.doneWhen ?? '',
+        dependsOn: rz?.dependsOn ?? [],
         domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
         catalogSourceId: catSrc?.id ?? null,
         catalogSourceName: catSrc?.name ?? null,

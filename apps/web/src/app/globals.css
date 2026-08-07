@@ -1949,3 +1949,11 @@ body.refactor-debug [data-comp] {
   outline: 2px dashed #e0b341 !important;
   outline-offset: -1px;
 }
+
+/* ── Flow-debug overlay (toggle: key "3", see components/ui/flow-debug.tsx) ──
+   Outlines every ENTITY on the page (data-entity) in green; badges (JS) show cascade count
+   or ⚠ no-cascade. Click a badge → /cascade for the full entity flow. */
+body.flow-debug [data-entity] {
+  outline: 2px dashed #3ee08f !important;
+  outline-offset: -1px;
+}

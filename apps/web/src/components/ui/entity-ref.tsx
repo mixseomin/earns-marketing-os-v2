@@ -109,8 +109,8 @@ export function EntityRef({ kind, id, label, onOpen, href, project, size = 'sm',
   // stopPropagation: entity chips very often sit inside an already-clickable row/card (whose onClick
   // opens a DIFFERENT entity). The chip's own click must not bubble up and trigger that row. The
   // Link still navigates (its default action), and onOpen still fires — we only stop the bubble.
-  if (openInPlace) return <span data-comp="ui.EntityRef" style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>{chip}</span>;
-  if (resolvedHref) return <Link data-comp="ui.EntityRef" href={resolvedHref} style={{ textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>{chip}</Link>;
+  if (openInPlace) return <span data-comp="ui.EntityRef" data-entity={kind} style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>{chip}</span>;
+  if (resolvedHref) return <Link data-comp="ui.EntityRef" data-entity={kind} href={resolvedHref} style={{ textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>{chip}</Link>;
 
   // Nothing to open — render the chip muted so it's visibly a non-live reference,
   // and warn in dev so the caller wires onOpen/href instead of shipping a dead chip.

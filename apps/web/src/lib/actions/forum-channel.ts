@@ -1,7 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels } from '@mos2/db';
 import { forumSubForumKey } from '@/lib/channel-support';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 // Find-or-create habitat_channel cho 1 sub-forum (từ breadcrumb thread mà ext gửi)
 // → trả channel db id để gắn card.channel_id. Nhờ vậy sub-forum reader hiện

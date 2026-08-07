@@ -4,7 +4,7 @@
 // Read paths live in lib/data.ts (listTribes, listHabitats); this file
 // owns mutations + revalidation.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { eq, ne, and, asc, inArray, sql, isNull } from 'drizzle-orm';
 import { getDb, tribes, habitats, habitatTribes, platforms, cards, communityBriefs, platformAccounts } from '@mos2/db';
 import { fetchDirectusCommunitiesByIds, directusEnabled } from '../bridge/directus';

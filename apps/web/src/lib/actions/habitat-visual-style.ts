@@ -10,7 +10,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 export async function inferHabitatVisualStyle(
   habitatId: number,

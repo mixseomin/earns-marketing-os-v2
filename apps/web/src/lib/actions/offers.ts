@@ -19,7 +19,7 @@
 //   3. the assembled list is wrapped in unstable_cache (5 min) so repeat loads skip Directus.
 
 import { unstable_cache } from 'next/cache';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';

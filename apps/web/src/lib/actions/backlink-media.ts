@@ -9,7 +9,7 @@ import { uploadToR2, r2Enabled } from '@/lib/r2';
 import { getOpenAI, aiEnabled, DEFAULT_MODEL } from '@/lib/ai/openai';
 import { searchStockPhotos, downloadImage, type PhotoCandidate } from '@/lib/stock-photos';
 import { getCurrentUser } from '@/lib/auth';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const wide = (field: string) => /(cover|banner|screenshot|thumbnail|infographic|header|wallpaper)/i.test(field);

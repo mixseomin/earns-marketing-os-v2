@@ -1,6 +1,6 @@
 'use server';
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, contentPieces } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';

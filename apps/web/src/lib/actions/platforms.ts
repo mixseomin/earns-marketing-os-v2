@@ -3,7 +3,7 @@
 // Platform catalog CRUD — used by accounts-vault PlatformPicker.
 // Existing schema: platforms { key (PK), label, signup_url, post_url, priority, fallback_keys, icon_slug, image_specs }
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { eq, sql } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
 import type { SignupField } from './technologies';

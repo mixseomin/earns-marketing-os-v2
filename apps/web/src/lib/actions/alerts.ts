@@ -2,7 +2,7 @@
 
 // Server Actions for Alerts mutations.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, alerts } from '@mos2/db';
 

@@ -5,7 +5,7 @@
 // (fills {product}/{domain} from the project). See decision 2026-07-19-backlink-source-catalog-standardization.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { nichesForProject, resolveSiteSlug } from '../backlink-sites';
 import { automationNeedsHuman, type Automation } from '../backlink-gates';
 

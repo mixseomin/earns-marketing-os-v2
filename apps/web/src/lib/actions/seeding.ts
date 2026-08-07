@@ -6,7 +6,7 @@
 // draft card into backlog for each due schedule the user can then
 // review/post and mark seeded.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import type { Phase } from '@/lib/phase-plan';

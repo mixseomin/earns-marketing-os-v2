@@ -13,7 +13,7 @@ import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-templa
 import { getCurrentUser } from '@/lib/auth';
 import { buildContentPrompt, type AiContentCtx } from '@/lib/ai/backlink-content-prompt';
 import { distillDom, getDomGrounding, prepFillFieldsCore, type FillField, type PrepFillOpts, type PrepFillIdentityMeta } from '@/lib/ai/prep-fill-core';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 export type { AiContentCtx, FillField, PrepFillOpts, PrepFillIdentityMeta };
 

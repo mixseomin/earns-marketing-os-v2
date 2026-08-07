@@ -2,7 +2,7 @@
 
 import { getDb, platformTechnologies, platforms, habitats, selectorOverrides } from '@mos2/db';
 import { eq, and, inArray, isNotNull, sql } from 'drizzle-orm';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 

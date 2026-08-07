@@ -3,7 +3,7 @@
 // Run auto-fetch for warmup checklist items having `auto:` flag.
 // 1 account at a time (UI button) hoặc batch (cron route).
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import { runAutoFetch } from '@/lib/warmup-checks';

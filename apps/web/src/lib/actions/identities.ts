@@ -4,7 +4,7 @@
 // API ext (`/api/ext/identities*`) đã có cho chrome ext; file này cho UI dashboard.
 // password lưu pgcrypto qua encryptValue() — chỉ reveal khi user chủ động bấm.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { desc, eq, or, inArray, sql } from 'drizzle-orm';
 import { getDb, identities, identityProjects } from '@mos2/db';
 import { encryptValue, decryptValue } from '../crypto';

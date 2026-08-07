@@ -1,7 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL } from '@/lib/ai/openai';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 // ── sync-channel-core — AI summarize + upsert habitat_channels, DÙNG CHUNG cho
 // Discord channel (sync-channel-rules) VÀ forum sub-forum (channels/sync-rules).

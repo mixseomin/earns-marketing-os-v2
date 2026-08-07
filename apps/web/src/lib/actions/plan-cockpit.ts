@@ -5,7 +5,7 @@
 // real Anthropic call wired in Phase 3 (post-MVP).
 
 import { sql } from 'drizzle-orm';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 

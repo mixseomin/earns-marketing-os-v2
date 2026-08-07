@@ -8,7 +8,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { resolveVoiceProfile, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 export interface CardChannelOption {
   id: number;

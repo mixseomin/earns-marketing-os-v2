@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { siteTimingMerges } from '../backlink-timing';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const SITE_RANK: Record<string, number> = { pending: 0, claimed: 1, submitted: 2, completed: 3, verified: 4 };
 const PROSPECT_RANK: Record<string, number> = { to_send: 0, sent: 1, followup_1: 2, followup_2: 3, replied: 4, interested: 5, embedded: 6 };

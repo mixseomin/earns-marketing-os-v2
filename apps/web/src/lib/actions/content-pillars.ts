@@ -12,7 +12,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb, contentPillars, contentPillarTribes, projects } from '@mos2/db';
 import { isValidVoiceProfile, type VoiceProfile, type FewShotExample } from '@/lib/ai/voice-profile';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 

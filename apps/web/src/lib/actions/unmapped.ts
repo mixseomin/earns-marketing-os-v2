@@ -3,7 +3,7 @@
 // Gán account "mồ côi" (chưa có junction project_accounts) vào 1 project — từ
 // inbox /unmapped. Ensure junction + set project_id nếu đang trống.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { eq } from 'drizzle-orm';
 import { getDb, platformAccounts, projectAccounts } from '@mos2/db';
 import { getCurrentUser } from '../auth';

@@ -6,7 +6,7 @@ import { createHash, randomBytes } from 'crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 

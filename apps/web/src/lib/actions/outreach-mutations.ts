@@ -6,7 +6,7 @@
 // manual "Mark embedded" button is a fallback for un-attributable embeds ('(direct)' referrer).
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { getOutreachProspect } from './outreach';
 import type { OutreachProspect } from './outreach';

@@ -6,7 +6,7 @@
 // Decision: earns-strategy 2026-07-04-outreach-multi-campaign-platform.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { getCurrentUser } from '@/lib/auth';
 import { aiEnabled } from '@/lib/ai/openai';
 import { EMAIL_RE, genPitch, ensureBacklinkCampaign, linkTaskToOutreachCore } from '@/lib/outreach/link-task';

@@ -10,7 +10,7 @@ import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import { resolveSeedGates, type SeedGate } from '@/lib/link-gate-resolve';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 
 export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 

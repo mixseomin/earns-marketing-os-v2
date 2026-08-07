@@ -1,6 +1,6 @@
 'use server';
 import { sql } from 'drizzle-orm';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
 import { detectPlatform, PLATFORM_CONFIGS } from '@/lib/publications/types';
 import type { Publication, PublicationActivity } from '@/lib/publications/types';

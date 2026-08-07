@@ -12,7 +12,7 @@
 
 import { getDb, platformAccounts, selectorOverrides } from '@mos2/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { canonField } from '../selector-field-canon';
 import { setOverride, resolveSelectors, type ScopeKind, type SelectorSpec } from './habitat-selectors';
 import { scopeKindMatch } from '@/lib/scope-kind';

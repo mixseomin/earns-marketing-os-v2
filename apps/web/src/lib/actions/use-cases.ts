@@ -3,7 +3,7 @@
 // Server Actions for use case state management.
 // State columns ONLY — never touches spec (managed by seed file).
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, useCases } from '@mos2/db';
 

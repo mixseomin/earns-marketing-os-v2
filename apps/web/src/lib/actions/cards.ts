@@ -4,7 +4,7 @@
 // All actions assume DB present — callers should not invoke from mock-only mode.
 // Tenant filter is implicit via DEFAULT_TENANT_ID.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, cards } from '@mos2/db';
 

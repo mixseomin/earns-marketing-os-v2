@@ -2,7 +2,7 @@
 
 // Server Actions for Project CRUD.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { getDb, projects, modes, squads, cards, alerts, feedEvents } from '@mos2/db';

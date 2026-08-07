@@ -3,7 +3,7 @@
 // Per-member assignments: project membership + entity ownership
 // (platform_accounts, proxies, browser_profiles, tribes).
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';

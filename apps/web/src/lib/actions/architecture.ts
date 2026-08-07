@@ -6,7 +6,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity, type EntityKind } from '@/lib/entity-cascade';
+import { touchEntity, type EntityKind } from '@/lib/touch-entity';
 import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';

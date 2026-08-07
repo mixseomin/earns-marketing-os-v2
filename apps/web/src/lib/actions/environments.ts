@@ -4,7 +4,7 @@
 // UI: /p/[id]/resources?vault=proxies / ?vault=profiles
 // Used by: accounts-vault.tsx (linking) + new ProxiesVault / ProfilesVault.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';

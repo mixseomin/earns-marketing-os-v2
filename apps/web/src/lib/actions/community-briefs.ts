@@ -3,7 +3,7 @@
 // Server actions for community_briefs — per (account × habitat) approach plan.
 // See migration 0039_community_briefs.sql for shape + intent.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, sql } from 'drizzle-orm';
 import { getDb, communityBriefs, platformAccounts, habitats, tribes } from '@mos2/db';
 import { getHabitatById, type HabitatRow } from '@/lib/data';

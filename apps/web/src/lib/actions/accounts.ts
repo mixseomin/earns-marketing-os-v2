@@ -2,7 +2,7 @@
 
 // Server Actions for platform account CRUD + warmup checklist updates.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, platformAccounts, platforms } from '@mos2/db';
 import {

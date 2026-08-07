@@ -2,7 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { requireRole } from '@/lib/auth';
 import { DEFAULT_SCENE_EVENTS, type SceneEvent } from '@/lib/scene-events';
 

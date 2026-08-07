@@ -1,6 +1,6 @@
 'use server';
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, isNull, asc, desc } from 'drizzle-orm';
 import { getDb, libraryTools, skillSnippets } from '@mos2/db';
 

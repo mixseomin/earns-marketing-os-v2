@@ -5,7 +5,7 @@
 // rebuilt server-side from the same template the preview drawer shows, so what you see is what sends.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { buildEmailForProspect } from '@/lib/outreach-template';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { fillSignoff, firstNameOf } from '@/lib/outreach/link-task';

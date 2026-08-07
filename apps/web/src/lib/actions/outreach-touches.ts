@@ -5,7 +5,7 @@
 // marked 'sent' advances the prospect (→ backlink task sync). See 2026-07-20-outreach-multichannel-plan.
 import { sql, type SQL } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { getCurrentUser } from '@/lib/auth';
 import { syncProspectToTask } from './backlink-outreach-sync';
 import { genChannelContent } from '@/lib/outreach/touch-content';

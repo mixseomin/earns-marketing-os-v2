@@ -2,7 +2,7 @@
 
 // Team management — users + members CRUD + current-user cookie + assignment helpers.
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, users, members } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';

@@ -1,6 +1,6 @@
 'use server';
 
-import { touchEntity } from '@/lib/entity-cascade';
+import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, desc, gte, sql } from 'drizzle-orm';
 import { getDb, aiSuggestions, projects, cards } from '@mos2/db';
 import { generateSuggestions as runOpenAI, hashContext, type SuggestionContext, type AISuggestion } from '@/lib/ai/suggestions';

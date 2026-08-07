@@ -29,11 +29,19 @@ function mapRow(r: Record<string, unknown>): Followup {
 }
 
 // listFollowups() = all · listFollowups(slug) = one project · dueOnly = open + due today-or-earlier.
-export async function listFollowups(projectId?: string, dueOnly = false): Promise<Followup[]> {
+//
+// `today` = ngày ĐỊA PHƯƠNG của người gọi (YYYY-MM-DD). Bỏ trống thì rơi về ngày của máy chủ —
+// mà máy chủ chạy UTC, nên từ 00:00-07:00 giờ GMT+7 nó lùi một ngày và việc đến hạn hôm nay
+// không hiện ra. Hạn ở đây là một NGÀY trên lịch của người dùng, không phải một mốc thời gian
+// toàn cầu, nên người gọi mới là bên biết "hôm nay" là ngày nào. `play due` đã sửa cùng cách.
+export async function listFollowups(projectId?: string, dueOnly = false, today?: string): Promise<Followup[]> {
   const db = getDb(); if (!db) return [];
   const conds = [sql`platform_key = 'followup'`];
   if (projectId) conds.push(sql`project_id = ${projectId}`);
-  if (dueOnly) conds.push(sql`status NOT IN ('done','dropped') AND sla_due_at IS NOT NULL AND sla_due_at::date <= now()::date`);
+  if (dueOnly) {
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(today ?? '') ? sql`${today}::date` : sql`now()::date`;
+    conds.push(sql`status NOT IN ('done','dropped') AND sla_due_at IS NOT NULL AND sla_due_at::date <= ${day}`);
+  }
   const r = await db.execute(sql`
     SELECT id, project_id, title, status, to_char(sla_due_at, 'YYYY-MM-DD') AS due,
            instructions, notes, to_char(updated_at, 'YYYY-MM-DD') AS updated

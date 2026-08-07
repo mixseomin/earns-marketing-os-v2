@@ -15,7 +15,8 @@ export async function GET(req: Request) {
   const id = (u.searchParams.get('id') ?? '').trim();
   if (id) { const f = await getFollowup(Number(id)); return okResponse({ items: f ? [f] : [] }); }
   const project = (u.searchParams.get('project') ?? '').trim();
-  const items = await listFollowups(project || undefined, u.searchParams.get('due') === '1');
+  // today = ngày địa phương của client; thiếu thì server tự lấy ngày của nó (UTC → lùi 1 ngày với GMT+7).
+  const items = await listFollowups(project || undefined, u.searchParams.get('due') === '1', u.searchParams.get('today') || undefined);
   return okResponse({ items });
 }
 

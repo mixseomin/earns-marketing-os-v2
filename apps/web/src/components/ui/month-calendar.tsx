@@ -168,10 +168,11 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                     textAlign: 'left', fontSize: big ? 12 : 9.5, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word',
                     padding: big ? '4px 8px 4px 10px' : '2px 4px 2px 8px', borderRadius: 5, cursor: 'pointer', overflow: 'hidden',
                     border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`,
-                    background: `color-mix(in srgb, ${c} ${it.dim ? 8 : 15}%, transparent)`, opacity: it.dim ? 0.78 : 1 }}>
+                    // xong (done) → LÙI VỀ SAU: mờ nhất, để pending/đang-làm nổi lên. dim (tương lai/bỏ) mờ vừa.
+                    background: `color-mix(in srgb, ${c} ${it.done ? 6 : it.dim ? 8 : 15}%, transparent)`, opacity: it.done ? 0.5 : it.dim ? 0.78 : 1 }}>
                   <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: big ? 4 : 3, background: c }} />
                   {it.icon && <CalGlyph name={it.icon} color={c} size={big ? 13 : 11} />}
-                  <span style={{ flex: 1, minWidth: 0, color: it.dim ? 'var(--fg-3)' : 'var(--fg-1)',
+                  <span style={{ flex: 1, minWidth: 0, color: it.done || it.dim ? 'var(--fg-3)' : 'var(--fg-1)',
                     ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{it.label}</span>
                   {big && it.done && <CalGlyph name="check" color={c} size={13} />}
                 </button>

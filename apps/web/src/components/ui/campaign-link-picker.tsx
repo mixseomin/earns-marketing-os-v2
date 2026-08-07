@@ -41,7 +41,7 @@ export function CampaignLinkPicker({ value, onChange, onSave, saving }: {
   const pick = (l: CampaignLink) => { onChange(l.url); setQ(''); setOpen(false); onSave?.(); };
 
   return (
-    <div ref={box} style={{ position: 'relative' }}>
+    <div ref={box} data-comp="ui.CampaignLinkPicker" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', gap: 6 }}>
         <input value={value || ''} onChange={(e) => onChange(e.target.value)} onFocus={() => setOpen(true)}
           placeholder="Chọn từ /offers · /products — hoặc dán URL" autoComplete="off" style={inp} />

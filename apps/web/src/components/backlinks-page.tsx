@@ -25,7 +25,7 @@ import { listAiContent, generateAiContent, deleteAiContent, normalizeInstruction
 import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
-import { CampaignLinkPicker } from '@/components/campaign-link-picker';
+import { CampaignLinkPicker } from '@/components/ui';
 
 // Compact status labels for the Outreach linkage chip on a backlink task.
 const OUTREACH_ST: Record<string, string> = { to_send: 'chưa gửi', sent: 'đã gửi', followup_1: 'FU1', followup_2: 'FU2', replied: 'đã hồi', interested: 'quan tâm', embedded: 'đã đặt ★', declined: 'từ chối', bounced: 'bounced', unreachable: 'ko liên hệ được', no_response: 'ko hồi' };

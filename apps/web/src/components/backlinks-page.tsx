@@ -1087,10 +1087,30 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           .filter((p) => p.slug)
           .map((p) => ({ ...p, count: tasks.filter((t) => t.projectSlug === p.slug).length }))
           .sort((a, b) => b.count - a.count);
+        // Lần chạm gần nhất của một project = mốc muộn nhất trong mọi task của nó (xong /
+        // gửi chờ duyệt / tạo). Project hay dùng thì nằm ngay ngoài, không phải mở select
+        // rồi gõ tìm — select giữ lại cho phần đuôi dài.
+        const touched = (slug: string) => tasks.reduce<string>((mx, t) => (t.projectSlug !== slug ? mx
+          : [t.siteDoneAt, t.siteSubmittedAt, t.createdAt].reduce<string>((m, d) => (d && d > m ? d : m), mx)), '');
+        const recent = projs.slice().map((p) => ({ ...p, at: touched(p.slug) }))
+          .sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : b.count - a.count)).slice(0, 6);
+        const chip = (active: boolean): React.CSSProperties => ({
+          ...btn, cursor: 'pointer', padding: '3px 8px', fontSize: 11, whiteSpace: 'nowrap',
+          borderColor: active ? 'var(--accent)' : 'var(--line)', color: active ? 'var(--fg-1)' : 'var(--fg-3)',
+        });
         return (
-          <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto' }}>
             <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Project</span>
             <ProjectFilterSelect projects={projs} value={projectFilter} onChange={setProjectFilter} />
+            {projectFilter && (
+              <button type="button" onClick={() => setProjectFilter('')} style={chip(false)} title="Bỏ lọc project">✕ tất cả</button>
+            )}
+            {recent.map((p) => (
+              <button key={p.slug} type="button" onClick={() => setProjectFilter(projectFilter === p.slug ? '' : p.slug)}
+                style={chip(projectFilter === p.slug)} title={`${p.label} · ${p.count} plays${p.at ? ` · chạm ${localDay(p.at)}` : ''}`}>
+                {p.emoji} {p.label} <span style={{ color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{p.count}</span>
+              </button>
+            ))}
           </div>
         );
       })()}

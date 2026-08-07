@@ -4,7 +4,8 @@
 // sources that apply to THIS project's site (membership = site_status[slug]) and lets the
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
-import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved, submitDraftReview } from '@/lib/actions/architecture';
@@ -159,18 +160,48 @@ const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
 // Lightweight popover (no house primitive existed) — trigger + floating panel + click-outside.
 // Reused for the ⚙ Lọc advanced filters and the project select. children is a render-prop
 // given close() so an in-panel action can dismiss it.
+//
+// Panel được PORTAL ra <body> + position:fixed, KHÔNG phải absolute trong trigger (sửa 2026-08-07).
+// Lý do: chỉ cần một ancestor có overflow là panel bị cắt — hàng chip project dùng overflowX:'auto',
+// CSS bắt overflow-y thành 'auto' theo, panel nằm ngoài vùng cắt nên select mở ra chỉ thấy ô tìm
+// kiếm; tệ hơn, autoFocus kéo luôn hàng scroll đi làm trigger + chip biến mất. Bỏ overflow ở chỗ
+// dùng chỉ chữa một chỗ và gài lại bẫy cho lần sau; portal cắt cả lớp lỗi cho MỌI Popover.
 function Popover({ label, active, badge, align = 'left', minWidth = 220, children }: {
   label: React.ReactNode; active?: boolean; badge?: number; align?: 'left' | 'right'; minWidth?: number;
   children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [box, setBox] = useState<CSSProperties>({ top: -9999, left: -9999 });
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
     if (!open) return;
-    const h = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('pointerdown', h);
-    return () => document.removeEventListener('pointerdown', h);
-  }, [open]);
+    // Bám theo trigger: mở, cuộn (capture=true để bắt cả scroll container lồng nhau), đổi cỡ.
+    const place = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      const raw = align === 'right' ? r.right - minWidth : r.left;
+      setBox({ top: r.bottom + 4, left: Math.max(8, Math.min(raw, window.innerWidth - minWidth - 8)),
+        maxHeight: Math.max(160, window.innerHeight - r.bottom - 16) });
+    };
+    place();
+    // Click-outside phải xét CẢ panel: portal rồi thì nó không còn là con của trigger nữa.
+    const out = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!ref.current?.contains(t) && !panelRef.current?.contains(t)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', out);
+    document.addEventListener('keydown', esc);
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      document.removeEventListener('pointerdown', out);
+      document.removeEventListener('keydown', esc);
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open, align, minWidth]);
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen((v) => !v)}
@@ -178,11 +209,10 @@ function Popover({ label, active, badge, align = 'left', minWidth = 220, childre
         {label}{badge ? <span style={{ fontSize: 9, fontWeight: 700, background: 'var(--accent)', color: '#000', borderRadius: 999, padding: '0 5px', minWidth: 14, textAlign: 'center' }}>{badge}</span> : null}
         <span style={{ fontSize: 8, opacity: 0.5 }}>▾</span>
       </button>
-      {open && (
-        <div style={{ position: 'absolute', top: '100%', [align]: 0, marginTop: 4, zIndex: 500, minWidth, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, boxShadow: '0 8px 30px rgba(0,0,0,.4)' }}>
+      {open && createPortal(
+        <div ref={panelRef} style={{ position: 'fixed', ...box, zIndex: 500, minWidth, overflowY: 'auto', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, boxShadow: '0 8px 30px rgba(0,0,0,.4)' }}>
           {children(() => setOpen(false))}
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }

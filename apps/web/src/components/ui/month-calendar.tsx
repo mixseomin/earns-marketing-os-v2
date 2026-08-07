@@ -88,13 +88,15 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
   );
 }
 
-export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange }: {
+export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend }: {
   items: CalItem[];
   onItemClick?: (id: number | string) => void;
   initialMonth?: Date;
   /** Chế độ hiện tại. Bỏ trống = component tự giữ (dùng khi không cần đồng bộ URL). */
   mode?: CalMode;
   onModeChange?: (m: CalMode) => void;
+  /** Hiện chú thích ngữ pháp màu/icon (dùng ở plays). */
+  legend?: boolean;
 }) {
   const [anchor, setAnchor] = useState(() => initialMonth ?? new Date());
   const [miniView, setMiniView] = useState(() => firstOfMonth(initialMonth ?? new Date()));   // tháng mini-month đang hiện
@@ -201,6 +203,20 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
           {grid}
         </div>
       ) : grid}
+      {legend && (
+        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px 14px', fontSize: 10.5, color: 'var(--fg-4)' }}>
+          <span style={{ fontWeight: 700, color: 'var(--fg-3)' }}>Loại</span>
+          {([['pin', 'follow-up'], ['link', 'backlink'], ['sprout', 'seed']] as [GlyphName, string][]).map(([g, t]) => (
+            <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalGlyph name={g} color="var(--fg-2)" size={13} />{t}</span>
+          ))}
+          <span style={{ width: 1, height: 12, background: 'var(--line)' }} />
+          <span style={{ fontWeight: 700, color: 'var(--fg-3)' }}>Trạng thái</span>
+          {([['#22c55e', 'xong'], ['#ffb03c', 'đang / hẹn'], ['#9d6cff', 'chờ duyệt'], ['#8a92a3', 'chờ'], ['#ef4444', 'chặn']] as [string, string][]).map(([c, t]) => (
+            <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 12, borderRadius: 2, background: c }} />{t}</span>
+          ))}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalGlyph name="check" color="#22c55e" size={13} />= đã làm</span>
+        </div>
+      )}
     </div>
   );
 }

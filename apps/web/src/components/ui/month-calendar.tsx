@@ -93,8 +93,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   for (const it of items) { (byDate.get(it.date) ?? byDate.set(it.date, []).get(it.date)!).push(it); }
   const todayStr = ymd(new Date());
   const anchorStr = ymd(anchor);
-  // Ngày được "chọn": Ngày = đúng anchor; Tuần = cả 7 ngày của tuần (band như Google Calendar).
-  const selSet = new Set(mode === 'week' ? days.map(ymd) : [anchorStr]);
+  const selSet = new Set([anchorStr]);   // mini chỉ ở Day → tô đúng ngày đang xem
 
   // anchor đổi → mini-month bám theo tháng của anchor (trừ khi người dùng tự page mini bằng ◀ ▶).
   const goAnchor = (d: Date) => { setAnchor(d); setMiniView(firstOfMonth(d)); };
@@ -107,7 +106,9 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
       : anchor.toLocaleDateString(undefined, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   // Ô cao hơn khi ít cột: tuần/ngày có chỗ nên hiện được nhiều việc thay vì cắt.
   const minH = mode === 'month' ? 78 : mode === 'week' ? 300 : 420;
-  const showMini = mode !== 'month';   // mini-month chỉ ở view hẹp (Tuần/Ngày)
+  // Mini-month CHỈ ở Ngày (cần chọn 1 ngày + nắm toàn cảnh). Tuần đã là 7 cột overview → bỏ mini để
+  // grid rộng full-width (đọc tiêu đề việc dễ hơn); điều hướng tuần dùng ◀ ▶ trên cùng.
+  const showMini = mode === 'day';
 
   const grid = (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 4, flex: 1, minWidth: 260 }}>

@@ -71,7 +71,7 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
   const todayStr = ymd(new Date());
   const cells = monthGrid(month);
   return (
-    <div style={{ width: 236, flexShrink: 0 }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, flex: 1, textTransform: 'capitalize' }}>{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</div>
         <button type="button" onClick={() => onNavMonth(-1)} style={miniNav} title="Tháng trước">◀</button>
@@ -102,7 +102,7 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
   );
 }
 
-export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend }: {
+export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar }: {
   items: CalItem[];
   onItemClick?: (id: number | string) => void;
   initialMonth?: Date;
@@ -111,6 +111,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   onModeChange?: (m: CalMode) => void;
   /** Chú thích (loại + trạng thái) — nhãn/màu do caller truyền để khớp nguồn canonical. */
   legend?: LegendEntry[];
+  /** Nội dung phụ nằm DƯỚI mini-month trong cột trái (vd sản phẩm đang dựng). Cột này rộng cố định 236px. */
+  sidebar?: React.ReactNode;
 }) {
   // anchor/miniView/"hôm nay" phụ thuộc GIỜ LOCAL của client. Nếu khởi tạo bằng new Date() ngay lúc SSR
   // (máy chủ chạy UTC) thì client hydrate xong sẽ tính lại theo giờ local → lệch ngày → calendar NHẢY sang
@@ -154,7 +156,6 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   // Tháng giữ 7 cột; Ngày 1 cột. minmax(240px) → tự co còn 2-3 cột tuỳ bề rộng còn lại (đã trừ mini).
   const gridCols = mode === 'month' ? 'repeat(7, 1fr)' : mode === 'week' ? 'repeat(auto-fill, minmax(240px, 1fr))' : '1fr';
   const minH = mode === 'month' ? 78 : mode === 'week' ? 150 : 420;
-  const showMini = mode !== 'month';   // giữ mini-month ở Tuần + Ngày (nắm toàn cảnh tháng + chọn/nhảy ngày)
 
   const grid = (
     <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: mode === 'week' ? 8 : 4, flex: 1, minWidth: 260, alignContent: 'start' }}>
@@ -259,13 +260,17 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
           ))}
         </div>
       </div>
-      {showMini ? (
-        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {/* Cột trái CỐ ĐỊNH ở cả ba chế độ (trước đây Tháng giấu đi): mini-month là chỗ nhảy ngày +
+          nắm toàn cảnh, mất nó ở Tháng thì thanh điều hướng đổi hình theo tab — và phần dưới cột
+          là chỗ đặt nội dung thường trực (sản phẩm đang dựng). */}
+      <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ width: 236, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <MiniMonth month={miniView} sel={selSet} byDate={byDate} onPick={(d) => setAnchor(d)}
             onNavMonth={(dir) => setMiniView((mv) => { const d = mv ?? new Date(); return new Date(d.getFullYear(), d.getMonth() + dir, 1); })} />
-          {grid}
+          {sidebar}
         </div>
-      ) : grid}
+        {grid}
+      </div>
       {legend && legend.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px 13px', fontSize: 10.5, color: 'var(--fg-4)' }}>
           {legend.map((e, i) => e.sep

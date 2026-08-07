@@ -175,20 +175,23 @@ const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
 // SẢN PHẨM ĐANG DỰNG — dải nổi ngay đầu bảng, vì đây là thứ đang thực sự được làm ra, còn
 // backlink/seeding chỉ là việc quanh nó. Bấm một ô → drawer đọc được cả bản thảo: trước đây bản
 // thảo nằm trong file ở máy cá nhân nên câu "muốn xem quyển sách thì vào đâu" không có chỗ trả lời.
-function ProductStrip({ products, projects, onOpen }: { products: BuildingProduct[]; projects?: Record<string, Project>; onOpen: (slug: string) => void }) {
+function ProductStrip({ products, projects, onOpen, narrow }: { products: BuildingProduct[]; projects?: Record<string, Project>; onOpen: (slug: string) => void; narrow?: boolean }) {
   if (!products.length) return null;
+  // narrow = cột trái của lịch (236px): xếp dọc, ô ăn hết bề ngang thay vì tự dàn hàng ngang.
   return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+    <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: 10, flexWrap: 'wrap', marginBottom: narrow ? 0 : 12 }}>
+      {narrow && <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Sản phẩm đang dựng</div>}
       {products.map((p) => {
         const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
         return (
           <button key={p.slug} type="button" onClick={() => onOpen(p.slug)}
             title={`${p.description.slice(0, 180)}…`}
-            style={{ textAlign: 'left', cursor: 'pointer', minWidth: 268, flex: '1 1 268px', maxWidth: 420,
+            style={{ textAlign: 'left', cursor: 'pointer', ...(narrow ? { width: '100%' } : { minWidth: 268, flex: '1 1 268px', maxWidth: 420 }),
               border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 9,
               background: 'var(--bg-1)', padding: '9px 12px', color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>📕 đang dựng</span>
+              {/* cột hẹp đã có tiêu đề "Sản phẩm đang dựng" ở trên → chỉ để lại 📕, khỏi lặp chữ */}
+              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>📕{narrow ? '' : ' đang dựng'}</span>
               {/* Ở bảng toàn cục mới cần nói sản phẩm của project nào; trong trang project thì thừa. */}
               {projects?.[p.projectId] && <span style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>· {projects[p.projectId]!.emoji ?? ''} {projects[p.projectId]!.name}</span>}
               {p.price != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ok,#22c55e)', marginLeft: 'auto' }}>${p.price}</span>}
@@ -1205,10 +1208,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {srcEdit && <SourceEditor initial={srcEdit} onClose={() => setSrcEdit(null)} onSaved={async () => { setSrcEdit(null); await reloadSeed(); }} />}
 
-      {/* Sản phẩm đang dựng đứng ĐẦU TRANG, trên cả KPI: đây là thứ đang được làm ra để bán, còn
-          backlink/seeding là việc quanh nó. Đặt dưới hai hàng filter như bản đầu là ngược thứ tự —
-          filter của bảng task không liên quan gì tới sản phẩm. */}
-      <ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} />
+      {/* Sản phẩm đang dựng: ở view Lịch nó nằm trong cột trái, ngay dưới mini-month (chỗ trống sẵn có,
+          đứng cạnh lịch làm việc). Ở List/Kanban không có cột đó nên đưa lên đầu trang, trên cả KPI —
+          thứ đang được làm ra để bán đứng trước bộ đếm backlink. */}
+      {view !== 'calendar' && <ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} />}
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -1348,7 +1351,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} />
+        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode}
+          sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {shown.length > 0 && listHead}

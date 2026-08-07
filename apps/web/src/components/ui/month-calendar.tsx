@@ -9,8 +9,30 @@
 // chung đúng một hàm dựng danh sách ngày — chỉ khác số cột và bước nhảy ◀ ▶.
 import { useState, type CSSProperties } from 'react';
 
-export interface CalItem { id: number | string; date: string; label: string; dim?: boolean; color?: string; title?: string; }
+export interface CalItem {
+  id: number | string; date: string; label: string; title?: string;
+  color?: string;          // màu TRẠNG THÁI: drives thanh-trái + nền tint + viền (green=done, amber=đang/hẹn, purple=chờ duyệt, grey=chờ, red=chặn)
+  icon?: GlyphName;        // icon LOẠI/ngữ-cảnh (SVG, đồng nhất): pin=followup · link=backlink · sprout=seed · clock=chờ duyệt · calendar=hẹn lại
+  done?: boolean;          // đã làm → thêm ✓ + thanh xanh
+  dim?: boolean;           // mờ (mục tương lai/đã bỏ)
+}
 export type CalMode = 'month' | 'week' | 'day';
+
+// SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
+type GlyphName = 'pin' | 'link' | 'sprout' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot';
+const GLYPH: Record<GlyphName, React.ReactNode> = {
+  pin: <><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10z" /><circle cx="12" cy="11" r="2.4" /></>,
+  link: <><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" /></>,
+  sprout: <><path d="M12 20v-7" /><path d="M12 13C12 9 9 7 5 7c0 4 3 6 7 6z" /><path d="M12 11c0-3 2-5 6-5 0 3-2 5-6 5z" /></>,
+  check: <path d="M20 6 9 17l-5-5" />,
+  clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8 3.5v4M16 3.5v4" /></>,
+  alert: <><path d="M12 4 3 19h18L12 4z" /><path d="M12 10v4M12 16.5h.01" /></>,
+  dot: <circle cx="12" cy="12" r="4" />,
+};
+function CalGlyph({ name, color, size = 13 }: { name: GlyphName; color: string; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden>{GLYPH[name]}</svg>;
+}
 
 const WD = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const WD1 = ['2', '3', '4', '5', '6', '7', 'C'];   // mini-month header (1 ký tự)
@@ -132,14 +154,20 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
             )}
             {its.map((it) => {
               const c = it.color || 'var(--accent)';
+              const big = mode !== 'month';
               return (
+                // Thanh-trái = màu TRẠNG THÁI · icon SVG = LOẠI · nền/viền tint theo màu · ✓ = đã làm. Chữ trung tính để dễ đọc.
                 <button key={String(it.id) + it.date} type="button" title={it.title || it.label} onClick={() => onItemClick?.(it.id)}
-                  // Tháng: 2 dòng (ô hẹp). Tuần/Ngày: thẻ rộng → hiện đủ tiêu đề, font 12.
-                  style={{ textAlign: 'left', fontSize: mode === 'month' ? 9.5 : 12, fontWeight: 600, padding: mode === 'month' ? '1px 5px' : '4px 8px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden',
-                    ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const } : {}),
-                    lineHeight: 1.3, wordBreak: 'break-word',
-                    border: `1px solid color-mix(in srgb, ${c} 45%, transparent)`, background: `color-mix(in srgb, ${c} ${it.dim ? 8 : 20}%, transparent)`, color: c, opacity: it.dim ? 0.6 : 1 }}>
-                  {it.dim ? '🗓 ' : ''}{it.label}
+                  style={{ position: 'relative', display: 'flex', alignItems: big ? 'center' : 'flex-start', gap: big ? 6 : 4,
+                    textAlign: 'left', fontSize: big ? 12 : 9.5, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word',
+                    padding: big ? '4px 8px 4px 10px' : '2px 4px 2px 8px', borderRadius: 5, cursor: 'pointer', overflow: 'hidden',
+                    border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`,
+                    background: `color-mix(in srgb, ${c} ${it.dim ? 8 : 15}%, transparent)`, opacity: it.dim ? 0.78 : 1 }}>
+                  <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: big ? 4 : 3, background: c }} />
+                  {it.icon && <CalGlyph name={it.icon} color={c} size={big ? 13 : 11} />}
+                  <span style={{ flex: 1, minWidth: 0, color: it.dim ? 'var(--fg-3)' : 'var(--fg-1)',
+                    ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{it.label}</span>
+                  {big && it.done && <CalGlyph name="check" color={c} size={13} />}
                 </button>
               );
             })}

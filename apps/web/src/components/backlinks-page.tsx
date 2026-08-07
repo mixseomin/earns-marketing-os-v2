@@ -376,6 +376,22 @@ function LinkText({ text }: { text: string }) {
     </span>
   ))}</>;
 }
+// Hướng dẫn viết liền một khối, không xuống dòng (task ghi lùi bằng `play add`, hướng dẫn cũ
+// nhập tay, đoạn AI trả về một mạch) trước đây đổ nguyên xi ra thành một tảng chữ không đọc nổi.
+// Không thể bắt MỌI nguồn ghi đúng khuôn — nhiều đường cùng ghi vào `instructions` — nên chỗ sửa
+// đúng là tầng HIỂN THỊ: tự cắt khối văn xuôi thành ý, theo hết câu và theo dấu '·' (đang được
+// dùng làm dấu phân cách trong chính các hướng dẫn này). Cắt xong đi tiếp qua đúng đường render
+// của bullet bên dưới, nên link vẫn bấm được và nút ⚠ Lỗi vẫn gắn theo từng ý.
+// Cố ý KHÔNG cắt theo dấu phẩy: câu tiếng Việt dùng phẩy dày, cắt ra sẽ vụn hơn là dễ đọc.
+// Và KHÔNG cắt khi dấu chấm đứng ngay sau chữ số — "Bước 1. Vào trang" là một bước, cắt ra
+// thành "Bước 1." lơ lửng thì tệ hơn lúc chưa cắt. Cùng luật đó giữ nguyên "3.5 triệu", "2026.".
+export function segmentProse(s: string): string[] {
+  return s
+    .split(/(?<=[^\d\s][.;!?])\s+(?=[\p{Lu}\p{Extended_Pictographic}0-9])|\s+·\s+/su)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 // Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
 // dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
@@ -393,6 +409,10 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, ema
   if (items.length <= 1) {
     const parts = text.split(/\s*(?=\b\d+\)\s)/).map((s) => s.trim()).filter(Boolean);
     if (parts.length >= 2) items = parts;
+  }
+  if (items.length <= 1) {
+    const seg = segmentProse(text);
+    if (seg.length >= 2) items = seg;
   }
   if (items.length <= 1) {
     return <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}><LinkText text={stripMarker(items[0] ?? text)} /></div>;
@@ -738,42 +758,30 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
     for (const t of filtered) {
-      // Global /plays: prefix the project emoji so a calendar cell says which site it's for.
-      const pfx = allProjects && t.projectEmoji ? `${t.projectEmoji} ` : '';
+      // allProjects: tiền tố [tên project] (chữ, không emoji) để ô lịch biết của site nào.
       const plbl = allProjects && t.projectLabel ? `[${t.projectLabel}] ` : '';
-      // 🌱 community-seed marker: this platform link-gates, so a dated item here is a seeding/
-      // standing-building move, NOT a free link drop — flag it on the pill + tooltip so the
-      // calendar doesn't read it the same as a one-shot acquire. (Readiness strip stays on the
-      // list/kanban card — a calendar pill is one line.)
-      const seed = t.communitySeed ? '🌱 ' : '';
-      const seedT = t.communitySeed ? ' · 🌱 community-seed (link-gated)' : '';
-      // Nhãn ô lịch phải NÓI ĐƯỢC VIỆC. Trước đây chỉ lấy hostname của source_url, nên năm thẻ
-      // khác nhau cùng hiện "studio.youtube.com", hai thẻ cùng "wise.com" — nhìn vào không biết
-      // hôm đó phải làm gì. Hostname chỉ có nghĩa khi nó LÀ nội dung (đặt link ở reddit.com);
-      // với việc nội bộ thì tiêu đề mới là thông tin. Nên: lấy host làm tiền tố ngắn, rồi luôn
-      // kèm tiêu đề. Host trùng nhau thì phần tiêu đề tách chúng ra.
+      const seedT = t.communitySeed ? ' · community-seed (link-gated)' : '';
+      // Loại việc → icon SVG: seed (link-gated) vs backlink thường. Trạng thái → màu thanh-trái.
+      const typeIcon = t.communitySeed ? 'sprout' : 'link';
+      // Host xuống tooltip; nhãn = tiêu đề (phân biệt được việc, khác hostname trùng nhau).
       const host = showHost(t.sourceUrl, t.projectSlug);
-      // TIÊU ĐỀ là nhãn, hostname xuống tooltip. Hostname không phân biệt được việc: năm thẻ khác
-      // nhau cùng hiện "studio.youtube.com", hai thẻ cùng "wise.com" — nhìn lịch không biết hôm
-      // đó làm gì. Tiêu đề luôn khác nhau, nên nó mới là thứ đáng chiếm chỗ trên ô lịch.
-      const label = pfx + seed + t.title.replace(/\s+/g, ' ').trim();
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
+      const label = plbl + t.title.replace(/\s+/g, ' ').trim();
+      const suffix = `${host ? ` · ${host}` : ''}${seedT}`;
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon: typeIcon, done: true, color: '#22c55e', title: `đã đặt · ${plbl}${t.title}${suffix}` });
       else {
-        // A task can carry BOTH a "waiting since" date and a "check/follow-up on" date —
-        // show both so the calendar surfaces the follow date (site_scheduled_at) even while
-        // the task is still submitted/awaiting approval.
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
+        // Một task có thể vừa "chờ duyệt từ ngày X" vừa "hẹn kiểm tra ngày Y" — hiện cả hai.
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon: 'clock', color: '#9d6cff', title: `chờ duyệt · ${plbl}${t.title}${suffix}` });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon: 'calendar', dim: true, color: '#ffb03c', title: `hẹn kiểm tra · ${plbl}${t.title}${suffix}` });
       }
     }
-    // 📌 deferred-work follow-ups ride the SAME calendar, colored by status (chờ/đang/xong/kẹt/bỏ) —
-    // distinct from backlink pills. Undated ones aren't plotted (they surface via /now + `followup list`).
+    // Follow-ups deferred: cùng lịch — thanh-trái theo status (chờ xám/đang cam/xong xanh/kẹt đỏ),
+    // icon 📌pin (loại), ✓ khi xong. Undated không vẽ (surface qua /now + `followup list`).
     for (const f of followups) {
       if (!f.due) continue;
       const m = FOLLOWUP_META[f.status];
       const p = allProjects ? projectsById?.[f.projectId] : undefined;
-      const pfx = p?.emoji ? `${p.emoji} ` : '';
-      out.push({ id: `f:${f.id}`, date: f.due, label: `📌 ${pfx}${f.title.replace(/\s+/g, ' ').trim()}`, color: m.color, title: `📌 ${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
+      const plbl = allProjects ? `[${p?.name ?? f.projectId}] ` : '';
+      out.push({ id: `f:${f.id}`, date: f.due, label: `${plbl}${f.title.replace(/\s+/g, ' ').trim()}`, icon: 'pin', done: f.status === 'done', dim: f.status === 'dropped', color: m.color, title: `${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
     }
     return out;
   }, [filtered, allProjects, followups, projectsById]);

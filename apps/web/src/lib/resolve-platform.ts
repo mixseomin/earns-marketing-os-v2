@@ -2,6 +2,7 @@ import { getDb, platforms } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { canonPlatformKey, platformKeyCandidates } from './habitat-platform-map';
 import { slugifyHost } from './host';
+import { textArray } from './sql-array';
 
 // Ext gán platform_key = HOST-SLUG ('govloop.com' → 'govloop-com'). Nếu server ĐÃ có platform CURATED
 // cho cùng host (signup_url slugify ra CÙNG slug, key KHÁC) → trả key curated ('govloop') để account
@@ -33,7 +34,7 @@ export async function reconcilePlatformKey(
     if (cands.length) {
       const rows = await db.execute(sql`
         SELECT key FROM platforms
-        WHERE key = ANY(${cands}::text[]) OR fallback_keys ?| ${cands}::text[]`);
+        WHERE key = ANY(${textArray(cands)}) OR fallback_keys ?| ${textArray(cands)}`);
       const have = new Set((rows as unknown as Array<{ key: string }>).map((r) => r.key));
       // duyệt NGƯỢC: ứng viên cuối là dạng gọn nhất (tên thương hiệu trần)
       for (let i = cands.length - 1; i >= 0; i--) { const c = cands[i]; if (c && have.has(c)) return c; }

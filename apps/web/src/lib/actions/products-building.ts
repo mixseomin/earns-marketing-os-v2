@@ -11,6 +11,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { textArray } from '@/lib/sql-array';
 
 export interface ProductChapter { id: number; title: string; order: number; chars: number; content: string; }
 export interface ProductCard { id: number; title: string; status: string; date: string | null; }
@@ -57,7 +58,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
              coalesce(prep_payload->'site_status'->>project_id, status) AS st,
              prep_payload->'site_scheduled_at'->>project_id AS d
       FROM human_tasks
-      WHERE prep_payload->>'product' = ANY(${slugs}::text[])
+      WHERE prep_payload->>'product' = ANY(${textArray(slugs)})
       ORDER BY prep_payload->'site_scheduled_at'->>project_id NULLS LAST, id`) : [];
     const tasks = taskRows as unknown as Array<{ id: number; title: string; slug: string; st: string; d: string | null }>;
 

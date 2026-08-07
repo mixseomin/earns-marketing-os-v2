@@ -81,7 +81,7 @@ export async function listSendAs(projectId: string, channel: string): Promise<Se
   // Bind each platform as its own param inside an ARRAY[...] literal. `${jsArray}::text[]` mis-serializes a
   // single-element array (pg sends the bare scalar → "malformed array literal: facebook", 22P02). sql.join
   // spreads them → ARRAY['facebook']::text[]; empty → ARRAY[]::text[] (still valid).
-  const platArr = sql`ARRAY[${sql.join(plats.map((p) => sql`${p}`), sql`, `)}]::text[]`;
+  const platArr = textArray(plats);   // helper dùng chung, xem lib/sql-array.ts
   // PLATFORM-STRICT: 1 kênh (FB) CHỈ hiện account của platform đó — FB Page/brand anh sở hữu, portfolio-wide
   // (bất kể project). KHÔNG kéo account platform khác của project vào (user: "modal FB chỉ danh tính FB").
   // Kênh KHÔNG map platform (plats rỗng) → fallback account của project (ngữ cảnh chung).

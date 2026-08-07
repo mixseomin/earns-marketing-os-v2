@@ -14,6 +14,7 @@
 
 import 'server-only';
 import { sql } from 'drizzle-orm';
+import { textArray } from '@/lib/sql-array';
 import { getDb } from '@mos2/db';
 import { register, z } from './registry';
 
@@ -194,8 +195,8 @@ register({
         SELECT u.id FROM users u
         JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.active = true
         WHERE u.tenant_id = 'self'
-          AND m.specialty = ANY(${specPrefs}::text[])
-        ORDER BY array_position(${specPrefs}::text[], m.specialty) ASC,
+          AND m.specialty = ANY(${textArray(specPrefs)})
+        ORDER BY array_position(${textArray(specPrefs)}, m.specialty) ASC,
                  (SELECT COUNT(*) FROM human_tasks WHERE assigned_user_id = u.id AND status = 'pending') ASC
         LIMIT 1
       `);

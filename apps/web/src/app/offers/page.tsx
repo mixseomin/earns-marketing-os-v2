@@ -28,6 +28,7 @@ export default async function OffersRoute({ searchParams }: { searchParams: Prom
     geos: many(sp.geo),
     gap: one(sp.gap, 'all'),
     recurring: one(sp.recurring, 'all'),
+    sort: one(sp.sort),
     page: Math.max(0, Number(one(sp.page, '1')) - 1) || 0,   // URL is 1-based, view is 0-based
   };
 

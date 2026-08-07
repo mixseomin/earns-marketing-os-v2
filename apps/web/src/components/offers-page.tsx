@@ -36,7 +36,11 @@ const GROUPS: DataGroup[] = [
   { key: 'terms', label: 'terms', color: '#3c9bff' },
   { key: 'rules', label: 'rules', color: '#9d6cff' },
   { key: 'meta', label: 'meta', color: '#7d8899' },
+  { key: 'dates', label: 'dates', color: '#e0a03c' },
 ];
+
+// ISO → 06/08. Đủ để quét mắt theo cột; ngày đầy đủ nằm ở tooltip.
+const day = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
 
 const dim = { color: 'var(--fg-3)' };
 const clip = (max: number): React.CSSProperties => ({ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' });
@@ -138,6 +142,17 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
     },
     { key: 'geo', group: 'meta', align: 'left', header: 'Geo', cell: (o) => o.geos.join(' ') || <span style={dim}>—</span> },
     {
+      key: 'created', group: 'dates', align: 'right', header: 'Added', title: 'Lần đầu sync thấy offer này (không phải ngày merchant vào network)',
+      cellTitle: (o) => o.createdAt,
+      cell: (o) => <span style={dim}>{day(o.createdAt)}</span>,
+    },
+    {
+      key: 'approved', group: 'dates', align: 'right', header: 'Approved',
+      title: 'Ngày sync THẤY offer chuyển sang duyệt. Trống = duyệt trước 2026-08-07 (network không trả về ngày duyệt nên không backfill được) hoặc chưa duyệt',
+      cellTitle: (o) => o.approvedAt ?? undefined,
+      cell: (o) => (o.approvedAt ? <span style={{ color: 'var(--neon-lime)' }}>{day(o.approvedAt)}</span> : <span style={dim}>—</span>),
+    },
+    {
       key: 'link', align: 'center', header: '↗', title: 'Tracking link',
       cell: (o) => (o.affiliateUrl
         ? <a href={o.affiliateUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={o.affiliateUrl}>🔗</a>
@@ -206,6 +221,12 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
             { value: 'no-terms', label: 'thiếu terms', title: 'Chưa có % / recurring / cookie / rule nào' },
             { value: 'no-account', label: 'chưa gán account' },
             { value: 'no-link', label: 'thiếu link', title: 'Chưa có tracking link' },
+          ]} />
+        <FilterChips value={filters.sort || 'default'} onChange={(v) => setOne('sort')(v === 'default' ? '' : v)}
+          options={[
+            { value: 'default', label: '↕ duyệt trước' },
+            { value: 'new', label: `↓ mới thêm ${counts.new7 ?? 0}`, title: 'Sync mới thấy — số là 7 ngày gần nhất' },
+            { value: 'approved', label: `↓ mới duyệt ${counts.approved7 ?? 0}`, title: 'Sync mới thấy chuyển sang duyệt — số là 7 ngày gần nhất' },
           ]} />
       </ListToolbar>
 

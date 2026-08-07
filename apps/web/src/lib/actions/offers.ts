@@ -62,6 +62,12 @@ export interface AffiliateOffer {
   cookie: string | null;       // cookie_lifetime   e.g. "60 days"
   policy: string | null;       // promotion_policy  = the special rules
   reward: string | null;       // reward_details
+  // Dates. createdAt = when OUR sync first saw the row (not when the merchant joined the
+  // network). approvedAt = the run a sync observed it flip to approved — NULL for anything
+  // approved before 2026-08-07 (neither Awin nor CJ exposes a joined-date, so it can't be
+  // backfilled) and for direct offers added by hand.
+  createdAt: string;
+  approvedAt: string | null;
 }
 
 type Row = {
@@ -81,11 +87,13 @@ type Row = {
   cookie_lifetime: string | null;
   promotion_policy: string | null;
   reward_details: string | null;
+  created_at: string;
+  approved_at: string | null;
 };
 
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
 // The terms columns are short text and null on ~99% of rows → negligible payload.
-const LIST_FIELDS = 'id,account_id,name,status,vertical,affiliate_url,preview_url,target_geo,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details';
+const LIST_FIELDS = 'id,account_id,name,status,vertical,affiliate_url,preview_url,target_geo,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,created_at,approved_at';
 const PAGE_SIZE = 200;
 
 async function fetchPage(page: number): Promise<{ rows: Row[]; total: number }> {
@@ -151,6 +159,8 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): Affil
     cookie: x.cookie_lifetime,
     policy: x.promotion_policy,
     reward: x.reward_details,
+    createdAt: x.created_at,
+    approvedAt: x.approved_at,
   };
 }
 
@@ -188,6 +198,7 @@ export interface OfferFilters {
   geos: string[];
   gap: string;         // all | no-terms | no-account | no-link  (what still needs filling in)
   recurring: string;   // all | yes | no
+  sort: string;        // '' = approved-first/name | new = mới thêm | approved = mới duyệt
   page: number;        // 0-based
 }
 
@@ -260,9 +271,17 @@ function facetsOf(offers: AffiliateOffer[]): OffersView['facets'] {
 
 export async function getOffersView(f: OfferFilters): Promise<OffersView> {
   const all = await listAffiliateOffers();
-  const hit = all.filter((o) => matches(o, f))
-    .sort((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
-      || a.name.localeCompare(b.name));
+  const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+  // Sort: default puts usable offers first; the date sorts answer "what's new" (the syncs
+  // add ~50 Awin programmes a day, so recency is the only way to see them).
+  const desc = (x: string | null, y: string | null) => (y ?? '').localeCompare(x ?? '');
+  const bySort: Record<string, (a: AffiliateOffer, b: AffiliateOffer) => number> = {
+    new: (a, b) => desc(a.createdAt, b.createdAt),
+    approved: (a, b) => desc(a.approvedAt, b.approvedAt) || desc(a.createdAt, b.createdAt),
+  };
+  const hit = all.filter((o) => matches(o, f)).sort(bySort[f.sort]
+    ?? ((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
+      || a.name.localeCompare(b.name)));
   const pageCount = Math.max(1, Math.ceil(hit.length / OFFERS_PAGE_SIZE));
   const page = Math.min(Math.max(0, f.page), pageCount - 1);
   return {
@@ -285,6 +304,8 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       'no-terms': all.filter((o) => !hasTerms(o)).length,
       'no-account': all.filter((o) => !o.accountId).length,
       'no-link': all.filter((o) => !o.affiliateUrl).length,
+      new7: all.filter((o) => o.createdAt >= weekAgo).length,
+      approved7: all.filter((o) => (o.approvedAt ?? '') >= weekAgo).length,
     },
     facets: facetsOf(all),
   };

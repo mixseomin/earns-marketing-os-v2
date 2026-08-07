@@ -903,7 +903,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.
@@ -1407,7 +1407,7 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
       <div>
-        <label style={lbl}>🔗 Inputs — link cụ thể (sản phẩm · asset/vault · doc đang viết)</label>
+        <label style={lbl}>🔗 Đầu vào — link cụ thể (sản phẩm · tài sản/vault · tài liệu đang viết)</label>
         {inputs.map((row, i) => (
           <div key={i} style={{ display: 'flex', gap: 5, marginBottom: 4 }}>
             <input value={row.label} onChange={(e) => setRow(i, 'label', e.target.value)} placeholder="nhãn" style={{ ...inp, width: 110, flexShrink: 0 }} />
@@ -1418,11 +1418,11 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
         <button type="button" onClick={() => setInputs((a) => [...a, { label: '', url: '' }])} style={mini}>+ thêm link</button>
       </div>
       <div>
-        <label style={lbl}>✅ Done-when — làm ĐÚNG là khi nào (tiêu chí nghiệm thu)</label>
+        <label style={lbl}>✅ Xong khi — làm ĐÚNG là khi nào (tiêu chí nghiệm thu)</label>
         <textarea value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} rows={2} placeholder="vd: PDF+zip xuất ra · cover duyệt ở 48px thật · mô tả English human-voice" style={{ ...inp, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
       </div>
       <div>
-        <label style={lbl}>🧩 Depends-on — id card cần OUTPUT trước (chuỗi phụ thuộc)</label>
+        <label style={lbl}>🧩 Cần trước — id card cần KẾT QUẢ trước (chuỗi phụ thuộc)</label>
         <input value={deps} onChange={(e) => setDeps(e.target.value)} placeholder="vd: 399, 400" style={{ ...inp, width: '100%', boxSizing: 'border-box' }} />
         {task.dependsOn.length > 0 && (
           <div style={{ marginTop: 5, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -2239,7 +2239,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           onChange={(s) => { void setSite(task.id, s, url); }} />
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
-        <Disclosure title="📋 Bàn giao — để chat khác nối tiếp" badge={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn }) ? '✓ có brief' : 'trống — nên điền'} defaultOpen={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn })}>
+        <Disclosure title="📋 Bàn giao — để chat khác nối tiếp" badge={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn }) ? '✓ đã có bàn giao' : 'trống — nên điền'} defaultOpen={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn })}>
           <ResumeEditor task={task} onSave={(r) => setResume(task.id, r)} onOpenTask={onOpenTask} />
         </Disclosure>
 

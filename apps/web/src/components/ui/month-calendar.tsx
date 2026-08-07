@@ -187,11 +187,12 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                     textAlign: 'left', fontSize: big ? 12 : 9.5, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word',
                     padding: big ? '4px 8px 4px 10px' : '2px 4px 2px 8px', borderRadius: 5, cursor: 'pointer', overflow: 'hidden',
                     border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`,
-                    // xong (done) → LÙI VỀ SAU: mờ nhất, để pending/đang-làm nổi lên. dim (tương lai/bỏ) mờ vừa.
-                    background: `color-mix(in srgb, ${c} ${it.done ? 6 : it.dim ? 8 : 15}%, transparent)`, opacity: it.done ? 0.5 : it.dim ? 0.78 : 1 }}>
+                    // xong (done) → LÙI VỀ SAU: nền nhạt + opacity thấp, NHƯNG chữ vẫn đọc được (fg-2, không fg-3 mờ tịt).
+                    // dim (đã bỏ) recede vừa. Việc CHƯA làm (pending/scheduled) = full contrast — không mờ.
+                    background: `color-mix(in srgb, ${c} ${it.done ? 7 : it.dim ? 10 : 15}%, transparent)`, opacity: it.done ? 0.62 : it.dim ? 0.9 : 1 }}>
                   <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: big ? 4 : 3, background: c }} />
                   {it.icon && <CalGlyph name={it.icon} color={c} size={big ? 13 : 11} />}
-                  <span style={{ flex: 1, minWidth: 0, color: it.done || it.dim ? 'var(--fg-3)' : 'var(--fg-1)',
+                  <span style={{ flex: 1, minWidth: 0, color: it.done || it.dim ? 'var(--fg-2)' : 'var(--fg-1)',
                     ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{it.label}</span>
                   {it.brief && <CalGlyph name="brief" color="var(--fg-4)" size={big ? 12 : 10} />}
                   {big && it.done && <CalGlyph name="check" color={c} size={13} />}
@@ -211,7 +212,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                     </div>
                     {b.inputs.length > 0 && (
                       <div style={{ marginBottom: b.doneWhen || b.dependsOn.length ? 7 : 0 }}>
-                        <div style={briefSec}><CalGlyph name="link" color="var(--fg-4)" size={12} /> Input</div>
+                        <div style={briefSec}><CalGlyph name="link" color="var(--fg-4)" size={12} /> Đầu vào</div>
                         {b.inputs.map((x, i) => <a key={i} href={x.url} target="_blank" rel="noreferrer" style={briefLink} onClick={(e) => e.stopPropagation()}>{x.label || x.url} ↗</a>)}
                       </div>
                     )}

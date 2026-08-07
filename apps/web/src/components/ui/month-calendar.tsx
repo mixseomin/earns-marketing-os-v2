@@ -82,7 +82,6 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
 
   // Một nguồn duy nhất dựng danh sách ngày cho cả ba chế độ.
   const y = anchor.getFullYear(), m = anchor.getMonth();
-  const cols = mode === 'day' ? 1 : 7;
   const days: Date[] = mode === 'month'
     ? monthGrid(anchor)
     : mode === 'week'
@@ -93,7 +92,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   for (const it of items) { (byDate.get(it.date) ?? byDate.set(it.date, []).get(it.date)!).push(it); }
   const todayStr = ymd(new Date());
   const anchorStr = ymd(anchor);
-  const selSet = new Set([anchorStr]);   // mini chỉ ở Day → tô đúng ngày đang xem
+  // Ngày "được chọn": Ngày = đúng anchor; Tuần = cả 7 ngày của tuần (band trong mini-month).
+  const selSet = new Set(mode === 'week' ? days.map(ymd) : [anchorStr]);
 
   // anchor đổi → mini-month bám theo tháng của anchor (trừ khi người dùng tự page mini bằng ◀ ▶).
   const goAnchor = (d: Date) => { setAnchor(d); setMiniView(firstOfMonth(d)); };
@@ -104,29 +104,38 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
     : mode === 'week'
       ? `${mondayOf(anchor).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })} – ${addDays(mondayOf(anchor), 6).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}`
       : anchor.toLocaleDateString(undefined, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-  // Ô cao hơn khi ít cột: tuần/ngày có chỗ nên hiện được nhiều việc thay vì cắt.
-  const minH = mode === 'month' ? 78 : mode === 'week' ? 300 : 420;
-  // Mini-month CHỈ ở Ngày (cần chọn 1 ngày + nắm toàn cảnh). Tuần đã là 7 cột overview → bỏ mini để
-  // grid rộng full-width (đọc tiêu đề việc dễ hơn); điều hướng tuần dùng ◀ ▶ trên cùng.
-  const showMini = mode === 'day';
+  // Tuần = THẺ-NGÀY dàn 2-3 cột (auto-fill) thay vì 7 cột kim → mỗi ngày rộng, task đọc thoải mái.
+  // Tháng giữ 7 cột; Ngày 1 cột. minmax(240px) → tự co còn 2-3 cột tuỳ bề rộng còn lại (đã trừ mini).
+  const gridCols = mode === 'month' ? 'repeat(7, 1fr)' : mode === 'week' ? 'repeat(auto-fill, minmax(240px, 1fr))' : '1fr';
+  const minH = mode === 'month' ? 78 : mode === 'week' ? 150 : 420;
+  const showMini = mode !== 'month';   // giữ mini-month ở Tuần + Ngày (nắm toàn cảnh tháng + chọn/nhảy ngày)
 
   const grid = (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 4, flex: 1, minWidth: 260 }}>
-      {mode !== 'day' && WD.map((w) => <div key={w} style={{ fontSize: 10, color: 'var(--fg-4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.05em', paddingBottom: 2 }}>{w}</div>)}
+    <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: mode === 'week' ? 8 : 4, flex: 1, minWidth: 260, alignContent: 'start' }}>
+      {mode === 'month' && WD.map((w) => <div key={w} style={{ fontSize: 10, color: 'var(--fg-4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.05em', paddingBottom: 2 }}>{w}</div>)}
       {days.map((d) => {
         const ds = ymd(d); const inMonth = mode !== 'month' || d.getMonth() === m; const its = byDate.get(ds) || []; const isToday = ds === todayStr;
-        const isSel = mode !== 'month' && ds === anchorStr;   // ngày đang chọn — hiện rõ trong grid chính (week/day)
+        const isSel = mode !== 'month' && ds === anchorStr;   // ngày đang xem — nổi bật trong grid chính
         return (
-          <div key={ds} style={{ minHeight: minH, padding: 4, borderRadius: 6, border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 55%, var(--line))' : 'var(--line)'}`, background: isSel ? 'color-mix(in srgb, var(--accent) 10%, var(--bg-1))' : inMonth ? 'var(--bg-1)' : 'transparent', opacity: inMonth ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ fontSize: 10.5, fontWeight: isToday ? 800 : 500, color: isToday ? 'var(--neon-cyan)' : 'var(--fg-3)', textAlign: mode === 'day' ? 'left' : 'right' }}>
-              {mode === 'day' ? `${its.length} việc` : d.getDate()}
-            </div>
+          <div key={ds} style={{ minHeight: minH, padding: mode === 'week' ? 9 : 4, borderRadius: 8, border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 45%, var(--line))' : 'var(--line)'}`, background: isSel ? 'color-mix(in srgb, var(--accent) 9%, var(--bg-1))' : inMonth ? 'var(--bg-1)' : 'transparent', opacity: inMonth ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: mode === 'month' ? 3 : 5 }}>
+            {mode === 'week' ? (
+              // Thẻ-ngày: header có thứ + ngày/tháng riêng (không dựa hàng weekday chung như lưới 7 cột).
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingBottom: 5, marginBottom: 1, borderBottom: '1px solid var(--line)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: isToday ? 'var(--neon-cyan)' : 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.03em' }}>{WD[(d.getDay() + 6) % 7]}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: isToday ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>{d.getDate()}/{d.getMonth() + 1}</span>
+                {its.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)' }}>{its.length} việc</span>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 10.5, fontWeight: isToday ? 800 : 500, color: isToday ? 'var(--neon-cyan)' : 'var(--fg-3)', textAlign: mode === 'day' ? 'left' : 'right' }}>
+                {mode === 'day' ? `${its.length} việc` : d.getDate()}
+              </div>
+            )}
             {its.map((it) => {
               const c = it.color || 'var(--accent)';
               return (
                 <button key={String(it.id) + it.date} type="button" title={it.title || it.label} onClick={() => onItemClick?.(it.id)}
-                  // Tháng: 2 dòng (ô hẹp). Tuần/Ngày: hiện đủ — nhãn là tiêu đề việc, cắt sau 3 chữ thì vô nghĩa.
-                  style={{ textAlign: 'left', fontSize: mode === 'day' ? 12 : 9.5, fontWeight: 600, padding: mode === 'day' ? '4px 8px' : '1px 5px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden',
+                  // Tháng: 2 dòng (ô hẹp). Tuần/Ngày: thẻ rộng → hiện đủ tiêu đề, font 12.
+                  style={{ textAlign: 'left', fontSize: mode === 'month' ? 9.5 : 12, fontWeight: 600, padding: mode === 'month' ? '1px 5px' : '4px 8px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden',
                     ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const } : {}),
                     lineHeight: 1.3, wordBreak: 'break-word',
                     border: `1px solid color-mix(in srgb, ${c} 45%, transparent)`, background: `color-mix(in srgb, ${c} ${it.dim ? 8 : 20}%, transparent)`, color: c, opacity: it.dim ? 0.6 : 1 }}>

@@ -162,3 +162,29 @@ export function canonPlatformKey(raw?: string | null): string {
   const k = String(raw ?? '').trim().toLowerCase();
   return PLATFORM_ALIAS[k] ?? k;
 }
+
+// Key sinh từ hostname chỉ bỏ mỗi 'www.', nên `ui.awin.com` đẻ ra key `ui-awin-com` nằm cạnh
+// `awin` đã có, `app.impact.com` đẻ `app-impact-com` cạnh `impact`. Tới 2026-08-07 có 11 cặp
+// trùng kiểu này (đã gộp tay). PLATFORM_ALIAS là bản vá thủ công từng dòng — không chặn được
+// host mới. Hàm này sinh các ứng viên theo thứ tự ưu tiên để tầng ingress CHỌN CÁI ĐÃ TỒN TẠI
+// trong bảng `platforms`, thay vì tạo row thứ hai.
+//
+// Cố ý KHÔNG tự gộp: chỉ tái dùng platform đã có, không bao giờ bịa ra một phép gộp mới.
+// (wordpress.com và wordpress.org là hai thứ thật — quy tắc "bỏ TLD" mù quáng sẽ nhập chúng.)
+const APP_SUBDOMAIN = /^(ui|app|apps|my|account|accounts|member|members|secure|dashboard|portal|login|signin|signup|auth|admin|go|archive|discuss|forums|community|help|support|partner|partners)-/;
+const HOST_SLUG = /^[a-z0-9-]+-(com|net|org|io|co|app|gg|tv|me|dev|xyz|info|biz|us|uk|vn)$/;
+
+export function platformKeyCandidates(raw?: string | null): string[] {
+  const k = canonPlatformKey(raw);
+  if (!k) return [];
+  const out = [k];
+  const push = (v: string) => { const c = canonPlatformKey(v); if (c && !out.includes(c)) out.push(c); };
+  if (HOST_SLUG.test(k)) {
+    const noSub = k.replace(APP_SUBDOMAIN, '');
+    if (noSub !== k) push(noSub);
+    // bỏ TLD là ứng viên CUỐI: chỉ dùng khi bảng platforms đã có sẵn key trần đó
+    push(noSub.replace(/-(com|net|org|io|co|app|gg|tv|me|dev|xyz|info|biz|us|uk|vn)$/, ''));
+    if (noSub !== k) push(k.replace(/-(com|net|org|io|co|app|gg|tv|me|dev|xyz|info|biz|us|uk|vn)$/, ''));
+  }
+  return out;
+}

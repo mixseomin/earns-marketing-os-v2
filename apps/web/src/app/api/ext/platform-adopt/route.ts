@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { errorResponse } from '@/lib/ext-route';
 import { getDb } from '@mos2/db';
-import { canonPlatformKey } from '@/lib/habitat-platform-map';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 import { sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,9 @@ export async function POST(req: Request) {
   const rawKey = (body.platformKey || '').toString().trim();
   const tech = (body.technologyKey || '').toString().trim().toLowerCase();
   if (!rawKey || !tech) return errorResponse('platformKey + technologyKey required', 400);
-  const platformKey = canonPlatformKey(rawKey);
+  // Dùng CHUNG một chỗ chuẩn hoá key với các route account — tái dùng platform đã có
+  // (ui.awin.com → awin) thay vì đẻ row trùng. Xem lib/resolve-platform.ts.
+  const platformKey = await reconcilePlatformKey(db, rawKey);
   const host = (body.hostname || '').toString().trim().toLowerCase().replace(/^www\./, '') || platformKey;
   try {
     const known = await db.execute(sql`SELECT 1 FROM platform_technologies WHERE key = ${tech} LIMIT 1`);

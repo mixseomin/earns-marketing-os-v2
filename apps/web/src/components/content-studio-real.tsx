@@ -9,6 +9,10 @@ import { CHANNELS, STATUSES, type ContentStatus } from '@/lib/content-channels';
 import type { SkillRow } from '@/lib/actions/library';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
 import { FormModal } from './ui/form-modal';
+import { MonthCalendar, type CalItem } from './ui/month-calendar';
+
+const CH_ICON: Record<string, string> = Object.fromEntries(CHANNELS.map((c) => [c.id, c.icon]));
+const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // URL state hook (same pattern as library-page.tsx).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -46,6 +50,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
   const [channel, setChannel] = useUrlParam('ch', 'all');
   const [status, setStatus] = useUrlParam('st', 'all');
   const [q, setQ] = useUrlParam('q', '');
+  const [view, setView] = useUrlParam('view', 'list');
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -86,6 +91,18 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
       .map((c) => ({ ch: c, items: map.get(c.id)! }));
   }, [filtered]);
 
+  // Calendar plots every piece with a scheduled date (send/publish date) — the editorial schedule.
+  const calItems: CalItem[] = useMemo(() => filtered
+    .filter((p) => p.scheduledAt)
+    .map((p) => ({
+      id: p.id,
+      date: ymdLocal(new Date(p.scheduledAt as Date)),
+      label: `${CH_ICON[p.channel] ?? ''} ${p.subject || p.title}`.trim(),
+      color: STATUS_COLOR[p.status] ?? 'var(--fg-3)',
+      dim: p.status !== 'scheduled',
+      title: `${p.title}${p.subject ? ` — "${p.subject}"` : ''} · ${p.status}`,
+    })), [filtered]);
+
   return (
     <div className="page" style={{ padding: 16 }}>
       <div className="page-head">
@@ -96,7 +113,11 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
           </h1>
           <p className="page-sub">Multi-channel content drafts. AI co-pilot via gpt-4o-mini · skill từ /library hỗ trợ persona/style.</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
+            <button className="chip" data-active={view === 'list' || undefined} onClick={() => setView('list')} style={{ fontSize: 11, borderRadius: 0, border: 'none' }}>☰ List</button>
+            <button className="chip" data-active={view === 'calendar' || undefined} onClick={() => setView('calendar')} style={{ fontSize: 11, borderRadius: 0, border: 'none' }}>🗓 Calendar</button>
+          </div>
           <button className="btn primary" onClick={() => modal.open("new")}>+ New piece</button>
         </div>
       </div>
@@ -141,7 +162,13 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
         })}
       </div>
 
-      {items.length === 0 ? (
+      {view === 'calendar' ? (
+        calItems.length === 0 ? (
+          <div className="panel"><div className="panel-body" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>Chưa có piece nào đặt ngày. Mở 1 piece → set <b>Scheduled at</b> để nó hiện trên lịch gửi.</div></div>
+        ) : (
+          <MonthCalendar items={calItems} onItemClick={(id) => modal.open('edit', Number(id))} />
+        )
+      ) : items.length === 0 ? (
         <EmptyState icon="🎬" title="No content pieces" description="Tạo piece đầu tiên — hoặc bấm AI Generate để OpenAI sinh draft từ brief." compact />
       ) : filtered.length === 0 ? (
         <div className="panel"><div className="panel-body" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>(no match)</div></div>

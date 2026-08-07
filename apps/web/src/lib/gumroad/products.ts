@@ -78,13 +78,20 @@ async function gumroadTokens(): Promise<{ token: string; source: 'vault' | 'env'
   return out.filter((t, i) => out.findIndex((o) => o.token === t.token) === i);
 }
 
+// Đọc có cache 5 phút, NHƯNG lỗi thì không cache. Next cache theo (url, options) nên một lần
+// gọi hỏng — token vừa đổi, tài khoản vừa xoá, API chớp lỗi — sẽ bị giữ nguyên 5 phút: trang
+// doanh thu tiếp tục báo "không đọc được Gumroad" trong khi token đã đúng từ lâu, và không có
+// cách nào ép nó đọc lại. Hỏng thì thử lại ngay với no-store để trạng thái sai không sống dai.
+async function fetchLive(url: string): Promise<Response> {
+  const r = await fetch(url, { next: { revalidate: 300 } });
+  return r.ok ? r : fetch(url, { cache: 'no-store' });
+}
+
 async function readStore(token: string, source: 'vault' | 'env'): Promise<{ store: GumroadStore; products: GumroadProduct[] }> {
   const blank = (handle: string, error?: string): GumroadStore => ({ handle, url: '', source, products: 0, sales: 0, usd: 0, error });
   try {
-    const [ru, rp] = await Promise.all([
-      fetch(`${API}/user?access_token=${encodeURIComponent(token)}`, { next: { revalidate: 300 } }),
-      fetch(`${API}/products?access_token=${encodeURIComponent(token)}`, { next: { revalidate: 300 } }),
-    ]);
+    const q = encodeURIComponent(token);
+    const [ru, rp] = await Promise.all([fetchLive(`${API}/user?access_token=${q}`), fetchLive(`${API}/products?access_token=${q}`)]);
     const ju = ru.ok ? (await ru.json()) as { user?: { name?: string; url?: string } } : undefined;
     const url = ju?.user?.url ?? '';
     // Nhãn = subdomain store (định danh thật, duy nhất). Tên hiển thị trùng nhau được — "CodeCrate"

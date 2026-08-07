@@ -26,7 +26,8 @@ export type EntityKind =
   | 'identity' | 'outreach' | 'platform' | 'technology' | 'project' | 'knowledge'
   | 'resource' | 'backlink' | 'publication' | 'scene' | 'team-member' | 'inbox'
   | 'library' | 'roadmap' | 'environment' | 'scheduler' | 'use-case' | 'unmapped'
-  | 'alert' | 'ai' | 'content' | 'ext-token' | 'session' | 'plan' | 'pillar' | 'habitat';
+  | 'alert' | 'ai' | 'content' | 'ext-token' | 'session' | 'plan' | 'pillar' | 'habitat'
+  | 'followup';
 
 export interface Dep {
   /** Project sub-sections → revalidatePath(`/p/${projectId}/${s}`). Needs ctx.projectId(s). */
@@ -83,6 +84,7 @@ export const ENTITY_DEPS: Record<EntityKind, Dep> = {
   'ext-token':  { paths: ['/architecture'] },
   session:      { paths: ['/'] },
   plan:         {},   // section is dynamic (`plans/${slug}`) → passed via ctx.sections
+  followup:     { pages: ['/p/[id]/plays', '/plays', '/p/[id]/backlinks'] },   // deferred-work items ride the plays calendar
 };
 
 // The runtime that consumes this map — touchEntity + TouchCtx — lives in ./touch-entity

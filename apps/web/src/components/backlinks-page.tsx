@@ -36,6 +36,8 @@ import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { SITE_STATUS_META, SITE_STATUSES } from '@/lib/site-status';
+import { localDay, todayLocal } from '@/lib/local-day';
+import { hostOf } from '@/lib/host';
 
 // One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
 // it drives BOTH the status picker (StatusSegmented) and the tabs/KPI, so they never
@@ -48,20 +50,9 @@ const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', '
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
-const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
 const domainForSlug = (s: string | null | undefined) => (s ? BACKLINK_SITES.find((x) => x.slug === s)?.domain ?? null : null);
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
-// Ngày LỊCH theo giờ người xem. `site_done_at` là timestamp UTC đầy đủ, `slice(0,10)` cắt ra
-// ngày UTC → với người ở GMT+7, mọi việc làm từ 17h trở đi rơi xuống ô NGÀY HÔM TRƯỚC trên
-// lịch (đóng 9 card lúc rạng sáng 07/08 giờ VN, lịch hiện hết ở ô 06/08).
-// `site_scheduled_at` đã là chuỗi 'YYYY-MM-DD' không có múi giờ → giữ nguyên, đừng ép qua Date.
-const localDay = (iso: string) => {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  try {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  } catch { return iso.slice(0, 10); }
-};
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
 // Image actions on a thumbnail: fetch the bytes so both download and copy-as-image work even
 // cross-origin (when the host allows CORS). Fallbacks: open-in-tab / copy-URL when it doesn't.
@@ -799,7 +790,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         {t.draftReview?.status === 'approved' && <Tag color="#22c55e">✅ đã duyệt</Tag>}
         {/* Date-ish tags stay inline only in compact (kanban) mode; list has a Ngày column. */}
         {!cols && t.siteState === 'submitted' && t.siteSubmittedAt && (() => { const dd = daysSince(t.siteSubmittedAt); return <Tag color={dd > 30 ? 'var(--bad,#ef4444)' : dd > 14 ? '#ffb03c' : 'var(--fg-3)'}>⏳ chờ duyệt {dd}d</Tag>; })()}
-        {!cols && t.siteScheduledAt && !t.siteDoneAt && (() => { const overdue = t.siteScheduledAt.slice(0, 10) <= new Date().toISOString().slice(0, 10); return <span title={overdue ? 'Đến hạn follow — kiểm tra đã duyệt chưa' : 'Ngày follow-up (kiểm tra duyệt)'}><Tag color={overdue ? '#ffb03c' : 'var(--fg-3)'}>🗓 follow {t.siteScheduledAt.slice(0, 10)}</Tag></span>; })()}
+        {!cols && t.siteScheduledAt && !t.siteDoneAt && (() => { const overdue = t.siteScheduledAt.slice(0, 10) <= todayLocal(); /* ngày người dùng nhập ⇒ so hôm nay LOCAL, không phải UTC */ return <span title={overdue ? 'Đến hạn follow — kiểm tra đã duyệt chưa' : 'Ngày follow-up (kiểm tra duyệt)'}><Tag color={overdue ? '#ffb03c' : 'var(--fg-3)'}>🗓 follow {t.siteScheduledAt.slice(0, 10)}</Tag></span>; })()}
         {!cols && t.siteDoneAt && <Tag>✓ {localDay(t.siteDoneAt)}</Tag>}
         {t.siteLiveUrl && (() => { const m = verifyMeta(t.siteVerify); return m ? <Tag color={m.c}>{m.t}</Tag> : null; })()}
         {t.appliesTo.length > 1 && <Tag>+{t.appliesTo.length - 1} sites</Tag>}

@@ -15,6 +15,7 @@ import { MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, ListToolbar, FilterChip
 import { createCampaign, updateCampaign, importBacklinkTasks, type OutreachCampaign } from '@/lib/actions/outreach-campaigns';
 import { generateIdentityAI, type IdentityRow } from '@/lib/actions/identities';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
+import { hostOf } from '@/lib/host';
 
 type TabKey = 'needs' | 'due' | 'pipeline' | 'all';
 
@@ -51,7 +52,7 @@ function dueNow(p: OutreachProspect): boolean {
 const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—');
 const gmailUrl = (to: string, subject: string, body: string) =>
   `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
 
 const btn: CSSProperties = {
   fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line, var(--bg-3))',

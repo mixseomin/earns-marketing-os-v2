@@ -7,6 +7,7 @@ import { createBudgetEntry, updateBudgetEntry, deleteBudgetEntry, type BudgetInp
 import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, StatsStrip, FormModal, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
+import { localDay } from '@/lib/local-day';
 
 const KIND_ICON: Record<string, string> = { income: '⬆', expense: '⬇', recurring: '🔁' };
 const CATEGORY_OPTS = ['ads', 'tools', 'hosting', 'content', 'salary', 'tax', 'commission', 'other'];
@@ -161,7 +162,7 @@ function BudgetFormModal({ entry, projectId, onClose }: { entry: BudgetRow | nul
     label: entry?.label ?? '',
     amountK: entry ? entry.amountCents / 1000 : 0,  // input "k VND" for friendlier UX
     currency: entry?.currency ?? 'VND',
-    occurredAt: (entry?.occurredAt ? new Date(entry.occurredAt) : new Date()).toISOString().slice(0, 10),
+    occurredAt: localDay((entry?.occurredAt ? new Date(entry.occurredAt) : new Date()).toISOString()),
     recurringIntervalDays: entry?.recurringIntervalDays ?? '',
     tagsStr: (entry?.tags ?? []).join(', '),
     notes: entry?.notes ?? '',

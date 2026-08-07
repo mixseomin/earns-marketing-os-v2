@@ -16,6 +16,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getTool, type SideEffect } from './toolkits/registry';
+import { todayLocal } from '@/lib/local-day';
 
 export type Decision = 'allow' | 'queue_human' | 'deny';
 
@@ -60,7 +61,7 @@ async function checkSpendCap(projectId: string, additionalCents: number): Promis
   const db = getDb();
   if (!db) return { within: true, spent: 0, cap: 0 };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();   // cổng tính theo ngày vận hành, không phải ngày UTC
   const rows = await db.execute(sql`
     SELECT
       COALESCE((SELECT cap_usd_cents FROM daily_spend_caps

@@ -7,6 +7,7 @@ import { createInfraResource, updateInfraResource, deleteInfraResource, type Inf
 import { useModalParam } from '@/lib/use-modal-param';
 import { EmptyState, Pill, StatsStrip, Drawer, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, type StatCard } from './ui';
 import { AIFormParser } from './ai-form-parser';
+import { localDay } from '@/lib/local-day';
 
 const KIND_ICON: Record<string, string> = {
   proxy: '🌐', sim: '📱', device: '💻', api_key: '🔑', domain: '🔗', server: '🖥', other: '🗂',
@@ -133,7 +134,7 @@ function InfraFormModal({ item, projectId, onClose }: { item: InfraRow | null; p
     label: item?.label ?? '',
     provider: item?.provider ?? '',
     status: (item?.status ?? 'active') as NonNullable<InfraInput['status']>,
-    expiresAt: item?.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : '',
+    expiresAt: item?.expiresAt ? localDay(new Date(item.expiresAt).toISOString()) : '',
     costMonthly: item?.costMonthly ?? 0,
     currency: item?.currency ?? 'VND',
     metaStr: item?.meta ? JSON.stringify(item.meta, null, 2) : '{}',

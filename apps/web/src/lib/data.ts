@@ -31,6 +31,7 @@ async function tryDb<T>(fn: () => Promise<T>, fallback: T, label: string): Promi
 import { getEffectiveUser } from './auth';
 import { sql } from 'drizzle-orm';
 import { estimateCostUsd } from '@/lib/ai/cost';
+import { localDay } from '@/lib/local-day';
 
 export async function listProjects(): Promise<Project[]> {
   return tryDb(
@@ -411,7 +412,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     monthlyCost: r.monthlyCost as number,
     collectStats: r.collectStats as boolean,
     blockReason: r.blockReason as string | null,
-    followUpAt: r.followUpAt ? new Date(r.followUpAt as string | Date).toISOString().slice(0, 10) : null,
+    followUpAt: r.followUpAt ? localDay(new Date(r.followUpAt as string | Date).toISOString()) : null,
     notes: r.notes as string | null,
     tags: (r.tags as string[]) ?? [],
     warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},

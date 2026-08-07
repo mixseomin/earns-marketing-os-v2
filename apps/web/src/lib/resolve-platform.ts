@@ -1,6 +1,7 @@
 import { getDb, platforms } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { canonPlatformKey, platformKeyCandidates } from './habitat-platform-map';
+import { slugifyHost } from './host';
 
 // Ext gán platform_key = HOST-SLUG ('govloop.com' → 'govloop-com'). Nếu server ĐÃ có platform CURATED
 // cho cùng host (signup_url slugify ra CÙNG slug, key KHÁC) → trả key curated ('govloop') để account
@@ -17,8 +18,7 @@ import { canonPlatformKey, platformKeyCandidates } from './habitat-platform-map'
 // (nguyên key → bỏ tiền tố subdomain → bỏ TLD) và ưu tiên key CHUẨN NHẤT đang tồn tại, kể cả
 // khi nó nằm trong `fallback_keys`. Không bao giờ tự bịa phép gộp: chỉ tái dùng cái đã có,
 // nên wordpress.com và wordpress.org vẫn là hai platform riêng.
-const slugifyHost = (h: string) =>
-  h.toLowerCase().replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 
 export async function reconcilePlatformKey(
   db: ReturnType<typeof getDb>,

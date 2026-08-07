@@ -19,11 +19,12 @@ export interface CalItem {
 export type CalMode = 'month' | 'week' | 'day';
 
 // SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
-type GlyphName = 'pin' | 'link' | 'sprout' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot';
+export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot';
 const GLYPH: Record<GlyphName, React.ReactNode> = {
   pin: <><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10z" /><circle cx="12" cy="11" r="2.4" /></>,
   link: <><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" /></>,
   sprout: <><path d="M12 20v-7" /><path d="M12 13C12 9 9 7 5 7c0 4 3 6 7 6z" /><path d="M12 11c0-3 2-5 6-5 0 3-2 5-6 5z" /></>,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 7 8.5 6 8.5-6" /></>,
   check: <path d="M20 6 9 17l-5-5" />,
   clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
   calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8 3.5v4M16 3.5v4" /></>,

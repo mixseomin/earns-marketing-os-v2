@@ -41,6 +41,7 @@ import { SITE_STATUS_META, SITE_STATUSES } from '@/lib/site-status';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
+import { taskKind, KIND_ICON, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { hostOf } from '@/lib/host';
 
 // One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
@@ -757,34 +758,34 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Calendar items from the SAME filtered set: done → solid on done date; scheduled-not-done → dim.
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
+    // Prefix [project] CHỈ khi đang xem NHIỀU project (global chưa lọc). Lọc về 1 project → thừa, bỏ.
+    const showProj = allProjects && !projectFilter;
     for (const t of filtered) {
-      // allProjects: tiền tố [tên project] (chữ, không emoji) để ô lịch biết của site nào.
-      const plbl = allProjects && t.projectLabel ? `[${t.projectLabel}] ` : '';
+      const plbl = showProj && t.projectLabel ? `[${t.projectLabel}] ` : '';
       const seedT = t.communitySeed ? ' · community-seed (link-gated)' : '';
-      // Loại việc → icon SVG: seed (link-gated) vs backlink thường. Trạng thái → màu thanh-trái.
-      const typeIcon = t.communitySeed ? 'sprout' : 'link';
-      // Host xuống tooltip; nhãn = tiêu đề (phân biệt được việc, khác hostname trùng nhau).
+      const icon = KIND_ICON[taskKind(t)];   // LOẠI → SVG: mail (email-send) / sprout (seed) / link (backlink)
+      const ttl = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();   // bỏ tiền tố 📧 (icon SVG đã thay)
       const host = showHost(t.sourceUrl, t.projectSlug);
-      const label = plbl + t.title.replace(/\s+/g, ' ').trim();
+      const label = plbl + ttl;
       const suffix = `${host ? ` · ${host}` : ''}${seedT}`;
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon: typeIcon, done: true, color: '#22c55e', title: `đã đặt · ${plbl}${t.title}${suffix}` });
+      // icon = loại (cố định theo task); TRẠNG THÁI chỉ đổi MÀU thanh-trái + ✓ + mờ. Không trộn icon vào status.
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: '#22c55e', title: `đã đặt · ${plbl}${ttl}${suffix}` });
       else {
-        // Một task có thể vừa "chờ duyệt từ ngày X" vừa "hẹn kiểm tra ngày Y" — hiện cả hai.
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon: 'clock', color: '#9d6cff', title: `chờ duyệt · ${plbl}${t.title}${suffix}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon: 'calendar', dim: true, color: '#ffb03c', title: `hẹn kiểm tra · ${plbl}${t.title}${suffix}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: '#9d6cff', title: `chờ duyệt · ${plbl}${ttl}${suffix}` });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: '#ffb03c', title: `hẹn kiểm tra · ${plbl}${ttl}${suffix}` });
       }
     }
-    // Follow-ups deferred: cùng lịch — thanh-trái theo status (chờ xám/đang cam/xong xanh/kẹt đỏ),
-    // icon 📌pin (loại), ✓ khi xong. Undated không vẽ (surface qua /now + `followup list`).
+    // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.
     for (const f of followups) {
       if (!f.due) continue;
+      if (allProjects && projectFilter && f.projectId !== projectFilter) continue;   // lọc theo project đang chọn
       const m = FOLLOWUP_META[f.status];
       const p = allProjects ? projectsById?.[f.projectId] : undefined;
-      const plbl = allProjects ? `[${p?.name ?? f.projectId}] ` : '';
+      const plbl = showProj ? `[${p?.name ?? f.projectId}] ` : '';
       out.push({ id: `f:${f.id}`, date: f.due, label: `${plbl}${f.title.replace(/\s+/g, ' ').trim()}`, icon: 'pin', done: f.status === 'done', dim: f.status === 'dropped', color: m.color, title: `${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
     }
     return out;
-  }, [filtered, allProjects, followups, projectsById]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1412,7 +1413,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   // Email-SEND card (newsletter blast via Mailjet, title prefixed 📧 / mechanism 'email') is a
   // different work order from a backlink: no source page, no account-to-post, no live backlink to
   // verify. YDNI → the drawer hides all that and shows only content + schedule + status.
-  const isEmailSend = /^📧/.test(task.title || '') || /^\s*email\s*$/i.test(task.mechanism || '');
+  const isEmailSend = detectEmailSend(task.title, task.mechanism);   // 1 định nghĩa (lib/task-kind) — dùng chung calendar + drawer
   const isEmailPitch = !isEmailSend && /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
   const emailTarget = task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page');
   // Already emailed (site is "submitted") → the next email is a short nudge, not a fresh pitch.

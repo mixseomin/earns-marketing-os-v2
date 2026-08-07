@@ -48,15 +48,17 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
     if (!spines.length) return [];
 
     const slugs = spines.map((s) => String(s.refs?.slug ?? '')).filter(Boolean);
-    // Trạng thái/lịch đọc theo project_id CỦA CHÍNH CARD, không theo project đang xem — nhờ vậy
-    // dùng chung được cho cả trang project lẫn trang toàn cục, không phải hai đường.
+    // Đọc thẳng `human_tasks`, KHÔNG qua view `backlinks`: view không phơi `prep_payload` (nó chỉ
+    // trải vài khoá con ra thành cột), nên lọc theo prep_payload->>'product' ở view sẽ ném
+    // "column prep_payload does not exist". Trạng thái/lịch cũng nằm trong prep_payload, lấy theo
+    // project_id CỦA CHÍNH CARD nên dùng chung được cho cả trang project lẫn trang toàn cục.
     const taskRows = slugs.length ? await db.execute(sql`
       SELECT id, title, prep_payload->>'product' AS slug,
-             coalesce(site_status->>project_id, status) AS st,
-             site_scheduled_at->>project_id AS d
-      FROM backlinks
+             coalesce(prep_payload->'site_status'->>project_id, status) AS st,
+             prep_payload->'site_scheduled_at'->>project_id AS d
+      FROM human_tasks
       WHERE prep_payload->>'product' = ANY(${slugs}::text[])
-      ORDER BY site_scheduled_at->>project_id NULLS LAST, id`) : [];
+      ORDER BY prep_payload->'site_scheduled_at'->>project_id NULLS LAST, id`) : [];
     const tasks = taskRows as unknown as Array<{ id: number; title: string; slug: string; st: string; d: string | null }>;
 
     return spines.map((s) => {
@@ -85,7 +87,11 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
         nextCard: cards.find((c) => c.status !== 'completed' && c.status !== 'verified') ?? null,
       };
     });
-  } catch {
-    return [];   // thiếu bảng/cột thì trang vẫn chạy, chỉ mất dải sản phẩm
+  } catch (e) {
+    // KHÔNG nuốt im lặng: bản đầu `catch {}` làm câu query sai cột trả về mảng rỗng, và dải sản
+    // phẩm chỉ đơn giản KHÔNG hiện — không có gì để lần ra nguyên nhân. Trang vẫn chạy, nhưng lỗi
+    // phải để lại dấu trong log.
+    console.error('[products-building] không đọc được sản phẩm đang dựng:', (e as Error).message);
+    return [];
   }
 }

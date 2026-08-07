@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, type CSSProperties } from 'react';
+import { localDay } from '@/lib/local-day';
 
 interface Contact { email: string; name: string; createdAt: string | null; excluded: boolean; unsubbed: boolean }
 interface Data { total: number | null; offset: number; pageSize: number; contacts: Contact[]; source: string }
@@ -59,7 +60,7 @@ export function ContactsDrawer({ domain, onClose }: { domain: string; onClose: (
                 {shown.map((c) => (
                   <tr key={c.email}>
                     <td style={{ ...td, ...mono }}>{c.email}</td>
-                    <td style={{ ...td, ...mono, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{c.createdAt ? c.createdAt.slice(0, 10) : '—'}</td>
+                    <td style={{ ...td, ...mono, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{c.createdAt ? localDay(c.createdAt) : '—'}</td>
                     <td style={{ ...td, textAlign: 'center' }}>
                       {c.unsubbed ? <span style={{ ...mono, fontSize: 9, color: '#d16b6b' }}>unsub</span>
                         : c.excluded ? <span style={{ ...mono, fontSize: 9, color: '#e0a94a' }}>excluded</span>

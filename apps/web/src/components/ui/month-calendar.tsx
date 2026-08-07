@@ -45,7 +45,9 @@ export function MonthCalendar({ items, onItemClick, initialMonth }: {
                 const c = it.color || 'var(--accent)';
                 return (
                   <button key={String(it.id) + it.date} type="button" title={it.title || it.label} onClick={() => onItemClick?.(it.id)}
-                    style={{ textAlign: 'left', fontSize: 9.5, fontWeight: 600, padding: '1px 5px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    // 2 dòng thay vì 1: nhãn giờ là tiêu đề việc, cắt sau 3 chữ thì lại vô nghĩa như cũ.
+                    style={{ textAlign: 'left', fontSize: 9.5, fontWeight: 600, padding: '1px 5px', borderRadius: 4, cursor: 'pointer', overflow: 'hidden',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3, wordBreak: 'break-word',
                       border: `1px solid color-mix(in srgb, ${c} 45%, transparent)`, background: `color-mix(in srgb, ${c} ${it.dim ? 8 : 20}%, transparent)`, color: c, opacity: it.dim ? 0.6 : 1 }}>
                     {it.dim ? '🗓 ' : ''}{it.label}
                   </button>

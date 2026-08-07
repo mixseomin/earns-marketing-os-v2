@@ -723,14 +723,23 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       // list/kanban card — a calendar pill is one line.)
       const seed = t.communitySeed ? '🌱 ' : '';
       const seedT = t.communitySeed ? ' · 🌱 community-seed (link-gated)' : '';
-      const label = pfx + seed + (showHost(t.sourceUrl, t.projectSlug) ?? t.title);
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${seedT}` });
+      // Nhãn ô lịch phải NÓI ĐƯỢC VIỆC. Trước đây chỉ lấy hostname của source_url, nên năm thẻ
+      // khác nhau cùng hiện "studio.youtube.com", hai thẻ cùng "wise.com" — nhìn vào không biết
+      // hôm đó phải làm gì. Hostname chỉ có nghĩa khi nó LÀ nội dung (đặt link ở reddit.com);
+      // với việc nội bộ thì tiêu đề mới là thông tin. Nên: lấy host làm tiền tố ngắn, rồi luôn
+      // kèm tiêu đề. Host trùng nhau thì phần tiêu đề tách chúng ra.
+      const host = showHost(t.sourceUrl, t.projectSlug);
+      // TIÊU ĐỀ là nhãn, hostname xuống tooltip. Hostname không phân biệt được việc: năm thẻ khác
+      // nhau cùng hiện "studio.youtube.com", hai thẻ cùng "wise.com" — nhìn lịch không biết hôm
+      // đó làm gì. Tiêu đề luôn khác nhau, nên nó mới là thứ đáng chiếm chỗ trên ô lịch.
+      const label = pfx + seed + t.title.replace(/\s+/g, ' ').trim();
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, color: '#22c55e', title: `✓ ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
       else {
         // A task can carry BOTH a "waiting since" date and a "check/follow-up on" date —
         // show both so the calendar surfaces the follow date (site_scheduled_at) even while
         // the task is still submitted/awaiting approval.
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${seedT}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${seedT}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, color: '#9d6cff', title: `⏳ chờ duyệt · ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
       }
     }
     return out;

@@ -28,8 +28,8 @@ const MODES: { key: CalMode; label: string }[] = [
 
 // MINI-MONTH: lưới tháng thu nhỏ (như sidebar Google Calendar). Ngày hôm nay khoanh, ngày đang chọn
 // tô nền accent, ngày có việc có 1 chấm nhỏ ở dưới → liếc là biết cả tháng chỗ nào có việc. Bấm ngày = nhảy.
-function MiniMonth({ month, selected, byDate, onPick, onNavMonth }: {
-  month: Date; selected: string; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void;
+function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
+  month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void;
 }) {
   const m = month.getMonth();
   const todayStr = ymd(new Date());
@@ -44,14 +44,14 @@ function MiniMonth({ month, selected, byDate, onPick, onNavMonth }: {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
         {WD1.map((w, i) => <div key={i} style={{ fontSize: 9, color: 'var(--fg-4)', textAlign: 'center', paddingBottom: 2 }}>{w}</div>)}
         {cells.map((d) => {
-          const ds = ymd(d); const inM = d.getMonth() === m; const isToday = ds === todayStr; const isSel = ds === selected;
+          const ds = ymd(d); const inM = d.getMonth() === m; const isToday = ds === todayStr; const isSel = sel.has(ds);
           const its = byDate.get(ds) || []; const dot = its[0]?.color || 'var(--accent)';
           return (
             <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? `${its.length} việc` : undefined}
-              style={{ position: 'relative', height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday || isSel ? 800 : 500,
+              style={{ position: 'relative', height: 28, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: `1px solid ${isToday ? 'var(--neon-cyan)' : 'transparent'}`, borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday || isSel ? 800 : 500,
                 background: isSel ? 'var(--accent)' : isToday ? 'color-mix(in srgb, var(--neon-cyan) 16%, transparent)' : 'transparent',
-                color: isSel ? 'var(--bg-0, #0b0d12)' : !inM ? 'var(--fg-4)' : isToday ? 'var(--neon-cyan)' : 'var(--fg-2)', opacity: inM ? 1 : 0.4 }}>
+                color: isSel ? 'var(--bg-0, #0b0d12)' : !inM ? 'var(--fg-4)' : isToday ? 'var(--neon-cyan)' : 'var(--fg-2)', opacity: isSel ? 1 : inM ? 1 : 0.4 }}>
               {d.getDate()}
               {its.length > 0 && <span style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: isSel ? 'var(--bg-0, #0b0d12)' : dot }} />}
             </button>
@@ -77,7 +77,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   const [miniView, setMiniView] = useState(() => firstOfMonth(initialMonth ?? new Date()));   // tháng mini-month đang hiện
   const [modeSelf, setModeSelf] = useState<CalMode>('month');
   const mode = modeProp ?? modeSelf;
-  const setMode = (m: CalMode) => { setModeSelf(m); onModeChange?.(m); };
+  const setMode = (m: CalMode) => { setModeSelf(m); onModeChange?.(m); setMiniView(firstOfMonth(anchor)); };   // đổi mode → mini bám tháng của ngày đang chọn
 
   // Một nguồn duy nhất dựng danh sách ngày cho cả ba chế độ.
   const y = anchor.getFullYear(), m = anchor.getMonth();
@@ -91,6 +91,9 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   const byDate = new Map<string, CalItem[]>();
   for (const it of items) { (byDate.get(it.date) ?? byDate.set(it.date, []).get(it.date)!).push(it); }
   const todayStr = ymd(new Date());
+  const anchorStr = ymd(anchor);
+  // Ngày được "chọn": Ngày = đúng anchor; Tuần = cả 7 ngày của tuần (band như Google Calendar).
+  const selSet = new Set(mode === 'week' ? days.map(ymd) : [anchorStr]);
 
   // anchor đổi → mini-month bám theo tháng của anchor (trừ khi người dùng tự page mini bằng ◀ ▶).
   const goAnchor = (d: Date) => { setAnchor(d); setMiniView(firstOfMonth(d)); };
@@ -110,8 +113,9 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
       {mode !== 'day' && WD.map((w) => <div key={w} style={{ fontSize: 10, color: 'var(--fg-4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.05em', paddingBottom: 2 }}>{w}</div>)}
       {days.map((d) => {
         const ds = ymd(d); const inMonth = mode !== 'month' || d.getMonth() === m; const its = byDate.get(ds) || []; const isToday = ds === todayStr;
+        const isSel = mode !== 'month' && ds === anchorStr;   // ngày đang chọn — hiện rõ trong grid chính (week/day)
         return (
-          <div key={ds} style={{ minHeight: minH, padding: 4, borderRadius: 6, border: `1px solid ${isToday ? 'var(--neon-cyan)' : 'var(--line)'}`, background: inMonth ? 'var(--bg-1)' : 'transparent', opacity: inMonth ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div key={ds} style={{ minHeight: minH, padding: 4, borderRadius: 6, border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 55%, var(--line))' : 'var(--line)'}`, background: isSel ? 'color-mix(in srgb, var(--accent) 10%, var(--bg-1))' : inMonth ? 'var(--bg-1)' : 'transparent', opacity: inMonth ? 1 : 0.4, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ fontSize: 10.5, fontWeight: isToday ? 800 : 500, color: isToday ? 'var(--neon-cyan)' : 'var(--fg-3)', textAlign: mode === 'day' ? 'left' : 'right' }}>
               {mode === 'day' ? `${its.length} việc` : d.getDate()}
             </div>
@@ -153,7 +157,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
       </div>
       {showMini ? (
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <MiniMonth month={miniView} selected={ymd(anchor)} byDate={byDate} onPick={(d) => setAnchor(d)}
+          <MiniMonth month={miniView} sel={selSet} byDate={byDate} onPick={(d) => setAnchor(d)}
             onNavMonth={(dir) => setMiniView((mv) => new Date(mv.getFullYear(), mv.getMonth() + dir, 1))} />
           {grid}
         </div>

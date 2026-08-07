@@ -17,7 +17,7 @@ import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
-import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
@@ -49,6 +49,13 @@ import { hostOf } from '@/lib/host';
 // diverge (no separate tab-rollup vocabulary). Tabs = these statuses + "All".
 const SITE_STATUS: Record<string, { label: string; color: string }> = SITE_STATUS_META;
 const STATUS_ORDER = SITE_STATUSES;
+// Chú thích lịch: LOẠI (icon SVG) + TRẠNG THÁI (nhãn/màu lấy THẲNG từ SITE_STATUS_META = nguồn drawer/kanban
+// → calendar không tự chế chữ, luôn đồng nhất). Follow-up có bộ status riêng (drawer follow-up), pin = loại.
+const CAL_LEGEND: LegendEntry[] = [
+  { icon: 'link', label: 'backlink' }, { icon: 'mail', label: 'email' }, { icon: 'sprout', label: 'seed' }, { icon: 'pin', label: 'follow-up' },
+  { sep: true },
+  ...STATUS_ORDER.map((s) => ({ color: SITE_STATUS_META[s].color, label: SITE_STATUS_META[s].label })),
+];
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
 const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
@@ -768,11 +775,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const host = showHost(t.sourceUrl, t.projectSlug);
       const label = plbl + ttl;
       const suffix = `${host ? ` · ${host}` : ''}${seedT}`;
-      // icon = loại (cố định theo task); TRẠNG THÁI chỉ đổi MÀU thanh-trái + ✓ + mờ. Không trộn icon vào status.
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: '#22c55e', title: `đã đặt · ${plbl}${ttl}${suffix}` });
+      // MÀU + NHÃN trạng thái = SITE_STATUS_META (đúng nguồn drawer/kanban) — không tự chế.
+      // icon = loại (cố định theo task); trạng thái chỉ đổi màu thanh-trái + ✓ + mờ.
+      const smeta = SITE_STATUS[t.siteState] ?? { label: t.siteState, color: '#8a92a3' };
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: '#9d6cff', title: `chờ duyệt · ${plbl}${ttl}${suffix}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: '#ffb03c', title: `hẹn kiểm tra · ${plbl}${ttl}${suffix}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}` });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}` });
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.
@@ -1196,7 +1205,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar legend items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} />
+        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {shown.length > 0 && listHead}

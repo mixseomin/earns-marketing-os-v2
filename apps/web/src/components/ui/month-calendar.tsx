@@ -20,6 +20,9 @@ export type CalMode = 'month' | 'week' | 'day';
 
 // SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
 export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot';
+// 1 mục chú thích: icon (loại) HOẶC chip màu (trạng thái) — nhãn/màu do CALLER truyền (nguồn canonical,
+// vd SITE_STATUS_META), calendar KHÔNG tự chế chữ → legend luôn khớp drawer/kanban.
+export type LegendEntry = { icon?: GlyphName; color?: string; label?: string; sep?: boolean };
 const GLYPH: Record<GlyphName, React.ReactNode> = {
   pin: <><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10z" /><circle cx="12" cy="11" r="2.4" /></>,
   link: <><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" /></>,
@@ -96,8 +99,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   /** Chế độ hiện tại. Bỏ trống = component tự giữ (dùng khi không cần đồng bộ URL). */
   mode?: CalMode;
   onModeChange?: (m: CalMode) => void;
-  /** Hiện chú thích ngữ pháp màu/icon (dùng ở plays). */
-  legend?: boolean;
+  /** Chú thích (loại + trạng thái) — nhãn/màu do caller truyền để khớp nguồn canonical. */
+  legend?: LegendEntry[];
 }) {
   const [anchor, setAnchor] = useState(() => initialMonth ?? new Date());
   const [miniView, setMiniView] = useState(() => firstOfMonth(initialMonth ?? new Date()));   // tháng mini-month đang hiện
@@ -204,18 +207,17 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
           {grid}
         </div>
       ) : grid}
-      {legend && (
-        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px 14px', fontSize: 10.5, color: 'var(--fg-4)' }}>
-          <span style={{ fontWeight: 700, color: 'var(--fg-3)' }}>Loại</span>
-          {([['pin', 'follow-up'], ['link', 'backlink'], ['sprout', 'seed']] as [GlyphName, string][]).map(([g, t]) => (
-            <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalGlyph name={g} color="var(--fg-2)" size={13} />{t}</span>
-          ))}
-          <span style={{ width: 1, height: 12, background: 'var(--line)' }} />
-          <span style={{ fontWeight: 700, color: 'var(--fg-3)' }}>Trạng thái</span>
-          {([['#22c55e', 'xong'], ['#ffb03c', 'đang / hẹn'], ['#9d6cff', 'chờ duyệt'], ['#8a92a3', 'chờ'], ['#ef4444', 'chặn']] as [string, string][]).map(([c, t]) => (
-            <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 12, borderRadius: 2, background: c }} />{t}</span>
-          ))}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalGlyph name="check" color="#22c55e" size={13} />= đã làm</span>
+      {legend && legend.length > 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px 13px', fontSize: 10.5, color: 'var(--fg-4)' }}>
+          {legend.map((e, i) => e.sep
+            ? <span key={i} style={{ width: 1, height: 12, background: 'var(--line)' }} />
+            : (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: e.icon ? 4 : 5 }}>
+                {e.icon ? <CalGlyph name={e.icon} color="var(--fg-2)" size={13} /> : <span style={{ width: 4, height: 12, borderRadius: 2, background: e.color }} />}
+                {e.label}
+              </span>
+            ))}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalGlyph name="check" color="#22c55e" size={13} />đã làm</span>
         </div>
       )}
     </div>

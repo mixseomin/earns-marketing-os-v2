@@ -20,6 +20,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
+import type { BuildingProduct } from '@/lib/actions/products-building';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, listTaskDomSamples, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
@@ -171,6 +172,109 @@ const fchip = (on: boolean, sig?: string): CSSProperties => ({
 const flbl: CSSProperties = { fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 };
 const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
 
+// SẢN PHẨM ĐANG DỰNG — dải nổi ngay đầu bảng, vì đây là thứ đang thực sự được làm ra, còn
+// backlink/seeding chỉ là việc quanh nó. Bấm một ô → drawer đọc được cả bản thảo: trước đây bản
+// thảo nằm trong file ở máy cá nhân nên câu "muốn xem quyển sách thì vào đâu" không có chỗ trả lời.
+function ProductStrip({ products, onOpen }: { products: BuildingProduct[]; onOpen: (slug: string) => void }) {
+  if (!products.length) return null;
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      {products.map((p) => {
+        const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+        return (
+          <button key={p.slug} type="button" onClick={() => onOpen(p.slug)}
+            title={`${p.description.slice(0, 180)}…`}
+            style={{ textAlign: 'left', cursor: 'pointer', minWidth: 268, flex: '1 1 268px', maxWidth: 420,
+              border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 9,
+              background: 'var(--bg-1)', padding: '9px 12px', color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>📕 đang dựng</span>
+              {p.price != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ok,#22c55e)', marginLeft: 'auto' }}>${p.price}</span>}
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25 }}>{p.title}</div>
+            <div style={{ height: 4, borderRadius: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)' }} />
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--fg-3)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <span>{p.done}/{p.total} bước</span>
+              <span>{p.words.toLocaleString()} từ</span>
+              <span>{p.chapters.length} chương</span>
+            </div>
+            {p.nextCard && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              kế: {p.nextCard.date ? `${p.nextCard.date} · ` : ''}{p.nextCard.title}
+            </div>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Drawer sản phẩm: mô tả bán hàng · tiến độ từng bước · và ĐỌC ĐƯỢC từng chương.
+function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id: number) => void }) {
+  const [openCh, setOpenCh] = useState<number | null>(p.chapters[0]?.id ?? null);
+  const lbl: CSSProperties = { display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 };
+  const pill: CSSProperties = { fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999, border: '1px solid var(--line)', textTransform: 'uppercase', letterSpacing: '.04em' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 17, fontWeight: 800 }}>{p.title}</span>
+          {p.price != null && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ok,#22c55e)' }}>${p.price} {p.currency}</span>}
+          <span style={{ ...pill, borderColor: 'var(--accent)', color: 'var(--accent)' }}>{p.status}</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>store: {p.store || 'chưa chốt'}</span>
+        </div>
+        {p.liveUrl && <a href={wrapExternalUrl(p.liveUrl)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>{p.liveUrl}</a>}
+      </div>
+
+      <div>
+        <div style={lbl}>Mô tả bán hàng</div>
+        <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{p.description}</div>
+      </div>
+
+      <div>
+        <div style={lbl}>Tiến độ · {p.done}/{p.total} bước · {p.words.toLocaleString()} từ đã viết</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {p.cards.map((c) => {
+            const done = c.status === 'completed' || c.status === 'verified';
+            return (
+              <button key={c.id} type="button" onClick={() => onOpenCard(c.id)}
+                style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)', borderRadius: 6,
+                  background: 'transparent', padding: '4px 8px', fontSize: 12, color: done ? 'var(--fg-3)' : 'var(--fg-1)',
+                  display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ color: done ? 'var(--ok,#22c55e)' : 'var(--fg-4)' }}>{done ? '✓' : '○'}</span>
+                <span style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                {c.date && <span style={{ fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{c.date}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div style={lbl}>Nội dung · {p.chapters.length} chương</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {p.chapters.map((ch) => (
+            <div key={ch.id} style={{ border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
+              <button type="button" onClick={() => setOpenCh(openCh === ch.id ? null : ch.id)}
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--bg-2)',
+                  padding: '6px 10px', fontSize: 12, fontWeight: 700, color: 'var(--fg-1)', display: 'flex', gap: 8 }}>
+                <span style={{ color: 'var(--fg-4)' }}>{openCh === ch.id ? '▾' : '▸'}</span>
+                <span style={{ flex: 1 }}>{ch.title}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 400, color: 'var(--fg-4)' }}>{ch.chars.toLocaleString()} ký tự</span>
+              </button>
+              {openCh === ch.id && (
+                <div style={{ padding: '10px 14px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--fg-1)', maxHeight: 520, overflowY: 'auto' }}
+                  className="md-body" dangerouslySetInnerHTML={{ __html: mdToHtml(ch.content) }} />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Lightweight popover (no house primitive existed) — trigger + floating panel + click-outside.
 // Reused for the ⚙ Lọc advanced filters and the project select. children is a render-prop
 // given close() so an in-panel action can dismiss it.
@@ -287,6 +391,14 @@ function mdToHtml(md: string): string {
     const h = b.match(/^(#{1,6})\s+(.*)$/);
     if (h) { const n = h[1]!.length; return `<h${n}>${inlineHtml(h[2]!)}</h${n}>`; }
     const lines = b.split('\n');
+    // Blockquote: chương "trước/sau" của sách gần như toàn trích dẫn, thiếu nhánh này thì mỗi
+    // đoạn trích đổ ra thành một dòng "> …" trần (thêm 2026-08-08).
+    if (lines.every((l) => /^\s*>/.test(l))) {
+      return `<blockquote>${inlineHtml(lines.map((l) => l.replace(/^\s*>\s?/, '')).join(' ').trim())}</blockquote>`;
+    }
+    if (lines.every((l) => /^\s*\|/.test(l))) {   // bảng markdown → giữ dạng đơn giản, đừng vỡ
+      return `<pre>${escHtml(lines.join('\n'))}</pre>`;
+    }
     if (lines.every((l) => /^\s*[-*]\s+/.test(l))) return `<ul>\n${lines.map((l) => `  <li>${inlineHtml(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('\n')}\n</ul>`;
     if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) return `<ol>\n${lines.map((l) => `  <li>${inlineHtml(l.replace(/^\s*\d+\.\s+/, ''))}</li>`).join('\n')}\n</ol>`;
     return `<p>${inlineHtml(b.replace(/\n/g, ' '))}</p>`;
@@ -503,7 +615,7 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [] }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
@@ -514,6 +626,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
   allProjects?: boolean;
   projectsById?: Record<string, Project>;
+  /** Sản phẩm ĐANG DỰNG của (các) project trong tầm — hiện thành dải đầu bảng. */
+  products?: BuildingProduct[];
 }) {
   // In global mode a task acts on its OWN project/slug, not one page-level value.
   const slugForTask = (t?: BacklinkTask | null) => (allProjects ? (t?.projectSlug ?? '') : slug);
@@ -550,6 +664,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
   const [blockedOnly, setBlockedOnly] = useState(sp.get('blocked') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
+  const [openProd, setOpenProd] = useState<string | null>(sp.get('sp'));   // slug sản phẩm đang mở
   const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
@@ -660,6 +775,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
+    set('sp', openProd);
     set('outreach', outreachPid);
     set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
     // seed-catalog drawer state (only meaningful while open)
@@ -670,7 +786,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, calMode, workType, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, calMode, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -964,6 +1080,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           </>}
         </div>
       </div>
+      {/* Drawer sản phẩm đang dựng — đọc được bản thảo, không phải đi lục file. */}
+      {openProd && (() => {
+        const p = products.find((x) => x.slug === openProd);
+        if (!p) return null;
+        return (
+          <Drawer onClose={() => setOpenProd(null)} width={860}>
+            <><div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>📕 {p.title}</div><ProductDrawer p={p} onOpenCard={(id) => { setOpenProd(null); setOpenId(id); }} /></>
+          </Drawer>
+        );
+      })()}
       {trashOpen && (
         <Drawer onClose={() => setTrashOpen(false)} width={520}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -1152,6 +1278,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </div>
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
+      {/* Sản phẩm đang dựng đứng TRÊN mọi filter: đây là thứ đang được làm ra, backlink là việc quanh nó. */}
+      <ProductStrip products={products} onOpen={setOpenProd} />
+
       {allProjects && (() => {
         const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: (t.projectSlug || '') as string, label: t.projectLabel || t.projectSlug || '', emoji: t.projectEmoji || '' }])).values())
           .filter((p) => p.slug)
@@ -1302,6 +1431,7 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
         )}
       </div>
       <button type="button" onClick={save} disabled={saving} style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid var(--neon-blue)', background: 'color-mix(in srgb, var(--neon-blue) 15%, transparent)', color: 'var(--neon-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>{saving ? 'Đang lưu…' : '💾 Lưu bàn giao'}</button>
+
     </div>
   );
 }

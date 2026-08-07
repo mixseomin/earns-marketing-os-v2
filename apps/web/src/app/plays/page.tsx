@@ -5,6 +5,7 @@ import { getMode, listProjects, listPlatforms, listAccounts, listMedia } from '@
 import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
+import { listBuildingProducts } from '@/lib/actions/products-building';
 import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listFollowups } from '@/lib/actions/followups';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
@@ -22,7 +23,7 @@ export default async function GlobalPlaysRoute() {
 
   const projects = await listProjects();
   const tracked = projects.filter((p) => resolveSiteSlug(p.id));
-  const [mode, tasks, followups, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, ...acctLists] = await Promise.all([
+  const [mode, tasks, followups, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, ...acctLists] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
     listFollowups(),
@@ -33,6 +34,7 @@ export default async function GlobalPlaysRoute() {
     listBrowserProfiles(),
     listSourceIntel(),
     listProjectsWithBrowser(),
+    listBuildingProducts(),
     ...tracked.map((p) => listAccounts(p.id)),
   ]);
   // Backlink accounts are tenant-shared → union the per-project lists, dedupe by id.
@@ -46,7 +48,7 @@ export default async function GlobalPlaysRoute() {
       isPortfolio
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage allProjects projectsById={projectsById}
+      <BacklinksPage allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />

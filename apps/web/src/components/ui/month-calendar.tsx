@@ -48,12 +48,13 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
           const its = byDate.get(ds) || []; const dot = its[0]?.color || 'var(--accent)';
           return (
             <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? `${its.length} việc` : undefined}
+              // Ngày/tuần đang chọn = tint NHẸ (không tô đặc chói), chỉ đủ để phân biệt; hôm nay = khoanh cyan.
               style={{ position: 'relative', height: 28, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: `1px solid ${isToday ? 'var(--neon-cyan)' : 'transparent'}`, borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday || isSel ? 800 : 500,
-                background: isSel ? 'var(--accent)' : isToday ? 'color-mix(in srgb, var(--neon-cyan) 16%, transparent)' : 'transparent',
-                color: isSel ? 'var(--bg-0, #0b0d12)' : !inM ? 'var(--fg-4)' : isToday ? 'var(--neon-cyan)' : 'var(--fg-2)', opacity: isSel ? 1 : inM ? 1 : 0.4 }}>
+                border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 34%, transparent)' : 'transparent'}`, borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday ? 800 : isSel ? 700 : 500,
+                background: isSel ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : isToday ? 'color-mix(in srgb, var(--neon-cyan) 13%, transparent)' : 'transparent',
+                color: isToday ? 'var(--neon-cyan)' : isSel ? 'var(--fg-1)' : !inM ? 'var(--fg-4)' : 'var(--fg-2)', opacity: isSel ? 1 : inM ? 1 : 0.45 }}>
               {d.getDate()}
-              {its.length > 0 && <span style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: isSel ? 'var(--bg-0, #0b0d12)' : dot }} />}
+              {its.length > 0 && <span style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: dot }} />}
             </button>
           );
         })}

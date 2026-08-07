@@ -43,6 +43,18 @@ export async function listFollowups(projectId?: string, dueOnly = false): Promis
   return (r as unknown as Record<string, unknown>[]).map(mapRow);
 }
 
+// One task, full record (title + detail = resume brief + notes = progress log) — what a fresh chat
+// reads to continue THIS task with enough context. `followup show <id>` / GET ?id=<n>.
+export async function getFollowup(id: number): Promise<Followup | null> {
+  const db = getDb(); if (!db || !Number.isFinite(id)) return null;
+  const r = await db.execute(sql`
+    SELECT id, project_id, title, status, to_char(sla_due_at, 'YYYY-MM-DD') AS due,
+           instructions, notes, to_char(updated_at, 'YYYY-MM-DD') AS updated
+    FROM human_tasks WHERE id = ${id} AND platform_key = 'followup' LIMIT 1`);
+  const row = (r as unknown as Record<string, unknown>[])[0];
+  return row ? mapRow(row) : null;
+}
+
 export async function createFollowup(input: { projectId?: string; title?: string; detail?: string; due?: string; status?: string }): Promise<{ ok: boolean; id?: number; error?: string }> {
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   const projectId = String(input.projectId ?? '').trim();

@@ -1,6 +1,6 @@
 import { checkAuth } from '../_auth';
 import { errorResponse, okResponse } from '@/lib/ext-route';
-import { listFollowups, createFollowup } from '@/lib/actions/followups';
+import { listFollowups, getFollowup, createFollowup } from '@/lib/actions/followups';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,9 +8,12 @@ export const dynamic = 'force-dynamic';
 // drawer UI) — these handlers are just auth + HTTP shape.
 //
 // GET /api/ext/followups?project=<slug>&due=1   → { items: Followup[] }  (due=1 = open + due today-or-earlier)
+// GET /api/ext/followups?id=<n>                 → { items: [Followup] }   (one task, full record — resume it)
 export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const u = new URL(req.url);
+  const id = (u.searchParams.get('id') ?? '').trim();
+  if (id) { const f = await getFollowup(Number(id)); return okResponse({ items: f ? [f] : [] }); }
   const project = (u.searchParams.get('project') ?? '').trim();
   const items = await listFollowups(project || undefined, u.searchParams.get('due') === '1');
   return okResponse({ items });

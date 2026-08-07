@@ -376,10 +376,11 @@ function LinkText({ text }: { text: string }) {
 // Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
 // dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
-function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
+function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, emailMode }: {
   text: string;
   onBlock?: (reason: string, shot?: string) => Promise<void> | void;   // ⚠ per-line report → flag blocker (+ optional screenshot)
   urlValue?: string; onUrlChange?: (v: string) => void; onUrlSave?: () => void; urlSaving?: boolean;
+  emailMode?: boolean;   // email-send card: "done" = sent, the link is an optional campaign/offer URL (không phải backlink đã đặt)
 }) {
   const [rIdx, setRIdx] = useState<number | null>(null);   // which line has its report box open
   const [rText, setRText] = useState('');
@@ -433,9 +434,9 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving }: {
     {/* Kết quả — always give a paste spot at the end of the how-to, synced with the Live URL field below. */}
     {onUrlChange && (
       <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px dashed var(--line)' }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>✅ Làm xong — dán link vào đây</div>
+        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>{emailMode ? '📤 Đã gửi — link campaign / offer (tuỳ chọn)' : '✅ Làm xong — dán link vào đây'}</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="https://… link đã đặt được" autoComplete="off"
+          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder={emailMode ? 'link campaign Mailjet / offer đã chèn (tuỳ chọn)' : 'https://… link đã đặt được'} autoComplete="off"
             style={{ flex: 1, minWidth: 0, padding: '5px 9px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
           {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '3px 12px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
         </div>
@@ -1382,7 +1383,11 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
   // Task shape drives what the drawer shows (surface mirrors the real work order):
   //  - email-pitch (resource pages / LibGuides / editorial): the work IS writing an email → lead with an email generator.
   //  - "Built with"/stack chips only matter for shoutout/directory/launch listings — noise elsewhere.
-  const isEmailPitch = /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
+  // Email-SEND card (newsletter blast via Mailjet, title prefixed 📧 / mechanism 'email') is a
+  // different work order from a backlink: no source page, no account-to-post, no live backlink to
+  // verify. YDNI → the drawer hides all that and shows only content + schedule + status.
+  const isEmailSend = /^📧/.test(task.title || '') || /^\s*email\s*$/i.test(task.mechanism || '');
+  const isEmailPitch = !isEmailSend && /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
   const emailTarget = task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page');
   // Already emailed (site is "submitted") → the next email is a short nudge, not a fresh pitch.
   const isFollowUp = task.siteState === 'submitted';
@@ -1540,12 +1545,12 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
               style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 4, padding: '0 6px', fontSize: 10.5, color: 'var(--accent)', cursor: 'pointer', lineHeight: '1.7' }}>
               {sourceBusy ? '…' : `📚 #${task.catalogSourceId} ${task.catalogSourceName || 'nguồn'}${task.catalogVia === 'method' ? ' · method' : ''}${task.catalogSourceStatus && task.catalogSourceStatus !== 'active' ? ' · ' + task.catalogSourceStatus : ''}`}
             </button>
-          ) : (
+          ) : !isEmailSend ? (
             <span title="Task này KHÔNG khớp nguồn nào trong catalog — nên đưa nguồn vào catalog trước khi assign" style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>⚠ ngoài catalog nguồn</span>
-          )}
+          ) : null}
           {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
           {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
-          {!task.grounded && task.instructions && <span title={task.domSampleId ? 'Có DOM đã lưu nhưng hướng dẫn CHƯA bám theo — bấm ✨ Chuẩn hoá để viết lại đúng nút/field thật của trang.' : 'Hướng dẫn CHƯA dựa trên DOM thật (chưa capture trang này) — các bước điều hướng là SUY ĐOÁN, mở trang tự kiểm. Capture DOM qua ext (crew) để chuẩn hoá bám trang thật.'} style={{ color: 'var(--warn,#ffb03c)', fontWeight: 700, cursor: 'help' }}>⚠ {task.domSampleId ? 'chưa bám DOM' : 'chưa có DOM thật'}</span>}
+          {!isEmailSend && !task.grounded && task.instructions && <span title={task.domSampleId ? 'Có DOM đã lưu nhưng hướng dẫn CHƯA bám theo — bấm ✨ Chuẩn hoá để viết lại đúng nút/field thật của trang.' : 'Hướng dẫn CHƯA dựa trên DOM thật (chưa capture trang này) — các bước điều hướng là SUY ĐOÁN, mở trang tự kiểm. Capture DOM qua ext (crew) để chuẩn hoá bám trang thật.'} style={{ color: 'var(--warn,#ffb03c)', fontWeight: 700, cursor: 'help' }}>⚠ {task.domSampleId ? 'chưa bám DOM' : 'chưa có DOM thật'}</span>}
           {/* Outreach linkage — visible up top (not buried in Email Pitch). Linked → open drawer in-place; else offer to link. */}
           {(task.outreach || isEmailPitch) && (
             <button type="button" onClick={openOutreach} disabled={outBusy}
@@ -1628,16 +1633,16 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         {task.mechanism && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}><span style={{ color: 'var(--fg-4)' }}>Cách đặt: </span>{task.mechanism}</div>}
         {task.instructions && (<>
           <div style={{ ...lbl, color: 'var(--accent)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>🛠 Cách build</span>
+            <span>{isEmailSend ? '✉ Nội dung email' : '🛠 Cách build'}</span>
             {task.catalogSourceId ? (
               // Catalog-sourced → instructions are template-driven. No per-task reshape (that detaches
               // & drifts). Funnel edits to the source (opens the 📚 panel → "Sửa nguồn trong catalog").
               <button type="button" onClick={openSource} title="Hướng dẫn theo TEMPLATE NGUỒN trong catalog. Muốn đổi → sửa ở nguồn (lan xuống MỌI site), KHÔNG sửa lẻ ở task. Bấm để mở nguồn."
                 style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--fg-3)' }}>🔒 theo nguồn #{task.catalogSourceId} — sửa ở nguồn</button>
-            ) : (
+            ) : !isEmailSend ? (
               <button type="button" onClick={doNormalize} disabled={normBusy} title="AI viết lại hướng dẫn theo khuôn chuẩn (bước đánh số + dòng meta + link kỳ vọng)"
                 style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, marginLeft: 'auto', color: 'var(--accent)' }}>{normBusy ? '…' : '✨ Chuẩn hoá'}</button>
-            )}
+            ) : null}
             {task.domSampleId && <button type="button" onClick={doPrepFill} disabled={fillBusy} title="AI chuẩn bị GIÁ TRỊ điền cho từng field của form thật (từ DOM đã lưu): tên/email/message/link. Ext sẽ auto-fill (P2)."
               style={{ ...btn, padding: '1px 8px', textTransform: 'none', letterSpacing: 0, fontWeight: 700, color: 'var(--accent)' }}>{fillBusy ? '…' : '✨ Chuẩn bị điền'}</button>}
           </div>
@@ -1654,7 +1659,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             </div>
           )}
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginTop: 4 }}>
-            <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} />
+            <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} emailMode={isEmailSend} />
           </div>
           {/* ✨ Chuẩn bị điền — field→value đã chuẩn bị cho form thật (ext auto-fill P2). 🟢 chắc · 🔴 cần review. */}
           {(fillFields || fillErr) && (
@@ -1704,7 +1709,8 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
         <div style={lbl}>Assign to (nhận việc)</div>
         <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onAssign} />
 
-        {/* 3 · Account — must be ready before posting. */}
+        {/* 3 · Account — must be ready before posting. Hidden for email-send (blast qua Mailjet, không cần account đăng nền tảng). */}
+        {!isEmailSend && (<>
         <div style={lbl}>Account · {task.platformLabel || 'platform ?'}</div>
         {task.readiness === 'no-account' ? (
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
@@ -1759,6 +1765,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             {task.platformKey && <button type="button" onClick={() => onCreateAccount(task.platformKey!, task.id, task.recommendedRole)} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, textAlign: 'left' }}>＋ Tạo account mới cho {project.name}</button>}
           </div>
         )}
+        </>)}
 
         {/* 4 · Content — paste kit + the post draft + any other AI content the task needs. */}
         {kit.length > 0 && (
@@ -2016,7 +2023,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           onChange={(s) => { void setSite(task.id, s, url); }} />
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
-        <Disclosure title="🔗 Link · kiểm tra · lịch" defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
+        <Disclosure title={isEmailSend ? '🗓 Lịch gửi' : '🔗 Link · kiểm tra · lịch'} defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
         {task.communitySeed && task.seedGate && (
           <div style={{ marginBottom: 8, padding: '7px 9px', borderRadius: 6, border: `1px solid ${task.seedGate.ok ? '#22c55e55' : '#ffb03c55'}`, background: task.seedGate.ok ? '#22c55e10' : '#ffb03c10' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -2030,6 +2037,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             )}
           </div>
         )}
+        {!isEmailSend && (<>
         <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
@@ -2049,6 +2057,7 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           {!(task.siteLiveUrl || url.trim()) && <span style={{ color: 'var(--fg-4)' }}>Lưu Live URL ở trên trước</span>}
           {task.siteLiveUrl && vres && (() => { const m = verifyMeta(vres); return m ? <span style={{ color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</span> : null; })()}
         </div>
+        </>)}
 
         {/* 9 · Schedule */}
         <div style={lbl}>Lịch & thời gian @ {slug}</div>

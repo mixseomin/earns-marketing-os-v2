@@ -12,6 +12,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb, contentPillars, contentPillarTribes, projects } from '@mos2/db';
 import { isValidVoiceProfile, type VoiceProfile, type FewShotExample } from '@/lib/ai/voice-profile';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -284,6 +285,7 @@ export async function createContentPillar(
     ).onConflictDoNothing();
   }
   await flipBoardScoresStale(projectId);
+  await touchEntity('pillar', { projectId });
   return { ok: true, id: newId };
 }
 
@@ -328,6 +330,7 @@ export async function updateContentPillar(
     }
   }
   await flipBoardScoresStale(projectId);
+  await touchEntity('pillar', { projectId });
   return { ok: true };
 }
 
@@ -339,6 +342,7 @@ export async function deleteContentPillar(
     .where(and(eq(contentPillars.id, id), eq(contentPillars.projectId, projectId)));
   // Cards.pillar_id → SET NULL (FK ON DELETE), không cần manual
   await flipBoardScoresStale(projectId);
+  await touchEntity('pillar', { projectId });
   return { ok: true };
 }
 
@@ -434,6 +438,8 @@ export async function setCardPillar(
     UPDATE cards SET pillar_id = ${pillarId}, updated_at = now()
     WHERE id = ${cardId} AND project_id = ${projectId}
   `);
+  await touchEntity('pillar', { projectId });
+  await touchEntity('card', { projectId });
   return { ok: true };
 }
 
@@ -446,5 +452,7 @@ export async function setBriefPrimaryPillar(
     UPDATE community_briefs SET primary_pillar_id = ${pillarId}, updated_at = now()
     WHERE id = ${briefId} AND project_id = ${projectId}
   `);
+  await touchEntity('pillar', { projectId });
+  await touchEntity('brief', { projectId });
   return { ok: true };
 }

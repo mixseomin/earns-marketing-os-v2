@@ -8,6 +8,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { resolveVoiceProfile, VOICE_PROFILE_META, type VoiceProfile } from '@/lib/ai/voice-profile';
+import { touchEntity } from '@/lib/entity-cascade';
 
 export interface CardChannelOption {
   id: number;
@@ -190,6 +191,7 @@ export async function setCardChannel(
     UPDATE cards SET channel_id = ${channelId}, updated_at = now()
     WHERE id = ${cardId} AND project_id = ${projectId}
   `);
+  await touchEntity('card', { projectId });
   return { ok: true, voiceChanged: oldVoice !== newVoice, oldVoice, newVoice };
 }
 

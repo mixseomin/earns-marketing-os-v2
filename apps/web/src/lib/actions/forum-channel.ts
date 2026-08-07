@@ -1,6 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels } from '@mos2/db';
 import { forumSubForumKey } from '@/lib/channel-support';
+import { touchEntity } from '@/lib/entity-cascade';
 
 // Find-or-create habitat_channel cho 1 sub-forum (từ breadcrumb thread mà ext gửi)
 // → trả channel db id để gắn card.channel_id. Nhờ vậy sub-forum reader hiện
@@ -20,6 +21,13 @@ export async function resolveForumChannelId(
   if (!key) return null;
   const name = (channelName ?? '').trim() || key;
 
+  // Resolve owning project for cache-cascade (fired only on the write paths below).
+  const bustHabitat = async () => {
+    const rows = await db.execute(sql`SELECT project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    await touchEntity('habitat', { projectId: r?.project_id ? String(r.project_id) : null });
+  };
+
   // Tier 1: match theo externalId (ổn định nhất).
   const byKey = await db.select({ id: habitatChannels.id }).from(habitatChannels)
     .where(and(eq(habitatChannels.habitatId, habitatId), eq(habitatChannels.externalId, key))).limit(1);
@@ -32,6 +40,7 @@ export async function resolveForumChannelId(
   if (byName[0]) {
     if (!byName[0].externalId) {
       await db.update(habitatChannels).set({ externalId: key, url: u }).where(eq(habitatChannels.id, byName[0].id));
+      await bustHabitat();
     }
     return byName[0].id;
   }
@@ -40,7 +49,7 @@ export async function resolveForumChannelId(
   const ins = await db.insert(habitatChannels).values({
     habitatId, name, externalId: key, url: u,
   }).onConflictDoNothing().returning({ id: habitatChannels.id });
-  if (ins[0]) return ins[0].id;
+  if (ins[0]) { await bustHabitat(); return ins[0].id; }
   const re = await db.select({ id: habitatChannels.id }).from(habitatChannels)
     .where(and(eq(habitatChannels.habitatId, habitatId), sql`LOWER(${habitatChannels.name}) = LOWER(${name})`)).limit(1);
   return re[0]?.id ?? null;

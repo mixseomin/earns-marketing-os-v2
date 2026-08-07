@@ -1,6 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL } from '@/lib/ai/openai';
+import { touchEntity } from '@/lib/entity-cascade';
 
 // ── sync-channel-core — AI summarize + upsert habitat_channels, DÙNG CHUNG cho
 // Discord channel (sync-channel-rules) VÀ forum sub-forum (channels/sync-rules).
@@ -179,6 +180,10 @@ KHÔNG bịa rule không có trong source. commonTopics PHẢI lấy từ thread
     }).returning({ id: habitatChannels.id });
     channelDbId = inserted[0]!.id;
   }
+
+  const projRows = await db.execute(sql`SELECT project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`);
+  const projRow = (projRows as unknown as Array<Record<string, unknown>>)[0];
+  await touchEntity('habitat', { projectId: projRow?.project_id ? String(projRow.project_id) : null });
 
   return { channelDbId, channelName: name, url, topic, rulesMarkdown, pinnedSummary, recentSummary, contentTypes, language: detectedLang, aiError };
 }

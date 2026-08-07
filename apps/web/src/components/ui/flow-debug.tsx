@@ -12,12 +12,13 @@ import { ENTITY_DEPS } from '@/lib/entity-cascade';
 // EntityRef kind → the touchEntity cascade kind (null = no auto-refresh wired = a gap to flag).
 const K2C: Record<string, keyof typeof ENTITY_DEPS | null> = {
   account: 'account', 'browser-profile': 'environment', proxy: 'environment', identity: 'identity',
-  brief: 'brief', habitat: null, tribe: 'tribe', agent: 'agent', 'team-member': 'team-member',
+  brief: 'brief', habitat: 'habitat', tribe: 'tribe', agent: 'agent', 'team-member': 'team-member',
   media: 'resource', contact: null, project: 'project', card: 'card', task: 'inbox', scene: 'scene',
+  pillar: 'pillar',
 };
 const ICON: Record<string, string> = {
   account: '🔐', 'browser-profile': '🧬', proxy: '🛰', identity: '👤', brief: '📝', habitat: '🏘',
-  tribe: '◍', agent: '🧠', 'team-member': '👥', media: '🎬', contact: '📇', project: '📁', card: '📋', task: '📥', scene: '◎',
+  tribe: '◍', agent: '🧠', 'team-member': '👥', media: '🎬', contact: '📇', project: '📁', card: '📋', task: '📥', scene: '◎', pillar: '📚',
 };
 
 function cascadeCount(kind: string): { gap: boolean; n: number } {

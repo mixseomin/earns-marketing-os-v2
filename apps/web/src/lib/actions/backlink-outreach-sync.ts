@@ -5,6 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { siteTimingMerges } from '../backlink-timing';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const SITE_RANK: Record<string, number> = { pending: 0, claimed: 1, submitted: 2, completed: 3, verified: 4 };
 const PROSPECT_RANK: Record<string, number> = { to_send: 0, sent: 1, followup_1: 2, followup_2: 3, replied: 4, interested: 5, embedded: 6 };
@@ -33,6 +34,7 @@ export async function syncProspectToTask(prospectId: number): Promise<void> {
       SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{site_status}', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${slug}::text, to_jsonb(${target}::text))) ${siteTimingMerges(slug, target, new Date().toISOString())},
           updated_at = now()
       WHERE id = ${p.task_id}`);
+    await touchEntity('backlink', { projectId: p.project_id });   // task changed → bust its backlink/plays surfaces
   } catch { /* best-effort sync */ }
 }
 
@@ -52,5 +54,6 @@ export async function syncTaskToProspect(taskId: number, slug: string, siteStatu
       ? sql`, next_followup_at = NULL`
       : sql``;
     await db.execute(sql`UPDATE outreach_prospects SET status = ${target} ${extra}, updated_at = now() WHERE id = ${p.id}`);
+    await touchEntity('outreach', { projectId: slug });   // prospect changed → bust its outreach surface
   } catch { /* best-effort sync */ }
 }

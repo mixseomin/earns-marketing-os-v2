@@ -6,6 +6,7 @@
 
 import { eq, and, sql } from 'drizzle-orm';
 import { getDb, habitatChannels } from '@mos2/db';
+import { touchEntity } from '@/lib/entity-cascade';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -13,6 +14,20 @@ function ensureDb() {
   const db = getDb();
   if (!db) throw new Error('DATABASE_URL not configured.');
   return db;
+}
+
+// Resolve owning project_id for cache-cascade — habitat directly, or channel→habitat.
+async function projectIdForHabitat(db: NonNullable<ReturnType<typeof getDb>>, habitatId: number): Promise<string | null> {
+  const rows = await db.execute(sql`SELECT project_id FROM habitats WHERE id = ${habitatId} LIMIT 1`);
+  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  return r?.project_id ? String(r.project_id) : null;
+}
+async function projectIdForChannel(db: NonNullable<ReturnType<typeof getDb>>, channelId: number): Promise<string | null> {
+  const rows = await db.execute(sql`
+    SELECT h.project_id FROM habitat_channels c JOIN habitats h ON h.id = c.habitat_id
+     WHERE c.id = ${channelId} LIMIT 1`);
+  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+  return r?.project_id ? String(r.project_id) : null;
 }
 
 export interface HabitatChannelRow {
@@ -91,6 +106,7 @@ export async function createChannel(
     fewShotExamples: input.fewShotExamples ?? null,
     sortOrder: input.sortOrder ?? 0,
   }).returning({ id: habitatChannels.id });
+  await touchEntity('habitat', { projectId: await projectIdForHabitat(db, habitatId) });
   return { ok: true, id: inserted[0]?.id };
 }
 
@@ -110,13 +126,16 @@ export async function updateChannel(
   if (patch.fewShotExamples !== undefined) set.fewShotExamples = patch.fewShotExamples;
   if (patch.sortOrder != null) set.sortOrder = patch.sortOrder;
   await db.update(habitatChannels).set(set).where(eq(habitatChannels.id, id));
+  await touchEntity('habitat', { projectId: await projectIdForChannel(db, id) });
   return { ok: true };
 }
 
 export async function deleteChannel(id: number): Promise<{ ok: boolean }> {
   const db = ensureDb();
+  const projectId = await projectIdForChannel(db, id);   // resolve BEFORE delete (row gone after)
   await db.delete(habitatChannels)
     .where(and(eq(habitatChannels.id, id), eq(habitatChannels.tenantId, TENANT)));
+  await touchEntity('habitat', { projectId });
   return { ok: true };
 }
 
@@ -149,5 +168,6 @@ export async function bulkReplaceChannels(
       await createChannel(habitatId, { ...c, sortOrder: i });
     }
   }
+  await touchEntity('habitat', { projectId: await projectIdForHabitat(db, habitatId) });
   return { ok: true, count: channels.length };
 }

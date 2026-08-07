@@ -24,7 +24,7 @@ export type EntityKind =
   | 'identity' | 'outreach' | 'platform' | 'technology' | 'project' | 'knowledge'
   | 'resource' | 'backlink' | 'publication' | 'scene' | 'team-member' | 'inbox'
   | 'library' | 'roadmap' | 'environment' | 'scheduler' | 'use-case' | 'unmapped'
-  | 'alert' | 'ai' | 'content' | 'ext-token' | 'session' | 'plan';
+  | 'alert' | 'ai' | 'content' | 'ext-token' | 'session' | 'plan' | 'pillar' | 'habitat';
 
 export interface Dep {
   /** Project sub-sections → revalidatePath(`/p/${projectId}/${s}`). Needs ctx.projectId(s). */
@@ -51,7 +51,9 @@ export const ENTITY_DEPS: Record<EntityKind, Dep> = {
   offer:        { tags: ['affiliate-offers'] },
   brief:        { sections: ['resources', 'seeding', 'tribes'] },
   seeding:      { sections: ['board', 'resources', 'seeding', 'tribes'] },
-  tribe:        { sections: ['seeding', 'tribes'], pages: ['/p/[id]/tribes'], paths: ['/platforms'] },
+  tribe:        { sections: ['seeding', 'tribes'], pages: ['/p/[id]/tribes'], paths: ['/platforms', '/communities'] },
+  pillar:       { sections: ['pillars'], paths: ['/architecture'] },
+  habitat:      { sections: ['tribes', 'seeding'], pages: ['/p/[id]/tribes'], paths: ['/communities', '/platforms', '/architecture'] },
   card:         { sections: ['board'], self: true },
   squad:        { sections: ['board', 'squads'], self: true },
   agent:        { sections: ['squads'], paths: ['/agents'] },
@@ -64,7 +66,7 @@ export const ENTITY_DEPS: Record<EntityKind, Dep> = {
   resource:     { sections: ['resources'] },
   backlink:     { sections: ['backlinks', 'plays'], pages: ['/p/[id]/backlinks', '/p/[id]/plays', '/plays'], paths: ['/catalog'] },
   publication:  { sections: ['publications'] },
-  scene:        { paths: ['/architecture'] },
+  scene:        { paths: ['/architecture'], pages: ['/p/[id]/scenes'] },
   'team-member': { sections: ['resources'], paths: ['/', '/team', '/inbox'], pages: ['/p/[id]/backlinks', '/p/[id]/inbox'] },
   inbox:        { paths: ['/inbox'] },
   library:      { paths: ['/library'] },

@@ -6,6 +6,7 @@
 
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { touchEntity, type EntityKind } from '@/lib/entity-cascade';
 import { BINDABLE_TABLES, OBJ_BY_KEY, isInstanceFieldEditable } from '@/components/architecture/spec';
 import { METRIC_PAGE_KIND, getMetricFieldSchema, isMetricApplicable, type MetricKey } from '@/lib/metric-field-schema';
 import { setOverride } from './habitat-selectors';
@@ -285,6 +286,32 @@ export async function browseInstances(
 // Generic field edit cho InstanceDetail (sửa thẳng trong drawer). Gửi VALUE string|null,
 // Postgres tự cast theo kiểu cột (text/int/bool/jsonb/date). isInstanceFieldEditable ở spec.ts
 // (sync helper — 'use server' chỉ export được async fn).
+// Generic instance CRUD writes an arbitrary BINDABLE table; map that DB table → the cache-cascade
+// EntityKind so the right surfaces bust. Keyed by real table name (obj.table). Tables not listed are
+// doc/registry-only for cascade purposes → skip the touch (no live surface derives from them here).
+const INSTANCE_KIND: Record<string, EntityKind> = {
+  platforms: 'platform',
+  platform_technologies: 'technology',
+  platform_accounts: 'account',
+  identities: 'identity',
+  browser_profiles: 'environment',
+  proxies: 'environment',
+  people: 'scene',
+  scene_identities: 'scene',
+  ext_tokens: 'ext-token',
+};
+// Best-effort project scope for a generic instance row: read project_id if the table carries it.
+async function instanceProjectId(obj: { table: string | null; pk?: string | null }, id: string): Promise<string | null> {
+  const db = getDb();
+  if (!db || !obj.table) return null;
+  try {
+    const cols = await tableColumns(obj.table);
+    if (!cols.has('project_id')) return null;
+    const r = await db.execute(sql`SELECT project_id FROM ${sql.raw(ident(obj.table))} WHERE ${sql.raw(ident(obj.pk || 'id'))}::text = ${id} LIMIT 1`);
+    return (r as unknown as Array<{ project_id: string | null }>)[0]?.project_id ?? null;
+  } catch { return null; }
+}
+
 export async function updateInstanceField(
   objectKey: string, id: string, col: string, value: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
@@ -301,8 +328,21 @@ export async function updateInstanceField(
   const pk = ident(obj.pk || 'id');
   try {
     await db.execute(sql`UPDATE ${sql.raw(ident(obj.table))} SET ${sql.join(sets, sql`, `)} WHERE ${sql.raw(pk)}::text = ${id}`);
+    const kind = INSTANCE_KIND[obj.table];
+    if (kind) await touchEntity(kind, { projectId: await instanceProjectId(obj, id) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
+}
+
+// Resolve a backlink task's owning project for cache-cascade (touchEntity). Best-effort:
+// null → touchEntity still busts the shared backlink pages/paths (project sections are skipped).
+async function taskProjectId(taskId: number): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const r = await db.execute(sql`SELECT project_id FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' LIMIT 1`);
+    return (r as unknown as Array<{ project_id: string | null }>)[0]?.project_id ?? null;
+  } catch { return null; }
 }
 
 // Backlink node (Option B): set per-site status + per-site live URL trong prep_payload
@@ -337,6 +377,8 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
       await db.execute(sql`UPDATE human_tasks SET status = 'pending', completed_at = NULL, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status = 'completed'`);
     }
     await syncTaskToProspect(taskId, site, status);   // reflect onto the linked outreach prospect
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
+    await touchEntity('outreach', { projectId: site });   // prospect is keyed by project_id = site slug
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -356,6 +398,7 @@ export async function setBacklinkSchedule(taskId: number, site: string, date: st
     await db.execute(sql`
       UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -369,6 +412,7 @@ export async function setBacklinkDraftImages(taskId: number, urls: string[]): Pr
     await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
       || jsonb_build_object('draft_images', ${JSON.stringify(clean)}::jsonb), updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -385,6 +429,7 @@ export async function setBacklinkNote(taskId: number, note: string): Promise<{ o
     await db.execute(sql`
       UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) ${merge}, updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -433,6 +478,7 @@ export async function setBacklinkBlocker(taskId: number, reason: string, shot?: 
       await db.execute(sql`UPDATE human_tasks SET prep_payload = (prep_payload - 'blocker') || jsonb_build_object('resolved', ${res}), updated_at = now()
         WHERE platform_key = 'backlink' AND (prep_payload->'blocker'->>'origin')::int = ${taskId} AND (prep_payload->'blocker'->>'paused') = 'true'`);
     }
+    await touchEntity('backlink', { projectId: proj === '?' ? null : proj });   // siblings on other projects covered by bust-all pages
     return { ok: true, paused };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -445,6 +491,7 @@ export async function seenBacklinkResolved(taskId: number): Promise<{ ok: boolea
   try {
     await db.execute(sql`UPDATE human_tasks SET prep_payload = prep_payload - 'resolved', updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink' AND (prep_payload ? 'resolved')`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch { return { ok: false }; }
 }
@@ -469,6 +516,7 @@ export async function submitDraftReview(taskId: number, action: 'approve' | 'cha
     await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb)
       || jsonb_build_object('draft_review', ${next}), updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true, status: status ?? undefined };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -487,6 +535,7 @@ export async function removeBacklinkSite(taskId: number, site: string): Promise<
         || jsonb_build_object('site_url',    (COALESCE(prep_payload->'site_url',    '{}'::jsonb) - ${site}::text)),
         updated_at = now()
       WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -514,6 +563,7 @@ export async function splitBacklinkTask(taskId: number, titleA: string, titleB: 
       VALUES (${row.tenant_id}, ${row.project_id}, ${b}, ${row.instructions || ''}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${row.account_id ?? null}, ${row.assigned_user_id ?? null}, 'pending')
       RETURNING id`);
     const newId = Number((ins as unknown as Array<{ id: number }>)[0]?.id);
+    await touchEntity('backlink', { projectId: (row.project_id as string | null) ?? null });
     return { ok: true, newId };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -530,6 +580,7 @@ export async function setBacklinkAccount(taskId: number, accountId: number | nul
       if (!(chk as unknown as unknown[]).length) return { ok: false, error: 'account không tồn tại' };
     }
     await db.execute(sql`UPDATE human_tasks SET account_id = ${accountId}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -553,6 +604,7 @@ export async function deleteBacklinkTask(taskId: number): Promise<{ ok: boolean;
   try {
     const r = await db.execute(sql`DELETE FROM human_tasks WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING *`);
     const row = (r as unknown as Array<Record<string, unknown>>)[0];
+    if (row) await touchEntity('backlink', { projectId: (row.project_id as string | null) ?? null });
     return row ? { ok: true, row } : { ok: false, error: 'không tìm thấy task' };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -581,6 +633,7 @@ export async function dropBacklinkSiblings(taskId: number, reason?: string): Pro
       ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify([entry])}::jsonb || (CASE WHEN jsonb_typeof(app_settings.value) = 'array' THEN app_settings.value ELSE '[]'::jsonb END), updated_at = now()`);
     // trim to 50 (separate statement to keep the concat simple)
     await db.execute(sql`UPDATE app_settings SET value = (SELECT jsonb_agg(e) FROM (SELECT e FROM jsonb_array_elements(value) e LIMIT 50) t) WHERE key = 'dropped_backlink_sources' AND jsonb_array_length(value) > 50`);
+    await touchEntity('backlink', { projectIds: rows.map((x) => (x.project_id as string | null) ?? null) });
     return { ok: true, rows, count: rows.length };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -605,6 +658,7 @@ export async function restoreDroppedSource(id: string): Promise<{ ok: boolean; c
     const rows = entry.rows || [];
     for (const row of rows) await restoreBacklinkTask(row);
     await db.execute(sql`UPDATE app_settings SET value = COALESCE((SELECT jsonb_agg(e) FROM jsonb_array_elements(value) e WHERE e->>'id' <> ${id}), '[]'::jsonb), updated_at = now() WHERE key = 'dropped_backlink_sources'`);
+    await touchEntity('backlink', { projectIds: rows.map((x) => (x.project_id as string | null) ?? null) });
     return { ok: true, count: rows.length };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -620,6 +674,7 @@ export async function restoreBacklinkTask(row: Record<string, unknown>): Promise
       INSERT INTO human_tasks (id, tenant_id, project_id, title, instructions, prep_payload, platform_key, account_id, assigned_user_id, status, notes, publish_url, screenshot_url, created_at)
       VALUES (${row.id}, ${row.tenant_id ?? 'self'}, ${row.project_id ?? null}, ${row.title ?? ''}, ${row.instructions ?? ''}, ${JSON.stringify(pp)}::jsonb, 'backlink', ${row.account_id ?? null}, ${row.assigned_user_id ?? null}, ${row.status ?? 'pending'}, ${row.notes ?? null}, ${row.publish_url ?? null}, ${row.screenshot_url ?? null}, ${row.created_at ?? null})
       ON CONFLICT (id) DO NOTHING`);
+    await touchEntity('backlink', { projectId: (row.project_id as string | null) ?? null });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -705,6 +760,7 @@ export async function verifyBacklink(taskId: number, site: string, targetHost: s
     if (!/^https?:\/\//.test(liveUrl)) return { ok: false, error: 'chưa có live URL để kiểm tra' };
     const result = await checkLink(liveUrl, host);
     await persistVerify(taskId, site, result);
+    await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     return { ok: true, result };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -729,6 +785,8 @@ export async function verifyAllBacklinks(site: string, targetHost: string): Prom
       checked++;
       if (result.reachable && !result.found && !result.mentioned) broken++;
     }
+    // Spans many tasks/projects for this site → no single projectId; backlink's bust-all pages cover all instances.
+    await touchEntity('backlink');
     return { ok: true, checked, broken };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -760,6 +818,8 @@ export async function updateInstance(
   const pk = ident(obj.pk || 'id');
   try {
     await db.execute(sql`UPDATE ${sql.raw(ident(obj.table))} SET ${sql.join(sets, sql`, `)} WHERE ${sql.raw(pk)}::text = ${id}`);
+    const kind = INSTANCE_KIND[obj.table];
+    if (kind) await touchEntity(kind, { projectId: await instanceProjectId(obj, id) });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'update failed' }; }
 }
@@ -790,7 +850,10 @@ export async function createInstance(objectKey: string, values: Record<string, s
   const pk = ident(obj.pk || 'id');
   try {
     const r = await db.execute(sql`INSERT INTO ${sql.raw(ident(obj.table))} (${sql.raw(names.join(', '))}) VALUES (${sql.join(vals, sql`, `)}) RETURNING ${sql.raw(pk)}::text AS id`);
-    return { ok: true, id: (r as unknown as Array<{ id: string }>)[0]?.id };
+    const newId = (r as unknown as Array<{ id: string }>)[0]?.id;
+    const kind = INSTANCE_KIND[obj.table];
+    if (kind) await touchEntity(kind, { projectId: projectId ?? (newId ? await instanceProjectId(obj, newId) : null) });
+    return { ok: true, id: newId };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'insert failed' }; }
 }
 // Trả về snapshot row đã xoá (cho undo). View auto-updatable → xoá row base.
@@ -804,6 +867,8 @@ export async function deleteInstance(objectKey: string, id: string): Promise<{ o
     const snap = await db.execute(sql`SELECT * FROM ${sql.raw(ident(obj.table))} WHERE ${sql.raw(pk)}::text = ${id} LIMIT 1`);
     const row = (snap as unknown as Array<Record<string, unknown>>)[0];
     await db.execute(sql`DELETE FROM ${sql.raw(ident(obj.table))} WHERE ${sql.raw(pk)}::text = ${id}`);
+    const kind = INSTANCE_KIND[obj.table];
+    if (kind) await touchEntity(kind, { projectId: (row?.project_id as string | null) ?? null });
     return { ok: true, row };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'delete failed' }; }
 }
@@ -824,6 +889,8 @@ export async function restoreInstance(objectKey: string, row: Record<string, unk
   if (!names.length) return { ok: false, error: 'empty row' };
   try {
     await db.execute(sql`INSERT INTO ${sql.raw(ident(obj.table))} (${sql.raw(names.join(', '))}) VALUES (${sql.join(vals, sql`, `)})`);
+    const kind = INSTANCE_KIND[obj.table];
+    if (kind) await touchEntity(kind, { projectId: (row.project_id as string | null) ?? null });
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'restore failed' }; }
 }
@@ -1754,6 +1821,11 @@ export async function updateIdentity(id: number, patch: IdentityPatch): Promise<
         bio = COALESCE(${patch.bio ?? null}, bio),
         updated_at = now()
       WHERE id = ${id}`);
+    // identity dep has no bust-all page fallback → enumerate every project this persona is linked to.
+    const pr = await db.execute(sql`
+      SELECT project_id FROM identity_projects WHERE identity_id = ${id}
+      UNION SELECT project_id FROM identities WHERE id = ${id} AND project_id IS NOT NULL`);
+    await touchEntity('identity', { projectIds: (pr as unknown as Array<{ project_id: string | null }>).map((r) => r.project_id) });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -1797,6 +1869,9 @@ export async function setIdentityProjects(identityId: number, projectIds: string
     const cur = await db.execute(sql`SELECT project_id FROM identities WHERE id = ${identityId} LIMIT 1`);
     const home = (cur as unknown as Array<{ project_id: string | null }>)[0]?.project_id ?? null;
     const primary = (home && ids.includes(home)) ? home : (ids[0] ?? null);
+    // Capture the OLD membership so removed projects also get their identities section busted.
+    const beforeRows = await db.execute(sql`SELECT project_id FROM identity_projects WHERE identity_id = ${identityId}`);
+    const oldIds = (beforeRows as unknown as Array<{ project_id: string | null }>).map((r) => r.project_id);
     await db.transaction(async (tx) => {
       // ponytail: delete-all + re-insert (≤ vài chục project) — đơn giản, đúng trong 1 tx.
       await tx.execute(sql`DELETE FROM identity_projects WHERE identity_id = ${identityId}`);
@@ -1805,6 +1880,7 @@ export async function setIdentityProjects(identityId: number, projectIds: string
       }
       await tx.execute(sql`UPDATE identities SET project_id = ${primary}, updated_at = now() WHERE id = ${identityId}`);
     });
+    await touchEntity('identity', { projectIds: Array.from(new Set([...oldIds, ...ids, home])) });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

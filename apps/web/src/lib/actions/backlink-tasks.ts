@@ -10,6 +10,7 @@ import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 import { detectPlatformKeyFromUrl, canonPlatformKey } from '@/lib/habitat-platform-map';
 import { getBacklinkAccountType, readinessBucket, pickBestAccount, recommendedAccountRole, type BacklinkAccountType, type ReadinessBucket, type AccountRole } from '@/lib/backlink-account-type';
 import { resolveSeedGates, type SeedGate } from '@/lib/link-gate-resolve';
+import { touchEntity } from '@/lib/entity-cascade';
 
 export interface BacklinkVerify { reachable: boolean; found: boolean; dofollow: boolean; mentioned?: boolean; httpStatus: number | null; checkedAt: string }
 
@@ -380,11 +381,14 @@ export async function setBacklinkTier(taskId: number, tier: 'A' | 'B' | 'C' | nu
   if (!db) return { ok: false, error: 'no-db' };
   if (tier !== null && !['A', 'B', 'C'].includes(tier)) return { ok: false, error: 'bad tier' };
   try {
+    let upd: unknown;
     if (tier === null) {
-      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'tier', updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+      upd = await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'tier', updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING project_id`);
     } else {
-      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('tier', to_jsonb(${tier}::text)), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+      upd = await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) || jsonb_build_object('tier', to_jsonb(${tier}::text)), updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' RETURNING project_id`);
     }
+    const projectId = (upd as unknown as Array<{ project_id: string | null }>)[0]?.project_id ?? null;
+    await touchEntity('backlink', { projectId });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e).slice(0, 120) };

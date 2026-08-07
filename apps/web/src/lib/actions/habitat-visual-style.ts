@@ -10,6 +10,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getOpenAI, aiEnabled } from '@/lib/ai/openai';
+import { touchEntity } from '@/lib/entity-cascade';
 
 export async function inferHabitatVisualStyle(
   habitatId: number,
@@ -22,7 +23,7 @@ export async function inferHabitatVisualStyle(
 
   // Pull icon + descriptive fields cho vision context.
   const rows = await db.execute(sql`
-    SELECT id, name, kind, icon_url, posting_rules, dominant_topics, community_type
+    SELECT id, name, kind, icon_url, posting_rules, dominant_topics, community_type, project_id
       FROM habitats WHERE id = ${habitatId} LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
@@ -64,6 +65,7 @@ export async function inferHabitatVisualStyle(
       UPDATE habitats SET visual_style_descriptor = ${descriptor}, updated_at = now()
       WHERE id = ${habitatId}
     `);
+    await touchEntity('habitat', { projectId: r.project_id ? String(r.project_id) : null });
     return { ok: true, descriptor };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

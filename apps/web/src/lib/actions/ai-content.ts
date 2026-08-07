@@ -13,6 +13,7 @@ import { BACKLINK_INSTRUCTION_TEMPLATE } from '@/lib/backlink-instruction-templa
 import { getCurrentUser } from '@/lib/auth';
 import { buildContentPrompt, type AiContentCtx } from '@/lib/ai/backlink-content-prompt';
 import { distillDom, getDomGrounding, prepFillFieldsCore, type FillField, type PrepFillOpts, type PrepFillIdentityMeta } from '@/lib/ai/prep-fill-core';
+import { touchEntity } from '@/lib/entity-cascade';
 
 export type { AiContentCtx, FillField, PrepFillOpts, PrepFillIdentityMeta };
 
@@ -85,8 +86,8 @@ export async function normalizeInstructions(taskId: number, opts?: { sampleId?: 
   const db = getDb(); if (!db) return { ok: false, error: 'no db' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
   try {
-    const rows = await db.execute(sql`SELECT ht.instructions, ht.prep_payload->>'source_url' src, ht.prep_payload->>'mechanism' mech, ht.title, p.one_liner, p.website FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id WHERE ht.id = ${taskId} AND ht.platform_key = 'backlink' LIMIT 1`);
-    const r = (rows as unknown as Array<{ instructions: string | null; src: string | null; mech: string | null; title: string | null; one_liner: string | null; website: string | null }>)[0];
+    const rows = await db.execute(sql`SELECT ht.instructions, ht.project_id, ht.prep_payload->>'source_url' src, ht.prep_payload->>'mechanism' mech, ht.title, p.one_liner, p.website FROM human_tasks ht LEFT JOIN projects p ON p.id = ht.project_id WHERE ht.id = ${taskId} AND ht.platform_key = 'backlink' LIMIT 1`);
+    const r = (rows as unknown as Array<{ instructions: string | null; project_id: string | null; src: string | null; mech: string | null; title: string | null; one_liner: string | null; website: string | null }>)[0];
     if (!r) return { ok: false, error: 'task not found' };
     // MECHANISM — a task derived from the catalog is source-driven. Reshaping it here sets
     // custom_instructions=true and DETACHES it → silent drift from the shared template (the exact bug
@@ -124,6 +125,7 @@ Viết lại hướng dẫn task này theo ĐÚNG khuôn trên. ${g.prov ? 'CÓ 
       ? sql`, prep_payload = (COALESCE(prep_payload, '{}'::jsonb) - 'instr_inferred') || jsonb_build_object('custom_instructions', true, 'grounded', ${JSON.stringify({ at: new Date().toISOString(), host: g.prov.host, source: g.prov.source, sampleId: g.prov.sampleId, sampleAt: g.prov.sampleAt })}::jsonb)`
       : sql`, prep_payload = (COALESCE(prep_payload, '{}'::jsonb) - 'grounded') || jsonb_build_object('custom_instructions', true, 'instr_inferred', true)`;
     await db.execute(sql`UPDATE human_tasks SET instructions = ${text}${groundStamp}, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    await touchEntity('backlink', { projectId: r.project_id });
     return { ok: true, instructions: text, grounded: !!g.prov };
   } catch (e) {
     return { ok: false, error: `chuẩn hoá lỗi: ${(e as Error).message || String(e)}` };
@@ -166,6 +168,7 @@ export async function normalizeProjectInstructions(projectId: string): Promise<{
       const r = await normalizeInstructions(id);
       if (r.ok) done++; else failed++;
     }
+    await touchEntity('backlink', { projectId });
     return { ok: true, done, failed };
   } catch (e) {
     return { ok: false, done: 0, failed: 0, error: (e as Error).message || String(e) };

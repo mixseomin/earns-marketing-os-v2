@@ -35,22 +35,13 @@ import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
+import { SITE_STATUS_META, SITE_STATUSES } from '@/lib/site-status';
 
 // One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
 // it drives BOTH the status picker (StatusSegmented) and the tabs/KPI, so they never
 // diverge (no separate tab-rollup vocabulary). Tabs = these statuses + "All".
-const SITE_STATUS: Record<string, { label: string; color: string }> = {
-  pending:   { label: 'To do',      color: '#8a92a3' },
-  claimed:   { label: 'In progress', color: '#ffb03c' },
-  submitted: { label: 'Submitted',  color: '#9d6cff' },  // posted, awaiting moderation/approval — link not live yet
-  completed: { label: 'Completed',  color: '#5badff' },
-  verified:  { label: 'Verified',   color: '#22c55e' },
-  broken:    { label: 'Link lỗi',   color: '#ef4444' },  // was live, a re-check found the link gone — needs re-do (auto-set by the health-check cron)
-  // ĐÃ BỎ ≠ ĐÃ XONG. Trước đây việc bị loại khỏi kế hoạch (eToro/Webull: forex cấm ở VN) phải
-  // đóng bằng 'completed' vì không có chỗ khác → cột Completed đọc ra sai, như thể đã làm xong.
-  dropped:   { label: 'Đã bỏ',      color: '#6b7280' },
-};
-const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken', 'dropped'] as const;
+const SITE_STATUS: Record<string, { label: string; color: string }> = SITE_STATUS_META;
+const STATUS_ORDER = SITE_STATUSES;
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
 const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);

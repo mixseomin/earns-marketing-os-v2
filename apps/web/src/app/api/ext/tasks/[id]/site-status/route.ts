@@ -3,16 +3,13 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../../../_auth';
 import { setBacklinkSite } from '@/lib/actions/architecture';
+import { isSiteStatus } from '@/lib/site-status';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/ext/tasks/[id]/site-status  { status, url? }
 // Cập nhật trạng thái per-site của backlink task (site key = project_id = slug). Reuse setBacklinkSite
 // (roll-up row status + stamp done/submitted). url không truyền → GIỮ url cũ (ko wipe khi chỉ đổi status).
-// 'dropped' = LOẠI khỏi kế hoạch, khác 'completed' = đã làm xong. Thiếu nó thì việc bị bỏ
-// phải đóng bằng 'completed' và cột Completed đọc ra sai. Phải khớp SITE_STATUS ở
-// components/backlinks-page.tsx — hai danh sách lệch nhau thì API im lặng từ chối.
-const STATUSES = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken', 'dropped'];
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const err = await checkAuth(req); if (err) return err;
@@ -22,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!Number.isFinite(taskId)) return NextResponse.json({ ok: false, error: 'bad id' }, { status: 400 });
   const body = await req.json().catch(() => ({})) as { status?: string; url?: string };
   const status = String(body.status || '').trim();
-  if (!STATUSES.includes(status)) return NextResponse.json({ ok: false, error: 'bad status' }, { status: 400 });
+  if (!isSiteStatus(status)) return NextResponse.json({ ok: false, error: 'bad status' }, { status: 400 });
 
   const rows = await db.execute(sql`
     SELECT project_id, (prep_payload->'site_url') ->> project_id AS site_url

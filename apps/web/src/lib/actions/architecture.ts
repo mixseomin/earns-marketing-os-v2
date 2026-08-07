@@ -13,6 +13,7 @@ import { syncTaskToProspect } from './backlink-outreach-sync';
 import { siteTimingMerges } from '../backlink-timing';
 import { uploadToR2 } from '@/lib/r2';
 import { getCurrentUser } from '@/lib/auth';
+import { isSiteStatus } from '@/lib/site-status';
 
 type Row = Record<string, unknown>;
 
@@ -310,7 +311,7 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const db = getDb();
   if (!db) return { ok: false, error: 'no-db' };
   if (!/^[a-z0-9_-]+$/.test(site)) return { ok: false, error: 'bad site' };
-  if (!['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'].includes(status)) return { ok: false, error: 'bad status' };
+  if (!isSiteStatus(status)) return { ok: false, error: 'bad status' };
   const u = (url || '').trim();
   const nowIso = new Date().toISOString();
   try {

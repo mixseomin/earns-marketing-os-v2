@@ -172,9 +172,24 @@ function GumroadBlock({ g }: { g: GumroadSummary }) {
     { key: 'live', label: 'Đang bán', value: `${g.livePaid} + ${g.liveFree}`, color: 'var(--neon-cyan)', title: `${g.livePaid} trả phí + ${g.liveFree} miễn phí (lead magnet)` },
     { key: 'disc', label: 'Thiếu tag/category', value: fmtInt(g.missingDiscover), color: g.missingDiscover ? 'var(--warn)' : 'var(--ok)', title: 'Thiếu = không lên được Gumroad Discover' },
   ];
+  // Nhiều store Gumroad = nhiều tài khoản riêng, mỗi cái một token. Liệt kê thẳng ra để
+  // thấy trang này đang đọc được store NÀO — trước đây chỉ đọc 1 token nên store khác
+  // vắng mặt mà không ai biết, trông như sản phẩm bị mất.
+  const stores = g.stores ?? [];
   return (
-    <Section title="Sản phẩm bán ra · Gumroad (CodeCrate)" subtitle="hàng mình bán, không phải affiliate">
+    <Section title={`Sản phẩm bán ra · Gumroad${stores.length === 1 ? ` (${stores[0]!.handle})` : ''}`} subtitle="hàng mình bán, không phải affiliate">
       <StatsStrip cards={cards} />
+      {stores.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, fontSize: 11 }}>
+          <span style={{ color: 'var(--fg-4)' }}>Store đọc được:</span>
+          {stores.map((s) => (
+            <Pill key={s.handle + s.source} size="xs" tone="soft"
+              color={s.error ? 'var(--warn)' : 'var(--fg-3)'}
+              label={s.error ? `${s.handle} · lỗi` : `${s.handle} · ${s.products} SP`}
+              title={s.error ? `${s.error} (token từ ${s.source})` : `${s.url} · token từ ${s.source === 'vault' ? 'vault' : 'env'}`} />
+          ))}
+        </div>
+      )}
       {g.products.length === 0 ? (
         <EmptyState icon="📦" compact title="Store chưa có sản phẩm nào" />
       ) : (
@@ -182,11 +197,12 @@ function GumroadBlock({ g }: { g: GumroadSummary }) {
           {g.products.map((p) => {
             const ready = p.tags.length > 0 && !!p.category && p.category !== 'other';
             return (
-              <tr key={p.id}>
+              <tr key={p.store + p.id}>
                 <td style={{ fontWeight: 500 }}>
                   {p.url
                     ? <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{p.name}</a>
                     : <span style={{ color: 'var(--fg-0)' }}>{p.name}</span>}
+                  {stores.length > 1 && <Pill label={p.store} color="var(--fg-4)" size="xs" tone="soft" />}
                   {!p.published && <Pill label="draft" color="var(--fg-3)" size="xs" tone="soft" />}
                 </td>
                 <td>{p.priceCents === 0 ? <Pill label="free" color="var(--neon-cyan)" size="xs" tone="soft" /> : fmtUSD(p.priceCents / 100)}</td>

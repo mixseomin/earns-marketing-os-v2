@@ -9,7 +9,10 @@ export const dynamic = 'force-dynamic';
 // POST /api/ext/tasks/[id]/site-status  { status, url? }
 // Cập nhật trạng thái per-site của backlink task (site key = project_id = slug). Reuse setBacklinkSite
 // (roll-up row status + stamp done/submitted). url không truyền → GIỮ url cũ (ko wipe khi chỉ đổi status).
-const STATUSES = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'];
+// 'dropped' = LOẠI khỏi kế hoạch, khác 'completed' = đã làm xong. Thiếu nó thì việc bị bỏ
+// phải đóng bằng 'completed' và cột Completed đọc ra sai. Phải khớp SITE_STATUS ở
+// components/backlinks-page.tsx — hai danh sách lệch nhau thì API im lặng từ chối.
+const STATUSES = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken', 'dropped'];
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const err = await checkAuth(req); if (err) return err;

@@ -3,6 +3,7 @@ import { sql, eq } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { firstRow, errorResponse } from '@/lib/ext-route';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -40,10 +41,13 @@ export async function POST(req: Request) {
   const iconUrl = (b.iconUrl || '').trim() || null;
 
   // platform FK guard (mirror /habitats POST)
-  if (platformKey) {
-    const ex = await db.select({ key: platforms.key }).from(platforms).where(eq(platforms.key, platformKey)).limit(1);
+  // Chuẩn hoá key TRƯỚC khi tạo row: host-slug từ ext (ui.awin.com → ui-awin-com) phải
+  // về platform đã có (awin), không đẻ row thứ hai. Xem lib/resolve-platform.ts.
+  const platformKeyCanon = platformKey ? await reconcilePlatformKey(db, platformKey) : platformKey;
+  if (platformKeyCanon) {
+    const ex = await db.select({ key: platforms.key }).from(platforms).where(eq(platforms.key, platformKeyCanon)).limit(1);
     if (ex.length === 0) {
-      await db.insert(platforms).values({ key: platformKey, label: b.title || name, signupUrl: b.url || '', priority: 'medium' }).onConflictDoNothing();
+      await db.insert(platforms).values({ key: platformKeyCanon, label: b.title || name, signupUrl: b.url || '', priority: 'medium' }).onConflictDoNothing();
     }
   }
 

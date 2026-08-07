@@ -7,6 +7,7 @@ import { touchEntity } from '@/lib/entity-cascade';
 import { eq, sql } from 'drizzle-orm';
 import { getDb, platforms } from '@mos2/db';
 import type { SignupField } from './technologies';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 import {
   fetchDirectusPlatformCatalog, directusEnabled,
   findDirectusPlatformBySlug, createDirectusPlatform, updateDirectusPlatform,
@@ -417,7 +418,7 @@ export async function adoptTemplate(input: {
   platformKey: string; technologyKey: string | null; label?: string; signupUrl?: string;
 }): Promise<{ ok: boolean; created?: boolean; error?: string }> {
   const db = ensureDb();
-  const key = input.platformKey.trim();
+  const key = await reconcilePlatformKey(db, input.platformKey.trim());   // tái dùng platform đã có, đừng đẻ trùng
   if (!key) return { ok: false, error: 'platformKey required' };
   try {
     const res = await db.execute(sql`

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { getDb, habitats, platforms, platformTechnologies } from '@mos2/db';
 import { ilike, eq, and, or, sql } from 'drizzle-orm';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,29 +124,32 @@ export async function POST(req: Request) {
 
   if (body.target === 'platform') {
     if (!body.key) return NextResponse.json({ error: 'Missing platform key' }, { status: 400 });
+    // Ext gửi key sinh từ hostname; chuẩn hoá về platform đã có trước khi upsert, nếu không
+    // mỗi ghi chú/flag lại đẻ thêm một row trùng (ui.awin.com cạnh awin). Xem lib/resolve-platform.ts.
+    const pkCanon = await reconcilePlatformKey(db, body.key);
     // flag-only update (email_verify_broken) must NOT clobber technologyKey → set per field provided.
     if (typeof body.emailVerifyBroken === 'boolean') {
-      await db.execute(sql`UPDATE platforms SET email_verify_broken = ${body.emailVerifyBroken}, updated_at = now() WHERE key = ${body.key}`);
+      await db.execute(sql`UPDATE platforms SET email_verify_broken = ${body.emailVerifyBroken}, updated_at = now() WHERE key = ${pkCanon}`);
     }
     if ('technologyKey' in body) {
-      await db.update(platforms).set({ technologyKey: body.technologyKey ?? null, updatedAt: new Date() }).where(eq(platforms.key, body.key));
+      await db.update(platforms).set({ technologyKey: body.technologyKey ?? null, updatedAt: new Date() }).where(eq(platforms.key, pkCanon));
     }
     // Platform KNOWLEDGE tự do (vd "Wikidata: auto-login xong VẪN phải confirm email"). Upsert vì platform
     // do ext tạo có thể chưa tồn tại. Reuse cột platforms.notes (ko đẻ bảng mới).
     if (typeof body.notes === 'string') {
-      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', notes: body.notes })
+      await db.insert(platforms).values({ key: pkCanon, label: body.key, signupUrl: '', notes: body.notes })
         .onConflictDoUpdate({ target: platforms.key, set: { notes: body.notes, updatedAt: new Date() } });
     }
     // Yêu cầu xác minh sau signup (map OUTCOMES: active/email/mod/phone) — nhớ per-platform.
     if (typeof body.signupVerify === 'string') {
-      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', signupVerify: body.signupVerify })
+      await db.insert(platforms).values({ key: pkCanon, label: body.key, signupUrl: '', signupVerify: body.signupVerify })
         .onConflictDoUpdate({ target: platforms.key, set: { signupVerify: body.signupVerify, updatedAt: new Date() } });
     }
     // P3 no-signup routing: phương thức lấy backlink khi ko tạo account (oauth_only/no_account_form/guest_post_email/gated/no_ugc).
     // '' = clear (chủ đích). Nhớ per-platform → advisor bỏ bước tạo account lần sau + report phân bổ nhân sự.
     if (typeof body.acquisitionMethod === 'string') {
       const am = body.acquisitionMethod.trim().slice(0, 40) || null;
-      await db.insert(platforms).values({ key: body.key, label: body.key, signupUrl: '', acquisitionMethod: am })
+      await db.insert(platforms).values({ key: pkCanon, label: body.key, signupUrl: '', acquisitionMethod: am })
         .onConflictDoUpdate({ target: platforms.key, set: { acquisitionMethod: am, updatedAt: new Date() } });
     }
     // P2.4: login challenges (mirror pattern signupVerify; cột raw jsonb → sql). Sanitize: giữ string fields

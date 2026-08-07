@@ -8,6 +8,7 @@ import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { postingRulesUrl as platformPostingRulesUrl } from '@/lib/platform-url-parsers';
 import { extractHabitatGates } from '@/lib/ai/habitat-gate-extract';
 import { logAiUsage } from '@/lib/ai/usage';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,14 +104,17 @@ export async function POST(req: Request) {
   // Ensure platform_key tồn tại trong platforms (habitats.platform_key là FK).
   // Forum lạ (xenforo/vbulletin/custom host-slug) chưa có row platforms → tạo
   // on-the-fly để không vi phạm habitats_platform_key_fkey. Mirror accounts POST.
+  // Chuẩn hoá key TRƯỚC khi tạo row: host-slug từ ext (ui.awin.com → ui-awin-com) phải
+  // về platform đã có (awin), không đẻ row thứ hai. Xem lib/resolve-platform.ts.
+  const platformKeyCanon = await reconcilePlatformKey(db, body.platform_key);
   const existingPlatform = await db
     .select({ key: platforms.key })
     .from(platforms)
-    .where(eq(platforms.key, body.platform_key))
+    .where(eq(platforms.key, platformKeyCanon))
     .limit(1);
   if (existingPlatform.length === 0) {
     await db.insert(platforms).values({
-      key: body.platform_key,
+      key: platformKeyCanon,
       label: body.title || body.name || body.platform_key,
       signupUrl: body.url || '',
       priority: 'medium',

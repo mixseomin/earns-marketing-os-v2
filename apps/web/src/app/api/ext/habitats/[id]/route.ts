@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { getDb, habitats, platforms } from '@mos2/db';
 import { checkAuth } from '../../_auth';
 import { errorResponse, firstRow } from '@/lib/ext-route';
+import { reconcilePlatformKey } from '@/lib/resolve-platform';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: Record<string, unknown> = { updatedAt: new Date() };
 
   if (body.platform_key) {
-    const pk = body.platform_key.trim();
+    const pk = await reconcilePlatformKey(db, body.platform_key.trim());   // ext gửi host-slug → về key chuẩn
     // Ensure platform tồn tại (FK habitats_platform_key_fkey).
     const exists = await db.select({ key: platforms.key }).from(platforms).where(eq(platforms.key, pk)).limit(1);
     if (exists.length === 0) {

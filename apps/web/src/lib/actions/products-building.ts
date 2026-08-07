@@ -17,6 +17,7 @@ export interface ProductChapter { id: number; title: string; order: number; char
 export interface ProductCard { id: number; title: string; status: string; date: string | null; }
 export interface BuildingProduct {
   slug: string;
+  projectId: string;       // trang toàn cục lọc theo project đang chọn — sản phẩm của project khác không được lẫn vào
   title: string;
   description: string;
   price: number | null;
@@ -40,11 +41,11 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
   if (!db) return [];
   try {
     const rows = await db.execute(sql`
-      SELECT id, kind, title, content, refs FROM knowledge_items
+      SELECT id, kind, title, content, refs, project_id AS "projectId" FROM knowledge_items
       WHERE kind IN ('product', 'product-chapter')
         AND (${projectId ?? null}::text IS NULL OR project_id = ${projectId ?? null})
       ORDER BY (refs->>'order')::int NULLS LAST, id`);
-    const items = rows as unknown as Array<{ id: number; kind: string; title: string; content: string; refs: Record<string, unknown> }>;
+    const items = rows as unknown as Array<{ id: number; kind: string; title: string; content: string; refs: Record<string, unknown>; projectId: string }>;
     const spines = items.filter((r) => r.kind === 'product');
     if (!spines.length) return [];
 
@@ -72,6 +73,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
       const done = cards.filter((c) => c.status === 'completed' || c.status === 'verified').length;
       return {
         slug,
+        projectId: s.projectId,
         title: s.title,
         description: s.content,
         price: s.refs?.price != null ? Number(s.refs.price) : null,

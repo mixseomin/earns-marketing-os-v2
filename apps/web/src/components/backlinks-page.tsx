@@ -175,7 +175,7 @@ const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
 // SẢN PHẨM ĐANG DỰNG — dải nổi ngay đầu bảng, vì đây là thứ đang thực sự được làm ra, còn
 // backlink/seeding chỉ là việc quanh nó. Bấm một ô → drawer đọc được cả bản thảo: trước đây bản
 // thảo nằm trong file ở máy cá nhân nên câu "muốn xem quyển sách thì vào đâu" không có chỗ trả lời.
-function ProductStrip({ products, onOpen }: { products: BuildingProduct[]; onOpen: (slug: string) => void }) {
+function ProductStrip({ products, projects, onOpen }: { products: BuildingProduct[]; projects?: Record<string, Project>; onOpen: (slug: string) => void }) {
   if (!products.length) return null;
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -189,6 +189,8 @@ function ProductStrip({ products, onOpen }: { products: BuildingProduct[]; onOpe
               background: 'var(--bg-1)', padding: '9px 12px', color: 'var(--fg-1)', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>📕 đang dựng</span>
+              {/* Ở bảng toàn cục mới cần nói sản phẩm của project nào; trong trang project thì thừa. */}
+              {projects?.[p.projectId] && <span style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>· {projects[p.projectId]!.emoji ?? ''} {projects[p.projectId]!.name}</span>}
               {p.price != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ok,#22c55e)', marginLeft: 'auto' }}>${p.price}</span>}
             </div>
             <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25 }}>{p.title}</div>
@@ -673,6 +675,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Chế độ lịch (tháng/tuần/ngày) đi vào URL như mọi state khác → F5 và chia sẻ link vẫn đúng chỗ.
   const [calMode, setCalMode] = useState<CalMode>(() => { const v = sp.get('cal'); return v === 'week' || v === 'day' ? v : 'month'; });
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
+  // Sản phẩm theo ĐÚNG project đang xem. Trang project đã lọc từ server; bảng toàn cục thì phải
+  // theo chip project đang chọn — nếu không, chọn một project vẫn thấy sản phẩm của project khác.
+  const shownProducts = useMemo(() => (allProjects && projectFilter ? products.filter((p) => p.projectId === projectFilter) : products), [products, allProjects, projectFilter]);
   // Work-type axis (the YDNI spine that scales to email later): '' = all, acquire = 🔗
   // one-shot backlink, seed = 🌱 community-seed (link-gated). Filters by communitySeed.
   const [workType, setWorkType] = useState<'' | 'acquire' | 'seed'>((sp.get('wt') as '' | 'acquire' | 'seed') || '');
@@ -1200,6 +1205,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {srcEdit && <SourceEditor initial={srcEdit} onClose={() => setSrcEdit(null)} onSaved={async () => { setSrcEdit(null); await reloadSeed(); }} />}
 
+      {/* Sản phẩm đang dựng đứng ĐẦU TRANG, trên cả KPI: đây là thứ đang được làm ra để bán, còn
+          backlink/seeding là việc quanh nó. Đặt dưới hai hàng filter như bản đầu là ngược thứ tự —
+          filter của bảng task không liên quan gì tới sản phẩm. */}
+      <ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} />
+
       {/* KPI */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         {([['total', 'Total', 'var(--fg-1)'], ...STATUS_ORDER.map((s) => [s, SITE_STATUS[s]!.label, SITE_STATUS[s]!.color] as const)] as const).map(([k, label, c]) => (
@@ -1278,9 +1288,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </div>
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
-      {/* Sản phẩm đang dựng đứng TRÊN mọi filter: đây là thứ đang được làm ra, backlink là việc quanh nó. */}
-      <ProductStrip products={products} onOpen={setOpenProd} />
-
       {allProjects && (() => {
         const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: (t.projectSlug || '') as string, label: t.projectLabel || t.projectSlug || '', emoji: t.projectEmoji || '' }])).values())
           .filter((p) => p.slug)

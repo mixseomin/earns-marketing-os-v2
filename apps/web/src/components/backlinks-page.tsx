@@ -16,7 +16,7 @@ import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
-import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode } from '@/components/ui';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
@@ -494,6 +494,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
+  // Chế độ lịch (tháng/tuần/ngày) đi vào URL như mọi state khác → F5 và chia sẻ link vẫn đúng chỗ.
+  const [calMode, setCalMode] = useState<CalMode>(() => { const v = sp.get('cal'); return v === 'week' || v === 'day' ? v : 'month'; });
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
   // Work-type axis (the YDNI spine that scales to email later): '' = all, acquire = 🔗
   // one-shot backlink, seed = 🌱 community-seed (link-gated). Filters by communitySeed.
@@ -592,6 +594,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('ready', readyFilter);
     set('tier', tierFilter);
     set('proj', allProjects ? projectFilter : '');
+    set('cal', calMode === 'month' ? '' : calMode);
     set('wt', workType);
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
@@ -606,7 +609,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, workType, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, calMode, workType, allProjects, view, groupBy, openId, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1145,7 +1148,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} />
+        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} mode={calMode} onModeChange={setCalMode} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {shown.length > 0 && listHead}

@@ -83,6 +83,10 @@ export function Drawer({
   //   shift   = total width of the drawers stacked ABOVE me → I translate left by this (left-cascade).
   //   isBottom= I'm the bottom-most drawer → I paint the dim scrim (others go transparent).
   const [shift, setShift] = useState(0);
+  // Chiều rộng THỰC SỰ vẽ ra. Khi có drawer chồng lên, drawer dưới phải CO LẠI cho vừa phần
+  // màn hình còn trống — nếu không thì dù dịch trái bao nhiêu vẫn chồng nhau (đo 07/08:
+  // task 720px + account 1040px = 1.760px trên màn 1.472px → chồng 354px, chữ bị cắt giữa dòng).
+  const [renderW, setRenderW] = useState(width);
   const [isBottom, setIsBottom] = useState(true);
   // Stack-derived backdrop z (panel = z+1). Recomputed from drawerStack position on every change,
   // so a drawer opened later always outranks one opened earlier — regardless of the zIndex prop.
@@ -92,9 +96,12 @@ export function Drawer({
   const idRef = useRef(0);
   // Effective rendered width (px), matching the panel's `min(w, 96vw)`. Registered in the stack so
   // the drawer BELOW me knows how far to cascade.
-  const effW = typeof window !== 'undefined' ? Math.min(w, window.innerWidth * 0.96) : w;
+  const effW = renderW;
   const effWRef = useRef(effW);
   effWRef.current = effW;
+  // Bề rộng NGƯỜI DÙNG yêu cầu (prop hoặc kéo tay). recompute co từ đây xuống cho vừa stack.
+  const reqWRef = useRef(w);
+  reqWRef.current = w;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;   // always latest, so the mount-once effect never restacks on identity change
   const escRef = useRef(closeOnEsc);
@@ -120,13 +127,21 @@ export function Drawer({
     const recompute = () => {
       const pos = drawerStack.indexOf(id);
       if (pos < 0) return;
-      let s = 0, f = 0.66;                          // top drawer's width counts most; then decays
-      for (let k = drawerStack.length - 1; k > pos; k--) {
-        s += f * (drawerW.get(drawerStack[k]!) ?? 0);
-        f *= 0.6;                                    // STEP_DECAY → Σ converges (≤ ~1.65×maxWidth)
-      }
-      const cap = typeof window !== 'undefined' ? window.innerWidth * 0.85 : s;
-      setShift(Math.min(s, cap));
+      const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
+      // TỔNG bề rộng thật của các drawer nằm TRÊN mình. Bản cũ dùng chuỗi suy giảm (0.66, rồi ×0.6)
+      // để không bị đẩy khỏi màn hình — nhưng dịch ÍT HƠN bề rộng của cái trên thì đương nhiên chồng
+      // lên nhau. Xếp cạnh thật sự đòi dịch ĐÚNG BẰNG tổng bề rộng ở trên; chỗ không đủ thì giải bằng
+      // CO BỀ RỘNG, không phải bằng dịch thiếu.
+      let above = 0;
+      for (let k = drawerStack.length - 1; k > pos; k--) above += drawerW.get(drawerStack[k]!) ?? 0;
+      // Drawer trên cùng không vượt quá 62% màn để cái dưới còn chỗ đọc được.
+      const topCap = drawerStack.length > 1 ? vw * 0.62 : vw * 0.96;
+      const mine = Math.min(reqWRef.current, pos === drawerStack.length - 1 ? topCap : vw * 0.96);
+      // Còn lại bao nhiêu thì mình rộng bấy nhiêu, tối thiểu 320px (dưới mức đó thì form vỡ).
+      const fit = Math.max(320, Math.min(mine, vw - above - 8));
+      setRenderW(fit);
+      drawerW.set(id, fit);
+      setShift(Math.min(above, Math.max(0, vw - fit)));   // không bao giờ đẩy ra khỏi mép trái
       setIsBottom(pos === 0);
       setZ(zFloorRef.current + pos * DRAWER_STEP);   // later in the stack ⇒ higher z ⇒ paints on top
     };
@@ -178,7 +193,7 @@ export function Drawer({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: z + 1,
-          width: `min(${w}px, 96vw)`, background: 'var(--bg-1)',
+          width: `${renderW}px`, background: 'var(--bg-1)',
           borderLeft: '1px solid var(--line-2)', boxShadow: '-12px 0 40px rgba(0,0,0,.5)',
           overflowY: 'auto', padding,
           transition: 'transform .2s ease, filter .2s ease',

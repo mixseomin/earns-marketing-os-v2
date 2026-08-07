@@ -1,101 +1,174 @@
 import { ENTITY_DEPS } from '@/lib/entity-cascade';
-import { Panel, SimpleTable } from './ui';
 
-// /cascade — the live view of "when an entity changes, what refreshes". Two halves:
-//   • Data-layer: real Postgres triggers (pg_trigger) that cascade row writes.
-//   • Cache-layer: the ENTITY_DEPS graph, rendered by-entity AND reversed by-surface.
-// It reads ENTITY_DEPS directly, so the page IS the verification surface (no hand-kept copy).
+// /cascade — "CRUD 1 entity → chuỗi hệ quả". Entity-centric, NOT route-string dump.
+// Per entity: ↔ liên kết (real FK + junction) · ⚙ trigger DB (pg_trigger) · ↻ màn refresh
+// (ENTITY_DEPS / touchEntity). Everything is derived from live DB metadata + the cascade map.
 
 export interface DbTrigger { table: string; name: string; func: string; def: string; }
+export interface FkEdge { src: string; col: string; tgt: string; }
 
-// Pull the timing + event ("AFTER INSERT OR UPDATE OF project_id") out of the trigger DDL.
-function eventOf(def: string): string {
-  const m = def.match(/\b(BEFORE|AFTER|INSTEAD OF)\s+(.+?)\s+ON\b/i);
-  return m ? `${m[1]!.toUpperCase()} ${m[2]!.replace(/\s+/g, ' ')}` : '—';
-}
+// Curated: DB table → the entity a human thinks in. `cache` = the matching touchEntity kind
+// (null = this entity has NO auto-refresh wired → surfaced as a gap ⚠, e.g. Habitat/Community).
+type EntityDef = { table: string; label: string; icon: string; cache: keyof typeof ENTITY_DEPS | null };
+const ENTITIES: EntityDef[] = [
+  { table: 'projects',           label: 'Project',        icon: '📁', cache: 'project' },
+  { table: 'platform_accounts',  label: 'Account',        icon: '🔐', cache: 'account' },
+  { table: 'browser_profiles',   label: 'BrowserProfile', icon: '🧬', cache: 'environment' },
+  { table: 'proxies',            label: 'Proxy',          icon: '🛰', cache: 'environment' },
+  { table: 'identities',         label: 'Identity',       icon: '👤', cache: 'identity' },
+  { table: 'platforms',          label: 'Platform',       icon: '🌐', cache: 'platform' },
+  { table: 'tribes',             label: 'Tribe',          icon: '◍', cache: 'tribe' },
+  { table: 'habitats',           label: 'Habitat / Community', icon: '🏘', cache: null },
+  { table: 'content_pillars',    label: 'Pillar',         icon: '📚', cache: null },
+  { table: 'community_briefs',   label: 'Brief',          icon: '📝', cache: 'brief' },
+  { table: 'cards',              label: 'Card',           icon: '📋', cache: 'card' },
+  { table: 'seeding_schedules',  label: 'Seeding',        icon: '⏱', cache: 'seeding' },
+  { table: 'outreach_campaigns', label: 'Outreach',       icon: '✉', cache: 'outreach' },
+  { table: 'squads',             label: 'Squad',          icon: '🤖', cache: 'squad' },
+  { table: 'agents',             label: 'Agent',          icon: '🧠', cache: 'agent' },
+  { table: 'people',             label: 'Person (Scene)', icon: '◎', cache: 'scene' },
+  { table: 'contacts',           label: 'Contact',        icon: '📇', cache: null },
+  { table: 'knowledge_items',    label: 'Knowledge',      icon: '📖', cache: 'knowledge' },
+  { table: 'human_tasks',        label: 'Task',           icon: '📥', cache: 'inbox' },
+  { table: 'members',            label: 'Team member',    icon: '👥', cache: 'team-member' },
+  { table: 'media_assets',       label: 'Media',          icon: '🎬', cache: 'resource' },
+];
 
-const chip = (bg: string, fg: string): React.CSSProperties => ({
-  display: 'inline-block', fontSize: 11, fontFamily: 'var(--font-mono)',
-  padding: '2px 7px', borderRadius: 5, background: bg, color: fg, marginRight: 4, marginBottom: 4,
-});
-const C = {
-  section: chip('#3c9bff22', '#8fc1ff'),   // project-scoped /p/[id]/x
-  self:    chip('#7d889922', '#c3ccd8'),    // /p/[id]
-  path:    chip('#9d6cff22', '#c3a6ff'),    // absolute route
-  page:    chip('#ffae4522', '#ffd08a'),    // route template (page)
-  tag:     chip('#22c98e22', '#7fe3c0'),    // cache tag
+const SECTION_LABEL: Record<string, string> = {
+  resources: 'Resources', seeding: 'Seeding', tribes: 'Tribes', board: 'Board', squads: 'Squads',
+  studio: 'Studio', settings: 'Settings', outreach: 'Outreach', identities: 'Identities',
+  backlinks: 'Backlinks', plays: 'Plays', publications: 'Publications', community: 'Community',
+};
+const PATH_LABEL: Record<string, string> = {
+  '/': 'All Projects', '/platforms': 'Platforms', '/architecture': 'Architecture', '/agents': 'Agents',
+  '/team': 'Team', '/inbox': 'Inbox', '/knowledge': 'Knowledge', '/library': 'Library', '/roadmap': 'Roadmap',
+  '/scheduler': 'Scheduler', '/tests': 'Tests', '/catalog': 'Catalog', '/plays': 'Plays',
+  '/environments': 'Environments', '/ai-log': 'AI Log', '/unmapped': 'Unmapped', '/p': 'Projects', '/communities': 'Communities',
 };
 
-export function CascadeView({ triggers }: { triggers: DbTrigger[] }) {
-  const kinds = Object.keys(ENTITY_DEPS).sort() as (keyof typeof ENTITY_DEPS)[];
+function eventOf(def: string): string {
+  const m = def.match(/\b(BEFORE|AFTER|INSTEAD OF)\s+(.+?)\s+ON\b/i);
+  return m ? `${m[1]!.toUpperCase()} ${m[2]!.replace(/\s+/g, ' ')}` : '';
+}
 
-  // Reverse index: surface → the entity kinds that invalidate it. This is the "relationship"
-  // view — one glance shows every entity feeding a given surface (and orphan surfaces show up
-  // as short lists / absences).
-  const rev: Record<string, string[]> = {};
-  const add = (surface: string, kind: string) => { (rev[surface] ||= []).push(kind); };
-  for (const k of kinds) {
-    const d = ENTITY_DEPS[k];
-    for (const s of d.sections ?? []) add(`/p/[id]/${s}`, k);
-    if (d.self) add('/p/[id]', k);
-    for (const p of d.paths ?? []) add(p, k);
-    for (const p of d.pages ?? []) add(`${p} ·page`, k);
-    for (const t of d.tags ?? []) add(`tag:${t}`, k);
+function refreshLabels(cache: keyof typeof ENTITY_DEPS | null): string[] {
+  if (!cache) return [];
+  const d = ENTITY_DEPS[cache];
+  const out: string[] = [];
+  for (const s of d.sections ?? []) out.push(SECTION_LABEL[s] ?? s);
+  if (d.self) out.push('Project overview');
+  for (const p of d.paths ?? []) out.push(PATH_LABEL[p] ?? p);
+  for (const p of d.pages ?? []) { const seg = p.replace('/p/[id]/', '').replace(/^\//, ''); out.push((SECTION_LABEL[seg] ?? PATH_LABEL[p] ?? seg) + ' ·all'); }
+  for (const t of d.tags ?? []) out.push('cache:' + t);
+  return [...new Set(out)];
+}
+
+const chipBase: React.CSSProperties = { display: 'inline-block', fontSize: 11.5, padding: '2px 8px', borderRadius: 6, marginRight: 5, marginBottom: 5, fontFamily: 'var(--font-sans)' };
+const rel = { ...chipBase, background: '#3c9bff1f', color: '#9cc7ff', border: '1px solid #3c9bff33' };       // belongs-to →
+const nn  = { ...chipBase, background: '#9d6cff22', color: '#c3a6ff', border: '1px solid #9d6cff40' };       // n-n ↔
+const use = { ...chipBase, background: 'transparent', color: 'var(--fg-3)', border: '1px solid var(--line)' };// used-by ⇠
+const ref = { ...chipBase, background: '#22c98e1c', color: '#7fe3c0', border: '1px solid #22c98e33' };       // refresh ↻
+const lineLbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', width: 74, flexShrink: 0, paddingTop: 4, textTransform: 'uppercase', letterSpacing: '.04em' };
+const rowStyle: React.CSSProperties = { display: 'flex', gap: 8, alignItems: 'flex-start' };
+
+export function CascadeView({ triggers, fks }: { triggers: DbTrigger[]; fks: FkEdge[] }) {
+  const byTable = new Map(ENTITIES.map((e) => [e.table, e]));
+  const entityTables = new Set(ENTITIES.map((e) => e.table));
+
+  const out = new Map<string, FkEdge[]>();   // src → edges
+  const inc = new Map<string, FkEdge[]>();   // tgt → edges
+  for (const f of fks) {
+    (out.get(f.src) ?? out.set(f.src, []).get(f.src)!).push(f);
+    (inc.get(f.tgt) ?? inc.set(f.tgt, []).get(f.tgt)!).push(f);
   }
-  const surfaces = Object.keys(rev).sort((a, b) => (rev[b]?.length ?? 0) - (rev[a]?.length ?? 0) || a.localeCompare(b));
+  // Junction = a NON-entity table whose FKs point at exactly 2 distinct entity tables → n-n link.
+  const junctions: { a: string; b: string; via: string }[] = [];
+  for (const [src, edges] of out) {
+    if (entityTables.has(src)) continue;
+    const tgts = [...new Set(edges.map((e) => e.tgt).filter((t) => entityTables.has(t)))];
+    if (tgts.length === 2) junctions.push({ a: tgts[0]!, b: tgts[1]!, via: src });
+  }
+  const trigByTable = new Map<string, DbTrigger[]>();
+  for (const t of triggers) (trigByTable.get(t.table) ?? trigByTable.set(t.table, []).get(t.table)!).push(t);
 
-  const byEntityRows = kinds.map((k) => ({ k, d: ENTITY_DEPS[k] }));
+  const lbl = (table: string) => byTable.get(table);
 
   return (
-    <div>
+    <div style={{ maxWidth: 900 }}>
       <div style={{ marginBottom: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Cascade — entity triggers & relationships</h1>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Cascade — CRUD 1 entity → chuỗi hệ quả</h1>
         <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--fg-3)' }}>
-          Đụng 1 entity → refresh những đâu. Cache-layer đọc thẳng <code>ENTITY_DEPS</code> (single source), data-layer đọc <code>pg_trigger</code> thật.
+          Mỗi entity: <b style={{ color: '#9cc7ff' }}>↔ liên kết</b> (FK + junction thật) · <b style={{ color: 'var(--neon-amber)' }}>⚙ trigger DB</b> (pg_trigger, tự chạy khi ghi) · <b style={{ color: '#7fe3c0' }}>↻ màn refresh</b> khi CRUD (touchEntity). Nguồn = metadata DB live, không hand-author.
         </p>
       </div>
 
-      <Panel title="Data-layer triggers" subtitle={`Postgres · ${triggers.length} trigger — row-level cascade (junction/derived), không thể quên`}>
-        {triggers.length === 0
-          ? <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-3)' }}>Không có trigger user-defined nào.</p>
-          : <SimpleTable rows={triggers} getRowKey={(t) => t.table + t.name}
-              columns={[
-                { key: 'table', header: 'Table', cell: (t) => <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>{t.table}</span> },
-                { key: 'name', header: 'Trigger', cell: (t) => <span style={{ fontFamily: 'var(--font-mono)' }}>{t.name}</span> },
-                { key: 'event', header: 'Event', cell: (t) => <span style={{ color: 'var(--fg-2)' }}>{eventOf(t.def)}</span> },
-                { key: 'func', header: 'Function', cell: (t) => <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{t.func}()</span> },
-              ]} />}
-      </Panel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {ENTITIES.map((e) => {
+          const belongsTo = [...new Set((out.get(e.table) ?? []).map((f) => f.tgt).filter((t) => entityTables.has(t) && t !== e.table))];
+          const nnMap = new Map<string, string>();
+          for (const j of junctions) { if (j.a === e.table && j.b !== e.table) nnMap.set(j.b, j.via); if (j.b === e.table && j.a !== e.table) nnMap.set(j.a, j.via); }
+          const usedBy = [...new Set((inc.get(e.table) ?? []).map((f) => f.src).filter((s) => entityTables.has(s) && s !== e.table))];
+          const trigs = trigByTable.get(e.table) ?? [];
+          const refreshes = refreshLabels(e.cache);
 
-      <Panel title="Cache cascade — by entity" subtitle="touchEntity(kind) → busts these surfaces">
-        <SimpleTable rows={byEntityRows} getRowKey={(r) => r.k}
-          columns={[
-            { key: 'kind', header: 'Entity', width: 120, cell: (r) => <span style={{ fontWeight: 600 }}>{r.k}</span> },
-            { key: 'deps', header: 'Invalidates', cell: (r) => {
-              const { d } = r;
-              const empty = !(d.sections?.length || d.self || d.paths?.length || d.pages?.length || d.tags?.length);
-              return (
-                <div>
-                  {(d.sections ?? []).map((s) => <span key={'s' + s} style={C.section}>/p/[id]/{s}</span>)}
-                  {d.self && <span style={C.self}>/p/[id]</span>}
-                  {(d.paths ?? []).map((p) => <span key={'p' + p} style={C.path}>{p}</span>)}
-                  {(d.pages ?? []).map((p) => <span key={'g' + p} style={C.page}>{p} ·page</span>)}
-                  {(d.tags ?? []).map((t) => <span key={'t' + t} style={C.tag}>tag:{t}</span>)}
-                  {empty && <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>— (dynamic, qua ctx.sections)</span>}
+          return (
+            <div key={e.table} data-comp="cascade.Entity" style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 9, padding: '11px 13px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 15 }}>{e.icon}</span>
+                <span style={{ fontSize: 14.5, fontWeight: 700 }}>{e.label}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)' }}>{e.table}</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {(belongsTo.length > 0 || nnMap.size > 0) && (
+                  <div style={rowStyle}>
+                    <span style={lineLbl}>↔ liên kết</span>
+                    <div>
+                      {[...nnMap].map(([t, via]) => { const r = lbl(t); return <span key={'n' + t} style={nn} title={`n-n qua ${via}`}>↔ {r ? `${r.icon} ${r.label}` : t}</span>; })}
+                      {belongsTo.map((t) => { const r = lbl(t); return <span key={'b' + t} style={rel} title="thuộc về (FK)">→ {r ? `${r.icon} ${r.label}` : t}</span>; })}
+                    </div>
+                  </div>
+                )}
+
+                {usedBy.length > 0 && (
+                  <div style={rowStyle}>
+                    <span style={lineLbl}>⇠ dùng bởi</span>
+                    <div>{usedBy.map((t) => { const r = lbl(t); return <span key={t} style={use}>{r ? `${r.icon} ${r.label}` : t}</span>; })}</div>
+                  </div>
+                )}
+
+                {trigs.length > 0 && (
+                  <div style={rowStyle}>
+                    <span style={lineLbl}>⚙ trigger</span>
+                    <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.7 }}>
+                      {trigs.map((t) => (
+                        <div key={t.name}>
+                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--neon-amber)' }}>{t.name}</span>
+                          <span style={{ color: 'var(--fg-4)' }}> · {eventOf(t.def)} · </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{t.func}()</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={rowStyle}>
+                  <span style={lineLbl}>↻ refresh</span>
+                  <div>
+                    {refreshes.length > 0
+                      ? refreshes.map((r) => <span key={r} style={ref}>{r}</span>)
+                      : <span style={{ fontSize: 11.5, color: 'var(--neon-amber)' }}>⚠ chưa gắn auto-refresh (không có touchEntity kind) — CRUD entity này KHÔNG tự bust cache surface nào</span>}
+                  </div>
                 </div>
-              );
-            } },
-          ]} />
-      </Panel>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-      <Panel title="Cache cascade — by surface (reverse)" subtitle="surface ← các entity feed vào nó · thấy coverage + orphan ngay">
-        <SimpleTable rows={surfaces.map((s) => ({ s, ks: rev[s] ?? [] }))} getRowKey={(r) => r.s}
-          columns={[
-            { key: 'surface', header: 'Surface', width: 210, cell: (r) => <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}>{r.s}</span> },
-            { key: 'kinds', header: 'Fed by', cell: (r) => <div>{r.ks.map((k) => <span key={k} style={C.path}>{k}</span>)}</div> },
-            { key: 'n', header: '#', align: 'right', width: 40, cell: (r) => <span style={{ color: 'var(--fg-3)' }}>{r.ks.length}</span> },
-          ]} />
-      </Panel>
+      <p style={{ marginTop: 14, fontSize: 10.5, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
+        source: pg_constraint (FK) · pg_trigger · lib/entity-cascade.ts (ENTITY_DEPS) — {fks.length} FK edges · {triggers.length} triggers · {ENTITIES.length} entities
+      </p>
     </div>
   );
 }

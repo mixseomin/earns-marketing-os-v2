@@ -143,20 +143,17 @@ export function detectPlatformKeyFromUrl(url: string): string | null {
 // canonical (twitter, bluesky). 1 nguồn sự thật cho mọi write-route (trước nằm
 // inline ở register-own-post). Mirror core/platform.js CANON bên ext. Key lạ →
 // trả nguyên (lowercased) để platform mới ko cần đăng ký trước.
+// CHỈ những khác biệt mà quy tắc KHÔNG suy ra được — không phải nơi vá từng site.
+// Bỏ 2026-08-07: các dòng ánh xạ chính-nó ('twitter'→'twitter', 'bluesky'→'bluesky',
+// 'devto'→'devto') vì canonPlatformKey đã trả nguyên key khi không có alias; và 'govloop-com'
+// vì ladder trong platformKeyCandidates/reconcilePlatformKey tự rút về 'govloop' (đã có trong
+// bảng platforms). Thêm dòng mới vào đây là DẤU HIỆU quy tắc còn thiếu — sửa quy tắc trước.
 const PLATFORM_ALIAS: Record<string, string> = {
-  x: 'twitter',
-  twitter: 'twitter',
-  bsky: 'bluesky',
-  bluesky: 'bluesky',
-  // dev.to: label slugify ra 'dev-to'/'dev.to' nhưng ext + selector_overrides dùng 'devto'
-  // → account ghi 'dev-to' ko khớp khi resolve. Gom mọi biến thể về 'devto'.
+  x: 'twitter',      // ext dùng 'x' cho selector; entity layer dùng 'twitter'
+  bsky: 'bluesky',   // ext dùng 'bsky'; entity layer dùng 'bluesky'
+  // dev.to: '-to' không phải TLD nên ladder không rút được → phải khai tay.
   'dev-to': 'devto',
   'dev.to': 'devto',
-  devto: 'devto',
-  // govloop = curated platform (HOSTNAME_TO_PLATFORM govloop.com→'govloop'), NHƯNG ext ko biết govloop
-  // (ko trong ext HOSTS) → detectKey trả host-slug 'govloop-com' → account/query đi lệch curated key.
-  // Gom auto-slug về curated → readiness + login pill + account create cùng khớp 'govloop'.
-  'govloop-com': 'govloop',
 };
 export function canonPlatformKey(raw?: string | null): string {
   const k = String(raw ?? '').trim().toLowerCase();

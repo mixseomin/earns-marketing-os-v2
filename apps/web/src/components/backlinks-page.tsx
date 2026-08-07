@@ -25,6 +25,7 @@ import { listAiContent, generateAiContent, deleteAiContent, normalizeInstruction
 import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
+import { CampaignLinkPicker } from '@/components/campaign-link-picker';
 
 // Compact status labels for the Outreach linkage chip on a backlink task.
 const OUTREACH_ST: Record<string, string> = { to_send: 'chưa gửi', sent: 'đã gửi', followup_1: 'FU1', followup_2: 'FU2', replied: 'đã hồi', interested: 'quan tâm', embedded: 'đã đặt ★', declined: 'từ chối', bounced: 'bounced', unreachable: 'ko liên hệ được', no_response: 'ko hồi' };
@@ -38,6 +39,8 @@ import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { SITE_STATUS_META, SITE_STATUSES } from '@/lib/site-status';
 import { localDay, todayLocal } from '@/lib/local-day';
+import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
+import { FollowupDrawer } from '@/components/followup-drawer';
 import { hostOf } from '@/lib/host';
 
 // One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
@@ -434,12 +437,16 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, ema
     {/* Kết quả — always give a paste spot at the end of the how-to, synced with the Live URL field below. */}
     {onUrlChange && (
       <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px dashed var(--line)' }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>{emailMode ? '📤 Đã gửi — link campaign / offer (tuỳ chọn)' : '✅ Làm xong — dán link vào đây'}</div>
+        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>{emailMode ? '🔗 Link chèn — offer / sản phẩm' : '✅ Làm xong — dán link vào đây'}</div>
+        {emailMode ? (
+          <CampaignLinkPicker value={urlValue} onChange={onUrlChange} onSave={onUrlSave} saving={urlSaving} />
+        ) : (
         <div style={{ display: 'flex', gap: 6 }}>
-          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder={emailMode ? 'link campaign Mailjet / offer đã chèn (tuỳ chọn)' : 'https://… link đã đặt được'} autoComplete="off"
+          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="https://… link đã đặt được" autoComplete="off"
             style={{ flex: 1, minWidth: 0, padding: '5px 9px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
           {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '3px 12px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
         </div>
+        )}
       </div>
     )}
   </>);
@@ -465,8 +472,8 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById }: {
-  projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[];
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById }: {
+  projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
   sourceIntel?: Record<string, SourceIntel>;   // canonical_url → learned {automation, obstacles}; drives the per-card 🖐 badge (self-learning propagates to every project's task by source, read-time)
@@ -512,6 +519,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
   const [draftOnly, setDraftOnly] = useState(sp.get('draft') === '1');
   const [blockedOnly, setBlockedOnly] = useState(sp.get('blocked') === '1');
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
+  const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
@@ -758,8 +766,17 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
         if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, dim: true, color: '#ffb03c', title: `🗓 follow · ${plbl}${t.title}${host ? ` · ${host}` : ''}${seedT}` });
       }
     }
+    // 📌 deferred-work follow-ups ride the SAME calendar, colored by status (chờ/đang/xong/kẹt/bỏ) —
+    // distinct from backlink pills. Undated ones aren't plotted (they surface via /now + `followup list`).
+    for (const f of followups) {
+      if (!f.due) continue;
+      const m = FOLLOWUP_META[f.status];
+      const p = allProjects ? projectsById?.[f.projectId] : undefined;
+      const pfx = p?.emoji ? `${p.emoji} ` : '';
+      out.push({ id: `f:${f.id}`, date: f.due, label: `📌 ${pfx}${f.title.replace(/\s+/g, ' ').trim()}`, color: m.color, title: `📌 ${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
+    }
     return out;
-  }, [filtered, allProjects]);
+  }, [filtered, allProjects, followups, projectsById]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1170,7 +1187,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar items={calItems} onItemClick={(id) => openTask(Number(id))} mode={calMode} onModeChange={setCalMode} />
+        <MonthCalendar items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {shown.length > 0 && listHead}
@@ -1196,6 +1213,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, project, plat
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
 

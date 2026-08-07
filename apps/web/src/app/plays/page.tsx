@@ -6,6 +6,7 @@ import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
 import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
+import { listFollowups } from '@/lib/actions/followups';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { resolveSiteSlug } from '@/lib/backlink-sites';
 
@@ -21,9 +22,10 @@ export default async function GlobalPlaysRoute() {
 
   const projects = await listProjects();
   const tracked = projects.filter((p) => resolveSiteSlug(p.id));
-  const [mode, tasks, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, ...acctLists] = await Promise.all([
+  const [mode, tasks, followups, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, ...acctLists] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
+    listFollowups(),
     listPlatforms(),
     listMedia(),
     listTeamMembers(),
@@ -45,7 +47,7 @@ export default async function GlobalPlaysRoute() {
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
       <BacklinksPage allProjects projectsById={projectsById}
-        projectId="" slug={null} siteLabel="All projects" tasks={tasks}
+        projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>

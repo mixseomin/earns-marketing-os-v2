@@ -6,6 +6,7 @@ import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
 import { getCurrentUser } from '@/lib/auth';
 import { getBacklinkTasks } from '@/lib/actions/backlink-tasks';
+import { listFollowups } from '@/lib/actions/followups';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 
@@ -25,10 +26,11 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
 
   const slug = resolveSiteSlug(id) ?? id;   // any project can hold plays; fall back to project id as the site_status key
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
-  const [mode, projects, tasks, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady] = await Promise.all([
+  const [mode, projects, tasks, followups, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     getBacklinkTasks(id),
+    listFollowups(id),
     listPlatforms(),
     listAccounts(id),
     listTeamMembers(),
@@ -47,7 +49,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
       tab="plays"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks}
+      <BacklinksPage projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups}
         project={project} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>

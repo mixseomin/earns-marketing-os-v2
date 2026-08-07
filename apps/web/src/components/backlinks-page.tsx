@@ -56,6 +56,8 @@ const CAL_LEGEND: LegendEntry[] = [
   { icon: 'link', label: 'backlink' }, { icon: 'mail', label: 'email' }, { icon: 'sprout', label: 'seed' }, { icon: 'pin', label: 'follow-up' },
   { sep: true },
   ...STATUS_ORDER.map((s) => ({ color: SITE_STATUS_META[s].color, label: SITE_STATUS_META[s].label })),
+  { sep: true },
+  { icon: 'brief', label: 'có bàn giao · rê chuột xem' },
 ];
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
@@ -779,10 +781,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       // MÀU + NHÃN trạng thái = SITE_STATUS_META (đúng nguồn drawer/kanban) — không tự chế.
       // icon = loại (cố định theo task); trạng thái chỉ đổi màu thanh-trái + ✓ + mờ.
       const smeta = SITE_STATUS[t.siteState] ?? { label: t.siteState, color: '#8a92a3' };
+      // Bàn giao → đính vào pill CHƯA xong (pending/scheduled/submitted) để chat khác nối; card đã xong khỏi cần.
+      const brief = hasResume({ inputs: t.inputs, doneWhen: t.doneWhen, dependsOn: t.dependsOn })
+        ? { inputs: t.inputs, doneWhen: t.doneWhen, dependsOn: t.dependsOn } : undefined;
       if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
-        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}` });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}` });
+        if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
+        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, dim: true, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.

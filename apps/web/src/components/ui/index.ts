@@ -5,7 +5,7 @@ export { Spinner, type SpinnerSize } from './spinner';
 export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
 export { StatusSegmented, type StatusOption } from './status-segmented';
-export { MonthCalendar, type CalItem, type CalMode, type LegendEntry } from './month-calendar';
+export { MonthCalendar, type CalItem, type CalMode, type LegendEntry, type CalBrief } from './month-calendar';
 export { ViewToggle, LIST_CALENDAR_VIEWS, type ViewOption } from './view-toggle';
 export { CTACard, type CTATone } from './cta-card';
 export { ResourcePicker, type ResourcePickerProps, type PickerItem } from './resource-picker';

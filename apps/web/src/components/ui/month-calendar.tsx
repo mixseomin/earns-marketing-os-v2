@@ -9,17 +9,21 @@
 // chung đúng một hàm dựng danh sách ngày — chỉ khác số cột và bước nhảy ◀ ▶.
 import { useEffect, useState, type CSSProperties } from 'react';
 
+// BÀN GIAO (resume): đủ để 1 chat KHÁC nối tiếp card. Chỉ đính khi có nội dung → pill hiện glyph 📋 xám
+// + rê chuột bung popover. Shape generic (không import lib app) — caller map từ TaskResume sang.
+export interface CalBrief { inputs: { label: string; url: string }[]; doneWhen: string; dependsOn: number[] }
 export interface CalItem {
   id: number | string; date: string; label: string; title?: string;
   color?: string;          // màu TRẠNG THÁI: drives thanh-trái + nền tint + viền (green=done, amber=đang/hẹn, purple=chờ duyệt, grey=chờ, red=chặn)
   icon?: GlyphName;        // icon LOẠI/ngữ-cảnh (SVG, đồng nhất): pin=followup · link=backlink · sprout=seed · clock=chờ duyệt · calendar=hẹn lại
   done?: boolean;          // đã làm → thêm ✓ + thanh xanh
   dim?: boolean;           // mờ (mục tương lai/đã bỏ)
+  brief?: CalBrief;        // có bàn giao (input/done-when/depends) → glyph xám + hover popover. Chỉ set khi KHÔNG rỗng.
 }
 export type CalMode = 'month' | 'week' | 'day';
 
 // SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
-export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot';
+export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot' | 'brief';
 // 1 mục chú thích: icon (loại) HOẶC chip màu (trạng thái) — nhãn/màu do CALLER truyền (nguồn canonical,
 // vd SITE_STATUS_META), calendar KHÔNG tự chế chữ → legend luôn khớp drawer/kanban.
 export type LegendEntry = { icon?: GlyphName; color?: string; label?: string; sep?: boolean };
@@ -33,6 +37,7 @@ const GLYPH: Record<GlyphName, React.ReactNode> = {
   calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8 3.5v4M16 3.5v4" /></>,
   alert: <><path d="M12 4 3 19h18L12 4z" /><path d="M12 10v4M12 16.5h.01" /></>,
   dot: <circle cx="12" cy="12" r="4" />,
+  brief: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5V3.5h6v1" /><path d="m8.6 12.5 2 2 4-4" /></>,   // clipboard-check = có bàn giao
 };
 function CalGlyph({ name, color, size = 13 }: { name: GlyphName; color: string; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden>{GLYPH[name]}</svg>;
@@ -47,6 +52,11 @@ const mondayOf = (d: Date) => addDays(d, -((d.getDay() + 6) % 7));
 const monthGrid = (monthDate: Date) => { const g = mondayOf(firstOfMonth(monthDate)); return Array.from({ length: 42 }, (_, i) => addDays(g, i)); };
 const navBtn: CSSProperties = { fontSize: 12, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const miniNav: CSSProperties = { fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', lineHeight: 1.6 };
+// Popover BÀN GIAO (hover pill có brief). Ẩn mặc định (display:none) → CSS `.cal-pill-wrap:hover` bung.
+const briefCard: CSSProperties = { position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 60, width: 264, maxWidth: '82vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,.45)', padding: '9px 11px 10px', display: 'none', fontSize: 11.5, lineHeight: 1.45, cursor: 'default', whiteSpace: 'normal', fontWeight: 500 };
+const briefSec: CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, color: 'var(--fg-4)', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 2 };
+const briefLink: CSSProperties = { display: 'block', color: 'var(--neon-blue)', textDecoration: 'none', padding: '1px 0', wordBreak: 'break-word' };
+const briefChip: CSSProperties = { fontSize: 10.5, padding: '1px 7px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--neon-blue)', cursor: 'pointer' };
 
 const MODES: { key: CalMode; label: string }[] = [
   { key: 'month', label: 'Tháng' }, { key: 'week', label: 'Tuần' }, { key: 'day', label: 'Ngày' },
@@ -169,10 +179,11 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
             {its.map((it) => {
               const c = it.color || 'var(--accent)';
               const big = mode !== 'month';
-              return (
-                // Thanh-trái = màu TRẠNG THÁI · icon SVG = LOẠI · nền/viền tint theo màu · ✓ = đã làm. Chữ trung tính để dễ đọc.
-                <button key={String(it.id) + it.date} type="button" title={it.title || it.label} onClick={() => onItemClick?.(it.id)}
-                  style={{ position: 'relative', display: 'flex', alignItems: big ? 'center' : 'flex-start', gap: big ? 6 : 4,
+              // Thanh-trái = màu TRẠNG THÁI · icon SVG = LOẠI · nền/viền tint theo màu · ✓ = đã làm. Chữ trung tính để dễ đọc.
+              // 📋 xám (trung tính, KHÔNG màu status — "có bàn giao" là metadata) = card resumable → hover bung brief.
+              const pill = (
+                <button type="button" title={it.brief ? undefined : (it.title || it.label)} onClick={() => onItemClick?.(it.id)}
+                  style={{ position: 'relative', display: 'flex', alignItems: big ? 'center' : 'flex-start', gap: big ? 6 : 4, width: '100%',
                     textAlign: 'left', fontSize: big ? 12 : 9.5, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word',
                     padding: big ? '4px 8px 4px 10px' : '2px 4px 2px 8px', borderRadius: 5, cursor: 'pointer', overflow: 'hidden',
                     border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`,
@@ -182,8 +193,44 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                   {it.icon && <CalGlyph name={it.icon} color={c} size={big ? 13 : 11} />}
                   <span style={{ flex: 1, minWidth: 0, color: it.done || it.dim ? 'var(--fg-3)' : 'var(--fg-1)',
                     ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{it.label}</span>
+                  {it.brief && <CalGlyph name="brief" color="var(--fg-4)" size={big ? 12 : 10} />}
                   {big && it.done && <CalGlyph name="check" color={c} size={13} />}
                 </button>
+              );
+              if (!it.brief) return <div key={String(it.id) + it.date}>{pill}</div>;
+              const b = it.brief;
+              // Có bàn giao → bọc wrapper `position:relative`; popover là con → hover wrapper (pill HOẶC popover)
+              // giữ mở (pure CSS, không kẹt hover-bridge). Header lặp lại icon+màu của pill = "highlight phần liên quan".
+              return (
+                <div key={String(it.id) + it.date} className="cal-pill-wrap" style={{ position: 'relative' }}>
+                  {pill}
+                  <div className="cal-brief" style={briefCard}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7, paddingBottom: 7, borderBottom: '1px solid var(--line)' }}>
+                      {it.icon && <CalGlyph name={it.icon} color={c} size={13} />}
+                      <span style={{ color: 'var(--fg-1)', fontWeight: 700, fontSize: 11.5 }}>{it.title || it.label}</span>
+                    </div>
+                    {b.inputs.length > 0 && (
+                      <div style={{ marginBottom: b.doneWhen || b.dependsOn.length ? 7 : 0 }}>
+                        <div style={briefSec}><CalGlyph name="link" color="var(--fg-4)" size={12} /> Input</div>
+                        {b.inputs.map((x, i) => <a key={i} href={x.url} target="_blank" rel="noreferrer" style={briefLink} onClick={(e) => e.stopPropagation()}>{x.label || x.url} ↗</a>)}
+                      </div>
+                    )}
+                    {b.doneWhen && (
+                      <div style={{ marginBottom: b.dependsOn.length ? 7 : 0 }}>
+                        <div style={briefSec}><CalGlyph name="check" color="var(--fg-4)" size={12} /> Xong khi</div>
+                        <div style={{ color: 'var(--fg-2)' }}>{b.doneWhen}</div>
+                      </div>
+                    )}
+                    {b.dependsOn.length > 0 && (
+                      <div>
+                        <div style={briefSec}><CalGlyph name="alert" color="var(--fg-4)" size={12} /> Cần trước</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {b.dependsOn.map((d) => <button key={d} type="button" onClick={(e) => { e.stopPropagation(); onItemClick?.(d); }} style={briefChip}>#{d} ↗</button>)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             })}
             {mode !== 'month' && !its.length && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', padding: 4 }}>—</div>}
@@ -195,6 +242,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
 
   return (
     <div data-comp="ui.MonthCalendar">
+      {/* Hover pill có bàn giao → bung popover (pure CSS; !important thắng inline display:none). Nâng z-index để không bị ô sau che. */}
+      <style>{`.cal-pill-wrap:hover{z-index:40}.cal-pill-wrap:hover .cal-brief{display:block!important}`}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => step(-1)} style={navBtn} title="Lùi">◀</button>
         <div style={{ fontSize: 13, fontWeight: 700, minWidth: 190, textAlign: 'center', textTransform: 'capitalize' }}>{label}</div>

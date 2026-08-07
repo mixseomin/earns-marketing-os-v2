@@ -7,7 +7,7 @@
 // chi tiết. Ở Tuần/Ngày (view hẹp) kèm 1 MINI-MONTH bên trái — y hệt Google Calendar — để vừa NHẢY
 // nhanh sang ngày khác vừa NẮM TOÀN CẢNH cả tháng (chấm dưới ngày = ngày đó có việc). Tuần/Ngày dùng
 // chung đúng một hàm dựng danh sách ngày — chỉ khác số cột và bước nhảy ◀ ▶.
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 export interface CalItem {
   id: number | string; date: string; label: string; title?: string;
@@ -102,10 +102,18 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   /** Chú thích (loại + trạng thái) — nhãn/màu do caller truyền để khớp nguồn canonical. */
   legend?: LegendEntry[];
 }) {
-  const [anchor, setAnchor] = useState(() => initialMonth ?? new Date());
-  const [miniView, setMiniView] = useState(() => firstOfMonth(initialMonth ?? new Date()));   // tháng mini-month đang hiện
+  // anchor/miniView/"hôm nay" phụ thuộc GIỜ LOCAL của client. Nếu khởi tạo bằng new Date() ngay lúc SSR
+  // (máy chủ chạy UTC) thì client hydrate xong sẽ tính lại theo giờ local → lệch ngày → calendar NHẢY sang
+  // chỗ khác "sau 1 lúc". Khởi tạo null; SSR + lượt client ĐẦU đều null (khớp, không mismatch) → sau mount
+  // client set 1 lần theo giờ local → render đúng ngay, không nhảy. (initialMonth truyền vào thì dùng luôn.)
+  const [anchor, setAnchor] = useState<Date | null>(() => initialMonth ?? null);
+  const [miniView, setMiniView] = useState<Date | null>(() => (initialMonth ? firstOfMonth(initialMonth) : null));
   const [modeSelf, setModeSelf] = useState<CalMode>('month');
+  useEffect(() => { setAnchor((a) => a ?? new Date()); setMiniView((v) => v ?? firstOfMonth(new Date())); }, []);
+
   const mode = modeProp ?? modeSelf;
+  if (!anchor || !miniView) return <div data-comp="ui.MonthCalendar" style={{ minHeight: 320 }} />;   // chờ mount → tránh mismatch giờ SSR/client
+
   const setMode = (m: CalMode) => { setModeSelf(m); onModeChange?.(m); setMiniView(firstOfMonth(anchor)); };   // đổi mode → mini bám tháng của ngày đang chọn
 
   // Một nguồn duy nhất dựng danh sách ngày cho cả ba chế độ.
@@ -204,7 +212,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
       {showMini ? (
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <MiniMonth month={miniView} sel={selSet} byDate={byDate} onPick={(d) => setAnchor(d)}
-            onNavMonth={(dir) => setMiniView((mv) => new Date(mv.getFullYear(), mv.getMonth() + dir, 1))} />
+            onNavMonth={(dir) => setMiniView((mv) => { const d = mv ?? new Date(); return new Date(d.getFullYear(), d.getMonth() + dir, 1); })} />
           {grid}
         </div>
       ) : grid}

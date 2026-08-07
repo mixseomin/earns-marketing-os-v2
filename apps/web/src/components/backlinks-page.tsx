@@ -46,11 +46,14 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = {
   completed: { label: 'Completed',  color: '#5badff' },
   verified:  { label: 'Verified',   color: '#22c55e' },
   broken:    { label: 'Link lỗi',   color: '#ef4444' },  // was live, a re-check found the link gone — needs re-do (auto-set by the health-check cron)
+  // ĐÃ BỎ ≠ ĐÃ XONG. Trước đây việc bị loại khỏi kế hoạch (eToro/Webull: forex cấm ở VN) phải
+  // đóng bằng 'completed' vì không có chỗ khác → cột Completed đọc ra sai, như thể đã làm xong.
+  dropped:   { label: 'Đã bỏ',      color: '#6b7280' },
 };
-const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken'] as const;
+const STATUS_ORDER = ['pending', 'claimed', 'submitted', 'completed', 'verified', 'broken', 'dropped'] as const;
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
-const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken']);
+const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;

@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { checkAuth } from '../_auth';
 import { errorResponse, firstRow } from '@/lib/ext-route';
 import { setBacklinkSite } from '@/lib/actions/architecture';
+import { isSiteStatus } from '@/lib/site-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,11 @@ interface Body {
   title?: string;
   instructions?: string;
   accountId?: number;
-  status?: string;   // 'done' (mặc định, page-first làm xong luôn) | 'pending' (tạo để làm sau)
+  /** Trạng thái per-site lúc tạo. 'done' = alias cũ của 'completed' (giữ để ext cũ không gãy).
+   * Nhận MỌI trạng thái hợp lệ trong lib/site-status — trước đây chỉ hiểu pending|done nên
+   * `play add --status submitted` phải tạo pending rồi gọi thêm một lượt ghi đè. Hai bước
+   * cho một việc = hai chỗ có thể lệch. */
+  status?: string;
 }
 
 export async function POST(req: Request) {
@@ -40,7 +45,9 @@ export async function POST(req: Request) {
   // site key = project_id → phải hợp lệ với rule của setBacklinkSite, else stamp âm thầm fail.
   if (!/^[a-z0-9_-]+$/.test(projectId)) return errorResponse('projectId must be a slug [a-z0-9_-]', 400);
 
-  const done = String(body.status ?? 'done') !== 'pending';
+  const raw = String(body.status ?? 'done');
+  const initStatus = raw === 'done' ? 'completed' : raw;
+  if (!isSiteStatus(initStatus)) return errorResponse(`status không hợp lệ: ${raw}`, 400);
 
   // Idempotency: project này ĐÃ có đúng URL đã đặt → trả lại row cũ (không tạo trùng).
   const exist = await db.execute(sql`
@@ -70,7 +77,9 @@ export async function POST(req: Request) {
   // placed (done). For a not-yet-done task (pending/plan/awaiting approval) there is NO live link —
   // stamping postUrl there renders a bogus "link đã đặt". postUrl still lives in source_url (the source
   // page). So: live url = postUrl only when done, else empty.
-  const liveUrl = done ? postUrl : '';
+  // Link ĐÃ ĐẶT chỉ tồn tại khi việc thực sự xong. 'submitted' = đã gửi chờ duyệt, link chưa sống;
+  // 'dropped' = bỏ hẳn. Cả hai đều KHÔNG có live url — chỉ completed/verified mới có.
+  const liveUrl = (initStatus === 'completed' || initStatus === 'verified') ? postUrl : '';
 
   let id: number;
   try {
@@ -87,10 +96,10 @@ export async function POST(req: Request) {
 
   // Stamp per-site status/url qua ĐÚNG path drawer + /site-status dùng — roll row → completed+completed_at
   // khi done. KHÔNG tự tay set site_done_at/completed_at (tránh drift vs drawer).
-  const r = await setBacklinkSite(id, projectId, done ? 'completed' : 'pending', liveUrl);
+  const r = await setBacklinkSite(id, projectId, initStatus, liveUrl);
   if (!r.ok) {
     return NextResponse.json({ ok: true, id, existed: false, status: 'pending', siteKey: projectId, warn: 'stamp failed: ' + r.error });
   }
 
-  return NextResponse.json({ ok: true, id, existed: false, status: done ? 'completed' : 'pending', siteKey: projectId });
+  return NextResponse.json({ ok: true, id, existed: false, status: initStatus, siteKey: projectId });
 }

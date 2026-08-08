@@ -96,36 +96,36 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
-      key: 'name', align: 'left', width: '100%', header: 'Offer',
+      key: 'name', sortValue: (o) => o.name, align: 'left', width: '100%', header: 'Offer',
       cellTitle: (o) => o.name,
       cell: (o) => <span style={{ fontWeight: 600, ...clip(300), display: 'inline-block', verticalAlign: 'bottom' }}>{o.name}</span>,
     },
-    { key: 'kind', align: 'left', header: 'Source', cell: (o) => <span style={dim}>{KIND[o.kind]}</span> },
+    { key: 'kind', sortValue: (o) => KIND[o.kind] ?? o.kind, align: 'left', header: 'Source', cell: (o) => <span style={dim}>{KIND[o.kind]}</span> },
     {
-      key: 'account', align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này',
+      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này',
       cellTitle: (o) => o.account ?? undefined,
       cell: (o) => (o.account
         ? <span style={{ ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }}>{o.account}</span>
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
-      key: 'status', align: 'left', header: 'Status',
+      key: 'status', sortValue: (o) => o.status, align: 'left', header: 'Status',
       cell: (o) => <span style={{ color: statusColor(o.status) }}>● {o.status}</span>,
     },
     {
-      key: 'commission', group: 'terms', align: 'right', header: '%', title: 'Commission rate',
+      key: 'commission', sortValue: (o) => o.commission ?? null, group: 'terms', align: 'right', header: '%', title: 'Commission rate',
       cell: (o) => o.commission ?? <span style={dim}>—</span>,
     },
     {
-      key: 'recurring', group: 'terms', align: 'left', header: 'Recurring', title: 'Does the commission repeat, and for how long',
+      key: 'recurring', sortValue: (o) => recurringOf(o) ?? null, group: 'terms', align: 'left', header: 'Recurring', title: 'Does the commission repeat, and for how long',
       cell: (o) => recurringOf(o) ?? <span style={dim}>one-time</span>,
     },
     {
-      key: 'cookie', group: 'terms', align: 'right', header: 'Cookie', title: 'Cookie lifetime',
+      key: 'cookie', sortValue: (o) => o.cookie ?? null, group: 'terms', align: 'right', header: 'Cookie', title: 'Cookie lifetime',
       cell: (o) => o.cookie ?? <span style={dim}>—</span>,
     },
     {
-      key: 'rules', group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
+      key: 'rules', sortValue: (o) => rulesOf(o) ?? null, group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
       cellTitle: (o) => rulesOf(o) ?? undefined,
       cell: (o) => {
         const r = rulesOf(o);
@@ -134,20 +134,20 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           : <span style={dim}>—</span>;
       },
     },
-    { key: 'type', group: 'meta', align: 'left', header: 'Type', cell: (o) => o.productType ?? <span style={dim}>—</span> },
+    { key: 'type', sortValue: (o) => o.productType ?? null, group: 'meta', align: 'left', header: 'Type', cell: (o) => o.productType ?? <span style={dim}>—</span> },
     {
-      key: 'vertical', group: 'meta', align: 'left', header: 'Vertical',
+      key: 'vertical', sortValue: (o) => o.vertical ?? null, group: 'meta', align: 'left', header: 'Vertical',
       cellTitle: (o) => o.vertical ?? undefined,
       cell: (o) => <span style={{ ...clip(150), display: 'inline-block', verticalAlign: 'bottom' }}>{o.vertical ?? '—'}</span>,
     },
-    { key: 'geo', group: 'meta', align: 'left', header: 'Geo', cell: (o) => o.geos.join(' ') || <span style={dim}>—</span> },
+    { key: 'geo', sortValue: (o) => o.geos.join(' ') || null, group: 'meta', align: 'left', header: 'Geo', cell: (o) => o.geos.join(' ') || <span style={dim}>—</span> },
     {
-      key: 'created', group: 'dates', align: 'right', header: 'Added', title: 'Lần đầu sync thấy offer này (không phải ngày merchant vào network)',
+      key: 'created', sortValue: (o) => o.createdAt, group: 'dates', align: 'right', header: 'Added', title: 'Lần đầu sync thấy offer này (không phải ngày merchant vào network)',
       cellTitle: (o) => o.createdAt,
       cell: (o) => <span style={dim}>{day(o.createdAt)}</span>,
     },
     {
-      key: 'approved', group: 'dates', align: 'right', header: 'Approved',
+      key: 'approved', sortValue: (o) => o.approvedAt ?? null, group: 'dates', align: 'right', header: 'Approved',
       title: 'Ngày sync THẤY offer chuyển sang duyệt. Trống = duyệt trước 2026-08-07 (network không trả về ngày duyệt nên không backfill được) hoặc chưa duyệt',
       cellTitle: (o) => o.approvedAt ?? undefined,
       cell: (o) => (o.approvedAt ? <span style={{ color: 'var(--neon-lime)' }}>{day(o.approvedAt)}</span> : <span style={dim}>—</span>),

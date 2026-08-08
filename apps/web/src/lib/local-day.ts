@@ -24,3 +24,16 @@ export function localDay(iso: string): string {
  * thì phải dùng hàm này. Chỗ nào thật sự cần UTC (báo cáo GSC/Bing) thì cứ dùng toISOString.
  */
 export const todayLocal = (): string => localDay(new Date().toISOString());
+
+/**
+ * Múi giờ VẬN HÀNH. `todayLocal()` ở trên đọc múi giờ của tiến trình đang chạy — đúng trên trình
+ * duyệt, nhưng SAI trên máy chủ (box3 chạy UTC). Server component cần "hôm nay" giống hệt cái trình
+ * duyệt sẽ tính thì phải nói rõ múi giờ, không thể dựa vào môi trường.
+ *
+ * Dùng khi: server render một thứ phụ thuộc ngày (lịch). Không nói được ngày ở server thì component
+ * buộc phải để trống chờ mount → người dùng thấy khoảng rỗng rồi nội dung nhảy vào (lịch /plays đã
+ * dính đúng thế, 2026-08-08).
+ */
+export const APP_TZ = 'Asia/Ho_Chi_Minh';
+/** 'YYYY-MM-DD' theo APP_TZ. 'en-CA' cho đúng thứ tự năm-tháng-ngày, không phải mẹo. */
+export const todayInAppTz = (): string => new Date().toLocaleDateString('en-CA', { timeZone: APP_TZ });

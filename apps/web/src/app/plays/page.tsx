@@ -11,6 +11,7 @@ import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listFollowups } from '@/lib/actions/followups';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
+import { todayInAppTz } from '@/lib/local-day';
 import { resolveSiteSlug } from '@/lib/backlink-sites';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export default async function GlobalPlaysRoute() {
       isPortfolio
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage prefs={prefs} allProjects products={products} projectsById={projectsById}
+      <BacklinksPage prefs={prefs} today={todayInAppTz()} allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />

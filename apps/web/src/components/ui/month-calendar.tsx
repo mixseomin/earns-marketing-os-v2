@@ -70,11 +70,11 @@ const MODES: { key: CalMode; label: string }[] = [
 
 // MINI-MONTH: lưới tháng thu nhỏ (như sidebar Google Calendar). Ngày hôm nay khoanh, ngày đang chọn
 // tô nền accent, ngày có việc có 1 chấm nhỏ ở dưới → liếc là biết cả tháng chỗ nào có việc. Bấm ngày = nhảy.
-function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
-  month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void;
+function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today }: {
+  month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void; today?: string;
 }) {
   const m = month.getMonth();
-  const todayStr = ymd(new Date());
+  const todayStr = today || ymd(new Date());
   const cells = monthGrid(month);
   return (
     <div>
@@ -108,7 +108,7 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
   );
 }
 
-export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar, date, onDateChange }: {
+export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar, date, onDateChange, today }: {
   items: CalItem[];
   onItemClick?: (id: number | string) => void;
   initialMonth?: Date;
@@ -119,6 +119,9 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   legend?: LegendEntry[];
   /** Nội dung phụ nằm DƯỚI mini-month trong cột trái (vd sản phẩm đang dựng). Cột này rộng cố định 236px. */
   sidebar?: React.ReactNode;
+  /** 'YYYY-MM-DD' hôm nay theo múi giờ VẬN HÀNH, do server truyền xuống (lib/local-day: todayInAppTz).
+   *  Có nó thì lịch vẽ được NGAY từ server — không còn khoảng rỗng chờ mount rồi nội dung nhảy vào. */
+  today?: string;
   /** Ngày đang chọn 'YYYY-MM-DD'. Bỏ trống = component tự lấy hôm nay (theo giờ local, sau mount).
    *  Truyền vào + onDateChange = caller giữ ngày trong URL → F5 giữ nguyên ngày, không nhảy về hôm nay. */
   date?: string;
@@ -128,9 +131,12 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   // (máy chủ chạy UTC) thì client hydrate xong sẽ tính lại theo giờ local → lệch ngày → calendar NHẢY sang
   // chỗ khác "sau 1 lúc". Khởi tạo null; SSR + lượt client ĐẦU đều null (khớp, không mismatch) → sau mount
   // client set 1 lần theo giờ local → render đúng ngay, không nhảy. (initialMonth truyền vào thì dùng luôn.)
+  // `today` từ server = biết ngày ngay ở lần render ĐẦU (kể cả trên máy chủ) → không phải trả về
+  // ô rỗng chờ mount. Thiếu nó mới rơi về cách cũ: null tới khi mount rồi mới lấy giờ local.
   const fromUrl = date ? parseYmd(date) : null;
-  const [anchorSelf, setAnchorSelf] = useState<Date | null>(() => fromUrl ?? initialMonth ?? null);
-  const [miniView, setMiniView] = useState<Date | null>(() => { const d = fromUrl ?? initialMonth; return d ? firstOfMonth(d) : null; });
+  const seed = fromUrl ?? (today ? parseYmd(today) : null) ?? initialMonth ?? null;
+  const [anchorSelf, setAnchorSelf] = useState<Date | null>(() => seed);
+  const [miniView, setMiniView] = useState<Date | null>(() => (seed ? firstOfMonth(seed) : null));
   const [modeSelf, setModeSelf] = useState<CalMode>('month');
   useEffect(() => { setAnchorSelf((a) => a ?? new Date()); setMiniView((v) => v ?? firstOfMonth(new Date())); }, []);
 
@@ -152,7 +158,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
 
   const byDate = new Map<string, CalItem[]>();
   for (const it of items) { (byDate.get(it.date) ?? byDate.set(it.date, []).get(it.date)!).push(it); }
-  const todayStr = ymd(new Date());
+  const todayStr = today || ymd(new Date());
   const anchorStr = ymd(anchor);
   // Ngày "được chọn": Ngày = đúng anchor; Tuần = cả 7 ngày của tuần (band trong mini-month).
   const selSet = new Set(mode === 'week' ? days.map(ymd) : [anchorStr]);
@@ -279,7 +285,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
           là chỗ đặt nội dung thường trực (sản phẩm đang dựng). */}
       <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ width: 236, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <MiniMonth month={miniView} sel={selSet} byDate={byDate} onPick={(d) => setAnchor(d)}
+          <MiniMonth month={miniView} sel={selSet} byDate={byDate} today={today} onPick={(d) => setAnchor(d)}
             onNavMonth={(dir) => setMiniView((mv) => { const d = mv ?? new Date(); return new Date(d.getFullYear(), d.getMonth() + dir, 1); })} />
           {sidebar}
         </div>

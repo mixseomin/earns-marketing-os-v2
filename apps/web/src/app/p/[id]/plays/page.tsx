@@ -11,6 +11,7 @@ import { listFollowups } from '@/lib/actions/followups';
 import { listBuildingProducts } from '@/lib/actions/products-building';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
+import { todayInAppTz } from '@/lib/local-day';
 import { resolveSiteSlug, BACKLINK_SITES } from '@/lib/backlink-sites';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
       tab="plays"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage prefs={prefs} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups}
+      <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups}
         project={project} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>

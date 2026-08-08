@@ -15,6 +15,23 @@ const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', pad
 const btn: React.CSSProperties = { padding: '3px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', fontSize: 11, cursor: 'pointer' };
 const meta: React.CSSProperties = { fontSize: 12, color: 'var(--fg-1)' };
 
+// Render body with markdown links [text](url) as anchors (never a naked tracking URL) and bare URLs
+// autolinked to a short label - what the recipient will actually see, not the raw link.
+function renderBody(md: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  const re = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g;
+  let last = 0, m: RegExpExecArray | null, k = 0;
+  while ((m = re.exec(md))) {
+    if (m.index > last) out.push(md.slice(last, m.index));
+    const url = m[2] || m[3] || '';
+    const text = m[1] || url.replace(/^https?:\/\/(www\.)?/, '').split(/[/?]/)[0];
+    out.push(<a key={k++} href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{text}</a>);
+    last = re.lastIndex;
+  }
+  if (last < md.length) out.push(md.slice(last));
+  return out;
+}
+
 function fmtDate(s?: string | null): string {
   if (!s) return '— chưa lên lịch';
   const d = new Date(`${s}T00:00:00`);
@@ -162,7 +179,7 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
               {prep.preheader && <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>{prep.preheader}</div>}
             </div>
             <div style={{ padding: '10px 12px', fontSize: 12.5, color: 'var(--fg-1)', whiteSpace: 'pre-wrap', lineHeight: 1.55, maxHeight: 300, overflowY: 'auto' }}>
-              {prep.bodyMd || <span style={{ color: 'var(--fg-4)' }}>(chưa có nội dung)</span>}
+              {prep.bodyMd ? renderBody(prep.bodyMd) : <span style={{ color: 'var(--fg-4)' }}>(chưa có nội dung)</span>}
             </div>
           </div>
           {/* Key points — the email's gist at a glance */}

@@ -66,6 +66,7 @@ STRUCTURE (in this order):
 3. ONE natural bridge, late, to the offer - the offer is a recommendation the news makes relevant (the tool for what you just explained), a soft PS-style line, not the subject of the email.
 4. Optional one useful internal link (the brand's own tool) if it fits.
 STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs. No hype.
+LINKS: never paste a raw/naked URL as visible text. Every link is markdown anchor text - [descriptive words](URL). This is critical for the offer's tracking link; the reader sees words like "order your panel", not the tracking URL.
 SOURCED NEWS ONLY: every factual claim must come from the SOURCES provided below. Do NOT invent statistics, dollar figures, dates, studies, or events beyond what the sources state. If the sources do not cover something, keep it general and true or leave it out.
 The subject line is about the NEWS/VALUE, never about the product name.`;
   const srcBlock = fresh.map((s, i) => `[${i + 1}] ${s.title || s.url} (${s.publisher || ''}${s.publisher ? ', ' : ''}${s.date}) ${s.url}`).join('\n');
@@ -77,13 +78,13 @@ ${t.instructions ? `Editor notes / angle (frame only - facts must trace to the s
 SOURCES (write the news only from these - all are dated within the last month):
 ${srcBlock}
 Ground the news in these sources and reference them naturally in the body (e.g. "per ${fresh[0]?.publisher || 'reporting'}...").
-OFFER (recommend once, late, as the tool the topic makes relevant): ${offer}. Put the link exactly as "${ctx.offerUrl || '[ offer link ]'}" at that one spot.
+OFFER (recommend once, late, as the tool the topic makes relevant): ${offer}. Link it ONCE as markdown anchor text - [a few descriptive words](${ctx.offerUrl || 'OFFER_URL'}) - never show the raw URL.
 
 Return JSON: {
   "subjectA": "≤60 chars, about the news/value (NOT the product)",
   "subjectB": "≤60 chars, different news angle for A/B",
   "preheader": "≤90 chars inbox preview that extends the subject",
-  "bodyMd": "full newsletter body, plain text, blank lines between paragraphs. Greeting then newsy hook. Most of it is the actual content/news; ONE soft offer recommendation late; end with a one-click unsubscribe + physical-address footer placeholder.",
+  "bodyMd": "full newsletter body, blank lines between paragraphs. Greeting then newsy hook. Most of it is the actual content/news; ONE soft offer recommendation late. All links are markdown anchor text [words](url), never raw URLs. End with a one-click unsubscribe + physical-address footer placeholder.",
   "keyPoints": ["3 to 5 very short bullets: the news/value beats first, then the single offer mention last"]
 }`;
 

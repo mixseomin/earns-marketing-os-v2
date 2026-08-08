@@ -157,16 +157,19 @@ button { font-family: inherit; color: inherit; }
   height: 100vh;
   width: 100vw;
 }
-.app[data-sidebar="hidden"] {
+/* Layout collapse state lives on <html> (:root), set by the no-flash <head> script BEFORE first
+   paint (see layout.tsx) so F5 renders the correct width with no flash, then kept in sync by
+   ThemeApplier. Driving the grid from .app (client-rendered) is what caused the F5 flash. */
+:root[data-sidebar="hidden"] .app {
   grid-template-columns: 0 1fr 320px;
 }
-.app[data-sidebar="hidden"] .sidebar { display: none; }
+:root[data-sidebar="hidden"] .sidebar { display: none; }
 
-.app[data-rightbar="hidden"] {
+:root[data-rightbar="hidden"] .app {
   grid-template-columns: 240px 1fr 0;
 }
-.app[data-rightbar="hidden"] .rightbar { display: none; }
-.app[data-sidebar="hidden"][data-rightbar="hidden"] {
+:root[data-rightbar="hidden"] .rightbar { display: none; }
+:root[data-sidebar="hidden"][data-rightbar="hidden"] .app {
   grid-template-columns: 0 1fr 0;
 }
 
@@ -220,12 +223,9 @@ button { font-family: inherit; color: inherit; }
 
 /* ── Mobile breakpoint (≤768px) ── */
 @media (max-width: 768px) {
-  .app,
-  .app[data-sidebar="hidden"],
-  .app[data-sidebar="hidden"][data-rightbar="hidden"],
-  .app[data-rightbar="hidden"] {
-    grid-template-columns: 0 1fr 0;
-  }
+  /* Mobile is always single-column regardless of the :root collapse pref. !important so it beats
+     the higher-specificity :root[data-sidebar=...] .app desktop rules above. */
+  .app { grid-template-columns: 0 1fr 0 !important; }
   /* iPhone 15+ Dynamic Island / notch: push topbar below safe area */
   .app {
     grid-template-rows: calc(48px + env(safe-area-inset-top)) 1fr;

@@ -89,8 +89,6 @@ export function AppShell({
       {configVersion !== undefined && <VisibilityWatcher initialVersion={configVersion} />}
       <ThemeApplier modeAccent={mode?.accent} />
       <div className="app"
-           data-sidebar={tweaks.showSidebar ? 'shown' : 'hidden'}
-           data-rightbar={tweaks.showRightbar ? 'shown' : 'hidden'}
            data-anim={tweaks.animation ? 'on' : 'off'}
            data-mobile-nav={mobileNavOpen ? 'open' : 'closed'}
         style={impersonate ? { paddingTop: 44 } : undefined}>

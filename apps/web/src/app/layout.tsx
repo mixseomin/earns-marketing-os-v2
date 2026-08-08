@@ -28,14 +28,17 @@ export const viewport = {
 // fail to parse in older WebViews.
 const NO_FLASH_SCRIPT = `(function(){try{
   var raw = localStorage.getItem('mos.tweaks');
-  var theme = 'dark';
-  if (raw) { var t = JSON.parse(raw); if (t && t.theme === 'light') theme = 'light'; }
-  document.documentElement.setAttribute('data-theme', theme);
+  var t = raw ? JSON.parse(raw) : null;
+  var theme = (t && t.theme === 'light') ? 'light' : 'dark';
+  var d = document.documentElement;
+  d.setAttribute('data-theme', theme);
+  d.setAttribute('data-sidebar', (t && t.showSidebar === false) ? 'hidden' : 'shown');
+  d.setAttribute('data-rightbar', (t && t.showRightbar === true) ? 'shown' : 'hidden');
   var ov = localStorage.getItem('mos.design-tokens');
   if (ov) {
     var map = JSON.parse(ov);
     var themeMap = (map && map[theme]) || {};
-    for (var k in themeMap) { if (themeMap[k]) document.documentElement.style.setProperty('--' + k, themeMap[k]); }
+    for (var k in themeMap) { if (themeMap[k]) d.style.setProperty('--' + k, themeMap[k]); }
   }
 }catch(e){}})();`;
 
@@ -49,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (u && u.role === 'viewer') redirect('https://user.on.tc/review');
   }
   return (
-    <html lang="vi" data-theme="dark">
+    <html lang="vi" data-theme="dark" data-sidebar="shown" data-rightbar="hidden">
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

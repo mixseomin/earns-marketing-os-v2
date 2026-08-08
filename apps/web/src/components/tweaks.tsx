@@ -27,6 +27,7 @@ export const TWEAK_DEFAULTS: Tweaks = {
 type Ctx = {
   tweaks: Tweaks;
   setTweak: <K extends keyof Tweaks>(key: K, val: Tweaks[K]) => void;
+  hydrated: boolean; // false until localStorage is read — consumers gate DOM writes on this to avoid clobbering the no-flash <head> script's values
 };
 
 const TweakCtx = createContext<Ctx | null>(null);
@@ -52,7 +53,7 @@ export function TweaksProvider({ children }: { children: ReactNode }) {
     setTweaks((prev) => ({ ...prev, [key]: val }));
   }, []);
 
-  return <TweakCtx.Provider value={{ tweaks, setTweak }}>{children}</TweakCtx.Provider>;
+  return <TweakCtx.Provider value={{ tweaks, setTweak, hydrated }}>{children}</TweakCtx.Provider>;
 }
 
 export function useTweaks() {

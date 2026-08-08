@@ -18,12 +18,19 @@ const ACCENTS: Record<string, { line: string; soft: string; edge: string } | nul
 };
 
 export function ThemeApplier(_: { modeAccent?: string } = {}) {
-  const { tweaks } = useTweaks();
+  const { tweaks, hydrated } = useTweaks();
   const { setLang } = useLang();
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', tweaks.theme);
-    const root = document.documentElement.style;
+    // Pre-hydration, the no-flash <head> script has ALREADY applied theme + sidebar/rightbar to
+    // <html> from localStorage. Writing here before `hydrated` would clobber those correct values
+    // with the state defaults and reintroduce the F5 flash. So only sync once tweaks are real.
+    if (!hydrated) return;
+    const d = document.documentElement;
+    d.setAttribute('data-theme', tweaks.theme);
+    d.setAttribute('data-sidebar', tweaks.showSidebar ? 'shown' : 'hidden');
+    d.setAttribute('data-rightbar', tweaks.showRightbar ? 'shown' : 'hidden');
+    const root = d.style;
     if (tweaks.accent === 'auto') {
       // Clear inline overrides so the CSS-file values win (theme-aware blue).
       root.removeProperty('--accent');
@@ -35,11 +42,11 @@ export function ThemeApplier(_: { modeAccent?: string } = {}) {
       root.setProperty('--accent-soft', a.soft);
       root.setProperty('--accent-line', a.edge);
     }
-  }, [tweaks.theme, tweaks.accent]);
+  }, [hydrated, tweaks.theme, tweaks.accent, tweaks.showSidebar, tweaks.showRightbar]);
 
   useEffect(() => {
-    setLang(tweaks.lang);
-  }, [tweaks.lang, setLang]);
+    if (hydrated) setLang(tweaks.lang);
+  }, [hydrated, tweaks.lang, setLang]);
 
   return null;
 }

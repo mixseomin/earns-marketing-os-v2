@@ -44,7 +44,9 @@ import { setPref, pick, type Prefs } from '@/lib/prefs';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
-import { taskKind, KIND_ICON, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
+import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
+import { taskTypeKey, TYPE_META } from '@/lib/task-type';
+import type { GlyphName } from '@/components/ui/type-glyph';
 import { doneBlockReason, doneWithoutProof } from '@/lib/task-done';
 import { hostOf } from '@/lib/host';
 
@@ -740,6 +742,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Lấy từ `products` (đã tải sẵn), không phải shownProducts: lọc theo project không được đổi LOẠI của việc.
   const productTaskIds = useMemo(() => new Set(products.flatMap((p) => p.cards.map((c) => c.id))), [products]);
   const kindOf = useMemo(() => (t: BacklinkTask) => taskKind({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
+  // Ký hiệu LOẠI chi tiết: archetype (backlink/seed/email/publish/account…) hoặc produce-format
+  // (article/video/image/post…) → 1 glyph riêng cho mỗi loại (TYPE_META) → liếc board biết loại ngay.
+  const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
   const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
@@ -975,7 +980,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     for (const t of filtered) {
       const plbl = showProj && t.projectLabel ? `[${t.projectLabel}] ` : '';
       const seedT = t.communitySeed ? ' · community-seed (link-gated)' : '';
-      const icon = KIND_ICON[kindOf(t)];   // LOẠI → SVG: mail (email-send) / sprout (seed) / book (sản phẩm) / link (backlink)
+      const icon = TYPE_META[typeKeyOf(t)].glyph as GlyphName;   // LOẠI chi tiết → glyph riêng (article/video/image/post/publish/account… hoặc backlink/seed/email)
       const ttl = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();   // bỏ tiền tố 📧 (icon SVG đã thay)
       const host = showHost(t.sourceUrl, t.projectSlug);
       const label = plbl + ttl;

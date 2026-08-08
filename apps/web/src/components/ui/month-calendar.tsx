@@ -8,6 +8,7 @@
 // nhanh sang ngày khác vừa NẮM TOÀN CẢNH cả tháng (chấm dưới ngày = ngày đó có việc). Tuần/Ngày dùng
 // chung đúng một hàm dựng danh sách ngày — chỉ khác số cột và bước nhảy ◀ ▶.
 import { useEffect, useState, type CSSProperties } from 'react';
+import { TypeGlyph as CalGlyph, type GlyphName } from './type-glyph';   // nguồn glyph DÙNG CHUNG toàn app
 
 // BÀN GIAO (resume): đủ để 1 chat KHÁC nối tiếp card. Chỉ đính khi có nội dung → pill hiện glyph 📋 xám
 // + rê chuột bung popover. Shape generic (không import lib app) — caller map từ TaskResume sang.
@@ -22,27 +23,10 @@ export interface CalItem {
 }
 export type CalMode = 'month' | 'week' | 'day';
 
-// SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
-export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot' | 'brief' | 'book';
+// Glyph + CalGlyph giờ import từ ./type-glyph (nguồn dùng chung). GlyphName = superset (thêm 16 icon type).
 // 1 mục chú thích: icon (loại) HOẶC chip màu (trạng thái) — nhãn/màu do CALLER truyền (nguồn canonical,
 // vd SITE_STATUS_META), calendar KHÔNG tự chế chữ → legend luôn khớp drawer/kanban.
 export type LegendEntry = { icon?: GlyphName; color?: string; label?: string; sep?: boolean };
-const GLYPH: Record<GlyphName, React.ReactNode> = {
-  pin: <><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10z" /><circle cx="12" cy="11" r="2.4" /></>,
-  link: <><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" /></>,
-  sprout: <><path d="M12 20v-7" /><path d="M12 13C12 9 9 7 5 7c0 4 3 6 7 6z" /><path d="M12 11c0-3 2-5 6-5 0 3-2 5-6 5z" /></>,
-  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 7 8.5 6 8.5-6" /></>,
-  check: <path d="M20 6 9 17l-5-5" />,
-  clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
-  calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8 3.5v4M16 3.5v4" /></>,
-  alert: <><path d="M12 4 3 19h18L12 4z" /><path d="M12 10v4M12 16.5h.01" /></>,
-  dot: <circle cx="12" cy="12" r="4" />,
-  brief: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5V3.5h6v1" /><path d="m8.6 12.5 2 2 4-4" /></>,   // clipboard-check = có bàn giao
-  book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z" /></>,   // việc làm ra sản phẩm
-};
-function CalGlyph({ name, color, size = 13 }: { name: GlyphName; color: string; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden>{GLYPH[name]}</svg>;
-}
 
 const WD = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const WD1 = ['2', '3', '4', '5', '6', '7', 'C'];   // mini-month header (1 ký tự)

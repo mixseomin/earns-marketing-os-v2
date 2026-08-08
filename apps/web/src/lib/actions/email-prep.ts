@@ -53,23 +53,28 @@ export async function generateEmailPrep(
   if (!t) return { ok: false, error: 'task not found' };
 
   const audience = ctx.audience || t.name || 'the newsletter list';
-  const system = `You are an email copywriter for a passive-income marketing portfolio. Write natural, human copy that sounds like one person emailing another.
-STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs.
-HOOK FIRST: line 1 must be the payoff - a concrete claim, number, or open loop that stops the scroll. NEVER open with a formal intro, a greeting-then-throat-clearing, or "I wanted to tell you about...". The greeting line ("Hey {{first_name|there}},") may come first, then the hook immediately.
-The offer is the tool that solves the reader's real pain - weave it into the story, do not bolt a sales pitch on the end. One soft CTA. Value-first, concrete, no hype.`;
-  const user = `Write ONE newsletter email that is coherent with BOTH the content theme AND the offer below.
+  const system = `You are the editor of a NEWSLETTER for a passive-income portfolio - a genuine content issue, NOT an ad. It reads like a useful bulletin one person sends another: industry news, policy or benefit changes, local or timely developments, a practical tip the reader can use even if they never click anything.
+STRUCTURE (in this order):
+1. Greeting line ("Hey {{first_name|there}},"), then a HOOK - a concrete, newsy claim or open loop on the topic.
+2. The BODY is the content: deliver the actual news/insight/tip. This is ~80% of the email and stands on its own value. The reader should feel informed even with no offer.
+3. ONE natural bridge, late, to the offer - the offer is a recommendation the news makes relevant (the tool for what you just explained), a soft PS-style line, not the subject of the email.
+4. Optional one useful internal link (the brand's own tool) if it fits.
+STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs. No hype.
+DO NOT FABRICATE specifics: never invent exact statistics, dollar figures, dates, named studies, or events that were not given in the brief. Keep any factual framing true and general; if you lack a verified number, speak in plain general terms instead of making one up.
+The subject line is about the NEWS/VALUE, never about the product name.`;
+  const user = `Write ONE newsletter issue (content-first) for this audience, with the offer as a natural late recommendation.
 Product/brand: ${t.name || ''}${t.website ? ` (${t.website})` : ''} — ${t.one_liner || ''}
 Audience: ${audience}${ctx.segment ? ` · segment: ${ctx.segment}` : ''}
-Content theme / brief: ${t.title || ''}
-${t.instructions ? `Notes/outline:\n${t.instructions}` : ''}
-OFFER to promote (the natural recommendation inside the story): ${offer}. Put the link exactly as "${ctx.offerUrl || '[ offer link ]'}" where it belongs.
+Issue topic / news angle: ${t.title || ''}
+${t.instructions ? `Source notes / facts to use (only these - do not invent beyond them):\n${t.instructions}` : ''}
+OFFER (recommend once, late, as the tool the topic makes relevant): ${offer}. Put the link exactly as "${ctx.offerUrl || '[ offer link ]'}" at that one spot.
 
 Return JSON: {
-  "subjectA": "≤60 chars, hook/curiosity",
-  "subjectB": "≤60 chars, different angle for A/B",
+  "subjectA": "≤60 chars, about the news/value (NOT the product)",
+  "subjectB": "≤60 chars, different news angle for A/B",
   "preheader": "≤90 chars inbox preview that extends the subject",
-  "bodyMd": "full email body, plain text, blank lines between paragraphs. Greeting then HOOK on the next line. End with a one-click unsubscribe + physical-address footer placeholder.",
-  "keyPoints": ["3 to 5 very short bullets naming the email's main beats in order (hook → problem → offer as fix → CTA)"]
+  "bodyMd": "full newsletter body, plain text, blank lines between paragraphs. Greeting then newsy hook. Most of it is the actual content/news; ONE soft offer recommendation late; end with a one-click unsubscribe + physical-address footer placeholder.",
+  "keyPoints": ["3 to 5 very short bullets: the news/value beats first, then the single offer mention last"]
 }`;
 
   try {

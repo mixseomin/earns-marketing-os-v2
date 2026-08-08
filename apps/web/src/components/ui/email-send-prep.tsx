@@ -6,7 +6,8 @@
 // (YDNI), one ✏️ to edit. Lazy-loads prep_payload.email. Standard across every email card.
 
 import { useEffect, useState } from 'react';
-import { getEmailPrep, saveEmailPrep, generateEmailPrep, EMPTY_EMAIL_PREP, type EmailPrep } from '@/lib/actions/email-prep';
+import { getEmailPrep, saveEmailPrep, generateEmailPrep } from '@/lib/actions/email-prep';
+import { EMPTY_EMAIL_PREP, type EmailPrep } from '@/lib/email-prep-shape';
 import { CampaignLinkPicker } from './campaign-link-picker';
 
 const lbl: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginBottom: 3 };

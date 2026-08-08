@@ -58,6 +58,9 @@ export { Panel } from './panel';
 // GROUPS + horizontal-scroll containment. Lifted from the SEO Sites Overview table (the reference,
 // untouched). Use for any wide/data-heavy table. See ui-conventions §7.
 export { DataTable, type DataColumn, type DataGroup } from './data-table';
+// useTableSort = THE shared multi-column sort engine (click ↑/↓/tắt · Shift+click = cột phụ · persist cookie).
+// DataTable dùng sẵn; bảng tự chế <table> retrofit bằng hook này + <SortArrow> — KHÔNG tự viết sort lại.
+export { useTableSort, SortArrow, type SortSpec, type SortableCol, type ThSort } from './use-table-sort';
 // SimpleTable = small/narrow display table (top-N lists, breakdowns) — consistent compact cells,
 // no toggle/scroll-box. Server-compatible. Use over a hand-rolled <table>+th/td. See §7.
 export { SimpleTable, type SimpleColumn } from './simple-table';

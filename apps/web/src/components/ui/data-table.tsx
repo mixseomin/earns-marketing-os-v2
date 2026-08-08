@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
+import { useTableSort, SortArrow } from './use-table-sort';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -96,60 +97,9 @@ export function DataTable<T>({
   const hasTotals = visible.some((c) => c.total);
   const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
 
-  // Sort — MULTI-column, client-side. Array order = priority (spec[0] = primary tie-break key).
-  //  • plain click a sortable header → sort by JUST that column, cycling none → asc → desc → none.
-  //  • SHIFT+click → add/cycle it as an EXTRA tie-breaker (keeps the columns already sorted).
-  // Persists to localStorage + cookie (`${persistKey}::sort`) so the order survives reload, same as
-  // the column-toggle state. SSR + first client paint = [] (original order) → no hydration mismatch;
-  // a persisted order re-applies one frame after mount (rows may shift once, acceptable).
-  const sortKey = persistKey ? `${persistKey}::sort` : undefined;
-  type SortSpec = { key: string; dir: 'asc' | 'desc' };
-  const [sort, setSort] = useState<SortSpec[]>([]);
-  useEffect(() => {
-    if (!sortKey) return;
-    try { const raw = localStorage.getItem(sortKey); if (raw) setSort(JSON.parse(raw)); } catch { /* ignore */ }
-  }, [sortKey]);
-  const applySort = (next: SortSpec[]) => {
-    setSort(next);
-    if (sortKey) {
-      try {
-        localStorage.setItem(sortKey, JSON.stringify(next));
-        document.cookie = `${sortKey}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-      } catch { /* ignore */ }
-    }
-  };
-  const nextDir = (cur: 'asc' | 'desc' | undefined): 'asc' | 'desc' | null => (cur === undefined ? 'asc' : cur === 'asc' ? 'desc' : null);
-  const clickSort = (key: string, additive: boolean) => {
-    if (additive) {                                   // Shift+click: cycle THIS col in the chain, keep rest
-      const nd = nextDir(sort.find((s) => s.key === key)?.dir);
-      const rest = sort.filter((s) => s.key !== key);
-      applySort(nd ? [...rest, { key, dir: nd }] : rest);
-    } else {                                          // plain click: collapse to this col alone (3-state cycle)
-      const solo = sort.length === 1 && sort[0]!.key === key;
-      const nd = solo ? nextDir(sort[0]!.dir) : 'asc';
-      applySort(nd ? [{ key, dir: nd }] : []);
-    }
-  };
-  const sortIndex = (key: string) => sort.findIndex((s) => s.key === key);
-  const sortedRows = useMemo(() => {
-    if (!sort.length) return rows;
-    const specs: { dir: 'asc' | 'desc'; sv: NonNullable<DataColumn<T>['sortValue']> }[] = [];
-    for (const s of sort) { const sv = columns.find((c) => c.key === s.key)?.sortValue; if (sv) specs.push({ dir: s.dir, sv }); }
-    if (!specs.length) return rows;
-    return [...rows].sort((a, b) => {
-      for (const { dir, sv } of specs) {
-        const av = sv(a), bv = sv(b);
-        if (av == null && bv == null) continue;
-        if (av == null) return 1;                     // null/undefined luôn xuống cuối, KHÔNG lật theo chiều
-        if (bv == null) return -1;
-        const base = typeof av === 'number' && typeof bv === 'number'
-          ? av - bv
-          : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
-        if (base !== 0) return dir === 'asc' ? base : -base;   // hoà ở cột này → xét cột ưu tiên kế
-      }
-      return 0;
-    });
-  }, [rows, columns, sort]);
+  // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
+  // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
+  const { sorted: sortedRows, thProps } = useTableSort(rows, columns, persistKey);
 
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -198,21 +148,13 @@ export function DataTable<T>({
             <tr>
               {visible.map((c) => {
                 const sortable = !!c.sortValue;
-                const idx = sortIndex(c.key);
-                const active = idx >= 0;
-                // Cột sortable: header bấm được. ▲asc/▼desc (accent) khi đang sort; ▾ mờ = gợi ý bấm được.
-                // Sort nhiều cột (Shift+bấm) → hiện thêm số ƯU TIÊN (1=chính) cạnh mũi tên. Cột không sortable giữ nguyên.
+                // Cột sortable: header bấm sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ (số ưu tiên cạnh mũi tên).
                 return (
                   <th key={c.key} style={{ ...headStyle(c), cursor: sortable ? 'pointer' : undefined, userSelect: 'none' }}
                       title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : c.title}
-                      onClick={sortable ? (e) => clickSort(c.key, e.shiftKey) : undefined}>
+                      onClick={sortable ? thProps(c.key).onClick : undefined}>
                     {c.header}
-                    {sortable && (
-                      <span aria-hidden style={{ marginLeft: 4, fontSize: 9, verticalAlign: 'middle', whiteSpace: 'nowrap', color: active ? 'var(--accent)' : 'var(--fg-4)' }}>
-                        {active ? (sort[idx]!.dir === 'asc' ? '▲' : '▼') : '▾'}
-                        {active && sort.length > 1 && <span style={{ fontSize: 8, marginLeft: 1, fontWeight: 700 }}>{idx + 1}</span>}
-                      </span>
-                    )}
+                    {sortable && <SortArrow spec={thProps(c.key)} />}
                   </th>
                 );
               })}

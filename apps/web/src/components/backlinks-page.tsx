@@ -890,7 +890,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
   const filtered = useMemo(() => (hideClosed ? filteredAll.filter((t) => !CLOSED.has(t.siteState)) : filteredAll), [filteredAll, hideClosed]);
-  const closedN = filteredAll.length - filtered.length;
+  // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
+  const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);
 
   const shown = useMemo(() => {
     const base = tab === 'pending'
@@ -1309,22 +1310,27 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {/* Row 2 — status. Shared vault-list FilterChips: single-select chip group + counts, one YDNI accent. */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Ẩn xong/bỏ/lỗi thì GIẤU LUÔN 4 chip đó sau một chip bật — 9 chip xuống 6, và không còn
-            cảnh bấm "Completed" ra danh sách rỗng. Bấm chip = hiện lại cả 4 chip lẫn task. */}
+        {/* Bộ chip CỐ ĐỊNH 7 trạng thái + All, không thêm/bớt theo toggle. Bản trước giấu 4 chip khi
+            ẩn xong/bỏ/lỗi cho "gọn" → bật/tắt là cả hàng dịch chỗ, chip vừa bấm nhảy đi nơi khác.
+            Gọn không đáng để đổi lấy việc người dùng mất dấu thứ mình vừa bấm.
+            Bấm thẳng chip "Completed" vẫn ra danh sách đúng: chọn đích danh một trạng thái thì luật
+            ẩn nhường (hideClosed chỉ áp khi tab='all'). */}
         <FilterChips<TabKey>
           value={tab} onChange={setTab}
-          options={[...STATUS_ORDER.filter((s) => !hideClosed || !CLOSED.has(s)).map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
+          options={[...STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
           counts={STATUS_ORDER.reduce<Partial<Record<TabKey, number>>>((a, s) => { a[s] = kpi[s] ?? 0; return a; },
             { all: hideClosed ? STATUS_ORDER.reduce((n, s) => n - (CLOSED.has(s) ? (kpi[s] ?? 0) : 0), kpi.total ?? 0) : kpi.total })}
         />
-        {(closedN > 0 || showClosed) && (
+        {/* Ghim mép phải + nhãn có số CỐ ĐỊNH (đếm trên tập chưa lọc theo toggle) → bấm xong ô tick
+            vẫn nằm nguyên chỗ cũ, không trôi theo bề rộng chip "All". */}
+        {closedTotal > 0 && (
           <label title="Việc đã xong, đã bỏ, link lỗi. Lựa chọn được nhớ cho lần mở sau."
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11,
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11,
               padding: '2px 9px', borderRadius: 999, border: `1px solid ${showClosed ? 'var(--accent)' : 'var(--line)'}`,
               background: showClosed ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
               color: showClosed ? 'var(--fg-1)' : 'var(--fg-3)' }}>
             <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} style={{ cursor: 'pointer', margin: 0 }} />
-            hiện việc đã xong/bỏ/lỗi{!showClosed && closedN > 0 ? ` (${closedN})` : ''}
+            hiện việc đã xong/bỏ/lỗi ({closedTotal})
           </label>
         )}
       </div>
@@ -1365,7 +1371,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
-          {STATUS_ORDER.filter((st) => !hideClosed || !CLOSED.has(st)).map((st) => {
+          {STATUS_ORDER.map((st) => {
             const col = shown.filter((t) => t.siteState === st);
             // Terminal columns: most-recently-touched on top (just-finished shouldn't sink to the
             // bottom under stale tier order). Actionable columns keep the tier sort (do-next first).

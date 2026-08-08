@@ -2,11 +2,17 @@
 
 import { useEffect, useState, useCallback, type CSSProperties } from 'react';
 import { localDay } from '@/lib/local-day';
+import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
 
 interface Contact { email: string; name: string; createdAt: string | null; excluded: boolean; unsubbed: boolean }
 interface Data { total: number | null; offset: number; pageSize: number; contacts: Contact[]; source: string }
 
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)' };
+const CONTACT_COLS: SortableCol<Contact>[] = [
+  { key: 'email', sortValue: (c) => c.email.toLowerCase() },
+  { key: 'joined', sortValue: (c) => c.createdAt },
+  { key: 'status', sortValue: (c) => (c.unsubbed ? 'unsub' : c.excluded ? 'excluded' : 'active') },
+];
 
 // The actual contacts behind a site's Subs number. Paginated; search filters the loaded page.
 export function ContactsDrawer({ domain, onClose }: { domain: string; onClose: () => void }) {
@@ -28,6 +34,7 @@ export function ContactsDrawer({ domain, onClose }: { domain: string; onClose: (
   useEffect(() => { load(offset); }, [load, offset]);
 
   const shown = (d?.contacts || []).filter((c) => !q || c.email.toLowerCase().includes(q.toLowerCase()));
+  const s = useTableSort(shown, CONTACT_COLS, 'contacts');
   const total = d?.total ?? 0;
   const page = Math.floor(offset / (d?.pageSize || 50)) + 1;
   const pages = Math.max(1, Math.ceil(total / (d?.pageSize || 50)));
@@ -55,9 +62,13 @@ export function ContactsDrawer({ domain, onClose }: { domain: string; onClose: (
           {loading && !d && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-3)' }}>loading…</div>}
           {d && (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Email</th><th style={th}>Joined</th><th style={{ ...th, textAlign: 'center' }}>Status</th></tr></thead>
+              <thead><tr>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('email').onClick}>Email <SortArrow spec={s.thProps('email')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('joined').onClick}>Joined <SortArrow spec={s.thProps('joined')} /></th>
+                <th style={{ ...th, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('status').onClick}>Status <SortArrow spec={s.thProps('status')} /></th>
+              </tr></thead>
               <tbody>
-                {shown.map((c) => (
+                {s.sorted.map((c) => (
                   <tr key={c.email}>
                     <td style={{ ...td, ...mono }}>{c.email}</td>
                     <td style={{ ...td, ...mono, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{c.createdAt ? localDay(c.createdAt) : '—'}</td>

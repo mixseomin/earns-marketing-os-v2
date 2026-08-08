@@ -27,7 +27,7 @@ import { listAiContent, generateAiContent, deleteAiContent, normalizeInstruction
 import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
-import { CampaignLinkPicker } from '@/components/ui';
+import { CampaignLinkPicker, EmailSendPrep } from '@/components/ui';
 
 // Compact status labels for the Outreach linkage chip on a backlink task.
 const OUTREACH_ST: Record<string, string> = { to_send: 'chưa gửi', sent: 'đã gửi', followup_1: 'FU1', followup_2: 'FU2', replied: 'đã hồi', interested: 'quan tâm', embedded: 'đã đặt ★', declined: 'từ chối', bounced: 'bounced', unreachable: 'ko liên hệ được', no_response: 'ko hồi' };
@@ -39,7 +39,7 @@ import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
-import { SITE_STATUS_META, SITE_STATUSES } from '@/lib/site-status';
+import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES } from '@/lib/site-status';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
@@ -63,6 +63,7 @@ const CAL_LEGEND: LegendEntry[] = [
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
 const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
+const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
@@ -677,6 +678,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   // Chế độ lịch (tháng/tuần/ngày) đi vào URL như mọi state khác → F5 và chia sẻ link vẫn đúng chỗ.
   const [calMode, setCalMode] = useState<CalMode>(() => { const v = sp.get('cal'); return v === 'week' || v === 'day' ? v : 'month'; });
+  // Mặc định ẩn việc đã đóng sổ (xong/bỏ/lỗi): bảng việc là để biết CÒN phải làm gì, không phải
+  // kho lưu trữ. ?closed=1 bật lại. Chọn đích danh một tab trạng thái = ý muốn rõ ràng, luật này nhường.
+  const [showClosed, setShowClosed] = useState(sp.get('closed') === '1');
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
   // Sản phẩm theo ĐÚNG project đang xem. Trang project đã lọc từ server; bảng toàn cục thì phải
   // theo chip project đang chọn — nếu không, chọn một project vẫn thấy sản phẩm của project khác.
@@ -777,6 +781,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('blocked', blockedOnly ? '1' : '');
     set('ready', readyFilter);
     set('tier', tierFilter);
+    set('closed', showClosed ? '1' : '');
     set('proj', allProjects ? projectFilter : '');
     set('cal', calMode === 'month' ? '' : calMode);
     set('wt', workType);
@@ -794,7 +799,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, projectFilter, calMode, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, calMode, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -848,7 +853,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   // Shared filter predicate (search + attribute filters). Tab (status) applied separately
   // so BOTH the list and the calendar honour the same filters — "global" filtering.
-  const filtered = useMemo(() => {
+  const hideClosed = !showClosed && tab === 'all';
+  const filteredAll = useMemo(() => {
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
       if (tab !== 'all' && t.siteState !== tab) return false;
@@ -865,6 +871,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       return true;
     });
   }, [tasks, tab, workType, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
+
+  // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
+  // predicate lần thứ hai chỉ để đếm.
+  const filtered = useMemo(() => (hideClosed ? filteredAll.filter((t) => !CLOSED.has(t.siteState)) : filteredAll), [filteredAll, hideClosed]);
+  const closedN = filteredAll.length - filtered.length;
 
   const shown = useMemo(() => {
     const base = tab === 'pending'
@@ -1283,11 +1294,21 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {/* Row 2 — status. Shared vault-list FilterChips: single-select chip group + counts, one YDNI accent. */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Ẩn xong/bỏ/lỗi thì GIẤU LUÔN 4 chip đó sau một chip bật — 9 chip xuống 6, và không còn
+            cảnh bấm "Completed" ra danh sách rỗng. Bấm chip = hiện lại cả 4 chip lẫn task. */}
         <FilterChips<TabKey>
           value={tab} onChange={setTab}
-          options={[...STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
-          counts={STATUS_ORDER.reduce<Partial<Record<TabKey, number>>>((a, s) => { a[s] = kpi[s] ?? 0; return a; }, { all: kpi.total })}
+          options={[...STATUS_ORDER.filter((s) => !hideClosed || !CLOSED.has(s)).map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
+          counts={STATUS_ORDER.reduce<Partial<Record<TabKey, number>>>((a, s) => { a[s] = kpi[s] ?? 0; return a; },
+            { all: hideClosed ? STATUS_ORDER.reduce((n, s) => n - (CLOSED.has(s) ? (kpi[s] ?? 0) : 0), kpi.total ?? 0) : kpi.total })}
         />
+        {(closedN > 0 || showClosed) && (
+          <button type="button" onClick={() => setShowClosed((v) => !v)}
+            title={showClosed ? 'Ẩn lại việc đã xong / đã bỏ / link lỗi' : 'Hiện việc đã xong, đã bỏ và link lỗi'}
+            style={{ ...btn, padding: '2px 9px', fontSize: 11, cursor: 'pointer', color: showClosed ? 'var(--fg-1)' : 'var(--fg-4)', borderColor: showClosed ? 'var(--accent)' : 'var(--line)' }}>
+            {showClosed ? '✓ xong/bỏ/lỗi' : `+ xong/bỏ/lỗi ${closedN}`}
+          </button>
+        )}
       </div>
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
@@ -1326,7 +1347,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
-          {STATUS_ORDER.map((st) => {
+          {STATUS_ORDER.filter((st) => !hideClosed || !CLOSED.has(st)).map((st) => {
             const col = shown.filter((t) => t.siteState === st);
             // Terminal columns: most-recently-touched on top (just-finished shouldn't sink to the
             // bottom under stale tier order). Actionable columns keep the tier sort (do-next first).
@@ -1847,6 +1868,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
             </div>
           );
         })()}
+
+        {/* Email-send card → the send-ready package up top: real email + list + send time + offer. */}
+        {isEmailSend && <EmailSendPrep taskId={task.id} defaultSendAt={task.siteScheduledAt} />}
 
         {/* 1 · Source & how-to — read first: where to place, how, and the build steps. */}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>

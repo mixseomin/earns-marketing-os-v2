@@ -12,6 +12,9 @@ export { ResourcePicker, type ResourcePickerProps, type PickerItem } from './res
 // CampaignLinkPicker = pick a link from the /offers (affiliate) + /products catalog, or paste a URL.
 // Self-fetches via listCampaignLinks(). Reuse anywhere a field wants "which offer/product link".
 export { CampaignLinkPicker } from './campaign-link-picker';
+// EmailSendPrep = send-ready package for a 📧 email-issue task (real email detail + list + send
+// time + offer). Reads prep_payload.email. Standard surface across every email card.
+export { EmailSendPrep } from './email-send-prep';
 // EntityPicker = pick + inline CRUD (create/rename/delete) + rich rows (avatar/badge/meta). Use over
 // ResourcePicker when the picker also owns create/rename/delete. See feedback_picker_inline_crud.
 export { EntityPicker, type EntityOption, type EntityPickerProps } from './entity-picker';

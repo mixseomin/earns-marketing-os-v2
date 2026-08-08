@@ -116,34 +116,41 @@ async function createSession(userId: number): Promise<void> {
 
 // ── Get current authenticated user ─────────────────────────────────
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  // Widening the cookie domain (host-only mos2.on.tc → shared .on.tc) can leave the browser holding
+  // TWO `mos2-session` cookies. It may send the stale one first, and cookies().get() would pick that
+  // → phantom logout: getCurrentUser returns null, admin pages bounce to /, home still renders → user
+  // trapped on / (incident 2026-08-08). So read EVERY mos2-session value from the raw Cookie header
+  // and use the first that resolves to a LIVE session (validity enforced in SQL).
+  const rawCookie = (await headers()).get('cookie') || '';
+  const tokens = Array.from(rawCookie.matchAll(/(?:^|;\s*)mos2-session=([^;]+)/g)).map((m) => (m[1] ?? '').trim()).filter(Boolean);
+  if (tokens.length === 0) return null;
   const db = getDb();
   if (!db) return null;
-  const rows = await db.execute(sql`
-    SELECT s.user_id, s.expires_at, s.revoked_at, u.email, u.name,
-           m.display_name, m.role, m.specialty, m.active
-    FROM auth_sessions s
-    JOIN users u ON u.id = s.user_id
-    LEFT JOIN members m ON m.user_id = s.user_id AND m.project_id IS NULL
-    WHERE s.session_token = ${token} LIMIT 1
-  `);
-  const r = (rows as unknown as Array<Record<string, unknown>>)[0];
-  if (!r) return null;
-  if (r.revoked_at) return null;
-  if (new Date(String(r.expires_at)).getTime() < Date.now()) return null;
-  // Touch last_seen_at (best-effort)
-  db.execute(sql`UPDATE auth_sessions SET last_seen_at = NOW() WHERE session_token = ${token}`).catch(() => {});
-  return {
-    id: Number(r.user_id),
-    email: String(r.email),
-    name: String(r.name ?? ''),
-    displayName: String(r.display_name ?? r.name ?? ''),
-    role: (String(r.role ?? 'viewer') as AuthUser['role']),
-    specialty: String(r.specialty ?? 'other'),
-    active: Boolean(r.active),
-  };
+  for (const token of tokens) {
+    const rows = await db.execute(sql`
+      SELECT s.user_id, u.email, u.name,
+             m.display_name, m.role, m.specialty, m.active
+      FROM auth_sessions s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN members m ON m.user_id = s.user_id AND m.project_id IS NULL
+      WHERE s.session_token = ${token} AND s.revoked_at IS NULL AND s.expires_at > NOW()
+      LIMIT 1
+    `);
+    const r = (rows as unknown as Array<Record<string, unknown>>)[0];
+    if (!r) continue;
+    // Touch last_seen_at (best-effort)
+    db.execute(sql`UPDATE auth_sessions SET last_seen_at = NOW() WHERE session_token = ${token}`).catch(() => {});
+    return {
+      id: Number(r.user_id),
+      email: String(r.email),
+      name: String(r.name ?? ''),
+      displayName: String(r.display_name ?? r.name ?? ''),
+      role: (String(r.role ?? 'viewer') as AuthUser['role']),
+      specialty: String(r.specialty ?? 'other'),
+      active: Boolean(r.active),
+    };
+  }
+  return null;
 }
 
 export async function getCurrentUserId(): Promise<number | null> {

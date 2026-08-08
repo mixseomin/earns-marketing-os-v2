@@ -26,24 +26,26 @@ const isApproved = (s?: string) => /active|joined|approved/i.test(s ?? '');
 
 async function offerLinks(): Promise<CampaignLink[]> {
   if (!DIRECTUS_TOKEN) return [];
+  // Fetch all in one request and filter for a usable link in JS. The Directus server-side
+  // filter[affiliate_url][_nnull] returned empty on this field (unreliable operator) — same
+  // fetch-all-then-filter shape /products and getOffersView use.
+  const r = await fetch(
+    `${DIRECTUS_URL}/items/affiliate_programs?fields=name,status,vertical,affiliate_url,account_id&limit=-1`,
+    { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate: 300 } },
+  );
+  if (!r.ok) return [];
+  const rows = ((await r.json()) as { data?: Array<Record<string, unknown>> }).data ?? [];
   const out: CampaignLink[] = [];
-  for (let page = 1; page <= 20; page++) {
-    const url = `${DIRECTUS_URL}/items/affiliate_programs?fields=name,status,vertical,affiliate_url,account_id&filter[affiliate_url][_nnull]=true&limit=200&page=${page}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate: 300 } });
-    if (!r.ok) break;
-    const rows = ((await r.json()) as { data?: Array<Record<string, unknown>> }).data ?? [];
-    for (const x of rows) {
-      const u = String(x.affiliate_url ?? '').trim();
-      if (!u) continue;
-      out.push({
-        kind: 'offer',
-        label: String(x.name ?? '').trim() || '(offer)',
-        url: u,
-        status: String(x.status ?? ''),
-        sub: `${NET[String(x.account_id ?? '')] ?? 'Offer'}${x.vertical ? ' · ' + String(x.vertical) : ''}`,
-      });
-    }
-    if (rows.length < 200) break;
+  for (const x of rows) {
+    const u = String(x.affiliate_url ?? '').trim();
+    if (!u) continue;
+    out.push({
+      kind: 'offer',
+      label: String(x.name ?? '').trim() || '(offer)',
+      url: u,
+      status: String(x.status ?? ''),
+      sub: `${NET[String(x.account_id ?? '')] ?? 'Offer'}${x.vertical ? ' · ' + String(x.vertical) : ''}`,
+    });
   }
   return out;
 }

@@ -6,7 +6,7 @@
 // (YDNI), one ✏️ to edit. Lazy-loads prep_payload.email. Standard across every email card.
 
 import { useEffect, useState } from 'react';
-import { getEmailPrep, saveEmailPrep, EMPTY_EMAIL_PREP, type EmailPrep } from '@/lib/actions/email-prep';
+import { getEmailPrep, saveEmailPrep, generateEmailPrep, EMPTY_EMAIL_PREP, type EmailPrep } from '@/lib/actions/email-prep';
 import { CampaignLinkPicker } from './campaign-link-picker';
 
 const lbl: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginBottom: 3 };
@@ -26,6 +26,8 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<EmailPrep>(EMPTY_EMAIL_PREP);
   const [saving, setSaving] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -44,6 +46,13 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
     if (r.ok) { setPrep(draft); setEditing(false); }
   };
   const set = (k: keyof EmailPrep) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
+  const genAI = async () => {
+    setAiBusy(true); setAiErr(null);
+    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, segment: draft.segment, audience: draft.listName });
+    setAiBusy(false);
+    if (!r.ok) { setAiErr(r.error || 'lỗi AI'); return; }
+    setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd }));
+  };
 
   const wrap: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', padding: 12, marginTop: 8 };
 
@@ -64,6 +73,11 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
 
       {editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '6px 8px', borderRadius: 6, border: '1px dashed var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+            <button type="button" onClick={genAI} disabled={aiBusy} style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy ? '⏳ AI đang soạn…' : '✨ AI soạn email'}</button>
+            <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>từ brief + offer + audience → subject A/B + preheader + body</span>
+            {aiErr && <span style={{ fontSize: 10.5, color: 'var(--bad,#ef4444)' }}>⚠ {aiErr}</span>}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1 }}><div style={lbl}>From name</div><input value={draft.fromName} onChange={(e) => set('fromName')(e.target.value)} style={field} placeholder="MilitaryCalc" /></div>
             <div style={{ flex: 1 }}><div style={lbl}>From email</div><input value={draft.fromEmail} onChange={(e) => set('fromEmail')(e.target.value)} style={field} placeholder="news@militarycalc.com" /></div>

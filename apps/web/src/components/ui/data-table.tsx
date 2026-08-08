@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -27,6 +27,10 @@ export interface DataColumn<T> {
   cellTitle?: (row: T, index: number) => string | undefined; // per-cell tooltip
   onCellClick?: (row: T, index: number) => void;             // click THIS cell (stops row propagation)
   total?: (rows: T[]) => ReactNode;     // if ANY column sets this, a totals row renders
+  // Sort: set this → header becomes clickable, cycles ↑asc → ↓desc → off. Return the comparable
+  // value for a row (number sorts numerically, string via localeCompare; null/undefined sort last).
+  // Omit → column not sortable (e.g. action/icon columns). Sort is client-side + uncontrolled.
+  sortValue?: (row: T) => string | number | null | undefined;
 }
 
 export interface DataGroup {
@@ -92,6 +96,26 @@ export function DataTable<T>({
   const hasTotals = visible.some((c) => c.total);
   const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
 
+  // Sort (uncontrolled, client-side). null = original order. Click a sortable header: none → asc → desc → none.
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const cycleSort = (key: string) =>
+    setSort((s) => (!s || s.key !== key ? { key, dir: 'asc' } : s.dir === 'asc' ? { key, dir: 'desc' } : null));
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows;
+    const sv = columns.find((c) => c.key === sort.key)?.sortValue;
+    if (!sv) return rows;
+    return [...rows].sort((a, b) => {
+      const av = sv(a), bv = sv(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;            // null/undefined luôn xuống cuối, cả hai chiều
+      if (bv == null) return -1;
+      const base = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+      return sort.dir === 'asc' ? base : -base;
+    });
+  }, [rows, columns, sort]);
+
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     return { ...baseCell, textAlign: c.align ?? 'right', width: c.width, background: bandSoft(g?.color), ...extra };
@@ -137,11 +161,24 @@ export function DataTable<T>({
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth }}>
           <thead>
             <tr>
-              {visible.map((c) => <th key={c.key} style={headStyle(c)} title={c.title}>{c.header}</th>)}
+              {visible.map((c) => {
+                const sortable = !!c.sortValue;
+                const active = sort?.key === c.key;
+                // Cột sortable: header bấm được, con trỏ + mũi tên trạng thái. ▲asc/▼desc (accent) khi đang sort;
+                // ▾ mờ = gợi ý "bấm sắp xếp được". Cột không sortable giữ nguyên như cũ.
+                return (
+                  <th key={c.key} style={{ ...headStyle(c), cursor: sortable ? 'pointer' : undefined, userSelect: 'none' }}
+                      title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt)` : c.title}
+                      onClick={sortable ? () => cycleSort(c.key) : undefined}>
+                    {c.header}
+                    {sortable && <span aria-hidden style={{ marginLeft: 4, fontSize: 9, verticalAlign: 'middle', color: active ? 'var(--accent)' : 'var(--fg-4)' }}>{active ? (sort!.dir === 'asc' ? '▲' : '▼') : '▾'}</span>}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {sortedRows.map((row, i) => (
               <tr key={getRowKey(row, i)} className="dt-row"
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                   onClick={onRowClick ? () => onRowClick(row, i) : undefined}

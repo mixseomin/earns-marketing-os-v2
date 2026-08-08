@@ -16,6 +16,7 @@ export function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<
   const columns: DataColumn<OfferRow>[] = [
     {
       key: 'offer', align: 'left', width: '100%', header: 'Offer',
+      sortValue: (o) => (meta[o.key]?.label ?? o.key).toLowerCase(),
       cell: (o) => {
         const m = meta[o.key] ?? { label: o.key, merchant: '' };
         const link = o.sample_url || m.url;
@@ -32,12 +33,12 @@ export function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<
         );
       },
     },
-    { key: 'views7', group: '7d', header: 'Views', cell: (o) => o.views7.toLocaleString() },
-    { key: 'clicks7', group: '7d', header: 'Clicks', cell: (o) => o.clicks7.toLocaleString() },
-    { key: 'ctr7', group: '7d', header: 'CTR', cell: (o) => <span style={{ color: o.ctr7 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr7}%</span> },
-    { key: 'views30', group: '30d', header: 'Views', cell: (o) => o.views30.toLocaleString() },
-    { key: 'clicks30', group: '30d', header: 'Clicks', cell: (o) => o.clicks30.toLocaleString() },
-    { key: 'ctr30', group: '30d', header: 'CTR', cell: (o) => <span style={{ color: o.ctr30 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr30}%</span> },
+    { key: 'views7', group: '7d', header: 'Views', sortValue: (o) => o.views7, cell: (o) => o.views7.toLocaleString() },
+    { key: 'clicks7', group: '7d', header: 'Clicks', sortValue: (o) => o.clicks7, cell: (o) => o.clicks7.toLocaleString() },
+    { key: 'ctr7', group: '7d', header: 'CTR', sortValue: (o) => o.ctr7, cell: (o) => <span style={{ color: o.ctr7 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr7}%</span> },
+    { key: 'views30', group: '30d', header: 'Views', sortValue: (o) => o.views30, cell: (o) => o.views30.toLocaleString() },
+    { key: 'clicks30', group: '30d', header: 'Clicks', sortValue: (o) => o.clicks30, cell: (o) => o.clicks30.toLocaleString() },
+    { key: 'ctr30', group: '30d', header: 'CTR', sortValue: (o) => o.ctr30, cell: (o) => <span style={{ color: o.ctr30 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr30}%</span> },
   ];
   return <DataTable rows={offers} columns={columns} getRowKey={(o) => o.key} groups={GROUPS} minWidth={520} />;
 }

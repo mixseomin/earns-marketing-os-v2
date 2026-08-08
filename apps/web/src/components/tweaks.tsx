@@ -2,6 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+// ⚠ FIRST-PAINT INVARIANT: any key here that affects the FIRST rendered frame (theme, showSidebar,
+// showRightbar, colours) MUST be applied by the no-flash <head> script in app/layout.tsx (NO_FLASH_SCRIPT)
+// so F5 paints the correct state immediately. Applying it only via useEffect/ThemeApplier = the classic
+// flash-of-wrong-state bug (paint default → snap to stored). Add a new first-paint key → also add it to
+// that script AND ThemeApplier's hydrated-gated sync. Non-visual keys (livePolling, columnCount) are exempt.
 export type Tweaks = {
   theme: 'dark' | 'light';
   columnCount: number;

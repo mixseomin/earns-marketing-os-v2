@@ -11,7 +11,7 @@ import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
 import { logAiUsage } from '@/lib/ai/usage';
 // Type + empty default live in a PLAIN module — a 'use server' file may only export async functions,
 // so the value/type must not be declared here (was crashing /plays + /communities at runtime).
-import { type EmailPrep, EMPTY_EMAIL_PREP } from '@/lib/email-prep-shape';
+import { type EmailPrep, type EmailSource, EMPTY_EMAIL_PREP, isFreshSource, MAX_SOURCE_AGE_DAYS } from '@/lib/email-prep-shape';
 
 export async function getEmailPrep(taskId: number): Promise<EmailPrep | null> {
   const me = await getCurrentUser();
@@ -32,7 +32,7 @@ export async function getEmailPrep(taskId: number): Promise<EmailPrep | null> {
 // body, and 3-5 key points (the email's gist). English, human-voice (public content).
 export async function generateEmailPrep(
   taskId: number,
-  ctx: { offerLabel?: string; offerUrl?: string; segment?: string; audience?: string },
+  ctx: { offerLabel?: string; offerUrl?: string; segment?: string; audience?: string; sources?: EmailSource[] },
 ): Promise<{ ok: boolean; subjectA?: string; subjectB?: string; preheader?: string; bodyMd?: string; keyPoints?: string[]; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
@@ -40,6 +40,12 @@ export async function generateEmailPrep(
   // Offer-first: no email without a real offer to build around (the card content + offer must cohere).
   const offer = (ctx.offerLabel || '').trim();
   if (!offer) return { ok: false, error: 'Chọn offer trước — AI viết mail bám theo offer + nội dung.' };
+  // Source-first: news must be verifiable and fresh. Write only from sources dated ≤1 month back.
+  const fresh = (ctx.sources || []).filter((s) => s.url?.trim() && isFreshSource(s.date));
+  if (!fresh.length) {
+    const has = (ctx.sources || []).length > 0;
+    return { ok: false, error: has ? `Nguồn tin đã cũ >${MAX_SOURCE_AGE_DAYS} ngày — cần nguồn ≤1 tháng để viết tin.` : 'Thêm ≥1 nguồn tin (có link + ngày ≤1 tháng) trước — mọi tin phải kiểm chứng được.' };
+  }
   const client = getOpenAI();
   if (!client) return { ok: false, error: 'OpenAI client unavailable' };
   const db = getDb();
@@ -60,13 +66,17 @@ STRUCTURE (in this order):
 3. ONE natural bridge, late, to the offer - the offer is a recommendation the news makes relevant (the tool for what you just explained), a soft PS-style line, not the subject of the email.
 4. Optional one useful internal link (the brand's own tool) if it fits.
 STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs. No hype.
-DO NOT FABRICATE specifics: never invent exact statistics, dollar figures, dates, named studies, or events that were not given in the brief. Keep any factual framing true and general; if you lack a verified number, speak in plain general terms instead of making one up.
+SOURCED NEWS ONLY: every factual claim must come from the SOURCES provided below. Do NOT invent statistics, dollar figures, dates, studies, or events beyond what the sources state. If the sources do not cover something, keep it general and true or leave it out.
 The subject line is about the NEWS/VALUE, never about the product name.`;
+  const srcBlock = fresh.map((s, i) => `[${i + 1}] ${s.title || s.url} (${s.publisher || ''}${s.publisher ? ', ' : ''}${s.date}) ${s.url}`).join('\n');
   const user = `Write ONE newsletter issue (content-first) for this audience, with the offer as a natural late recommendation.
 Product/brand: ${t.name || ''}${t.website ? ` (${t.website})` : ''} — ${t.one_liner || ''}
 Audience: ${audience}${ctx.segment ? ` · segment: ${ctx.segment}` : ''}
 Issue topic / news angle: ${t.title || ''}
-${t.instructions ? `Source notes / facts to use (only these - do not invent beyond them):\n${t.instructions}` : ''}
+${t.instructions ? `Editor notes / angle (frame only - facts must trace to the sources):\n${t.instructions}` : ''}
+SOURCES (write the news only from these - all are dated within the last month):
+${srcBlock}
+Ground the news in these sources and reference them naturally in the body (e.g. "per ${fresh[0]?.publisher || 'reporting'}...").
 OFFER (recommend once, late, as the tool the topic makes relevant): ${offer}. Put the link exactly as "${ctx.offerUrl || '[ offer link ]'}" at that one spot.
 
 Return JSON: {
@@ -98,6 +108,10 @@ Return JSON: {
 export async function saveEmailPrep(taskId: number, prep: EmailPrep): Promise<{ ok: boolean; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
+  // Can't mark an issue "ready" without a fresh, verifiable source behind the news. Draft is fine.
+  if (prep.status === 'ready' && !(prep.sources || []).some((s) => s.url?.trim() && isFreshSource(s.date))) {
+    return { ok: false, error: `Chưa thể "sẵn sàng gửi": cần ≥1 nguồn tin có link + ngày ≤${MAX_SOURCE_AGE_DAYS} ngày.` };
+  }
   const db = getDb();
   if (!db) return { ok: false, error: 'no db' };
   await db.execute(sql`

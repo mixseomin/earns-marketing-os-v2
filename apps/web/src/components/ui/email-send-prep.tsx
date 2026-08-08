@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { getEmailPrep, saveEmailPrep, generateEmailPrep } from '@/lib/actions/email-prep';
-import { EMPTY_EMAIL_PREP, type EmailPrep } from '@/lib/email-prep-shape';
+import { EMPTY_EMAIL_PREP, type EmailPrep, type EmailSource, isFreshSource, sourceAgeDays, MAX_SOURCE_AGE_DAYS } from '@/lib/email-prep-shape';
 import { CampaignLinkPicker } from './campaign-link-picker';
 
 const lbl: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3)', marginBottom: 3 };
@@ -49,12 +49,17 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const set = (k: keyof EmailPrep) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
   const genAI = async () => {
     setAiBusy(true); setAiErr(null);
-    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, offerUrl: draft.offerUrl, segment: draft.segment, audience: draft.listName });
+    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, offerUrl: draft.offerUrl, segment: draft.segment, audience: draft.listName, sources: draft.sources });
     setAiBusy(false);
     if (!r.ok) { setAiErr(r.error || 'lỗi AI'); return; }
     setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd, keyPoints: r.keyPoints?.length ? r.keyPoints : d.keyPoints }));
   };
   const hasOffer = !!draft.offerLabel.trim();
+  const freshCount = draft.sources.filter((s) => s.url?.trim() && isFreshSource(s.date)).length;
+  const canGen = hasOffer && freshCount > 0;
+  const setSrc = (i: number, k: keyof EmailSource) => (v: string) => setDraft((d) => ({ ...d, sources: d.sources.map((s, j) => j === i ? { ...s, [k]: v } : s) }));
+  const addSrc = () => setDraft((d) => ({ ...d, sources: [...d.sources, { title: '', url: '', date: '', publisher: '' }] }));
+  const rmSrc = (i: number) => setDraft((d) => ({ ...d, sources: d.sources.filter((_, j) => j !== i) }));
 
   const wrap: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', padding: 12, marginTop: 8 };
 
@@ -75,14 +80,40 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
 
       {editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Offer-first: pick the offer up top; the AI button stays locked until one is chosen. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px', borderRadius: 6, border: '1px dashed var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
-            <div style={lbl}>Bước 1 · Offer / sản phẩm chèn (AI viết mail bám theo cái này)</div>
-            <CampaignLinkPicker value={draft.offerUrl} onChange={(v) => setDraft((d) => ({ ...d, offerUrl: v }))} />
-            <input value={draft.offerLabel} onChange={(e) => set('offerLabel')(e.target.value)} style={field} placeholder="Nhãn offer (vd Walk-In Lab)" />
+          {/* Offer-first + source-first: AI stays locked until an offer AND ≥1 fresh source exist. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px', borderRadius: 6, border: '1px dashed var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+            <div>
+              <div style={lbl}>Bước 1 · Offer / sản phẩm chèn (AI viết mail bám theo cái này)</div>
+              <CampaignLinkPicker value={draft.offerUrl} onChange={(v) => setDraft((d) => ({ ...d, offerUrl: v }))} />
+              <input value={draft.offerLabel} onChange={(e) => set('offerLabel')(e.target.value)} style={{ ...field, marginTop: 5 }} placeholder="Nhãn offer (vd Walk-In Lab)" />
+            </div>
+            <div>
+              <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6 }}>
+                Bước 2 · Nguồn tin (≥1, có link + ngày ≤{MAX_SOURCE_AGE_DAYS} ngày — để kiểm chứng)
+                {draft.sources.length > 0 && <span style={{ color: freshCount ? 'var(--ok,#22c55e)' : 'var(--neon-amber)' }}>· {freshCount}/{draft.sources.length} còn mới</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {draft.sources.map((s, i) => {
+                  const age = sourceAgeDays(s.date);
+                  const fresh = !!s.url?.trim() && isFreshSource(s.date);
+                  const tone = fresh ? 'var(--ok,#22c55e)' : (s.date ? 'var(--bad,#ef4444)' : 'var(--fg-4)');
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input value={s.title} onChange={(e) => setSrc(i, 'title')(e.target.value)} style={{ ...field, flex: 2, minWidth: 120 }} placeholder="Tiêu đề tin" />
+                      <input value={s.url} onChange={(e) => setSrc(i, 'url')(e.target.value)} style={{ ...field, flex: 3, minWidth: 160 }} placeholder="https:// link nguồn (nội bộ/thật)" />
+                      <input value={s.publisher || ''} onChange={(e) => setSrc(i, 'publisher')(e.target.value)} style={{ ...field, flex: 1, minWidth: 80 }} placeholder="Nguồn" />
+                      <input type="date" value={s.date} onChange={(e) => setSrc(i, 'date')(e.target.value)} style={{ ...field, width: 130, colorScheme: 'dark', borderColor: tone }} />
+                      <span title={fresh ? 'còn mới' : 'quá 1 tháng / thiếu link'} style={{ fontSize: 10.5, color: tone, minWidth: 54 }}>{age == null ? '—' : fresh ? `🟢 ${age}d` : `🔴 ${age}d`}</span>
+                      <button type="button" onClick={() => rmSrc(i)} style={{ ...btn, padding: '3px 7px' }}>✕</button>
+                    </div>
+                  );
+                })}
+                <button type="button" onClick={addSrc} style={{ ...btn, alignSelf: 'flex-start' }}>＋ Thêm nguồn</button>
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-              <button type="button" onClick={genAI} disabled={aiBusy || !hasOffer} title={hasOffer ? '' : 'Chọn offer trước'} style={{ ...btn, fontWeight: 700, color: hasOffer ? 'var(--accent)' : 'var(--fg-4)', borderColor: hasOffer ? 'var(--accent)' : 'var(--line)', cursor: hasOffer ? 'pointer' : 'not-allowed', opacity: hasOffer ? 1 : 0.6 }}>{aiBusy ? '⏳ AI đang soạn…' : '✨ Bước 2 · AI soạn email'}</button>
-              <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hasOffer ? 'offer + nội dung card → hook đầu tiên · subject A/B · body · key points' : 'chọn offer ở trên rồi mới soạn được'}</span>
+              <button type="button" onClick={genAI} disabled={aiBusy || !canGen} title={canGen ? '' : 'Cần offer + ≥1 nguồn tin còn mới'} style={{ ...btn, fontWeight: 700, color: canGen ? 'var(--accent)' : 'var(--fg-4)', borderColor: canGen ? 'var(--accent)' : 'var(--line)', cursor: canGen ? 'pointer' : 'not-allowed', opacity: canGen ? 1 : 0.6 }}>{aiBusy ? '⏳ AI đang soạn…' : '✨ Bước 3 · AI soạn email'}</button>
+              <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{canGen ? 'offer + nguồn tin + nội dung card → tin trước, offer dẫn cuối · key points' : !hasOffer ? 'chọn offer trước' : 'thêm ≥1 nguồn tin còn mới (≤1 tháng)'}</span>
               {aiErr && <span style={{ fontSize: 10.5, color: 'var(--bad,#ef4444)' }}>⚠ {aiErr}</span>}
             </div>
           </div>
@@ -141,6 +172,25 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
               <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {prep.keyPoints.map((k, i) => <li key={i} style={{ fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.45 }}>{k}</li>)}
               </ul>
+            </div>
+          )}
+          {/* Sources — every news claim traceable + fresh */}
+          {prep.sources?.length > 0 && (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 12px' }}>
+              <div style={{ ...lbl, marginBottom: 5 }}>📎 Nguồn tin (kiểm chứng · ≤{MAX_SOURCE_AGE_DAYS} ngày)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {prep.sources.map((s, i) => {
+                  const age = sourceAgeDays(s.date);
+                  const fresh = isFreshSource(s.date);
+                  return (
+                    <div key={i} style={{ fontSize: 11.5, color: 'var(--fg-1)', display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                      <span style={{ color: fresh ? 'var(--ok,#22c55e)' : 'var(--bad,#ef4444)', fontSize: 10.5, minWidth: 44 }}>{age == null ? '—' : fresh ? `🟢 ${age}d` : `🔴 ${age}d`}</span>
+                      <a href={s.url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{s.title || s.url}</a>
+                      <span style={{ color: 'var(--fg-4)' }}>{s.publisher ? `· ${s.publisher} ` : ''}· {s.date || 'chưa có ngày'}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           {/* Send meta */}

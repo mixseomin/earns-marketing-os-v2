@@ -68,10 +68,10 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
       const slug = String(s.refs?.slug ?? '');
       const chapters = items
         .filter((r) => r.kind === 'product-chapter' && r.refs?.slug === slug)
-        .map((r) => ({ id: r.id, title: r.title, order: Number(r.refs?.order ?? 0), chars: r.content.length, content: r.content,
+        .map((r) => ({ id: Number(r.id), title: r.title, order: Number(r.refs?.order ?? 0), chars: r.content.length, content: r.content,
           keyPoints: Array.isArray(r.refs?.key_points) ? (r.refs.key_points as unknown[]).map(String) : [] }));
       const cards = tasks.filter((t) => t.slug === slug)
-        .map((t) => ({ id: t.id, title: t.title, status: t.st, date: t.d }));
+        .map((t) => ({ id: Number(t.id), title: t.title, status: t.st, date: t.d }));
       const done = cards.filter((c) => c.status === 'completed' || c.status === 'verified').length;
       return {
         slug,

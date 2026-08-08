@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth, resolveExtUser } from '../../_auth';
-import { siteTimingMerges } from '@/lib/backlink-timing';
+import { setBacklinkSite } from '@/lib/actions/architecture';
 
 export const dynamic = 'force-dynamic';
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
@@ -21,22 +21,19 @@ export async function POST(req: Request) {
 
   // Per-site completion (backlink = shared entity, 1 source → N sites). Mark THIS site
   // completed + store its live URL; only finish the whole row when every site is done.
+  // Ghi qua setBacklinkSite — TRƯỚC ĐÂY route này chép lại nguyên khối UPDATE của nó, nên sửa luật ở
+  // một nơi là nơi kia lệch (và staff đóng task qua ext thì prospect không được sync). Một đường ghi:
+  // cùng stamp thời gian, cùng roll-up, cùng CỔNG "xong phải có kết quả".
   if (site) {
     if (!/^[a-z0-9_-]+$/.test(site)) return NextResponse.json({ ok: false, error: 'bad site' }, { status: 400 });
-    const nowIso = new Date().toISOString();
-    const r = await db.execute(sql`
-      UPDATE human_tasks SET prep_payload =
-        COALESCE(prep_payload, '{}'::jsonb)
-        || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('completed'::text)))
-        || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url',    '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(${url}::text)))
-        ${siteTimingMerges(site, 'completed', nowIso)},
-        updated_at = now()
-      WHERE id = ${taskId} AND assigned_user_id = ${who.userId} AND tenant_id = ${TENANT} AND platform_key = 'backlink'
-      RETURNING (prep_payload->'site_status') AS ss`);
-    const list = r as unknown as Array<{ ss: Record<string, string> }>;
-    const first = list[0];
-    if (!first) return NextResponse.json({ ok: false, error: 'task không thuộc bạn' }, { status: 403 });
-    const ss = first.ss || {};
+    const own = await db.execute(sql`
+      SELECT 1 FROM human_tasks
+      WHERE id = ${taskId} AND assigned_user_id = ${who.userId} AND tenant_id = ${TENANT} AND platform_key = 'backlink'`);
+    if (!(own as unknown as unknown[]).length) return NextResponse.json({ ok: false, error: 'task không thuộc bạn' }, { status: 403 });
+    const w = await setBacklinkSite(taskId, site, 'completed', url);
+    if (!w.ok) return NextResponse.json({ ok: false, error: w.error || 'lỗi' }, { status: 400 });
+    const r = await db.execute(sql`SELECT (prep_payload->'site_status') AS ss FROM human_tasks WHERE id = ${taskId}`);
+    const ss = (r as unknown as Array<{ ss: Record<string, string> }>)[0]?.ss || {};
     const allDone = Object.values(ss).every((v) => v === 'completed' || v === 'verified');
     if (allDone) {
       await db.execute(sql`

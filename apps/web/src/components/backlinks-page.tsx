@@ -45,6 +45,7 @@ import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { taskKind, KIND_ICON, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
+import { doneBlockReason, doneWithoutProof } from '@/lib/task-done';
 import { hostOf } from '@/lib/host';
 
 // One status taxonomy for the whole page. SITE_STATUS is the single source of truth —
@@ -55,7 +56,7 @@ const STATUS_ORDER = SITE_STATUSES;
 // Chú thích lịch: LOẠI (icon SVG) + TRẠNG THÁI (nhãn/màu lấy THẲNG từ SITE_STATUS_META = nguồn drawer/kanban
 // → calendar không tự chế chữ, luôn đồng nhất). Follow-up có bộ status riêng (drawer follow-up), pin = loại.
 const CAL_LEGEND: LegendEntry[] = [
-  { icon: 'link', label: 'backlink' }, { icon: 'mail', label: 'email' }, { icon: 'sprout', label: 'seed' }, { icon: 'pin', label: 'follow-up' },
+  { icon: 'link', label: 'backlink' }, { icon: 'mail', label: 'email' }, { icon: 'sprout', label: 'seed' }, { icon: 'book', label: 'sản phẩm' }, { icon: 'pin', label: 'follow-up' },
   { sep: true },
   ...STATUS_ORDER.map((s) => ({ color: SITE_STATUS_META[s].color, label: SITE_STATUS_META[s].label })),
   { sep: true },
@@ -66,7 +67,7 @@ const CAL_LEGEND: LegendEntry[] = [
 const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
-type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'followup';   // '' = mọi loại
+type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'followup';   // '' = mọi loại
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 
@@ -554,11 +555,12 @@ export function segmentProse(s: string): string[] {
 // Render instruction text as an aligned list: a fixed gutter (step number / leading emoji /
 // dash) + the body. Numbered steps keep their number; emoji-led meta lines (🔗🔑📍✅) get the
 // emoji in the gutter; a short line ending ":" is a sub-heading. URLs stay clickable via LinkText.
-function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, emailMode }: {
+function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, emailMode, result }: {
   text: string;
   onBlock?: (reason: string, shot?: string) => Promise<void> | void;   // ⚠ per-line report → flag blocker (+ optional screenshot)
   urlValue?: string; onUrlChange?: (v: string) => void; onUrlSave?: () => void; urlSaving?: boolean;
   emailMode?: boolean;   // email-send card: "done" = sent, the link is an optional campaign/offer URL (không phải backlink đã đặt)
+  result?: { label: string; placeholder: string };   // card làm sản phẩm: "kết quả" là bản dựng, không phải link đã đặt
 }) {
   const [rIdx, setRIdx] = useState<number | null>(null);   // which line has its report box open
   const [rText, setRText] = useState('');
@@ -616,12 +618,12 @@ function Steps({ text, onBlock, urlValue, onUrlChange, onUrlSave, urlSaving, ema
     {/* Kết quả — always give a paste spot at the end of the how-to, synced with the Live URL field below. */}
     {onUrlChange && (
       <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px dashed var(--line)' }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>{emailMode ? '🔗 Link chèn — offer / sản phẩm' : '✅ Làm xong — dán link vào đây'}</div>
+        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-2)', marginBottom: 5 }}>{emailMode ? '🔗 Link chèn — offer / sản phẩm' : (result?.label ?? '✅ Làm xong — dán link vào đây')}</div>
         {emailMode ? (
           <CampaignLinkPicker value={urlValue} onChange={onUrlChange} onSave={onUrlSave} saving={urlSaving} />
         ) : (
         <div style={{ display: 'flex', gap: 6 }}>
-          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder="https://… link đã đặt được" autoComplete="off"
+          <input value={urlValue || ''} onChange={(e) => onUrlChange(e.target.value)} placeholder={result?.placeholder ?? 'https://… link đã đặt được'} autoComplete="off"
             style={{ flex: 1, minWidth: 0, padding: '5px 9px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12 }} />
           {onUrlSave && <button type="button" onClick={onUrlSave} disabled={urlSaving} style={{ ...btn, padding: '3px 12px', fontWeight: 700 }}>{urlSaving ? '…' : 'Lưu'}</button>}
         </div>
@@ -732,8 +734,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // 'acquire' cũ = backlink (link cũ vẫn mở đúng).
   const [kind, setKind] = useState<KindFilter>(() => {
     const v = sp.get('wt') || '';
-    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'followup'].includes(v) ? v as KindFilter : '');
+    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'followup'].includes(v) ? v as KindFilter : '');
   });
+  // Card nào thuộc một sản phẩm → loại việc = 📕 build (làm ra thứ để bán), không phải 🔗 backlink.
+  // Lấy từ `products` (đã tải sẵn), không phải shownProducts: lọc theo project không được đổi LOẠI của việc.
+  const productTaskIds = useMemo(() => new Set(products.flatMap((p) => p.cards.map((c) => c.id))), [products]);
+  const kindOf = useMemo(() => (t: BacklinkTask) => taskKind({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
   const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
@@ -913,7 +919,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (tab !== 'all' && t.siteState !== tab) return false;
       // follow-up không phải task của bảng này → chọn nó là ẩn hết task, chỉ còn 📌 trên lịch.
       if (kind === 'followup') return false;
-      if (kind && taskKind(t) !== kind) return false;
+      if (kind && kindOf(t) !== kind) return false;
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -924,7 +930,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (s && !(`${t.title} ${t.sourceUrl || ''} ${t.catalogSourceName || ''} ${t.mechanism || ''} ${t.platformLabel || ''} ${t.projectLabel || ''} ${t.instructions || ''} ${t.notes || ''}`.toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, kind, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
+  }, [tasks, tab, kind, kindOf, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
 
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
@@ -969,7 +975,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     for (const t of filtered) {
       const plbl = showProj && t.projectLabel ? `[${t.projectLabel}] ` : '';
       const seedT = t.communitySeed ? ' · community-seed (link-gated)' : '';
-      const icon = KIND_ICON[taskKind(t)];   // LOẠI → SVG: mail (email-send) / sprout (seed) / link (backlink)
+      const icon = KIND_ICON[kindOf(t)];   // LOẠI → SVG: mail (email-send) / sprout (seed) / book (sản phẩm) / link (backlink)
       const ttl = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();   // bỏ tiền tố 📧 (icon SVG đã thay)
       const host = showHost(t.sourceUrl, t.projectSlug);
       const label = plbl + ttl;
@@ -1001,15 +1007,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       out.push({ id: `f:${f.id}`, date: f.due, label: `${plbl}${f.title.replace(/\s+/g, ' ').trim()}`, icon: 'pin', done: f.status === 'done', dim: f.status === 'dropped', color: m.color, title: `${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, q]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
-  const setSite = async (taskId: number, status: string, url: string) => {
+  // Trả về '' nếu ghi được, hoặc LÝ DO bị từ chối (cổng "xong phải có kết quả" ở server). Nuốt lỗi rồi
+  // refresh = người bấm thấy card bật về chỗ cũ mà không hiểu vì sao — lỗi phải nói ra ngay chỗ bấm.
+  const setSite = async (taskId: number, status: string, url: string): Promise<string> => {
     const s = slugForTask(tasks.find((t) => t.id === taskId));
-    if (!s) return;
-    await setBacklinkSite(taskId, s, status, url);
+    if (!s) return 'Task chưa gắn site';
+    const r = await setBacklinkSite(taskId, s, status, url);
+    if (!r.ok) return r.error || 'Không đổi được trạng thái';
     start(() => router.refresh());
+    return '';
   };
   const setSchedule = async (taskId: number, date: string) => {
     const s = slugForTask(tasks.find((t) => t.id === taskId));
@@ -1328,7 +1338,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'followup', label: '📌 Follow-up' }]}
+        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'followup', label: '📌 Follow-up' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
@@ -1552,7 +1562,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[];
   /** Card này là một bước của sản phẩm nào (nếu có) — để nhảy thẳng sang bước khác, không phải đóng ra vào lại. */
   product?: BuildingProduct;
-  backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
+  backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<string>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1562,12 +1572,16 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   const seedBlocked = !!(task.communitySeed && task.seedGate && !task.seedGate.ok);
   const [linkArmed, setLinkArmed] = useState(false);
   // Saving a live URL = the backlink is placed → auto-advance an open status to Completed.
+  const [siteErr, setSiteErr] = useState('');
   const saveUrl = async () => {
     if (seedBlocked && url.trim() && !linkArmed) { setLinkArmed(true); return; }   // arm, don't save yet
     setLinkArmed(false);
     setSaveState('saving');
-    const next = (url.trim() && (task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted' || task.siteState === 'broken')) ? 'completed' : task.siteState;
-    await setSite(task.id, next, url);
+    // Chỉ tự nhảy sang Xong khi cái vừa gõ ĐỦ làm bằng chứng — gõ dở/không phải URL mà vẫn nhảy thì
+    // server chặn cả cú ghi, mất luôn chữ vừa gõ. Không đủ → cứ lưu, trạng thái giữ nguyên.
+    const open = task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted' || task.siteState === 'broken';
+    const next = (open && url.trim() && !doneBlockReason({ kind, url, note: task.workerNote }, 'completed')) ? 'completed' : task.siteState;
+    setSiteErr(await setSite(task.id, next, url));
     setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
   };
   // Staff feedback loop — free-text note (result/opinions) + blocker flag ("I'm stuck, here's why").
@@ -1718,6 +1732,14 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   // different work order from a backlink: no source page, no account-to-post, no live backlink to
   // verify. YDNI → the drawer hides all that and shows only content + schedule + status.
   const isEmailSend = detectEmailSend(task.title, task.mechanism);   // 1 định nghĩa (lib/task-kind) — dùng chung calendar + drawer
+  // 📕 Card làm SẢN PHẨM (thuộc một product / mech writing…): không đặt link ở đâu cả → "kết quả" là bản
+  // dựng hoặc trang sản phẩm, và kiểm dofollow là vô nghĩa. Cùng taxonomy với bộ lọc loại việc ở trên.
+  const kind = taskKind({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product });
+  const isBuild = kind === 'build';
+  // CỔNG "xong phải có kết quả" — lý do lấy từ lib/task-done (server dùng CÙNG hàm), tính trên dữ liệu ĐÃ
+  // LƯU + link đang gõ (link được ghi kèm khi bấm status, còn ghi chú thì phải Lưu trước mới tính).
+  const doneBlock = doneBlockReason({ kind, url: url.trim() || task.siteLiveUrl, note: task.workerNote }, 'completed');
+  const statusBlocked = doneBlock ? { completed: doneBlock, verified: doneBlock } : undefined;
   const isEmailPitch = !isEmailSend && /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
   const emailTarget = task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page');
   // Already emailed (site is "submitted") → the next email is a short nudge, not a fresh pitch.
@@ -2022,7 +2044,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
             </div>
           )}
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginTop: 4 }}>
-            <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} emailMode={isEmailSend} />
+            <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} emailMode={isEmailSend}
+              result={isBuild ? { label: '📄 Làm xong — dán link kết quả (bản dựng / trang sản phẩm)', placeholder: 'https://… bản dựng, file, hoặc trang bán' } : undefined} />
           </div>
           {/* ✨ Chuẩn bị điền — field→value đã chuẩn bị cho form thật (ext auto-fill P2). 🟢 chắc · 🔴 cần review. */}
           {(fillFields || fillErr) && (
@@ -2381,11 +2404,19 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           </Disclosure>
         )}
 
-        {/* 6 · Status — the single "I posted / it's live" control, right before URL capture. */}
+        {/* 6 · Status — the single "I posted / it's live" control, right before URL capture.
+            Đóng card = phải chỉ ra được kết quả (lib/task-done): thiếu thì hai ô xong mờ đi + nói vì sao,
+            không cho bấm rồi mở ra chẳng thấy sản phẩm đâu. Server chặn lại lần nữa cho CLI/ext. */}
         <div style={{ ...lbl, marginTop: 16 }}>Status @ {slug}</div>
-        <StatusSegmented size="md" value={task.siteState}
+        {doneWithoutProof({ kind, state: task.siteState, url: task.siteLiveUrl, note: task.workerNote }) && (
+          <div style={{ margin: '0 0 6px', padding: '6px 9px', borderRadius: 6, border: '1px solid var(--warn,#ffb03c)', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)', fontSize: 11.5, color: 'var(--warn,#ffb03c)', lineHeight: 1.5 }}>
+            ⚠ Đang ghi là xong nhưng không có kết quả nào mở ra xem được. {isBuild ? 'Dán link bản dựng/trang sản phẩm, hoặc tả kết quả ở “📣 Phản hồi của bạn”.' : 'Dán link đã đặt được ở dưới.'}
+          </div>
+        )}
+        <StatusSegmented size="md" value={task.siteState} blocked={statusBlocked}
           options={STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
-          onChange={(s) => { void setSite(task.id, s, url); }} />
+          onChange={(s) => { void setSite(task.id, s, url).then(setSiteErr); }} />
+        {siteErr && <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--bad,#ef4444)', lineHeight: 1.5 }}>{siteErr}</div>}
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
         <Disclosure title="📋 Bàn giao — để chat khác nối tiếp" badge={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn }) ? '✓ đã có bàn giao' : 'trống — nên điền'} defaultOpen={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn })}>
@@ -2407,7 +2438,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           </div>
         )}
         {!isEmailSend && (<>
-        <div style={lbl}>Live URL (link đã đặt được @ {slug})</div>
+        <div style={lbl}>{isBuild ? '📄 Kết quả — link bản dựng / trang sản phẩm' : `Live URL (link đã đặt được @ ${slug})`}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
             style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
@@ -2417,7 +2448,9 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         </div>
         {linkArmed && <div style={{ fontSize: 11, color: '#ffb03c', marginTop: 4 }}>🔒 Community chưa đủ điều kiện thả link — nhấn “⚠ Vẫn lưu” lần nữa để ghi đè, hoặc seeding thêm trước.</div>}
 
-        {/* 8 · Verify — own action row (auto-advances Completed → Verified on a dofollow hit). */}
+        {/* 8 · Verify — own action row (auto-advances Completed → Verified on a dofollow hit).
+            Card làm sản phẩm không có link trỏ về mình để kiểm → ẩn hẳn, đừng bày nút chạy xong luôn báo hỏng. */}
+        {!isBuild && (<>
         <div style={lbl}>🔍 Kiểm tra link @ {slug}</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
           <button type="button" onClick={doVerify} disabled={vbusy || !(task.siteLiveUrl || url.trim())}
@@ -2426,6 +2459,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           {!(task.siteLiveUrl || url.trim()) && <span style={{ color: 'var(--fg-4)' }}>Lưu Live URL ở trên trước</span>}
           {task.siteLiveUrl && vres && (() => { const m = verifyMeta(vres); return m ? <span style={{ color: m.c }}>{m.t} · kiểm {fmtWhen(vres.checkedAt)}</span> : null; })()}
         </div>
+        </>)}
         </>)}
 
         {/* 9 · Schedule */}

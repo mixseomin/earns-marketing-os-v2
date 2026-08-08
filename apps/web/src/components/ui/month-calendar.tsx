@@ -23,7 +23,7 @@ export interface CalItem {
 export type CalMode = 'month' | 'week' | 'day';
 
 // SVG line-icon (không dùng native emoji — render đồng nhất mọi OS). stroke = currentColor truyền vào.
-export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot' | 'brief';
+export type GlyphName = 'pin' | 'link' | 'sprout' | 'mail' | 'check' | 'clock' | 'calendar' | 'alert' | 'dot' | 'brief' | 'book';
 // 1 mục chú thích: icon (loại) HOẶC chip màu (trạng thái) — nhãn/màu do CALLER truyền (nguồn canonical,
 // vd SITE_STATUS_META), calendar KHÔNG tự chế chữ → legend luôn khớp drawer/kanban.
 export type LegendEntry = { icon?: GlyphName; color?: string; label?: string; sep?: boolean };
@@ -38,6 +38,7 @@ const GLYPH: Record<GlyphName, React.ReactNode> = {
   alert: <><path d="M12 4 3 19h18L12 4z" /><path d="M12 10v4M12 16.5h.01" /></>,
   dot: <circle cx="12" cy="12" r="4" />,
   brief: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5V3.5h6v1" /><path d="m8.6 12.5 2 2 4-4" /></>,   // clipboard-check = có bàn giao
+  book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z" /></>,   // việc làm ra sản phẩm
 };
 function CalGlyph({ name, color, size = 13 }: { name: GlyphName; color: string; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden>{GLYPH[name]}</svg>;

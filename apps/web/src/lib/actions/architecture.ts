@@ -16,6 +16,8 @@ import { siteTimingMerges } from '../backlink-timing';
 import { uploadToR2 } from '@/lib/r2';
 import { getCurrentUser } from '@/lib/auth';
 import { isSiteStatus } from '@/lib/site-status';
+import { DONE_STATES, doneBlockReason } from '@/lib/task-done';
+import { taskKind } from '@/lib/task-kind';
 
 type Row = Record<string, unknown>;
 
@@ -356,6 +358,21 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
   const u = (url || '').trim();
   const nowIso = new Date().toISOString();
   try {
+    // CỔNG "xong phải có kết quả" (lib/task-done). Đặt ở ĐÂY vì mọi đường ghi status — drawer, ext API,
+    // ~/bin/play, Architecture Studio — đều đi qua hàm này; chặn ở nút bấm thôi thì CLI vẫn đóng được
+    // card rỗng. communitySeed không cần tra: seed và backlink cùng đòi link, khác nhau chỉ ở lời nhắc.
+    if (DONE_STATES.has(status)) {
+      const cur = await db.execute(sql`
+        SELECT title, prep_payload->>'mechanism' AS mech, prep_payload->>'product' AS product,
+               prep_payload->>'worker_note' AS note, prep_payload->'site_url'->>${site} AS cur_url
+        FROM human_tasks WHERE id = ${taskId} LIMIT 1`);
+      const c = (cur as unknown as Array<Record<string, unknown>>)[0];
+      if (c) {
+        const kind = taskKind({ title: String(c.title || ''), mechanism: (c.mech as string | null) || null, product: (c.product as string | null) || null });
+        const why = doneBlockReason({ kind, url: u || String(c.cur_url || ''), note: (c.note as string | null) || null }, status);
+        if (why) return { ok: false, error: why };
+      }
+    }
     // merge (||) — tạo key site_status/site_url nếu CHƯA có (jsonb_set không tạo key cha thiếu).
     const r = await db.execute(sql`
       UPDATE human_tasks SET prep_payload =

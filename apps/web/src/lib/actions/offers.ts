@@ -164,24 +164,23 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): Affil
   };
 }
 
-// unstable_cache: the assembled list is cached for 5 min across requests, independent of the
-// route being force-dynamic. Tag lets a future sync bust it (revalidateTag('affiliate-offers')).
-export const listAffiliateOffers = unstable_cache(
-  async (): Promise<AffiliateOffer[]> => {
-    if (!DIRECTUS_TOKEN) return [];
-    const [first, own, accList] = await Promise.all([fetchPage(1), ownProductTitles(), listOfferAccounts()]);
-    const accounts = new Map(accList.map((a) => [a.id, a.label]));
-    // 30-page cap = 6000 rows. Was 20 (=4000) while Directus holds 4897 → the list silently
-    // dropped ~900 offers. Keep a ceiling (runaway guard), just above the real row count.
-    const pageCount = Math.min(30, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));
-    const rest = pageCount > 1
-      ? await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)))
-      : [];
-    return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own, accounts));
-  },
-  ['affiliate-offers-list'],
-  { revalidate: 300, tags: ['affiliate-offers'] },
-);
+// NO unstable_cache here: the assembled list is ~3MB (5k rows × terms fields), OVER Next's 2MB
+// data-cache limit — so wrapping it made unstable_cache FAIL ("items over 2MB can not be cached")
+// and return EMPTY, wiping the whole /offers list (a real offer like "Aligned Vibration" vanished).
+// Caching still happens at the right layer: each fetchPage() fetch carries revalidate:300 +
+// tag 'affiliate-offers' (every page <2MB), so repeat loads skip Directus; this assembler is just
+// cheap in-memory work over already-cached pages. revalidateTag('affiliate-offers') still busts it.
+export async function listAffiliateOffers(): Promise<AffiliateOffer[]> {
+  if (!DIRECTUS_TOKEN) return [];
+  const [first, own, accList] = await Promise.all([fetchPage(1), ownProductTitles(), listOfferAccounts()]);
+  const accounts = new Map(accList.map((a) => [a.id, a.label]));
+  // 30-page cap = 6000 rows (runaway guard, just above the real row count).
+  const pageCount = Math.min(30, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));
+  const rest = pageCount > 1
+    ? await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)))
+    : [];
+  return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own, accounts));
+}
 
 // ── Filtering + paging: SERVER-side (ui-conventions §5) ──────────────────────────────────────
 // The source is remote (Directus, cross-box) and ~5k rows — shipping the whole array to the

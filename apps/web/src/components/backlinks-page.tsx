@@ -1337,9 +1337,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
       {allProjects && (() => {
-        const projs = Array.from(new Map(tasks.map((t) => [t.projectSlug, { slug: (t.projectSlug || '') as string, label: t.projectLabel || t.projectSlug || '', emoji: t.projectEmoji || '' }])).values())
-          .filter((p) => p.slug)
-          .map((p) => ({ ...p, count: tasks.filter((t) => t.projectSlug === p.slug).length }))
+        // Picker lists every project with ANY item — task OR followup. Building it from tasks alone
+        // silently hid projects whose only item is a 📌 followup (e.g. platform/dev tasks on mos2):
+        // the pill rendered on the calendar but the project was unselectable = buried. Union both.
+        const pm = new Map<string, { slug: string; label: string; emoji: string }>();
+        for (const t of tasks) if (t.projectSlug) pm.set(t.projectSlug, { slug: t.projectSlug, label: t.projectLabel || t.projectSlug, emoji: t.projectEmoji || '' });
+        for (const f of followups) if (f.projectId && !pm.has(f.projectId)) { const p = projectsById?.[f.projectId]; pm.set(f.projectId, { slug: f.projectId, label: p?.name || f.projectId, emoji: p?.emoji || '' }); }
+        const projs = Array.from(pm.values())
+          .map((p) => ({ ...p, count: tasks.filter((t) => t.projectSlug === p.slug).length + followups.filter((f) => f.projectId === p.slug).length }))
           .sort((a, b) => b.count - a.count);
         // Lần chạm gần nhất của một project = mốc muộn nhất trong mọi task của nó (xong /
         // gửi chờ duyệt / tạo). Project hay dùng thì nằm ngay ngoài, không phải mở select

@@ -46,7 +46,7 @@ import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { taskTypeKey, TYPE_META } from '@/lib/task-type';
-import type { GlyphName } from '@/components/ui/type-glyph';
+import { TypeGlyph, type GlyphName } from '@/components/ui/type-glyph';
 import { doneBlockReason, doneWithoutProof } from '@/lib/task-done';
 import { hostOf } from '@/lib/host';
 
@@ -1744,6 +1744,9 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   // 📕 Card làm SẢN PHẨM (thuộc một product / mech writing…): không đặt link ở đâu cả → "kết quả" là bản
   // dựng hoặc trang sản phẩm, và kiểm dofollow là vô nghĩa. Cùng taxonomy với bộ lọc loại việc ở trên.
   const kind = taskKind({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product });
+  // Loại chi tiết của card (archetype × produce-format) → badge nhận diện ở header + gate section theo type.
+  const typeKey = taskTypeKey({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions });
+  const tmeta = TYPE_META[typeKey];
   const isBuild = kind === 'build';
   // CỔNG "xong phải có kết quả" — lý do lấy từ lib/task-done (server dùng CÙNG hàm), tính trên dữ liệu ĐÃ
   // LƯU + link đang gõ (link được ghi kèm khi bấm status, còn ghi chú thì phải Lưu trước mới tính).
@@ -1895,7 +1898,13 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
       <div>
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+            {/* Badge LOẠI — glyph + nhãn (đồng nhất ký hiệu calendar). Trung tính (YDNI màu): loại là metadata, không tô. */}
+            <span title={`Loại: ${tmeta.label}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+              <TypeGlyph name={tmeta.glyph as GlyphName} color="var(--fg-2)" size={12} /> {tmeta.label}
+            </span>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, minWidth: 0 }}>{task.title}</h2>
+          </div>
           <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
         </div>
 
@@ -2105,7 +2114,9 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onAssign} />
 
         {/* 3 · Account — must be ready before posting. Hidden for email-send (blast qua Mailjet, không cần account đăng nền tảng). */}
-        {!isEmailSend && (<>
+        {/* Account — cần cho backlink/seed/pitch (đăng nền tảng). Card SẢN XUẤT (produce/build) không đăng
+            qua account nào → ẩn (YDNI: không bày section không dùng). Email-send blast qua Mailjet cũng ẩn. */}
+        {!isEmailSend && !isBuild && (<>
         <div style={lbl}>Account · {task.platformLabel || 'platform ?'}</div>
         {task.readiness === 'no-account' ? (
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
@@ -2181,7 +2192,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
 
         {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings) +
             one-tap AI generate. Only for shoutout/directory/launch tasks — noise for email/forum/Q&A. */}
-        {showStack && (
+        {showStack && !isBuild && (
         <Disclosure title="🧩 Built with" badge="stack · copy từng tool" defaultOpen={stackItems.length > 0}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           {stackItems.map((s, i) => (

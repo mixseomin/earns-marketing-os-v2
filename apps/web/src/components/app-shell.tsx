@@ -52,6 +52,20 @@ export function AppShell({
   // Close mobile sidebar on route change
   useEffect(() => { setMobileNavOpen(false); }, [project?.id, tab, isPortfolio]);
 
+  // ⌘B / Ctrl+B toggles the sidebar → full-width work area. Skip while typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      if (e.key !== 'b' && e.key !== 'B') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      e.preventDefault();
+      setTweak('showSidebar', !tweaks.showSidebar);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tweaks.showSidebar, setTweak]);
+
   // Persist last-viewed project ID. Portfolio routes (Library, AI Log, Roadmap, Tests,
   // Settings/API) đọc cookie này để giữ context project đang chọn cho Sidebar /
   // ProjectSwitcher — tránh fallback về project đầu tiên (Aff-VN) khi user click

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTweaks } from './tweaks';
 import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
@@ -152,6 +153,7 @@ export function TopBar({
   onMobileMenuClick?: () => void;
 }) {
   const t = useT();
+  const { tweaks, setTweak } = useTweaks();
 
   const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
   const needsCount = mode?.cards?.filter((c) => c.col === 'needs').length ?? 0;
@@ -239,6 +241,19 @@ export function TopBar({
         <div className="brand-mark"></div>
         MOS <small>// MARKETING OS</small>
       </Link>
+
+      {/* Collapse sidebar → main content goes full-width. Reuses the existing
+          data-sidebar="hidden" grid state; ⌘B / Ctrl+B toggles it too. */}
+      <button
+        type="button"
+        className="sidebar-toggle-btn"
+        onClick={() => setTweak('showSidebar', !tweaks.showSidebar)}
+        aria-label={tweaks.showSidebar ? 'Collapse sidebar' : 'Show sidebar'}
+        aria-pressed={!tweaks.showSidebar}
+        title={`${tweaks.showSidebar ? 'Collapse' : 'Show'} sidebar — full-width work area (⌘B)`}
+      >
+        {tweaks.showSidebar ? '⇤' : '⇥'}
+      </button>
 
       <Link
         href="/"

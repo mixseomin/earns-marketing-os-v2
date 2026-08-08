@@ -186,6 +186,16 @@ button { font-family: inherit; color: inherit; }
 }
 .mobile-menu-btn:hover { background: var(--bg-2); }
 
+/* ── Desktop sidebar collapse toggle (topbar) — hidden on mobile, which uses ☰ ── */
+.sidebar-toggle-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0; margin-right: 4px;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--r-md);
+  color: var(--fg-3); font-size: 14px; line-height: 1; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-toggle-btn:hover { background: var(--bg-2); color: var(--fg-1); }
+
 .mobile-nav-backdrop {
   display: none;
   position: fixed;
@@ -273,6 +283,7 @@ button { font-family: inherit; color: inherit; }
     box-sizing: border-box;
   }
   .topbar .brand small { display: none; }
+  .sidebar-toggle-btn { display: none !important; }
   .topbar-search { display: none !important; }
   .live-pill { display: none !important; }
   .topbar-spacer { flex: 0 !important; }

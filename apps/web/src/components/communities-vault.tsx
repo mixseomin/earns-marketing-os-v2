@@ -10,6 +10,7 @@ import { useState, useMemo, useTransition, useEffect, type CSSProperties } from 
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ListToolbar, Pager, usePaged, MultiSelect } from './ui';
+import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
 import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
@@ -51,12 +52,26 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const platLabel = useMemo(() => new Map(platforms.map((p) => [p.key, p.label])), [platforms]);
   const platKeys = useMemo(() => [...new Set(rows.map((r) => r.platformKey).filter(Boolean))] as string[], [rows]);
 
+  // Sort spec — one sortValue per data column. Composite/derived columns (gate, links, standing) pick a
+  // representative signal; unknown/untracked → null so they sort last. platLabel/projName/gateOn are
+  // component-scope Maps, so COLS lives here (memoised → useTableSort's sort memo stays stable).
+  const COLS = useMemo<SortableCol<CommunityRow>[]>(() => [
+    { key: 'community', sortValue: (r) => r.name.toLowerCase() },
+    { key: 'platform', sortValue: (r) => (r.platformKey ? (platLabel.get(r.platformKey) || r.platformKey).toLowerCase() : null) },
+    { key: 'members', sortValue: (r) => r.members || null },
+    { key: 'gate', sortValue: (r) => (r.platformKey && gateOn.has(r.platformKey) ? (r.minAgeDays || 14) : null) },
+    { key: 'links', sortValue: (r) => (r.linksAllowedAfter ? (linksBanned(r.linksAllowedAfter) ? 2 : 1) : null) },
+    { key: 'standing', sortValue: (r) => (r.briefs ? r.seeds : null) },
+    { key: 'project', sortValue: (r) => (r.projectId ? (projName.get(r.projectId) || r.projectId).toLowerCase() : null) },
+  ], [platLabel, projName, gateOn]);
+
   const shown = useMemo(() => rows.filter((r) =>
     (!proj.length || (r.projectId != null && proj.includes(r.projectId)))
     && (!plat.length || (r.platformKey != null && plat.includes(r.platformKey)))
     && (!q || `${r.name} ${r.url || ''} ${r.description || ''}`.toLowerCase().includes(q.toLowerCase())),
   ), [rows, proj, plat, q]);
-  const { pageItems, ...pager } = usePaged(shown);
+  const s = useTableSort(shown, COLS, 'communities');
+  const { pageItems, ...pager } = usePaged(s.sorted);
 
   const kpis = useMemo(() => ({
     total: shown.length,
@@ -122,13 +137,13 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
         <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)' }}>
           <thead>
             <tr>
-              <th style={th}>Community</th>
-              <th style={th}>Platform</th>
-              <th style={{ ...th, textAlign: 'right' }}>Members</th>
-              <th style={th}>🔒 Gate (age·karma·seed)</th>
-              <th style={th}>Links policy</th>
-              <th style={th}>Standing</th>
-              {!projectId && <th style={th}>Project</th>}
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('community').onClick}>Community <SortArrow spec={s.thProps('community')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('platform').onClick}>Platform <SortArrow spec={s.thProps('platform')} /></th>
+              <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('members').onClick}>Members <SortArrow spec={s.thProps('members')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('gate').onClick}>🔒 Gate (age·karma·seed) <SortArrow spec={s.thProps('gate')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('links').onClick}>Links policy <SortArrow spec={s.thProps('links')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('standing').onClick}>Standing <SortArrow spec={s.thProps('standing')} /></th>
+              {!projectId && <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('project').onClick}>Project <SortArrow spec={s.thProps('project')} /></th>}
             </tr>
           </thead>
           <tbody>

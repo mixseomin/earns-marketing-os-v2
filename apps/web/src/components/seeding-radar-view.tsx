@@ -9,6 +9,7 @@ import {
   getSeedingFunnel, getApproachPlaybookStats, getBoardCatalogCoverage,
   type SeedingFunnel, type PlaybookStat, type CoverageRow,
 } from '@/lib/actions/seeding-radar-stats';
+import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
 
 const card: React.CSSProperties = {
   background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 10, padding: 14,
@@ -17,6 +18,13 @@ const h: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--fg
 const sub: React.CSSProperties = { fontSize: 11, color: 'var(--fg-4)', fontWeight: 400 };
 const th: React.CSSProperties = { textAlign: 'left', fontSize: 11, color: 'var(--fg-4)', fontWeight: 600, padding: '5px 8px', borderBottom: '1px solid var(--line)' };
 const td: React.CSSProperties = { fontSize: 12, color: 'var(--fg-2)', padding: '5px 8px', borderBottom: '1px solid var(--bg-2)' };
+
+type BacklogRow = SeedingFunnel['backlog'][number];
+const BACKLOG_COLS: SortableCol<BacklogRow>[] = [
+  { key: 'fit', sortValue: (b) => b.fit ?? null },
+  { key: 'board', sortValue: (b) => (b.name || `#${b.boardId}`).toLowerCase() },
+  { key: 'platform', sortValue: (b) => (b.platform ?? '').toLowerCase() },
+];
 
 function Stat({ label, value, color, hint }: { label: string; value: number | string; color?: string; hint?: string }) {
   return (
@@ -69,6 +77,8 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
     return () => { ok = false; };
   }, [projectId]);
 
+  const s = useTableSort(funnel?.backlog ?? [], BACKLOG_COLS, 'seeding_radar');
+
   if (loading) return <div style={{ padding: 24, color: 'var(--fg-4)', fontSize: 13 }}>Đang tải thống kê Radar…</div>;
   if (err) return <div style={{ padding: 24, color: 'var(--bad)', fontSize: 13 }}>⚠ {err}</div>;
   if (!funnel) return null;
@@ -100,9 +110,14 @@ export function SeedingRadarView({ projectId, serverBase }: { projectId: string;
           ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>Không còn board fit cao nào chưa được track. 👌</div>
           : (
             <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>fit</th><th style={th}>board</th><th style={th}>platform</th><th style={th}></th></tr></thead>
+              <thead><tr>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('fit').onClick}>fit <SortArrow spec={s.thProps('fit')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('board').onClick}>board <SortArrow spec={s.thProps('board')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('platform').onClick}>platform <SortArrow spec={s.thProps('platform')} /></th>
+                <th style={th}></th>
+              </tr></thead>
               <tbody>
-                {funnel.backlog.map((b) => (
+                {s.sorted.map((b) => (
                   <tr key={b.boardId}>
                     <td style={{ ...td, fontWeight: 700, color: b.fit >= 70 ? '#4ade80' : '#fbbf24' }}>{b.manualTier === 'GO' ? '📌 ' : ''}{b.fit}</td>
                     <td style={{ ...td, color: 'var(--fg-1)', fontWeight: 500 }}>{b.name || `#${b.boardId}`}</td>

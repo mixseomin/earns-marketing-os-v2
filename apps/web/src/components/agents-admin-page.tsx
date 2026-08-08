@@ -8,6 +8,7 @@ import {
   resetAgentBreaker, setSoloReasoningSquad, toggleSquadReasoning, triggerWorkerNow,
 } from '@/lib/actions/agents-admin';
 import { Pill, StatsStrip, EmptyState, type StatCard } from './ui';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--fg-3)', running: 'var(--neon-cyan)',
@@ -31,6 +32,17 @@ function fmtRel(iso: string | null): string {
   return `${Math.floor(ms / 86_400_000)}d ago`;
 }
 
+const RUN_COLS: SortableCol<RecentAgentRun>[] = [
+  { key: 'when', sortValue: (r) => r.startedAt },
+  { key: 'kind', sortValue: (r) => (r.agentKind ?? '').toLowerCase() },
+  { key: 'status', sortValue: (r) => (r.status ?? '').toLowerCase() },
+  { key: 'project', sortValue: (r) => (r.projectId ?? '').toLowerCase() },
+  { key: 'tokens', sortValue: (r) => (r.tokensIn ?? 0) + (r.tokensOut ?? 0) },
+  { key: 'cost', sortValue: (r) => r.costUsdCents },
+  { key: 'dur', sortValue: (r) => r.durationMs },
+  { key: 'error', sortValue: (r) => (r.error ?? '').toLowerCase() },
+];
+
 export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags, eligibleCards }: {
   kindStats: AgentKindStats[];
   recentRuns: RecentAgentRun[];
@@ -49,6 +61,7 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags,
   const totalCost = kindStats.reduce((s, k) => s + k.totalCostCents, 0);
   const totalFailed = kindStats.reduce((s, k) => s + k.failedRuns + k.timedOutRuns, 0);
   const activeSquads = reasoningSquads.filter((s) => s.useAgentLoop).length;
+  const runsSort = useTableSort(recentRuns, RUN_COLS, 'agents_admin');
 
   const stats: StatCard[] = [
     { key: 'runs', label: 'Runs 24h', value: totalRuns, color: 'var(--fg-0)' },
@@ -346,18 +359,18 @@ export function AgentsAdminPage({ kindStats, recentRuns, reasoningSquads, flags,
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ background: 'var(--bg-2)', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10, position: 'sticky', top: 0 }}>
-                  <th style={{ padding: '6px 8px', textAlign: 'left' }}>When</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left' }}>Kind</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left' }}>Status</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left' }}>Project</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Tokens (in/out)</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Cost</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Dur</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left' }}>Error</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('when').onClick}>When <SortArrow spec={runsSort.thProps('when')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('kind').onClick}>Kind <SortArrow spec={runsSort.thProps('kind')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('status').onClick}>Status <SortArrow spec={runsSort.thProps('status')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('project').onClick}>Project <SortArrow spec={runsSort.thProps('project')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('tokens').onClick}>Tokens (in/out) <SortArrow spec={runsSort.thProps('tokens')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('cost').onClick}>Cost <SortArrow spec={runsSort.thProps('cost')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('dur').onClick}>Dur <SortArrow spec={runsSort.thProps('dur')} /></th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={runsSort.thProps('error').onClick}>Error <SortArrow spec={runsSort.thProps('error')} /></th>
                 </tr>
               </thead>
               <tbody>
-                {recentRuns.map((r) => (
+                {runsSort.sorted.map((r) => (
                   <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                     <td style={{ padding: '4px 8px', fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{fmtRel(r.startedAt)}</td>
                     <td style={{ padding: '4px 8px', fontFamily: 'var(--font-mono)' }}>{r.agentKind}{r.agentRef ? ` ${r.agentRef}` : ''}</td>

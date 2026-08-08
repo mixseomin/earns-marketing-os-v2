@@ -11,9 +11,10 @@
 // nào chạy. Xem lib/products/data.ts.
 
 import { useMemo, useState } from 'react';
-import type { ProductsView, ProductRow } from '@/lib/products/data';
+import type { ProductsView, ProductRow, PlatformRoll } from '@/lib/products/data';
 import { Section, StatsStrip, ListToolbar, FilterChips, EmptyState, Pill } from './ui';
 import type { StatCard } from './ui/stats-strip';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 const usd = (n: number) => n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
   : n >= 1 ? `$${n.toFixed(0)}` : n > 0 ? `$${n.toFixed(2)}` : '$0';
@@ -29,10 +30,23 @@ const daysAgo = (d: string | null) => {
   return Math.round((Date.now() - new Date(`${d}T00:00:00Z`).getTime()) / 86400_000);
 };
 
+// Cột sort cho bảng "Theo nền tảng". sortValue độc lập với cách hiển thị (vd cột "Đo được"
+// hiện 'mức tài khoản' nhưng vẫn sắp theo số measured).
+const PLATFORM_COLS: SortableCol<PlatformRoll>[] = [
+  { key: 'platform', sortValue: (p) => (p.platform ?? '').toLowerCase() },
+  { key: 'products', sortValue: (p) => p.products ?? null },
+  { key: 'live', sortValue: (p) => p.live ?? null },
+  { key: 'measured', sortValue: (p) => p.measured ?? null },
+  { key: 'net', sortValue: (p) => p.net ?? null },
+  { key: 'perProduct', sortValue: (p) => p.perProduct ?? null },
+  { key: 'lastStat', sortValue: (p) => p.lastStat ?? null },
+];
+
 export function ProductsPage({ view }: { view: ProductsView }) {
   const { rows, platforms, windowDays } = view;
   const [q, setQ] = useState('');
   const [plat, setPlat] = useState('all');
+  const s = useTableSort(platforms, PLATFORM_COLS, 'products');
 
   const live = rows.filter((r) => r.status === 'published').length;
   const measured = platforms.filter((p) => p.measured > 0);
@@ -93,13 +107,18 @@ export function ProductsPage({ view }: { view: ProductsView }) {
         <div className="panel" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead><tr>
-              {['Nền tảng', 'Sản phẩm', 'Đang bán', 'Đo được', `Thực nhận ${windowDays}n`, '$/sản phẩm', 'Số liệu mới nhất'].map((h, i) => (
-                <th key={h} style={{ padding: '6px 10px', fontSize: 9.5, fontWeight: 600, color: 'var(--fg-3)',
+              {[
+                { h: 'Nền tảng', key: 'platform' }, { h: 'Sản phẩm', key: 'products' },
+                { h: 'Đang bán', key: 'live' }, { h: 'Đo được', key: 'measured' },
+                { h: `Thực nhận ${windowDays}n`, key: 'net' }, { h: '$/sản phẩm', key: 'perProduct' },
+                { h: 'Số liệu mới nhất', key: 'lastStat' },
+              ].map(({ h, key }, i) => (
+                <th key={h} onClick={s.thProps(key).onClick} style={{ padding: '6px 10px', fontSize: 9.5, fontWeight: 600, color: 'var(--fg-3)',
                   fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.06em',
-                  textAlign: i ? 'right' : 'left', borderBottom: '1px solid var(--line)' }}>{h}</th>))}
+                  textAlign: i ? 'right' : 'left', borderBottom: '1px solid var(--line)', cursor: 'pointer', userSelect: 'none' }}>{h} <SortArrow spec={s.thProps(key)} /></th>))}
             </tr></thead>
             <tbody>
-              {platforms.map((p) => {
+              {s.sorted.map((p) => {
                 const age = daysAgo(p.lastStat);
                 return (
                   <tr key={p.platform}>

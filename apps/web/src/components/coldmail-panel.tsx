@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, type CSSProperties } from 'react';
+import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
 
 interface ListRow { id: number; name: string; type: string; optin: string; total: number; confirmed: number; unconfirmed: number; unsubscribed: number; }
 interface CampRow { id: number; name: string; status: string; sent: number; toSend: number; views: number; clicks: number; bounces: number; startedAt: string | null; }
@@ -20,6 +21,13 @@ const intf = (n: number) => (Number(n) || 0).toLocaleString('en-US');
 const card: CSSProperties = { background: 'var(--bg-2, #101d2e)', border: '1px solid var(--border, #1d2c42)', borderRadius: 10, padding: 14 };
 const th: CSSProperties = { textAlign: 'left', padding: '7px 10px', color: muted, fontWeight: 600, fontSize: 12, borderBottom: '1px solid var(--border,#1d2c42)' };
 const td: CSSProperties = { textAlign: 'left', padding: '7px 10px', borderBottom: '1px solid var(--border,#18283d)', fontVariantNumeric: 'tabular-nums' };
+const LIST_COLS: SortableCol<ListRow>[] = [
+  { key: 'name', sortValue: (r) => (r.name ?? '').toLowerCase() },
+  { key: 'type', sortValue: (r) => `${r.type} · ${r.optin}`.toLowerCase() },
+  { key: 'confirmed', sortValue: (r) => r.confirmed ?? null },
+  { key: 'unsub', sortValue: (r) => r.unsubscribed ?? null },
+  { key: 'total', sortValue: (r) => r.total ?? null },
+];
 
 function Card({ k, v, s }: { k: string; v: string; s?: string }) {
   return <div style={card}><div style={{ color: muted, fontSize: 12 }}>{k}</div><div style={{ fontSize: 22, fontWeight: 700, marginTop: 3 }}>{v}</div>{s && <div style={{ color: muted, fontSize: 12, marginTop: 2 }}>{s}</div>}</div>;
@@ -55,6 +63,8 @@ export function ColdmailPanel() {
     const t = setInterval(() => { if (document.visibilityState === 'visible') load(); }, POLL_MS);
     return () => clearInterval(t);
   }, [load]);
+
+  const s = useTableSort(d?.lists ?? [], LIST_COLS, 'coldmail-lists');
 
   const openBtn = (url: string) => (
     <a href={url} target="_blank" rel="noopener noreferrer"
@@ -94,9 +104,15 @@ export function ColdmailPanel() {
       </div>
 
       <Panel title="Lists">
-        <thead><tr><th style={th}>List</th><th style={th}>Type</th><th style={{ ...th, textAlign: 'right' }}>Confirmed</th><th style={{ ...th, textAlign: 'right' }}>Unsub</th><th style={{ ...th, textAlign: 'right' }}>Total</th></tr></thead>
+        <thead><tr>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('name').onClick}>List <SortArrow spec={s.thProps('name')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('type').onClick}>Type <SortArrow spec={s.thProps('type')} /></th>
+          <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('confirmed').onClick}>Confirmed <SortArrow spec={s.thProps('confirmed')} /></th>
+          <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('unsub').onClick}>Unsub <SortArrow spec={s.thProps('unsub')} /></th>
+          <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('total').onClick}>Total <SortArrow spec={s.thProps('total')} /></th>
+        </tr></thead>
         <tbody>
-          {d.lists.map((l) => (
+          {s.sorted.map((l) => (
             <tr key={l.id}>
               <td style={td}>{l.name}</td>
               <td style={{ ...td, color: muted }}>{l.type} · {l.optin}</td>

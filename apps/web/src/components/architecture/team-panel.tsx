@@ -6,6 +6,7 @@ import { getMemberAssignments, assignAccountsToMember, setProjectMembership, lis
 import { listBrowserProfiles, listProxies, type BrowserProfileRow, type ProxyRow } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
 import { SiteFavicon, platformFaviconProps } from '@/components/ui/site-favicon';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 // Node Team — quản lý nhân sự + ASSIGN project/account/browser/proxy (mô hình staff seeding).
 // Drive từ getMemberAssignments (membership THẬT). Trình bày CHIP + dropdown-thêm, KHÔNG list phẳng.
@@ -23,6 +24,13 @@ function extStatus(g: { extTokenIssuedAt: string | null; extTokenLastSeen: strin
 }
 type Grouped = { userId: number; name: string; email: string; role: string; specialty: string; active: boolean; extTokenIssuedAt: string | null; extTokenLastSeen: string | null; lastLoginAt: string | null };
 type EditForm = { name: string; email: string; role: string; specialty: string; active: boolean };
+const TEAM_COLS: SortableCol<Grouped>[] = [
+  { key: 'name', sortValue: (g) => (g.name ?? '').toLowerCase() },
+  { key: 'email', sortValue: (g) => (g.email ?? '').toLowerCase() },
+  { key: 'role', sortValue: (g) => (g.role ?? '').toLowerCase() },
+  { key: 'specialty', sortValue: (g) => (g.specialty ?? '').toLowerCase() },
+  { key: 'ext', sortValue: (g) => extStatus(g).label.toLowerCase() },
+];
 
 export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [rows, setRows] = useState<TeamMemberRow[] | null>(null);
@@ -52,6 +60,7 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
     for (const r of rows) { if (!m.has(r.userId)) m.set(r.userId, { userId: r.userId, name: r.name, email: r.email, role: r.role, specialty: r.specialty, active: r.active, extTokenIssuedAt: r.extTokenIssuedAt, extTokenLastSeen: r.extTokenLastSeen, lastLoginAt: r.lastLoginAt }); }
     return [...m.values()];
   })();
+  const s = useTableSort(grouped, TEAM_COLS, 'team');
 
   const loadDetail = (uid: number) => { setDetail((d) => ({ ...d, [uid]: 'loading' })); getMemberAssignments(uid).then((s) => setDetail((d) => ({ ...d, [uid]: s }))); };
   const toggle = (uid: number) => {
@@ -95,9 +104,16 @@ export function TeamPanel({ onOpen }: { onOpen?: OpenFn }) {
       </div>
 
       <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={{ ...th, width: 22 }} /><th style={th}>Tên</th><th style={th}>Email</th><th style={th}>Role</th><th style={th}>Chuyên</th><th style={th}>Ext</th></tr></thead>
+        <thead><tr>
+          <th style={{ ...th, width: 22 }} />
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('name').onClick}>Tên <SortArrow spec={s.thProps('name')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('email').onClick}>Email <SortArrow spec={s.thProps('email')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('role').onClick}>Role <SortArrow spec={s.thProps('role')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('specialty').onClick}>Chuyên <SortArrow spec={s.thProps('specialty')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('ext').onClick}>Ext <SortArrow spec={s.thProps('ext')} /></th>
+        </tr></thead>
         <tbody>
-          {grouped.map((g) => {
+          {s.sorted.map((g) => {
             const isOpen = open === g.userId;
             const d = detail[g.userId];
             const dd = (d && d !== 'loading') ? d : null;

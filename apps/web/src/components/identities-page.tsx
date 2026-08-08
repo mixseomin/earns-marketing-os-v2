@@ -15,6 +15,7 @@ import { FormModal, FormModalFooter } from './ui/form-modal';
 import { TextField, TextAreaField, SelectField } from './ui/form-field';
 import { StatusFlag } from './ui/status-flag';
 import { EmptyState } from './ui/empty-state';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 export type IdentityFormState = IdentityInput & { id?: number };
 type FormState = IdentityFormState;
@@ -23,6 +24,16 @@ const EMPTY_FORM: FormState = {
   name: '', kind: 'seeding', handleBase: '', email: '', password: '',
   displayName: '', bio: '', avatarUrl: '',
 };
+
+const COLS: SortableCol<IdentityRow>[] = [
+  { key: 'name', sortValue: (r) => (r.name ?? '').toLowerCase() },
+  { key: 'kind', sortValue: (r) => (r.kind ?? '').toLowerCase() },
+  { key: 'handle', sortValue: (r) => (r.handleBase ?? '').toLowerCase() },
+  { key: 'email', sortValue: (r) => (r.email ?? '').toLowerCase() },
+  { key: 'pwd', sortValue: (r) => (r.hasPassword ? 1 : 0) },
+  { key: 'display', sortValue: (r) => (r.displayName ?? '').toLowerCase() },
+  { key: 'updated', sortValue: (r) => r.updatedAt ?? null },
+];
 
 export function IdentitiesPage({
   projectId, initial,
@@ -35,6 +46,7 @@ export function IdentitiesPage({
   const [kindFilter, setKindFilter] = useState<'all' | IdentityKind>('all');
 
   const rows = initial.filter((r) => kindFilter === 'all' || r.kind === kindFilter);
+  const s = useTableSort(rows, COLS, 'identities');
 
   // All open/close routes through these so the URL (useModalParam) always mirrors the drawer.
   // edit → mId=<identityId>; create → no id (identity has no id yet). editing keeps the built FormState.
@@ -139,18 +151,18 @@ export function IdentitiesPage({
           <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-3)' }}>
-                <th style={th}>Name</th>
-                <th style={th}>Kind</th>
-                <th style={th}>Handle</th>
-                <th style={th}>Email</th>
-                <th style={th}>Pwd</th>
-                <th style={th}>Display</th>
-                <th style={th}>Updated</th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('name').onClick}>Name <SortArrow spec={s.thProps('name')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('kind').onClick}>Kind <SortArrow spec={s.thProps('kind')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('handle').onClick}>Handle <SortArrow spec={s.thProps('handle')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('email').onClick}>Email <SortArrow spec={s.thProps('email')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('pwd').onClick}>Pwd <SortArrow spec={s.thProps('pwd')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('display').onClick}>Display <SortArrow spec={s.thProps('display')} /></th>
+                <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('updated').onClick}>Updated <SortArrow spec={s.thProps('updated')} /></th>
                 <th style={{ ...th, textAlign: 'right' }}></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {s.sorted.map((r) => (
                 <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                   <td style={td}>
                     <div style={{ fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 6 }}>

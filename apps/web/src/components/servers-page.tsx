@@ -4,6 +4,18 @@ import { useMemo, useState } from 'react';
 import type { ServerBox } from '@/lib/servers';
 import { fleetTotals, SERVERS_SNAPSHOT_AT } from '@/lib/servers';
 import { EmptyState, ListToolbar, Pager, usePaged } from './ui';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
+
+// Sortable data columns (icon/action-only columns get none). Module-scope: closures read only the row.
+const SERVER_COLS: SortableCol<ServerBox>[] = [
+  { key: 'box', sortValue: (b) => (b.name ?? '').toLowerCase() },
+  { key: 'region', sortValue: (b) => (b.region ?? '').toLowerCase() },
+  { key: 'vcpu', sortValue: (b) => b.vcpu ?? null },
+  { key: 'ram', sortValue: (b) => b.ramGB ?? null },
+  { key: 'disk', sortValue: (b) => b.diskGB ?? null },
+  { key: 'cost', sortValue: (b) => b.costMonth ?? null },
+  { key: 'sites', sortValue: (b) => b.sites?.length ?? null },
+];
 
 // Usage color = signal only (YDNI): lime ok, amber attention, red near-full.
 function usageColor(pct: number | null): string {
@@ -64,7 +76,8 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
     );
   }, [boxes, q]);
 
-  const { pageItems, ...pager } = usePaged(filtered);
+  const s = useTableSort(filtered, SERVER_COLS, 'servers');
+  const { pageItems, ...pager } = usePaged(s.sorted);
 
   return (
     <div style={{ maxWidth: 1400 }}>
@@ -97,13 +110,13 @@ export function ServersPage({ boxes }: { boxes: ServerBox[] }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
           <thead>
             <tr>
-              <th style={th}>Box</th>
-              <th style={th}>Region</th>
-              <th style={{ ...th, textAlign: 'right' }}>vCPU</th>
-              <th style={th}>RAM</th>
-              <th style={th}>Disk</th>
-              <th style={th}>Cost / mo</th>
-              <th style={th}>Sites</th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('box').onClick}>Box <SortArrow spec={s.thProps('box')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('region').onClick}>Region <SortArrow spec={s.thProps('region')} /></th>
+              <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('vcpu').onClick}>vCPU <SortArrow spec={s.thProps('vcpu')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('ram').onClick}>RAM <SortArrow spec={s.thProps('ram')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('disk').onClick}>Disk <SortArrow spec={s.thProps('disk')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('cost').onClick}>Cost / mo <SortArrow spec={s.thProps('cost')} /></th>
+              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('sites').onClick}>Sites <SortArrow spec={s.thProps('sites')} /></th>
             </tr>
           </thead>
           <tbody>

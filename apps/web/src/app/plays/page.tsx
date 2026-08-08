@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { BacklinksPage } from '@/components/backlinks-page';
@@ -9,6 +10,7 @@ import { listBuildingProducts } from '@/lib/actions/products-building';
 import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listFollowups } from '@/lib/actions/followups';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
+import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
 import { resolveSiteSlug } from '@/lib/backlink-sites';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +20,7 @@ export const dynamic = 'force-dynamic';
 // status changes + the drawer act on the right site. Per-project actions (Seed/Generate/account-readiness)
 // are hidden here — those stay on /p/[id]/plays. See getAllBacklinkTasks.
 export default async function GlobalPlaysRoute() {
+  const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect('/');
 
@@ -48,7 +51,7 @@ export default async function GlobalPlaysRoute() {
       isPortfolio
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage allProjects products={products} projectsById={projectsById}
+      <BacklinksPage prefs={prefs} allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />

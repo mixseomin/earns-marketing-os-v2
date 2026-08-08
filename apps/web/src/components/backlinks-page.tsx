@@ -40,6 +40,7 @@ import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES } from '@/lib/site-status';
+import { setPref, pick, type Prefs } from '@/lib/prefs';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
@@ -621,7 +622,7 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [] }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {} }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
@@ -634,6 +635,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   projectsById?: Record<string, Project>;
   /** Sản phẩm ĐANG DỰNG của (các) project trong tầm — hiện thành dải đầu bảng. */
   products?: BuildingProduct[];
+  /** Lựa chọn giao diện đã nhớ (cookie, server đọc) — view/lịch/ẩn-đã-xong. Xem lib/prefs.ts. */
+  prefs?: Prefs;
 }) {
   // In global mode a task acts on its OWN project/slug, not one page-level value.
   const slugForTask = (t?: BacklinkTask | null) => (allProjects ? (t?.projectSlug ?? '') : slug);
@@ -677,13 +680,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   // Chế độ lịch (tháng/tuần/ngày) đi vào URL như mọi state khác → F5 và chia sẻ link vẫn đúng chỗ.
-  const [calMode, setCalMode] = useState<CalMode>(() => { const v = sp.get('cal'); return v === 'week' || v === 'day' ? v : 'month'; });
+  const [calMode, setCalModeState] = useState<CalMode>(() => { const v = pick(sp.get('cal'), prefs['plays.cal'], 'month'); return v === 'week' || v === 'day' ? v : 'month'; });
+  const setCalMode = (m: CalMode) => { setCalModeState(m); setPref('plays.cal', m === 'month' ? '' : m); };
   // Ngày đang chọn trên lịch cũng vào URL như mọi state khác → F5 / chia sẻ link giữ đúng ngày,
   // không nhảy về hôm nay và không phải chọn lại. Rỗng = hôm nay (lịch tự tính sau mount, giờ local).
   const [calDate, setCalDate] = useState<string>(sp.get('d') ?? '');
   // Mặc định ẩn việc đã đóng sổ (xong/bỏ/lỗi): bảng việc là để biết CÒN phải làm gì, không phải
   // kho lưu trữ. ?closed=1 bật lại. Chọn đích danh một tab trạng thái = ý muốn rõ ràng, luật này nhường.
-  const [showClosed, setShowClosed] = useState(sp.get('closed') === '1');
+  const [showClosed, setShowClosedState] = useState(() => pick(sp.get('closed'), prefs['plays.closed'], '0') === '1');
+  const setShowClosed = (v: boolean) => { setShowClosedState(v); setPref('plays.closed', v ? '1' : ''); };
   const [projectFilter, setProjectFilter] = useState<string>(sp.get('proj') ?? '');   // global /plays only: filter to one project's plays (by slug)
   // Sản phẩm theo ĐÚNG project đang xem. Trang project đã lọc từ server; bảng toàn cục thì phải
   // theo chip project đang chọn — nếu không, chọn một project vẫn thấy sản phẩm của project khác.
@@ -691,7 +696,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Work-type axis (the YDNI spine that scales to email later): '' = all, acquire = 🔗
   // one-shot backlink, seed = 🌱 community-seed (link-gated). Filters by communitySeed.
   const [workType, setWorkType] = useState<'' | 'acquire' | 'seed'>((sp.get('wt') as '' | 'acquire' | 'seed') || '');
-  const [view, setView] = useState<'list' | 'calendar' | 'kanban'>(() => { const v = sp.get('view'); if (v === 'list' || v === 'kanban') return v; if (v === 'calendar') return 'calendar'; return initialView === 'kanban' ? 'kanban' : 'calendar'; });
+  // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
+  // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
+  const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
+    const v = pick(sp.get('view'), prefs['plays.view'], initialView === 'kanban' ? 'kanban' : 'calendar');
+    return v === 'list' || v === 'kanban' || v === 'calendar' ? v : 'calendar';
+  });
+  const setView = (v: 'list' | 'calendar' | 'kanban') => { setViewState(v); setPref('plays.view', v); };
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
   useEffect(() => {
@@ -1307,11 +1318,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             { all: hideClosed ? STATUS_ORDER.reduce((n, s) => n - (CLOSED.has(s) ? (kpi[s] ?? 0) : 0), kpi.total ?? 0) : kpi.total })}
         />
         {(closedN > 0 || showClosed) && (
-          <button type="button" onClick={() => setShowClosed((v) => !v)}
-            title={showClosed ? 'Ẩn lại việc đã xong / đã bỏ / link lỗi' : 'Hiện việc đã xong, đã bỏ và link lỗi'}
-            style={{ ...btn, padding: '2px 9px', fontSize: 11, cursor: 'pointer', color: showClosed ? 'var(--fg-1)' : 'var(--fg-4)', borderColor: showClosed ? 'var(--accent)' : 'var(--line)' }}>
-            {showClosed ? '✓ xong/bỏ/lỗi' : `+ xong/bỏ/lỗi ${closedN}`}
-          </button>
+          <label title="Việc đã xong, đã bỏ, link lỗi. Lựa chọn được nhớ cho lần mở sau."
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11,
+              padding: '2px 9px', borderRadius: 999, border: `1px solid ${showClosed ? 'var(--accent)' : 'var(--line)'}`,
+              background: showClosed ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
+              color: showClosed ? 'var(--fg-1)' : 'var(--fg-3)' }}>
+            <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} style={{ cursor: 'pointer', margin: 0 }} />
+            hiện việc đã xong/bỏ/lỗi{!showClosed && closedN > 0 ? ` (${closedN})` : ''}
+          </label>
         )}
       </div>
 

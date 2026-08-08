@@ -14,7 +14,9 @@ import { getDb } from '@mos2/db';
 import { textArray } from '@/lib/sql-array';
 
 // keyPoints = ý chính, hiện NGOÀI phần gập: người review/đọc nắm nội dung mà không phải mở ra đọc hết.
-export interface ProductChapter { id: number; title: string; order: number; chars: number; content: string; keyPoints: string[]; }
+// internal = tài liệu NỘI BỘ (outline, ghi chú) — vẫn xem được nhưng KHÔNG tính vào số từ bản thảo,
+// không thì tiến độ tự thổi phồng bằng chính kế hoạch của mình.
+export interface ProductChapter { id: number; title: string; order: number; chars: number; content: string; keyPoints: string[]; internal: boolean; }
 export interface ProductCard { id: number; title: string; status: string; date: string | null; }
 export interface BuildingProduct {
   slug: string;
@@ -69,7 +71,8 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
       const chapters = items
         .filter((r) => r.kind === 'product-chapter' && r.refs?.slug === slug)
         .map((r) => ({ id: Number(r.id), title: r.title, order: Number(r.refs?.order ?? 0), chars: r.content.length, content: r.content,
-          keyPoints: Array.isArray(r.refs?.key_points) ? (r.refs.key_points as unknown[]).map(String) : [] }));
+          keyPoints: Array.isArray(r.refs?.key_points) ? (r.refs.key_points as unknown[]).map(String) : [],
+          internal: r.refs?.internal === true }));
       const cards = tasks.filter((t) => t.slug === slug)
         .map((t) => ({ id: Number(t.id), title: t.title, status: t.st, date: t.d }));
       const done = cards.filter((c) => c.status === 'completed' || c.status === 'verified').length;
@@ -84,7 +87,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
         store: (s.refs?.store as string) ?? null,
         liveUrl: (s.refs?.liveUrl as string) ?? null,
         chapters,
-        words: chapters.reduce((n, c) => n + wordCount(c.content), 0),
+        words: chapters.reduce((n, c) => n + (c.internal ? 0 : wordCount(c.content)), 0),
         cards,
         done,
         total: cards.length,

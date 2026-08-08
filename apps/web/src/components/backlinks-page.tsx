@@ -272,6 +272,7 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
                   padding: '6px 10px', fontSize: 12, fontWeight: 700, color: 'var(--fg-1)', display: 'flex', gap: 8 }}>
                 <span style={{ color: 'var(--fg-4)' }}>{openCh === ch.id ? '▾' : '▸'}</span>
                 <span style={{ flex: 1 }}>{ch.title}</span>
+                {ch.internal && <span title="Tài liệu nội bộ — không tính vào số từ bản thảo, không bán" style={{ fontSize: 9.5, fontWeight: 400, color: 'var(--fg-4)', border: '1px solid var(--line)', borderRadius: 4, padding: '0 5px' }}>nội bộ</span>}
                 <span style={{ fontSize: 10.5, fontWeight: 400, color: 'var(--fg-4)' }}>{ch.chars.toLocaleString()} ký tự</span>
               </button>
               {/* Ý CHÍNH luôn hiện, kể cả khi chương đang gập: người review nắm được nội dung mà

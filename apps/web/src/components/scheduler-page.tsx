@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 import type { CronJob, CronRun, WorkerNode } from '@/lib/actions/scheduler';
 import {
   listCronJobsAction,
@@ -83,6 +84,14 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const INTERVAL_OPTIONS = [1, 2, 5, 10, 15, 30, 60, 120, 240];
+
+const JOB_COLS: SortableCol<CronJob>[] = [
+  { key: 'job', sortValue: (j) => (j.label ?? '').toLowerCase() },
+  { key: 'interval', sortValue: (j) => j.intervalMinutes ?? null },
+  { key: 'enabled', sortValue: (j) => (j.enabled ? 1 : 0) },
+  { key: 'lastRun', sortValue: (j) => j.lastRunAt ?? null },
+  { key: 'nextRun', sortValue: (j) => j.nextRunAt ?? null },
+];
 
 // ── RunHistoryRow ─────────────────────────────────────────────────────────────
 function RunHistoryTable({ jobId }: { jobId: string }) {
@@ -458,6 +467,8 @@ export function SchedulerPage({ jobs: initialJobs, nodes: initialNodes }: { jobs
     return () => clearInterval(id);
   }, [refresh]);
 
+  const s = useTableSort(jobs, JOB_COLS, 'scheduler');
+
   return (
     <div style={{ maxWidth: 1100 }}>
       {/* pulse animation for running dots */}
@@ -536,16 +547,17 @@ export function SchedulerPage({ jobs: initialJobs, nodes: initialNodes }: { jobs
             <thead>
               <tr style={{ background: 'rgba(255,255,255,.02)', borderBottom: '1px solid var(--line)' }}>
                 {[
-                  { label: '', w: 28 },
-                  { label: 'Job', w: undefined },
-                  { label: 'Interval', w: 120 },
-                  { label: 'Enabled', w: 80 },
-                  { label: 'Last run', w: 130 },
-                  { label: 'Next run', w: 110 },
-                  { label: 'Actions', w: 110 },
+                  { label: '', w: 28, sortKey: null },
+                  { label: 'Job', w: undefined, sortKey: 'job' },
+                  { label: 'Interval', w: 120, sortKey: 'interval' },
+                  { label: 'Enabled', w: 80, sortKey: 'enabled' },
+                  { label: 'Last run', w: 130, sortKey: 'lastRun' },
+                  { label: 'Next run', w: 110, sortKey: 'nextRun' },
+                  { label: 'Actions', w: 110, sortKey: null },
                 ].map((h) => (
                   <th
                     key={h.label}
+                    onClick={h.sortKey ? s.thProps(h.sortKey).onClick : undefined}
                     style={{
                       padding: '8px 12px',
                       textAlign: 'left',
@@ -557,15 +569,18 @@ export function SchedulerPage({ jobs: initialJobs, nodes: initialNodes }: { jobs
                       letterSpacing: '.06em',
                       whiteSpace: 'nowrap',
                       width: h.w,
+                      cursor: h.sortKey ? 'pointer' : undefined,
+                      userSelect: h.sortKey ? 'none' : undefined,
                     }}
                   >
                     {h.label}
+                    {h.sortKey && <SortArrow spec={s.thProps(h.sortKey)} />}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => (
+              {s.sorted.map((job) => (
                 <JobRow key={job.id} job={job} onRefresh={refresh} />
               ))}
             </tbody>

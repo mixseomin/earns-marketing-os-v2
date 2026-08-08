@@ -2,11 +2,17 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { accountsInfraMatrix, updateAccountEnvironment, createBrowserProfile, createProxy, type AccountInfraRow, type BrowserProfileRow, type ProxyRow, type ProfileTool, type ProxyType } from '@/lib/actions/environments';
 import type { OpenFn } from '@/components/content-value-page';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 // "Setup node Account" — gán BROWSER PROFILE + PROXY cho từng account (mọi thứ để đăng an toàn).
 // NHÚNG drawer node `account`. Account chưa gắn đủ lên đầu. Tạo nhanh profile/proxy ngay tại chỗ.
 const TOOLS: ProfileTool[] = ['adspower', 'genlogin', 'multilogin', 'kameleo', 'chrome', 'firefox', 'other'];
 const PXTYPES: ProxyType[] = ['mobile', 'residential', 'datacenter', 'isp'];
+const INFRA_COLS: SortableCol<AccountInfraRow>[] = [
+  { key: 'account', sortValue: (r) => (r.handle ?? '').toLowerCase() },
+  { key: 'platform', sortValue: (r) => (r.platformKey ?? '').toLowerCase() },
+  { key: 'status', sortValue: (r) => (r.status ?? '').toLowerCase() },
+];
 
 export function AccountInfraPanel({ onOpen }: { onOpen?: OpenFn }) {
   const [data, setData] = useState<{ accounts: AccountInfraRow[]; browserProfiles: BrowserProfileRow[]; proxies: ProxyRow[] } | null>(null);
@@ -21,6 +27,7 @@ export function AccountInfraPanel({ onOpen }: { onOpen?: OpenFn }) {
   const addBp = async () => { if (!newBp.label.trim()) return; setBusy(true); await createBrowserProfile({ label: newBp.label.trim(), tool: newBp.tool }); setNewBp({ label: '', tool: newBp.tool }); await reload(); setBusy(false); };
   const addPx = async () => { if (!newPx.label.trim() || !newPx.endpoint.trim()) return; setBusy(true); await createProxy({ label: newPx.label.trim(), type: newPx.type, endpoint: newPx.endpoint.trim() }); setNewPx({ label: '', type: newPx.type, endpoint: '' }); await reload(); setBusy(false); };
 
+  const s = useTableSort(data?.accounts ?? [], INFRA_COLS, 'account_infra');
   if (!data) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang tải account…</div>;
   const th: CSSProperties = { padding: '6px 8px', textAlign: 'left', color: 'var(--fg-2)', fontSize: 11, fontWeight: 600, borderBottom: '1px solid var(--bg-3)', whiteSpace: 'nowrap' };
   const td: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--bg-2)', verticalAlign: 'middle' };
@@ -54,9 +61,15 @@ export function AccountInfraPanel({ onOpen }: { onOpen?: OpenFn }) {
       </div>
 
       <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={th}>Account</th><th style={th}>Platform</th><th style={th}>Status</th><th style={th}>Browser profile</th><th style={th}>Proxy</th></tr></thead>
+        <thead><tr>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('account').onClick}>Account <SortArrow spec={s.thProps('account')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('platform').onClick}>Platform <SortArrow spec={s.thProps('platform')} /></th>
+          <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('status').onClick}>Status <SortArrow spec={s.thProps('status')} /></th>
+          <th style={th}>Browser profile</th>
+          <th style={th}>Proxy</th>
+        </tr></thead>
         <tbody>
-          {data.accounts.map((a) => (
+          {s.sorted.map((a) => (
             <tr key={a.id} style={{ background: (a.browserProfileId == null || a.proxyId == null) ? 'color-mix(in srgb, var(--neon-amber) 7%, transparent)' : undefined }}>
               <td style={{ ...td, fontWeight: 600 }}>{onOpen ? <a role="button" onClick={(e) => { e.preventDefault(); onOpen('account', a.id, a.handle); }} style={{ color: 'var(--fg-0)', textDecoration: 'none', cursor: 'pointer' }}>{a.handle}</a> : a.handle}</td>
               <td style={{ ...td, color: 'var(--fg-2)' }}>{a.platformKey || '—'}</td>

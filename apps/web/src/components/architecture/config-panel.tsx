@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import type { SceneEvent } from '@/lib/scene-events';
 import { saveSceneEvents } from '@/lib/actions/scene-events';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 // CONFIG · Event taxonomy + bảng điểm familiarity. 1 nguồn (app_settings.scene_events) →
 // backend recomputeFamiliarity + ext (_KIND_LABEL) cùng đọc → hết lệch điểm.
@@ -14,6 +15,14 @@ const td: React.CSSProperties = { padding: '4px 8px', verticalAlign: 'middle' };
 const btn: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 12, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 
 const NEW_EVENT: SceneEvent = { kind: '', label: '', emoji: '•', dir: 'ours', toggle: false, score: 10 };
+
+const COLS: SortableCol<SceneEvent>[] = [
+  { key: 'label', sortValue: (r) => (r.label ?? '').toLowerCase() },
+  { key: 'kind', sortValue: (r) => (r.kind ?? '').toLowerCase() },
+  { key: 'dir', sortValue: (r) => (r.dir ?? '').toLowerCase() },
+  { key: 'toggle', sortValue: (r) => (r.toggle ? 1 : 0) },
+  { key: 'score', sortValue: (r) => r.score ?? null },
+];
 
 export function ConfigPanel({ initial }: { initial: SceneEvent[] }) {
   const [rows, setRows] = useState<SceneEvent[]>(() => initial.map((e) => ({ ...e })));
@@ -37,6 +46,8 @@ export function ConfigPanel({ initial }: { initial: SceneEvent[] }) {
   // preview: familiarity một người sau N event mẫu (giúp thấy trọng số áp thế nào)
   const theirs = rows.find((e) => e.dir === 'theirs')?.score ?? 0;
 
+  const s = useTableSort(rows, COLS, 'arch_config');
+
   return (
     <div style={{ maxWidth: 860 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -52,16 +63,17 @@ export function ConfigPanel({ initial }: { initial: SceneEvent[] }) {
           <thead style={{ background: 'var(--bg-2)' }}>
             <tr>
               <th style={{ ...th, width: 42 }}>Emoji</th>
-              <th style={{ ...th, width: 150 }}>Label</th>
-              <th style={{ ...th, width: 120 }}>kind</th>
-              <th style={{ ...th, width: 92 }}>Dir</th>
-              <th style={{ ...th, width: 62, textAlign: 'center' }}>Toggle</th>
-              <th style={{ ...th, width: 70 }}>Điểm</th>
+              <th style={{ ...th, width: 150, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('label').onClick}>Label <SortArrow spec={s.thProps('label')} /></th>
+              <th style={{ ...th, width: 120, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('kind').onClick}>kind <SortArrow spec={s.thProps('kind')} /></th>
+              <th style={{ ...th, width: 92, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('dir').onClick}>Dir <SortArrow spec={s.thProps('dir')} /></th>
+              <th style={{ ...th, width: 62, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('toggle').onClick}>Toggle <SortArrow spec={s.thProps('toggle')} /></th>
+              <th style={{ ...th, width: 70, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('score').onClick}>Điểm <SortArrow spec={s.thProps('score')} /></th>
               <th style={{ ...th, width: 30 }} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((e, i) => {
+            {s.sorted.map((e) => {
+              const i = rows.indexOf(e);   // sort = display-only; patch/del vẫn theo index gốc trong rows
               const isDefault = e.kind === 'default';
               return (
                 <tr key={i} style={{ borderTop: '1px solid var(--line)', background: e.dir === 'theirs' ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : undefined }}>

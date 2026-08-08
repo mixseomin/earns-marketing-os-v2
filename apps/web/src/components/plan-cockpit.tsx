@@ -6,6 +6,7 @@
 import { useState, useTransition, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Pill } from '@/components/ui';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 import {
   updateStepStatus,
   updateStepField,
@@ -51,6 +52,15 @@ const CHANNEL_ICON: Record<string, string> = {
   email: '✉️', discord: '💬',
 };
 
+const STEP_COLS: SortableCol<StepRow>[] = [
+  { key: 'channel', sortValue: (r) => (r.channel ?? '').toLowerCase() },
+  { key: 'name', sortValue: (r) => (r.name ?? '').toLowerCase() },
+  { key: 'target', sortValue: (r) => ((r.targetMetric as { value?: number })?.value) ?? null },
+  { key: 'time', sortValue: (r) => (r.timeEstimate ?? '').toLowerCase() },
+  { key: 'cadence', sortValue: (r) => (r.cadence ?? '').toLowerCase() },
+  { key: 'status', sortValue: (r) => (r.status ?? '').toLowerCase() },
+];
+
 export interface PlanCockpitProps {
   plan: PlanRow;
   goals: GoalRow[];
@@ -73,6 +83,7 @@ export function PlanCockpit({ plan, goals, steps, risks, aiContext, activity, ac
   const currentGoal = useMemo(() => goals.find((g) => g.id === activeGoalId) || goals[0] || null, [goals, activeGoalId]);
   const currentSteps = useMemo(() => (currentGoal ? steps.filter((s) => s.goalId === currentGoal.id) : []), [steps, currentGoal]);
   const expandedStep = useMemo(() => steps.find((s) => s.id === activeStepId) || null, [steps, activeStepId]);
+  const stepSort = useTableSort(currentSteps, STEP_COLS, 'plan_cockpit');
 
   const planProgress = plan.targetMrrUsd > 0 ? Math.min(100, Math.round((plan.currentMrrUsd / plan.targetMrrUsd) * 100)) : 0;
 
@@ -145,19 +156,19 @@ export function PlanCockpit({ plan, goals, steps, risks, aiContext, activity, ac
                   <thead>
                     <tr>
                       <th style={{ ...styles.th, width: 28 }}>STT</th>
-                      <th style={{ ...styles.th, width: 220 }}>Kênh</th>
-                      <th style={styles.th}>Hành động</th>
-                      <th style={{ ...styles.th, width: 90 }}>Chỉ tiêu</th>
-                      <th style={{ ...styles.th, width: 90 }}>Giờ</th>
-                      <th style={{ ...styles.th, width: 110 }}>Tần suất</th>
-                      <th style={{ ...styles.th, width: 80 }}>Trạng thái</th>
+                      <th style={{ ...styles.th, width: 220, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('channel').onClick}>Kênh <SortArrow spec={stepSort.thProps('channel')} /></th>
+                      <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('name').onClick}>Hành động <SortArrow spec={stepSort.thProps('name')} /></th>
+                      <th style={{ ...styles.th, width: 90, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('target').onClick}>Chỉ tiêu <SortArrow spec={stepSort.thProps('target')} /></th>
+                      <th style={{ ...styles.th, width: 90, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('time').onClick}>Giờ <SortArrow spec={stepSort.thProps('time')} /></th>
+                      <th style={{ ...styles.th, width: 110, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('cadence').onClick}>Tần suất <SortArrow spec={stepSort.thProps('cadence')} /></th>
+                      <th style={{ ...styles.th, width: 80, cursor: 'pointer', userSelect: 'none' }} onClick={stepSort.thProps('status').onClick}>Trạng thái <SortArrow spec={stepSort.thProps('status')} /></th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentSteps.length === 0 && (
                       <tr><td colSpan={7} style={styles.tdEmpty}>Chưa có bước nào. Click ✨ AI đề xuất bên dưới.</td></tr>
                     )}
-                    {currentSteps.map((s, i) => (
+                    {stepSort.sorted.map((s, i) => (
                       <StepTableRow
                         key={s.id}
                         idx={i + 1}

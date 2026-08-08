@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTableSort, SortArrow, type SortableCol } from '@/components/ui/use-table-sort';
 
 type Result = {
   query: string;
@@ -9,6 +10,13 @@ type Result = {
   history: Array<{ month: string; exact: number; broad: number }>;
   related: Array<{ query: string; impressions: number; broad: number }>;
 };
+
+type Related = Result['related'][number];
+const RELATED_COLS: SortableCol<Related>[] = [
+  { key: 'query', sortValue: (r) => (r.query ?? '').toLowerCase() },
+  { key: 'impressions', sortValue: (r) => r.impressions ?? null },
+  { key: 'broad', sortValue: (r) => r.broad ?? null },
+];
 
 export function KeywordResearchClient() {
   const [q, setQ] = useState('');
@@ -34,6 +42,9 @@ export function KeywordResearchClient() {
 
   const max = data?.history.length ? Math.max(...data.history.map((p) => p.broad)) : 0;
   const sparkW = 600, sparkH = 80;
+
+  const related = data?.related.slice(0, 50) ?? [];
+  const s = useTableSort(related, RELATED_COLS, 'keyword_research');
 
   return (
     <div>
@@ -113,13 +124,13 @@ export function KeywordResearchClient() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)' }}>Query</th>
-                    <th style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)' }}>Impressions</th>
-                    <th style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)' }}>Broad</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('query').onClick}>Query <SortArrow spec={s.thProps('query')} /></th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('impressions').onClick}>Impressions <SortArrow spec={s.thProps('impressions')} /></th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--line)', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('broad').onClick}>Broad <SortArrow spec={s.thProps('broad')} /></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.related.slice(0, 50).map((r) => (
+                  {s.sorted.map((r) => (
                     <tr key={r.query} onClick={() => { setQ(r.query); }} style={{ cursor: 'pointer' }}>
                       <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', color: 'var(--fg-1)' }}>{r.query}</td>
                       <td style={{ padding: '6px 10px', borderBottom: '1px solid var(--line)', textAlign: 'right', color: 'var(--fg-2)' }}>{r.impressions.toLocaleString()}</td>

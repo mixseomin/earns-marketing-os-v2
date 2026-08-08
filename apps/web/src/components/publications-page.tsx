@@ -6,6 +6,28 @@ import { PLATFORM_CONFIGS, detectPlatform } from '@/lib/publications/types';
 import { addPublication, updatePublicationStatus, updatePublicationInterval, getPublicationActivities } from '@/lib/actions/publications';
 import { Pill, EmptyState, StatsStrip, type StatCard } from './ui';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
+
+// Sort spec for the monitor table. Icon (platform) + Actions columns are not sortable.
+const PUB_COLS: SortableCol<Publication>[] = [
+  { key: 'title',     sortValue: (p) => (p.title ?? p.url ?? '').toLowerCase() },
+  { key: 'posted',    sortValue: (p) => p.publishedAt ?? null },
+  { key: 'activity',  sortValue: (p) => p.lastActivityAt ?? null },
+  { key: 'replies',   sortValue: (p) => p.replyCount ?? null },
+  { key: 'nextcheck', sortValue: (p) => p.nextCheckAt ?? null },
+  { key: 'status',    sortValue: (p) => (p.status ?? '').toLowerCase() },
+];
+// Header cells, parallel to the <colgroup>. sortKey omitted = not a sort control.
+const PUB_HEAD: { label: string; sortKey?: string }[] = [
+  { label: '' },
+  { label: 'Title / URL',  sortKey: 'title' },
+  { label: 'Posted',       sortKey: 'posted' },
+  { label: 'Last Activity', sortKey: 'activity' },
+  { label: 'Replies',      sortKey: 'replies' },
+  { label: 'Next Check',   sortKey: 'nextcheck' },
+  { label: 'Status',       sortKey: 'status' },
+  { label: 'Actions' },
+];
 
 // ── Helpers ──────────────────────────────────────────────────────
 function fmtRel(iso: string | null): string {
@@ -524,6 +546,7 @@ export function PublicationsPage({ projectId, publications: initial }: { project
     if (filterStatus === 'all') return publications;
     return publications.filter((p) => p.status === filterStatus);
   }, [publications, filterStatus]);
+  const s = useTableSort(filtered, PUB_COLS, 'publications');
 
   const handleStatusChange = async (id: number, status: string) => {
     await updatePublicationStatus(id, status);
@@ -617,15 +640,19 @@ export function PublicationsPage({ projectId, publications: initial }: { project
             </colgroup>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--line)' }}>
-                {(['', 'Title / URL', 'Posted', 'Last Activity', 'Replies', 'Next Check', 'Status', 'Actions'] as const).map((h, i) => (
-                  <th key={i} style={{ padding: '6px 6px', textAlign: 'left', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, ...(i === 0 ? { paddingLeft: 10 } : {}), ...(i === 7 ? { paddingRight: 10 } : {}) }}>
-                    {h}
+                {PUB_HEAD.map(({ label, sortKey }, i) => (
+                  <th
+                    key={i}
+                    onClick={sortKey ? s.thProps(sortKey).onClick : undefined}
+                    style={{ padding: '6px 6px', textAlign: 'left', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, ...(sortKey ? { cursor: 'pointer', userSelect: 'none' } : {}), ...(i === 0 ? { paddingLeft: 10 } : {}), ...(i === 7 ? { paddingRight: 10 } : {}) }}
+                  >
+                    {label}{sortKey && <SortArrow spec={s.thProps(sortKey)} />}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((pub) => (
+              {s.sorted.map((pub) => (
                 <PublicationRow
                   key={pub.id}
                   pub={pub}

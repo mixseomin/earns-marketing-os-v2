@@ -32,8 +32,8 @@ export async function getEmailPrep(taskId: number): Promise<EmailPrep | null> {
 // body, and 3-5 key points (the email's gist). English, human-voice (public content).
 export async function generateEmailPrep(
   taskId: number,
-  ctx: { offerLabel?: string; offerUrl?: string; segment?: string; audience?: string; sources?: EmailSource[] },
-): Promise<{ ok: boolean; subjectA?: string; subjectB?: string; preheader?: string; bodyMd?: string; keyPoints?: string[]; error?: string }> {
+  ctx: { offerLabel?: string; offerUrl?: string; segment?: string; audience?: string; sources?: EmailSource[]; articleUrl?: string },
+): Promise<{ ok: boolean; subjectA?: string; subjectB?: string; preheader?: string; bodyMd?: string; articleMd?: string; keyPoints?: string[]; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
@@ -59,32 +59,34 @@ export async function generateEmailPrep(
   if (!t) return { ok: false, error: 'task not found' };
 
   const audience = ctx.audience || t.name || 'the newsletter list';
-  const system = `You are the editor of a NEWSLETTER for a passive-income portfolio - a genuine content issue, NOT an ad. It reads like a useful bulletin one person sends another: industry news, policy or benefit changes, local or timely developments, a practical tip the reader can use even if they never click anything.
-STRUCTURE (in this order):
-1. Greeting line ("Hey {{first_name|there}},"), then a HOOK - a concrete, newsy claim or open loop on the topic.
-2. The BODY is the content: deliver the actual news/insight/tip. This is ~80% of the email and stands on its own value. The reader should feel informed even with no offer.
-3. ONE natural bridge, late, to the offer - the offer is a recommendation the news makes relevant (the tool for what you just explained), a soft PS-style line, not the subject of the email.
-4. Optional one useful internal link (the brand's own tool) if it fits.
-STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs. No hype.
-LINKS: never paste a raw/naked URL as visible text. Every link is markdown anchor text - [descriptive words](URL). This is critical for the offer's tracking link; the reader sees words like "order your panel", not the tracking URL.
-SOURCED NEWS ONLY: every factual claim must come from the SOURCES provided below. Do NOT invent statistics, dollar figures, dates, studies, or events beyond what the sources state. If the sources do not cover something, keep it general and true or leave it out.
-The subject line is about the NEWS/VALUE, never about the product name.`;
+  const articleLink = ctx.articleUrl?.trim() || 'ARTICLE_URL';
+  const system = `You are the editor of a NEWSLETTER for a passive-income portfolio - genuine content, NOT an ad. You produce TWO things this run:
+A) ARTICLE (articleMd): a full long-form piece for our OWN website (an SEO asset that also lets us measure interest). ~600-900 words, real value, clear H2 sections (use markdown ##). Deliver the actual news/insight/how-to. The offer appears ONCE, late, as the natural tool the topic makes relevant, plus a one-line disclosure ("Disclosure: we may earn a commission if you use this link, at no cost to you."). Ground every fact in the SOURCES.
+B) EMAIL (bodyMd): a SHORT teaser of that article (~120-180 words) - greeting, a newsy hook, 2-3 sentences of the most useful takeaway (real value on its own), then a "read the full breakdown" link to the article, and ONE soft offer mention. It is a summary that drives the click to the article, not the whole article.
+SHARED RULES:
+- English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs. No hype.
+- LINKS: never paste a raw/naked URL as visible text. Every link is markdown anchor text [descriptive words](URL) - the offer tracking link especially.
+- The SAME offer link is anchored in BOTH the article and the email.
+- SOURCED NEWS ONLY: every factual claim comes from the SOURCES below. Do NOT invent statistics, dollar figures, dates, studies, or events beyond them.
+- Subject lines are about the NEWS/VALUE, never the product name.`;
   const srcBlock = fresh.map((s, i) => `[${i + 1}] ${s.title || s.url} (${s.publisher || ''}${s.publisher ? ', ' : ''}${s.date}) ${s.url}`).join('\n');
-  const user = `Write ONE newsletter issue (content-first) for this audience, with the offer as a natural late recommendation.
+  const user = `Produce the article + the email teaser for this audience.
 Product/brand: ${t.name || ''}${t.website ? ` (${t.website})` : ''} — ${t.one_liner || ''}
 Audience: ${audience}${ctx.segment ? ` · segment: ${ctx.segment}` : ''}
 Issue topic / news angle: ${t.title || ''}
 ${t.instructions ? `Editor notes / angle (frame only - facts must trace to the sources):\n${t.instructions}` : ''}
 SOURCES (write the news only from these - all are dated within the last month):
 ${srcBlock}
-Ground the news in these sources and reference them naturally in the body (e.g. "per ${fresh[0]?.publisher || 'reporting'}...").
-OFFER (recommend once, late, as the tool the topic makes relevant): ${offer}. Link it ONCE as markdown anchor text - [a few descriptive words](${ctx.offerUrl || 'OFFER_URL'}) - never show the raw URL.
+Ground the news in these sources and reference them naturally (e.g. "per ${fresh[0]?.publisher || 'reporting'}...").
+OFFER (anchor once in BOTH, late, as the tool the topic makes relevant): ${offer}. Use markdown anchor [a few descriptive words](${ctx.offerUrl || 'OFFER_URL'}) - never the raw URL.
+The email's "read the full breakdown" link points to: ${articleLink}
 
 Return JSON: {
   "subjectA": "≤60 chars, about the news/value (NOT the product)",
   "subjectB": "≤60 chars, different news angle for A/B",
   "preheader": "≤90 chars inbox preview that extends the subject",
-  "bodyMd": "full newsletter body, blank lines between paragraphs. Greeting then newsy hook. Most of it is the actual content/news; ONE soft offer recommendation late. All links are markdown anchor text [words](url), never raw URLs. End with a one-click unsubscribe + physical-address footer placeholder.",
+  "articleMd": "the full ~600-900 word article for our site: markdown with ## H2 sections, offer anchored once + disclosure line. No email greeting/footer - this is a web article.",
+  "bodyMd": "the SHORT email teaser (~120-180 words): greeting, newsy hook, the key takeaway, a [read the full breakdown](${articleLink}) link, ONE soft offer anchor, then unsubscribe + physical-address footer placeholder.",
   "keyPoints": ["3 to 5 very short bullets: the news/value beats first, then the single offer mention last"]
 }`;
 
@@ -94,13 +96,13 @@ Return JSON: {
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 1500,
+      max_tokens: 2600, // article (~600-900w) + email teaser + keypoints
     });
     logAiUsage('email-prep', DEFAULT_MODEL, res.usage, t.project_id);
     const p = JSON.parse(res.choices[0]?.message?.content ?? '{}') as Record<string, unknown>;
     const s = (v: unknown) => (typeof v === 'string' ? v : '');
     const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean).slice(0, 5) : []);
-    return { ok: true, subjectA: s(p.subjectA), subjectB: s(p.subjectB), preheader: s(p.preheader), bodyMd: s(p.bodyMd), keyPoints: arr(p.keyPoints) };
+    return { ok: true, subjectA: s(p.subjectA), subjectB: s(p.subjectB), preheader: s(p.preheader), bodyMd: s(p.bodyMd), articleMd: s(p.articleMd), keyPoints: arr(p.keyPoints) };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

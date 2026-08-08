@@ -34,9 +34,13 @@ export interface EmailPrep {
   subject: string;        // primary subject line
   subjectB: string;       // optional A/B variant
   preheader: string;      // inbox preview text
-  bodyMd: string;         // the real email body (what recipients read)
+  bodyMd: string;         // the email body = the SHORT summary that links to the full article + offer
   keyPoints: string[];    // 3-5 short bullets = the email's main beats (so you know its gist at a glance)
   sources: EmailSource[]; // ≥1 required to back the news; each must be fresh (≤MAX_SOURCE_AGE_DAYS)
+  // Two-surface model: the full article lives on our own site (measures interest via pageviews/clicks
+  // and is an SEO asset), the email is a shorter teaser that links to it. Offer is anchored in BOTH.
+  articleMd: string;      // full long-form article to publish (e.g. militarycalc.com/guides/<slug>)
+  articleUrl: string;     // published URL of that article; the email summary links here
   listName: string;       // e.g. "MilitaryCalc list"
   segment: string;        // e.g. "Engaged (opened ≤90d)"
   recipientCount: string; // e.g. "~800"
@@ -54,6 +58,7 @@ export interface EmailPrep {
 
 export const EMPTY_EMAIL_PREP: EmailPrep = {
   fromName: '', fromEmail: '', subject: '', subjectB: '', preheader: '', bodyMd: '', keyPoints: [], sources: [],
+  articleMd: '', articleUrl: '',
   listName: '', segment: '', recipientCount: '', listTotal: '', sendTime: '', sendTimeWhy: '', provider: 'Mailjet',
   offerLabel: '', offerUrl: '', status: 'draft',
 };

@@ -66,10 +66,10 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const set = (k: keyof EmailPrep) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
   const genAI = async () => {
     setAiBusy(true); setAiErr(null);
-    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, offerUrl: draft.offerUrl, segment: draft.segment, audience: draft.listName, sources: draft.sources });
+    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, offerUrl: draft.offerUrl, segment: draft.segment, audience: draft.listName, sources: draft.sources, articleUrl: draft.articleUrl });
     setAiBusy(false);
     if (!r.ok) { setAiErr(r.error || 'lỗi AI'); return; }
-    setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd, keyPoints: r.keyPoints?.length ? r.keyPoints : d.keyPoints }));
+    setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd, articleMd: r.articleMd || d.articleMd, keyPoints: r.keyPoints?.length ? r.keyPoints : d.keyPoints }));
   };
   const hasOffer = !!draft.offerLabel.trim();
   const freshCount = draft.sources.filter((s) => s.url?.trim() && isFreshSource(s.date)).length;
@@ -141,8 +141,10 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
           <div><div style={lbl}>Subject A</div><input value={draft.subject} onChange={(e) => set('subject')(e.target.value)} style={field} /></div>
           <div><div style={lbl}>Subject B (A/B, tuỳ chọn)</div><input value={draft.subjectB} onChange={(e) => set('subjectB')(e.target.value)} style={field} /></div>
           <div><div style={lbl}>Preheader (preview inbox)</div><input value={draft.preheader} onChange={(e) => set('preheader')(e.target.value)} style={field} /></div>
-          <div><div style={lbl}>Body — email thật</div><textarea value={draft.bodyMd} onChange={(e) => set('bodyMd')(e.target.value)} rows={12} style={{ ...field, resize: 'vertical', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }} /></div>
-          <div><div style={lbl}>🎯 Key points (nội dung chính — mỗi dòng 1 ý)</div><textarea value={draft.keyPoints.join('\n')} onChange={(e) => setDraft((d) => ({ ...d, keyPoints: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) }))} rows={4} style={{ ...field, resize: 'vertical', lineHeight: 1.5 }} placeholder="AI tự điền khi soạn · hook → vấn đề → offer là cách gỡ → CTA" /></div>
+          <div><div style={lbl}>📄 Bài full (đăng lên site — militarycalc /guides) </div><textarea value={draft.articleMd} onChange={(e) => set('articleMd')(e.target.value)} rows={12} style={{ ...field, resize: 'vertical', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }} placeholder="AI sinh bài full (## H2 sections) — đăng lên site, offer anchor + disclosure" /></div>
+          <div><div style={lbl}>🔗 URL bài đã đăng (mail tóm tắt link về đây)</div><input value={draft.articleUrl} onChange={(e) => set('articleUrl')(e.target.value)} style={field} placeholder="https://militarycalc.com/guides/<slug> — điền sau khi publish rồi soạn lại mail" /></div>
+          <div><div style={lbl}>✉ Mail — bản tóm tắt (dẫn về bài + offer)</div><textarea value={draft.bodyMd} onChange={(e) => set('bodyMd')(e.target.value)} rows={9} style={{ ...field, resize: 'vertical', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }} /></div>
+          <div><div style={lbl}>🎯 Key points (nội dung chính — mỗi dòng 1 ý)</div><textarea value={draft.keyPoints.join('\n')} onChange={(e) => setDraft((d) => ({ ...d, keyPoints: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) }))} rows={4} style={{ ...field, resize: 'vertical', lineHeight: 1.5 }} placeholder="AI tự điền khi soạn · tin trước → offer dẫn cuối" /></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ flex: 2, minWidth: 160 }}><div style={lbl}>Danh sách</div><input value={draft.listName} onChange={(e) => set('listName')(e.target.value)} style={field} placeholder="MilitaryCalc list" /></div>
             <div style={{ flex: 2, minWidth: 160 }}><div style={lbl}>Segment</div><input value={draft.segment} onChange={(e) => set('segment')(e.target.value)} style={field} placeholder="Engaged (opened ≤90d)" /></div>
@@ -182,6 +184,20 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
               {prep.bodyMd ? renderBody(prep.bodyMd) : <span style={{ color: 'var(--fg-4)' }}>(chưa có nội dung)</span>}
             </div>
           </div>
+          {/* Full article — the on-site asset the email drives to (measures interest + SEO) */}
+          {(prep.articleMd || prep.articleUrl) && (
+            <details style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 12px' }}>
+              <summary style={{ cursor: 'pointer', fontSize: 11.5, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...lbl, marginBottom: 0 }}>📄 Bài full trên site</span>
+                {prep.articleUrl
+                  ? <a href={prep.articleUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--accent)' }}>{prep.articleUrl.replace(/^https?:\/\/(www\.)?/, '')} ↗</a>
+                  : <span style={{ color: 'var(--neon-amber)' }}>chưa publish — điền URL để mail dẫn về</span>}
+              </summary>
+              {prep.articleMd && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)', fontSize: 12, color: 'var(--fg-1)', whiteSpace: 'pre-wrap', lineHeight: 1.55, maxHeight: 360, overflowY: 'auto' }}>{renderBody(prep.articleMd)}</div>
+              )}
+            </details>
+          )}
           {/* Key points — the email's gist at a glance */}
           {prep.keyPoints?.length > 0 && (
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 12px' }}>

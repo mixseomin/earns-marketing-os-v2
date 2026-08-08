@@ -46,6 +46,12 @@ function CalGlyph({ name, color, size = 13 }: { name: GlyphName; color: string; 
 const WD = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const WD1 = ['2', '3', '4', '5', '6', '7', 'C'];   // mini-month header (1 ký tự)
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// Ngày LOCAL: `new Date('2026-08-08')` parse theo UTC → ở GMT+7 vẫn ra 08/08 nhưng ở múi giờ âm lùi
+// một ngày. Tách tay để ngày trong URL luôn là đúng ngày người dùng bấm.
+const parseYmd = (s: string): Date | null => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const mondayOf = (d: Date) => addDays(d, -((d.getDay() + 6) % 7));
@@ -102,7 +108,7 @@ function MiniMonth({ month, sel, byDate, onPick, onNavMonth }: {
   );
 }
 
-export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar }: {
+export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar, date, onDateChange }: {
   items: CalItem[];
   onItemClick?: (id: number | string) => void;
   initialMonth?: Date;
@@ -113,17 +119,25 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   legend?: LegendEntry[];
   /** Nội dung phụ nằm DƯỚI mini-month trong cột trái (vd sản phẩm đang dựng). Cột này rộng cố định 236px. */
   sidebar?: React.ReactNode;
+  /** Ngày đang chọn 'YYYY-MM-DD'. Bỏ trống = component tự lấy hôm nay (theo giờ local, sau mount).
+   *  Truyền vào + onDateChange = caller giữ ngày trong URL → F5 giữ nguyên ngày, không nhảy về hôm nay. */
+  date?: string;
+  onDateChange?: (d: string) => void;
 }) {
   // anchor/miniView/"hôm nay" phụ thuộc GIỜ LOCAL của client. Nếu khởi tạo bằng new Date() ngay lúc SSR
   // (máy chủ chạy UTC) thì client hydrate xong sẽ tính lại theo giờ local → lệch ngày → calendar NHẢY sang
   // chỗ khác "sau 1 lúc". Khởi tạo null; SSR + lượt client ĐẦU đều null (khớp, không mismatch) → sau mount
   // client set 1 lần theo giờ local → render đúng ngay, không nhảy. (initialMonth truyền vào thì dùng luôn.)
-  const [anchor, setAnchor] = useState<Date | null>(() => initialMonth ?? null);
-  const [miniView, setMiniView] = useState<Date | null>(() => (initialMonth ? firstOfMonth(initialMonth) : null));
+  const fromUrl = date ? parseYmd(date) : null;
+  const [anchorSelf, setAnchorSelf] = useState<Date | null>(() => fromUrl ?? initialMonth ?? null);
+  const [miniView, setMiniView] = useState<Date | null>(() => { const d = fromUrl ?? initialMonth; return d ? firstOfMonth(d) : null; });
   const [modeSelf, setModeSelf] = useState<CalMode>('month');
-  useEffect(() => { setAnchor((a) => a ?? new Date()); setMiniView((v) => v ?? firstOfMonth(new Date())); }, []);
+  useEffect(() => { setAnchorSelf((a) => a ?? new Date()); setMiniView((v) => v ?? firstOfMonth(new Date())); }, []);
 
   const mode = modeProp ?? modeSelf;
+  // Có `date` = caller giữ ngày (trong URL) → nó là nguồn thật; không thì state nội bộ.
+  const anchor = fromUrl ?? anchorSelf;
+  const setAnchor = (d: Date) => { setAnchorSelf(d); onDateChange?.(ymd(d)); };
   if (!anchor || !miniView) return <div data-comp="ui.MonthCalendar" style={{ minHeight: 320 }} />;   // chờ mount → tránh mismatch giờ SSR/client
 
   const setMode = (m: CalMode) => { setModeSelf(m); onModeChange?.(m); setMiniView(firstOfMonth(anchor)); };   // đổi mode → mini bám tháng của ngày đang chọn

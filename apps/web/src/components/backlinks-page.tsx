@@ -678,6 +678,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [tierFilter, setTierFilter] = useState<string>(sp.get('tier') ?? '');   // '' | A | B | C | any(=tiered only)
   // Chế độ lịch (tháng/tuần/ngày) đi vào URL như mọi state khác → F5 và chia sẻ link vẫn đúng chỗ.
   const [calMode, setCalMode] = useState<CalMode>(() => { const v = sp.get('cal'); return v === 'week' || v === 'day' ? v : 'month'; });
+  // Ngày đang chọn trên lịch cũng vào URL như mọi state khác → F5 / chia sẻ link giữ đúng ngày,
+  // không nhảy về hôm nay và không phải chọn lại. Rỗng = hôm nay (lịch tự tính sau mount, giờ local).
+  const [calDate, setCalDate] = useState<string>(sp.get('d') ?? '');
   // Mặc định ẩn việc đã đóng sổ (xong/bỏ/lỗi): bảng việc là để biết CÒN phải làm gì, không phải
   // kho lưu trữ. ?closed=1 bật lại. Chọn đích danh một tab trạng thái = ý muốn rõ ràng, luật này nhường.
   const [showClosed, setShowClosed] = useState(sp.get('closed') === '1');
@@ -784,6 +787,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('closed', showClosed ? '1' : '');
     set('proj', allProjects ? projectFilter : '');
     set('cal', calMode === 'month' ? '' : calMode);
+    set('d', view === 'calendar' ? calDate : '');
     set('wt', workType);
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
@@ -799,7 +803,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, calMode, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, calMode, calDate, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1372,7 +1376,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode}
+        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

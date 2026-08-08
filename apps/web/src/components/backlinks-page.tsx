@@ -274,6 +274,16 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
                 <span style={{ flex: 1 }}>{ch.title}</span>
                 <span style={{ fontSize: 10.5, fontWeight: 400, color: 'var(--fg-4)' }}>{ch.chars.toLocaleString()} ký tự</span>
               </button>
+              {/* Ý CHÍNH luôn hiện, kể cả khi chương đang gập: người review nắm được nội dung mà
+                  không phải mở từng chương đọc hết. Chương chưa có ý chính thì nói thẳng là chưa có. */}
+              <div style={{ padding: '7px 12px', borderTop: '1px solid var(--line)', background: 'color-mix(in srgb, var(--accent) 5%, transparent)' }}>
+                <div style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: ch.keyPoints.length ? 4 : 0 }}>Ý chính</div>
+                {ch.keyPoints.length ? (
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.5, color: 'var(--fg-2)' }}>
+                    {ch.keyPoints.map((k, i) => <li key={i}>{k}</li>)}
+                  </ul>
+                ) : <span style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>— chưa viết ý chính cho chương này</span>}
+              </div>
               {openCh === ch.id && (
                 <div style={{ padding: '10px 14px', fontSize: 12.5, lineHeight: 1.6, color: 'var(--fg-1)', maxHeight: 520, overflowY: 'auto' }}
                   className="md-body" dangerouslySetInnerHTML={{ __html: mdToHtml(ch.content) }} />
@@ -1146,7 +1156,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         if (!p) return null;
         return (
           <Drawer onClose={() => setOpenProd(null)} width={860}>
-            <><div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>📕 {p.title}</div><ProductDrawer p={p} onOpenCard={(id) => { setOpenProd(null); setOpenId(id); }} /></>
+            <><div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>📕 {p.title}</div><ProductDrawer p={p} onOpenCard={(id) => setOpenId(id)} /></>
           </Drawer>
         );
       })()}
@@ -1453,7 +1463,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </>
       )}
 
-      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
@@ -1523,8 +1533,11 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
-  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[]; backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
+function TaskDrawer({ task, slug, project, accounts, media, product, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
+  task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[];
+  /** Card này là một bước của sản phẩm nào (nếu có) — để nhảy thẳng sang bước khác, không phải đóng ra vào lại. */
+  product?: BuildingProduct;
+  backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<void>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1839,6 +1852,35 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{task.title}</h2>
           <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
         </div>
+
+        {/* CÙNG SẢN PHẨM — card này là bước mấy, và nhảy thẳng sang bước khác ngay trong drawer.
+            Trước đây muốn sang bước kế phải đóng drawer, mở lại drawer sản phẩm rồi bấm — mà khi
+            drawer sản phẩm bị đẩy xuống nền nó còn thành bất động (inert), bấm không ăn gì. */}
+        {product && product.cards.length > 1 && (() => {
+          const i = product.cards.findIndex((c) => c.id === task.id);
+          return (
+            <div style={{ marginTop: 8, padding: '7px 9px', border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 8, background: 'var(--bg-2)' }}>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 5 }}>
+                📕 <span style={{ color: 'var(--fg-2)', fontWeight: 700 }}>{product.title}</span> · bước {i + 1}/{product.cards.length} · {product.done}/{product.total} xong
+              </div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {product.cards.map((c, n) => {
+                  const done = c.status === 'completed' || c.status === 'verified';
+                  const cur = c.id === task.id;
+                  return (
+                    <button key={c.id} type="button" onClick={() => !cur && onOpenTask(c.id)} title={`${c.title}${c.date ? ` · ${c.date}` : ''}`}
+                      style={{ cursor: cur ? 'default' : 'pointer', fontSize: 10.5, padding: '1px 8px', borderRadius: 999,
+                        border: `1px solid ${cur ? 'var(--accent)' : 'var(--line)'}`,
+                        background: cur ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent',
+                        color: cur ? 'var(--fg-1)' : done ? 'var(--fg-4)' : 'var(--fg-2)', fontWeight: cur ? 700 : 400 }}>
+                      {done ? '✓' : '○'} {n + 1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* meta: source · captured-DOM check link · DOM-grounded badge (small, for the person doing + checking here) */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, fontSize: 11 }}>

@@ -49,11 +49,12 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const set = (k: keyof EmailPrep) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
   const genAI = async () => {
     setAiBusy(true); setAiErr(null);
-    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, segment: draft.segment, audience: draft.listName });
+    const r = await generateEmailPrep(taskId, { offerLabel: draft.offerLabel, offerUrl: draft.offerUrl, segment: draft.segment, audience: draft.listName });
     setAiBusy(false);
     if (!r.ok) { setAiErr(r.error || 'lỗi AI'); return; }
-    setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd }));
+    setDraft((d) => ({ ...d, subject: r.subjectA || d.subject, subjectB: r.subjectB || d.subjectB, preheader: r.preheader || d.preheader, bodyMd: r.bodyMd || d.bodyMd, keyPoints: r.keyPoints?.length ? r.keyPoints : d.keyPoints }));
   };
+  const hasOffer = !!draft.offerLabel.trim();
 
   const wrap: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', padding: 12, marginTop: 8 };
 
@@ -74,10 +75,16 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
 
       {editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '6px 8px', borderRadius: 6, border: '1px dashed var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
-            <button type="button" onClick={genAI} disabled={aiBusy} style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{aiBusy ? '⏳ AI đang soạn…' : '✨ AI soạn email'}</button>
-            <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>từ brief + offer + audience → subject A/B + preheader + body</span>
-            {aiErr && <span style={{ fontSize: 10.5, color: 'var(--bad,#ef4444)' }}>⚠ {aiErr}</span>}
+          {/* Offer-first: pick the offer up top; the AI button stays locked until one is chosen. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px', borderRadius: 6, border: '1px dashed var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+            <div style={lbl}>Bước 1 · Offer / sản phẩm chèn (AI viết mail bám theo cái này)</div>
+            <CampaignLinkPicker value={draft.offerUrl} onChange={(v) => setDraft((d) => ({ ...d, offerUrl: v }))} />
+            <input value={draft.offerLabel} onChange={(e) => set('offerLabel')(e.target.value)} style={field} placeholder="Nhãn offer (vd Walk-In Lab)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+              <button type="button" onClick={genAI} disabled={aiBusy || !hasOffer} title={hasOffer ? '' : 'Chọn offer trước'} style={{ ...btn, fontWeight: 700, color: hasOffer ? 'var(--accent)' : 'var(--fg-4)', borderColor: hasOffer ? 'var(--accent)' : 'var(--line)', cursor: hasOffer ? 'pointer' : 'not-allowed', opacity: hasOffer ? 1 : 0.6 }}>{aiBusy ? '⏳ AI đang soạn…' : '✨ Bước 2 · AI soạn email'}</button>
+              <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{hasOffer ? 'offer + nội dung card → hook đầu tiên · subject A/B · body · key points' : 'chọn offer ở trên rồi mới soạn được'}</span>
+              {aiErr && <span style={{ fontSize: 10.5, color: 'var(--bad,#ef4444)' }}>⚠ {aiErr}</span>}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1 }}><div style={lbl}>From name</div><input value={draft.fromName} onChange={(e) => set('fromName')(e.target.value)} style={field} placeholder="MilitaryCalc" /></div>
@@ -87,6 +94,7 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
           <div><div style={lbl}>Subject B (A/B, tuỳ chọn)</div><input value={draft.subjectB} onChange={(e) => set('subjectB')(e.target.value)} style={field} /></div>
           <div><div style={lbl}>Preheader (preview inbox)</div><input value={draft.preheader} onChange={(e) => set('preheader')(e.target.value)} style={field} /></div>
           <div><div style={lbl}>Body — email thật</div><textarea value={draft.bodyMd} onChange={(e) => set('bodyMd')(e.target.value)} rows={12} style={{ ...field, resize: 'vertical', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }} /></div>
+          <div><div style={lbl}>🎯 Key points (nội dung chính — mỗi dòng 1 ý)</div><textarea value={draft.keyPoints.join('\n')} onChange={(e) => setDraft((d) => ({ ...d, keyPoints: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) }))} rows={4} style={{ ...field, resize: 'vertical', lineHeight: 1.5 }} placeholder="AI tự điền khi soạn · hook → vấn đề → offer là cách gỡ → CTA" /></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ flex: 2, minWidth: 160 }}><div style={lbl}>Danh sách</div><input value={draft.listName} onChange={(e) => set('listName')(e.target.value)} style={field} placeholder="MilitaryCalc list" /></div>
             <div style={{ flex: 2, minWidth: 160 }}><div style={lbl}>Segment</div><input value={draft.segment} onChange={(e) => set('segment')(e.target.value)} style={field} placeholder="Engaged (opened ≤90d)" /></div>
@@ -104,10 +112,6 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
                 <option value="ready">sẵn sàng gửi</option>
               </select>
             </div>
-          </div>
-          <div><div style={lbl}>Offer / sản phẩm chèn</div>
-            <CampaignLinkPicker value={draft.offerUrl} onChange={(v) => setDraft((d) => ({ ...d, offerUrl: v }))} />
-            <input value={draft.offerLabel} onChange={(e) => set('offerLabel')(e.target.value)} style={{ ...field, marginTop: 5 }} placeholder="Nhãn offer (vd RemoveMe)" />
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
             <button type="button" onClick={save} disabled={saving} style={{ ...btn, fontWeight: 700, color: 'var(--accent)', borderColor: 'var(--accent)' }}>{saving ? '…' : '💾 Lưu gói gửi'}</button>
@@ -130,6 +134,15 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
               {prep.bodyMd || <span style={{ color: 'var(--fg-4)' }}>(chưa có nội dung)</span>}
             </div>
           </div>
+          {/* Key points — the email's gist at a glance */}
+          {prep.keyPoints?.length > 0 && (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', padding: '8px 12px' }}>
+              <div style={{ ...lbl, marginBottom: 5 }}>🎯 Nội dung chính</div>
+              <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {prep.keyPoints.map((k, i) => <li key={i} style={{ fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.45 }}>{k}</li>)}
+              </ul>
+            </div>
+          )}
           {/* Send meta */}
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 10px', alignItems: 'baseline' }}>
             <span style={lbl}>👥 Danh sách</span>

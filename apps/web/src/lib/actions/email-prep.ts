@@ -26,15 +26,20 @@ export async function getEmailPrep(taskId: number): Promise<EmailPrep | null> {
   return { ...EMPTY_EMAIL_PREP, ...(e as Partial<EmailPrep>) };
 }
 
-// AI-write the real email (subject A/B + preheader + body) from the card brief + offer + audience.
-// English, human-voice (public content). Returns fields the drawer merges into the draft.
+// AI-write the real email from the card brief + the CHOSEN offer + audience. The offer is required:
+// you pick a real offer first (from /offers), then the AI writes copy woven around BOTH that offer
+// and the card's content theme. Hook goes on line 1 (no formal intro). Returns subject A/B, preheader,
+// body, and 3-5 key points (the email's gist). English, human-voice (public content).
 export async function generateEmailPrep(
   taskId: number,
-  ctx: { offerLabel?: string; segment?: string; audience?: string },
-): Promise<{ ok: boolean; subjectA?: string; subjectB?: string; preheader?: string; bodyMd?: string; error?: string }> {
+  ctx: { offerLabel?: string; offerUrl?: string; segment?: string; audience?: string },
+): Promise<{ ok: boolean; subjectA?: string; subjectB?: string; preheader?: string; bodyMd?: string; keyPoints?: string[]; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
   if (!aiEnabled()) return { ok: false, error: 'OPENAI_API_KEY chưa cấu hình' };
+  // Offer-first: no email without a real offer to build around (the card content + offer must cohere).
+  const offer = (ctx.offerLabel || '').trim();
+  if (!offer) return { ok: false, error: 'Chọn offer trước — AI viết mail bám theo offer + nội dung.' };
   const client = getOpenAI();
   if (!client) return { ok: false, error: 'OpenAI client unavailable' };
   const db = getDb();
@@ -48,15 +53,24 @@ export async function generateEmailPrep(
   if (!t) return { ok: false, error: 'task not found' };
 
   const audience = ctx.audience || t.name || 'the newsletter list';
-  const system = `You are an email copywriter for a passive-income marketing portfolio. Write natural, human copy that sounds like one person emailing another. STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover"). Short paragraphs. Concrete, value-first, one soft CTA. Avoid hype.`;
-  const user = `Write ONE newsletter email.
+  const system = `You are an email copywriter for a passive-income marketing portfolio. Write natural, human copy that sounds like one person emailing another.
+STRICT: English only. Use "-" not em dashes. No AI-tell phrases ("in today's fast-paced world", "unlock", "dive in", "elevate", "moreover", "in conclusion"). Short paragraphs.
+HOOK FIRST: line 1 must be the payoff - a concrete claim, number, or open loop that stops the scroll. NEVER open with a formal intro, a greeting-then-throat-clearing, or "I wanted to tell you about...". The greeting line ("Hey {{first_name|there}},") may come first, then the hook immediately.
+The offer is the tool that solves the reader's real pain - weave it into the story, do not bolt a sales pitch on the end. One soft CTA. Value-first, concrete, no hype.`;
+  const user = `Write ONE newsletter email that is coherent with BOTH the content theme AND the offer below.
 Product/brand: ${t.name || ''}${t.website ? ` (${t.website})` : ''} — ${t.one_liner || ''}
 Audience: ${audience}${ctx.segment ? ` · segment: ${ctx.segment}` : ''}
-Theme / brief: ${t.title || ''}
+Content theme / brief: ${t.title || ''}
 ${t.instructions ? `Notes/outline:\n${t.instructions}` : ''}
-${ctx.offerLabel ? `Soft-promote this offer naturally (content-first, the offer is the tool that solves the pain): ${ctx.offerLabel}. Use a placeholder "[ offer link ]" where the link goes.` : ''}
+OFFER to promote (the natural recommendation inside the story): ${offer}. Put the link exactly as "${ctx.offerUrl || '[ offer link ]'}" where it belongs.
 
-Return JSON: { "subjectA": "≤60 chars, curiosity/benefit", "subjectB": "≤60 chars, alt angle for A/B", "preheader": "≤90 chars inbox preview", "bodyMd": "full email body, plain text with blank lines between paragraphs; include a one-click unsubscribe + physical-address footer placeholder" }`;
+Return JSON: {
+  "subjectA": "≤60 chars, hook/curiosity",
+  "subjectB": "≤60 chars, different angle for A/B",
+  "preheader": "≤90 chars inbox preview that extends the subject",
+  "bodyMd": "full email body, plain text, blank lines between paragraphs. Greeting then HOOK on the next line. End with a one-click unsubscribe + physical-address footer placeholder.",
+  "keyPoints": ["3 to 5 very short bullets naming the email's main beats in order (hook → problem → offer as fix → CTA)"]
+}`;
 
   try {
     const res = await client.chat.completions.create({
@@ -64,12 +78,13 @@ Return JSON: { "subjectA": "≤60 chars, curiosity/benefit", "subjectB": "≤60 
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 1400,
+      max_tokens: 1500,
     });
     logAiUsage('email-prep', DEFAULT_MODEL, res.usage, t.project_id);
     const p = JSON.parse(res.choices[0]?.message?.content ?? '{}') as Record<string, unknown>;
     const s = (v: unknown) => (typeof v === 'string' ? v : '');
-    return { ok: true, subjectA: s(p.subjectA), subjectB: s(p.subjectB), preheader: s(p.preheader), bodyMd: s(p.bodyMd) };
+    const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean).slice(0, 5) : []);
+    return { ok: true, subjectA: s(p.subjectA), subjectB: s(p.subjectB), preheader: s(p.preheader), bodyMd: s(p.bodyMd), keyPoints: arr(p.keyPoints) };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

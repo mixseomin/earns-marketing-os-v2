@@ -11,6 +11,7 @@ export interface EmailPrep {
   subjectB: string;       // optional A/B variant
   preheader: string;      // inbox preview text
   bodyMd: string;         // the real email body (what recipients read)
+  keyPoints: string[];    // 3-5 short bullets = the email's main beats (so you know its gist at a glance)
   listName: string;       // e.g. "MilitaryCalc list"
   segment: string;        // e.g. "Engaged (opened ≤90d)"
   recipientCount: string; // e.g. "~800"
@@ -27,7 +28,7 @@ export interface EmailPrep {
 }
 
 export const EMPTY_EMAIL_PREP: EmailPrep = {
-  fromName: '', fromEmail: '', subject: '', subjectB: '', preheader: '', bodyMd: '',
+  fromName: '', fromEmail: '', subject: '', subjectB: '', preheader: '', bodyMd: '', keyPoints: [],
   listName: '', segment: '', recipientCount: '', listTotal: '', sendTime: '', sendTimeWhy: '', provider: 'Mailjet',
   offerLabel: '', offerUrl: '', status: 'draft',
 };

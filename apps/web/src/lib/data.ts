@@ -975,7 +975,12 @@ export async function listMedia(projectId?: string): Promise<MediaRow[]> {
   return tryDb(async () => {
     const rows = await listMediaAssets(projectId);
     return (rows ?? []).map((r) => ({
-      id: r.id, projectId: r.projectId, kind: r.kind, filename: r.filename, url: r.url,
+      // Ảnh lưu dạng data-URI KHÔNG được đi vào payload trang: 3 hàng base64 từng thổi HTML của
+      // /plays lên 7,3 MB (server render 0,3s nhưng trình duyệt quay mãi mới hiện). Trả URL để
+      // trình duyệt tải như ảnh bình thường — song song, cache được, chỉ tải khi hiển thị.
+      // Route: app/api/media/[id]/raw.
+      id: r.id, projectId: r.projectId, kind: r.kind, filename: r.filename,
+      url: r.url?.startsWith('data:') ? `/api/media/${r.id}/raw` : r.url,
       mimeType: r.mimeType, sizeBytes: r.sizeBytes, width: r.width, height: r.height,
       durationSec: r.durationSec, hot: r.hot, tags: (r.tags as string[]) ?? [],
       notes: r.notes, source: r.source, createdAt: r.createdAt,

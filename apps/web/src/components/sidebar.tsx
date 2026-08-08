@@ -6,14 +6,34 @@ import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import { logoutAction } from '@/lib/actions/auth';
-import type { Mode, Project } from '@/lib/mock/types';
+import type { Health, Mode, Project } from '@/lib/mock/types';
 import type { CurrentUserInfo } from './app-shell';
 
 export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobileNavigate }: { mode?: Mode; currentProjectId?: string; projects: Project[]; currentUser?: CurrentUserInfo; onMobileNavigate?: () => void }) {
   const t = useT();
-  const [activeSquad, setActiveSquad] = useState<string | null>(null);
   const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'viewer';
-  const totalAgents = (mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0);
+  const squads = mode?.squads ?? [];
+  const totalAgents = squads.reduce((s, sq) => s + (sq.agents ?? 0), 0);
+
+  // SQUADS are status-only badges (no navigation) → rarely used. Collapse into ONE hover-float row
+  // reusing the SYSTEM/PROJECT primitive: collapsed shows count + worst-of-health dot; hover reveals
+  // the full per-squad breakdown. Keeps the signal ("any squad red?") without permanent sidebar space.
+  const squadWorst: Health = squads.some((s) => s.health === 'bad') ? 'bad'
+    : squads.some((s) => s.health === 'warn') ? 'warn' : 'ok';
+  const squadsGroup: NavGroup = {
+    key: 'squads', label: 'Squads', items: [], count: squads.length, dot: squadWorst,
+    body: (
+      <>
+        {squads.map((s) => (
+          <div key={s.id} className="squad" style={{ cursor: 'default' }}>
+            <div className="squad-icon" style={{ borderColor: s.color, color: s.color }}>{s.icon}</div>
+            <div className="squad-name"><b>{s.name}</b><span>{s.active}/{s.agents} • {s.vi}</span></div>
+            <div className="squad-stats"><span className="pulse" data-state={s.health}></span></div>
+          </div>
+        ))}
+      </>
+    ),
+  };
 
   // Mobile-only: replicate the topbar's project tabs as a vertical menu inside
   // the slide-out drawer. The topbar dropdowns are hover-based and impossible
@@ -97,28 +117,8 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         </div>
       )}
 
-      <div className="side-section" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <div className="side-title">
-          <span>SQUADS · {mode?.label?.toUpperCase() ?? '—'}</span>
-          <span className="count mono">{mode?.squads?.length ?? 0} / {(mode?.squads ?? []).reduce((s, sq) => s + (sq.agents ?? 0), 0)}ag</span>
-        </div>
-        {mode?.squads?.map((s) => (
-          <div
-            key={s.id}
-            className="squad"
-            data-active={activeSquad === s.id || undefined}
-            onClick={() => setActiveSquad(activeSquad === s.id ? null : s.id)}
-          >
-            <div className="squad-icon" style={{ borderColor: s.color, color: s.color }}>{s.icon}</div>
-            <div className="squad-name">
-              <b>{s.name}</b>
-              <span>{s.active}/{s.agents} • {s.vi}</span>
-            </div>
-            <div className="squad-stats">
-              <span className="pulse" data-state={s.health}></span>
-            </div>
-          </div>
-        ))}
+      <div className="side-section" style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {squads.length > 0 && <SystemGroups groups={[squadsGroup]} />}
         {currentProjectId && (
           <ProjectNav projectId={currentProjectId} role={currentUser?.role ?? 'admin'} />
         )}
@@ -183,6 +183,9 @@ function UserPanel({ user }: { user: CurrentUserInfo }) {
 // Compact SYSTEM nav: 3 group rows, hover → float menu sang phải.
 // Filter items by user role — operator sees fewer.
 type NavItem = { href?: string; icon: string; color: string; label: string; sub: string; soon?: boolean; role?: 'admin' };
+// A hover-float group. Normally renders `items` as nav links; pass `body` for custom float content
+// (e.g. status rows) with `count`/`dot` for the collapsed row's badge + aggregate health dot.
+type NavGroup = { key: string; label: string; items: NavItem[]; body?: React.ReactNode; dot?: Health; count?: number };
 
 // Project-level nav: same hover-float grouping as SystemNav (Grow / Audience / Assets) instead of a
 // flat 10-row dump. Topbar stays the primary project nav; this sidebar copy is the compact secondary.
@@ -318,7 +321,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
 }
 
 // Container: only ONE popout open at a time across rows.
-function SystemGroups({ groups }: { groups: Array<{ key: string; label: string; items: NavItem[] }> }) {
+function SystemGroups({ groups }: { groups: NavGroup[] }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const closeTimer = useRef<number | null>(null);
   const cancelClose = () => {
@@ -346,7 +349,7 @@ function SystemGroups({ groups }: { groups: Array<{ key: string; label: string; 
 
 // Single group row. Hover → float menu fixed-pos sang phải (escape parent clip).
 function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
-  group: { key: string; label: string; items: NavItem[] };
+  group: NavGroup;
   isOpen: boolean; onOpen: () => void; onClose: () => void;
 }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -359,7 +362,7 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
   const handleEnter = () => {
     if (rowRef.current) {
       const r = rowRef.current.getBoundingClientRect();
-      const estH = 28 + group.items.length * 36 + 8;
+      const estH = 28 + (group.count ?? group.items.length) * 36 + 8;
       const vh = window.innerHeight;
       const top = r.top + estH > vh - 8 ? Math.max(8, r.bottom - estH) : r.top;
       setPos({ top, left: r.right });
@@ -393,7 +396,8 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
           <span style={{ fontSize: 12, lineHeight: 1, color: activeItem.color, marginLeft: 2 }}>{activeItem.icon}</span>
         )}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{group.items.length}</span>
+        {group.dot && <span className="squad-stats"><span className="pulse" data-state={group.dot} /></span>}
+        <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{group.count ?? group.items.length}</span>
         <span style={{ fontSize: 8, opacity: 0.5 }}>▸</span>
       </div>
       {open && pos && (
@@ -414,7 +418,7 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
           <div style={{ padding: '4px 12px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--line)' }}>
             {group.label}
           </div>
-          {group.items.map((it) => {
+          {group.body ?? group.items.map((it) => {
             const isActive = it.href && pathname === it.href;
             const inner = (
               <>

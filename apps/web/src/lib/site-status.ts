@@ -23,4 +23,12 @@ export type SiteStatus = keyof typeof SITE_STATUS_META;
 
 export const SITE_STATUSES = Object.keys(SITE_STATUS_META) as SiteStatus[];
 
+/**
+ * Việc đã ĐÓNG SỔ: xong (completed/verified), bỏ khỏi kế hoạch (dropped), link hỏng (broken).
+ * Bảng/lịch mặc định ẩn nhóm này để nhìn vào là thấy phần CÒN PHẢI LÀM; bật lại bằng một chip.
+ * KHÔNG lẫn với TERMINAL_STATES của trang plays — set đó có cả 'submitted', mà submitted là việc
+ * chưa đóng (đã đăng, còn phải theo duyệt) nên vẫn phải hiện.
+ */
+export const CLOSED_SITE_STATUSES = ['completed', 'verified', 'dropped', 'broken'] as const satisfies readonly SiteStatus[];
+
 export const isSiteStatus = (s: string): s is SiteStatus => (SITE_STATUSES as string[]).includes(s);

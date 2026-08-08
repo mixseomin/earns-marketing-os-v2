@@ -30,6 +30,8 @@ export interface BuildingProduct {
   liveUrl: string | null;
   chapters: ProductChapter[];
   words: number;           // tổng số từ đã viết — thước tiến độ THẬT của một sản phẩm viết
+  /** Bản dựng đọc được (PDF trong vault) — sản phẩm viết thì "xem thử" là thứ đầu tiên người ta cần. */
+  build: { url: string; label: string; pages: number; plannedPages: number | null; builtAt: string | null } | null;
   cards: ProductCard[];
   done: number;
   total: number;
@@ -87,6 +89,15 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
         store: (s.refs?.store as string) ?? null,
         liveUrl: (s.refs?.liveUrl as string) ?? null,
         chapters,
+        // refs.build.mediaId → /api/media/<id>/raw (route stream bytes + content-type thật), không
+        // phải đường dẫn file trên máy cá nhân — box không với tới file local, link sẽ chết.
+        build: (() => {
+          const bd = s.refs?.build as Record<string, unknown> | undefined;
+          if (!bd?.mediaId) return null;
+          return { url: `/api/media/${Number(bd.mediaId)}/raw`, label: String(bd.label ?? 'Bản dựng'),
+            pages: Number(bd.pages ?? 0), plannedPages: bd.plannedPages != null ? Number(bd.plannedPages) : null,
+            builtAt: (bd.builtAt as string) ?? null };
+        })(),
         words: chapters.reduce((n, c) => n + (c.internal ? 0 : wordCount(c.content)), 0),
         cards,
         done,

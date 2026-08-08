@@ -236,6 +236,20 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
           <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>store: {p.store || 'chưa chốt'}</span>
         </div>
         {p.liveUrl && <a href={wrapExternalUrl(p.liveUrl)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>{p.liveUrl}</a>}
+        {/* MỞ ĐỌC THỬ — sản phẩm viết thì thứ đầu tiên cần là xem nó ra sao. Trước đây bản dựng chỉ
+            nằm trên máy cá nhân nên drawer không có gì để bấm. */}
+        {p.build && (
+          <a href={p.build.url} target="_blank" rel="noopener noreferrer"
+            title={`Mở bản dựng PDF${p.build.builtAt ? ` · dựng ${p.build.builtAt}` : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 8, fontSize: 12, fontWeight: 700,
+              textDecoration: 'none', color: 'var(--fg-1)', border: '1px solid var(--accent)', borderRadius: 7, padding: '5px 11px',
+              background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+            📄 Đọc bản dựng
+            <span style={{ fontWeight: 400, color: 'var(--fg-3)' }}>
+              {p.build.pages} trang{p.build.plannedPages ? ` / ${p.build.plannedPages} kế hoạch` : ''}{p.build.builtAt ? ` · ${p.build.builtAt}` : ''}
+            </span>
+          </a>
+        )}
       </div>
 
       <div>

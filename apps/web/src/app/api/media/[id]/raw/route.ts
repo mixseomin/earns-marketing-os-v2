@@ -29,6 +29,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const mime = m[1] || row.mime_type || 'application/octet-stream';
   const body = m[2] ? Buffer.from(m[3]!, 'base64') : Buffer.from(decodeURIComponent(m[3]!), 'utf8');
+
+  // ?w=<px> — ảnh THU NHỎ. Ô xem trước trong drawer rộng 96px mà tải nguyên bản 1,9 MB thì phí
+  // 99% băng thông cho thứ không ai nhìn ở kích thước đó. Thiếu sharp thì trả nguyên bản, đừng lỗi.
+  const w = Number(new URL(_req.url).searchParams.get('w') || 0);
+  if (w > 0 && w <= 2048 && mime.startsWith('image/')) {
+    try {
+      const sharp = (await import('sharp')).default;
+      const out = await sharp(body).resize({ width: w, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+      return new NextResponse(new Uint8Array(out), {
+        headers: { 'Content-Type': 'image/webp', 'Content-Length': String(out.length), 'Cache-Control': 'private, max-age=31536000, immutable' },
+      });
+    } catch { /* không thu nhỏ được → nguyên bản, vẫn xem được */ }
+  }
+
   return new NextResponse(new Uint8Array(body), {
     headers: {
       'Content-Type': mime,

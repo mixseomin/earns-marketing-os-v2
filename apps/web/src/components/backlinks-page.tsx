@@ -66,6 +66,7 @@ const CAL_LEGEND: LegendEntry[] = [
 const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
+type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'followup';   // '' = mọi loại
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 
@@ -177,6 +178,9 @@ const frow: CSSProperties = { display: 'flex', gap: 5, flexWrap: 'wrap' };
 // SẢN PHẨM ĐANG DỰNG — dải nổi ngay đầu bảng, vì đây là thứ đang thực sự được làm ra, còn
 // backlink/seeding chỉ là việc quanh nó. Bấm một ô → drawer đọc được cả bản thảo: trước đây bản
 // thảo nằm trong file ở máy cá nhân nên câu "muốn xem quyển sách thì vào đâu" không có chỗ trả lời.
+// Ảnh trong vault lưu qua /api/media/<id>/raw phục vụ được bản thu nhỏ; link ngoài thì trả nguyên URL.
+const thumbUrl = (url: string, w: number) => (url.startsWith('/api/media/') ? `${url}?w=${w}` : url);
+
 function ProductStrip({ products, projects, onOpen, narrow }: { products: BuildingProduct[]; projects?: Record<string, Project>; onOpen: (slug: string) => void; narrow?: boolean }) {
   if (!products.length) return null;
   // narrow = cột trái của lịch (236px): xếp dọc, ô ăn hết bề ngang thay vì tự dàn hàng ngang.
@@ -697,7 +701,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const shownProducts = useMemo(() => (allProjects && projectFilter ? products.filter((p) => p.projectId === projectFilter) : products), [products, allProjects, projectFilter]);
   // Work-type axis (the YDNI spine that scales to email later): '' = all, acquire = 🔗
   // one-shot backlink, seed = 🌱 community-seed (link-gated). Filters by communitySeed.
-  const [workType, setWorkType] = useState<'' | 'acquire' | 'seed'>((sp.get('wt') as '' | 'acquire' | 'seed') || '');
+  // LOẠI VIỆC — dùng đúng taxonomy canonical `taskKind()` (lib/task-kind) và đúng 4 nhãn của chú thích
+  // lịch: backlink · email · seed · follow-up. Trục cũ chỉ có Acquire/Seed nên task 📧 email bị gộp
+  // chung vào Acquire — bảng militarycalc có 8 email nằm lẫn giữa directory mà không lọc riêng được.
+  // 'acquire' cũ = backlink (link cũ vẫn mở đúng).
+  const [kind, setKind] = useState<KindFilter>(() => {
+    const v = sp.get('wt') || '';
+    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'followup'].includes(v) ? v as KindFilter : '');
+  });
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
   const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
@@ -801,7 +812,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('proj', allProjects ? projectFilter : '');
     set('cal', calMode === 'month' ? '' : calMode);
     set('d', view === 'calendar' ? calDate : '');
-    set('wt', workType);
+    set('wt', kind);
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
@@ -816,7 +827,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, calMode, calDate, workType, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, calMode, calDate, kind, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -875,8 +886,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
       if (tab !== 'all' && t.siteState !== tab) return false;
-      if (workType === 'seed' && !t.communitySeed) return false;
-      if (workType === 'acquire' && t.communitySeed) return false;
+      // follow-up không phải task của bảng này → chọn nó là ẩn hết task, chỉ còn 📌 trên lịch.
+      if (kind === 'followup') return false;
+      if (kind && taskKind(t) !== kind) return false;
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -887,7 +899,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (s && !(`${t.title} ${t.sourceUrl || ''} ${t.catalogSourceName || ''} ${t.mechanism || ''} ${t.platformLabel || ''} ${t.projectLabel || ''} ${t.instructions || ''} ${t.notes || ''}`.toLowerCase().includes(s))) return false;
       return true;
     });
-  }, [tasks, tab, workType, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
+  }, [tasks, tab, kind, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
 
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
@@ -906,6 +918,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // The flat list view renders the whole array → paginate it with the shared vault-list primitive.
   // Stats/KPI and the kanban/calendar/grouped views keep using the full `shown`; only the flat slice.
   const { pageItems, ...pager } = usePaged(shown);
+  // Rỗng vì chọn 📌 follow-up ở view không vẽ follow-up → nói lý do + đưa thẳng sang Lịch,
+  // đừng để "Không có task ở tab này" đánh đố (YDNI: text tham chiếu phải bấm được).
+  const emptyNote = kind === 'followup' && view !== 'calendar'
+    ? (<>📌 Follow-up chỉ hiện trên <button type="button" onClick={() => setView('calendar')} style={{ ...btn, padding: '1px 8px', color: 'var(--accent)', cursor: 'pointer' }}>📅 Lịch</button></>)
+    : 'Không có task ở tab này.';
+
 
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
   const grouped = useMemo(() => {
@@ -947,13 +965,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     for (const f of followups) {
       if (!f.due) continue;
       if (allProjects && projectFilter && f.projectId !== projectFilter) continue;   // lọc theo project đang chọn
+      // Trước đây 📌 phớt lờ MỌI bộ lọc: gõ từ khoá xong lịch vẫn còn nguyên đám follow-up không
+      // liên quan, và chọn loại 🔗 vẫn thấy 📌. Cùng bảng thì cùng bộ lọc.
+      if (kind && kind !== 'followup') continue;
+      const fq = q.trim().toLowerCase();
+      if (fq && !`${f.title} ${f.detail ?? ''}`.toLowerCase().includes(fq)) continue;
       const m = FOLLOWUP_META[f.status];
       const p = allProjects ? projectsById?.[f.projectId] : undefined;
       const plbl = showProj ? `[${p?.name ?? f.projectId}] ` : '';
       out.push({ id: `f:${f.id}`, date: f.due, label: `${plbl}${f.title.replace(/\s+/g, ' ').trim()}`, icon: 'pin', done: f.status === 'done', dim: f.status === 'dropped', color: m.color, title: `${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, q]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1280,14 +1303,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={[{ value: '', label: 'All' }, { value: 'acquire', label: '🔗 Acquire' }, { value: 'seed', label: '🌱 Seed' }]} value={workType} onChange={(v) => setWorkType(v as '' | 'acquire' | 'seed')} />
+        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'followup', label: '📌 Follow-up' }]}
+          value={kind} onChange={(v) => setKind(v as KindFilter)} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
           return (
             <Popover label="⚙ Lọc" active={advN > 0} badge={advN || undefined} minWidth={230}>
               {() => (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {workType !== 'seed' && (<>
+                  {kind !== 'seed' && (<>
                     <div><div style={flbl}>Link</div><div style={frow}>{['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={fchip(follow === f)}>{f}</button>)}</div></div>
                     <div><div style={flbl}>Traffic</div><div style={frow}>{['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={fchip(traf === f)}>{f}</button>)}</div></div>
                   </>)}
@@ -1400,7 +1424,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               </div>
             );
           })}
-          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>Không có task ở tab này.</div>}
+          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>{emptyNote}</div>}
         </div>
       ) : view === 'calendar' ? (
         <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
@@ -1416,14 +1440,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               {g.items.map((t) => rowEl(t, true))}
             </div>
           ))}
-          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
+          {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>{emptyNote}</div>}
         </div>
       ) : (
       <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {shown.length > 0 && listHead}
         {pageItems.map((t) => rowEl(t, true))}
-        {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Không có task ở tab này.</div>}
+        {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>{emptyNote}</div>}
       </div>
       <Pager {...pager} onPage={pager.setPage} />
       </>
@@ -2252,7 +2276,9 @@ function TaskDrawer({ task, slug, project, accounts, media, backgrounded, onOpen
                 <div key={m.id} style={{ width: 96 }}>
                   <div style={{ position: 'relative' }}>
                     <a href={wrapExternalUrl(m.url)} {...EXT} title={m.filename}>
-                      <img src={m.url} alt={m.filename} style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
+                      {/* Ô xem trước 96px → xin bản thu nhỏ (2x cho màn retina), KHÔNG kéo nguyên bản
+                          1,9 MB về để hiển thị bằng con tem. lazy = ngoài tầm nhìn thì chưa tải. */}
+                      <img src={thumbUrl(m.url, 192)} alt={m.filename} loading="lazy" decoding="async" style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
                     </a>
                     {delId === m.id ? (
                       <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'rgba(0,0,0,.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>

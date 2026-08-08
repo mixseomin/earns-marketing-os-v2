@@ -61,7 +61,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
              prep_payload->'site_scheduled_at'->>project_id AS d
       FROM human_tasks
       WHERE prep_payload->>'product' = ANY(${textArray(slugs)})
-      ORDER BY prep_payload->'site_scheduled_at'->>project_id NULLS LAST, id`) : [];
+      ORDER BY id`) : [];
     const tasks = taskRows as unknown as Array<{ id: number; title: string; slug: string; st: string; d: string | null }>;
 
     return spines.map((s) => {

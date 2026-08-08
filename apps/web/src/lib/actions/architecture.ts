@@ -760,9 +760,13 @@ async function persistVerify(taskId: number, site: string, result: LinkCheck): P
   //                                  (completed/verified) — a not-yet-live pending/submitted
   //                                  site stays put, and a JS-rendered/mentioned page is skipped
   //   unreachable (403 / timeout)  → no status change (inconclusive, NOT a removal)
+  // Ngoại lệ 'review': máy kiểm thấy link sống KHÔNG được tự đóng card đang chờ người duyệt — verified
+  // nằm trong nhóm ẩn, tự nhảy sang đó là việc của nhân sự lại biến mất trước khi ai kịp xem. Kết quả
+  // kiểm vẫn ghi vào site_verify để người duyệt nhìn thấy "✓ dofollow sống" rồi bấm Done.
   let bump = sql``;
   if (result.found) {
-    bump = sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb('verified'::text)))`;
+    bump = sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text,
+      CASE WHEN prep_payload->'site_status'->>${site} = 'review' THEN to_jsonb('review'::text) ELSE to_jsonb('verified'::text) END))`;
   } else if (result.reachable && !result.mentioned) {
     bump = sql`|| jsonb_build_object('site_status', COALESCE(prep_payload->'site_status','{}'::jsonb) || jsonb_build_object(${site}::text,
       CASE WHEN prep_payload->'site_status'->>${site} IN ('completed','verified') THEN to_jsonb('broken'::text)
@@ -775,7 +779,7 @@ async function persistVerify(taskId: number, site: string, result: LinkCheck): P
       updated_at = now()
     WHERE id = ${taskId} AND platform_key = 'backlink'`);
   if (result.found) {
-    await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed'`);
+    await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed' AND COALESCE(prep_payload->'site_status'->>${site}, '') <> 'review'`);
   } else if (result.reachable && !result.mentioned) {
     // link removed from a page that still loads → reopen the row so it re-enters the work queue
     await db.execute(sql`UPDATE human_tasks SET status='pending', completed_at=NULL, updated_at=now()

@@ -12,8 +12,11 @@
 // được. Pure — không import server runtime (xem lib/prefs.ts: module vừa client vừa server thì vỡ prerender).
 
 import { type TaskKind } from './task-kind';
+import { FINISHED_SITE_STATUSES } from './site-status';
 
-export const DONE_STATES = new Set(['completed', 'verified']);
+// Các trạng thái TUYÊN BỐ đã làm xong — gồm cả 'review' (nộp cho người duyệt xem): nộp mà không kèm
+// kết quả thì người duyệt chẳng có gì để xem, nên cổng phải chặn ngay từ bậc này chứ không đợi tới Done.
+export const DONE_STATES = new Set<string>(FINISHED_SITE_STATUSES);
 export const MIN_RESULT_NOTE = 20;   // đủ cho một câu tả kết quả thật, không lọt "xong" / "ok" / "done"
 
 const isUrl = (s?: string | null) => /^https?:\/\/\S+$/i.test((s || '').trim());

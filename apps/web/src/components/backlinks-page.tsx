@@ -39,7 +39,7 @@ import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
-import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES } from '@/lib/site-status';
+import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES, isFinished } from '@/lib/site-status';
 import { setPref, pick, type Prefs } from '@/lib/prefs';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
@@ -64,7 +64,7 @@ const CAL_LEGEND: LegendEntry[] = [
 ];
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
-const TERMINAL_STATES = new Set<string>(['submitted', 'completed', 'verified', 'broken', 'dropped']);
+const TERMINAL_STATES = new Set<string>(['submitted', 'review', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'followup';   // '' = mọi loại
@@ -262,7 +262,7 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
         <div style={lbl}>Tiến độ · {p.done}/{p.total} bước · {p.words.toLocaleString()} từ đã viết</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {p.cards.map((c) => {
-            const done = c.status === 'completed' || c.status === 'verified';
+            const done = isFinished(c.status);   // 'review' cũng là làm xong (chưa duyệt) — lib/site-status
             return (
               <button key={c.id} type="button" onClick={() => onOpenCard(c.id)}
                 style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)', borderRadius: 6,
@@ -986,7 +986,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       // Bàn giao → đính vào pill CHƯA xong (pending/scheduled/submitted) để chat khác nối; card đã xong khỏi cần.
       const brief = hasResume({ inputs: t.inputs, doneWhen: t.doneWhen, dependsOn: t.dependsOn })
         ? { inputs: t.inputs, doneWhen: t.doneWhen, dependsOn: t.dependsOn } : undefined;
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: true, color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
+      // done = ĐÃ ĐÓNG SỔ (mờ + ✓). Card vừa làm xong đang chờ duyệt vẫn stamp ngày xong nhưng phải
+      // hiện rõ như việc còn phải động tới — nó đang đợi người duyệt nhìn.
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: CLOSED.has(t.siteState), color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
         if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
@@ -1577,10 +1579,12 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
     if (seedBlocked && url.trim() && !linkArmed) { setLinkArmed(true); return; }   // arm, don't save yet
     setLinkArmed(false);
     setSaveState('saving');
-    // Chỉ tự nhảy sang Xong khi cái vừa gõ ĐỦ làm bằng chứng — gõ dở/không phải URL mà vẫn nhảy thì
-    // server chặn cả cú ghi, mất luôn chữ vừa gõ. Không đủ → cứ lưu, trạng thái giữ nguyên.
+    // Dán được link kết quả = làm xong → đẩy sang REVIEW, không phải Done. Done là chữ ký của người
+    // duyệt; tự nhảy thẳng vào Done là việc vừa xong rơi luôn vào nhóm ẩn, không ai kịp xem.
+    // Chỉ nhảy khi cái vừa gõ ĐỦ làm bằng chứng — gõ dở mà vẫn nhảy thì server chặn cả cú ghi, mất
+    // luôn chữ vừa gõ. Không đủ → cứ lưu, trạng thái giữ nguyên.
     const open = task.siteState === 'pending' || task.siteState === 'claimed' || task.siteState === 'submitted' || task.siteState === 'broken';
-    const next = (open && url.trim() && !doneBlockReason({ kind, url, note: task.workerNote }, 'completed')) ? 'completed' : task.siteState;
+    const next = (open && url.trim() && !doneBlockReason({ kind, url, note: task.workerNote }, 'review')) ? 'review' : task.siteState;
     setSiteErr(await setSite(task.id, next, url));
     setSaveState('saved'); setTimeout(() => setSaveState('idle'), 1800);
   };
@@ -1739,7 +1743,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   // CỔNG "xong phải có kết quả" — lý do lấy từ lib/task-done (server dùng CÙNG hàm), tính trên dữ liệu ĐÃ
   // LƯU + link đang gõ (link được ghi kèm khi bấm status, còn ghi chú thì phải Lưu trước mới tính).
   const doneBlock = doneBlockReason({ kind, url: url.trim() || task.siteLiveUrl, note: task.workerNote }, 'completed');
-  const statusBlocked = doneBlock ? { completed: doneBlock, verified: doneBlock } : undefined;
+  const statusBlocked = doneBlock ? { review: doneBlock, completed: doneBlock, verified: doneBlock } : undefined;
   const isEmailPitch = !isEmailSend && /\b(email|pitch|editorial|librarian|curator)\b/i.test(`${task.mechanism || ''} ${task.instructions || ''}`);
   const emailTarget = task.platformLabel || (task.sourceUrl ? hostOf(task.sourceUrl) : 'this resource page');
   // Already emailed (site is "submitted") → the next email is a short nudge, not a fresh pitch.
@@ -1902,7 +1906,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {product.cards.map((c, n) => {
-                  const done = c.status === 'completed' || c.status === 'verified';
+                  const done = isFinished(c.status);   // 'review' cũng là làm xong (chưa duyệt) — lib/site-status
                   const cur = c.id === task.id;
                   return (
                     <button key={c.id} type="button" onClick={() => !cur && onOpenTask(c.id)} title={`${c.title}${c.date ? ` · ${c.date}` : ''}`}

@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
 // Staff đánh dấu đã đăng + dán URL minh chứng. Chỉ sửa được task của chính mình.
+// Nộp vào REVIEW chứ không phải Done: người làm báo xong, người duyệt xem rồi mới đóng sổ (Done nằm
+// trong nhóm ẩn mặc định — cho tự nhảy thẳng vào đó thì việc vừa làm biến mất trước khi ai kịp xem).
 export async function POST(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const who = await resolveExtUser(req);
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
       SELECT 1 FROM human_tasks
       WHERE id = ${taskId} AND assigned_user_id = ${who.userId} AND tenant_id = ${TENANT} AND platform_key = 'backlink'`);
     if (!(own as unknown as unknown[]).length) return NextResponse.json({ ok: false, error: 'task không thuộc bạn' }, { status: 403 });
-    const w = await setBacklinkSite(taskId, site, 'completed', url);
+    const w = await setBacklinkSite(taskId, site, 'review', url);
     if (!w.ok) return NextResponse.json({ ok: false, error: w.error || 'lỗi' }, { status: 400 });
     const r = await db.execute(sql`SELECT (prep_payload->'site_status') AS ss FROM human_tasks WHERE id = ${taskId}`);
     const ss = (r as unknown as Array<{ ss: Record<string, string> }>)[0]?.ss || {};

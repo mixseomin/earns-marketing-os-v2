@@ -6,7 +6,7 @@
 // prep_payload.site_status = { "<site slug>": "<status>" }. So we aggregate by
 // unrolling that jsonb rather than by task row.
 //
-// Statuses in use: pending · claimed · submitted · completed · verified · broken.
+// Statuses in use: pending · claimed · submitted · review · completed · verified · broken.
 
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -14,14 +14,16 @@ import { sql } from 'drizzle-orm';
 export type BacklinkSiteStats = {
   total: number;
   done: number;      // completed + verified — link is actually live
-  inflight: number;  // claimed + submitted — worked on, not confirmed yet
+  inflight: number;  // claimed + submitted + review — worked on, not confirmed yet
   pending: number;   // not started
   broken: number;    // was live, went dead
   byStatus: Record<string, number>;
 };
 
 const DONE = new Set(['completed', 'verified']);
-const INFLIGHT = new Set(['claimed', 'submitted']);
+// 'review' = làm xong nhưng CHƯA duyệt → vẫn là việc đang chạy, không phải done (và tuyệt đối không
+// rơi vào nhánh cuối 'pending' như hồi mới thêm trạng thái mà quên bảng thống kê).
+const INFLIGHT = new Set(['claimed', 'submitted', 'review']);
 
 type Row = { site: string; status: string; n: number | string };
 

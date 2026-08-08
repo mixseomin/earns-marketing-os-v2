@@ -12,6 +12,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { textArray } from '@/lib/sql-array';
+import { isFinished } from '@/lib/site-status';
 
 // keyPoints = ý chính, hiện NGOÀI phần gập: người review/đọc nắm nội dung mà không phải mở ra đọc hết.
 // internal = tài liệu NỘI BỘ (outline, ghi chú) — vẫn xem được nhưng KHÔNG tính vào số từ bản thảo,
@@ -77,7 +78,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
           internal: r.refs?.internal === true }));
       const cards = tasks.filter((t) => t.slug === slug)
         .map((t) => ({ id: Number(t.id), title: t.title, status: t.st, date: t.d }));
-      const done = cards.filter((c) => c.status === 'completed' || c.status === 'verified').length;
+      const done = cards.filter((c) => isFinished(c.status)).length;   // gồm cả 'review' — xong việc, chưa duyệt
       return {
         slug,
         projectId: s.projectId,

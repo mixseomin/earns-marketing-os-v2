@@ -7,11 +7,12 @@ import { getDb } from '@mos2/db';
 import { siteTimingMerges } from '../backlink-timing';
 import { touchEntity } from '@/lib/touch-entity';
 
-const SITE_RANK: Record<string, number> = { pending: 0, claimed: 1, submitted: 2, completed: 3, verified: 4 };
+const SITE_RANK: Record<string, number> = { pending: 0, claimed: 1, submitted: 2, review: 3, completed: 4, verified: 5 };
 const PROSPECT_RANK: Record<string, number> = { to_send: 0, sent: 1, followup_1: 2, followup_2: 3, replied: 4, interested: 5, embedded: 6 };
 // prospect status → the site_status it implies
 const P2S: Record<string, string> = { to_send: 'pending', sent: 'submitted', followup_1: 'submitted', followup_2: 'submitted', replied: 'submitted', interested: 'completed', embedded: 'completed' };
-// site_status → the prospect status it implies
+// site_status → the prospect status it implies. 'review' CỐ Ý không có ở đây: việc mới nộp chờ duyệt
+// thì chưa đụng tới prospect (unmapped → sync no-op); duyệt xong thành 'completed' mới đẩy sang interested.
 const S2P: Record<string, string> = { pending: 'to_send', claimed: 'to_send', submitted: 'sent', completed: 'interested', verified: 'interested' };
 
 // A prospect changed → reflect onto its backlink task's site_status (advance only).

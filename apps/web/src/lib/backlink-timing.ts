@@ -10,7 +10,9 @@
 import { sql } from 'drizzle-orm';
 
 export function siteTimingMerges(site: string, status: string, nowIso: string, followDays = 7) {
-  const done = status === 'completed' || status === 'verified';
+  // 'review' cũng là LÀM XONG (chỉ chưa ai duyệt) → vẫn stamp ngày xong: card phải nằm đúng ngày làm
+  // trên lịch, không thì việc vừa xong biến mất khỏi mặt lịch cho tới lúc được duyệt.
+  const done = status === 'review' || status === 'completed' || status === 'verified';
   const submitted = status === 'submitted';
   const doneMerge = done
     ? sql`|| jsonb_build_object('site_done_at', COALESCE(prep_payload->'site_done_at', '{}'::jsonb) || jsonb_build_object(${site}::text, to_jsonb(COALESCE(prep_payload->'site_done_at'->>${site}, ${nowIso}))))`

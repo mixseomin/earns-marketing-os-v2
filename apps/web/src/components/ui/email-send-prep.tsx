@@ -14,11 +14,11 @@ const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', pad
 const btn: React.CSSProperties = { padding: '3px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-1)', fontSize: 11, cursor: 'pointer' };
 const meta: React.CSSProperties = { fontSize: 12, color: 'var(--fg-1)' };
 
-function fmtSend(s: string): string {
-  if (!s) return '— chưa đặt';
-  const d = new Date(s);
+function fmtDate(s?: string | null): string {
+  if (!s) return '— chưa lên lịch';
+  const d = new Date(`${s}T00:00:00`);
   if (isNaN(d.getTime())) return s;
-  return d.toLocaleString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defaultSendAt?: string | null }) {
@@ -34,7 +34,7 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   }, [taskId]);
 
   const startEdit = () => {
-    setDraft(prep ?? { ...EMPTY_EMAIL_PREP, sendAt: defaultSendAt ? `${defaultSendAt}T14:00` : '' });
+    setDraft(prep ?? { ...EMPTY_EMAIL_PREP });
     setEditing(true);
   };
   const save = async () => {
@@ -78,9 +78,11 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
             <div style={{ flex: 1, minWidth: 80 }}><div style={lbl}>Số gửi</div><input value={draft.recipientCount} onChange={(e) => set('recipientCount')(e.target.value)} style={field} placeholder="~800" /></div>
             <div style={{ flex: 1, minWidth: 80 }}><div style={lbl}>Tổng list</div><input value={draft.listTotal} onChange={(e) => set('listTotal')(e.target.value)} style={field} placeholder="11,028" /></div>
           </div>
+          <div style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>📅 Ngày gửi = theo lịch card: <b style={{ color: 'var(--fg-2)' }}>{fmtDate(defaultSendAt)}</b> — đổi trên calendar/lịch (tuỳ chiến lược), không ở đây.</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 160 }}><div style={lbl}>Giờ gửi</div><input type="datetime-local" value={draft.sendAt} onChange={(e) => set('sendAt')(e.target.value)} style={{ ...field, colorScheme: 'dark' }} /></div>
-            <div style={{ flex: 1, minWidth: 120 }}><div style={lbl}>Provider</div><input value={draft.provider} onChange={(e) => set('provider')(e.target.value)} style={field} placeholder="Mailjet" /></div>
+            <div style={{ minWidth: 110 }}><div style={lbl}>🕐 Giờ gửi</div><input type="time" value={draft.sendTime} onChange={(e) => set('sendTime')(e.target.value)} style={{ ...field, colorScheme: 'dark' }} /></div>
+            <div style={{ flex: 2, minWidth: 200 }}><div style={lbl}>Vì sao giờ này (phân tích nhu cầu)</div><input value={draft.sendTimeWhy} onChange={(e) => set('sendTimeWhy')(e.target.value)} style={field} placeholder="vd: 07:00 check trước giờ trực · 19:30 sau bữa tối" /></div>
+            <div style={{ flex: 1, minWidth: 110 }}><div style={lbl}>Provider</div><input value={draft.provider} onChange={(e) => set('provider')(e.target.value)} style={field} placeholder="Mailjet" /></div>
             <div style={{ minWidth: 120 }}><div style={lbl}>Trạng thái</div>
               <select value={draft.status} onChange={(e) => set('status')(e.target.value)} style={field}>
                 <option value="draft">draft</option>
@@ -117,8 +119,10 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 10px', alignItems: 'baseline' }}>
             <span style={lbl}>👥 Danh sách</span>
             <span style={meta}>{prep.listName || '—'}{prep.segment ? ` · ${prep.segment}` : ''}{prep.recipientCount ? ` · ${prep.recipientCount}${prep.listTotal ? ` / ${prep.listTotal}` : ''}` : ''}</span>
+            <span style={lbl}>📅 Ngày gửi</span>
+            <span style={meta}>{fmtDate(defaultSendAt)} <span style={{ color: 'var(--fg-4)', fontSize: 10.5 }}>· theo lịch (đổi ở calendar)</span></span>
             <span style={lbl}>🕐 Giờ gửi</span>
-            <span style={meta}>{fmtSend(prep.sendAt)}{prep.provider ? ` · qua ${prep.provider}` : ''}</span>
+            <span style={meta}>{prep.sendTime || <span style={{ color: 'var(--fg-4)' }}>— chưa đặt</span>}{prep.provider ? ` · qua ${prep.provider}` : ''}{prep.sendTimeWhy ? <span style={{ color: 'var(--fg-4)', fontSize: 10.5 }}> · {prep.sendTimeWhy}</span> : null}</span>
             <span style={lbl}>🔗 Offer</span>
             <span style={meta}>{prep.offerLabel || prep.offerUrl
               ? <>{prep.offerLabel || 'link'}{prep.offerUrl ? <> → <a href={prep.offerUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở ↗</a></> : <span style={{ color: 'var(--neon-amber)' }}> · chưa có link (offer pending?)</span>}</>

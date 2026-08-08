@@ -19,7 +19,11 @@ export interface EmailPrep {
   segment: string;        // e.g. "Engaged (opened ≤90d)"
   recipientCount: string; // e.g. "~800"
   listTotal: string;      // e.g. "11,028"
-  sendAt: string;         // 'YYYY-MM-DDTHH:mm' local — the planned send time
+  // Send DATE is NOT here — it lives on the card schedule (siteScheduledAt / the calendar) and
+  // shifts with strategy. Only the time-of-day lives here: the "golden hour" from analysing when
+  // the audience actually opens, constant across whatever date the issue lands on.
+  sendTime: string;       // 'HH:mm' local time-of-day
+  sendTimeWhy: string;    // why this hour (demand analysis note)
   provider: string;       // e.g. "Mailjet"
   offerLabel: string;
   offerUrl: string;
@@ -28,7 +32,7 @@ export interface EmailPrep {
 
 export const EMPTY_EMAIL_PREP: EmailPrep = {
   fromName: '', fromEmail: '', subject: '', subjectB: '', preheader: '', bodyMd: '',
-  listName: '', segment: '', recipientCount: '', listTotal: '', sendAt: '', provider: 'Mailjet',
+  listName: '', segment: '', recipientCount: '', listTotal: '', sendTime: '', sendTimeWhy: '', provider: 'Mailjet',
   offerLabel: '', offerUrl: '', status: 'draft',
 };
 

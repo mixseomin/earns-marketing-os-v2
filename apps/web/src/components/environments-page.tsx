@@ -52,6 +52,8 @@ const PROXY_TYPE_META: Record<ProxyType, { label: string; color: string }> = {
 export function EnvironmentsPage({ proxies, profiles, accounts = [], teamMembers = [] }: { proxies: ProxyRow[]; profiles: BrowserProfileRow[]; accounts?: GlobalAccountRow[]; teamMembers?: TeamMemberRow[] }) {
   const [tabRaw, setTabRaw] = useUrlParam('tab', 'proxies');
   const tab: Tab = tabRaw === 'profiles' ? 'profiles' : tabRaw === 'accounts' ? 'accounts' : 'proxies';
+  // Badge trên tab: tab mặc định là Proxies, không cảnh báo ở đây thì session hết hạn không ai thấy.
+  const staleCount = profiles.filter((p) => idleOf(p.lastOpenedAt).tone !== 'fresh' && idleOf(p.lastOpenedAt).tone !== 'warn').length;
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -77,6 +79,7 @@ export function EnvironmentsPage({ proxies, profiles, accounts = [], teamMembers
           onClick={() => setTabRaw('profiles')}
           style={{ background: tab === 'profiles' ? 'var(--accent-soft)' : 'transparent', borderRadius: '5px 5px 0 0', borderBottom: tab === 'profiles' ? '2px solid var(--accent)' : 'none' }}>
           🧬 Browser Profiles <span style={{ opacity: 0.6 }}>({profiles.length})</span>
+          {staleCount > 0 && <span title={`${staleCount} profile chưa mở ≥${STALE_D} ngày`} style={{ marginLeft: 5, color: IDLE_TONE.stale.color, fontWeight: 700 }}>⚠️{staleCount}</span>}
         </button>
         <button className="btn"
           onClick={() => setTabRaw('accounts')}
@@ -416,13 +419,41 @@ export function ProxyFormModal({ proxy, onClose, teamMembers = [] }: { proxy: Pr
 }
 
 // ── Profiles tab ──────────────────────────────────────────────────
+// Session-maintenance: profile để lâu không mở = login hết hạn âm thầm, chỉ phát hiện lúc cần dùng
+// (đúng lúc không kịp sửa). Nên idle phải hiện NGAY trên card + xếp cũ-nhất-lên-đầu.
+// ponytail: tính client-side từ lastOpenedAt đã có sẵn trong payload — không cron, không cột mới.
+const STALE_D = 21, WARN_D = 7;
+function idleOf(iso: string | null | undefined): { days: number | null; tone: 'never' | 'stale' | 'warn' | 'fresh' } {
+  if (!iso) return { days: null, tone: 'never' };
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  return { days, tone: days >= STALE_D ? 'stale' : days >= WARN_D ? 'warn' : 'fresh' };
+}
+const IDLE_TONE = {
+  never: { color: 'var(--danger, #e5534b)', label: 'chưa mở lần nào' },
+  stale: { color: 'var(--danger, #e5534b)', label: 'cần mở lại' },
+  warn: { color: 'var(--warn, #d9a441)', label: 'sắp cũ' },
+  fresh: { color: 'var(--fg-3)', label: '' },
+} as const;
+
 function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: BrowserProfileRow[]; proxies: ProxyRow[]; teamMembers?: TeamMemberRow[] }) {
   const modal = useModalParam("profile");
   const editing = modal.is("edit") ? profiles.find((x) => x.id === modal.numId) ?? null : null;
   const creating = modal.is("new");
+  // Cũ nhất lên đầu — cái cần chăm là cái phải nhìn thấy trước.
+  const ordered = [...profiles].sort((a, b) =>
+    (a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0) - (b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0));
+  const needCare = ordered.filter((p) => idleOf(p.lastOpenedAt).tone === 'stale' || idleOf(p.lastOpenedAt).tone === 'never');
 
   return (
     <>
+      {needCare.length > 0 && (
+        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: `3px solid ${IDLE_TONE.stale.color}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
+          ⚠️ <strong>{needCare.length}</strong> profile chưa mở ≥{STALE_D} ngày — session sắp/đã hết hạn.
+          Mở lại rồi bấm <strong>✓ Vừa mở</strong> trong drawer (hoặc <code style={{ fontFamily: 'var(--font-mono)' }}>browsers open &lt;id&gt;</code>):{' '}
+          {needCare.map((p) => p.label).join(' · ')}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <button className="btn primary" onClick={() => modal.open("new")}>+ New profile</button>
       </div>
@@ -435,10 +466,12 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
-          {profiles.map((p) => {
+          {ordered.map((p) => {
             const tm = toolMetaOf(p.tool);
+            const idle = idleOf(p.lastOpenedAt);
+            const tone = IDLE_TONE[idle.tone];
             return (
-              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer' }} onClick={() => modal.open("edit", p.id)}>
+              <div key={p.id} className="panel" style={{ padding: '10px 12px', cursor: 'pointer', borderLeft: idle.tone === 'fresh' ? undefined : `3px solid ${tone.color}` }} onClick={() => modal.open("edit", p.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 16 }}>{tm.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.label}</span>
@@ -455,6 +488,9 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                 <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
                   {p.defaultProxyLabel && <EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} size="sm" />}
                   <span>· {p.accountsCount} accounts</span>
+                  <span title={p.lastOpenedAt ? `Mở lần cuối: ${new Date(p.lastOpenedAt).toLocaleString()}` : 'Chưa từng ghi nhận mở'} style={{ color: tone.color, fontWeight: idle.tone === 'fresh' ? 400 : 600 }}>
+                    · {idle.days === null ? '⚠️ chưa mở' : `${idle.days}d idle`}{tone.label && ` · ${tone.label}`}
+                  </span>
                   {p.externalId && <span>· {p.externalId.split('/').pop()}</span>}
                 </div>
               </div>

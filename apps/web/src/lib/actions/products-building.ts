@@ -34,7 +34,8 @@ export interface BuildingProduct {
   /** Bản dựng đọc được (PDF trong vault) — sản phẩm viết thì "xem thử" là thứ đầu tiên người ta cần. */
   build: { url: string; label: string; pages: number; plannedPages: number | null; builtAt: string | null } | null;
   cards: ProductCard[];
-  done: number;
+  done: number;       // đã làm xong — gồm cả đang chờ duyệt
+  approved: number;   // đã có người duyệt (completed/verified). done - approved = số card nằm ở Review.
   total: number;
   nextCard: ProductCard | null;
 }
@@ -79,6 +80,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
       const cards = tasks.filter((t) => t.slug === slug)
         .map((t) => ({ id: Number(t.id), title: t.title, status: t.st, date: t.d }));
       const done = cards.filter((c) => isFinished(c.status)).length;   // gồm cả 'review' — xong việc, chưa duyệt
+      const approved = cards.filter((c) => c.status === 'completed' || c.status === 'verified').length;
       return {
         slug,
         projectId: s.projectId,
@@ -102,9 +104,13 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
         words: chapters.reduce((n, c) => n + (c.internal ? 0 : wordCount(c.content)), 0),
         cards,
         done,
+        approved,
         total: cards.length,
-        // Card kế = cái chưa xong có ngày sớm nhất. Trả lời thẳng "đang làm đến đâu".
-        nextCard: cards.find((c) => c.status !== 'completed' && c.status !== 'verified') ?? null,
+        // Card kế = cái CHƯA làm xong đầu tiên. Dùng isFinished (không tự viết lại danh sách trạng
+        // thái): bản cũ so tay 'completed'/'verified' nên một card đã xong đang nằm ở Review vẫn bị
+        // gọi là "việc kế" — tiến độ đếm nó là xong mà dòng ngay dưới lại bảo phải làm. 'dropped'
+        // là bỏ khỏi kế hoạch, cũng không phải việc kế.
+        nextCard: cards.find((c) => !isFinished(c.status) && c.status !== 'dropped') ?? null,
       };
     });
   } catch (e) {

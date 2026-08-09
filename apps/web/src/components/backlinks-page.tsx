@@ -41,13 +41,13 @@ import type { PlatformRow, AccountRow, MediaRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
 import type { ProxyRow, BrowserProfileRow } from '@/lib/actions/environments';
 import type { TeamMemberRow } from '@/lib/actions/team';
-import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES, isFinished } from '@/lib/site-status';
+import { SITE_STATUS_META, SITE_STATUSES, CLOSED_SITE_STATUSES, isFinished, type SiteStatus } from '@/lib/site-status';
 import { setPref, pick, type Prefs } from '@/lib/prefs';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
-import { taskTypeKey, TYPE_META } from '@/lib/task-type';
+import { taskTypeKey, taskArchetype, taskSectionPolicy, TYPE_META } from '@/lib/task-type';
 import { TypeGlyph, type GlyphName } from '@/components/ui/type-glyph';
 import { doneBlockReason, doneWithoutProof } from '@/lib/task-done';
 import { hostOf } from '@/lib/host';
@@ -193,7 +193,10 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
     <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: 10, flexWrap: 'wrap', marginBottom: narrow ? 0 : 12 }}>
       {narrow && <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Sản phẩm đang dựng</div>}
       {products.map((p) => {
-        const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+        // Thanh HAI đoạn: phần đã duyệt + phần làm xong đang chờ duyệt. Một thanh liền sẽ báo
+        // "gần xong" trong khi thực tế phần lớn đang nằm chờ chữ ký người duyệt.
+        const pct = p.total ? Math.round((p.approved / p.total) * 100) : 0;
+        const pctReview = p.total ? Math.round(((p.done - p.approved) / p.total) * 100) : 0;
         return (
           <button key={p.slug} type="button" onClick={() => onOpen(p.slug)}
             title={`${p.description.slice(0, 180)}…`}
@@ -208,11 +211,13 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
               {p.price != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ok,#22c55e)', marginLeft: 'auto' }}>${p.price}</span>}
             </div>
             <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.25 }}>{p.title}</div>
-            <div style={{ height: 4, borderRadius: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+            <div style={{ height: 4, borderRadius: 3, background: 'var(--bg-2)', overflow: 'hidden', display: 'flex' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)' }} />
+              <div title="làm xong, chờ duyệt" style={{ width: `${pctReview}%`, height: '100%', background: SITE_STATUS_META.review.color, opacity: .6 }} />
             </div>
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <span>{p.done}/{p.total} bước</span>
+              {p.done > p.approved && <span style={{ color: SITE_STATUS_META.review.color }}>{p.done - p.approved} chờ duyệt</span>}
               <span>{p.words.toLocaleString()} từ</span>
               <span>{p.chapters.length} chương</span>
             </div>
@@ -263,17 +268,27 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
       </div>
 
       <div>
-        <div style={lbl}>Tiến độ · {p.done}/{p.total} bước · {p.words.toLocaleString()} từ đã viết</div>
+        <div style={lbl}>
+          Tiến độ · {p.done}/{p.total} bước · {p.words.toLocaleString()} từ đã viết
+          {p.done > p.approved && <span style={{ color: SITE_STATUS_META.review.color, textTransform: 'none', letterSpacing: 0 }}> · {p.done - p.approved} chờ duyệt</span>}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Mỗi bước hiện ĐÚNG trạng thái của card trên bảng, không quy về ✓/○: dấu ✓ gộp chung
+              "đã duyệt" với "làm xong đang chờ duyệt" là xoá mất đúng cái phân biệt vừa dựng
+              (Review ≠ Done). Nhãn + màu lấy từ SITE_STATUS_META nên bảng, drawer và ô này không
+              bao giờ nói khác nhau. */}
           {p.cards.map((c) => {
+            const meta = SITE_STATUS_META[c.status as SiteStatus] ?? SITE_STATUS_META.pending;
             const done = isFinished(c.status);   // 'review' cũng là làm xong (chưa duyệt) — lib/site-status
             return (
-              <button key={c.id} type="button" onClick={() => onOpenCard(c.id)}
+              <button key={c.id} type="button" onClick={() => onOpenCard(c.id)} title={`${c.title} · ${meta.label}`}
                 style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)', borderRadius: 6,
                   background: 'transparent', padding: '4px 8px', fontSize: 12, color: done ? 'var(--fg-3)' : 'var(--fg-1)',
                   display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ color: done ? 'var(--ok,#22c55e)' : 'var(--fg-4)' }}>{done ? '✓' : '○'}</span>
+                <span style={{ width: 9, height: 9, flex: '0 0 auto', borderRadius: 999, border: `1.5px solid ${meta.color}`,
+                  background: done ? meta.color : 'transparent' }} />
                 <span style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: meta.color, textTransform: 'uppercase', letterSpacing: '.04em' }}>{meta.label}</span>
                 {c.date && <span style={{ fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{c.date}</span>}
               </button>
             );
@@ -1756,9 +1771,13 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   // dựng hoặc trang sản phẩm, và kiểm dofollow là vô nghĩa. Cùng taxonomy với bộ lọc loại việc ở trên.
   const kind = taskKind({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product });
   // Loại chi tiết của card (archetype × produce-format) → badge nhận diện ở header + gate section theo type.
-  const typeKey = taskTypeKey({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions });
+  const typeInput = { title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions };
+  const typeKey = taskTypeKey(typeInput);
   const tmeta = TYPE_META[typeKey];
-  const isBuild = kind === 'build';
+  const arch = taskArchetype(typeInput);
+  const isProduce = arch === 'produce';   // mọi format sản-xuất (kể cả khi taskKind chưa nhận ra 'build')
+  // BỐ CỤC drawer theo LOẠI (YDNI): section nào primary/advanced/hidden — 1 nguồn chân lý (lib/task-type).
+  const pol = taskSectionPolicy(typeInput);
   // CỔNG "xong phải có kết quả" — lý do lấy từ lib/task-done (server dùng CÙNG hàm), tính trên dữ liệu ĐÃ
   // LƯU + link đang gõ (link được ghi kèm khi bấm status, còn ghi chú thì phải Lưu trước mới tính).
   const doneBlock = doneBlockReason({ kind, url: url.trim() || task.siteLiveUrl, note: task.workerNote }, 'completed');
@@ -2077,7 +2096,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           )}
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginTop: 4 }}>
             <Steps text={task.instructions} onBlock={blockWithReason} urlValue={url} onUrlChange={setUrl} onUrlSave={saveUrl} urlSaving={saveState === 'saving'} emailMode={isEmailSend}
-              result={isBuild ? { label: '📄 Làm xong — dán link kết quả (bản dựng / trang sản phẩm)', placeholder: 'https://… bản dựng, file, hoặc trang bán' } : undefined} />
+              result={isProduce ? { label: '📄 Làm xong — dán link kết quả (bản dựng / trang sản phẩm)', placeholder: 'https://… bản dựng, file, hoặc trang bán' } : undefined} />
           </div>
           {/* ✨ Chuẩn bị điền — field→value đã chuẩn bị cho form thật (ext auto-fill P2). 🟢 chắc · 🔴 cần review. */}
           {(fillFields || fillErr) && (
@@ -2128,9 +2147,9 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         <AssigneeCell taskId={task.id} name={task.assignee || ''} assignedId={task.assignedUserId} onChange={onAssign} />
 
         {/* 3 · Account — must be ready before posting. Hidden for email-send (blast qua Mailjet, không cần account đăng nền tảng). */}
-        {/* Account — cần cho backlink/seed/pitch (đăng nền tảng). Card SẢN XUẤT (produce/build) không đăng
-            qua account nào → ẩn (YDNI: không bày section không dùng). Email-send blast qua Mailjet cũng ẩn. */}
-        {!isEmailSend && !isBuild && (<>
+        {/* Account — cần cho backlink/seed/pitch/publish/account (đăng nền tảng). Card SẢN XUẤT (produce)
+            không đăng qua account, research/review/email-send cũng không → ẩn theo policy (lib/task-type). */}
+        {pol.account !== 'hidden' && (<>
         <div style={lbl}>Account · {task.platformLabel || 'platform ?'}</div>
         {task.readiness === 'no-account' ? (
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>✉ Nguồn này không cần account riêng — submit qua {task.mechanism || 'email / one-off'}.</div>
@@ -2188,8 +2207,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         </>)}
 
         {/* 4 · Content — paste kit + the post draft + any other AI content the task needs. */}
-        {kit.length > 0 && (
-          <Disclosure title="📎 Paste kit" badge={`${kit.length} mục · ${project.name}`}>
+        {kit.length > 0 && pol.pasteKit !== 'hidden' && (
+          <Disclosure title="📎 Paste kit" badge={`${kit.length} mục · ${project.name}`} defaultOpen={pol.pasteKit === 'primary'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {kit.map((k) => (
               <div key={k.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' }}>
@@ -2206,8 +2225,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
 
         {/* Built with / stack — per-tool copy chips (PH shoutouts, "Built with X" listings) +
             one-tap AI generate. Only for shoutout/directory/launch tasks — noise for email/forum/Q&A. */}
-        {showStack && !isBuild && (
-        <Disclosure title="🧩 Built with" badge="stack · copy từng tool" defaultOpen={stackItems.length > 0}>
+        {showStack && pol.stack !== 'hidden' && (
+        <Disclosure title="🧩 Built with" badge="stack · copy từng tool" defaultOpen={pol.stack === 'primary' || stackItems.length > 0}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           {stackItems.map((s, i) => (
             <button key={i} type="button" onClick={() => copy(s, `stack-${i}`)} title="Copy tên tool để dán vào shoutout/listing"
@@ -2255,8 +2274,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         </Disclosure>
         )}
 
-        {!task.draftPlan && (needsPost || task.draft) && (
-        <Disclosure title="📋 Draft (bài đăng)" defaultOpen={!!task.draft}>
+        {!task.draftPlan && pol.draft !== 'hidden' && (needsPost || task.draft) && (
+        <Disclosure title="📋 Draft (bài đăng)" defaultOpen={pol.draft === 'primary' || !!task.draft}>
         {draftFmts ? (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>📋 Draft (paste-ready)</span>
@@ -2322,7 +2341,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         </Disclosure>
         )}
 
-        <Disclosure title={isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'} defaultOpen={aiList.length > 0}>
+        {pol.aiContent !== 'hidden' && (
+        <Disclosure title={isEmailPitch ? '✉️ Email pitch (AI)' : '🧠 Nội dung AI'} defaultOpen={pol.aiContent === 'primary' || aiList.length > 0}>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{isEmailPitch
             ? (isFollowUp
@@ -2390,10 +2410,11 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           </div>
         )}
         </Disclosure>
+        )}
 
-        {/* 5 · Media — prepare screenshot/logo/cover before posting. */}
-        {mediaNeed && (
-          <Disclosure title={`🖼 Media · ${mediaNeed.label}`} defaultOpen={imgs.length > 0}>
+        {/* 5 · Media — prepare screenshot/logo/cover before posting (hero tool for image/carousel). */}
+        {mediaNeed && pol.media !== 'hidden' && (
+          <Disclosure title={`🖼 Media · ${mediaNeed.label}`} defaultOpen={pol.media === 'primary' || imgs.length > 0}>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 6 }}>{mediaNeed.hint}</div>
           {imgs.length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -2455,7 +2476,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         <div style={{ ...lbl, marginTop: 16 }}>Status @ {slug}</div>
         {doneWithoutProof({ kind, state: task.siteState, url: task.siteLiveUrl, note: task.workerNote }) && (
           <div style={{ margin: '0 0 6px', padding: '6px 9px', borderRadius: 6, border: '1px solid var(--warn,#ffb03c)', background: 'color-mix(in srgb, var(--warn,#ffb03c) 8%, transparent)', fontSize: 11.5, color: 'var(--warn,#ffb03c)', lineHeight: 1.5 }}>
-            ⚠ Đang ghi là xong nhưng không có kết quả nào mở ra xem được. {isBuild ? 'Dán link bản dựng/trang sản phẩm, hoặc tả kết quả ở “📣 Phản hồi của bạn”.' : 'Dán link đã đặt được ở dưới.'}
+            ⚠ Đang ghi là xong nhưng không có kết quả nào mở ra xem được. {isProduce ? 'Dán link bản dựng/trang sản phẩm, hoặc tả kết quả ở “📣 Phản hồi của bạn”.' : 'Dán link đã đặt được ở dưới.'}
           </div>
         )}
         <StatusSegmented size="md" value={task.siteState} blocked={statusBlocked}
@@ -2468,7 +2489,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           <ResumeEditor task={task} onSave={(r) => setResume(task.id, r)} onOpenTask={onOpenTask} />
         </Disclosure>
 
-        <Disclosure title={isEmailSend ? '🗓 Lịch gửi' : '🔗 Link · kiểm tra · lịch'} defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
+        <Disclosure title={isEmailSend ? '🗓 Lịch gửi' : pol.linkResult === 'hidden' ? '🗓 Lịch' : '🔗 Link · kiểm tra · lịch'} defaultOpen={!!(task.siteLiveUrl || task.siteScheduledAt || task.siteDoneAt)}>
         {task.communitySeed && task.seedGate && (
           <div style={{ marginBottom: 8, padding: '7px 9px', borderRadius: 6, border: `1px solid ${task.seedGate.ok ? '#22c55e55' : '#ffb03c55'}`, background: task.seedGate.ok ? '#22c55e10' : '#ffb03c10' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -2482,8 +2503,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
             )}
           </div>
         )}
-        {!isEmailSend && (<>
-        <div style={lbl}>{isBuild ? '📄 Kết quả — link bản dựng / trang sản phẩm' : `Live URL (link đã đặt được @ ${slug})`}</div>
+        {pol.linkResult !== 'hidden' && !isEmailSend && (<>
+        <div style={lbl}>{isProduce ? '📄 Kết quả — link bản dựng / trang sản phẩm' : `Live URL (link đã đặt được @ ${slug})`}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off"
             style={{ flex: 1, padding: '5px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, boxSizing: 'border-box' }} />
@@ -2495,7 +2516,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
 
         {/* 8 · Verify — own action row (auto-advances Completed → Verified on a dofollow hit).
             Card làm sản phẩm không có link trỏ về mình để kiểm → ẩn hẳn, đừng bày nút chạy xong luôn báo hỏng. */}
-        {!isBuild && (<>
+        {!isProduce && (<>
         <div style={lbl}>🔍 Kiểm tra link @ {slug}</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
           <button type="button" onClick={doVerify} disabled={vbusy || !(task.siteLiveUrl || url.trim())}

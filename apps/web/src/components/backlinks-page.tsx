@@ -261,6 +261,10 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
         )}
       </div>
 
+      {/* BÌA — thứ người mua thấy trước cả tên sách trên store. Để nó ngay đầu drawer thì duyệt
+          "đã có bìa chưa" bằng mắt, không phải đi mở thư mục output trên máy. */}
+      {p.cover && <img src={p.cover} alt="" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--line)', display: 'block' }} />}
+
       <div>
         <div style={lbl}>Mô tả bán hàng</div>
         <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--fg-1)' }}>{p.description}</div>

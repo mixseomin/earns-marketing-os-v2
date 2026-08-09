@@ -226,13 +226,25 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                         {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
                         <span style={{ flex: 1 }} />
                         {(() => {
-                          // Last access per account — cái quyết định session còn sống hay không.
+                          // Hai con số KHÁC nhau, đừng trộn:
+                          //  · lastUsedAt   = lần cuối account được dùng. NULL = CHƯA ĐO, không phải phiên chết
+                          //    → xám, không đỏ. Tô đỏ chỗ này là báo động giả (cột chỉ mới có writer từ 2026-08-09).
+                          //  · sessionExpiresAt = hạn cookie đăng nhập THẬT, do `browsers-refresh` đọc từ profile.
+                          //    Có nó thì đếm ngược theo nó; không có thì không bịa hạn.
                           const d = a.lastUsedAt ? Math.floor((Date.now() - new Date(a.lastUsedAt).getTime()) / 86_400_000) : null;
-                          const col = d == null ? 'var(--bad)' : d >= 21 ? 'var(--bad)' : d >= 7 ? '#d9a441' : 'var(--fg-4)';
+                          const left = a.sessionExpiresAt ? Math.floor((new Date(a.sessionExpiresAt).getTime() - Date.now()) / 86_400_000) : null;
+                          const col = left != null
+                            ? (left <= 0 ? 'var(--bad)' : left <= 7 ? '#d9a441' : 'var(--fg-4)')
+                            : d == null ? 'var(--fg-4)' : d >= 21 ? '#d9a441' : 'var(--fg-4)';
+                          const tip = [
+                            a.lastUsedAt ? `Dùng gần nhất: ${new Date(a.lastUsedAt).toLocaleString()} (${d}d trước)` : 'Chưa đo lần dùng nào — cột last_used_at mới có writer từ 2026-08-09, NULL ở đây nghĩa là chưa biết, không phải phiên đã chết.',
+                            left != null
+                              ? `Cookie đăng nhập hết hạn: ${new Date(a.sessionExpiresAt!).toLocaleString()} → ${left <= 0 ? 'ĐÃ HẾT HẠN' : `còn ~${left} ngày`}`
+                              : 'Chưa biết hạn phiên — chạy `browsers-refresh --idle 0` để đọc hạn cookie thật từ profile.',
+                          ].join('\n');
                           return (
-                            <span title={a.lastUsedAt ? `Dùng gần nhất: ${new Date(a.lastUsedAt).toLocaleString()}` : 'Chưa ghi nhận lần dùng nào'}
-                              style={{ fontSize: 10, color: col, flexShrink: 0, fontWeight: d != null && d >= 7 ? 700 : 400 }}>
-                              {d == null ? '⚠ chưa dùng' : `${d}d`}
+                            <span title={tip} style={{ fontSize: 10, color: col, flexShrink: 0, fontWeight: (left != null && left <= 7) ? 700 : 400 }}>
+                              {left != null ? (left <= 0 ? '⚠ hết hạn' : `còn ${left}d`) : d == null ? '· chưa đo' : `${d}d`}
                             </span>
                           );
                         })()}

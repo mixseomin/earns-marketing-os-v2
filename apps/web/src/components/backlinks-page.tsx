@@ -1512,7 +1512,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </>
       )}
 
-      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
@@ -1582,10 +1582,12 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, product, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
+function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProduct, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[];
   /** Card này là một bước của sản phẩm nào (nếu có) — để nhảy thẳng sang bước khác, không phải đóng ra vào lại. */
   product?: BuildingProduct;
+  /** Mở drawer sản phẩm (bản thảo) — card viết nội dung thì đó mới là thứ cần xem. */
+  onOpenProduct?: (slug: string) => void;
   backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<string>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
@@ -1945,19 +1947,32 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
           const i = product.cards.findIndex((c) => c.id === task.id);
           return (
             <div style={{ marginTop: 8, padding: '7px 9px', border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 8, background: 'var(--bg-2)' }}>
-              <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 5 }}>
+              <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginBottom: 5, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 📕 <span style={{ color: 'var(--fg-2)', fontWeight: 700 }}>{product.title}</span> · bước {i + 1}/{product.cards.length} · {product.done}/{product.total} xong
+                {product.done > product.approved && <span style={{ color: SITE_STATUS_META.review.color }}>({product.done - product.approved} chờ duyệt)</span>}
+                {/* Card "viết chương X" thì thứ người ta mở drawer để xem là BẢN THẢO, mà bản thảo
+                    nằm trong drawer sản phẩm — trước đây không có đường nào đi từ card sang đó.
+                    Đóng card rồi mở sản phẩm (không xếp chồng): drawer sản phẩm render TRƯỚC trong
+                    DOM nên nếu mở chồng lên sẽ bị chính card che mất. Bấm lại số bước là quay về. */}
+                {onOpenProduct && (
+                  <button type="button" onClick={() => onOpenProduct(product.slug)} title="Mở bản thảo — đọc từng chương + bản dựng PDF"
+                    style={{ marginLeft: 'auto', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, padding: '1px 8px', borderRadius: 6,
+                      border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)' }}>
+                    📄 Đọc nội dung · {product.chapters.length} chương
+                  </button>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {product.cards.map((c, n) => {
                   const done = isFinished(c.status);   // 'review' cũng là làm xong (chưa duyệt) — lib/site-status
+                  const cm = SITE_STATUS_META[c.status as SiteStatus] ?? SITE_STATUS_META.pending;
                   const cur = c.id === task.id;
                   return (
-                    <button key={c.id} type="button" onClick={() => !cur && onOpenTask(c.id)} title={`${c.title}${c.date ? ` · ${c.date}` : ''}`}
+                    <button key={c.id} type="button" onClick={() => !cur && onOpenTask(c.id)} title={`${c.title} · ${cm.label}${c.date ? ` · ${c.date}` : ''}`}
                       style={{ cursor: cur ? 'default' : 'pointer', fontSize: 10.5, padding: '1px 8px', borderRadius: 999,
-                        border: `1px solid ${cur ? 'var(--accent)' : 'var(--line)'}`,
+                        border: `1px solid ${cur ? 'var(--accent)' : `color-mix(in srgb, ${cm.color} 55%, transparent)`}`,
                         background: cur ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'transparent',
-                        color: cur ? 'var(--fg-1)' : done ? 'var(--fg-4)' : 'var(--fg-2)', fontWeight: cur ? 700 : 400 }}>
+                        color: cur ? 'var(--fg-1)' : cm.color, fontWeight: cur ? 700 : 400 }}>
                       {done ? '✓' : '○'} {n + 1}
                     </button>
                   );

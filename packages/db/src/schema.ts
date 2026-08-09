@@ -468,6 +468,10 @@ export const platforms = pgTable(
     passwordSetupUrl: text('password_setup_url'),
     // Kịch bản login dạng data ({"steps":[…]}). NULL = dùng heuristic chung trong refresh-sessions.mjs.
     loginRecipe: jsonb('login_recipe'),
+    // Favicon đã cache (base64) — phục vụ qua /api/platform-icon/<key>, xem mig 0169.
+    iconData: text('icon_data'),
+    iconMime: text('icon_mime'),
+    iconFetchedAt: timestamp('icon_fetched_at', { withTimezone: true }),
     // Kịch bản reset password. NULL = không tự reset (mặc định an toàn).
     passwordResetRecipe: jsonb('password_reset_recipe'),
     // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.

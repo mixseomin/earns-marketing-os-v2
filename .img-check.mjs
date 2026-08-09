@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const E = process.env;
+const b = await chromium.launch({ headless: true });
+const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+await ctx.addCookies([{ name: 'mos2-session', value: E.TOKEN, domain: '127.0.0.1', path: '/' }]);
+const page = await ctx.newPage();
+const imgReqs = [];
+page.on('response', (r) => { if (/\/api\/media\/|\.(png|jpe?g|webp|gif)(\?|$)/i.test(r.url())) imgReqs.push(`${r.status()} ${r.url().slice(0, 70)} ${r.headers()['content-length'] || '?'}B`); });
+await page.goto(`http://127.0.0.1:${E.PORT}${E.PATHNAME}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.waitForTimeout(6000);
+console.log(`Ảnh tải khi CHỈ mở bảng (${imgReqs.length}):`); imgReqs.forEach((x) => console.log('  ' + x));
+await b.close();

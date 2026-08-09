@@ -24,11 +24,13 @@ const KIND_DOMAIN: Record<string, string> = {
   feed: 'bsky.app', bluesky: 'bsky.app',
 };
 
-// platform_key → SiteFavicon props: dạng domain-dash (soundonsound-com→soundonsound.com,
-// lemmy-world→lemmy.world) → url; canonical (twitter/reddit/discord…) → kind (KIND_DOMAIN).
-export function platformFaviconProps(key: string): { url?: string; kind?: string } {
-  const k = (key || '').toLowerCase();
-  return /-[a-z0-9]{2,5}$/.test(k) ? { url: k.replace(/-([a-z0-9]+)$/, '.$1'), kind: k } : { kind: k };
+// platform_key → SiteFavicon props.
+// TRƯỚC (sai): đoán host từ chính cái key — chỉ khớp key dạng 'abc-com' + map cứng KIND_DOMAIN 12
+// dòng, nên saashub/uneed/f6s/webcatalog/gumroad… rơi về glyph emoji dù DB có URL thật.
+// NAY: giao cho route /api/platform-icon/<key>, nơi host lấy từ chính cột URL của platform và bytes
+// được cache trong DB. Giữ hàm này để mọi call-site cũ không phải sửa.
+export function platformFaviconProps(key: string): { platformKey: string } {
+  return { platformKey: (key || '').toLowerCase() };
 }
 
 function hostFromUrl(u?: string | null): string | null {
@@ -42,8 +44,11 @@ function hostFromUrl(u?: string | null): string | null {
 }
 
 export function SiteFavicon({
-  url, kind, iconSlug, glyph, size = 16, title, style,
+  platformKey, url, kind, iconSlug, glyph, size = 16, title, style,
 }: {
+  /** Ưu tiên cao nhất: icon phục vụ từ /api/platform-icon/<key> — đã cache trong DB, cache-control
+   *  1 năm, host lấy từ URL THẬT của platform. Không còn đoán bằng map cứng. */
+  platformKey?: string | null;
   url?: string | null;
   kind?: string | null;
   iconSlug?: string | null;
@@ -55,7 +60,8 @@ export function SiteFavicon({
   const [failed, setFailed] = useState(false);
 
   let src: string | null = null;
-  if (iconSlug) src = `https://cdn.simpleicons.org/${encodeURIComponent(iconSlug)}`;
+  if (platformKey) src = `/api/platform-icon/${encodeURIComponent(platformKey)}`;
+  if (!src && iconSlug) src = `https://cdn.simpleicons.org/${encodeURIComponent(iconSlug)}`;
   if (!src) {
     const host = hostFromUrl(url) ?? (kind ? KIND_DOMAIN[kind] ?? null : null);
     if (host) src = `https://icons.duckduckgo.com/ip3/${host}.ico`;

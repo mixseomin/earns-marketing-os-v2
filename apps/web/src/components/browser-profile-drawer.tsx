@@ -225,6 +225,17 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
                         {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
                         <span style={{ flex: 1 }} />
+                        {(() => {
+                          // Last access per account — cái quyết định session còn sống hay không.
+                          const d = a.lastUsedAt ? Math.floor((Date.now() - new Date(a.lastUsedAt).getTime()) / 86_400_000) : null;
+                          const col = d == null ? 'var(--bad)' : d >= 21 ? 'var(--bad)' : d >= 7 ? '#d9a441' : 'var(--fg-4)';
+                          return (
+                            <span title={a.lastUsedAt ? `Dùng gần nhất: ${new Date(a.lastUsedAt).toLocaleString()}` : 'Chưa ghi nhận lần dùng nào'}
+                              style={{ fontSize: 10, color: col, flexShrink: 0, fontWeight: d != null && d >= 7 ? 700 : 400 }}>
+                              {d == null ? '⚠ chưa dùng' : `${d}d`}
+                            </span>
+                          );
+                        })()}
                         <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
                       </div>
                     );

@@ -184,20 +184,24 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
 
 // Accounts logged in INSIDE a profile (the managing Google login + every app account).
 // Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
-export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean }
+// lastUsedAt = lần cuối account này thực sự được dùng. Session hết hạn theo TỪNG account (Reddit rụng
+// sớm hơn Google), nên "profile mở hôm qua" không có nghĩa mọi account bên trong còn sống.
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null }
 export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
-    SELECT id, platform_key, handle, email, status, project_id,
+    SELECT id, platform_key, handle, email, status, project_id, last_used_at,
            (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') AS is_manager
     FROM platform_accounts
     WHERE browser_profile_id = ${profileId} AND tenant_id = ${TENANT}
     ORDER BY (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') DESC, handle ASC`);
+  const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id), platformKey: String(r.platform_key), handle: String(r.handle ?? ''),
     email: (r.email as string | null) ?? null, status: String(r.status ?? ''),
     projectId: (r.project_id as string | null) ?? null, isManager: Boolean(r.is_manager),
+    lastUsedAt: toIso(r.last_used_at),
   }));
 }
 

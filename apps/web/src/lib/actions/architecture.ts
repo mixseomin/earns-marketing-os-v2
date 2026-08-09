@@ -395,6 +395,13 @@ export async function setBacklinkSite(taskId: number, site: string, status: stri
     } else {
       await db.execute(sql`UPDATE human_tasks SET status = 'pending', completed_at = NULL, updated_at = now() WHERE id = ${taskId} AND platform_key = 'backlink' AND status = 'completed'`);
     }
+    // Account gắn task vừa nhích trạng thái = account ĐÃ ĐƯỢC DÙNG → bump last_used_at. Trước đây cột
+    // này chỉ có `browsers link` ghi (lúc đăng ký), nên "Nd" trên profile drawer là tuổi BẢN GHI chứ
+    // không phải tuổi PHIÊN — nhìn vào tưởng account chết trong khi ngày nào cũng chạy. Đặt cùng chỗ
+    // với cổng done ở trên vì mọi đường ghi status (drawer/ext/`play`/Studio) đều qua đây.
+    await db.execute(sql`
+      UPDATE platform_accounts SET last_used_at = now()
+      WHERE id = (SELECT account_id FROM human_tasks WHERE id = ${taskId}) AND tenant_id = 'self'`);
     await syncTaskToProspect(taskId, site, status);   // reflect onto the linked outreach prospect
     await touchEntity('backlink', { projectId: await taskProjectId(taskId) });
     await touchEntity('outreach', { projectId: site });   // prospect is keyed by project_id = site slug

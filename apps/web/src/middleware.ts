@@ -17,6 +17,10 @@ const PUBLIC_API_PREFIXES = [
   // Cửa CÔNG KHAI duy nhất: trang landing gửi email + phản hồi người đọc vào đây. Chỉ NHẬN (POST),
   // không trả dữ liệu nào ra; tự chặn theo IP + bẫy bot. Xem app/api/public/lead/route.ts.
   '/api/public/',
+  // Favicon của platform: ẢNH công khai, không đọc/ghi dữ liệu nào của tenant (chỉ tra platforms.key
+  // → bytes icon). Để sau tường đăng nhập thì <img> trả 307 về /login, icon không hiện và trình duyệt
+  // cũng không cache được — tức là hỏng đúng cái nó sinh ra để làm.
+  '/api/platform-icon/',
 ];
 
 // user.on.tc = staff review portal. Confine that host to the review queue only (need-to-know):

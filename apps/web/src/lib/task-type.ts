@@ -114,3 +114,44 @@ export function taskTypeKey(t: TaskTypeInput): TaskTypeKey {
   const a = taskArchetype(t);
   return a === 'produce' ? taskFormat(t) : a;
 }
+
+// ── Per-type drawer layout (YDNI) ──────────────────────────────────────────────
+// Each task type surfaces a curated section set: 'primary' = open/inline (the hero
+// work), 'advanced' = collapsed behind one click, 'hidden' = not this type's job.
+// This is the SINGLE source of truth for "what does a <type> drawer look like" —
+// the drawer reads it instead of ad-hoc isBuild/isEmailSend booleans, so a produce
+// card never leaks the Account/verify sections a backlink card needs. Sections not
+// listed here (source+steps, assign, status, handover, feedback, footer, schedule)
+// are universal to every drawer. Availability still applies (e.g. paste kit only
+// shows when the project HAS kit copy) — policy just says where it belongs.
+export type SectionVis = 'primary' | 'advanced' | 'hidden';
+export type DrawerSection = 'account' | 'stack' | 'pasteKit' | 'draft' | 'aiContent' | 'media' | 'linkResult';
+export type SectionPolicy = Record<DrawerSection, SectionVis>;
+
+const BASE: Record<Archetype, SectionPolicy> = {
+  backlink:      { account: 'primary', stack: 'advanced', pasteKit: 'advanced', draft: 'advanced', aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
+  seed:          { account: 'primary', stack: 'hidden',   pasteKit: 'advanced', draft: 'primary',  aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
+  'email-send':  { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'hidden',   aiContent: 'hidden',   media: 'hidden',   linkResult: 'primary' },
+  'email-pitch': { account: 'primary', stack: 'hidden',   pasteKit: 'advanced', draft: 'hidden',   aiContent: 'primary',  media: 'hidden',   linkResult: 'advanced' },
+  produce:       { account: 'hidden',  stack: 'hidden',   pasteKit: 'advanced', draft: 'advanced', aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
+  publish:       { account: 'primary', stack: 'advanced', pasteKit: 'advanced', draft: 'hidden',   aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
+  account:       { account: 'primary', stack: 'hidden',   pasteKit: 'hidden',   draft: 'hidden',   aiContent: 'hidden',   media: 'hidden',   linkResult: 'hidden' },
+  research:      { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'hidden',   aiContent: 'advanced', media: 'hidden',   linkResult: 'hidden' },
+  review:        { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'advanced', aiContent: 'hidden',   media: 'hidden',   linkResult: 'hidden' },
+};
+
+/** The drawer section layout for a card. produce-format refines the deliverable tools. */
+export function taskSectionPolicy(t: TaskTypeInput): SectionPolicy {
+  const arch = taskArchetype(t);
+  const pol: SectionPolicy = { ...BASE[arch] };
+  if (arch !== 'produce') return pol;
+  // Promote the format's hero tool; hide tools that format never uses.
+  const fmt = taskFormat(t);
+  if (fmt === 'image')                          { pol.media = 'primary'; pol.draft = 'hidden'; pol.aiContent = 'hidden'; }
+  else if (fmt === 'article' || fmt === 'post') { pol.draft = 'primary'; pol.aiContent = 'primary'; }
+  else if (fmt === 'carousel')                  { pol.media = 'primary'; }
+  // ponytail: video/audio/pdf/landing/dataset/course/build inherit produce defaults
+  //           (all deliverable tools collapsed). Give a format its own hero tool here
+  //           when a dedicated studio (video render, carousel builder) lands — Phase B.
+  return pol;
+}

@@ -14,6 +14,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/ext/',
   '/api/auth/', // /api/auth/verify runs its own session check (204/401) for nginx auth_request SSO — must not be redirected
   '/api/review', // generic review queue — does its own auth (agent token OR session)
+  // Cửa CÔNG KHAI duy nhất: trang landing gửi email + phản hồi người đọc vào đây. Chỉ NHẬN (POST),
+  // không trả dữ liệu nào ra; tự chặn theo IP + bẫy bot. Xem app/api/public/lead/route.ts.
+  '/api/public/',
 ];
 
 // user.on.tc = staff review portal. Confine that host to the review queue only (need-to-know):

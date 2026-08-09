@@ -28,13 +28,32 @@ function useUrlParam(key: string, defaultValue: string): [string, (v: string) =>
   const params = useSearchParams();
   const value = params.get(key) ?? defaultValue;
   const set = (v: string) => {
-    const next = new URLSearchParams(params.toString());
+    // Đọc từ URL SỐNG, không từ `params` (snapshot lúc render). Gọi 2-3 setter trong cùng một handler
+    // — vd nút "✕ bỏ lọc" xoá acct+plat+sess — thì mọi lệnh đều dựng từ cùng một snapshot và
+    // router.replace sau đè lên trước: chỉ thay đổi cuối cùng sống sót, các filter kia vẫn nguyên.
+    const live = typeof window !== 'undefined' ? window.location.search : `?${params.toString()}`;
+    const next = new URLSearchParams(live);
     if (!v || v === defaultValue) next.delete(key);
     else next.set(key, v);
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
   return [value, set];
+}
+
+// Đổi NHIỀU param trong một lần ghi URL. Gọi set() nhiều lần liên tiếp không đáng tin: router.replace
+// cập nhật URL bất đồng bộ, nên lệnh sau vẫn có thể đọc trúng URL cũ và đè mất thay đổi trước
+// (sự cố 2026-08-09: nút "✕ bỏ lọc" chỉ xoá được 1 trong 3 filter).
+function useUrlPatch(): (patch: Record<string, string>) => void {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  return (patch) => {
+    const next = new URLSearchParams(params.toString());
+    for (const [k, v] of Object.entries(patch)) { if (v) next.set(k, v); else next.delete(k); }
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 }
 
 const HEALTH_META: Record<ProxyHealth, { label: string; color: string }> = {
@@ -468,7 +487,8 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
     return true;
   };
   const filtering = accts.length + plats.length + sessions.length > 0;
-  const clearAll = () => { setQ(''); setPlatRaw(''); setSessRaw(''); };
+  const patchUrl = useUrlPatch();
+  const clearAll = () => patchUrl({ acct: '', plat: '', sess: '' });   // MỘT lần ghi URL, xoá cả 3
   // Lọc theo ACCOUNT nhưng vẫn hiện theo PROFILE — profile là thứ mình mở để xử, account chỉ là lý do.
   const shown = filtering ? profiles.filter((p) => p.accounts.some(matches)) : profiles;
   // Cũ nhất lên đầu — cái cần chăm là cái phải nhìn thấy trước.

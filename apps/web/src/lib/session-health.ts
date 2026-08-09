@@ -81,3 +81,23 @@ export function sessionBadge(sessionState: string | null | undefined): { text: s
   return { text: 'CHƯA ĐO', color: TONE.muted, dashed: true,
     title: 'Chưa xác minh phiên lần nào. Platform này có thể chưa có session_check_url → browsers-refresh bỏ qua. Chưa biết ≠ đang tốt.' };
 }
+
+/**
+ * Account đang CHỜ được duyệt / chờ mail xác minh — trạng thái riêng, KHÔNG phải "rụng phiên".
+ * Trước đây không có chỗ chứa nên nó đội lốt status='warming' và bị job chấm thành login-failed,
+ * đẩy nhầm sang buổi login tay trong khi việc thật là chờ (rồi đòi) admin.
+ * Verdict do ~/bin/account-waiting ghi khi hết hạn chờ.
+ */
+const VERDICT: Record<string, { text: string; color: string; title: string }> = {
+  'mail-arrived': { text: 'CÓ MAIL', color: TONE.quiet, title: 'Mail đã về hộp thư của profile — vào xác minh rồi bỏ cờ chờ.' },
+  'site-dead': { text: 'SITE CHẾT', color: TONE.bad, title: 'Không truy cập được từ cả máy local lẫn server → site chết. Bỏ site này.' },
+  'ip-blocked': { text: 'IP BỊ CHẶN', color: TONE.bad, title: 'Server (IP nước ngoài) vào được nhưng máy local thì không → IP của mình bị chặn. Đăng ký lại qua proxy/IP khác.' },
+  'admin-silent': { text: 'ADMIN IM', color: TONE.warn, title: 'Site sống, IP không bị chặn, nhưng mail không bao giờ tới → admin không duyệt. Đòi admin hoặc bỏ.' },
+};
+
+export function pendingBadge(a: { pendingSince?: string | null; pendingVerdict?: string | null }) {
+  if (!a.pendingSince) return null;
+  if (a.pendingVerdict) return VERDICT[a.pendingVerdict] ?? { text: a.pendingVerdict.toUpperCase(), color: TONE.warn, title: '' };
+  const d = Math.floor((Date.now() - new Date(a.pendingSince).getTime()) / 86_400_000);
+  return { text: `CHỜ DUYỆT ${d}d`, color: TONE.warn, title: `Đang chờ duyệt/mail xác minh từ ${new Date(a.pendingSince).toLocaleDateString()}. Chạy \`account-waiting\` để check mail + chẩn đoán khi hết hạn chờ.` };
+}

@@ -15,7 +15,7 @@ import { AccountDrawer } from './account-drawer';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 // Ngưỡng + màu + badge phiên: dùng chung với environments-page, không chép lại.
-import { accountSession, sessionBadge, idleOf } from '@/lib/session-health';
+import { accountSession, sessionBadge, pendingBadge, idleOf } from '@/lib/session-health';
 
 // href.li wrap for external links (per global rule).
 const hl = wrapExternalUrl;
@@ -229,10 +229,12 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                         {(() => {
                           // Badge trạng thái PHIÊN, tách khỏi status vòng đời của account
                           // (active/warming/banned…): phiên rụng không có nghĩa account bị khoá.
-                          const b = sessionBadge(a.sessionState);
+                          // Chờ duyệt thắng badge phiên: account chưa được kích hoạt thì "rụng phiên"
+                          // là kết luận sai, và người đọc cần thấy việc THẬT (chờ/đòi admin).
+                          const b = pendingBadge(a) ?? sessionBadge(a.sessionState);
                           return b && (
                             <span title={b.title} style={{ fontSize: 9.5, fontWeight: 700, color: b.color,
-                              border: `1px ${b.dashed ? 'dashed' : 'solid'} ${b.color}`, borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>
+                              border: `1px ${'dashed' in b && b.dashed ? 'dashed' : 'solid'} ${b.color}`, borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>
                               {b.text}
                             </span>
                           );

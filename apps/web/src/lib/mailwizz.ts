@@ -60,3 +60,23 @@ export async function mailwizzSubscribe(listUid: string, email: string, name?: s
     await conn?.end().catch(() => {});
   }
 }
+
+/** Thống kê một list (đọc live). Trả về ok:false + lý do thay vì ném — panel hỏng phải NÓI ra. */
+export async function mailwizzListStats(listUid: string): Promise<{ ok: boolean; name?: string; total?: number; confirmed?: number; last?: string | null; error?: string }> {
+  if (!PASS) return { ok: false, error: 'chưa cấu hình MailWizz' };
+  let conn: mysql.Connection | null = null;
+  try {
+    conn = await mysql.createConnection({ host: HOST, port: PORT, user: USER, password: PASS, database: NAME, connectTimeout: 8000 });
+    const [rows] = await conn.execute(
+      `SELECT l.name,
+              (SELECT COUNT(*) FROM mw_list_subscriber s WHERE s.list_id = l.list_id) AS total,
+              (SELECT COUNT(*) FROM mw_list_subscriber s WHERE s.list_id = l.list_id AND s.status='confirmed') AS confirmed,
+              (SELECT MAX(s.date_added) FROM mw_list_subscriber s WHERE s.list_id = l.list_id) AS last
+       FROM mw_list l WHERE l.list_uid = ? LIMIT 1`, [listUid]);
+    const r = (rows as Array<{ name: string; total: number; confirmed: number; last: string | null }>)[0];
+    if (!r) return { ok: false, error: 'không có list' };
+    return { ok: true, name: r.name, total: Number(r.total), confirmed: Number(r.confirmed), last: r.last ? String(r.last) : null };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  } finally { await conn?.end().catch(() => {}); }
+}

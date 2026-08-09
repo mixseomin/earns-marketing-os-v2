@@ -35,6 +35,8 @@ export interface BuildingProduct {
   words: number;           // tổng số từ đã viết — thước tiến độ THẬT của một sản phẩm viết
   /** Bản dựng đọc được (PDF trong vault) — sản phẩm viết thì "xem thử" là thứ đầu tiên người ta cần. */
   build: { url: string; label: string; pages: number; plannedPages: number | null; builtAt: string | null } | null;
+  /** List email RIÊNG của sản phẩm (MailWizz). Mỗi sản phẩm một list thì mới đo được cái nào sống. */
+  list: { provider: string; uid: string } | null;
   /** Bìa bán hàng (vault media). Sản phẩm sắp lên store mà drawer không có bìa thì không duyệt được. */
   cover: string | null;
   /**
@@ -141,6 +143,10 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
             builtAt: (bd.builtAt as string) ?? null };
         })(),
         artifacts: (s.refs?.artifacts as BuildingProduct['artifacts']) ?? {},
+        list: (() => {
+          const l = s.refs?.list as { provider?: string; uid?: string } | undefined;
+          return l?.uid ? { provider: String(l.provider ?? 'mailwizz'), uid: String(l.uid) } : null;
+        })(),
         covers: (() => {
           const c = (s.refs?.cover as Record<string, unknown>) ?? {};
           return COVER_KINDS.filter((k) => c[k.key] != null).map((k) => {

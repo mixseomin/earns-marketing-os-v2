@@ -234,6 +234,35 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
   );
 }
 
+// DANH SÁCH EMAIL của sản phẩm — đọc live từ MailWizz. Mỗi sản phẩm một list, nên nhìn vào là biết
+// sản phẩm nào thật sự gom được người đọc. Hỏng thì NÓI hỏng, không hiện số 0 im lặng (số 0 giả làm
+// người ta tưởng landing không ai vào, trong khi thật ra đường đọc đang gãy).
+function ListStats({ list }: { list: { provider: string; uid: string } }) {
+  const [s, setS] = useState<{ ok: boolean; name?: string; total?: number; confirmed?: number; last?: string | null; error?: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/mailwizz/stats?uid=${encodeURIComponent(list.uid)}`)
+      .then((r) => r.json()).then((j) => { if (alive) setS(j); })
+      .catch((e) => { if (alive) setS({ ok: false, error: String(e) }); });
+    return () => { alive = false; };
+  }, [list.uid]);
+  return (
+    <div style={{ border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 8, padding: '9px 12px' }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+        ✉ Danh sách email · {list.provider}
+      </div>
+      {!s ? <span style={{ fontSize: 12, color: 'var(--fg-4)' }}>đang đọc…</span>
+        : !s.ok ? <span style={{ fontSize: 12, color: 'var(--bad,#ef4444)' }}>không đọc được: {s.error}</span>
+        : <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap', fontSize: 12 }}>
+            <span style={{ fontSize: 18, fontWeight: 800 }}>{s.confirmed}</span>
+            <span style={{ color: 'var(--fg-3)' }}>người đăng ký{s.total !== s.confirmed ? ` · ${s.total} tổng` : ''}</span>
+            {s.last && <span style={{ color: 'var(--fg-4)' }}>gần nhất {String(s.last).slice(0, 16)}</span>}
+            <span style={{ color: 'var(--fg-4)' }}>{s.name}</span>
+          </div>}
+    </div>
+  );
+}
+
 // Drawer sản phẩm: mô tả bán hàng · tiến độ từng bước · và ĐỌC ĐƯỢC từng chương.
 function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id: number) => void }) {
   const view = useMediaViewer();   // xem tại chỗ — KHÔNG mở tab mới (ui/media-viewer)
@@ -269,6 +298,8 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
       {/* BÌA — CẢ BỘ, không phải một tấm. Người mua thấy bìa trước cả tên sách, mà mỗi nền tảng ăn
           một khổ khác nhau; duyệt "đủ bìa chưa, khổ nào hỏng" phải làm ngay ở đây chứ không phải
           mở thư mục trên máy của người dựng. Bấm một khổ = mở file gốc trong vault. */}
+      {p.list && <ListStats list={p.list} />}
+
       {(p.covers.length ? p.covers : (p.cover ? [{ key: 'cover', label: 'Bìa', url: p.cover, w: null, h: null }] : [])).length > 0 && (
         <div>
           <div style={lbl}>Bìa · {p.covers.length || 1} khổ</div>

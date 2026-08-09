@@ -155,6 +155,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   const assignProj = async (pid: string) => { if (!profile || !pid) return; await assignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
   const unassignProj = async (pid: string) => { if (!profile) return; await unassignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
   const profileIdle = idleOf(opened);   // cùng ngưỡng/màu với card ở /environments
+  // Proxy gắn ở PROFILE (rig route cả profile qua 1 proxy — stealth.mjs đọc default_proxy_id), nên
+  // mọi account bên trong đi chung. Lấy label từ selection HIỆN TẠI (form) để badge đổi ngay khi
+  // đổi dropdown, không phải reload. Không có proxy = đi IP thật của máy, cũng cần nói rõ.
+  const activeProxy = form.defaultProxyId ? proxies.find((p) => p.id === form.defaultProxyId) ?? null : null;
   const isLocalPath = (form.externalId ?? '').startsWith('/'); // Playwright dir → openable via login.mjs
   const openCmd = `CAPTURE_PROFILE='${form.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
   const copyOpen = async () => { try { await navigator.clipboard.writeText(openCmd); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ } };
@@ -196,7 +200,13 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
         <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Open the profile — server can't launch the operator's local Chrome, so hand over the command. */}
           <div>
-            <span style={lbl}>🚀 Mở profile {isLocalPath ? '(máy có Playwright)' : ''} · <span style={{ textTransform: 'none', letterSpacing: 0, color: profileIdle.color }}>{opened ? `mở gần nhất ${opened.slice(0, 10)} (${profileIdle.days}d)${profileIdle.label ? ` ⚠ ${profileIdle.label}` : ''}` : 'chưa mở'}</span></span>
+            <span style={lbl}>🚀 Mở profile {isLocalPath ? '(máy có Playwright)' : ''} · <span style={{ textTransform: 'none', letterSpacing: 0, color: profileIdle.color }}>{opened ? `mở gần nhất ${opened.slice(0, 10)} (${profileIdle.days}d)${profileIdle.label ? ` ⚠ ${profileIdle.label}` : ''}` : 'chưa mở'}</span>
+              {activeProxy && (
+                <span title={`Mọi account trong profile này đi qua proxy: ${activeProxy.label}${activeProxy.location ? ` · ${activeProxy.location}` : ''} (${activeProxy.type}). IP thật của máy được che.`}
+                  style={{ marginLeft: 6, textTransform: 'none', letterSpacing: 0, fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px' }}>
+                  🛡 {activeProxy.location || activeProxy.label}
+                </span>
+              )}</span>
             {isLocalPath ? (
               <>
                 <div style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', wordBreak: 'break-all', color: 'var(--fg-2)', marginBottom: 6 }}>{openCmd}</div>
@@ -226,6 +236,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                             phân biệt được dòng nào là site nào, phải đọc chữ mới biết. */}
                         <SiteFavicon {...platformFaviconProps(a.platformKey)} size={15}
                           glyph={a.isManager ? '🔑' : '👤'} title={a.isManager ? 'Gmail quản lý (base login)' : a.platformKey} />
+                        {activeProxy && <span title={`Account này đi qua proxy ${activeProxy.label}${activeProxy.location ? ` · ${activeProxy.location}` : ''} — IP thật được che`} style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>🛡</span>}
                         <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
                           onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>

@@ -464,6 +464,8 @@ export const platforms = pgTable(
     // ~/bin/browsers-refresh. Riêng, không mượn post_url/signup_url: landing + trang đăng ký hiện
     // CTA "Sign in" cho cả người đã login nên chấm nhầm thành rụng phiên.
     sessionCheckUrl: text('session_check_url'),
+    // Trang đặt/đổi password. NULL = site SSO-only (không đặt được) hoặc chưa khảo sát.
+    passwordSetupUrl: text('password_setup_url'),
     // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.
     // NULL → fallback sang hardcoded helper trong apps/web/src/lib/platform-profile-urls.ts.
     profileUrlPattern: text('profile_url_pattern'),

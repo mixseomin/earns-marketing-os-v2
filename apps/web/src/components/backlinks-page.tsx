@@ -513,6 +513,14 @@ const MEDIA_NEED: Record<string, { label: string; hint: string; field: string }>
   flipboard:   { label: 'Cover ảnh', field: 'cover', hint: 'Ảnh bìa magazine + ảnh cho Notes.' },
 };
 
+// Produce cards (image/carousel/video) KHÔNG có platform → media need theo FORMAT thay vì platformKey,
+// nếu không mục 🖼 Media không bao giờ hiện dù policy để 'primary'. Keyed theo produce-format (typeKey).
+const PRODUCE_MEDIA_NEED: Record<string, { label: string; hint: string; field: string }> = {
+  image:    { label: 'Ảnh / bìa',   field: 'cover',      hint: 'Ảnh chính của deliverable (cover · OG · thumbnail). Tìm stock hoặc AI tạo.' },
+  carousel: { label: 'Slide ảnh',   field: 'cover',      hint: 'Bộ ảnh cho carousel (mỗi slide 1 ảnh).' },
+  video:    { label: 'Thumbnail',   field: 'thumbnail',  hint: 'Ảnh thumbnail 1280×720 cho video.' },
+};
+
 type DraftFmt = 'md' | 'html' | 'plain' | 'bbcode';
 const DRAFT_FMTS: { k: DraftFmt; label: string; hint: string }[] = [
   { k: 'md', label: 'Markdown', hint: 'dev.to · Reddit · Medium' },
@@ -1702,7 +1710,18 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   };
   // ⚠ report on a specific instruction line → flag the blocker directly (+ optional screenshot).
   const blockWithReason = async (reason: string, shot?: string) => { await setBacklinkBlocker(task.id, reason, shot); onChange(); };
-  const mediaNeed = task.platformKey ? MEDIA_NEED[task.platformKey] : undefined;
+  // Loại chi tiết của card (archetype × produce-format) → badge + BỐ CỤC drawer + AVAILABILITY theo type.
+  // Đặt SỚM (trước mediaNeed/needsPost) vì produce card không có platform → format phải quyết được media/draft.
+  const typeInput = { title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions, archetype: task.archetype, format: task.format };
+  const typeKey = taskTypeKey(typeInput);
+  const tmeta = TYPE_META[typeKey];
+  const arch = taskArchetype(typeInput);
+  const isProduce = arch === 'produce';   // mọi format sản-xuất (kể cả khi taskKind chưa nhận ra 'build')
+  const pol = taskSectionPolicy(typeInput);   // YDNI: section nào primary/advanced/hidden — 1 nguồn chân lý
+  // Media availability: platform-driven cho backlink; produce card KHÔNG có platform → format quyết
+  // (image/carousel/video có need riêng). Thiếu nhánh này thì drawer produce trống trơn — không hiện media.
+  const mediaNeed = (task.platformKey ? MEDIA_NEED[task.platformKey] : undefined)
+    ?? (isProduce ? PRODUCE_MEDIA_NEED[typeKey] : undefined);
   // Scope to THIS task's project — the global /plays board ships the whole media vault (listMedia() with no
   // arg); without this filter the drawer rendered every project's images (dozens of <img>) and hung the page.
   const imgs = media.filter((m) => m.projectId === project.id && ((m.mimeType || '').startsWith('image') || m.kind === 'image'));
@@ -1770,7 +1789,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   };
   // Some placements require you to publish a post/article to embed the link. Offer an
   // AI writer that produces that draft in-drawer (saved to prep_payload.draft → flows below).
-  const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`);
+  const needsPost = /post|article|blog|write|guest|review|content|đăng|bài/i.test(`${task.mechanism || ''} ${task.instructions || ''} ${task.title || ''}`) || (isProduce && (typeKey === 'article' || typeKey === 'post'));
   // Task shape drives what the drawer shows (surface mirrors the real work order):
   //  - email-pitch (resource pages / LibGuides / editorial): the work IS writing an email → lead with an email generator.
   //  - "Built with"/stack chips only matter for shoutout/directory/launch listings — noise elsewhere.
@@ -1781,14 +1800,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   // 📕 Card làm SẢN PHẨM (thuộc một product / mech writing…): không đặt link ở đâu cả → "kết quả" là bản
   // dựng hoặc trang sản phẩm, và kiểm dofollow là vô nghĩa. Cùng taxonomy với bộ lọc loại việc ở trên.
   const kind = taskKind({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product });
-  // Loại chi tiết của card (archetype × produce-format) → badge nhận diện ở header + gate section theo type.
-  const typeInput = { title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions, archetype: task.archetype, format: task.format };
-  const typeKey = taskTypeKey(typeInput);
-  const tmeta = TYPE_META[typeKey];
-  const arch = taskArchetype(typeInput);
-  const isProduce = arch === 'produce';   // mọi format sản-xuất (kể cả khi taskKind chưa nhận ra 'build')
-  // BỐ CỤC drawer theo LOẠI (YDNI): section nào primary/advanced/hidden — 1 nguồn chân lý (lib/task-type).
-  const pol = taskSectionPolicy(typeInput);
+  // typeInput/typeKey/arch/isProduce/pol đã tính SỚM ở trên (trước mediaNeed) — dùng lại ở đây.
   // CỔNG "xong phải có kết quả" — lý do lấy từ lib/task-done (server dùng CÙNG hàm), tính trên dữ liệu ĐÃ
   // LƯU + link đang gõ (link được ghi kèm khi bấm status, còn ghi chú thì phải Lưu trước mới tính).
   const doneBlock = doneBlockReason({ kind, url: url.trim() || task.siteLiveUrl, note: task.workerNote }, 'completed');

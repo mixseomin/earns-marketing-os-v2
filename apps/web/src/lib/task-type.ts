@@ -149,6 +149,7 @@ export function taskSectionPolicy(t: TaskTypeInput): SectionPolicy {
   const fmt = taskFormat(t);
   if (fmt === 'image')                          { pol.media = 'primary'; pol.draft = 'hidden'; pol.aiContent = 'hidden'; }
   else if (fmt === 'article' || fmt === 'post') { pol.draft = 'primary'; pol.aiContent = 'primary'; }
+  else if (fmt === 'video')                     { pol.media = 'primary'; pol.aiContent = 'primary'; }   // thumbnail + script
   else if (fmt === 'carousel')                  { pol.media = 'primary'; }
   // ponytail: video/audio/pdf/landing/dataset/course/build inherit produce defaults
   //           (all deliverable tools collapsed). Give a format its own hero tool here

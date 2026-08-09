@@ -466,6 +466,8 @@ export const platforms = pgTable(
     sessionCheckUrl: text('session_check_url'),
     // Trang đặt/đổi password. NULL = site SSO-only (không đặt được) hoặc chưa khảo sát.
     passwordSetupUrl: text('password_setup_url'),
+    // Kịch bản login dạng data ({"steps":[…]}). NULL = dùng heuristic chung trong refresh-sessions.mjs.
+    loginRecipe: jsonb('login_recipe'),
     // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.
     // NULL → fallback sang hardcoded helper trong apps/web/src/lib/platform-profile-urls.ts.
     profileUrlPattern: text('profile_url_pattern'),

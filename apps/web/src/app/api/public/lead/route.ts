@@ -110,7 +110,7 @@ export async function POST(req: Request) {
   // gốc đã nằm trong contacts, đồng bộ lại được bất cứ lúc nào.
   const list = LISTS[source] ?? LISTS.default;
   if (list) {
-    const r = await mailwizzSubscribe(list, email, name);
+    const r = await mailwizzSubscribe(list, email, name, ip);
     if (!r.ok) console.error('[public/lead] MailWizz không nhận:', email, r.error);
   }
 

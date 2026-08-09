@@ -38,6 +38,11 @@ export interface BuildingProduct {
   /** Bìa bán hàng (vault media). Sản phẩm sắp lên store mà drawer không có bìa thì không duyệt được. */
   cover: string | null;
   /**
+   * TẤT CẢ khổ bìa đã dựng, đọc thẳng từ vault. Bộ bìa nằm ở thư mục trên máy cá nhân thì chỉ người
+   * dựng nó xem được — mà duyệt bìa là việc phải làm trên bảng, ở đâu cũng mở được.
+   */
+  covers: Array<{ key: string; label: string; url: string; w: number | null; h: number | null }>;
+  /**
    * Card tạo ra TRANG chứ không tạo ra chương (bản quyền, trang cuối, hình) — không có chương để
    * đọc, nhưng vẫn phải xem được kết quả. Khoá = id card, giá trị = các trang trong bản dựng.
    * Thiếu đường này thì mở card 409 ra trắng trơn, người duyệt không có gì để duyệt.
@@ -51,6 +56,19 @@ export interface BuildingProduct {
 }
 
 const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+// refs.cover.<key> → nhãn hiển thị. Thứ tự ở đây LÀ thứ tự hiện trên drawer: bìa chính trước,
+// mạng xã hội sau. Thêm khổ mới = thêm một dòng.
+const COVER_KINDS: Array<{ key: string; label: string }> = [
+  { key: 'bookId', label: 'Bìa sách · ảnh sản phẩm' },
+  { key: 'heroId', label: 'Hero trang bán' },
+  { key: 'thumbId', label: 'Thumbnail danh sách' },
+  { key: 'ogId', label: 'Thẻ chia sẻ (OG)' },
+  { key: 'xId', label: 'X / Twitter' },
+  { key: 'pinterestId', label: 'Pinterest' },
+  { key: 'instagramId', label: 'Instagram' },
+  { key: 'mediaId', label: 'Bìa' },
+];
 
 /** projectId bỏ trống = mọi project (dùng cho bảng /plays toàn cục). */
 export async function listBuildingProducts(projectId?: string): Promise<BuildingProduct[]> {
@@ -79,6 +97,16 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
       WHERE prep_payload->>'product' = ANY(${textArray(slugs)})
       ORDER BY id`) : [];
     const tasks = taskRows as unknown as Array<{ id: number; title: string; slug: string; st: string; d: string | null }>;
+
+    // Kích thước lấy từ vault chứ không ghi cứng trong code: dựng lại bìa ở khổ khác thì con số
+    // trên drawer tự đúng theo.
+    const coverIds = [...new Set(spines.flatMap((s2) =>
+      Object.values((s2.refs?.cover as Record<string, unknown>) ?? {}).map(Number).filter((n) => Number.isFinite(n))))];
+    const dimRows = coverIds.length ? await db.execute(sql`
+      SELECT id, width, height FROM media_assets
+      WHERE id IN (${sql.join(coverIds.map((i) => sql`${i}`), sql`, `)})`) : [];
+    const dims = new Map((dimRows as unknown as Array<{ id: number; width: number | null; height: number | null }>)
+      .map((r) => [Number(r.id), { w: r.width, h: r.height }]));
 
     return spines.map((s) => {
       const slug = String(s.refs?.slug ?? '');
@@ -113,6 +141,13 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
             builtAt: (bd.builtAt as string) ?? null };
         })(),
         artifacts: (s.refs?.artifacts as BuildingProduct['artifacts']) ?? {},
+        covers: (() => {
+          const c = (s.refs?.cover as Record<string, unknown>) ?? {};
+          return COVER_KINDS.filter((k) => c[k.key] != null).map((k) => {
+            const id = Number(c[k.key]);
+            return { key: k.key, label: k.label, url: `/api/media/${id}/raw`, w: dims.get(id)?.w ?? null, h: dims.get(id)?.h ?? null };
+          });
+        })(),
         // Ưu tiên bản NGANG cho drawer (bìa dọc 1:1.6 nhét vào drawer là một cột ảnh cao lêu nghêu);
         // bookId = ảnh sản phẩm gốc, dùng khi chưa có bản ngang.
         cover: (() => {

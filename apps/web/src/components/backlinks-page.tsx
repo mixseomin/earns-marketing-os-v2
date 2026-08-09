@@ -261,9 +261,33 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
         )}
       </div>
 
-      {/* BÌA — thứ người mua thấy trước cả tên sách trên store. Để nó ngay đầu drawer thì duyệt
-          "đã có bìa chưa" bằng mắt, không phải đi mở thư mục output trên máy. */}
-      {p.cover && <img src={p.cover} alt="" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--line)', display: 'block' }} />}
+      {/* BÌA — CẢ BỘ, không phải một tấm. Người mua thấy bìa trước cả tên sách, mà mỗi nền tảng ăn
+          một khổ khác nhau; duyệt "đủ bìa chưa, khổ nào hỏng" phải làm ngay ở đây chứ không phải
+          mở thư mục trên máy của người dựng. Bấm một khổ = mở file gốc trong vault. */}
+      {(p.covers.length ? p.covers : (p.cover ? [{ key: 'cover', label: 'Bìa', url: p.cover, w: null, h: null }] : [])).length > 0 && (
+        <div>
+          <div style={lbl}>Bìa · {p.covers.length || 1} khổ</div>
+          {p.cover && <a href={p.cover} target="_blank" rel="noopener noreferrer">
+            <img src={p.cover} alt="" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--line)', display: 'block' }} />
+          </a>}
+          {p.covers.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8, marginTop: 8 }}>
+              {p.covers.map((c) => (
+                <a key={c.key} href={c.url} target="_blank" rel="noopener noreferrer" title={`${c.label} — mở bản gốc`}
+                  style={{ textDecoration: 'none', color: 'var(--fg-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* nền ô cố định + object-fit:contain: khổ dọc và khổ ngang nằm chung một hàng mà
+                      không cái nào bị bóp méo hay nhảy cỡ ô. */}
+                  <span style={{ display: 'block', height: 78, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', overflow: 'hidden' }}>
+                    <img src={c.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                  </span>
+                  <span style={{ fontSize: 10, lineHeight: 1.3 }}>{c.label}</span>
+                  {c.w && c.h && <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{c.w}×{c.h}</span>}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <div style={lbl}>Mô tả bán hàng</div>

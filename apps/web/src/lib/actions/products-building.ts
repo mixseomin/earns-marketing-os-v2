@@ -113,8 +113,13 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
             builtAt: (bd.builtAt as string) ?? null };
         })(),
         artifacts: (s.refs?.artifacts as BuildingProduct['artifacts']) ?? {},
-        cover: (s.refs?.cover as { mediaId?: number } | undefined)?.mediaId
-          ? `/api/media/${Number((s.refs!.cover as { mediaId: number }).mediaId)}/raw` : null,
+        // Ưu tiên bản NGANG cho drawer (bìa dọc 1:1.6 nhét vào drawer là một cột ảnh cao lêu nghêu);
+        // bookId = ảnh sản phẩm gốc, dùng khi chưa có bản ngang.
+        cover: (() => {
+          const c = s.refs?.cover as { heroId?: number; bookId?: number; mediaId?: number } | undefined;
+          const id = c?.heroId ?? c?.bookId ?? c?.mediaId;
+          return id ? `/api/media/${Number(id)}/raw` : null;
+        })(),
         words: chapters.reduce((n, c) => n + (c.internal ? 0 : wordCount(c.content)), 0),
         cards,
         done,

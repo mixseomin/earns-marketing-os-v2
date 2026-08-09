@@ -12,6 +12,8 @@ import {
 import { accountStatusMeta } from '@/lib/status-meta';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { StatusBadge } from './ui/status-badge';
+// Filter bar = primitive nhà MultiSelect (search + count + multi), KHÔNG phải <select> thường.
+import { MultiSelect } from './ui/multi-select';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
@@ -440,20 +442,33 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
   const editing = modal.is("edit") ? profiles.find((x) => x.id === modal.numId) ?? null : null;
   const creating = modal.is("new");
   // Bộ lọc ở url-state: gửi link "cho tôi xem mấy account saashub đang rụng phiên" được, và F5 không mất.
+  // Multi-select (không phải 1-of-N) vì lọc thật hay là "saashub + f6s", "rụng phiên + chưa đo".
   const [q, setQ] = useUrlParam('acct', '');
-  const [platform, setPlatform] = useUrlParam('plat', '');
-  const [sess, setSess] = useUrlParam('sess', '');
-  const platforms = [...new Set(profiles.flatMap((p) => p.accounts.map((a) => a.platformKey)))].sort();
+  const [platRaw, setPlatRaw] = useUrlParam('plat', '');
+  const [sessRaw, setSessRaw] = useUrlParam('sess', '');
+  const csv = (s: string) => s.split(',').filter(Boolean);
+  const plats = csv(platRaw); const sessions = csv(sessRaw);
+  const allAccounts = profiles.flatMap((p) => p.accounts);
+  const platOptions = [...new Set(allAccounts.map((a) => a.platformKey))].sort()
+    .map((k) => ({ value: k, label: k, count: allAccounts.filter((a) => a.platformKey === k).length }));
+  const sessOf = (a: BrowserProfileRow['accounts'][number]) =>
+    a.sessionState === 'alive' ? 'alive' : a.sessionState === 'dead' ? 'dead' : 'unknown';
+  const sessOptions = [
+    { value: 'alive', label: '✓ còn login', count: allAccounts.filter((a) => sessOf(a) === 'alive').length },
+    { value: 'dead', label: '⚠ rụng phiên', count: allAccounts.filter((a) => sessOf(a) === 'dead').length },
+    { value: 'unknown', label: '? chưa đo / chưa rõ', count: allAccounts.filter((a) => sessOf(a) === 'unknown').length },
+  ];
+  const acctOptions = [...new Set(allAccounts.map((a) => a.handle).filter(Boolean))].sort()
+    .map((h) => ({ value: h, label: h }));
+  const accts = csv(q);
   const matches = (a: BrowserProfileRow['accounts'][number]) => {
-    const needle = q.trim().toLowerCase();
-    if (needle && !`${a.handle} ${a.platformKey}`.toLowerCase().includes(needle)) return false;
-    if (platform && a.platformKey !== platform) return false;
-    if (sess === 'alive' && a.sessionState !== 'alive') return false;
-    if (sess === 'dead' && a.sessionState !== 'dead') return false;
-    if (sess === 'unknown' && (a.sessionState === 'alive' || a.sessionState === 'dead')) return false;
+    if (accts.length && !accts.includes(a.handle)) return false;
+    if (plats.length && !plats.includes(a.platformKey)) return false;
+    if (sessions.length && !sessions.includes(sessOf(a))) return false;
     return true;
   };
-  const filtering = !!(q.trim() || platform || sess);
+  const filtering = accts.length + plats.length + sessions.length > 0;
+  const clearAll = () => { setQ(''); setPlatRaw(''); setSessRaw(''); };
   // Lọc theo ACCOUNT nhưng vẫn hiện theo PROFILE — profile là thứ mình mở để xử, account chỉ là lý do.
   const shown = filtering ? profiles.filter((p) => p.accounts.some(matches)) : profiles;
   // Cũ nhất lên đầu — cái cần chăm là cái phải nhìn thấy trước.
@@ -484,23 +499,14 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
       )}
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 account / handle…"
-          style={{ fontSize: 12, padding: '4px 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)', width: 180 }} />
-        <select value={platform} onChange={(e) => setPlatform(e.target.value)}
-          style={{ fontSize: 12, padding: '4px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }}>
-          <option value="">mọi platform</option>
-          {platforms.map((k) => <option key={k} value={k}>{k}</option>)}
-        </select>
-        <select value={sess} onChange={(e) => setSess(e.target.value)}
-          style={{ fontSize: 12, padding: '4px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }}>
-          <option value="">mọi trạng thái phiên</option>
-          <option value="alive">✓ còn login</option>
-          <option value="dead">⚠ rụng phiên</option>
-          <option value="unknown">? chưa đo / chưa rõ</option>
-        </select>
+        <MultiSelect<string> label="Account" options={acctOptions} selected={accts}
+          onChange={(v) => setQ(v.join(','))} searchPlaceholder="Tìm handle…" />
+        <MultiSelect<string> label="Platform" options={platOptions} selected={plats}
+          onChange={(v) => setPlatRaw(v.join(','))} />
+        <MultiSelect<string> label="Trạng thái phiên" options={sessOptions} selected={sessions}
+          onChange={(v) => setSessRaw(v.join(','))} />
         {filtering && (
-          <button className="btn" style={{ fontSize: 11 }}
-            onClick={() => { setQ(''); setPlatform(''); setSess(''); }}>✕ bỏ lọc</button>
+          <button type="button" className="btn" style={{ fontSize: 11 }} onClick={clearAll}>✕ bỏ lọc</button>
         )}
         {filtering && <small style={{ color: 'var(--fg-3)' }}>{ordered.length}/{profiles.length} profile</small>}
         <span style={{ flex: 1 }} />
@@ -513,7 +519,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
           {filtering ? (
             <>
               <p style={{ margin: '0 0 12px', fontSize: 12 }}>Không profile nào khớp bộ lọc.</p>
-              <button className="btn" onClick={() => { setQ(''); setPlatform(''); setSess(''); }}>✕ Bỏ lọc</button>
+              <button className="btn" onClick={clearAll}>✕ Bỏ lọc</button>
             </>
           ) : (
             <>

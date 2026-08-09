@@ -22,7 +22,7 @@ import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VI
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
-import type { BuildingProduct } from '@/lib/actions/products-building';
+import type { BuildingProduct, ProductChapter } from '@/lib/actions/products-building';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
 import { suggestProjectStack } from '@/lib/actions/projects';
 import { listAiContent, generateAiContent, deleteAiContent, normalizeInstructions, normalizeProjectInstructions, listTaskDomSamples, prepFillFields, type AiContentRow } from '@/lib/actions/ai-content';
@@ -233,7 +233,6 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
 
 // Drawer sản phẩm: mô tả bán hàng · tiến độ từng bước · và ĐỌC ĐƯỢC từng chương.
 function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id: number) => void }) {
-  const [openCh, setOpenCh] = useState<number | null>(p.chapters[0]?.id ?? null);
   const lbl: CSSProperties = { display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 };
   const pill: CSSProperties = { fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999, border: '1px solid var(--line)', textTransform: 'uppercase', letterSpacing: '.04em' };
   return (
@@ -298,8 +297,20 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
 
       <div>
         <div style={lbl}>Nội dung · {p.chapters.length} chương</div>
+        <ChapterList chapters={p.chapters} />
+      </div>
+    </div>
+  );
+}
+
+// ĐỌC CHƯƠNG — dùng chung cho drawer sản phẩm và drawer card. Card "viết chương X" mà mở ra không
+// có lấy một chữ của chương thì trạng thái "xong" không kiểm được: người duyệt phải đi lục file ở
+// máy khác mới biết có thật không. Bản thảo nằm trong knowledge_items nên chỗ nào cũng đọc được.
+function ChapterList({ chapters }: { chapters: ProductChapter[] }) {
+  const [openCh, setOpenCh] = useState<number | null>(chapters.length === 1 ? chapters[0]!.id : null);
+  return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {p.chapters.map((ch) => (
+          {chapters.map((ch) => (
             <div key={ch.id} style={{ border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
               <button type="button" onClick={() => setOpenCh(openCh === ch.id ? null : ch.id)}
                 style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--bg-2)',
@@ -326,8 +337,6 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
             </div>
           ))}
         </div>
-      </div>
-    </div>
   );
 }
 
@@ -761,7 +770,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const kindOf = useMemo(() => (t: BacklinkTask) => taskKind({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
   // Ký hiệu LOẠI chi tiết: archetype (backlink/seed/email/publish/account…) hoặc produce-format
   // (article/video/image/post…) → 1 glyph riêng cho mỗi loại (TYPE_META) → liếc board biết loại ngay.
-  const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
+  const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id), instructions: t.instructions, archetype: t.archetype, format: t.format }), [productTaskIds]);
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
   const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
@@ -1773,7 +1782,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   // dựng hoặc trang sản phẩm, và kiểm dofollow là vô nghĩa. Cùng taxonomy với bộ lọc loại việc ở trên.
   const kind = taskKind({ title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product });
   // Loại chi tiết của card (archetype × produce-format) → badge nhận diện ở header + gate section theo type.
-  const typeInput = { title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions };
+  const typeInput = { title: task.title, mechanism: task.mechanism, communitySeed: task.communitySeed, product: !!product, instructions: task.instructions, archetype: task.archetype, format: task.format };
   const typeKey = taskTypeKey(typeInput);
   const tmeta = TYPE_META[typeKey];
   const arch = taskArchetype(typeInput);
@@ -1978,6 +1987,22 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
                   );
                 })}
               </div>
+            </div>
+          );
+        })()}
+
+        {/* NỘI DUNG ĐÃ LÀM — bản thảo do CHÍNH card này viết ra, đọc ngay tại đây. Trước đây drawer
+            chỉ có link kết quả trỏ vào PDF cả quyển: muốn duyệt "card này viết chương 0-1 chưa" thì
+            phải tải file 74 trang về tự dò. Ghép qua refs.tasks của chương (products-building). */}
+        {product && (() => {
+          const mine = product.chapters.filter((ch) => ch.tasks.includes(task.id));
+          if (!mine.length) return null;
+          return (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>
+                📄 Nội dung đã làm · {mine.length} chương · {mine.reduce((n, c) => n + c.chars, 0).toLocaleString()} ký tự
+              </div>
+              <ChapterList chapters={mine} />
             </div>
           );
         })()}

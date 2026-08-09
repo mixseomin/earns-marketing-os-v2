@@ -17,7 +17,9 @@ import { isFinished } from '@/lib/site-status';
 // keyPoints = ý chính, hiện NGOÀI phần gập: người review/đọc nắm nội dung mà không phải mở ra đọc hết.
 // internal = tài liệu NỘI BỘ (outline, ghi chú) — vẫn xem được nhưng KHÔNG tính vào số từ bản thảo,
 // không thì tiến độ tự thổi phồng bằng chính kế hoạch của mình.
-export interface ProductChapter { id: number; title: string; order: number; chars: number; content: string; keyPoints: string[]; internal: boolean; }
+// tasks = các card đã viết ra chương này (refs.tasks). Một chương có thể do nhiều card: card đầu
+// viết bản đầu, card sau đào sâu. Nhờ nó mà mở drawer một card là đọc được ĐÚNG phần nó làm ra.
+export interface ProductChapter { id: number; title: string; order: number; chars: number; content: string; keyPoints: string[]; internal: boolean; tasks: number[]; }
 export interface ProductCard { id: number; title: string; status: string; date: string | null; }
 export interface BuildingProduct {
   slug: string;
@@ -76,7 +78,8 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
         .filter((r) => r.kind === 'product-chapter' && r.refs?.slug === slug)
         .map((r) => ({ id: Number(r.id), title: r.title, order: Number(r.refs?.order ?? 0), chars: r.content.length, content: r.content,
           keyPoints: Array.isArray(r.refs?.key_points) ? (r.refs.key_points as unknown[]).map(String) : [],
-          internal: r.refs?.internal === true }));
+          internal: r.refs?.internal === true,
+          tasks: Array.isArray(r.refs?.tasks) ? (r.refs.tasks as unknown[]).map(Number) : [] }));
       const cards = tasks.filter((t) => t.slug === slug)
         .map((t) => ({ id: Number(t.id), title: t.title, status: t.st, date: t.d }));
       const done = cards.filter((c) => isFinished(c.status)).length;   // gồm cả 'review' — xong việc, chưa duyệt

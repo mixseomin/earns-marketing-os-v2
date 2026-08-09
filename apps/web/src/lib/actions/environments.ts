@@ -12,6 +12,10 @@ import type { TeamMemberRow } from '@/lib/actions/team';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
+// Postgres trả Date hoặc string tuỳ driver/kiểu cột — chuẩn hoá một chỗ (trước đây định nghĩa lại
+// trong từng hàm, ba bản y hệt).
+const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
+
 function ensureDb() {
   const db = getDb();
   if (!db) throw new Error('DATABASE_URL not configured.');
@@ -53,7 +57,6 @@ export async function listProxies(): Promise<ProxyRow[]> {
       ${operatorFilter}
     ORDER BY p.health DESC, p.label ASC
   `);
-  const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),
     label: String(r.label),
@@ -173,7 +176,6 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
       ${operatorFilter}
     ORDER BY bp.tool ASC, bp.label ASC
   `);
-  const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
   const accountsOf = (r: Record<string, unknown>) =>
     ((r.accounts as Array<Record<string, unknown>> | null) ?? []).map((a) => ({
       id: Number(a.id),
@@ -218,7 +220,6 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     FROM platform_accounts
     WHERE browser_profile_id = ${profileId} AND tenant_id = ${TENANT}
     ORDER BY (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') DESC, handle ASC`);
-  const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id), platformKey: String(r.platform_key), handle: String(r.handle ?? ''),
     email: (r.email as string | null) ?? null, status: String(r.status ?? ''),

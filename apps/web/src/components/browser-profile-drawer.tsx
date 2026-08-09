@@ -14,6 +14,8 @@ import { Drawer, ProjectAssign, EntityRef } from './ui';
 import { AccountDrawer } from './account-drawer';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
+// Ngưỡng + màu + badge phiên: dùng chung với environments-page, không chép lại.
+import { accountSession, sessionBadge, idleOf } from '@/lib/session-health';
 
 // href.li wrap for external links (per global rule).
 const hl = wrapExternalUrl;
@@ -151,7 +153,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   }, [profile]);
   const assignProj = async (pid: string) => { if (!profile || !pid) return; await assignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
   const unassignProj = async (pid: string) => { if (!profile) return; await unassignBrowserProfileProject(profile.id, pid); await loadProjects(profile.id); };
-  const idle = opened ? Math.floor((Date.now() - new Date(opened).getTime()) / 86400000) : null;
+  const profileIdle = idleOf(opened);   // cùng ngưỡng/màu với card ở /environments
   const isLocalPath = (form.externalId ?? '').startsWith('/'); // Playwright dir → openable via login.mjs
   const openCmd = `CAPTURE_PROFILE='${form.externalId ?? ''}' NODE_PATH=/Users/htuan/Me/Earns/courseforge-demo/node_modules node /Users/htuan/Me/Earns/courseforge-demo/login.mjs`;
   const copyOpen = async () => { try { await navigator.clipboard.writeText(openCmd); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ } };
@@ -193,7 +195,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
         <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Open the profile — server can't launch the operator's local Chrome, so hand over the command. */}
           <div>
-            <span style={lbl}>🚀 Mở profile {isLocalPath ? '(máy có Playwright)' : ''} · <span style={{ textTransform: 'none', letterSpacing: 0, color: idle != null && idle > 7 ? 'var(--bad)' : 'var(--fg-3)' }}>{opened ? `mở gần nhất ${opened.slice(0, 10)} (${idle}d)${idle != null && idle > 7 ? ' ⚠ nên mở lại' : ''}` : 'chưa mở'}</span></span>
+            <span style={lbl}>🚀 Mở profile {isLocalPath ? '(máy có Playwright)' : ''} · <span style={{ textTransform: 'none', letterSpacing: 0, color: profileIdle.color }}>{opened ? `mở gần nhất ${opened.slice(0, 10)} (${profileIdle.days}d)${profileIdle.label ? ` ⚠ ${profileIdle.label}` : ''}` : 'chưa mở'}</span></span>
             {isLocalPath ? (
               <>
                 <div style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', wordBreak: 'break-all', color: 'var(--fg-2)', marginBottom: 6 }}>{openCmd}</div>
@@ -224,35 +226,20 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                           onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
                         {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
-                        {/* Trạng thái PHIÊN, tách khỏi status vòng đời của account (active/warming/banned…):
-                            phiên rụng không có nghĩa account bị khoá, và ngược lại. */}
-                        {a.sessionState === 'dead' && <span title="browsers-refresh xác minh: đã bị đăng xuất. Chạy `browsers-refresh --idle 0` để thử login lại, hoặc mở profile login tay." style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--bad)', border: '1px solid var(--bad)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>RỤNG PHIÊN</span>}
-                        {(a.sessionState === 'unsure' || a.sessionState === 'blocked') && <span title={a.sessionState === 'blocked' ? 'Kẹt challenge Cloudflare quá 30s — chưa đo được' : 'Không thấy dấu hiệu đăng nhập nào trên trang — nhiều khả năng platforms.session_check_url trỏ sai. Ảnh: /tmp/session-unsure-*.png'} style={{ fontSize: 9.5, fontWeight: 700, color: '#d9a441', border: '1px solid #d9a441', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>CHƯA RÕ</span>}
-                        {/* Chưa đo lần nào cũng phải hiện — im lặng ở đây bị đọc thành "đã kiểm, đang ổn". */}
-                        {!a.sessionState && <span title="Chưa xác minh phiên lần nào. Platform này có thể chưa có session_check_url → browsers-refresh bỏ qua. Chưa biết ≠ đang tốt." style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--fg-4)', border: '1px dashed var(--fg-4)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>CHƯA ĐO</span>}
-                        <span style={{ flex: 1 }} />
                         {(() => {
-                          // Hai con số KHÁC nhau, đừng trộn:
-                          //  · lastUsedAt   = lần cuối account được dùng. NULL = CHƯA ĐO, không phải phiên chết
-                          //    → xám, không đỏ. Tô đỏ chỗ này là báo động giả (cột chỉ mới có writer từ 2026-08-09).
-                          //  · sessionExpiresAt = hạn cookie đăng nhập THẬT, do `browsers-refresh` đọc từ profile.
-                          //    Có nó thì đếm ngược theo nó; không có thì không bịa hạn.
-                          const d = a.lastUsedAt ? Math.floor((Date.now() - new Date(a.lastUsedAt).getTime()) / 86_400_000) : null;
-                          const left = a.sessionExpiresAt ? Math.floor((new Date(a.sessionExpiresAt).getTime() - Date.now()) / 86_400_000) : null;
-                          const col = left != null
-                            ? (left <= 0 ? 'var(--bad)' : left <= 7 ? '#d9a441' : 'var(--fg-4)')
-                            : d == null ? 'var(--fg-4)' : d >= 21 ? '#d9a441' : 'var(--fg-4)';
-                          const tip = [
-                            a.lastUsedAt ? `Dùng gần nhất: ${new Date(a.lastUsedAt).toLocaleString()} (${d}d trước)` : 'Chưa đo lần dùng nào — cột last_used_at mới có writer từ 2026-08-09, NULL ở đây nghĩa là chưa biết, không phải phiên đã chết.',
-                            left != null
-                              ? `Cookie đăng nhập hết hạn: ${new Date(a.sessionExpiresAt!).toLocaleString()} → ${left <= 0 ? 'ĐÃ HẾT HẠN' : `còn ~${left} ngày`}`
-                              : 'Chưa biết hạn phiên — chạy `browsers-refresh --idle 0` để đọc hạn cookie thật từ profile.',
-                          ].join('\n');
-                          return (
-                            <span title={tip} style={{ fontSize: 10, color: col, flexShrink: 0, fontWeight: (left != null && left <= 7) ? 700 : 400 }}>
-                              {left != null ? (left <= 0 ? '⚠ hết hạn' : `còn ${left}d`) : d == null ? '· chưa đo' : `${d}d`}
+                          // Badge trạng thái PHIÊN, tách khỏi status vòng đời của account
+                          // (active/warming/banned…): phiên rụng không có nghĩa account bị khoá.
+                          const b = sessionBadge(a.sessionState);
+                          return b && (
+                            <span title={b.title} style={{ fontSize: 9.5, fontWeight: 700, color: b.color,
+                              border: `1px ${b.dashed ? 'dashed' : 'solid'} ${b.color}`, borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>
+                              {b.text}
                             </span>
                           );
+                        })()}
+                        {(() => {
+                          const h = accountSession(a);
+                          return <span title={h.tip} style={{ fontSize: 10, color: h.color, flexShrink: 0, fontWeight: h.bold ? 700 : 400 }}>{h.text}</span>;
                         })()}
                         <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
                       </div>

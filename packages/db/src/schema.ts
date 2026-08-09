@@ -468,6 +468,8 @@ export const platforms = pgTable(
     passwordSetupUrl: text('password_setup_url'),
     // Kịch bản login dạng data ({"steps":[…]}). NULL = dùng heuristic chung trong refresh-sessions.mjs.
     loginRecipe: jsonb('login_recipe'),
+    // Kịch bản reset password. NULL = không tự reset (mặc định an toàn).
+    passwordResetRecipe: jsonb('password_reset_recipe'),
     // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.
     // NULL → fallback sang hardcoded helper trong apps/web/src/lib/platform-profile-urls.ts.
     profileUrlPattern: text('profile_url_pattern'),
@@ -580,6 +582,8 @@ export const platformAccounts = pgTable(
     followUpAt: timestamp('follow_up_at', { withTimezone: true }),
     recoveryInfo: text('recovery_info'),
     passwordEnc: text('password_enc'),        // login password encrypted (pgcrypto) — mig 0085
+    // Password CŨ, do trigger trg_archive_password tự đẩy vào (mig 0165). Đừng ghi tay.
+    passwordHistory: jsonb('password_history').notNull().default([]),
     apiTokenEnc: text('api_token_enc'),       // encrypted at rest (pgcrypto, phase 3)
     monthlyCost: integer('monthly_cost').notNull().default(0),
     collectStats: boolean('collect_stats').notNull().default(false),

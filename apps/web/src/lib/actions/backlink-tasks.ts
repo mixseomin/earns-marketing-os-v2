@@ -50,6 +50,9 @@ export interface BacklinkTask {
   inputs: { label: string; url: string }[];   // link input cụ thể (sản phẩm, asset/vault, doc)
   doneWhen: string;                            // tiêu chí "xong" — làm ĐÚNG chưa
   dependsOn: number[];                         // id card cần output TRƯỚC (chuỗi phụ thuộc)
+  // Loại việc PIN tay (prep_payload.archetype/format) — thắng auto-detect, quyết bố cục drawer theo type.
+  archetype: string | null;                    // backlink|seed|email-send|email-pitch|produce|publish|account|research|review
+  format: string | null;                       // khi archetype=produce: article|video|image|post|audio|carousel|pdf|landing|dataset|course|build
   // Catalog provenance: the shared backlink_sources row this task's source_url comes from (null = ad-hoc, not in catalog).
   catalogSourceId: number | null;
   catalogSourceName: string | null;
@@ -263,11 +266,15 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
     // Bàn giao (prep_payload): inputs/done_when/depends_on — để chat khác nối tiếp. 1 query batched,
     // chỉ lấy card CÓ ít nhất 1 mảnh (?| ) cho nhẹ.
     const resumeById = new Map<number, TaskResume>();
+    const typeById = new Map<number, { archetype: string | null; format: string | null }>();
     if (ids.length) {
       const idList = sql.join(ids.map((i) => sql`${i}`), sql`, `);
-      const rs = await db.execute(sql`SELECT id, prep_payload->'inputs' AS inputs, prep_payload->>'done_when' AS done_when, prep_payload->'depends_on' AS depends_on
-        FROM human_tasks WHERE id IN (${idList}) AND platform_key = 'backlink' AND (prep_payload ?| array['inputs','done_when','depends_on'])`);
-      for (const r of rs as unknown as Array<{ id: number; inputs: unknown; done_when: unknown; depends_on: unknown }>) resumeById.set(Number(r.id), toResume(r.inputs, r.done_when, r.depends_on));
+      const rs = await db.execute(sql`SELECT id, prep_payload->'inputs' AS inputs, prep_payload->>'done_when' AS done_when, prep_payload->'depends_on' AS depends_on, prep_payload->>'archetype' AS archetype, prep_payload->>'format' AS format
+        FROM human_tasks WHERE id IN (${idList}) AND platform_key = 'backlink' AND (prep_payload ?| array['inputs','done_when','depends_on','archetype','format'])`);
+      for (const r of rs as unknown as Array<{ id: number; inputs: unknown; done_when: unknown; depends_on: unknown; archetype: string | null; format: string | null }>) {
+        resumeById.set(Number(r.id), toResume(r.inputs, r.done_when, r.depends_on));
+        if (r.archetype || r.format) typeById.set(Number(r.id), { archetype: r.archetype ?? null, format: r.format ?? null });
+      }
     }
 
     // Batched account + label lookup (no N+1): only platforms that can have an account.
@@ -318,6 +325,8 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         inputs: rz?.inputs ?? [],
         doneWhen: rz?.doneWhen ?? '',
         dependsOn: rz?.dependsOn ?? [],
+        archetype: typeById.get(t.id)?.archetype ?? null,
+        format: typeById.get(t.id)?.format ?? null,
         domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
         catalogSourceId: catSrc?.id ?? null,
         catalogSourceName: catSrc?.name ?? null,

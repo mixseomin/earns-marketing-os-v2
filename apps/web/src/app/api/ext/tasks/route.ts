@@ -26,6 +26,8 @@ interface Body {
   title?: string;
   instructions?: string;
   accountId?: number;
+  archetype?: string;   // PIN loại việc (lib/task-type) — thắng auto-detect ở drawer/calendar
+  format?: string;      // produce-format khi archetype='produce'
   /** Trạng thái per-site lúc tạo. 'done' = alias cũ của 'completed' (giữ để ext cũ không gãy).
    * Nhận MỌI trạng thái hợp lệ trong lib/site-status — trước đây chỉ hiểu pending|done nên
    * `play add --status submitted` phải tạo pending rồi gọi thêm một lượt ghi đè. Hai bước
@@ -65,6 +67,8 @@ export async function POST(req: Request) {
   const title = String(body.title ?? '').trim() || `${platform}${mechanism ? ' · ' + mechanism.slice(0, 40) : ''}`;
   const instructions = String(body.instructions ?? '').trim();
   const accountId = body.accountId != null ? Number(body.accountId) : null;
+  const archetype = String(body.archetype ?? '').trim();   // PIN loại việc (lib/task-type) — thắng auto-detect
+  const format = String(body.format ?? '').trim();          // produce-format khi archetype=produce
 
   // prep_payload keys khớp CHÍNH XÁC những gì GET /tasks/[id] đọc (source_url/mechanism/anchor/target_url).
   const pp: Record<string, unknown> = { source_url: sourceUrl, source_platform: platform };
@@ -72,6 +76,8 @@ export async function POST(req: Request) {
   if (anchor) pp.anchor = anchor;
   if (targetUrl) pp.target_url = targetUrl;
   if (placement) pp.placement = placement;   // write-only hiện tại (GET chưa đọc) — cho page-first drawer sau
+  if (archetype) pp.archetype = archetype;
+  if (format) pp.format = format;
 
   // The PLACED-LINK url (publish_url / site_url = "Live URL") only exists once the link is actually
   // placed (done). For a not-yet-done task (pending/plan/awaiting approval) there is NO live link —

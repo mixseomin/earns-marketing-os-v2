@@ -73,7 +73,10 @@ export async function POST(req: Request) {
   // Cùng email gửi lần hai = NỐI thêm phản hồi, không đè lên phản hồi cũ và không đẻ hàng trùng.
   await db.execute(sql`
     INSERT INTO contacts (tenant_id, project_id, name, email, notes, tags, imported_from, category, last_touched_at, created_at, updated_at)
-    VALUES ('self', 'codecrate', NULLIF(${name}, ''), ${email},
+    VALUES ('self', 'codecrate',
+            -- contacts.name là NOT NULL. Người để lại email hiếm khi điền tên → lấy phần trước @
+            -- làm tên tạm, KHÔNG để form gãy chỉ vì một cột bắt buộc.
+            COALESCE(NULLIF(${name}, ''), split_part(${email}, '@', 1)), ${email},
             NULLIF(${note}, ''), ${JSON.stringify(['reader', source])}::jsonb,
             ${`landing:${source}`}, 'reader', now(), now(), now())
     ON CONFLICT DO NOTHING`);

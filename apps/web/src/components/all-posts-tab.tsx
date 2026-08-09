@@ -30,7 +30,8 @@ import {
 import { serializeSeedingTabUrl } from '@/lib/posts-tab-url';
 import { LIFECYCLE_META } from '@/lib/lifecycle';
 import { fmtCompactNum } from '@/lib/format';
-import { MultiSelect as SharedMultiSelect } from './ui';
+import { MultiSelect as SharedMultiSelect, SiteFavicon } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 import { prefetchBriefModal } from '@/lib/brief-modal-cache';
 import { AccountKindIcon } from './account-kind-icon';
 import {
@@ -754,9 +755,8 @@ function PlatformIcon({ platformKey, label }: { platformKey: string | null; labe
                  style={{ width: 14, height: 14, display: 'inline-block', flex: '0 0 auto',
                           background: 'var(--bg-3)', borderRadius: 3 }} />;
   }
-  return <img src={`https://cdn.simpleicons.org/${platformKey}/d4d4d8`} alt="" title={label || platformKey}
-              width={14} height={14} onError={() => setErr(true)}
-              style={{ display: 'block', flex: '0 0 auto' }} />;
+  return <SiteFavicon {...platformFaviconProps(platformKey)} size={14} title={label || platformKey}
+              style={{ display: 'block' }} />;
 }
 
 // ── Subcomponents ─────────────────────────────────────────────────────

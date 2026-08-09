@@ -6,6 +6,7 @@
 // URL-synced (?m=schedule&mId=<briefId>).
 
 import { useState, useMemo, useEffect, useTransition, useRef } from 'react';
+import { platformFaviconProps } from './ui/site-favicon';
 import { useRouter } from 'next/navigation';
 import type { SeedingQueueItem, SeedingStatus } from '@/lib/actions/seeding';
 import type {
@@ -775,8 +776,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9.5,
                             fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
                 {it.platformKey && (
-                  <img src={`https://cdn.simpleicons.org/${it.platformKey}/a3a3a3`}
-                       alt="" width={10} height={10} style={{ opacity: 0.85 }} />
+                  <SiteFavicon {...platformFaviconProps(it.platformKey)} size={10} style={{ opacity: 0.85 }} />
                 )}
                 <span>{it.platformLabel}</span>
                 <span style={{ color: 'var(--fg-4)' }}>·</span>
@@ -1059,8 +1059,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
             <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
                            display: 'inline-flex', alignItems: 'center', gap: 3 }}>
               {it.platformKey && (
-                <img src={`https://cdn.simpleicons.org/${it.platformKey}/d4d4d8`}
-                     alt="" width={11} height={11} style={{ opacity: 0.85 }} />
+                <SiteFavicon {...platformFaviconProps(it.platformKey)} size={11} style={{ opacity: 0.85 }} />
               )}
               {it.platformLabel}
             </span>
@@ -1670,8 +1669,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
           <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
                          display: 'inline-flex', alignItems: 'center', gap: 3 }}>
             {g.platformKey && (
-              <img src={`https://cdn.simpleicons.org/${g.platformKey}/9ca3af`}
-                   alt="" width={11} height={11} style={{ opacity: 0.85 }} />
+              <SiteFavicon {...platformFaviconProps(g.platformKey)} size={11} style={{ opacity: 0.85 }} />
             )}
             {g.platformLabel}
           </span>
@@ -2589,9 +2587,7 @@ function RecentPostedSection({ cards, onOpenBrief }: {
                 {/* Platform icon */}
                 <span style={{ display: 'inline-flex', position: 'relative', flexShrink: 0 }}>
                   {c.platformKey ? (
-                    <img src={`https://cdn.simpleicons.org/${c.platformKey}/d4d4d8`}
-                         alt={c.platformLabel} width={14} height={14}
-                         style={{ verticalAlign: 'middle' }} />
+                    <SiteFavicon {...platformFaviconProps(c.platformKey)} size={14} title={c.platformLabel} />
                   ) : (
                     <span style={{ width: 14, height: 14, display: 'inline-block',
                                    background: 'var(--bg-3)', borderRadius: 3 }} />

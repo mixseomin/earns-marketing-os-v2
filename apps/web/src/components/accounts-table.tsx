@@ -20,7 +20,9 @@ import { fmtCompactNum } from '@/lib/format';
 import { fmtAgoShort } from '@/lib/time-format';
 import {
   MultiSelect, Segmented, EmptyState, Pill, IconChevron,
+  SiteFavicon,
 } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 
 // Lens lifecycle: cắt account theo giai đoạn sống. 'all' = tất cả; 'warmup' =
 // đang setup/đủ-điều-kiện (todo/creating/warming) — đây là nguồn block seeding
@@ -309,7 +311,7 @@ export function AccountsTable({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, color: 'var(--fg-0)',
                                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {a.platformKey && (
-                            <img src={`https://cdn.simpleicons.org/${a.platformKey}/a3a3a3`} alt="" width={13} height={13} style={{ opacity: 0.85, flexShrink: 0 }} />
+                            <SiteFavicon {...platformFaviconProps(a.platformKey)} size={13} title={a.platformKey} style={{ opacity: 0.85 }} />
                           )}
                           <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                             @{a.handle ?? <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>chưa có handle</span>}

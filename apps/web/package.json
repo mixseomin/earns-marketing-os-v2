@@ -17,6 +17,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@xyflow/react": "^12.3.5",
     "bcryptjs": "^3.0.3",
+    "mysql2": "^3.23.2",
     "next": "^15.0.3",
     "openai": "^4.79.0",
     "react": "^19.0.0",

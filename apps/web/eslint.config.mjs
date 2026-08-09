@@ -20,6 +20,14 @@ const GROUPS = {
     { selector: "JSXAttribute[name.name='preventBackdropClose'][value=null], JSXAttribute[name.name='preventEscClose'][value=null]", message: 'Cấm close-guard vô điều kiện. Form → dirty={<đã sửa?>}; view → bỏ. ui-conventions §1.' },
     { selector: "JSXAttribute[name.name='closeOnOutside'][value.expression.value=false], JSXAttribute[name.name='closeOnEsc'][value.expression.value=false]", message: 'Cấm closeOnOutside/closeOnEsc={false} vô điều kiện. Dùng dirty. ui-conventions §1.' },
   ],
+  // Favicon hand-roll: dựng URL cdn.simpleicons.org / icons.duckduckgo.com bằng tay thì mất fallback
+  // — platform ngoài simpleicons (saashub, cointalk-com, uneed…) hiện icon VỠ, và mỗi chỗ tự chọn
+  // kích thước/màu một kiểu. Dùng <SiteFavicon {...platformFaviconProps(key)} />: nó thử simpleicons
+  // → favicon theo domain → glyph emoji, không bao giờ vỡ layout. (2026-08-09: 7 chỗ hand-roll.)
+  favicon: [
+    { selector: "Literal[value=/cdn\\.simpleicons\\.org|icons\\.duckduckgo\\.com/]", message: 'Cấm tự dựng URL favicon. Dùng <SiteFavicon {...platformFaviconProps(platformKey)} /> — có fallback, platform lạ không vỡ icon.' },
+    { selector: "TemplateElement[value.cooked=/cdn\\.simpleicons\\.org|icons\\.duckduckgo\\.com/]", message: 'Cấm tự dựng URL favicon. Dùng <SiteFavicon {...platformFaviconProps(platformKey)} />.' },
+  ],
   // <select> trần = filter/picker hand-roll. Primitive nhà: <MultiSelect> (search + count + multi),
   // <Segmented> (1-of-N ngắn), <EntityPicker> (chọn entity). 2026-08-04 từng thử rule "<select> + .map"
   // và false-positive nặng; lần này chặn CỨNG toàn bộ <select> nhưng kèm allowlist sinh từ code hiện
@@ -88,6 +96,7 @@ const EXEMPT = {
   'src/components/unmapped-page.tsx': ['rawSelect'],
   'src/components/schedule-edit-modal.tsx': ['guard', 'rawSelect'],
   'src/components/ui/entity-ref.tsx': ['entityDef'],
+  'src/components/ui/site-favicon.tsx': ['favicon'],   // chính là primitive, nó ĐƯỢC phép dựng URL
   'src/components/seeding-cockpit.tsx': ['entityDef', 'rawSelect'],
   'src/components/content-value-page.tsx': ['entityDef', 'rawSelect'],
   'src/components/architecture/studio.tsx': ['entityDef', 'rawSelect'],

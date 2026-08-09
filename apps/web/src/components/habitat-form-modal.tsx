@@ -13,6 +13,7 @@ import {
 import { StatusFlag } from './ui';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
 import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 import {
   listBriefsForHabitat,
   listAddableAccountsForHabitat,
@@ -2882,9 +2883,8 @@ function HabitatBriefsSection({
                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                                  fontSize: 16, border: '1px solid var(--line)' }}>👤</span>
                   {b.platformKey && (
-                    <img src={`https://cdn.simpleicons.org/${b.platformKey}/d4d4d8`}
-                         alt={b.platformLabel}
-                         width={12} height={12}
+                    <SiteFavicon {...platformFaviconProps(b.platformKey)}
+                         size={12}
                          title={b.platformLabel}
                          style={{ position: 'absolute', right: -3, bottom: -3,
                                   background: 'var(--bg-1)', borderRadius: 3, padding: 1,

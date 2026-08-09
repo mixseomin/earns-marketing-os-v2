@@ -29,6 +29,7 @@ import {
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
 import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
   isParkedAccount,
@@ -189,10 +190,9 @@ const LINEAR_FLOW: AccountStatus[] = ['todo', 'creating', 'warming', 'active'];
 function PlatformIcon({ slug, size = 14 }: { slug: string; size?: number }) {
   if (!slug) return null;
   return (
-    <img
-      src={`https://cdn.simpleicons.org/${slug}/d4d4d8`}
-      alt="" width={size} height={size}
-      style={{ flexShrink: 0, opacity: 0.85, verticalAlign: 'middle' }}
+    <SiteFavicon
+      {...platformFaviconProps(slug)} size={size}
+      style={{ opacity: 0.85 }}
     />
   );
 }

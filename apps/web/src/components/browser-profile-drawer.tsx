@@ -10,7 +10,8 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
-import { Drawer, ProjectAssign, EntityRef } from './ui';
+import { Drawer, ProjectAssign, EntityRef, SiteFavicon } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 import { AccountDrawer } from './account-drawer';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -221,7 +222,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                     // over this profile drawer — no page jump). Manager 🔑 + status stay as row decoration.
                     return (
                       <div key={a.id} style={rowStyle}>
-                        <span title={a.isManager ? 'Gmail quản lý (base login)' : 'app account'} style={{ flexShrink: 0 }}>{a.isManager ? '🔑' : '👤'}</span>
+                        {/* Favicon của CHÍNH site — icon chung 👤 lặp lại ở mọi dòng thì mắt không
+                            phân biệt được dòng nào là site nào, phải đọc chữ mới biết. */}
+                        <SiteFavicon {...platformFaviconProps(a.platformKey)} size={15}
+                          glyph={a.isManager ? '🔑' : '👤'} title={a.isManager ? 'Gmail quản lý (base login)' : a.platformKey} />
                         <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
                           onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>

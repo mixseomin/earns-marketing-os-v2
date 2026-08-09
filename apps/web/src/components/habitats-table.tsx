@@ -13,6 +13,7 @@
 // Search + sort theo cột + filter platform/status/own. Footer tổng.
 
 import { useMemo, useState } from 'react';
+import { platformFaviconProps } from './ui/site-favicon';
 import type { HabitatRow, TribeRow } from '@/lib/data';
 import type { SeedingQueueItem } from '@/lib/actions/seeding';
 import { HabitatKindChip } from './habitat-kind-chip';
@@ -309,7 +310,7 @@ export function HabitatsTable({
                     <td style={{ ...TD }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {h.platformKey && (
-                          <img src={`https://cdn.simpleicons.org/${h.platformKey}/a3a3a3`} alt="" width={12} height={12} style={{ opacity: 0.85, flexShrink: 0 }} />
+                          <SiteFavicon {...platformFaviconProps(h.platformKey)} size={12} style={{ opacity: 0.85 }} />
                         )}
                         <HabitatKindChip kind={h.kind} size="sm" />
                       </div>

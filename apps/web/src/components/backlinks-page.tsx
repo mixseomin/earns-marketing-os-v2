@@ -2012,13 +2012,31 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
             phải tải file 74 trang về tự dò. Ghép qua refs.tasks của chương (products-building). */}
         {product && (() => {
           const mine = product.chapters.filter((ch) => ch.tasks.includes(task.id));
-          if (!mine.length) return null;
+          // Card không sinh ra chương thì sinh ra TRANG (bản quyền, trang cuối, hình). Mở thẳng
+          // đúng trang trong bản dựng — trước đây mấy card này mở ra trống, y như chưa làm gì.
+          const pages = product.artifacts[String(task.id)] ?? [];
+          if (!mine.length && !pages.length) return null;
+          const label = [mine.length ? `${mine.length} chương · ${mine.reduce((n, c) => n + c.chars, 0).toLocaleString()} ký tự` : '',
+            pages.length ? `${pages.length} trang trong bản dựng` : ''].filter(Boolean).join(' · ');
           return (
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>
-                📄 Nội dung đã làm · {mine.length} chương · {mine.reduce((n, c) => n + c.chars, 0).toLocaleString()} ký tự
+                📄 Nội dung đã làm · {label}
               </div>
-              <ChapterList chapters={mine} />
+              {!!pages.length && product.build && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: mine.length ? 8 : 0 }}>
+                  {pages.map((pg) => (
+                    <a key={pg.page} href={`${product.build!.url}#page=${pg.page}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', gap: 8, alignItems: 'center', textDecoration: 'none',
+                        border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 7,
+                        padding: '7px 10px', fontSize: 12, color: 'var(--fg-1)' }}>
+                      <span style={{ flex: 1, minWidth: 0 }}>{pg.label}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>trang {pg.page} ↗</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+              {!!mine.length && <ChapterList chapters={mine} />}
             </div>
           );
         })()}

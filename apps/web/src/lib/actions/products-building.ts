@@ -37,6 +37,12 @@ export interface BuildingProduct {
   build: { url: string; label: string; pages: number; plannedPages: number | null; builtAt: string | null } | null;
   /** Bìa bán hàng (vault media). Sản phẩm sắp lên store mà drawer không có bìa thì không duyệt được. */
   cover: string | null;
+  /**
+   * Card tạo ra TRANG chứ không tạo ra chương (bản quyền, trang cuối, hình) — không có chương để
+   * đọc, nhưng vẫn phải xem được kết quả. Khoá = id card, giá trị = các trang trong bản dựng.
+   * Thiếu đường này thì mở card 409 ra trắng trơn, người duyệt không có gì để duyệt.
+   */
+  artifacts: Record<string, Array<{ label: string; page: number }>>;
   cards: ProductCard[];
   done: number;       // đã làm xong — gồm cả đang chờ duyệt
   approved: number;   // đã có người duyệt (completed/verified). done - approved = số card nằm ở Review.
@@ -106,6 +112,7 @@ export async function listBuildingProducts(projectId?: string): Promise<Building
             pages: Number(bd.pages ?? 0), plannedPages: bd.plannedPages != null ? Number(bd.plannedPages) : null,
             builtAt: (bd.builtAt as string) ?? null };
         })(),
+        artifacts: (s.refs?.artifacts as BuildingProduct['artifacts']) ?? {},
         cover: (s.refs?.cover as { mediaId?: number } | undefined)?.mediaId
           ? `/api/media/${Number((s.refs!.cover as { mediaId: number }).mediaId)}/raw` : null,
         words: chapters.reduce((n, c) => n + (c.internal ? 0 : wordCount(c.content)), 0),

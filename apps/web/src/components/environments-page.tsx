@@ -17,6 +17,7 @@ import { StatusBadge } from './ui/status-badge';
 import { MultiSelect } from './ui/multi-select';
 // Ngưỡng + màu + cách đọc sessionState: MỘT nguồn, dùng chung với browser-profile-drawer.
 import { STALE_D, TONE, idleOf, bucketOf } from '@/lib/session-health';
+import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
@@ -449,45 +450,41 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
   // Cũ nhất lên đầu — cái cần chăm là cái phải nhìn thấy trước.
   const ordered = [...shown].sort((a, b) =>
     (a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0) - (b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0));
+  // Tên account cụ thể — banner nói "1 account" mà không nói CÁI NÀO thì vẫn phải mở từng drawer ra dò.
+  const nameOf = (p: BrowserProfileRow, a: BrowserProfileRow['accounts'][number]) => `${a.platformKey}/${a.handle || a.id}`;
+  const deadList = ordered.flatMap((p) => p.accounts.filter((a) => a.sessionState === 'dead' && a.status !== 'pending').map((a) => nameOf(p, a)));
+  const unknownList = ordered.flatMap((p) => p.accounts.filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
+    && a.status !== 'pending' && !DEAD_STATUSES.includes(a.status as AccountStatus)).map((a) => nameOf(p, a)));
   const needCare = ordered.filter((p) => idleOf(p.lastOpenedAt).tone === 'stale' || idleOf(p.lastOpenedAt).tone === 'never');
 
   return (
     <>
-      {ordered.some((p) => p.unknownSessions > 0) && (
-        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: `3px solid ${TONE.warn}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
-          ❓ <strong>{ordered.reduce((n, p) => n + p.unknownSessions, 0)}</strong> account <strong>chưa xác minh được phiên</strong> — chưa đo lần nào, hoặc trang kiểm không cho kết luận (URL sai/404, kẹt Cloudflare).
-          Đây là vùng mù, không phải &quot;đang tốt&quot;: chạy <code style={{ fontFamily: 'var(--font-mono)' }}>browsers-refresh --idle 0</code>; account nào vẫn &quot;chưa rõ&quot; thì <code style={{ fontFamily: 'var(--font-mono)' }}>platforms.session_check_url</code> của platform đó đang trỏ sai (ảnh chụp ở <code style={{ fontFamily: 'var(--font-mono)' }}>/tmp/session-unsure-*.png</code>).
-        </div>
-      )}
-      {ordered.some((p) => p.deadSessions > 0) && (
-        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: '3px solid var(--danger, #e5534b)', fontSize: 11.5, color: 'var(--fg-1)' }}>
-          🔒 <strong>{ordered.reduce((n, p) => n + p.deadSessions, 0)}</strong> account đã bị đăng xuất (browsers-refresh xác minh bằng dấu hiệu dương, không phải đoán).
-          Chạy <code style={{ fontFamily: 'var(--font-mono)' }}>browsers-refresh --idle 0</code> để thử login lại tự động (SSO trước, rồi password trong vault); cái nào không tự vào được thì phải mở profile login tay.
+      {/* YDNI: banner chỉ nói CÁI GÌ + Ở ĐÂU (tên account). Cách xử nằm sau 1 click — nó chỉ cần
+          khi bắt tay vào sửa, không cần chiếm 3 dòng thường trực trên mọi lượt xem. */}
+      {(deadList.length > 0 || unknownList.length > 0) && (
+        <div className="panel" style={{ padding: '7px 11px', marginBottom: 8, borderLeft: `3px solid ${deadList.length ? TONE.bad : TONE.warn}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
+          {deadList.length > 0 && (
+            <div>🔒 <strong style={{ color: TONE.bad }}>{deadList.length} rụng phiên</strong>: {deadList.join(' · ')}</div>
+          )}
+          {unknownList.length > 0 && (
+            <div style={{ marginTop: deadList.length ? 3 : 0 }}>❓ <strong style={{ color: TONE.warn }}>{unknownList.length} chưa đo</strong>: {unknownList.join(' · ')}</div>
+          )}
+          <details style={{ marginTop: 4 }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--fg-3)', fontSize: 10.5 }}>cách xử</summary>
+            <div style={{ marginTop: 3, color: 'var(--fg-2)', fontSize: 10.5, lineHeight: 1.5 }}>
+              <code style={{ fontFamily: 'var(--font-mono)' }}>browsers-refresh --idle 0</code> — thử login lại tự động (password trong vault trước, SSO sau).
+              Không tự vào được thì mở profile login tay; account vẫn &quot;chưa đo&quot; là <code style={{ fontFamily: 'var(--font-mono)' }}>platforms.session_check_url</code> trỏ sai (ảnh ở <code style={{ fontFamily: 'var(--font-mono)' }}>/tmp/session-unsure-*.png</code>).
+              Account <strong>chờ duyệt</strong> không nằm ở đây — dùng <code style={{ fontFamily: 'var(--font-mono)' }}>account-waiting</code>.
+            </div>
+          </details>
         </div>
       )}
       {needCare.length > 0 && (
-        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: `3px solid ${TONE.bad}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
-          ⚠️ <strong>{needCare.length}</strong> profile chưa mở ≥{STALE_D} ngày — session sắp/đã hết hạn.
-          Mở lại rồi bấm <strong>✓ Vừa mở</strong> trong drawer (hoặc <code style={{ fontFamily: 'var(--font-mono)' }}>browsers open &lt;id&gt;</code>):{' '}
-          {needCare.map((p) => p.label).join(' · ')}
+        <div className="panel" style={{ padding: '7px 11px', marginBottom: 8, borderLeft: `3px solid ${TONE.bad}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
+          ⏳ <strong style={{ color: TONE.bad }}>{needCare.length} profile chưa mở ≥{STALE_D}d</strong>: {needCare.map((p) => p.label).join(' · ')}
+          <span title={`Mở lại rồi bấm "✓ Vừa mở" trong drawer, hoặc chạy: browsers open <id>`} style={{ marginLeft: 6, color: 'var(--fg-3)', cursor: 'help' }}>ⓘ</span>
         </div>
       )}
-
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        <MultiSelect<string> label="Account" options={acctOptions} selected={accts}
-          onChange={(v) => setQ(v.join(','))} searchPlaceholder="Tìm handle…" />
-        <MultiSelect<string> label="Platform" options={platOptions} selected={plats}
-          onChange={(v) => setPlatRaw(v.join(','))} />
-        <MultiSelect<string> label="Trạng thái phiên" options={sessOptions} selected={sessions}
-          onChange={(v) => setSessRaw(v.join(','))} />
-        {filtering && (
-          <button type="button" className="btn" style={{ fontSize: 11 }} onClick={clearAll}>✕ bỏ lọc</button>
-        )}
-        {filtering && <small style={{ color: 'var(--fg-3)' }}>{ordered.length}/{profiles.length} profile</small>}
-        <span style={{ flex: 1 }} />
-        <button className="btn primary" onClick={() => modal.open("new")}>+ New profile</button>
-      </div>
-
       {ordered.length === 0 ? (
         <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>🧬</div>

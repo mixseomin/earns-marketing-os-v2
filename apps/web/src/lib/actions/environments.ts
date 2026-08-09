@@ -197,11 +197,13 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     lastOpenedAt: toIso(r.last_opened_at),
     notes: (r.notes as string | null) ?? null,
     accountsCount: accountsOf(r).length,
-    deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead').length,
+    // 'pending' KHÔNG tính là rụng phiên: nó chưa từng đăng nhập được (chờ duyệt), báo "đã bị đăng
+    // xuất" là sai sự thật và khiến người đọc đi login tay một account chưa được kích hoạt.
+    deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead' && a.status !== 'pending').length,
     // Account closed/banned/blocked KHÔNG tính là vùng mù: mình cố ý không giữ phiên cho chúng.
     // Đếm vào đây là báo động rác, và cái rác đó che mất account warming thật sự chưa được kiểm.
     unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
-      && !DEAD_STATUSES.includes(a.status as AccountStatus)).length,
+      && a.status !== 'pending' && !DEAD_STATUSES.includes(a.status as AccountStatus)).length,
     accounts: accountsOf(r),
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,

@@ -24,7 +24,7 @@ function ensureDb() {
 }
 
 export type AccountStatus =
-  | 'todo' | 'creating' | 'warming' | 'active' | 'limited' | 'blocked' | 'banned';
+  | 'todo' | 'creating' | 'pending' | 'warming' | 'active' | 'limited' | 'blocked' | 'banned' | 'closed';
 
 // 0058: phân biệt user vs bot/app account. Logic gate khác nhau hoàn toàn —
 // xem brief-readiness.ts cho rule details + accountKindMeta() ở status-meta.

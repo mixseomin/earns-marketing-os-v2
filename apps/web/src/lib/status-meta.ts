@@ -31,22 +31,26 @@ function makeAccessor<K extends string>(
 // Global status: "is this account usable on the platform AT ALL?"
 // Not to be confused with community_briefs.joinStatus (membership) or
 // currentPhase (engagement) — those are per-habitat.
+// CHUẨN HOÁ 2026-08-09: đúng 9 giá trị, có CHECK constraint ở DB (mig 0168) nên không đường nào ghi
+// giá trị lạ nữa. Trước đó dữ liệu có 'verified' và 'closed' KHÔNG nằm trong union → accessor rơi về
+// fallback 'todo', tức UI hiển thị sai hẳn trạng thái; còn 'dormant'/'defunct' thì có trong code mà
+// không có trong dữ liệu (chết khô). Thêm 'pending' vì "đã đăng ký, chờ duyệt/xác minh" trước đây
+// KHÔNG có chỗ chứa nên bị nhét vào 'warming' (nghĩa là đang nuôi) — sai bản chất và job tự động
+// chấm thành 'login-failed', đẩy nhầm sang việc login tay.
 export type AccountStatus =
-  | 'todo' | 'creating' | 'warming' | 'active'
-  | 'limited' | 'blocked' | 'banned'
-  // legacy/external fields we sometimes see:
-  | 'dormant' | 'defunct';
+  | 'todo' | 'creating' | 'pending' | 'warming' | 'active'
+  | 'limited' | 'blocked' | 'banned' | 'closed';
 
 export const ACCOUNT_STATUS_META: Record<AccountStatus, StatusInfo> = {
   todo:     { label: 'TODO',     color: '#60a5fa', icon: '🔵', hint: 'Chưa setup — chưa có credential / chưa verify' },
   creating: { label: 'CREATING', color: '#fb923c', icon: '🟠', hint: 'Đang đăng ký — chưa hoàn tất' },
+  pending:  { label: 'PENDING',  color: '#f59e0b', icon: '⏳', hint: 'Đã đăng ký xong, CHỜ duyệt / chờ mail xác minh — login tay cũng không vào được. Chạy `account-waiting` để check mail + chẩn đoán' },
   warming:  { label: 'WARMING',  color: '#fbbf24', icon: '🟡', hint: 'Đợi đủ tuổi/karma GLOBAL (warmupChecklist) — KHÔNG phải warm trong community' },
   active:   { label: 'READY',    color: '#10b981', icon: '🟢', hint: 'Đủ điều kiện platform — có thể assign vào community (phase per-habitat ở Brief modal)' },
   limited:  { label: 'LIMITED',  color: '#a78bfa', icon: '🟣', hint: 'Bị rate-limit / soft-block — chờ vài giờ/ngày, vẫn cứu được' },
   blocked:  { label: 'BLOCKED',  color: '#6b7280', icon: '🚫', hint: 'Bị chặn — cần appeal / fix thủ công' },
   banned:   { label: 'BANNED',   color: '#f87171', icon: '🔴', hint: 'Ban vĩnh viễn — không dùng được nữa' },
-  dormant:  { label: 'DORMANT',  color: '#94a3b8', icon: '⚫', hint: 'Account không dùng nữa' },
-  defunct:  { label: 'DEFUNCT',  color: '#94a3b8', icon: '⚫', hint: 'Account đã hỏng / mất login' },
+  closed:   { label: 'CLOSED',   color: '#94a3b8', icon: '⚫', hint: 'Mình tự đóng/xoá — không dùng nữa (khác banned: banned là bị platform cấm)' },
 };
 
 export const accountStatusMeta = makeAccessor(ACCOUNT_STATUS_META, 'todo');
@@ -59,8 +63,8 @@ export interface StatusGroupInfo extends StatusInfo {
 }
 export const ACCOUNT_STATUS_GROUPS: Record<AccountStatusGroup, StatusGroupInfo> = {
   setup:   { label: 'SETUP',   icon: '🔧', color: '#60a5fa',
-    tooltip: 'Chưa setup xong — chưa có credential hoặc đang đăng ký',
-    members: ['todo', 'creating'] },
+    tooltip: 'Chưa setup xong — chưa có credential, đang đăng ký, hoặc đang chờ duyệt',
+    members: ['todo', 'creating', 'pending'] },
   warming: { label: 'WARMING', icon: '🔥', color: '#fbbf24',
     tooltip: 'Đợi đủ tuổi/karma GLOBAL (mỗi platform có warmupChecklist riêng).\nĐây là warmup ở cấp ACCOUNT, không phải warm trong community.',
     members: ['warming'] },
@@ -69,11 +73,11 @@ export const ACCOUNT_STATUS_GROUPS: Record<AccountStatusGroup, StatusGroupInfo> 
     members: ['active'] },
   locked:  { label: 'LOCKED',  icon: '🔒', color: '#a78bfa',
     tooltip: 'Bị platform giới hạn / chặn — chọn lý do cụ thể (limited/blocked/banned)',
-    members: ['limited', 'blocked', 'banned'] },
+    members: ['limited', 'blocked', 'banned', 'closed'] },
 };
 
 export function accountStatusGroupOf(s: AccountStatus | string): AccountStatusGroup {
-  if (s === 'todo' || s === 'creating') return 'setup';
+  if (s === 'todo' || s === 'creating' || s === 'pending') return 'setup';
   if (s === 'warming') return 'warming';
   if (s === 'active') return 'ready';
   return 'locked';
@@ -84,8 +88,13 @@ export function accountStatusGroupOf(s: AccountStatus | string): AccountStatusGr
 // (temporary rate-limit, recoverable); blocked/banned/dormant/defunct are parked.
 // Single source of truth so every surface (vault, browsers CLI, pickers) agrees.
 export function isParkedAccount(s: AccountStatus | string): boolean {
-  return s === 'blocked' || s === 'banned' || s === 'dormant' || s === 'defunct';
+  return s === 'blocked' || s === 'banned' || s === 'closed';
 }
+
+/** Account KHÔNG cần giữ phiên / không tính vào cảnh báo "chưa đo" — mình cố ý bỏ chúng. */
+export const DEAD_STATUSES: AccountStatus[] = ['banned', 'blocked', 'closed'];
+/** Account ĐANG dùng → job giữ phiên phải quét (pending chưa vào được nên không quét). */
+export const LIVE_STATUSES: AccountStatus[] = ['active', 'warming', 'limited'];
 
 // ── Seeding queue status (computed per brief in seeding cockpit) ─────
 export type SeedingQueueStatus = 'overdue' | 'due' | 'upcoming' | 'paused' | 'off-phase' | 'not-joined';

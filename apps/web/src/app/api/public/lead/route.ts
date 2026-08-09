@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { mailwizzSubscribe } from '@/lib/mailwizz';
 
 // CỬA CÔNG KHAI DUY NHẤT của MOS2: người đọc để lại email / gửi phản hồi từ trang landing.
 //
@@ -43,6 +44,14 @@ function tooMany(ip: string): boolean {
   if (hits.size > 5000) hits.clear();
   return keep.length > 5;
 }
+
+// Mỗi SẢN PHẨM một list MailWizz. Thêm sản phẩm = thêm một dòng ở đây (uid lấy từ MailWizz).
+// Write Like a Person = list_id 49 (tạo 2026-08-09).
+const LISTS: Record<string, string> = {
+  default: '854698c696797',
+  checklist: '854698c696797',
+  feedback: '854698c696797',
+};
 
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -96,6 +105,14 @@ export async function POST(req: Request) {
         SELECT id, row_number() OVER (ORDER BY id) AS rn
         FROM contacts WHERE project_id = 'codecrate' AND lower(email) = ${email}) t
       WHERE t.rn > 1)`);
+
+  // Đồng bộ sang MailWizz — mỗi sản phẩm một list. Lỗi ở đây KHÔNG được làm hỏng cú gửi: bản ghi
+  // gốc đã nằm trong contacts, đồng bộ lại được bất cứ lúc nào.
+  const list = LISTS[source] ?? LISTS.default;
+  if (list) {
+    const r = await mailwizzSubscribe(list, email, name);
+    if (!r.ok) console.error('[public/lead] MailWizz không nhận:', email, r.error);
+  }
 
   return NextResponse.json({ ok: true }, { headers });
 }

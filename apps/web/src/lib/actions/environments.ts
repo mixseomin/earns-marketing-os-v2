@@ -8,6 +8,7 @@ import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
+import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
@@ -200,7 +201,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     // Account closed/banned/blocked KHÔNG tính là vùng mù: mình cố ý không giữ phiên cho chúng.
     // Đếm vào đây là báo động rác, và cái rác đó che mất account warming thật sự chưa được kiểm.
     unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
-      && !['closed', 'banned', 'blocked'].includes(a.status)).length,
+      && !DEAD_STATUSES.includes(a.status as AccountStatus)).length,
     accounts: accountsOf(r),
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,

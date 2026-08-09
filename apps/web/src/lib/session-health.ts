@@ -95,9 +95,10 @@ const VERDICT: Record<string, { text: string; color: string; title: string }> = 
   'admin-silent': { text: 'ADMIN IM', color: TONE.warn, title: 'Site sống, IP không bị chặn, nhưng mail không bao giờ tới → admin không duyệt. Đòi admin hoặc bỏ.' },
 };
 
-export function pendingBadge(a: { pendingSince?: string | null; pendingVerdict?: string | null }) {
-  if (!a.pendingSince) return null;
+export function pendingBadge(a: { status?: string | null; pendingSince?: string | null; pendingVerdict?: string | null }) {
+  // Nguồn sự thật là status='pending' (có CHECK constraint), không phải cờ jsonb.
+  if (a.status !== 'pending' && !a.pendingSince) return null;
   if (a.pendingVerdict) return VERDICT[a.pendingVerdict] ?? { text: a.pendingVerdict.toUpperCase(), color: TONE.warn, title: '' };
-  const d = Math.floor((Date.now() - new Date(a.pendingSince).getTime()) / 86_400_000);
-  return { text: `CHỜ DUYỆT ${d}d`, color: TONE.warn, title: `Đang chờ duyệt/mail xác minh từ ${new Date(a.pendingSince).toLocaleDateString()}. Chạy \`account-waiting\` để check mail + chẩn đoán khi hết hạn chờ.` };
+  const d = a.pendingSince ? Math.floor((Date.now() - new Date(a.pendingSince).getTime()) / 86_400_000) : null;
+  return { text: d === null ? 'CHỜ DUYỆT' : `CHỜ DUYỆT ${d}d`, color: TONE.warn, title: `Đang chờ duyệt/mail xác minh${a.pendingSince ? ` từ ${new Date(a.pendingSince).toLocaleDateString()}` : ''}. Chạy \`account-waiting\` để check mail + chẩn đoán khi hết hạn chờ.` };
 }

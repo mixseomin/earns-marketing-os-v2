@@ -446,6 +446,12 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 
   return (
     <>
+      {ordered.some((p) => p.unknownSessions > 0) && (
+        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: '3px solid #d9a441', fontSize: 11.5, color: 'var(--fg-1)' }}>
+          ❓ <strong>{ordered.reduce((n, p) => n + p.unknownSessions, 0)}</strong> account <strong>chưa xác minh được phiên</strong> — chưa đo lần nào, hoặc trang kiểm không cho kết luận (URL sai/404, kẹt Cloudflare).
+          Đây là vùng mù, không phải &quot;đang tốt&quot;: chạy <code style={{ fontFamily: 'var(--font-mono)' }}>browsers-refresh --idle 0</code>; account nào vẫn &quot;chưa rõ&quot; thì <code style={{ fontFamily: 'var(--font-mono)' }}>platforms.session_check_url</code> của platform đó đang trỏ sai (ảnh chụp ở <code style={{ fontFamily: 'var(--font-mono)' }}>/tmp/session-unsure-*.png</code>).
+        </div>
+      )}
       {ordered.some((p) => p.deadSessions > 0) && (
         <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: '3px solid var(--danger, #e5534b)', fontSize: 11.5, color: 'var(--fg-1)' }}>
           🔒 <strong>{ordered.reduce((n, p) => n + p.deadSessions, 0)}</strong> account đã bị đăng xuất (browsers-refresh xác minh bằng dấu hiệu dương, không phải đoán).
@@ -500,6 +506,12 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   {p.deadSessions > 0 && (
                     <span title={`${p.deadSessions} account trong profile này đã bị đăng xuất (browsers-refresh xác minh)`}
                       style={{ color: 'var(--danger, #e5534b)', fontWeight: 700 }}>· ⚠ {p.deadSessions} rụng phiên</span>
+                  )}
+                  {/* "Chưa đo" KHÔNG phải "ổn" — nó là vùng mù. Không hiện thì mặc định người đọc
+                      cho là đã kiểm và đang tốt, rồi phát hiện ra lúc cần dùng. */}
+                  {p.unknownSessions > 0 && (
+                    <span title={`${p.unknownSessions} account chưa xác minh được phiên (chưa đo lần nào, hoặc đo ra chưa rõ / kẹt Cloudflare). Chưa biết ≠ đang tốt.`}
+                      style={{ color: '#d9a441', fontWeight: 700 }}>· ? {p.unknownSessions} chưa đo</span>
                   )}
                   <span title={p.lastOpenedAt ? `Mở lần cuối: ${new Date(p.lastOpenedAt).toLocaleString()}` : 'Chưa từng ghi nhận mở'} style={{ color: tone.color, fontWeight: idle.tone === 'fresh' ? 400 : 600 }}>
                     · {idle.days === null ? '⚠️ chưa mở' : `${idle.days}d idle`}{tone.label && ` · ${tone.label}`}

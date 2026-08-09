@@ -138,6 +138,8 @@ export interface BrowserProfileRow {
   accountsCount: number;
   /** Account trong profile có sessionState='dead' — hiện thẳng trên card để nắm tổng quan. */
   deadSessions: number;
+  /** Chưa xác minh được: chưa đo lần nào, hoặc đo ra unsure/blocked. Không biết ≠ ổn. */
+  unknownSessions: number;
   projects: string[];
   manager: string | null;
 }
@@ -156,6 +158,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
            (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id) AS accounts_count,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id
               AND environment->>'sessionState' = 'dead') AS dead_sessions,
+           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id
+              AND COALESCE(environment->>'sessionState','unknown') NOT IN ('alive','dead')) AS unknown_sessions,
            (SELECT array_agg(project_id ORDER BY project_id) FROM project_browser_profiles WHERE browser_profile_id = bp.id) AS projects,
            (SELECT handle FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id
               AND (pa.tags @> '["profile-manager"]'::jsonb OR pa.platform_key = 'google')
@@ -180,6 +184,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
     deadSessions: Number(r.dead_sessions) || 0,
+    unknownSessions: Number(r.unknown_sessions) || 0,
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,
   }));

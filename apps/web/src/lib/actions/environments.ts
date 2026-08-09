@@ -197,7 +197,10 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     notes: (r.notes as string | null) ?? null,
     accountsCount: accountsOf(r).length,
     deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead').length,
-    unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead').length,
+    // Account closed/banned/blocked KHÔNG tính là vùng mù: mình cố ý không giữ phiên cho chúng.
+    // Đếm vào đây là báo động rác, và cái rác đó che mất account warming thật sự chưa được kiểm.
+    unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
+      && !['closed', 'banned', 'blocked'].includes(a.status)).length,
     accounts: accountsOf(r),
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,

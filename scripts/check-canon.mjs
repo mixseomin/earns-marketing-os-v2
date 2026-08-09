@@ -42,6 +42,30 @@ for (const file of files) {
     const i = lines.findIndex((l) => /INSERT\s+INTO\s+selector_overrides/i.test(l));
     violations.push(`${file}:${i + 1}  raw INSERT INTO selector_overrides → use setOverride()/setMap() (canonField + adopt guard).`);
   }
+  // (3) KHÔNG mở tab mới cho NỘI DUNG CỦA MÌNH (2026-08-09). Bấm một tấm bìa hay một trang bản
+  //     dựng trong drawer mà nhảy ra tab khác = người đang duyệt việc mất mạch: đóng tab, tìm lại
+  //     cửa sổ cũ, drawer đã đóng, cuộn lại từ đầu. Xem tại chỗ rồi đóng.
+  //     Cách làm đúng: components/ui/media-viewer.tsx (useMediaViewer + MediaOpen).
+  //     Chỉ chặn đường dẫn NỘI BỘ (/api/..., /p/...); link ra site NGƯỜI KHÁC vẫn phải mở tab mới
+  //     vì không nhúng site của họ vào drawer được.
+  if (file.includes('/components/') && !file.endsWith('ui/media-viewer.tsx')) {
+    lines.forEach((ln, i) => {
+      if (!/target=["']_blank["']/.test(ln)) return;
+      // Chỉ tính FILE/NỘI DUNG của mình (ảnh, PDF, DOM đã lưu). Link sang MỘT TRANG KHÁC của app
+      // (/p/<id>/board, /identities) KHÔNG bị chặn: mở tab mới ở đó là cố ý, đóng modal đang sửa dở
+      // để điều hướng thì mất luôn phần chưa lưu — tệ hơn hẳn.
+      // Hẹp CÓ CHỦ Ý: chỉ bắt route file của mình + hai tên biến chắc chắn là file của mình.
+      // Bản đầu bắt cả `href={x.url}` → 24 báo động giả (phần lớn `url` là link site NGƯỜI KHÁC).
+      // Một guard kêu sai vài chục chỗ thì người ta tắt guard, chứ không sửa code.
+      const isFile = /\/api\/(media|dom-sample)\//.test(ln)
+        || /href=\{[^}]*\.build[!.]*\.url/.test(ln)
+        || /href=\{[^}]*\.cover\b/.test(ln);
+      const internal = isFile;
+      if (internal) {
+        violations.push(`${file}:${i + 1}  target="_blank" cho nội dung nội bộ → dùng useMediaViewer()/MediaOpen (components/ui/media-viewer.tsx), xem tại chỗ rồi đóng.`);
+      }
+    });
+  }
 }
 
 if (violations.length) {

@@ -45,6 +45,7 @@ export {
   type SelectFieldProps, type TextAreaFieldProps,
 } from './form-field';
 export { StatusBadge, type StatusBadgeProps } from './status-badge';
+export { MediaViewer, MediaOpen, useMediaViewer, type MediaViewerItem } from './media-viewer';
 export {
   FormModal, FormModalFooter, FormModalSection,
   type FormModalProps, type ModalWidth,

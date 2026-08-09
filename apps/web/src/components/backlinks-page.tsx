@@ -30,6 +30,9 @@ import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
 import { CampaignLinkPicker, EmailSendPrep } from '@/components/ui';
+// Xem ảnh/PDF NGAY TRONG TRANG. Không dùng <a target="_blank"> cho nội dung của mình —
+// scripts/check-canon.mjs chặn ở CI.
+import { MediaOpen, useMediaViewer } from '@/components/ui';
 
 // Compact status labels for the Outreach linkage chip on a backlink task.
 const OUTREACH_ST: Record<string, string> = { to_send: 'chưa gửi', sent: 'đã gửi', followup_1: 'FU1', followup_2: 'FU2', replied: 'đã hồi', interested: 'quan tâm', embedded: 'đã đặt ★', declined: 'từ chối', bounced: 'bounced', unreachable: 'ko liên hệ được', no_response: 'ko hồi' };
@@ -233,10 +236,12 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
 
 // Drawer sản phẩm: mô tả bán hàng · tiến độ từng bước · và ĐỌC ĐƯỢC từng chương.
 function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id: number) => void }) {
+  const view = useMediaViewer();   // xem tại chỗ — KHÔNG mở tab mới (ui/media-viewer)
   const lbl: CSSProperties = { display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 };
   const pill: CSSProperties = { fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999, border: '1px solid var(--line)', textTransform: 'uppercase', letterSpacing: '.04em' };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {view.node}
       <div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 17, fontWeight: 800 }}>{p.title}</span>
@@ -248,16 +253,16 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
         {/* MỞ ĐỌC THỬ — sản phẩm viết thì thứ đầu tiên cần là xem nó ra sao. Trước đây bản dựng chỉ
             nằm trên máy cá nhân nên drawer không có gì để bấm. */}
         {p.build && (
-          <a href={p.build.url} target="_blank" rel="noopener noreferrer"
-            title={`Mở bản dựng PDF${p.build.builtAt ? ` · dựng ${p.build.builtAt}` : ''}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 8, fontSize: 12, fontWeight: 700,
+          <button type="button" onClick={() => view.open({ url: p.build!.url, kind: 'pdf', label: `${p.title} — bản dựng` })}
+            title={`Mở bản dựng PDF ngay tại đây${p.build.builtAt ? ` · dựng ${p.build.builtAt}` : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
               textDecoration: 'none', color: 'var(--fg-1)', border: '1px solid var(--accent)', borderRadius: 7, padding: '5px 11px',
               background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
             📄 Đọc bản dựng
             <span style={{ fontWeight: 400, color: 'var(--fg-3)' }}>
               {p.build.pages} trang{p.build.plannedPages ? ` / ${p.build.plannedPages} kế hoạch` : ''}{p.build.builtAt ? ` · ${p.build.builtAt}` : ''}
             </span>
-          </a>
+          </button>
         )}
       </div>
 
@@ -267,14 +272,15 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
       {(p.covers.length ? p.covers : (p.cover ? [{ key: 'cover', label: 'Bìa', url: p.cover, w: null, h: null }] : [])).length > 0 && (
         <div>
           <div style={lbl}>Bìa · {p.covers.length || 1} khổ</div>
-          {p.cover && <a href={p.cover} target="_blank" rel="noopener noreferrer">
+          {p.cover && <MediaOpen item={{ url: p.cover, label: `${p.title} — bìa` }} onOpen={view.open} style={{ display: 'block', width: '100%' }}>
             <img src={p.cover} alt="" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--line)', display: 'block' }} />
-          </a>}
+          </MediaOpen>}
           {p.covers.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 8, marginTop: 8 }}>
               {p.covers.map((c) => (
-                <a key={c.key} href={c.url} target="_blank" rel="noopener noreferrer" title={`${c.label} — mở bản gốc`}
-                  style={{ textDecoration: 'none', color: 'var(--fg-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <MediaOpen key={c.key} item={{ url: c.url, label: `${c.label}${c.w && c.h ? ` · ${c.w}×${c.h}` : ''}` }} onOpen={view.open}
+                  title={`${c.label} — phóng to tại chỗ`}
+                  style={{ color: 'var(--fg-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {/* nền ô cố định + object-fit:contain: khổ dọc và khổ ngang nằm chung một hàng mà
                       không cái nào bị bóp méo hay nhảy cỡ ô. */}
                   <span style={{ display: 'block', height: 78, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', overflow: 'hidden' }}>
@@ -282,7 +288,7 @@ function ProductDrawer({ p, onOpenCard }: { p: BuildingProduct; onOpenCard: (id:
                   </span>
                   <span style={{ fontSize: 10, lineHeight: 1.3 }}>{c.label}</span>
                   {c.w && c.h && <span style={{ fontSize: 9.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{c.w}×{c.h}</span>}
-                </a>
+                </MediaOpen>
               ))}
             </div>
           )}
@@ -1636,6 +1642,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<string>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
 }) {
+  const view = useMediaViewer();   // ui/media-viewer — phóng to tại chỗ rồi đóng, không nhảy tab
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   // 🌱 link gate: recording a live URL on a community-seed task = a link went out. If the
   // community isn't ready (🔒), arm an inline confirm first (no native dialog) — one more
@@ -1975,6 +1982,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   const doStack = async () => { setStackBusy(true); const r = await suggestProjectStack(project.id); setStackBusy(false); if (r.ok) onChange(); };
   return (
     <>
+    {view.node}
     <Drawer onClose={onClose} width={720} backgrounded={!!domPicker || backgrounded}>
       <div>
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
@@ -2050,13 +2058,14 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
               {!!pages.length && product.build && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: mine.length ? 8 : 0 }}>
                   {pages.map((pg) => (
-                    <a key={pg.page} href={`${product.build!.url}#page=${pg.page}`} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'flex', gap: 8, alignItems: 'center', textDecoration: 'none',
+                    <MediaOpen key={pg.page} onOpen={view.open}
+                      item={{ url: product.build!.url, kind: 'pdf', page: pg.page, label: `${pg.label} · trang ${pg.page}` }}
+                      style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%',
                         border: '1px solid var(--line)', borderLeft: '3px solid var(--accent)', borderRadius: 7,
                         padding: '7px 10px', fontSize: 12, color: 'var(--fg-1)' }}>
                       <span style={{ flex: 1, minWidth: 0 }}>{pg.label}</span>
-                      <span style={{ fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>trang {pg.page} ↗</span>
-                    </a>
+                      <span style={{ fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>trang {pg.page}</span>
+                    </MediaOpen>
                   ))}
                 </div>
               )}
@@ -2076,7 +2085,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
           ) : !isEmailSend ? (
             <span title="Task này KHÔNG khớp nguồn nào trong catalog — nên đưa nguồn vào catalog trước khi assign" style={{ fontSize: 10.5, color: 'var(--warn,#ffb03c)' }}>⚠ ngoài catalog nguồn</span>
           ) : null}
-          {task.domSampleId && <a href={`/api/dom-sample/${task.domSampleId}`} target="_blank" rel="noopener noreferrer" title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)' }}>🔎 DOM đã lưu</a>}
+          {task.domSampleId && <MediaOpen onOpen={view.open} item={{ url: `/api/dom-sample/${task.domSampleId}`, kind: 'frame', label: 'DOM đã lưu' }}
+            title="Xem DOM trang này đã capture — cấu trúc THẬT (nút/field/label) mà hướng dẫn bám theo" style={{ color: 'var(--fg-3)', fontSize: 11 }}>🔎 DOM đã lưu</MediaOpen>}
           {task.grounded && <span title={`Hướng dẫn viết dựa trên DOM thật (${task.grounded.source || 'dom'}${task.grounded.sampleAt ? ' · capture ' + fmtWhen(task.grounded.sampleAt) : ''})`} style={{ color: 'var(--ok,#22c55e)', fontWeight: 700 }}>✓ dựa trên DOM thật</span>}
           {!isEmailSend && !task.grounded && task.instructions && <span title={task.domSampleId ? 'Có DOM đã lưu nhưng hướng dẫn CHƯA bám theo — bấm ✨ Chuẩn hoá để viết lại đúng nút/field thật của trang.' : 'Hướng dẫn CHƯA dựa trên DOM thật (chưa capture trang này) — các bước điều hướng là SUY ĐOÁN, mở trang tự kiểm. Capture DOM qua ext (crew) để chuẩn hoá bám trang thật.'} style={{ color: 'var(--warn,#ffb03c)', fontWeight: 700, cursor: 'help' }}>⚠ {task.domSampleId ? 'chưa bám DOM' : 'chưa có DOM thật'}</span>}
           {/* Outreach linkage — visible up top (not buried in Email Pitch). Linked → open drawer in-place; else offer to link. */}
@@ -2096,7 +2106,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: c }}>{paused ? '⏸ Tạm dừng (site khác cùng nguồn đang vướng)' : '🚩 Đang vướng'} · {fmtWhen(task.blocker.at)}</div>
               <div style={{ fontSize: 12.5, color: 'var(--fg-1)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{task.blocker.reason}</div>
-              {task.blocker.shot && <a href={task.blocker.shot} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6 }}><img src={task.blocker.shot} alt="ảnh báo lỗi" style={{ maxWidth: 260, maxHeight: 170, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} /></a>}
+              {task.blocker.shot && <MediaOpen onOpen={view.open} item={{ url: task.blocker.shot, label: 'Ảnh báo lỗi' }} style={{ display: 'inline-block', marginTop: 6 }}><img src={task.blocker.shot} alt="ảnh báo lỗi" style={{ maxWidth: 260, maxHeight: 170, borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} /></MediaOpen>}
               {paused && <div style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 3 }}>Tự chạy lại khi task gốc gỡ vướng. Hoặc gỡ tay nếu vẫn làm được.</div>}
             </div>
             <button type="button" onClick={clearBlocker} disabled={blkBusy} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>{blkBusy ? '…' : '✓ Đã gỡ'}</button>
@@ -2745,7 +2755,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
                   <pre style={{ fontSize: 10.5, whiteSpace: 'pre-wrap', color: 'var(--fg-2)', background: 'var(--bg-2)', padding: 8, borderRadius: 6, marginTop: 4, maxHeight: 200, overflow: 'auto' }}>{s.preview || '(trống)'}</pre>
                 </details>
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  <a href={`/api/dom-sample/${s.id}`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', padding: '2px 9px', fontSize: 11 }}>🔎 Xem DOM đầy đủ</a>
+                  <MediaOpen onOpen={view.open} item={{ url: `/api/dom-sample/${s.id}`, kind: 'frame', label: 'DOM đầy đủ' }} style={{ ...btn, padding: '2px 9px', fontSize: 11 }}>🔎 Xem DOM đầy đủ</MediaOpen>
                   <button type="button" onClick={() => runNormalize(s.id)} disabled={normBusy} style={{ ...btn, color: 'var(--accent)', fontWeight: 700, padding: '2px 9px', fontSize: 11 }}>{normBusy ? '…' : '✨ Chuẩn hoá với DOM này'}</button>
                 </div>
               </div>

@@ -446,6 +446,12 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 
   return (
     <>
+      {ordered.some((p) => p.deadSessions > 0) && (
+        <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: '3px solid var(--danger, #e5534b)', fontSize: 11.5, color: 'var(--fg-1)' }}>
+          🔒 <strong>{ordered.reduce((n, p) => n + p.deadSessions, 0)}</strong> account đã bị đăng xuất (browsers-refresh xác minh bằng dấu hiệu dương, không phải đoán).
+          Chạy <code style={{ fontFamily: 'var(--font-mono)' }}>browsers-refresh --idle 0</code> để thử login lại tự động (SSO trước, rồi password trong vault); cái nào không tự vào được thì phải mở profile login tay.
+        </div>
+      )}
       {needCare.length > 0 && (
         <div className="panel" style={{ padding: '8px 12px', marginBottom: 8, borderLeft: `3px solid ${IDLE_TONE.stale.color}`, fontSize: 11.5, color: 'var(--fg-1)' }}>
           ⚠️ <strong>{needCare.length}</strong> profile chưa mở ≥{STALE_D} ngày — session sắp/đã hết hạn.
@@ -488,6 +494,13 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                 <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
                   {p.defaultProxyLabel && <EntityRef kind="proxy" id={p.defaultProxyId} label={p.defaultProxyLabel} size="sm" />}
                   <span>· {p.accountsCount} accounts</span>
+                  {/* Tổng quan ngay trên card: profile mở đều nhưng vẫn có account bị đăng xuất là
+                      chuyện thường (phiên rụng theo từng site) — không hiện ở đây thì phải mở drawer
+                      từng cái mới biết. */}
+                  {p.deadSessions > 0 && (
+                    <span title={`${p.deadSessions} account trong profile này đã bị đăng xuất (browsers-refresh xác minh)`}
+                      style={{ color: 'var(--danger, #e5534b)', fontWeight: 700 }}>· ⚠ {p.deadSessions} rụng phiên</span>
+                  )}
                   <span title={p.lastOpenedAt ? `Mở lần cuối: ${new Date(p.lastOpenedAt).toLocaleString()}` : 'Chưa từng ghi nhận mở'} style={{ color: tone.color, fontWeight: idle.tone === 'fresh' ? 400 : 600 }}>
                     · {idle.days === null ? '⚠️ chưa mở' : `${idle.days}d idle`}{tone.label && ` · ${tone.label}`}
                   </span>

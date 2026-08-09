@@ -224,6 +224,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                           onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>
                         {a.isManager && <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>QUẢN LÝ</span>}
+                        {/* Trạng thái PHIÊN, tách khỏi status vòng đời của account (active/warming/banned…):
+                            phiên rụng không có nghĩa account bị khoá, và ngược lại. */}
+                        {a.sessionState === 'dead' && <span title="browsers-refresh xác minh: đã bị đăng xuất. Chạy `browsers-refresh --idle 0` để thử login lại, hoặc mở profile login tay." style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--bad)', border: '1px solid var(--bad)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>RỤNG PHIÊN</span>}
+                        {(a.sessionState === 'unsure' || a.sessionState === 'blocked') && <span title={a.sessionState === 'blocked' ? 'Kẹt challenge Cloudflare quá 30s — chưa đo được' : 'Không thấy dấu hiệu đăng nhập nào trên trang — chưa kết luận được'} style={{ fontSize: 9.5, fontWeight: 700, color: '#d9a441', border: '1px solid #d9a441', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>CHƯA RÕ</span>}
                         <span style={{ flex: 1 }} />
                         {(() => {
                           // Hai con số KHÁC nhau, đừng trộn:

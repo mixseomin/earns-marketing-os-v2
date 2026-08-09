@@ -66,8 +66,6 @@ export async function listProxies(): Promise<ProxyRow[]> {
     rotatesAt: toIso(r.rotates_at),
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
-    projects: (r.projects as string[] | null) ?? [],
-    manager: (r.manager as string | null) ?? null,
   }));
 }
 
@@ -138,6 +136,8 @@ export interface BrowserProfileRow {
   lastOpenedAt: string | null;
   notes: string | null;
   accountsCount: number;
+  /** Account trong profile có sessionState='dead' — hiện thẳng trên card để nắm tổng quan. */
+  deadSessions: number;
   projects: string[];
   manager: string | null;
 }
@@ -154,6 +154,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
            bp.default_proxy_id, p.label AS proxy_label,
            bp.last_opened_at, bp.notes,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id) AS accounts_count,
+           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id
+              AND environment->>'sessionState' = 'dead') AS dead_sessions,
            (SELECT array_agg(project_id ORDER BY project_id) FROM project_browser_profiles WHERE browser_profile_id = bp.id) AS projects,
            (SELECT handle FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id
               AND (pa.tags @> '["profile-manager"]'::jsonb OR pa.platform_key = 'google')
@@ -177,6 +179,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     lastOpenedAt: toIso(r.last_opened_at),
     notes: (r.notes as string | null) ?? null,
     accountsCount: Number(r.accounts_count) || 0,
+    deadSessions: Number(r.dead_sessions) || 0,
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,
   }));
@@ -186,13 +189,14 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
 // Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
 // lastUsedAt = lần cuối account này thực sự được dùng. Session hết hạn theo TỪNG account (Reddit rụng
 // sớm hơn Google), nên "profile mở hôm qua" không có nghĩa mọi account bên trong còn sống.
-export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null }
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionState: string | null }
 export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
     SELECT id, platform_key, handle, email, status, project_id, last_used_at,
            environment->>'sessionExpiresAt' AS session_expires_at,
+           environment->>'sessionState' AS session_state,
            (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') AS is_manager
     FROM platform_accounts
     WHERE browser_profile_id = ${profileId} AND tenant_id = ${TENANT}
@@ -204,6 +208,7 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     projectId: (r.project_id as string | null) ?? null, isManager: Boolean(r.is_manager),
     lastUsedAt: toIso(r.last_used_at),
     sessionExpiresAt: toIso(r.session_expires_at),
+    sessionState: (r.session_state as string | null) ?? null,
   }));
 }
 

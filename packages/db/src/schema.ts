@@ -460,6 +460,10 @@ export const platforms = pgTable(
     label: text('label').notNull(),                         // 'Product Hunt'
     signupUrl: text('signup_url').notNull(),
     postUrl: text('post_url'),
+    // Trang chỉ xem được khi ĐÃ đăng nhập (account/dashboard) — dùng xác minh phiên trong
+    // ~/bin/browsers-refresh. Riêng, không mượn post_url/signup_url: landing + trang đăng ký hiện
+    // CTA "Sign in" cho cả người đã login nên chấm nhầm thành rụng phiên.
+    sessionCheckUrl: text('session_check_url'),
     // Profile URL pattern, vd 'https://www.reddit.com/user/{handle}'.
     // NULL → fallback sang hardcoded helper trong apps/web/src/lib/platform-profile-urls.ts.
     profileUrlPattern: text('profile_url_pattern'),

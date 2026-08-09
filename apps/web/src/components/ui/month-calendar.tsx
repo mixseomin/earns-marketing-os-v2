@@ -148,6 +148,11 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   // Ngày "được chọn": Ngày = đúng anchor; Tuần = cả 7 ngày của tuần (band trong mini-month).
   const selSet = new Set(mode === 'week' ? days.map(ymd) : [anchorStr]);
 
+  // Ngày GẦN NHẤT còn việc CHƯA xong — ưu tiên sắp tới (≥ hôm nay), không có thì quá hạn gần nhất.
+  // Nút "Việc gần nhất" nhảy thẳng tới đó thay vì bấm ▶ dò từng tuần qua vùng lịch trống.
+  const pendingDays = [...byDate.entries()].filter(([, its]) => its.some((i) => !i.done)).map(([d]) => d).sort();
+  const jumpDay = pendingDays.find((d) => d >= todayStr) ?? pendingDays.filter((d) => d < todayStr).at(-1) ?? null;
+
   // anchor đổi → mini-month bám theo tháng của anchor (trừ khi người dùng tự page mini bằng ◀ ▶).
   const goAnchor = (d: Date) => { setAnchor(d); setMiniView(firstOfMonth(d)); };
   // Nhảy theo đúng đơn vị đang xem — tháng nhảy tháng, tuần nhảy 7 ngày, ngày nhảy 1 ngày.
@@ -256,6 +261,10 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
         <div style={{ fontSize: 13, fontWeight: 700, minWidth: 190, textAlign: 'center', textTransform: 'capitalize' }}>{label}</div>
         <button type="button" onClick={() => step(1)} style={navBtn} title="Tiến">▶</button>
         <button type="button" onClick={() => goAnchor(new Date())} style={{ ...navBtn, marginLeft: 4 }}>Hôm nay</button>
+        {jumpDay && jumpDay !== anchorStr && (
+          <button type="button" onClick={() => { const d = parseYmd(jumpDay); if (d) goAnchor(d); }} style={navBtn}
+            title={`Nhảy tới ngày gần nhất còn việc chưa xong (${jumpDay}${jumpDay < todayStr ? ' · quá hạn' : ''})`}>→ Việc gần nhất</button>
+        )}
         {/* Đổi chế độ — luôn hiện, một cú bấm qua lại, không giấu trong menu. */}
         <div style={{ display: 'flex', gap: 2, marginLeft: 'auto', border: '1px solid var(--line)', borderRadius: 7, padding: 2, background: 'var(--bg-2)' }}>
           {MODES.map((o) => (

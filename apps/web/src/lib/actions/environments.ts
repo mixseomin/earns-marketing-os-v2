@@ -140,6 +140,9 @@ export interface BrowserProfileRow {
   deadSessions: number;
   /** Chưa xác minh được: chưa đo lần nào, hoặc đo ra unsure/blocked. Không biết ≠ ổn. */
   unknownSessions: number;
+  /** Account bên trong — để lọc theo account/platform/trạng thái ngay ở màn danh sách,
+   *  không phải mở từng drawer ra dò. deadSessions/unknownSessions suy ra từ đây. */
+  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null }[];
   projects: string[];
   manager: string | null;
 }
@@ -155,11 +158,11 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     SELECT bp.id, bp.label, bp.tool, bp.external_id, bp.user_agent, bp.fingerprint,
            bp.default_proxy_id, p.label AS proxy_label,
            bp.last_opened_at, bp.notes,
-           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id) AS accounts_count,
-           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id
-              AND environment->>'sessionState' = 'dead') AS dead_sessions,
-           (SELECT COUNT(*)::int FROM platform_accounts WHERE browser_profile_id = bp.id
-              AND COALESCE(environment->>'sessionState','unknown') NOT IN ('alive','dead')) AS unknown_sessions,
+           (SELECT COALESCE(json_agg(json_build_object(
+                     'id', pa.id, 'platformKey', pa.platform_key, 'handle', pa.handle,
+                     'status', pa.status, 'sessionState', pa.environment->>'sessionState')
+                   ORDER BY pa.platform_key), '[]'::json)
+              FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id) AS accounts,
            (SELECT array_agg(project_id ORDER BY project_id) FROM project_browser_profiles WHERE browser_profile_id = bp.id) AS projects,
            (SELECT handle FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id
               AND (pa.tags @> '["profile-manager"]'::jsonb OR pa.platform_key = 'google')
@@ -171,6 +174,14 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     ORDER BY bp.tool ASC, bp.label ASC
   `);
   const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : (typeof v === 'string' ? new Date(v).toISOString() : null);
+  const accountsOf = (r: Record<string, unknown>) =>
+    ((r.accounts as Array<Record<string, unknown>> | null) ?? []).map((a) => ({
+      id: Number(a.id),
+      platformKey: String(a.platformKey ?? ''),
+      handle: String(a.handle ?? ''),
+      status: String(a.status ?? ''),
+      sessionState: (a.sessionState as string | null) ?? null,
+    }));
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),
     label: String(r.label),
@@ -182,9 +193,10 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     defaultProxyLabel: (r.proxy_label as string | null) ?? null,
     lastOpenedAt: toIso(r.last_opened_at),
     notes: (r.notes as string | null) ?? null,
-    accountsCount: Number(r.accounts_count) || 0,
-    deadSessions: Number(r.dead_sessions) || 0,
-    unknownSessions: Number(r.unknown_sessions) || 0,
+    accountsCount: accountsOf(r).length,
+    deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead').length,
+    unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead').length,
+    accounts: accountsOf(r),
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,
   }));

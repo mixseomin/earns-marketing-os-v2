@@ -439,8 +439,25 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
   const modal = useModalParam("profile");
   const editing = modal.is("edit") ? profiles.find((x) => x.id === modal.numId) ?? null : null;
   const creating = modal.is("new");
+  // Bộ lọc ở url-state: gửi link "cho tôi xem mấy account saashub đang rụng phiên" được, và F5 không mất.
+  const [q, setQ] = useUrlParam('acct', '');
+  const [platform, setPlatform] = useUrlParam('plat', '');
+  const [sess, setSess] = useUrlParam('sess', '');
+  const platforms = [...new Set(profiles.flatMap((p) => p.accounts.map((a) => a.platformKey)))].sort();
+  const matches = (a: BrowserProfileRow['accounts'][number]) => {
+    const needle = q.trim().toLowerCase();
+    if (needle && !`${a.handle} ${a.platformKey}`.toLowerCase().includes(needle)) return false;
+    if (platform && a.platformKey !== platform) return false;
+    if (sess === 'alive' && a.sessionState !== 'alive') return false;
+    if (sess === 'dead' && a.sessionState !== 'dead') return false;
+    if (sess === 'unknown' && (a.sessionState === 'alive' || a.sessionState === 'dead')) return false;
+    return true;
+  };
+  const filtering = !!(q.trim() || platform || sess);
+  // Lọc theo ACCOUNT nhưng vẫn hiện theo PROFILE — profile là thứ mình mở để xử, account chỉ là lý do.
+  const shown = filtering ? profiles.filter((p) => p.accounts.some(matches)) : profiles;
   // Cũ nhất lên đầu — cái cần chăm là cái phải nhìn thấy trước.
-  const ordered = [...profiles].sort((a, b) =>
+  const ordered = [...shown].sort((a, b) =>
     (a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0) - (b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0));
   const needCare = ordered.filter((p) => idleOf(p.lastOpenedAt).tone === 'stale' || idleOf(p.lastOpenedAt).tone === 'never');
 
@@ -466,15 +483,44 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 account / handle…"
+          style={{ fontSize: 12, padding: '4px 8px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)', width: 180 }} />
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)}
+          style={{ fontSize: 12, padding: '4px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }}>
+          <option value="">mọi platform</option>
+          {platforms.map((k) => <option key={k} value={k}>{k}</option>)}
+        </select>
+        <select value={sess} onChange={(e) => setSess(e.target.value)}
+          style={{ fontSize: 12, padding: '4px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-0)' }}>
+          <option value="">mọi trạng thái phiên</option>
+          <option value="alive">✓ còn login</option>
+          <option value="dead">⚠ rụng phiên</option>
+          <option value="unknown">? chưa đo / chưa rõ</option>
+        </select>
+        {filtering && (
+          <button className="btn" style={{ fontSize: 11 }}
+            onClick={() => { setQ(''); setPlatform(''); setSess(''); }}>✕ bỏ lọc</button>
+        )}
+        {filtering && <small style={{ color: 'var(--fg-3)' }}>{ordered.length}/{profiles.length} profile</small>}
+        <span style={{ flex: 1 }} />
         <button className="btn primary" onClick={() => modal.open("new")}>+ New profile</button>
       </div>
 
-      {profiles.length === 0 ? (
+      {ordered.length === 0 ? (
         <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)' }}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>🧬</div>
-          <p style={{ margin: '0 0 12px', fontSize: 12 }}>Chưa có browser profile. Add từ GenLogin / Multilogin / Chrome native để link với account.</p>
-          <button className="btn primary" onClick={() => modal.open("new")}>+ Add first profile</button>
+          {filtering ? (
+            <>
+              <p style={{ margin: '0 0 12px', fontSize: 12 }}>Không profile nào khớp bộ lọc.</p>
+              <button className="btn" onClick={() => { setQ(''); setPlatform(''); setSess(''); }}>✕ Bỏ lọc</button>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: '0 0 12px', fontSize: 12 }}>Chưa có browser profile. Add từ GenLogin / Multilogin / Chrome native để link với account.</p>
+              <button className="btn primary" onClick={() => modal.open("new")}>+ Add first profile</button>
+            </>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
@@ -518,6 +564,21 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   </span>
                   {p.externalId && <span>· {p.externalId.split('/').pop()}</span>}
                 </div>
+                {/* Đang lọc thì phải chỉ ra ACCOUNT nào khớp — nếu không, card chỉ nói "profile này có
+                    thứ gì đó khớp" và vẫn phải mở drawer ra dò, tức là bộ lọc chưa tiết kiệm được gì. */}
+                {filtering && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
+                    {p.accounts.filter(matches).map((a) => {
+                      const c = a.sessionState === 'alive' ? 'var(--fg-3)' : a.sessionState === 'dead' ? 'var(--danger, #e5534b)' : '#d9a441';
+                      return (
+                        <span key={a.id} title={`${a.platformKey} · phiên: ${a.sessionState ?? 'chưa đo'} · account: ${a.status}`}
+                          style={{ fontSize: 9.5, padding: '1px 6px', borderRadius: 3, border: `1px solid ${c}`, color: c, fontFamily: 'var(--font-mono)' }}>
+                          {a.platformKey}/{a.handle || a.id}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

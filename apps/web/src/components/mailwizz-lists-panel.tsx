@@ -1,4 +1,6 @@
 import { unstable_cache } from 'next/cache';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
 import { mailwizzAllLists, type MailwizzList } from '@/lib/mailwizz';
 import { Panel, StatsStrip, SimpleTable, Section, type SimpleColumn } from '@/components/ui';
 
@@ -13,6 +15,23 @@ import { Panel, StatsStrip, SimpleTable, Section, type SimpleColumn } from '@/co
 // NHẤT đáng nhìn chìm mất — nên chia 3 tầng, chỉ tầng "đang có người" mở sẵn.
 
 const loadLists = unstable_cache(mailwizzAllLists, ['mailwizz-lists'], { revalidate: 300, tags: ['mailwizz'] });
+
+/**
+ * uid list → sản phẩm sở hữu nó (knowledge_items.refs.list.uid).
+ * List gắn với một sản phẩm thì LUÔN nằm nhóm trên, kể cả khi đang 0 người: sản phẩm mới ra thì
+ * list mới đúng là phải rỗng, mà rơi xuống nhóm "rỗng" chung với 37 list rác thì coi như không có.
+ */
+async function productByListUid(): Promise<Record<string, string>> {
+  const db = getDb();
+  if (!db) return {};
+  try {
+    const rows = await db.execute(sql`
+      SELECT refs->'list'->>'uid' AS uid, title
+      FROM knowledge_items
+      WHERE kind = 'product' AND refs->'list'->>'uid' IS NOT NULL`);
+    return Object.fromEntries((rows as unknown as Array<{ uid: string; title: string }>).map((r) => [r.uid, r.title]));
+  } catch { return {}; }
+}
 
 const num = (n: number) => n.toLocaleString('en-US');
 const daysAgo = (iso: string | null) => {
@@ -29,6 +48,7 @@ const link: React.CSSProperties = {
 export async function MailwizzListsPanel() {
   let snap: Awaited<ReturnType<typeof mailwizzAllLists>> | null = null;
   let err = '';
+  const [products] = await Promise.all([productByListUid()]);
   try { snap = await loadLists(); } catch (e) { err = (e as Error).message; }
 
   // Hỏng phải NÓI hỏng. Ẩn panel hay hiện 0 đều làm người xem tin là "chưa ai đăng ký".
@@ -43,10 +63,12 @@ export async function MailwizzListsPanel() {
     );
   }
 
-  const live = snap.lists.filter((l) => l.confirmed > 0);
-  const dead = snap.lists.filter((l) => l.confirmed === 0 && l.total > 0)
+  const owned = (l: MailwizzList) => Boolean(products[l.uid]);
+  const live = snap.lists.filter((l) => owned(l) || l.confirmed > 0)
+    .sort((a, b) => Number(owned(b)) - Number(owned(a)) || b.confirmed - a.confirmed);
+  const dead = snap.lists.filter((l) => !owned(l) && l.confirmed === 0 && l.total > 0)
     .sort((a, b) => b.unsubscribed - a.unsubscribed || a.name.localeCompare(b.name));
-  const empty = snap.lists.filter((l) => l.total === 0).sort((a, b) => a.name.localeCompare(b.name));
+  const empty = snap.lists.filter((l) => !owned(l) && l.total === 0).sort((a, b) => a.name.localeCompare(b.name));
   const lastAll = snap.lists.reduce<string | null>((m, l) => (l.last && (!m || l.last > m) ? l.last : m), null);
   const owners = [...new Set(snap.lists.map((l) => l.owner).filter(Boolean))];
   const showOther = snap.lists.some((l) => l.other > 0);
@@ -56,8 +78,13 @@ export async function MailwizzListsPanel() {
       key: 'list', header: 'List',
       cell: (l) => (
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600 }}>{l.name}</span>
+            {products[l.uid] && (
+              <span title="list gắn với một sản phẩm" style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4, padding: '0 5px' }}>
+                📕 {products[l.uid]}
+              </span>
+            )}
             {l.status !== 'active' && (
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', color: 'var(--fg-3)' }}>[{l.status}]</span>
             )}
@@ -107,7 +134,7 @@ export async function MailwizzListsPanel() {
               snap.blocked === null ? 'không kiểm được blacklist' : snap.blocked > 0 ? `${num(snap.blocked)} bị chặn` : '',
             ].filter(Boolean).join(' · ') || undefined,
           },
-          { key: 'lists', label: 'Lists', value: String(snap.lists.length), sub: `${live.length} có người · ${dead.length} chỉ huỷ · ${empty.length} rỗng` },
+          { key: 'lists', label: 'Lists', value: String(snap.lists.length), sub: `${live.length} theo dõi · ${dead.length} chỉ huỷ · ${empty.length} rỗng` },
           { key: 'unsub', label: 'Đã huỷ', value: num(snap.lists.reduce((n, l) => n + l.unsubscribed, 0)) },
           { key: 'last', label: 'Người mới gần nhất', value: lastAll ? lastAll.slice(0, 10) : '—', sub: daysAgo(lastAll) ?? undefined },
         ]}

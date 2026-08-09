@@ -80,3 +80,82 @@ export async function mailwizzListStats(listUid: string): Promise<{ ok: boolean;
     return { ok: false, error: (e as Error).message };
   } finally { await conn?.end().catch(() => {}); }
 }
+
+export interface MailwizzList {
+  uid: string; name: string; owner: string; status: string;
+  total: number; confirmed: number; unsubscribed: number; other: number;
+  last: string | null;
+}
+
+export interface MailwizzSnapshot {
+  lists: MailwizzList[];
+  /** NGƯỜI, không phải hàng: một email nằm ở nhiều list thì vẫn là một người. */
+  people: number;
+  /** Tổng số HÀNG confirmed cộng qua mọi list — khác `people` khi có email trùng list. */
+  confirmedRows: number;
+  /** Số email trong blacklist (không gửi được). null = không đọc được, KHÁC 0. */
+  blocked: number | null;
+  readAt: string;
+}
+
+/**
+ * MỌI list kèm số liệu — cho bảng theo dõi ở TRANG CHỦ.
+ *
+ * KHÔNG lọc theo l.status: đây là bảng "theo dõi TẤT CẢ list". Lọc active thì hôm nay không mất gì
+ * (47/47 đang active) nhưng ngày ai archive một list, nó BIẾN MẤT im lặng khỏi bảng — đúng kiểu lỗi
+ * không ai phát hiện ra. Thay vì giấu, trả `status` về để bảng dán nhãn.
+ *
+ * Một câu SQL cho toàn bộ list (không N+1): 47 list × một vòng qua tunnel cho một trang ai cũng mở
+ * là 47 lần chờ mạng.
+ *
+ * Ném lỗi thay vì trả rỗng: mảng rỗng làm trang chủ nói dối "không có list nào".
+ */
+export async function mailwizzAllLists(): Promise<MailwizzSnapshot> {
+  if (!PASS) throw new Error('chưa cấu hình MailWizz');
+  let conn: mysql.Connection | null = null;
+  try {
+    // 4s cho đường ĐỌC (ghi lead giữ 8s): tunnel chết mà chờ 8s thì mỗi lần hết cache là trang chủ treo.
+    conn = await mysql.createConnection({ host: HOST, port: PORT, user: USER, password: PASS, database: NAME, connectTimeout: 4000 });
+    const [rows] = await conn.execute(
+      `SELECT l.list_uid AS uid, l.name, l.status, c.email AS owner,
+              COALESCE(s.total, 0)        AS total,
+              COALESCE(s.confirmed, 0)    AS confirmed,
+              COALESCE(s.unsubscribed, 0) AS unsubscribed,
+              COALESCE(s.other, 0)        AS other,
+              s.last
+       FROM mw_list l
+       LEFT JOIN mw_customer c ON c.customer_id = l.customer_id
+       LEFT JOIN (
+         SELECT list_id,
+                COUNT(*) AS total,
+                SUM(status = 'confirmed')    AS confirmed,
+                SUM(status = 'unsubscribed') AS unsubscribed,
+                SUM(status NOT IN ('confirmed','unsubscribed')) AS other,
+                MAX(date_added) AS last
+         FROM mw_list_subscriber GROUP BY list_id
+       ) s ON s.list_id = l.list_id
+       ORDER BY COALESCE(s.confirmed, 0) DESC, COALESCE(s.total, 0) DESC, l.list_id DESC`);
+
+    const [peopleRows] = await conn.execute(
+      `SELECT COUNT(DISTINCT email) AS people FROM mw_list_subscriber WHERE status = 'confirmed'`);
+    const people = Number((peopleRows as Array<{ people: number }>)[0]?.people ?? 0);
+
+    // Blacklist đọc riêng và được phép hỏng: user mos2sync chỉ có quyền trên 4 bảng list. Hỏng thì
+    // trả null để chỗ hiển thị nói "không kiểm tra được", KHÔNG hiện 0 (0 nghĩa là đã kiểm và sạch).
+    let blocked: number | null = null;
+    try {
+      const [b] = await conn.execute(`SELECT COUNT(*) AS n FROM mw_email_blacklist`);
+      blocked = Number((b as Array<{ n: number }>)[0]?.n ?? 0);
+    } catch { blocked = null; }
+
+    const lists = (rows as Array<Record<string, unknown>>).map((r) => ({
+      uid: String(r.uid), name: String(r.name ?? ''), status: String(r.status ?? ''), owner: String(r.owner ?? ''),
+      total: Number(r.total ?? 0), confirmed: Number(r.confirmed ?? 0),
+      unsubscribed: Number(r.unsubscribed ?? 0), other: Number(r.other ?? 0),
+      // mysql2 trả Date — String(Date) ra "Mon Jul 21 2026 07:24:11 GMT+0700", vô dụng để so sánh/cắt.
+      last: r.last instanceof Date ? r.last.toISOString() : (r.last ? String(r.last) : null),
+    }));
+    const confirmedRows = lists.reduce((n, l) => n + l.confirmed, 0);
+    return { lists, people, confirmedRows, blocked, readAt: new Date().toISOString() };
+  } finally { await conn?.end().catch(() => {}); }
+}

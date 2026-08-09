@@ -1,9 +1,11 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
 import { SteamsoloLangPanel } from './steamsolo-lang-panel';
 import { AffiliateOffersPanel } from './affiliate-offers-panel';
 import { DeliverabilityCard } from './deliverability-card';
+import { MailwizzListsPanel } from './mailwizz-lists-panel';
 import { AwarenessFunnelPanel } from './awareness-funnel-panel';
 import { AwinDailyPanel } from './awin-daily-panel';
 import { PortfolioGrid } from './portfolio-grid';
@@ -32,6 +34,13 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
 
       {/* Cross-site affiliate-offer funnel (Awin CTAs), config-driven per site */}
       <AffiliateOffersPanel />
+
+      {/* Email lists (MailWizz) — mỗi sản phẩm một list, đặt ngay trên deliverability vì hai cái
+          trả lời hai nửa của cùng một câu: gửi cho AI, và gửi có tới không. Suspense để tunnel
+          box2 chậm/chết không giữ cả trang chủ lại. */}
+      <Suspense fallback={<div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>✉ email lists — đang đọc…</div>}>
+        <MailwizzListsPanel />
+      </Suspense>
 
       {/* Email deliverability — below Affiliate (moved from top of the portfolio page) */}
       <DeliverabilityCard />

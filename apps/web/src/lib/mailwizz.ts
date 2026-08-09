@@ -18,7 +18,7 @@ export async function mailwizzSubscribe(listUid: string, email: string, name?: s
   try {
     const page = await fetch(url, { headers: { Host: HOST }, cache: 'no-store' });
     const html = await page.text();
-    const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
+    const cookie = (page.headers.get('set-cookie') || '').split(';')[0] ?? '';
     const tokenName = html.match(/name="csrf-token-name" content="([^"]+)"/)?.[1] ?? 'csrf_token';
     const tokenVal = html.match(/name="csrf-token-value" content="([^"]+)"/)?.[1] ?? '';
 

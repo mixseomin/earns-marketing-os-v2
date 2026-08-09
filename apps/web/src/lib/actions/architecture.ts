@@ -17,6 +17,7 @@ import { uploadToR2 } from '@/lib/r2';
 import { getCurrentUser } from '@/lib/auth';
 import { isSiteStatus } from '@/lib/site-status';
 import { DONE_STATES, doneBlockReason } from '@/lib/task-done';
+import { draftBlockReason } from '@/lib/voice-score';
 import { taskKind } from '@/lib/task-kind';
 
 type Row = Record<string, unknown>;
@@ -543,6 +544,18 @@ export async function submitDraftReview(taskId: number, action: 'approve' | 'cha
   const me = await getCurrentUser();
   const who = (me && (me.displayName || me.name || me.email)) || 'operator';
   const status = action === 'approve' ? 'approved' : action === 'changes' ? 'changes' : null; // comment giữ nguyên status
+  // CỔNG giọng văn: không duyệt cho đăng một bài còn lỗi tìm-bằng-find (em dash, từ máy, cụm dạo
+  // đầu). Prompt sinh draft đã dặn tránh mấy thứ này từ lâu mà quét 18 draft thật vẫn ra 4 cái
+  // trượt — model quên lời dặn, regex thì không. Chặn ở đây vì đây là chỗ DUY NHẤT một bài được
+  // đóng dấu "sẵn sàng đăng"; drawer chỉ làm mờ nút trước cho đỡ bất ngờ.
+  if (action === 'approve') {
+    const dr = await db.execute(sql`SELECT prep_payload->>'draft' AS draft, prep_payload->>'draft_short' AS short FROM human_tasks WHERE id = ${taskId} LIMIT 1`);
+    const row = (dr as unknown as Array<{ draft: string | null; short: string | null }>)[0];
+    for (const [label, text] of [['bản dài', row?.draft], ['bản ngắn', row?.short]] as const) {
+      const why = draftBlockReason(text);
+      if (why) return { ok: false, error: `${label}: ${why}` };
+    }
+  }
   const entry = JSON.stringify({ by: who, kind: 'human', action, note: n, at: new Date().toISOString() });
   try {
     // Build off the OLD row value: ensure the object exists, append to its thread, then (approve/changes) set status.

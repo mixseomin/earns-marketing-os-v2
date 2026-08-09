@@ -19,6 +19,8 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { GuardedButton } from '@/components/ui/guarded-button';
+import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
 import type { BuildingProduct } from '@/lib/actions/products-building';
 import { searchBacklinkMedia, attachBacklinkMedia, generateBacklinkMedia, autoPrepareProjectMedia, deleteBacklinkMedia, generateBacklinkDraft, condenseBacklinkDraft } from '@/lib/actions/backlink-media';
@@ -1610,10 +1612,19 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
   // Draft review — AI drafted, staff approves/requests-changes inline (banner below the blocker banner).
   const [revNote, setRevNote] = useState('');
   const [revBusy, setRevBusy] = useState(false);
+  const [revErr, setRevErr] = useState('');
   const doReview = async (action: 'approve' | 'changes' | 'comment') => {
     if ((action === 'changes' || action === 'comment') && !revNote.trim()) return;
-    setRevBusy(true); await submitDraftReview(task.id, action, revNote.trim()); setRevBusy(false); setRevNote(''); onChange();
+    setRevBusy(true);
+    const r = await submitDraftReview(task.id, action, revNote.trim());
+    setRevBusy(false);
+    if (!r.ok) { setRevErr(r.error || 'không duyệt được'); return; }   // cổng giọng văn từ chối → nói ra
+    setRevErr(''); setRevNote(''); onChange();
   };
+  // Điểm giọng văn của draft — CÙNG hàm server dùng để chặn duyệt, nên nút mờ đi đúng lúc server
+  // sẽ từ chối, không có chuyện bấm rồi mới biết.
+  const draftScore = useMemo(() => (task.draft ? voiceScore(task.draft) : null), [task.draft]);
+  const approveBlock = draftBlockReason(task.draft) || draftBlockReason(task.draftShort);
   // ✨ Chuẩn hoá — AI reshape this task's instructions into the canonical template, grounded on real DOM.
   const [normBusy, setNormBusy] = useState(false);
   type DomSample = NonNullable<Awaited<ReturnType<typeof listTaskDomSamples>>['samples']>[number];
@@ -2011,10 +2022,13 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
                   <textarea value={revNote} onChange={(e) => setRevNote(e.target.value)} placeholder="Ghi chú / yêu cầu sửa (nêu rõ chỗ nào, đổi thế nào)…" rows={2}
                     style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', resize: 'vertical', fontFamily: 'inherit' }} />
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <button type="button" onClick={() => doReview('approve')} disabled={revBusy} style={{ ...btn, borderColor: '#22c55e', color: '#22c55e', fontWeight: 700 }}>{revBusy ? '…' : '✅ Duyệt cho đăng'}</button>
+                    <GuardedButton reason={approveBlock} onClick={() => doReview('approve')} disabled={revBusy} style={{ ...btn, borderColor: '#22c55e', color: '#22c55e', fontWeight: 700 }}>{revBusy ? '…' : '✅ Duyệt cho đăng'}</GuardedButton>
                     <button type="button" onClick={() => doReview('changes')} disabled={revBusy || !revNote.trim()} style={{ ...btn, borderColor: '#ffb03c', color: '#ffb03c' }}>✏️ Yêu cầu sửa</button>
                     <button type="button" onClick={() => doReview('comment')} disabled={revBusy || !revNote.trim()} style={{ ...btn }}>💬 Ghi chú</button>
                   </div>
+                  {(approveBlock || revErr) && (
+                    <div style={{ fontSize: 11.5, color: 'var(--bad,#ef4444)', marginTop: 6, lineHeight: 1.5 }}>{revErr || approveBlock}</div>
+                  )}
                 </div>
               )}
             </div>
@@ -2246,7 +2260,18 @@ function TaskDrawer({ task, slug, project, accounts, media, product, backgrounde
         {draftFmts ? (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>📋 Draft (paste-ready)</span>
+            {draftScore && (
+              <span title={`${draftScore.words} từ · câu dài nhất hơn ngắn nhất ${draftScore.spread} từ · rào đón ${draftScore.hedgesPer200}/200 từ · số-tên kiểm được ${draftScore.checkablePer100}/100 từ`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, padding: '1px 7px', borderRadius: 999, textTransform: 'none', letterSpacing: 0,
+                  color: draftScore.ok ? (draftScore.soft.length ? '#ffb03c' : 'var(--ok,#22c55e)') : 'var(--bad,#ef4444)',
+                  border: `1px solid ${draftScore.ok ? (draftScore.soft.length ? '#ffb03c55' : '#22c55e55') : '#ef444455'}`,
+                  background: draftScore.ok ? 'transparent' : 'color-mix(in srgb, #ef4444 10%, transparent)' }}>
+                {draftScore.ok ? (draftScore.soft.length ? '⚠ giọng: xem lại' : '✓ giọng: đạt') : `✗ giọng: ${draftScore.hard.length} lỗi`}
+              </span>
+            )}
             <button type="button" onClick={doDraft} disabled={dbusy} title="Sinh lại bản nháp khác" style={{ ...btn, padding: '1px 8px' }}>{dbusy ? '…' : '↻ Viết lại'}</button>
+            {draftScore && !draftScore.ok && <span style={{ flexBasis: '100%', fontSize: 11, color: 'var(--bad,#ef4444)', fontWeight: 500, textTransform: 'none', letterSpacing: 0, lineHeight: 1.5 }}>{draftScore.hard.join(' · ')}</span>}
+            {draftScore && draftScore.ok && draftScore.soft.length > 0 && <span style={{ flexBasis: '100%', fontSize: 11, color: 'var(--warn,#ffb03c)', fontWeight: 500, textTransform: 'none', letterSpacing: 0, lineHeight: 1.5 }}>{draftScore.soft.join(' · ')}</span>}
             <span style={{ display: 'inline-flex', gap: 4 }}>
               {DRAFT_FMTS.map((f) => (
                 <button key={f.k} type="button" onClick={() => setFmt(f.k)} title={f.hint}

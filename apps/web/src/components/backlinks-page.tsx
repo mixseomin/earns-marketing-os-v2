@@ -1104,7 +1104,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   // Khuôn cột của feed hoạt động — khai MỘT chỗ để hàng tiêu đề và các dòng không bao giờ lệch nhau.
   // Ở trang 1 project thì cột Project bỏ hẳn (mọi dòng cùng một project = cột thừa), không để trống.
-  const ACT_COLS = allProjects ? '84px 132px minmax(0,1fr) 62px' : '84px minmax(0,1fr) 62px';
+  // Cột cuối 84px + nowrap: để 62px thì "42 phút trước" xuống hai dòng, hàng cao thấp so le nhau.
+  const ACT_COLS = allProjects ? '84px 132px minmax(0,1fr) 84px' : '84px minmax(0,1fr) 84px';
 
   // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
   const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);
@@ -1635,7 +1636,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   <span title={r.project ?? ''} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10.5, color: 'var(--fg-4)' }}>{r.project ?? '—'}</span>
                 )}
                 <span title={r.title} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
-                <span style={{ textAlign: 'right', fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(r.at)}</span>
+                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(r.at)}</span>
               </button>
             ))}
           </div>

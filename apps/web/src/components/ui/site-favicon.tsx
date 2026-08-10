@@ -44,7 +44,7 @@ function hostFromUrl(u?: string | null): string | null {
 }
 
 export function SiteFavicon({
-  platformKey, url, kind, iconSlug, glyph, size = 16, title, style,
+  platformKey, url, kind, iconSlug, glyph, size = 16, title, style, circle = false,
 }: {
   /** Ưu tiên cao nhất: icon phục vụ từ /api/platform-icon/<key> — đã cache trong DB, cache-control
    *  1 năm, host lấy từ URL THẬT của platform. Không còn đoán bằng map cứng. */
@@ -56,6 +56,7 @@ export function SiteFavicon({
   size?: number;
   title?: string;
   style?: CSSProperties;
+  circle?: boolean;        // hình tròn avatar-style (cluster account trên card/drawer); mặc định bo góc nhẹ
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -67,10 +68,14 @@ export function SiteFavicon({
     if (host) src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
   }
 
+  const radius = circle ? '50%' : 3;
   const box: CSSProperties = {
     width: size, height: size, display: 'inline-flex', alignItems: 'center',
     justifyContent: 'center', flexShrink: 0, verticalAlign: 'text-bottom',
-    fontSize: Math.round(size * 0.85), lineHeight: 1, ...style,
+    fontSize: Math.round(size * (circle ? 0.66 : 0.85)), lineHeight: 1,
+    // Tròn = viền + nền để favicon trong suốt/nhỏ vẫn đọc ra là 1 "avatar" gọn.
+    ...(circle && { borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-2)', border: '1px solid var(--line)' }),
+    ...style,
   };
 
   if (!src || failed) {
@@ -88,7 +93,7 @@ export function SiteFavicon({
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      style={{ ...box, objectFit: 'contain', borderRadius: 3 }}
+      style={{ ...box, objectFit: 'contain', borderRadius: radius }}
     />
   );
 }

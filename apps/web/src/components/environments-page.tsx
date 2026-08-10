@@ -21,7 +21,8 @@ import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
-import { Drawer, EntityRef } from './ui';
+import { Drawer, EntityRef, SiteFavicon } from './ui';
+import { platformFaviconProps } from './ui/site-favicon';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
 type Tab = 'proxies' | 'profiles' | 'accounts';
@@ -459,6 +460,23 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 
   return (
     <>
+      {/* Bộ lọc account / platform / trạng thái phiên — url-state (share link + F5 giữ nguyên). State +
+          logic vẫn còn nguyên; JSX từng bị gỡ LẪN trong commit dọn banner (6f9b949) nên "tự nhiên mất".
+          Khôi phục lại — block này cũng chứa nút + New profile của tab. */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+        <MultiSelect<string> label="Account" options={acctOptions} selected={accts}
+          onChange={(v) => setQ(v.join(','))} searchPlaceholder="Tìm handle…" />
+        <MultiSelect<string> label="Platform" options={platOptions} selected={plats}
+          onChange={(v) => setPlatRaw(v.join(','))} />
+        <MultiSelect<string> label="Trạng thái phiên" options={sessOptions} selected={sessions}
+          onChange={(v) => setSessRaw(v.join(','))} />
+        {filtering && (
+          <button type="button" className="btn" style={{ fontSize: 11 }} onClick={clearAll}>✕ bỏ lọc</button>
+        )}
+        {filtering && <small style={{ color: 'var(--fg-3)' }}>{ordered.length}/{profiles.length} profile</small>}
+        <span style={{ flex: 1 }} />
+        <button className="btn primary" onClick={() => modal.open("new")}>+ New profile</button>
+      </div>
       {/* YDNI: banner chỉ nói CÁI GÌ + Ở ĐÂU (tên account). Cách xử nằm sau 1 click — nó chỉ cần
           khi bắt tay vào sửa, không cần chiếm 3 dòng thường trực trên mọi lượt xem. */}
       {(deadList.length > 0 || unknownList.length > 0) && (
@@ -541,6 +559,20 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   </span>
                   {p.externalId && <span>· {p.externalId.split('/').pop()}</span>}
                 </div>
+                {/* Favicon TRÒN của từng account trong profile — nhìn 1 phát biết có những site nào,
+                    khỏi mở drawer. Mất phiên / account bị khoá (KHÔNG active) thì để MỜ + xám. */}
+                {p.accounts.length > 0 && (
+                  <div style={{ display: 'flex', gap: 3, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {p.accounts.map((a) => {
+                      const inactive = a.sessionState === 'dead' || DEAD_STATUSES.includes(a.status as AccountStatus);
+                      return (
+                        <SiteFavicon key={a.id} {...platformFaviconProps(a.platformKey)} size={18} circle glyph="👤"
+                          title={`${a.platformKey}/${a.handle || a.id} · phiên: ${a.sessionState ?? 'chưa đo'} · ${a.status}${inactive ? ' · ⚠ KHÔNG ACTIVE' : ''}`}
+                          style={inactive ? { opacity: 0.3, filter: 'grayscale(1)' } : undefined} />
+                      );
+                    })}
+                  </div>
+                )}
                 {/* Đang lọc thì phải chỉ ra ACCOUNT nào khớp — nếu không, card chỉ nói "profile này có
                     thứ gì đó khớp" và vẫn phải mở drawer ra dò, tức là bộ lọc chưa tiết kiệm được gì. */}
                 {filtering && (

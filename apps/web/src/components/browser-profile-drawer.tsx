@@ -17,6 +17,7 @@ import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 // Ngưỡng + màu + badge phiên: dùng chung với environments-page, không chép lại.
 import { accountSession, sessionBadge, pendingBadge, idleOf } from '@/lib/session-health';
+import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 
 // href.li wrap for external links (per global rule).
 const hl = wrapExternalUrl;
@@ -227,14 +228,16 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
               : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                   {inside.map((a) => {
-                    const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}` };
+                    // Mất phiên (dead) hoặc account bị khoá (banned/suspended…) = KHÔNG active → mờ cả dòng.
+                    const inactive = a.sessionState === 'dead' || DEAD_STATUSES.includes(a.status as AccountStatus);
+                    const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}`, opacity: inactive ? 0.5 : 1 };
                     // Account = shared <EntityRef> (opens the standard account drawer IN-PLACE, stacked
                     // over this profile drawer — no page jump). Manager 🔑 + status stay as row decoration.
                     return (
                       <div key={a.id} style={rowStyle}>
                         {/* Favicon của CHÍNH site — icon chung 👤 lặp lại ở mọi dòng thì mắt không
                             phân biệt được dòng nào là site nào, phải đọc chữ mới biết. */}
-                        <SiteFavicon {...platformFaviconProps(a.platformKey)} size={15}
+                        <SiteFavicon {...platformFaviconProps(a.platformKey)} size={16} circle
                           glyph={a.isManager ? '🔑' : '👤'} title={a.isManager ? 'Gmail quản lý (base login)' : a.platformKey} />
                         {activeProxy && <span title={`Account này đi qua proxy ${activeProxy.label}${activeProxy.location ? ` · ${activeProxy.location}` : ''} — IP thật được che`} style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>🛡</span>}
                         <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon

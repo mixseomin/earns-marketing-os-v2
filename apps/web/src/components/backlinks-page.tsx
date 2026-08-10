@@ -1069,22 +1069,38 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Từ drawer chỉ về đúng ô lịch của task: bật lịch + nhảy ngày + đóng drawer để thấy nó.
   const locateInCalendar = (t: BacklinkTask) => { const d = taskCalDay(t); if (!d) return; setView('calendar'); setCalDate(d); closeTask(); };
 
-  // Hoạt động gần đây (GLOBAL): mỗi task lấy MỐC + LOẠI sự kiện muộn nhất (thêm/nộp/xong) rồi xếp
-  // mới→cũ. "Để biết" vừa làm gì, vừa thêm gì — không phải lục cả lịch. Bấm → mở drawer chi tiết.
-  // Dùng `tasks` (TOÀN BỘ), KHÔNG phải filteredAll: feed cố ý KỆ bộ lọc project/tab/status đang bật —
-  // lọc về 1 project (vd proj=codecrate) mà vẫn thấy hoạt động mọi nơi. Đó là nghĩa "global".
+  // Hoạt động gần đây (GLOBAL): task VÀ follow-up, mỗi cái lấy MỐC + LOẠI sự kiện muộn nhất rồi xếp
+  // mới→cũ. "Để biết" vừa làm gì, vừa thêm gì — không phải lục cả lịch. Bấm → mở drawer đúng loại.
+  // Dùng `tasks`/`followups` TOÀN BỘ (kệ project/tab filter) = "global"; nhưng VẪN theo ô search q để
+  // tìm được. Trước đây feed chỉ có task nên việc follow-up (vd warm-up reddit) vừa động vào không hiện.
   const recentActivity = useMemo(() => {
-    const rows = tasks.map((t) => {
-      const ev: Array<{ at: string; kind: 'added' | 'submitted' | 'done' }> = [];
-      if (t.createdAt) ev.push({ at: t.createdAt, kind: 'added' });
-      if (t.siteSubmittedAt) ev.push({ at: t.siteSubmittedAt, kind: 'submitted' });
-      if (t.siteDoneAt) ev.push({ at: t.siteDoneAt, kind: 'done' });
-      if (!ev.length) return null;
+    const s = q.trim().toLowerCase();
+    type Row = { key: string; kind: 'task' | 'followup'; id: number; title: string; project: string | null; at: string; label: string; color: string };
+    const rows: Row[] = [];
+    for (const t of tasks) {
+      const ev: Array<{ at: string; k: 'added' | 'submitted' | 'done' }> = [];
+      if (t.createdAt) ev.push({ at: t.createdAt, k: 'added' });
+      if (t.siteSubmittedAt) ev.push({ at: t.siteSubmittedAt, k: 'submitted' });
+      if (t.siteDoneAt) ev.push({ at: t.siteDoneAt, k: 'done' });
+      if (!ev.length) continue;
       const last = ev.reduce((m, e) => (e.at > m.at ? e : m));
-      return { t, at: last.at, kind: last.kind };
-    }).filter(Boolean) as Array<{ t: BacklinkTask; at: string; kind: 'added' | 'submitted' | 'done' }>;
-    return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 24);
-  }, [tasks]);
+      const am = ACTIVITY_META[last.k];
+      const title = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();
+      const project = allProjects ? (t.projectLabel ?? null) : null;
+      if (s && !`${title} ${project ?? ''}`.toLowerCase().includes(s)) continue;
+      rows.push({ key: `t${t.id}`, kind: 'task', id: t.id, title, project, at: last.at, label: am.label, color: am.color });
+    }
+    for (const f of followups) {
+      if (!f.updated) continue;
+      const label = f.status === 'done' ? 'xong' : f.status === 'dropped' ? 'bỏ' : f.status === 'doing' ? 'đang làm' : 'cập nhật';
+      const color = f.status === 'done' ? ACTIVITY_META.done.color : f.status === 'dropped' ? 'var(--fg-4)' : SITE_STATUS_META.submitted.color;
+      const project = allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : null;
+      const title = `📌 ${f.title.replace(/\s+/g, ' ').trim()}`;
+      if (s && !`${title} ${project ?? ''}`.toLowerCase().includes(s)) continue;
+      rows.push({ key: `f${f.id}`, kind: 'followup', id: f.id, title, project, at: f.updated, label, color });
+    }
+    return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 30);
+  }, [tasks, followups, q, allProjects, projectsById]);
 
   // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
   const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);
@@ -1596,20 +1612,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             🕒 Hoạt động gần đây <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>({recentActivity.length}) · vừa thêm / nộp / xong</span>
           </summary>
           <div style={{ maxHeight: 260, overflowY: 'auto', borderTop: '1px solid var(--line)', padding: '4px 0' }}>
-            {recentActivity.map(({ t, at, kind }) => {
-              const am = ACTIVITY_META[kind];
-              const plbl = allProjects && t.projectLabel ? t.projectLabel : '';
-              return (
-                <button key={`${t.id}-${kind}`} type="button" onClick={() => openTask(t.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '5px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--fg-1)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                  <span style={{ flexShrink: 0, width: 88, fontSize: 9.5, fontWeight: 700, color: am.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{am.label}</span>
-                  {plbl && <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)' }}>[{plbl}]</span>}
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stripKindPrefix(t.title)}</span>
-                  <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(at)}</span>
-                </button>
-              );
-            })}
+            {recentActivity.map((r) => (
+              <button key={r.key} type="button" onClick={() => (r.kind === 'followup' ? setOpenFollowupId(r.id) : openTask(r.id))}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '5px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--fg-1)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                <span style={{ flexShrink: 0, width: 88, fontSize: 9.5, fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{r.label}</span>
+                {r.project && <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)' }}>[{r.project}]</span>}
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(r.at)}</span>
+              </button>
+            ))}
           </div>
         </details>
       )}

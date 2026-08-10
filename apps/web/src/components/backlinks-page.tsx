@@ -73,6 +73,25 @@ const CAL_LEGEND: LegendEntry[] = [
 // should surface at the top of its column, not sink under stale tier order.
 const TERMINAL_STATES = new Set<string>(['submitted', 'review', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
+// Thời gian tương đối gọn (feed hoạt động gần đây). Client component nên Date.now an toàn.
+function relTimeVi(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return 'sắp tới';
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'vừa xong';
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d} ngày trước`;
+  return new Date(iso).toISOString().slice(0, 10);
+}
+// Loại sự kiện gần nhất của một task trên feed — nhãn + màu (đồng nhất với trạng thái site).
+const ACTIVITY_META: Record<'added' | 'submitted' | 'done', { label: string; color: string }> = {
+  added: { label: 'thêm', color: 'var(--fg-4)' },
+  submitted: { label: 'nộp chờ duyệt', color: SITE_STATUS_META.submitted.color },
+  done: { label: 'xong', color: SITE_STATUS_META.completed?.color ?? '#22c55e' },
+};
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
 type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'followup';   // '' = mọi loại
 
@@ -1039,6 +1058,32 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
   const filtered = useMemo(() => (hideClosed ? filteredAll.filter((t) => !CLOSED.has(t.siteState)) : filteredAll), [filteredAll, hideClosed]);
+
+  // Ngày một task rơi trên LỊCH — CÙNG luật với calItems (xong→doneAt, đã nộp→submittedAt,
+  // hẹn→scheduledAt), fallback createdAt. Dùng cho nút "xem trên lịch" ở drawer.
+  const taskCalDay = (t: BacklinkTask): string | null =>
+    t.siteDoneAt ? localDay(t.siteDoneAt)
+      : t.siteState === 'submitted' && t.siteSubmittedAt ? localDay(t.siteSubmittedAt)
+        : t.siteScheduledAt ? t.siteScheduledAt
+          : t.createdAt ? localDay(t.createdAt) : null;
+  // Từ drawer chỉ về đúng ô lịch của task: bật lịch + nhảy ngày + đóng drawer để thấy nó.
+  const locateInCalendar = (t: BacklinkTask) => { const d = taskCalDay(t); if (!d) return; setView('calendar'); setCalDate(d); closeTask(); };
+
+  // Hoạt động gần đây (global): mỗi task lấy MỐC + LOẠI sự kiện muộn nhất (thêm/nộp/xong) rồi xếp
+  // mới→cũ. "Để biết" vừa làm gì, vừa thêm gì — không phải lục cả lịch. Bấm → mở drawer chi tiết.
+  const recentActivity = useMemo(() => {
+    const rows = filteredAll.map((t) => {
+      const ev: Array<{ at: string; kind: 'added' | 'submitted' | 'done' }> = [];
+      if (t.createdAt) ev.push({ at: t.createdAt, kind: 'added' });
+      if (t.siteSubmittedAt) ev.push({ at: t.siteSubmittedAt, kind: 'submitted' });
+      if (t.siteDoneAt) ev.push({ at: t.siteDoneAt, kind: 'done' });
+      if (!ev.length) return null;
+      const last = ev.reduce((m, e) => (e.at > m.at ? e : m));
+      return { t, at: last.at, kind: last.kind };
+    }).filter(Boolean) as Array<{ t: BacklinkTask; at: string; kind: 'added' | 'submitted' | 'done' }>;
+    return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 24);
+  }, [filteredAll]);
+
   // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
   const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);
 
@@ -1541,6 +1586,32 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         );
       })()}
 
+      {/* 🕒 Hoạt động gần đây (global) — vừa thêm / nộp / xong, mới nhất trên đầu. Bấm 1 dòng → mở
+          drawer chi tiết. "Để biết" mà không phải quét cả lịch. Collapsible (native details) — YDNI. */}
+      {recentActivity.length > 0 && (
+        <details open style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)' }}>
+          <summary style={{ cursor: 'pointer', padding: '8px 12px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)' }}>
+            🕒 Hoạt động gần đây <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>({recentActivity.length}) · vừa thêm / nộp / xong</span>
+          </summary>
+          <div style={{ maxHeight: 260, overflowY: 'auto', borderTop: '1px solid var(--line)', padding: '4px 0' }}>
+            {recentActivity.map(({ t, at, kind }) => {
+              const am = ACTIVITY_META[kind];
+              const plbl = allProjects && t.projectLabel ? t.projectLabel : '';
+              return (
+                <button key={`${t.id}-${kind}`} type="button" onClick={() => openTask(t.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '5px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--fg-1)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                  <span style={{ flexShrink: 0, width: 88, fontSize: 9.5, fontWeight: 700, color: am.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{am.label}</span>
+                  {plbl && <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)' }}>[{plbl}]</span>}
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stripKindPrefix(t.title)}</span>
+                  <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(at)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </details>
+      )}
+
       {view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
           {STATUS_ORDER.map((st) => {
@@ -1594,7 +1665,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </>
       )}
 
-      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} />}
+      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}
@@ -1664,7 +1735,7 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
   );
 }
 
-function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProduct, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource }: {
+function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProduct, backgrounded, onOpenOutreach, onClose, setSite, setSchedule, setResume, onChange, onCreateAccount, onEditAccount, onOpenTask, onDelete, onDropSource, onLocate }: {
   task: BacklinkTask; slug: string; project: Project; accounts: AccountRow[]; media: MediaRow[];
   /** Card này là một bước của sản phẩm nào (nếu có) — để nhảy thẳng sang bước khác, không phải đóng ra vào lại. */
   product?: BuildingProduct;
@@ -1672,6 +1743,8 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
   onOpenProduct?: (slug: string) => void;
   backgrounded?: boolean; onOpenOutreach: (pid: number) => void; onClose: () => void; setSite: (id: number, status: string, url: string) => Promise<string>; setSchedule: (id: number, date: string) => Promise<void>; setResume: (id: number, r: TaskResume) => Promise<void>; onChange: () => void;
   onCreateAccount: (platformKey: string, assignToTask?: number, recommendedRole?: AccountRole) => void; onEditAccount: (account: AccountRow) => void; onOpenTask: (id: number) => void; onDelete: (id: number) => void; onDropSource: (id: number, reason?: string) => void;
+  /** Chỉ về đúng ô lịch của task (bật lịch + nhảy ngày + đóng drawer). Undefined = không hiện nút. */
+  onLocate?: () => void;
 }) {
   const view = useMediaViewer();   // ui/media-viewer — phóng to tại chỗ rồi đóng, không nhảy tab
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -2025,7 +2098,10 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
             </span>
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, minWidth: 0 }}>{task.title}</h2>
           </div>
-          <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px', flexShrink: 0 }}>✕</button>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {onLocate && <button type="button" onClick={onLocate} title="Xem card này trên lịch (bật lịch + nhảy tới đúng ngày)" style={{ ...btn, padding: '2px 9px' }}>📅 Trên lịch</button>}
+            <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          </div>
         </div>
 
         {/* CÙNG SẢN PHẨM — card này là bước mấy, và nhảy thẳng sang bước khác ngay trong drawer.

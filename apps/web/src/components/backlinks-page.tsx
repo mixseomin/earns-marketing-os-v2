@@ -1069,10 +1069,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Từ drawer chỉ về đúng ô lịch của task: bật lịch + nhảy ngày + đóng drawer để thấy nó.
   const locateInCalendar = (t: BacklinkTask) => { const d = taskCalDay(t); if (!d) return; setView('calendar'); setCalDate(d); closeTask(); };
 
-  // Hoạt động gần đây (global): mỗi task lấy MỐC + LOẠI sự kiện muộn nhất (thêm/nộp/xong) rồi xếp
+  // Hoạt động gần đây (GLOBAL): mỗi task lấy MỐC + LOẠI sự kiện muộn nhất (thêm/nộp/xong) rồi xếp
   // mới→cũ. "Để biết" vừa làm gì, vừa thêm gì — không phải lục cả lịch. Bấm → mở drawer chi tiết.
+  // Dùng `tasks` (TOÀN BỘ), KHÔNG phải filteredAll: feed cố ý KỆ bộ lọc project/tab/status đang bật —
+  // lọc về 1 project (vd proj=codecrate) mà vẫn thấy hoạt động mọi nơi. Đó là nghĩa "global".
   const recentActivity = useMemo(() => {
-    const rows = filteredAll.map((t) => {
+    const rows = tasks.map((t) => {
       const ev: Array<{ at: string; kind: 'added' | 'submitted' | 'done' }> = [];
       if (t.createdAt) ev.push({ at: t.createdAt, kind: 'added' });
       if (t.siteSubmittedAt) ev.push({ at: t.siteSubmittedAt, kind: 'submitted' });
@@ -1082,7 +1084,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       return { t, at: last.at, kind: last.kind };
     }).filter(Boolean) as Array<{ t: BacklinkTask; at: string; kind: 'added' | 'submitted' | 'done' }>;
     return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 24);
-  }, [filteredAll]);
+  }, [tasks]);
 
   // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
   const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);

@@ -216,6 +216,8 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
   // drawer. Nhờ vậy chỗ này liệt kê ĐỦ sản phẩm của project chứ không chỉ cái đang viết dở.
   const building = products.filter((p) => p.total > 0 || p.chapters.length > 0);
   const shipped = products.filter((p) => !(p.total > 0 || p.chapters.length > 0));
+  // Đang lọc về MỘT project thì mọi dòng cùng một biểu tượng — lặp 8 lần, không nói thêm gì.
+  const multiProject = new Set(shipped.map((p) => p.projectId)).size > 1;
   // narrow = cột trái của lịch (236px): xếp dọc, ô ăn hết bề ngang thay vì tự dàn hàng ngang.
   return (
     <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: 10, flexWrap: 'wrap', marginBottom: narrow ? 0 : 12 }}>
@@ -264,12 +266,15 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
             Đã bán ({shipped.length})
           </div>
           {shipped.map((p) => (
-            <button key={p.slug} type="button" onClick={() => onOpen(p.slug)} title={p.description.slice(0, 180)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '4px 8px', borderRadius: 6,
+            <button key={p.slug} type="button" onClick={() => onOpen(p.slug)} title={p.title}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%', textAlign: 'left', padding: '4px 8px', borderRadius: 6,
                 border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 11.5, color: 'var(--fg-2)' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
-              {projects?.[p.projectId] && <span style={{ flexShrink: 0, fontSize: 9.5, color: 'var(--fg-4)' }}>{projects[p.projectId]!.emoji ?? ''}</span>}
+              {/* XUỐNG DÒNG chứ không cắt bằng "…": phần phân biệt nằm ở ĐUÔI tên ("- Pro",
+                  "(16 Sheets)"), cắt đuôi thì ba gói AI ra cùng một dòng "AI Prompt Toolkit for
+                  Develo…" và chỉ còn giá để đoán. Hai dòng trong cột 236px vẫn gọn. */}
+              <span style={{ flex: 1, minWidth: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.title}</span>
+              {multiProject && projects?.[p.projectId] && <span style={{ flexShrink: 0, fontSize: 9.5, color: 'var(--fg-4)' }}>{projects[p.projectId]!.emoji ?? ''}</span>}
               {p.price != null && <span style={{ flexShrink: 0, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: p.price ? 'var(--ok,#22c55e)' : 'var(--fg-4)' }}>{p.price ? `$${p.price}` : 'free'}</span>}
             </button>
           ))}

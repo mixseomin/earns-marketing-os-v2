@@ -1088,7 +1088,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
-  const filtered = useMemo(() => (hideClosed ? filteredAll.filter((t) => !CLOSED.has(t.siteState)) : filteredAll), [filteredAll, hideClosed]);
+  // Card NGHIÊN CỨU không bao giờ bị "ẩn khi đóng sổ": giá trị của nó là NỘI DUNG (số đo, kết luận)
+  // chứ không phải việc đã làm xong — đóng sổ rồi mà biến mất thì lần sau phải đo lại từ đầu.
+  // Mọi loại khác giữ nguyên luật cũ (xong = dọn khỏi tầm mắt).
+  const isReference = (t: BacklinkTask) => t.archetype === 'research';
+  const filtered = useMemo(
+    () => (hideClosed ? filteredAll.filter((t) => !CLOSED.has(t.siteState) || isReference(t)) : filteredAll),
+    [filteredAll, hideClosed],
+  );
 
   // Ngày một task rơi trên LỊCH — CÙNG luật với calItems (xong→doneAt, đã nộp→submittedAt,
   // hẹn→scheduledAt), fallback createdAt. Dùng cho nút "xem trên lịch" ở drawer.
@@ -1191,7 +1198,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         ? { inputs: t.inputs, doneWhen: t.doneWhen, dependsOn: t.dependsOn } : undefined;
       // done = ĐÃ ĐÓNG SỔ (mờ + ✓). Card vừa làm xong đang chờ duyệt vẫn stamp ngày xong nhưng phải
       // hiện rõ như việc còn phải động tới — nó đang đợi người duyệt nhìn.
-      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: CLOSED.has(t.siteState), color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
+      // Nghiên cứu KHÔNG bị làm mờ dù đã đóng sổ — nó là tài liệu tra cứu, không phải việc đã dọn xong.
+      if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: CLOSED.has(t.siteState) && !isReference(t), color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
         if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ

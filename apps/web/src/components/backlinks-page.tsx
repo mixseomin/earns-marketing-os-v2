@@ -1102,6 +1102,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 30);
   }, [tasks, followups, q, allProjects, projectsById]);
 
+  // Khuôn cột của feed hoạt động — khai MỘT chỗ để hàng tiêu đề và các dòng không bao giờ lệch nhau.
+  // Ở trang 1 project thì cột Project bỏ hẳn (mọi dòng cùng một project = cột thừa), không để trống.
+  const ACT_COLS = allProjects ? '84px 132px minmax(0,1fr) 62px' : '84px minmax(0,1fr) 62px';
+
   // Đếm trên filteredAll (không phụ thuộc toggle) → nhãn giữ nguyên bề rộng khi bật/tắt.
   const closedTotal = useMemo(() => filteredAll.filter((t) => CLOSED.has(t.siteState)).length, [filteredAll]);
 
@@ -1611,15 +1615,27 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           <summary style={{ cursor: 'pointer', padding: '8px 12px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)' }}>
             🕒 Hoạt động gần đây <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>({recentActivity.length}) · vừa thêm / nộp / xong</span>
           </summary>
+          {/* CỘT CỐ ĐỊNH, không phải flex. Bản flex trước đây để project ngay sát tiêu đề nên hai thứ
+              dính làm một, đọc ra "[codecrate] Thumbnail v2…" như một câu — mà project và việc là hai
+              chiều khác nhau. Cột cố định thì mắt quét dọc được: xem toàn bộ project một nhát, hoặc
+              toàn bộ việc một nhát. `minmax(0,1fr)` bắt buộc, không thì ô tiêu đề không chịu cắt. */}
+          <div style={{ display: 'grid', gridTemplateColumns: ACT_COLS, gap: 10, alignItems: 'center', padding: '5px 12px', borderTop: '1px solid var(--line)', fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <span>Loại</span>
+            {allProjects && <span>Project</span>}
+            <span>Việc</span>
+            <span style={{ textAlign: 'right' }}>Khi nào</span>
+          </div>
           <div style={{ maxHeight: 260, overflowY: 'auto', borderTop: '1px solid var(--line)', padding: '4px 0' }}>
             {recentActivity.map((r) => (
               <button key={r.key} type="button" onClick={() => (r.kind === 'followup' ? setOpenFollowupId(r.id) : openTask(r.id))}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '5px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--fg-1)' }}
+                style={{ display: 'grid', gridTemplateColumns: ACT_COLS, gap: 10, alignItems: 'center', width: '100%', textAlign: 'left', padding: '5px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--fg-1)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                <span style={{ flexShrink: 0, width: 88, fontSize: 9.5, fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{r.label}</span>
-                {r.project && <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)' }}>[{r.project}]</span>}
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
-                <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(r.at)}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{r.label}</span>
+                {allProjects && (
+                  <span title={r.project ?? ''} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10.5, color: 'var(--fg-4)' }}>{r.project ?? '—'}</span>
+                )}
+                <span title={r.title} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                <span style={{ textAlign: 'right', fontSize: 10.5, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{relTimeVi(r.at)}</span>
               </button>
             ))}
           </div>

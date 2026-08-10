@@ -115,7 +115,8 @@ Return JSON: {
 // Live send results for the card: pull Mailjet stats for this issue's CustomCampaign tag. Read-only.
 // Returns nulls (not an error) when the issue has not been sent yet, so the panel can say "chưa gửi".
 export interface SendStats { delivered: number; opened: number; clicked: number; bounced: number; unsub: number; spam: number; processed: number }
-export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentAt?: string; sentCount?: number; stats?: SendStats; error?: string }> {
+export interface LinkClick { url: string; label: string; clicks: number }
+export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentAt?: string; sentCount?: number; stats?: SendStats; links?: LinkClick[]; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
   const db = getDb();
@@ -145,7 +146,22 @@ export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentA
     const sr = await fetch(`https://api.mailjet.com/v3/REST/statcounters?CounterSource=Campaign&SourceID=${cid}&CounterTiming=Message&CounterResolution=Lifetime`, { headers: { Authorization: auth }, cache: 'no-store' });
     const sd = (await sr.json()) as { Data?: Array<Record<string, number>> };
     const s = sd.Data?.[0] ?? {};
-    return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, stats: {
+    // Per-link clicks (which link pulled the click: guide vs offer vs internal).
+    let links: LinkClick[] = [];
+    try {
+      const lr = await fetch(`https://api.mailjet.com/v3/REST/toplinkclicked?Campaign=${cid}&Limit=40`, { headers: { Authorization: auth }, cache: 'no-store' });
+      const ld = (await lr.json()) as { Data?: Array<{ Url?: string; ClickedCount?: number }> };
+      links = (ld.Data ?? []).map((x) => {
+        const url = x.Url ?? '';
+        const label = /awin1|awclick|\.(prf|pxf|sjv)\.|shareasale|anrdoezrs|dpbolvw/.test(url) ? 'Offer'
+          : /\/guides\//.test(url) ? 'Bài full (guide)'
+          : url.includes('/bah') ? 'BAH calc'
+          : /unsub/i.test(url) ? 'Unsubscribe'
+          : url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'link';
+        return { url, label, clicks: x.ClickedCount ?? 0 };
+      }).filter((l) => l.clicks > 0).sort((a, b) => b.clicks - a.clicks);
+    } catch { /* per-link is best-effort */ }
+    return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, links, stats: {
       processed: s.MessageSentCount ?? 0,
       delivered: (s.MessageSentCount ?? 0) - (s.MessageHardBouncedCount ?? 0) - (s.MessageSoftBouncedCount ?? 0),
       opened: s.MessageOpenedCount ?? 0,

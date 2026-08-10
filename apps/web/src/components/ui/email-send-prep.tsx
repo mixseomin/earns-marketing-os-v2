@@ -6,7 +6,7 @@
 // (YDNI), one ✏️ to edit. Lazy-loads prep_payload.email. Standard across every email card.
 
 import { useEffect, useState } from 'react';
-import { getEmailPrep, saveEmailPrep, generateEmailPrep, getSendStats, type SendStats } from '@/lib/actions/email-prep';
+import { getEmailPrep, saveEmailPrep, generateEmailPrep, getSendStats, type SendStats, type LinkClick } from '@/lib/actions/email-prep';
 import { EMPTY_EMAIL_PREP, type EmailPrep, type EmailSource, isFreshSource, sourceAgeDays, MAX_SOURCE_AGE_DAYS } from '@/lib/email-prep-shape';
 import { CampaignLinkPicker } from './campaign-link-picker';
 
@@ -46,7 +46,7 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const [saving, setSaving] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
-  const [send, setSend] = useState<{ sentAt?: string; sentCount?: number; stats?: SendStats } | null>(null);
+  const [send, setSend] = useState<{ sentAt?: string; sentCount?: number; stats?: SendStats; links?: LinkClick[] } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -196,7 +196,19 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
                   {cell('Unsub', st.unsub, pct(st.unsub))}
                   {cell('Spam', st.spam, '', st.spam ? 'var(--bad,#ef4444)' : undefined)}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>Guide (pageview/click offer) đo ở GA/PostHog militarycalc → <a href={prep.articleUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở bài ↗</a></div>
+                {send.links && send.links.length > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+                    <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-3)', marginBottom: 4 }}>Click theo link</div>
+                    {send.links.map((l, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 11.5, padding: '2px 0' }}>
+                        <span style={{ minWidth: 26, fontWeight: 700, color: l.label === 'Offer' ? 'var(--accent)' : 'var(--fg-0)' }}>{l.clicks}</span>
+                        <span style={{ minWidth: 96, color: l.label === 'Offer' ? 'var(--accent)' : 'var(--fg-1)' }}>{l.label}</span>
+                        <a href={l.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-4)', fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.url.replace(/^https?:\/\/(www\.)?/, '')}</a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>Guide pageview đo thêm ở GA/PostHog militarycalc → <a href={prep.articleUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở bài ↗</a></div>
               </div>
             );
           })()}

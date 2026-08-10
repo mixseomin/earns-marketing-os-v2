@@ -1177,7 +1177,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const ttl = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();   // bỏ tiền tố 📧 (icon SVG đã thay)
       const host = showHost(t.sourceUrl, t.projectSlug);
       const label = plbl + ttl;
-      const suffix = `${host ? ` · ${host}` : ''}${seedT}`;
+      const suffix = `${host ? ` · ${host}` : ''}${seedT} · #${t.id}`;   // #id ở cuối tooltip (hover thấy id card)
       // MÀU + NHÃN trạng thái = SITE_STATUS_META (đúng nguồn drawer/kanban) — không tự chế.
       // icon = loại (cố định theo task); trạng thái chỉ đổi màu thanh-trái + ✓ + mờ.
       const smeta = SITE_STATUS[t.siteState] ?? { label: t.siteState, color: '#8a92a3' };
@@ -1638,7 +1638,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* 🕒 Hoạt động gần đây (global) — vừa thêm / nộp / xong, mới nhất trên đầu. Bấm 1 dòng → mở
           drawer chi tiết. "Để biết" mà không phải quét cả lịch. Collapsible (native details) — YDNI. */}
       {recentActivity.length > 0 && (
-        <details open style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)' }}>
+        // YDNI: mặc định GẬP — calendar là chính, panel "vừa xong" chỉ là tham chiếu 1-cú-bấm.
+        // Summary + số vẫn hiện (biết có N hoạt động); bung khi cần. Trước để `open` → chiếm ~260px đè lịch.
+        <details style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)' }}>
           <summary style={{ cursor: 'pointer', padding: '8px 12px', fontSize: 12, fontWeight: 700, color: 'var(--fg-2)' }}>
             🕒 Hoạt động gần đây <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>({recentActivity.length}) · vừa thêm / nộp / xong</span>
           </summary>

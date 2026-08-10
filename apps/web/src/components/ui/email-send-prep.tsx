@@ -47,6 +47,13 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
   const [send, setSend] = useState<{ sentAt?: string; sentCount?: number; stats?: SendStats; links?: LinkClick[] } | null>(null);
+  const [statsBusy, setStatsBusy] = useState(false);
+  const refreshStats = async () => {
+    setStatsBusy(true);
+    const r = await getSendStats(taskId).catch(() => null);
+    setStatsBusy(false);
+    if (r?.ok && r.sentAt) setSend(r);
+  };
 
   useEffect(() => {
     let live = true;
@@ -187,7 +194,11 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
             );
             return (
               <div style={{ border: '1px solid var(--accent)', borderRadius: 8, background: 'color-mix(in srgb, var(--accent) 5%, transparent)', padding: 10 }}>
-                <div style={{ ...lbl, marginBottom: 6, color: 'var(--accent)' }}>📊 Kết quả gửi · {new Date(send.sentAt).toLocaleString('vi-VN')} · {send.sentCount || st.processed} gửi</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ ...lbl, marginBottom: 0, color: 'var(--accent)' }}>📊 Kết quả gửi · {new Date(send.sentAt).toLocaleString('vi-VN')} · {send.sentCount || st.processed} gửi</span>
+                  <span style={{ flex: 1 }} />
+                  <button type="button" onClick={refreshStats} disabled={statsBusy} title="Cập nhật số liệu vùng này" style={{ ...btn, padding: '2px 9px', color: 'var(--accent)', borderColor: 'var(--accent)' }}>{statsBusy ? '⏳' : '↻ Cập nhật'}</button>
+                </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {cell('Delivered', st.delivered, pct(st.delivered))}
                   {cell('Mở', st.opened, pct(st.opened), 'var(--ok,#22c55e)')}

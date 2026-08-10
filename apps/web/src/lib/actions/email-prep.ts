@@ -151,15 +151,23 @@ export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentA
     try {
       const lr = await fetch(`https://api.mailjet.com/v3/REST/toplinkclicked?Campaign=${cid}&Limit=40`, { headers: { Authorization: auth }, cache: 'no-store' });
       const ld = (await lr.json()) as { Data?: Array<{ Url?: string; ClickedCount?: number }> };
-      links = (ld.Data ?? []).map((x) => {
+      // Group by destination so clickref variants of the SAME link (e.g. offer with/without clickref
+      // when a client strips the param) collapse into one row - otherwise the panel shows duplicates.
+      const byLabel = new Map<string, LinkClick>();
+      for (const x of ld.Data ?? []) {
         const url = x.Url ?? '';
-        const label = /awin1|awclick|\.(prf|pxf|sjv)\.|shareasale|anrdoezrs|dpbolvw/.test(url) ? 'Offer'
-          : /\/guides\//.test(url) ? 'Bài full (guide)'
+        const clicks = x.ClickedCount ?? 0;
+        if (!clicks) continue;
+        const label = /awin1|awclick|\.(prf|pxf|sjv)\.|shareasale|anrdoezrs|dpbolvw/.test(url) ? 'Offer → affiliate'
+          : /\/guides\//.test(url) ? 'Bài viết (mở guide)'
           : url.includes('/bah') ? 'BAH calc'
           : /unsub/i.test(url) ? 'Unsubscribe'
           : url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'link';
-        return { url, label, clicks: x.ClickedCount ?? 0 };
-      }).filter((l) => l.clicks > 0).sort((a, b) => b.clicks - a.clicks);
+        const cur = byLabel.get(label);
+        if (cur) { cur.clicks += clicks; if (url.length < cur.url.length) cur.url = url; }
+        else byLabel.set(label, { url, label, clicks });
+      }
+      links = [...byLabel.values()].sort((a, b) => b.clicks - a.clicks);
     } catch { /* per-link is best-effort */ }
     return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, links, stats: {
       processed: s.MessageSentCount ?? 0,

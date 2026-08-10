@@ -209,17 +209,23 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
                 </div>
                 {send.links && send.links.length > 0 && (
                   <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-                    <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-3)', marginBottom: 4 }}>Click theo link</div>
-                    {send.links.map((l, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 11.5, padding: '2px 0' }}>
-                        <span style={{ minWidth: 26, fontWeight: 700, color: l.label === 'Offer' ? 'var(--accent)' : 'var(--fg-0)' }}>{l.clicks}</span>
-                        <span style={{ minWidth: 96, color: l.label === 'Offer' ? 'var(--accent)' : 'var(--fg-1)' }}>{l.label}</span>
-                        <a href={l.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-4)', fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.url.replace(/^https?:\/\/(www\.)?/, '')}</a>
-                      </div>
-                    ))}
+                    <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-3)', marginBottom: 1 }}>Click bên trong email</div>
+                    <div style={{ fontSize: 10, color: 'var(--fg-4)', marginBottom: 5 }}>ai bấm link nào NGAY TRONG email (chưa phải click trên bài)</div>
+                    {send.links.map((l, i) => {
+                      const isOffer = l.label.startsWith('Offer');
+                      return (
+                        <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 11.5, padding: '2px 0' }}>
+                          <span style={{ minWidth: 26, fontWeight: 700, color: isOffer ? 'var(--accent)' : 'var(--fg-0)' }}>{l.clicks}</span>
+                          <span style={{ minWidth: 120, color: isOffer ? 'var(--accent)' : 'var(--fg-1)' }}>{l.label}</span>
+                          <a href={l.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-4)', fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.url.replace(/^https?:\/\/(www\.)?/, '')}</a>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>Guide pageview đo thêm ở GA/PostHog militarycalc → <a href={prep.articleUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở bài ↗</a></div>
+                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6, lineHeight: 1.5 }}>
+                  Đây là click <b>trong email</b>. Click trên các link <b>trong bài viết</b> (guide) đo riêng ở GA/PostHog + Awin (offer) → <a href={prep.articleUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở bài ↗</a>
+                </div>
               </div>
             );
           })()}

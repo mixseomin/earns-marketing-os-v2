@@ -6,7 +6,7 @@
 // (YDNI), one ✏️ to edit. Lazy-loads prep_payload.email. Standard across every email card.
 
 import { useEffect, useState } from 'react';
-import { getEmailPrep, saveEmailPrep, generateEmailPrep } from '@/lib/actions/email-prep';
+import { getEmailPrep, saveEmailPrep, generateEmailPrep, getSendStats, type SendStats } from '@/lib/actions/email-prep';
 import { EMPTY_EMAIL_PREP, type EmailPrep, type EmailSource, isFreshSource, sourceAgeDays, MAX_SOURCE_AGE_DAYS } from '@/lib/email-prep-shape';
 import { CampaignLinkPicker } from './campaign-link-picker';
 
@@ -46,10 +46,12 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
   const [saving, setSaving] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
+  const [send, setSend] = useState<{ sentAt?: string; sentCount?: number; stats?: SendStats } | null>(null);
 
   useEffect(() => {
     let live = true;
     getEmailPrep(taskId).then((p) => { if (live) setPrep(p); }).catch(() => { if (live) setPrep(null); });
+    getSendStats(taskId).then((r) => { if (live && r.ok && r.sentAt) setSend(r); }).catch(() => {});
     return () => { live = false; };
   }, [taskId]);
 
@@ -172,6 +174,32 @@ export function EmailSendPrep({ taskId, defaultSendAt }: { taskId: number; defau
         <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa chuẩn bị. Bấm <b>＋ Chuẩn bị</b> để soạn email thật + danh sách + giờ gửi.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Send results — live Mailjet stats once the issue is sent (this is where you track it) */}
+          {send?.sentAt && send.stats && (() => {
+            const st = send.stats; const base = st.delivered || st.processed || 1;
+            const pct = (n: number) => `${Math.round((n / base) * 100)}%`;
+            const cell = (label: string, val: string | number, sub?: string, tone?: string) => (
+              <div style={{ flex: 1, minWidth: 72, padding: '6px 8px', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-3)' }}>{label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: tone || 'var(--fg-0)' }}>{val}</div>
+                {sub && <div style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>{sub}</div>}
+              </div>
+            );
+            return (
+              <div style={{ border: '1px solid var(--accent)', borderRadius: 8, background: 'color-mix(in srgb, var(--accent) 5%, transparent)', padding: 10 }}>
+                <div style={{ ...lbl, marginBottom: 6, color: 'var(--accent)' }}>📊 Kết quả gửi · {new Date(send.sentAt).toLocaleString('vi-VN')} · {send.sentCount || st.processed} gửi</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {cell('Delivered', st.delivered, pct(st.delivered))}
+                  {cell('Mở', st.opened, pct(st.opened), 'var(--ok,#22c55e)')}
+                  {cell('Click', st.clicked, pct(st.clicked), 'var(--accent)')}
+                  {cell('Bounce', st.bounced, pct(st.bounced), st.bounced ? 'var(--neon-amber)' : undefined)}
+                  {cell('Unsub', st.unsub, pct(st.unsub))}
+                  {cell('Spam', st.spam, '', st.spam ? 'var(--bad,#ef4444)' : undefined)}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 6 }}>Guide (pageview/click offer) đo ở GA/PostHog militarycalc → <a href={prep.articleUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>mở bài ↗</a></div>
+              </div>
+            );
+          })()}
           {/* Inbox-style preview — as the recipient sees it */}
           <div style={{ border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', overflow: 'hidden' }}>
             <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)' }}>

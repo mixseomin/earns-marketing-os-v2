@@ -108,6 +108,46 @@ Return JSON: {
   }
 }
 
+// Live send results for the card: pull Mailjet stats for this issue's CustomCampaign tag. Read-only.
+// Returns nulls (not an error) when the issue has not been sent yet, so the panel can say "chưa gửi".
+export interface SendStats { delivered: number; opened: number; clicked: number; bounced: number; unsub: number; spam: number; processed: number }
+export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentAt?: string; sentCount?: number; stats?: SendStats; error?: string }> {
+  const me = await getCurrentUser();
+  if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'no db' };
+  const rows = (await db.execute(sql`
+    SELECT prep_payload->'email'->>'campaignTag' AS tag,
+           prep_payload->'email'->>'sentAt'      AS sent_at,
+           (prep_payload->'email'->>'sentCount')::int AS sent_count
+      FROM human_tasks WHERE id = ${taskId} LIMIT 1`)) as unknown as Array<{ tag: string | null; sent_at: string | null; sent_count: number | null }>;
+  const r = rows[0];
+  if (!r?.sent_at || !r?.tag) return { ok: true }; // not sent yet
+  const MK = process.env.MAILJET_API_KEY, MS = process.env.MAILJET_SECRET;
+  if (!MK || !MS) return { ok: false, error: 'Mailjet creds chưa cấu hình' };
+  const auth = 'Basic ' + Buffer.from(`${MK}:${MS}`).toString('base64');
+  try {
+    const cr = await fetch(`https://api.mailjet.com/v3/REST/campaign?CustomCampaign=${encodeURIComponent(r.tag)}&Limit=1`, { headers: { Authorization: auth }, cache: 'no-store' });
+    const cd = (await cr.json()) as { Data?: Array<{ ID: number }> };
+    const cid = cd.Data?.[0]?.ID;
+    if (!cid) return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, stats: { delivered: 0, opened: 0, clicked: 0, bounced: 0, unsub: 0, spam: 0, processed: 0 } };
+    const sr = await fetch(`https://api.mailjet.com/v3/REST/statcounters?CounterSource=Campaign&SourceID=${cid}&CounterTiming=Message&CounterResolution=Lifetime`, { headers: { Authorization: auth }, cache: 'no-store' });
+    const sd = (await sr.json()) as { Data?: Array<Record<string, number>> };
+    const s = sd.Data?.[0] ?? {};
+    return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, stats: {
+      processed: s.MessageSentCount ?? 0,
+      delivered: (s.MessageSentCount ?? 0) - (s.MessageHardBouncedCount ?? 0) - (s.MessageSoftBouncedCount ?? 0),
+      opened: s.MessageOpenedCount ?? 0,
+      clicked: s.MessageClickedCount ?? 0,
+      bounced: (s.MessageHardBouncedCount ?? 0) + (s.MessageSoftBouncedCount ?? 0),
+      unsub: s.MessageUnsubscribedCount ?? 0,
+      spam: s.MessageSpamCount ?? 0,
+    } };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function saveEmailPrep(taskId: number, prep: EmailPrep): Promise<{ ok: boolean; error?: string }> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return { ok: false, error: 'admin-only' };

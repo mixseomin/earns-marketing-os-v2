@@ -54,6 +54,10 @@ export interface EmailPrep {
   offerLabel: string;
   offerUrl: string;
   status: 'draft' | 'ready';
+  // Send tracking - set when the issue is actually sent, so the card can pull live results.
+  campaignTag: string;    // Mailjet CustomCampaign tag used for this send (groups the messages)
+  sentAt: string;         // ISO timestamp of the send (empty = not sent yet)
+  sentCount: number;      // recipients this batch was sent to
 }
 
 export const EMPTY_EMAIL_PREP: EmailPrep = {
@@ -61,4 +65,5 @@ export const EMPTY_EMAIL_PREP: EmailPrep = {
   articleMd: '', articleUrl: '',
   listName: '', segment: '', recipientCount: '', listTotal: '', sendTime: '', sendTimeWhy: '', provider: 'Mailjet',
   offerLabel: '', offerUrl: '', status: 'draft',
+  campaignTag: '', sentAt: '', sentCount: 0,
 };

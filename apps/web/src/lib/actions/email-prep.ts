@@ -13,6 +13,10 @@ import { logAiUsage } from '@/lib/ai/usage';
 // so the value/type must not be declared here (was crashing /plays + /communities at runtime).
 import { type EmailPrep, type EmailSource, EMPTY_EMAIL_PREP, isFreshSource, MAX_SOURCE_AGE_DAYS } from '@/lib/email-prep-shape';
 
+// CAN-SPAM physical postal address - the single shared usa2me virtual mailbox reused across the whole
+// portfolio (see memory reference_usa2me_mailbox). Baked in so the footer auto-fills and is never asked for.
+const CANSPAM_FOOTER = 'MilitaryCalc, 10685-B Hazelhurst Dr #43316, Houston, TX 77043, USA';
+
 export async function getEmailPrep(taskId: number): Promise<EmailPrep | null> {
   const me = await getCurrentUser();
   if (me?.role !== 'admin') return null;
@@ -86,7 +90,7 @@ Return JSON: {
   "subjectB": "≤60 chars, different news angle for A/B",
   "preheader": "≤90 chars inbox preview that extends the subject",
   "articleMd": "the full ~600-900 word article for our site: markdown with ## H2 sections, offer anchored once + disclosure line. No email greeting/footer - this is a web article.",
-  "bodyMd": "the SHORT email teaser (~120-180 words): greeting, newsy hook, the key takeaway, a [read the full breakdown](${articleLink}) link, ONE soft offer anchor, then unsubscribe + physical-address footer placeholder.",
+  "bodyMd": "the SHORT email teaser (~120-180 words): greeting, newsy hook, the key takeaway, a [read the full breakdown](${articleLink}) link, ONE soft offer anchor, then a footer line exactly: 'Unsubscribe 1-click {{unsubscribe_url}} - ${CANSPAM_FOOTER}'.",
   "keyPoints": ["3 to 5 very short bullets: the news/value beats first, then the single offer mention last"]
 }`;
 
@@ -127,9 +131,16 @@ export async function getSendStats(taskId: number): Promise<{ ok: boolean; sentA
   if (!MK || !MS) return { ok: false, error: 'Mailjet creds chưa cấu hình' };
   const auth = 'Basic ' + Buffer.from(`${MK}:${MS}`).toString('base64');
   try {
-    const cr = await fetch(`https://api.mailjet.com/v3/REST/campaign?CustomCampaign=${encodeURIComponent(r.tag)}&Limit=1`, { headers: { Authorization: auth }, cache: 'no-store' });
-    const cd = (await cr.json()) as { Data?: Array<{ ID: number }> };
-    const cid = cd.Data?.[0]?.ID;
+    // campaignTag is either a Mailjet CustomCampaign string (Send API) or a numeric CampaignID
+    // (a newsletter's campaign). Numeric → use as SourceID directly; else resolve via /campaign.
+    let cid: number | undefined;
+    if (/^\d+$/.test(r.tag)) {
+      cid = Number(r.tag);
+    } else {
+      const cr = await fetch(`https://api.mailjet.com/v3/REST/campaign?CustomCampaign=${encodeURIComponent(r.tag)}&Limit=1`, { headers: { Authorization: auth }, cache: 'no-store' });
+      const cd = (await cr.json()) as { Data?: Array<{ ID: number }> };
+      cid = cd.Data?.[0]?.ID;
+    }
     if (!cid) return { ok: true, sentAt: r.sent_at, sentCount: r.sent_count ?? 0, stats: { delivered: 0, opened: 0, clicked: 0, bounced: 0, unsub: 0, spam: 0, processed: 0 } };
     const sr = await fetch(`https://api.mailjet.com/v3/REST/statcounters?CounterSource=Campaign&SourceID=${cid}&CounterTiming=Message&CounterResolution=Lifetime`, { headers: { Authorization: auth }, cache: 'no-store' });
     const sd = (await sr.json()) as { Data?: Array<Record<string, number>> };

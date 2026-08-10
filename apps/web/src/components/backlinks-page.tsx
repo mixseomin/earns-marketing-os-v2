@@ -210,11 +210,17 @@ const thumbUrl = (url: string, w: number) => (url.startsWith('/api/media/') ? `$
 
 function ProductStrip({ products, projects, onOpen, narrow }: { products: BuildingProduct[]; projects?: Record<string, Project>; onOpen: (slug: string) => void; narrow?: boolean }) {
   if (!products.length) return null;
+  // HAI dạng, vì một dải chung nói dối cả hai phía: sản phẩm ĐÃ BÁN không có chương lẫn card nên
+  // thanh tiến độ của nó luôn là "0/0 bước · 0 từ · 0 chương" — trông như hàng bỏ dở, trong khi nó
+  // đang bán trên store. Có việc để đo → ô đầy đủ; không có → một dòng gọn (tên · giá), bấm vẫn mở
+  // drawer. Nhờ vậy chỗ này liệt kê ĐỦ sản phẩm của project chứ không chỉ cái đang viết dở.
+  const building = products.filter((p) => p.total > 0 || p.chapters.length > 0);
+  const shipped = products.filter((p) => !(p.total > 0 || p.chapters.length > 0));
   // narrow = cột trái của lịch (236px): xếp dọc, ô ăn hết bề ngang thay vì tự dàn hàng ngang.
   return (
     <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: 10, flexWrap: 'wrap', marginBottom: narrow ? 0 : 12 }}>
-      {narrow && <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Sản phẩm đang dựng</div>}
-      {products.map((p) => {
+      {narrow && !!building.length && <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Sản phẩm đang dựng</div>}
+      {building.map((p) => {
         // Thanh HAI đoạn: phần đã duyệt + phần làm xong đang chờ duyệt. Một thanh liền sẽ báo
         // "gần xong" trong khi thực tế phần lớn đang nằm chờ chữ ký người duyệt.
         const pct = p.total ? Math.round((p.approved / p.total) * 100) : 0;
@@ -249,6 +255,26 @@ function ProductStrip({ products, projects, onOpen, narrow }: { products: Buildi
           </button>
         );
       })}
+
+      {/* ĐÃ BÁN — một dòng mỗi sản phẩm. Cột lịch chỉ rộng 236px: tám ô đầy đủ sẽ đẩy cả tháng lịch
+          xuống dưới màn hình, mà thứ cần biết ở đây chỉ là "project này có những gì, giá bao nhiêu". */}
+      {!!shipped.length && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: narrow ? '100%' : undefined, flex: narrow ? undefined : '1 1 268px' }}>
+          <div style={{ fontSize: 9, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: building.length ? 6 : 0, marginBottom: 2 }}>
+            Đã bán ({shipped.length})
+          </div>
+          {shipped.map((p) => (
+            <button key={p.slug} type="button" onClick={() => onOpen(p.slug)} title={p.description.slice(0, 180)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '4px 8px', borderRadius: 6,
+                border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 11.5, color: 'var(--fg-2)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+              {projects?.[p.projectId] && <span style={{ flexShrink: 0, fontSize: 9.5, color: 'var(--fg-4)' }}>{projects[p.projectId]!.emoji ?? ''}</span>}
+              {p.price != null && <span style={{ flexShrink: 0, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: p.price ? 'var(--ok,#22c55e)' : 'var(--fg-4)' }}>{p.price ? `$${p.price}` : 'free'}</span>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

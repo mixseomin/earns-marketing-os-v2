@@ -12,7 +12,37 @@ export const CHANNELS: Array<{ id: string; label: string; icon: string; hint: st
   { id: 'dm',              label: 'DM',             icon: '💬', hint: 'Direct message / outreach' },
   { id: 'blog',            label: 'Blog',           icon: '📝', hint: 'Long-form SEO blog post' },
   { id: 'youtube-script',  label: 'YT script',      icon: '📺', hint: 'YouTube video script — hook → value → CTA' },
+  { id: 'fb-group',        label: 'FB group',       icon: '👥', hint: 'Bài trong group (của mình hoặc group khác) — hỏi-đáp, link ở comment đầu' },
+  { id: 'reddit',          label: 'Reddit',         icon: '👽', hint: 'Comment/text post trên subreddit — value-first, thường 0 link' },
 ];
 
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
+
+// ── Content angles ────────────────────────────────────────────────────────────
+// GÓC của bài = bài này LÀM GÌ cho người đọc. Trục thứ 5, không thay channel
+// (nơi đăng) / status (đang ở đâu) / format / pillar (định vị).
+// Lưu trong content_pieces.tags dạng 'angle:<code>' → không cần migration, ô
+// search sẵn có lọc được ngay. Catalog đầy đủ 32 angle + nguồn sinh nội dung:
+// earns-strategy/resources/content-angles.md.
+export const ANGLE_GROUPS: Array<{ id: string; label: string; color: string; angles: string[] }> = [
+  { id: 'reach',     label: 'HÚT',         color: 'var(--neon-amber)', angles: ['meme-curated', 'meme-original', 'news-hook', 'ranking', 'visual', 'hot-take', 'seasonal', 'alert', 'prediction', 'trend-jack'] },
+  { id: 'trust',     label: 'TIN',         color: 'var(--neon-cyan)',  angles: ['data-point', 'comparison', 'explainer', 'myth-bust', 'how-to', 'checklist', 'answer', 'case-study', 'teardown'] },
+  { id: 'convert',   label: 'CHUYỂN ĐỔI',  color: 'var(--ok)',         angles: ['tool-demo', 'use-case', 'changelog', 'offer', 'freebie'] },
+  { id: 'community', label: 'CỘNG ĐỒNG',   color: 'var(--neon-pink)',  angles: ['poll', 'ugc', 'testimonial', 'collab', 'quiz', 'ama'] },
+  { id: 'reuse',     label: 'TÁI DÙNG',    color: 'var(--fg-3)',       angles: ['evergreen-repost', 'roundup'] },
+];
+
+const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [a, g] as const)));
+
+/** 'angle:ranking' trong tags → {angle, group}. Không có tag angle → null. */
+export function angleOf(tags: string[]): { angle: string; group: typeof ANGLE_GROUPS[number] } | null {
+  const t = tags.find((x) => x.startsWith('angle:'));
+  if (!t) return null;
+  const angle = t.slice(6).trim();
+  const group = ANGLE_TO_GROUP.get(angle);
+  return group ? { angle, group } : null;
+}
+
+/** Tỉ lệ mix mục tiêu (bài mới, chưa có audience → nặng HÚT). Dùng để so với thực tế. */
+export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, convert: 15, community: 10 };

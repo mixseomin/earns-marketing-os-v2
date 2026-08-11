@@ -20,7 +20,7 @@ import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type Sig
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity, FormatIcon, FormModal, FormModalFooter } from './ui';
+import { IconCommunity, FormatIcon, FormModal, FormModalFooter, Collapsible } from './ui';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
@@ -152,6 +152,8 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     if (Array.isArray(override)) return new Set(override);
     return new Set(allowedFormats(form.key, form.category as string).map((f) => f.key));
   };
+  // Badge cho section "Luật đăng" — biết có bao nhiêu loại bài mà không cần mở.
+  const allowedCount = effectiveAllowedSet(form.allowedFormats).size;
 
   const save = () => {
     // Pre-save check: nếu tạo mới → skip. Nếu edit và allowedFormats đổi →
@@ -247,6 +249,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         />
 
         <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {/* ── YDNI: bề mặt mặc định = 5 field quyết định. Còn lại nằm sau 1 click. ── */}
           <div>
             <span style={lbl}>Label *</span>
             <NoFillInput style={fld} value={form.label} onChange={(e) => setF('label', e.target.value)} />
@@ -260,56 +263,11 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             <span style={lbl}>Signup URL *</span>
             <NoFillInput style={fld} type="url" placeholder="https://..." value={form.signupUrl} onChange={(e) => setF('signupUrl', e.target.value)} />
           </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Post URL <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
-            <NoFillInput style={fld} type="url" placeholder="https://...submit" value={form.postUrl} onChange={(e) => setF('postUrl', e.target.value)} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ ...lbl, marginBottom: 0 }}>
-                Profile URL pattern <span style={{ color: 'var(--fg-4)' }}>(optional · {`{handle}`} placeholder)</span>
-              </span>
-              {suggestedProfileUrl && form.profileUrlPattern !== suggestedProfileUrl && (
-                <button type="button"
-                  onClick={() => setF('profileUrlPattern', suggestedProfileUrl)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 10.5, cursor: 'pointer', padding: 0 }}
-                  title={`Apply suggestion: ${suggestedProfileUrl}`}
-                >
-                  💡 Apply suggested
-                </button>
-              )}
-            </div>
-            <NoFillInput style={fld} type="url"
-              placeholder="https://www.example.com/user/{handle}"
-              value={form.profileUrlPattern}
-              onChange={(e) => setF('profileUrlPattern', e.target.value)} />
-            {suggestedProfileUrl && !form.profileUrlPattern && (
-              <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
-                💡 Suggested: <span style={{ color: 'var(--accent)' }}>{suggestedProfileUrl}</span>
-              </div>
-            )}
-            {!suggestedProfileUrl && form.key && (
-              <div style={{ fontSize: 10, color: 'var(--fg-4)', marginTop: 3, fontStyle: 'italic' }}>
-                Chưa có suggestion cho key &quot;{form.key}&quot; trong hardcoded map.
-              </div>
-            )}
-          </div>
           <div>
             <span style={lbl}>Priority</span>
             <select style={fld} value={form.priority} onChange={(e) => setF('priority', e.target.value as PlatformPriority)}>
               {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_META[p].star} {PRIORITY_META[p].label.toLowerCase()}</option>)}
             </select>
-          </div>
-          <div>
-            <span style={lbl}>Icon slug <span style={{ color: 'var(--fg-4)' }}>(simpleicons.org)</span></span>
-            <NoFillInput style={fld} placeholder="auto từ key"
-                         value={form.iconSlug} onChange={(e) => setF('iconSlug', e.target.value.toLowerCase())} />
-          </div>
-          <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Description <span style={{ color: 'var(--fg-4)' }}>(1-2 sentences)</span></span>
-            <textarea style={{ ...fld, minHeight: 50, fontFamily: 'inherit', resize: 'vertical' }}
-                      placeholder="Forum tech VN, ML-driven FYP, B2B-focused..."
-                      value={form.description} onChange={(e) => setF('description', e.target.value)} />
           </div>
           <div>
             <span style={lbl}>Category</span>
@@ -319,45 +277,82 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
               ))}
             </select>
           </div>
-          <div>
-            <span style={lbl}>Region <span style={{ color: 'var(--fg-4)' }}>(US, VN, global...)</span></span>
-            <NoFillInput style={fld} placeholder="US, VN, global"
-                         value={form.region} onChange={(e) => setF('region', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>Pricing</span>
-            <NoFillInput style={fld} placeholder="Free / $9/mo..."
-                         value={form.pricing} onChange={(e) => setF('pricing', e.target.value)} />
-          </div>
-          <div>
-            <span style={lbl}>User count estimate</span>
-            <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
-                         value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
-          </div>
-          {platform?.key && (
-            <div style={{ gridColumn: '1 / 3' }}>
-              <span style={lbl}>🔒 Link-gate {linkGate ? <b style={{ color: 'var(--ok)' }}>ON</b> : <span style={{ color: 'var(--fg-4)' }}>OFF</span>}</span>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4 }}>
-                <input type="checkbox" checked={linkGate} disabled={linkGateBusy} style={{ marginTop: 2 }}
-                       onChange={async (e) => {
-                         const v = e.target.checked; setLinkGate(v); setLinkGateBusy(true);
-                         const res = await setPlatformLinkGate(platform!.key, v);
-                         if (!res.ok) setLinkGate(!v);
-                         setLinkGateBusy(false);
-                       }} />
-                <span>Bắt account đủ <b>standing trong community</b> (đã join + tenure + karma + số seed thành công) trước khi được nâng lên phase có LINK (seed/direct). Chưa đủ → giữ ở seeding link-free. Tắt = platform này không gate.</span>
-              </label>
-            </div>
-          )}
+
+          {/* ── Chi tiết (ít dùng: URL phụ, mô tả, meta) ── */}
           <div style={{ gridColumn: '1 / 3' }}>
-            <span style={lbl}>Tags</span>
-            <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
+            <Collapsible title="📄 Chi tiết" marginTop={2}
+                         hint="post/profile URL · icon · mô tả · region · pricing · tags">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 8 }}>
+                <div style={{ gridColumn: '1 / 3' }}>
+                  <span style={lbl}>Post URL <span style={{ color: 'var(--fg-4)' }}>(optional)</span></span>
+                  <NoFillInput style={fld} type="url" placeholder="https://...submit" value={form.postUrl} onChange={(e) => setF('postUrl', e.target.value)} />
+                </div>
+                <div style={{ gridColumn: '1 / 3' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ ...lbl, marginBottom: 0 }}>
+                      Profile URL pattern <span style={{ color: 'var(--fg-4)' }}>(optional · {`{handle}`} placeholder)</span>
+                    </span>
+                    {suggestedProfileUrl && form.profileUrlPattern !== suggestedProfileUrl && (
+                      <button type="button"
+                        onClick={() => setF('profileUrlPattern', suggestedProfileUrl)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 10.5, cursor: 'pointer', padding: 0 }}
+                        title={`Apply suggestion: ${suggestedProfileUrl}`}
+                      >
+                        💡 Apply suggested
+                      </button>
+                    )}
+                  </div>
+                  <NoFillInput style={fld} type="url"
+                    placeholder="https://www.example.com/user/{handle}"
+                    value={form.profileUrlPattern}
+                    onChange={(e) => setF('profileUrlPattern', e.target.value)} />
+                  {suggestedProfileUrl && !form.profileUrlPattern && (
+                    <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+                      💡 Suggested: <span style={{ color: 'var(--accent)' }}>{suggestedProfileUrl}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ gridColumn: '1 / 3' }}>
+                  <span style={lbl}>Description <span style={{ color: 'var(--fg-4)' }}>(1-2 sentences)</span></span>
+                  <textarea style={{ ...fld, minHeight: 50, fontFamily: 'inherit', resize: 'vertical' }}
+                            placeholder="Forum tech VN, ML-driven FYP, B2B-focused..."
+                            value={form.description} onChange={(e) => setF('description', e.target.value)} />
+                </div>
+                <div>
+                  <span style={lbl}>Icon slug <span style={{ color: 'var(--fg-4)' }}>(simpleicons.org)</span></span>
+                  <NoFillInput style={fld} placeholder="auto từ key"
+                               value={form.iconSlug} onChange={(e) => setF('iconSlug', e.target.value.toLowerCase())} />
+                </div>
+                <div>
+                  <span style={lbl}>Region <span style={{ color: 'var(--fg-4)' }}>(US, VN, global...)</span></span>
+                  <NoFillInput style={fld} placeholder="US, VN, global"
+                               value={form.region} onChange={(e) => setF('region', e.target.value)} />
+                </div>
+                <div>
+                  <span style={lbl}>Pricing</span>
+                  <NoFillInput style={fld} placeholder="Free / $9/mo..."
+                               value={form.pricing} onChange={(e) => setF('pricing', e.target.value)} />
+                </div>
+                <div>
+                  <span style={lbl}>User count estimate</span>
+                  <NoFillInput style={fld} placeholder="1B MAU, 5M users..."
+                               value={form.userCountEstimate} onChange={(e) => setF('userCountEstimate', e.target.value)} />
+                </div>
+                <div style={{ gridColumn: '1 / 3' }}>
+                  <span style={lbl}>Tags</span>
+                  <TagsInput value={form.tags} onChange={(t) => setF('tags', t)} placeholder="b2b, oss, viral, vietnam..." />
+                </div>
+              </div>
+            </Collapsible>
           </div>
 
-          {/* ── Allowed content formats (override hardcoded) ── */}
-          <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
-            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              📋 Loại bài hỗ trợ
+          {/* ── Luật đăng: loại bài được phép + link-gate ── */}
+          <div style={{ gridColumn: '1 / 3' }}>
+            <Collapsible title="📋 Luật đăng" marginTop={0}
+                         badge={<span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{allowedCount}/{CONTENT_FORMATS.length} loại</span>}
+                         hint={platform?.key ? (linkGate ? '🔒 link-gate ON' : 'link-gate off') : undefined}>
+            <span style={{ ...lbl, marginTop: 8, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              Loại bài hỗ trợ
               <span style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
                 // default cho mọi habitat của platform này (habitat có thể override thêm)
               </span>
@@ -416,12 +411,32 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                 </>
               );
             })()}
+            {platform?.key && (
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', fontSize: 12,
+                              color: 'var(--fg-2)', lineHeight: 1.4, marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
+                <input type="checkbox" checked={linkGate} disabled={linkGateBusy} style={{ marginTop: 2 }}
+                       onChange={async (e) => {
+                         const v = e.target.checked; setLinkGate(v); setLinkGateBusy(true);
+                         const res = await setPlatformLinkGate(platform!.key, v);
+                         if (!res.ok) setLinkGate(!v);
+                         setLinkGateBusy(false);
+                       }} />
+                <span>
+                  <b>🔒 Link-gate {linkGate ? <span style={{ color: 'var(--ok)' }}>ON</span> : <span style={{ color: 'var(--fg-4)' }}>OFF</span>}</b> — bắt account đủ <b>standing trong community</b> (đã join + tenure + karma + số seed thành công) trước khi được nâng lên phase có LINK (seed/direct). Chưa đủ → giữ ở seeding link-free.
+                </span>
+              </label>
+            )}
+            </Collapsible>
           </div>
 
-          {/* ── Technology section ── */}
-          <div style={{ gridColumn: '1 / 3', borderTop: '1px dashed var(--line)', paddingTop: 10, marginTop: 2 }}>
-            <span style={{ ...lbl, color: 'var(--accent)', marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              ⚙ Technology / CMS / framework
+          {/* ── Kỹ thuật: technology + signup fields + selectors + recipes ── */}
+          <div style={{ gridColumn: '1 / 3' }}>
+            <Collapsible title="⚙ Kỹ thuật" marginTop={0}
+                         badge={form.technologyKey ? <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{form.technologyKey}</span> : undefined}
+                         hint="technology · signup fields · selectors · recipes">
+            <div style={{ marginTop: 8 }}>
+            <span style={{ ...lbl, marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Technology / CMS / framework
               {form.technologyKey && (
                 <Link href={`/technologies?e=${form.technologyKey}`} title={`Open technology “${form.technologyKey}” → selectors + sites using it`}
                       style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 400 }}>↗ manage</Link>
@@ -452,10 +467,10 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                 {detectMsg.text}
               </div>
             )}
-          </div>
+            </div>
 
           {/* ── Platform signup fields override ── */}
-          <div style={{ gridColumn: '1 / 3' }}>
+          <div style={{ marginTop: 12 }}>
             <div style={{ marginBottom: 4 }}>
               <span style={{ ...lbl, marginBottom: 0 }}>
                 Signup fields
@@ -470,50 +485,10 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
             />
           </div>
 
-          {/* Reverse view — communities (habitats) using this platform.
-              Click row → navigate to that project's tribes page with habitat opened. */}
-          {!isCreate && (
-            <div style={{ gridColumn: '1 / 3', marginTop: 6 }}>
-              <span style={{ ...lbl, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <IconCommunity size={11} color="var(--accent)" />
-                Communities dùng platform này
-                <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
-                  // {communities.length} cross-project
-                </span>
-              </span>
-              {communities.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8, background: 'var(--bg-2)', border: '1px dashed var(--line)', borderRadius: 5 }}>
-                  Chưa có habitat nào link tới platform này. Add habitat ở /p/{'{id}'}/tribes hoặc dùng auto-detect khi paste URL.
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
-                  {communities.map((c) => (
-                    <Link key={c.id} href={`/p/${c.projectId}/tribes?habitat=${c.id}`}
-                          onClick={() => onClose()}
-                          style={{
-                            display: 'block', padding: '6px 8px',
-                            background: 'var(--bg-2)', border: '1px solid var(--line)',
-                            borderRadius: 5, textDecoration: 'none', color: 'var(--fg-0)', fontSize: 11.5,
-                          }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <IconCommunity size={11} color="var(--accent)" />
-                        {c.name}
-                      </div>
-                      <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        <span>📁 {c.projectName}</span>
-                        {c.tribeName && <span>· ◍ {c.tribeName}</span>}
-                        {c.members > 0 && <span>· 👥 {(c.members / 1000).toFixed(c.members > 9999 ? 0 : 1)}k</span>}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
           {/* LLM-discovered selectors cho ext scrape - chỉ hiện edit-mode (có
               platform tồn tại) vì chưa thể có selectors khi đang create. */}
           {!isCreate && platform && (
-            <div style={{ gridColumn: '1 / 3', marginTop: 8 }}>
+            <div style={{ marginTop: 12 }}>
               <HabitatSelectorsSection
                 editScope="platform"
                 editKey={platform.key}
@@ -524,7 +499,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
               platforms.login_recipe / password_reset_recipe (runner refresh-sessions). */}
           {!isCreate && platform && (Boolean(platform.loginRecipe) || Boolean(platform.passwordResetRecipe)
             || (Array.isArray(platform.checklist) && platform.checklist.length > 0)) && (
-            <div style={{ gridColumn: '1 / 3', marginTop: 8 }}>
+            <div style={{ marginTop: 12 }}>
               <span style={{ ...lbl, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 🧾 Recipes
                 <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
@@ -541,6 +516,47 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                   </details>
                 ) : null,
               )}
+            </div>
+          )}
+            </Collapsible>
+          </div>
+
+          {/* Reverse view — communities (habitats) dùng platform này.
+              Click row → sang tribes page của project đó, mở đúng habitat. */}
+          {!isCreate && (
+            <div style={{ gridColumn: '1 / 3' }}>
+              <Collapsible marginTop={0}
+                title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconCommunity size={11} /> Communities dùng platform này</span>}
+                badge={<span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{communities.length}</span>}
+                hint="cross-project">
+              {communities.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', padding: 8, marginTop: 8, background: 'var(--bg-2)', border: '1px dashed var(--line)', borderRadius: 5 }}>
+                  Chưa có habitat nào link tới platform này. Add habitat ở /p/{'{id}'}/tribes hoặc dùng auto-detect khi paste URL.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, marginTop: 8, maxHeight: 200, overflowY: 'auto' }}>
+                  {communities.map((c) => (
+                    <Link key={c.id} href={`/p/${c.projectId}/tribes?habitat=${c.id}`}
+                          onClick={() => onClose()}
+                          style={{
+                            display: 'block', padding: '6px 8px',
+                            background: 'var(--bg-2)', border: '1px solid var(--line)',
+                            borderRadius: 5, textDecoration: 'none', color: 'var(--fg-0)', fontSize: 11.5,
+                          }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <IconCommunity size={11} />
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize: 9.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <span>📁 {c.projectName}</span>
+                        {c.tribeName && <span>· ◍ {c.tribeName}</span>}
+                        {c.members > 0 && <span>· 👥 {(c.members / 1000).toFixed(c.members > 9999 ? 0 : 1)}k</span>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              </Collapsible>
             </div>
           )}
         </div>

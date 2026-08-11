@@ -23,44 +23,59 @@ const PRIORITY_META: Record<PlatformPriority, { label: string; color: string; st
 
 // P3 no-signup routing (decision earns-strategy 2026-07-27): phương thức lấy backlink khi KHÔNG tạo account
 // thường được (ext Crew advisor ghi qua platform-info). bucket=làm tay account/form · cần Outreach (email chủ site).
+// Màu = TÍN HIỆU (YDNI): trung tính = làm tay được · amber = phải đi Outreach · đỏ = không nhận UGC.
 const ACQ_META: Record<string, { label: string; color: string; icon: string; bucket: 'account' | 'outreach' }> = {
-  oauth_only:       { label: 'OAuth login',    color: '#5ec8e6', icon: '🔑', bucket: 'account' },
-  no_account_form:  { label: 'Form khách',     color: '#22c55e', icon: '📝', bucket: 'account' },
-  guest_post_email: { label: 'Guest post',     color: '#f59e0b', icon: '✉',  bucket: 'outreach' },
-  gated:            { label: 'Gated/xin quyền', color: '#f59e0b', icon: '🔒', bucket: 'outreach' },
-  no_ugc:           { label: 'Không UGC',      color: '#ef4444', icon: '🚫', bucket: 'outreach' },
+  oauth_only:       { label: 'OAuth login',    color: 'var(--fg-2)', icon: '🔑', bucket: 'account' },
+  no_account_form:  { label: 'Form khách',     color: 'var(--fg-2)', icon: '📝', bucket: 'account' },
+  guest_post_email: { label: 'Guest post',     color: 'var(--warn)', icon: '✉',  bucket: 'outreach' },
+  gated:            { label: 'Gated/xin quyền', color: 'var(--warn)', icon: '🔒', bucket: 'outreach' },
+  no_ugc:           { label: 'Không UGC',      color: 'var(--bad)',  icon: '🚫', bucket: 'outreach' },
 };
+const classifiedAcq = (platforms: PlatformWithUsage[]) =>
+  platforms.filter((p) => p.acquisitionMethod && ACQ_META[p.acquisitionMethod]);
 
-// Report phân bổ: bao nhiêu site làm-tay (account/form) vs phải đi Outreach. Chỉ hiện khi có site đã phân loại.
-function AcqBreakdown({ platforms }: { platforms: PlatformWithUsage[] }) {
-  const classified = platforms.filter((p) => p.acquisitionMethod && ACQ_META[p.acquisitionMethod]);
-  if (classified.length === 0) return null;
-  const counts: Record<string, number> = {};
-  let outreachN = 0;
-  for (const p of classified) {
-    const m = ACQ_META[p.acquisitionMethod!];
-    if (!m) continue;
-    counts[p.acquisitionMethod!] = (counts[p.acquisitionMethod!] ?? 0) + 1;
-    if (m.bucket === 'outreach') outreachN++;
+// Tab "Cách lấy backlink": phân bổ làm-tay vs Outreach + LIST platform từng nhóm
+// (bấm tên = mở platform đó — YDNI: pointer phải tương tác được, không phải số chết).
+function AcqBreakdown({ platforms, onPick }: {
+  platforms: PlatformWithUsage[]; onPick: (p: PlatformWithUsage) => void;
+}) {
+  const classified = classifiedAcq(platforms);
+  if (classified.length === 0) {
+    return <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>
+      Chưa platform nào được phân loại. Crew advisor ghi vào khi gặp site không cho signup.
+    </div>;
   }
-  const accountN = classified.length - outreachN;
+  const groups = Object.keys(ACQ_META)
+    .map((k) => ({ k, m: ACQ_META[k]!, items: classified.filter((p) => p.acquisitionMethod === k) }))
+    .filter((g) => g.items.length > 0);
+  const outreachN = classified.filter((p) => ACQ_META[p.acquisitionMethod!]!.bucket === 'outreach').length;
   return (
-    <div style={{ marginBottom: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>⛔ Phương thức lấy backlink (no-signup)</span>
-        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{classified.length} site đã phân loại · <b style={{ color: '#3ecf8e' }}>{accountN}</b> làm tay (account/form) · <b style={{ color: 'var(--warn)' }}>{outreachN}</b> cần Outreach (email chủ site)</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+        {classified.length} site đã phân loại · {classified.length - outreachN} làm tay (account/form) ·{' '}
+        <b style={{ color: 'var(--warn)' }}>{outreachN}</b> cần Outreach (email chủ site)
       </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 12px' }}>
-        {Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => {
-          const m = ACQ_META[k];
-          if (!m) return null;
-          return (
-            <span key={k} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 999, border: `1px solid ${m.color}`, color: m.color, display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-              {m.icon} {m.label} <b>{n}</b>
-            </span>
-          );
-        })}
-      </div>
+      {groups.map((g) => (
+        <div key={g.k}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: g.m.color }}>{g.m.icon} {g.m.label}</span>
+            <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+            <span style={{ opacity: 0.6 }}>{g.items.length}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {g.items.map((p) => (
+              <button key={p.key} type="button" onClick={() => onPick(p)}
+                      title={`Mở ${p.label}`}
+                      style={{ fontSize: 11, padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
+                               background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-1)',
+                               display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                <SiteFavicon iconSlug={p.iconSlug} url={p.signupUrl || p.postUrl} size={12} title={p.label} />
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -88,30 +103,35 @@ function useUrlParam(key: string, def: string): [string, (v: string) => void] {
 // Scale readiness cho PLATFORM scope — giống ma trận /technologies nhưng tính
 // EFFECTIVE = selector riêng nền tảng (platform-scope) + KẾ THỪA technology pack.
 // Chỉ hiện platform CÓ selector (riêng hoặc kế thừa). Cột = page_kind của pack.
+const effCounts = (p: PlatformWithUsage) => {
+  const e: Record<string, number> = {};
+  for (const d of READINESS_DIMS) e[d.pk] = (p.selectorCounts[d.pk] ?? 0) + (p.inheritedCounts[d.pk] ?? 0);
+  return e;
+};
+const hasSelectors = (p: PlatformWithUsage) =>
+  Object.keys(p.selectorCounts).length > 0 || Object.keys(p.inheritedCounts).length > 0;
+
 function PlatformReadinessMatrix({ platforms, onOpen }: {
   platforms: PlatformWithUsage[]; onOpen: (label: string) => void;
 }) {
-  const eff = (p: PlatformWithUsage) => {
-    const e: Record<string, number> = {};
-    for (const d of READINESS_DIMS) e[d.pk] = (p.selectorCounts[d.pk] ?? 0) + (p.inheritedCounts[d.pk] ?? 0);
-    return e;
-  };
-  const hasSel = (p: PlatformWithUsage) =>
-    Object.keys(p.selectorCounts).length > 0 || Object.keys(p.inheritedCounts).length > 0;
+  const eff = effCounts;
   const tot = (p: PlatformWithUsage) => Object.values(eff(p)).reduce((x, y) => x + y, 0);
-  const withSel = platforms.filter(hasSel);
+  const withSel = platforms.filter(hasSelectors);
   const rows = [...withSel].sort((a, b) => {
     const score = (p: PlatformWithUsage) => (isReady(eff(p)) ? 2e4 : tot(p) > 0 ? 1e4 : 0) + tot(p);
     return score(b) - score(a) || a.label.localeCompare(b.label);
   });
-  if (!rows.length) return null;
+  if (!rows.length) {
+    return <div className="panel" style={{ padding: 24, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>
+      Chưa platform nào có selector. Ext Crew tự học khi gặp page signup/composer.
+    </div>;
+  }
   const readyN = withSel.filter((p) => isReady(eff(p))).length;
   const th: CSSProperties = { fontSize: 10.5, color: 'var(--fg-3)', fontWeight: 600, textAlign: 'center', padding: '5px 8px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
   return (
-    <div style={{ marginBottom: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>🚀 Scale readiness</span>
-        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{readyN}/{withSel.length} platform sẵn sàng (tạo account + đăng được) · effective = selector riêng + kế thừa technology (⬇)</span>
+    <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ padding: '8px 12px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line)', fontSize: 11, color: 'var(--fg-3)' }}>
+        <b style={{ color: 'var(--ok)' }}>{readyN}</b>/{withSel.length} platform sẵn sàng (tạo account + đăng được) · bấm 1 dòng để lọc danh sách
       </div>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520 }}>
@@ -125,7 +145,7 @@ function PlatformReadinessMatrix({ platforms, onOpen }: {
             {rows.map((p) => {
               const e = eff(p);
               const ready = isReady(e);
-              const st = ready ? { t: 'ready', c: '#22c55e' } : tot(p) > 0 ? { t: 'partial', c: 'var(--warn)' } : { t: 'empty', c: 'var(--fg-3)' };
+              const st = ready ? { t: 'ready', c: 'var(--ok)' } : { t: tot(p) > 0 ? 'partial' : 'empty', c: 'var(--fg-3)' };
               return (
                 <tr key={p.key} onClick={() => onOpen(p.label)} style={{ cursor: 'pointer' }}
                     title="Bấm để lọc danh sách xuống platform này">
@@ -134,7 +154,7 @@ function PlatformReadinessMatrix({ platforms, onOpen }: {
                     <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6, fontFamily: 'var(--font-mono, monospace)' }}>{p.key}</span>
                   </td>
                   <td style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
-                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: p.technologyKey ? '#b48cff' : 'var(--fg-3)' }}>{p.technologyKey || '–'}</span>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: p.technologyKey ? 'var(--fg-2)' : 'var(--fg-3)' }}>{p.technologyKey || '–'}</span>
                   </td>
                   {READINESS_DIMS.map((d) => {
                     const own = p.selectorCounts[d.pk] ?? 0;
@@ -144,8 +164,9 @@ function PlatformReadinessMatrix({ platforms, onOpen }: {
                     return (
                       <td key={d.pk}
                           title={total === 0 ? 'chưa có selector' : `${own} riêng platform + ${inh} kế thừa technology`}
-                          style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)', background: total > 0 ? 'color-mix(in srgb, var(--neon-cyan) 8%, transparent)' : 'transparent' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: total === 0 ? 'var(--fg-3)' : inheritedOnly ? '#b48cff' : 'var(--neon-cyan)' }}>
+                          style={{ textAlign: 'center', borderBottom: '1px solid var(--bg-1)' }}>
+                        {/* YDNI màu: phân cấp bằng đậm/nhạt, không tô hue trang trí. */}
+                        <span style={{ fontSize: 12, fontWeight: total === 0 ? 400 : 700, color: total === 0 ? 'var(--fg-4)' : inheritedOnly ? 'var(--fg-3)' : 'var(--fg-1)' }}>
                           {total === 0 ? '–' : `${inheritedOnly ? '⬇' : '✓'} ${total}`}
                         </span>
                       </td>
@@ -161,13 +182,14 @@ function PlatformReadinessMatrix({ platforms, onOpen }: {
         </table>
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--fg-3)', padding: '6px 12px', borderTop: '1px solid var(--line)', lineHeight: 1.5 }}>
-        <b style={{ color: 'var(--neon-cyan)' }}>✓ N</b> = có selector riêng platform · <b style={{ color: '#b48cff' }}>⬇ N</b> = kế thừa từ technology pack (chưa override riêng) · <b style={{ color: '#22c55e' }}>ready</b> = signup + composer (tạo account + đăng được). Platform không có technology (reddit/x/HN…) phải tự đủ pack ở platform scope.
+        <b>✓ N</b> = selector riêng platform · <b>⬇ N</b> = kế thừa technology pack · <b style={{ color: 'var(--ok)' }}>ready</b> = signup + composer. Platform không có technology (reddit/x/HN…) phải tự đủ pack ở platform scope.
       </div>
     </div>
   );
 }
 
 export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] }) {
+  const [tab, setTab] = useUrlParam('t', 'list');
   const [qUrl, setQUrl] = useUrlParam('q', '');
   // Local state for input — instant UI feedback. Sync to URL after 300ms debounce.
   const [q, setQ] = useState(qUrl);
@@ -268,6 +290,18 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
     medium: platforms.filter((p) => p.priority === 'medium').length,
     low: platforms.filter((p) => p.priority === 'low').length,
   }), [platforms]);
+  // Badge cho tab — tính 1 lần ở page (matrix/acq dùng chung helper module-scope).
+  const readiness = useMemo(() => {
+    const withSel = platforms.filter(hasSelectors);
+    return { total: withSel.length, ready: withSel.filter((p) => isReady(effCounts(p))).length };
+  }, [platforms]);
+  const acqN = useMemo(() => classifiedAcq(platforms).length, [platforms]);
+  const TABS = [
+    { k: 'list',  label: '📋 Danh sách', badge: String(counts.total) },
+    { k: 'ready', label: '🚀 Sẵn sàng',  badge: `${readiness.ready}/${readiness.total}` },
+    { k: 'acq',   label: '⛔ Cách lấy backlink', badge: String(acqN) },
+  ];
+
   const priorityOptions: { value: string; label: string }[] = [
     { value: 'all', label: 'all' },
     { value: 'critical', label: 'critical' },
@@ -294,10 +328,22 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
         </div>
       </div>
 
-      <PlatformReadinessMatrix platforms={platforms} onOpen={setQ} />
+      {/* YDNI: mặc định CHỈ danh sách (việc chính). 2 báo cáo phụ nằm sau 1 click. */}
+      <div className="tabs" style={{ height: 34, marginLeft: 0, borderBottom: '1px solid var(--line)', marginBottom: 12, overflowX: 'auto' }}>
+        {TABS.map((t) => (
+          <button key={t.k} type="button" className="tab" data-active={tab === t.k} onClick={() => setTab(t.k)}>
+            {t.label}<span className="badge">{t.badge}</span>
+          </button>
+        ))}
+      </div>
 
-      <AcqBreakdown platforms={platforms} />
+      {tab === 'ready' && (
+        <PlatformReadinessMatrix platforms={platforms}
+          onOpen={(label) => { setQ(label); setTab('list'); }} />
+      )}
+      {tab === 'acq' && <AcqBreakdown platforms={platforms} onPick={setEditing} />}
 
+      {tab === 'list' && (<>
       <ListToolbar
         search={q} onSearch={setQ} searchPlaceholder="Search platform..."
         right={<span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{filtered.length} match</span>}
@@ -433,6 +479,7 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
       )}
 
       <Pager {...pager} onPage={pager.setPage} />
+      </>)}
 
       {(editing || creating) && (
         <PlatformFormModal

@@ -6,11 +6,11 @@
 // hai surface. Sửa/đăng xong ở đây; soạn nội dung dài vẫn ở Studio (nút mở cuối drawer).
 // YDNI: chỉ 5 thứ người ta động tới trên lịch (hook · trạng thái · ngày · angle · link đã đăng).
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf } from '@/lib/content-channels';
-import { updateContentPiece } from '@/lib/actions/content';
+import { updateContentPiece, getPieceDetail } from '@/lib/actions/content';
 import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
@@ -21,7 +21,17 @@ const STATUS_COLOR: Record<string, string> = {
   published: 'var(--ok)', archived: 'var(--fg-4)',
 };
 
-export function PieceDrawer({ piece, projectLabel, onClose }: { piece: CalPiece; projectLabel?: string; onClose: () => void }) {
+// Đọc 'khoá:giá trị' trong tags — nơi/giờ/account/browser/asset/chuỗi việc đều nằm ở đó (không migration).
+const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1) ?? '';
+
+export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], tasks = [], onClose }: {
+  piece: CalPiece; projectLabel?: string; onClose: () => void;
+  /** Vault: để runner biết đăng bằng account nào, mở profile nào — không phải đi tra chỗ khác. */
+  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null }>;
+  browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
+  /** Chuỗi việc chuẩn bị (tag chain:<id,id>) — nhìn thấy ngay còn thiếu bước nào. */
+  tasks?: Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null }>;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [hook, setHook] = useState(piece.subject ?? '');
@@ -30,6 +40,15 @@ export function PieceDrawer({ piece, projectLabel, onClose }: { piece: CalPiece;
 
   const ch = CHANNELS.find((c) => c.id === piece.channel);
   const a = angleOf(piece.tags);
+  const place = tagVal(piece.tags, 'place');
+  const time = tagVal(piece.tags, 'time');
+  const asset = tagVal(piece.tags, 'asset');
+  const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
+  const prof = browserProfiles.find((x) => x.id === Number(tagVal(piece.tags, 'browser')));
+  const chain = tagVal(piece.tags, 'chain').split(',').map(Number).filter(Boolean)
+    .map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null }>;
+  const [body, setBody] = useState<string>('');
+  useEffect(() => { getPieceDetail(piece.id, piece.projectId).then((d) => setBody(d?.bodyMd ?? '')); }, [piece.id, piece.projectId]);
   const refresh = () => start(() => router.refresh());
   // updateContentPiece nhận Partial<ContentInput>; title bắt buộc trong type nên gửi kèm title cũ.
   const patch = async (p: Record<string, unknown>) => {
@@ -101,6 +120,44 @@ export function PieceDrawer({ piece, projectLabel, onClose }: { piece: CalPiece;
               Đã đăng
             </button>
           </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+          <label style={lbl}>Runner cần gì để chạy</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 12.5 }}>
+            <span style={{ color: 'var(--fg-4)' }}>Nơi đăng</span><span>{place || <em style={{ color: 'var(--neon-amber)' }}>chưa chọn</em>}</span>
+            <span style={{ color: 'var(--fg-4)' }}>Giờ</span><span>{time || <em style={{ color: 'var(--neon-amber)' }}>chưa đặt</em>}</span>
+            <span style={{ color: 'var(--fg-4)' }}>Account</span>
+            <span>{acct ? <>#{acct.id} {acct.handle} <span style={{ color: acct.status === 'active' ? 'var(--ok)' : 'var(--neon-amber)' }}>({acct.status})</span></> : <em style={{ color: 'var(--neon-amber)' }}>chưa gắn</em>}</span>
+            <span style={{ color: 'var(--fg-4)' }}>Browser</span>
+            <span>{prof ? <>#{prof.id} {prof.label}<div style={{ color: 'var(--fg-4)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>{prof.externalId}</div></> : <em style={{ color: 'var(--neon-amber)' }}>chưa gắn</em>}</span>
+            <span style={{ color: 'var(--fg-4)' }}>Asset</span><span>{asset || <em style={{ color: 'var(--neon-amber)' }}>chưa có</em>}</span>
+          </div>
+        </div>
+
+        {chain.length > 0 && (
+          <div>
+            <label style={lbl}>Chuỗi chuẩn bị</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12.5 }}>
+              {chain.map((t) => (
+                <div key={t.id} style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>{t.siteScheduledAt ?? '—'}</span>
+                  <span style={{ flex: 1 }}>{t.title}</span>
+                  <span style={{ color: t.siteState === 'completed' || t.siteState === 'verified' ? 'var(--ok)' : 'var(--fg-4)' }}>{t.siteState}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label style={lbl}>Caption sẽ đăng</label>
+          <textarea readOnly value={body || '(chưa soạn)'} rows={8}
+            style={{ ...inp, fontFamily: 'var(--font-mono)', fontSize: 11.5, lineHeight: 1.5, resize: 'vertical' }} />
+          <button type="button" onClick={() => navigator.clipboard?.writeText(body)} disabled={!body}
+            style={{ marginTop: 5, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' }}>
+            Copy caption
+          </button>
         </div>
 
         <button type="button" onClick={() => router.push(`/p/${piece.projectId}/studio?m=edit&mId=${piece.id}`)}

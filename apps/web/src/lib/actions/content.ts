@@ -134,3 +134,14 @@ Trả JSON object: { "title": "≤60 chars", "subject": "≤80 chars hook hoặc
     return { ok: false, error: (e as Error).message };
   }
 }
+
+// Chi tiết 1 bài cho drawer trên LỊCH plays — lấy đúng phần cần để runner chạy (caption + link đã đăng).
+// Lịch chỉ mang cột nhẹ (CalPiece) để global /plays không kéo body_md của cả trăm bài; mở drawer mới nạp.
+export async function getPieceDetail(id: number, projectId: string): Promise<{ bodyMd: string; publishUrl: string | null } | null> {
+  const db = ensureDb();
+  const rows = await db.select({ bodyMd: contentPieces.bodyMd, publishUrl: contentPieces.publishUrl })
+    .from(contentPieces)
+    .where(and(eq(contentPieces.tenantId, TENANT), eq(contentPieces.projectId, projectId), eq(contentPieces.id, id)))
+    .limit(1);
+  return rows[0] ?? null;
+}

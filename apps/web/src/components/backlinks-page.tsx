@@ -867,6 +867,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [openProd, setOpenProd] = useState<string | null>(sp.get('sp'));   // slug sản phẩm đang mở
   const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
+  const [angleF, setAngleF] = useState<string>(sp.get('ang') ?? '');   // '' | 'g:<nhóm>' | '<angle>' — lọc lịch theo góc nội dung
   const [openPieceId, setOpenPieceId] = useState<number | null>(null);         // 📝 bài đăng pill clicked — mở TẠI CHỖ, không nhảy trang
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
@@ -1004,6 +1005,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('tier', tierFilter);
     set('closed', showClosed ? '1' : '');
     set('proj', allProjects ? projectFilter : '');
+    set('ang', angleF);
     set('cal', calMode === 'month' ? '' : calMode);
     set('d', view === 'calendar' ? calDate : '');
     set('wt', kind);
@@ -1190,6 +1192,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return [...m.entries()].map(([label, items]) => ({ label, items })).sort((a, b) => b.items.length - a.items.length);
   }, [shown, groupBy]);
 
+  // Bài trong tầm nhìn = lọc project + loại việc + ô tìm kiếm (KHÔNG gồm lọc góc).
+  // Lịch dùng nó rồi lọc thêm theo góc; dải mix dùng nguyên bản để số không tự co lại khi lọc.
+  const piecesInScope = useMemo(() => pieces.filter((p) => {
+    if (kind && kind !== 'content') return false;
+    if (allProjects && projectFilter && p.projectId !== projectFilter) return false;
+    const pq = q.trim().toLowerCase();
+    if (pq && !`${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq)) return false;
+    return true;
+  }), [pieces, kind, allProjects, projectFilter, q]);
+
   // Calendar items from the SAME filtered set: done → solid on done date; scheduled-not-done → dim.
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
@@ -1235,12 +1247,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     }
     // Bài đăng (content_pieces) — CÙNG lịch. Màu = nhóm angle (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG) để
     // nhìn tháng là thấy mix lệch chỗ nào; ✓ = đã đăng; mờ = còn nháp. Bấm mở piece ở Studio.
-    for (const p of pieces) {
-      if (kind && kind !== 'content') continue;
-      if (allProjects && projectFilter && p.projectId !== projectFilter) continue;
-      const pq = q.trim().toLowerCase();
-      if (pq && !`${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq)) continue;
+    for (const p of piecesInScope) {
       const a = angleOf(p.tags);
+      if (angleF) {
+        const okA = angleF.startsWith('g:') ? a?.group.id === angleF.slice(2) : a?.angle === angleF;
+        if (!okA) continue;
+      }
       const ch = CHANNELS.find((c) => c.id === p.channel);
       const pr = allProjects ? projectsById?.[p.projectId] : undefined;
       const plbl = showProj ? `[${pr?.name ?? p.projectId}] ` : '';
@@ -1253,23 +1265,23 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, pieces]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
   const pieceMix = useMemo(() => {
-    const ids = new Set(calItems.filter((i) => String(i.id).startsWith('c:')).map((i) => Number(String(i.id).slice(2))));
     const by = new Map<string, number>();
+    const byAngle = new Map<string, number>();
     let tagged = 0;
-    for (const p of pieces) {
-      if (!ids.has(p.id)) continue;
+    for (const p of piecesInScope) {
       const a = angleOf(p.tags);
       if (!a) continue;
       tagged++;
       by.set(a.group.id, (by.get(a.group.id) ?? 0) + 1);
+      byAngle.set(a.angle, (byAngle.get(a.angle) ?? 0) + 1);
     }
-    return { total: ids.size, tagged, by };
-  }, [calItems, pieces]);
+    return { total: piecesInScope.length, tagged, by, byAngle };
+  }, [piecesInScope]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1769,14 +1781,44 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               const pct = pieceMix.tagged ? Math.round((n / pieceMix.tagged) * 100) : 0;
               const target = MIX_TARGET[g.id];
               return (
-                <span key={g.id} title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}%` : g.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <button key={g.id} type="button" onClick={() => setAngleF((v) => v === `g:${g.id}` ? '' : `g:${g.id}`)}
+                  title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}% — bấm để lọc lịch` : `${g.label} — bấm để lọc lịch`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'transparent', color: 'var(--fg-3)', border: `1px solid ${angleF === `g:${g.id}` ? g.color : 'transparent'}` }}>
                   <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
                   {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
                   {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
-                </span>
+                </button>
               );
             })}
             {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
+            <Popover label="nhóm : angle" active={!!angleF} minWidth={300} align="right">
+              {() => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 380, overflowY: 'auto' }}>
+                  <button type="button" onClick={() => setAngleF('')} style={{ ...btn, alignSelf: 'flex-start', color: angleF ? 'var(--accent)' : 'var(--fg-4)' }}>Tất cả góc</button>
+                  {ANGLE_GROUPS.map((g) => (
+                    <div key={g.id}>
+                      <button type="button" onClick={() => setAngleF((v) => v === `g:${g.id}` ? '' : `g:${g.id}`)}
+                        style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, color: g.color, fontWeight: 700, padding: '1px 4px' }}>
+                        <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
+                        {g.label} <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{pieceMix.by.get(g.id) ?? 0}</span>
+                      </button>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 14 }}>
+                        {g.angles.map((x) => {
+                          const cnt = pieceMix.byAngle.get(x) ?? 0;
+                          const on = angleF === x;
+                          return (
+                            <button key={x} type="button" onClick={() => setAngleF((v) => v === x ? '' : x)}
+                              style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 5, cursor: 'pointer', border: `1px solid ${on ? g.color : 'var(--line)'}`, background: on ? g.color : 'transparent', color: on ? 'var(--bg-0)' : (cnt ? 'var(--fg-2)' : 'var(--fg-4)') }}>
+                              {x}{cnt ? ` ${cnt}` : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Popover>
           </div>
         )}
         <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}

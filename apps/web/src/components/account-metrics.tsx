@@ -63,7 +63,8 @@ export function statChips(stats: Record<string, unknown> | null | undefined): Ch
     }
     const m = META[k];
     const label = m?.label ?? k.replace(/_/g, ' ');
-    const val = typeof v === 'number' ? fmtCompactNum(v) : String(v).slice(0, 24);
+    // age_days không rút gọn: "3.2k ngày tuổi" khó đọc hơn "3148 ngày tuổi".
+    const val = typeof v === 'number' ? (k === 'age_days' ? String(v) : fmtCompactNum(v)) : String(v).slice(0, 24);
     out.push({ key: k, text: `${m?.icon ?? ''}${m?.icon ? ' ' : ''}${val} ${label}`.trim(), title: `${k}: ${String(v)}` });
   }
   const rank = (k: string) => { const i = ORDER.indexOf(k); return i < 0 ? ORDER.length : i; };
@@ -116,12 +117,12 @@ export function AccountMetricsPanel({ accountId, stats, profileUrl }: {
     fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
     textTransform: 'uppercase', letterSpacing: '.06em',
   };
-  const actChips: Array<[string, number | string, string]> = act ? [
-    ['🏘', act.briefs, 'community đang seed (community_briefs)'],
-    ['📝', act.posts, 'bài đã đăng (cards có post_url)'],
-    ['🗒', `${act.tasksOpen}/${act.tasksOpen + act.tasksDone}`, 'việc còn mở / tổng việc gắn account này'],
-    ['💬', act.interactions, 'tương tác đã ghi (interactions)'],
-    ['📰', act.publications, 'publication đang theo dõi'],
+  const actChips: Array<[string, string, string]> = act ? [
+    ['🏘', `${act.briefs} community`, 'community account này đang seed (community_briefs)'],
+    ['📝', `${act.posts} bài`, 'bài đã đăng (cards có post_url)'],
+    ['🗒', `${act.tasksOpen}/${act.tasksOpen + act.tasksDone} việc`, 'việc còn mở / tổng việc gắn account này'],
+    ['💬', `${act.interactions} tương tác`, 'tương tác đã ghi (interactions)'],
+    ['📰', `${act.publications} publication`, 'publication đang theo dõi'],
   ] : [];
 
   return (
